@@ -523,19 +523,19 @@ export function PerFormModal({
                       <CommandList>
                         <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
-                          {filteredPersExistentes.map((per) => (
+                          {filteredPersExistentes.map((per: any) => (
                             <CommandItem
-                              key={per.numero_processo_per}
-                              value={per.numero_processo_per}
+                              key={per.nr_per}
+                              value={per.nr_per}
                               onSelect={() => {
-                                setSelectedPerRetificado(per.numero_processo_per);
-                                form.setValue('nr_proc_ret', per.numero_processo_per);
+                                setSelectedPerRetificado(per.nr_per);
+                                form.setValue('nr_proc_ret', per.nr_per);
                                 setPerRetificadoOpen(false);
                                 setPerSearchQuery('');
                               }}
                             >
                               <div className="flex flex-col">
-                                <span className="font-mono text-sm">{per.numero_processo_per}</span>
+                                <span className="font-mono text-sm">{per.nr_per}</span>
                                 <span className="text-xs text-muted-foreground">
                                   {per.exercicio}/{per.tri_exercicio}T • {per.tp_credito}
                                 </span>
