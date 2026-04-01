@@ -324,7 +324,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
             .select("id, produto_segmento_id, horas_contratadas")
             .eq("ordem_servico_id", osId);
-          const existingMap = new Map((existingProdutos || []).map((p: any) => [p.id, p.produto_segmento_id]));
+          const existingMap = new Map((existingProdutos || []).map((p: any) => [p.id, { produto_segmento_id: p.produto_segmento_id, horas_contratadas: p.horas_contratadas }]));
 
           // Determine which to keep, insert, and delete
           const draftDbIds = new Set(draftProdutos.filter(p => p._dbId).map(p => p._dbId!));
