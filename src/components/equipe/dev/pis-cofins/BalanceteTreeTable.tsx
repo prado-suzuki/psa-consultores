@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { DynamicTableHeader } from "./DynamicTableHeader";
+import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
 
@@ -103,6 +104,65 @@ function collectAllKeys(nodes: MergedNode[]): Set<string> {
   return keys;
 }
 
+// ── Recursive helpers for filtering / sorting / collecting ──
+
+type FilterKey = "cod_cta" | "descricao_conta";
+
+function collectUniqueValues(nodes: MergedNode[], key: FilterKey): Set<string> {
+  const values = new Set<string>();
+  for (const n of nodes) {
+    values.add(n[key]);
+    if (n.children.length) {
+      for (const v of collectUniqueValues(n.children, key)) values.add(v);
+    }
+  }
+  return values;
+}
+
+function filterTree(
+  nodes: MergedNode[],
+  filters: Map<string, Set<string>>,
+): MergedNode[] {
+  if (filters.size === 0) return nodes;
+
+  const result: MergedNode[] = [];
+  for (const node of nodes) {
+    const filteredChildren = filterTree(node.children, filters);
+
+    let selfMatch = true;
+    for (const [key, allowed] of filters) {
+      if (!allowed.has(node[key as FilterKey])) {
+        selfMatch = false;
+        break;
+      }
+    }
+
+    if (selfMatch || filteredChildren.length > 0) {
+      result.push({ ...node, children: filteredChildren });
+    }
+  }
+  return result;
+}
+
+function sortTree(
+  nodes: MergedNode[],
+  key: FilterKey,
+  direction: "asc" | "desc",
+): MergedNode[] {
+  const mul = direction === "asc" ? 1 : -1;
+  const sorted = [...nodes].sort((a, b) => mul * a[key].localeCompare(b[key], "pt-BR", { numeric: true }));
+  return sorted.map(n =>
+    n.children.length ? { ...n, children: sortTree(n.children, key, direction) } : n,
+  );
+}
+
+const FILTERABLE_KEYS: { key: FilterKey; label: string }[] = [
+  { key: "cod_cta", label: "Conta" },
+  { key: "descricao_conta", label: "Descrição" },
+];
+
+// ── Component ──
+
 export interface BalanceteTreeTableHandle {
   expandAll: () => void;
   collapseAll: () => void;
@@ -110,19 +170,12 @@ export interface BalanceteTreeTableHandle {
 
 interface BalanceteTreeTableProps {
   contasTree: { dt_ini: string; contas: ContaNode[] }[];
-  /** When true, show saldo_atual instead of saldo_periodo */
   periodoFechado?: boolean;
-  /** Hide the section title and expand/collapse buttons (caller provides them) */
   hideTitle?: boolean;
-  /** Custom section title (defaults to "Resumo Hierárquico") */
   sectionTitle?: string;
-  /** Map of extra accounts added manually: cod_cta → "D" | "C" */
   extraContas?: Map<string, "D" | "C">;
-  /** Set of cod_cta that already have EFD lancamentos (in calculation) */
   efdContas?: Set<string>;
-  /** Called when user selects Débito or Crédito for a leaf account */
   onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
-  /** Called when user clicks the badge to remove an extra account */
   onRemoveExtra?: (codCta: string) => void;
 }
 
@@ -142,7 +195,50 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
 
+    // ── Filter / sort state ──
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+    const [columnFilters, setColumnFilters] = useState<Map<string, Set<string>>>(new Map());
+
     const { mergedTree, periods } = useMemo(() => mergeContasTrees(contasTree), [contasTree]);
+
+    // ── Cascading unique values ──
+    const cascadingUniqueValues = useMemo(() => {
+      const result: Record<string, string[]> = {};
+      for (const { key } of FILTERABLE_KEYS) {
+        // Build filters excluding this column
+        const otherFilters = new Map<string, Set<string>>();
+        for (const [k, v] of columnFilters) {
+          if (k !== key) otherFilters.set(k, v);
+        }
+        const filtered = filterTree(mergedTree, otherFilters);
+        result[key] = [...collectUniqueValues(filtered, key)];
+      }
+      return result;
+    }, [mergedTree, columnFilters]);
+
+    // ── Processed tree (filtered + sorted) ──
+    const processedTree = useMemo(() => {
+      let tree = filterTree(mergedTree, columnFilters);
+      if (sortConfig && (sortConfig.key === "cod_cta" || sortConfig.key === "descricao_conta")) {
+        tree = sortTree(tree, sortConfig.key as FilterKey, sortConfig.direction);
+      }
+      return tree;
+    }, [mergedTree, columnFilters, sortConfig]);
+
+    const handleSort = useCallback((key: string, direction: "asc" | "desc") => {
+      setSortConfig(prev =>
+        prev?.key === key && prev.direction === direction ? null : { key, direction },
+      );
+    }, []);
+
+    const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+      setColumnFilters(prev => {
+        const next = new Map(prev);
+        if (values == null) next.delete(key);
+        else next.set(key, values);
+        return next;
+      });
+    }, []);
 
     const toggleNode = useCallback((key: string) => {
       setExpanded(prev => {
@@ -163,8 +259,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
     }, []);
 
     const expandAll = useCallback(() => {
-      setExpanded(collectAllKeys(mergedTree));
-    }, [mergedTree]);
+      setExpanded(collectAllKeys(processedTree));
+    }, [processedTree]);
 
     const collapseAll = useCallback(() => setExpanded(new Set()), []);
 
@@ -202,6 +298,22 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
         return sum + (pv ? valueAccessor(pv) : 0);
       }, 0);
     };
+
+    // ── renderHeaderExtra for filter dropdowns on sticky columns ──
+    const renderHeaderExtra = useCallback((label: string) => {
+      const match = FILTERABLE_KEYS.find(f => f.label === label);
+      if (!match) return null;
+      return (
+        <ColumnFilterDropdown
+          columnKey={match.key}
+          uniqueValues={cascadingUniqueValues[match.key] ?? []}
+          activeSort={sortConfig}
+          activeFilter={columnFilters.get(match.key) ?? null}
+          onSort={handleSort}
+          onFilter={handleFilter}
+        />
+      );
+    }, [cascadingUniqueValues, sortConfig, columnFilters, handleSort, handleFilter]);
 
     const rows: JSX.Element[] = [];
 
@@ -337,7 +449,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       }
     }
 
-    renderRows(mergedTree);
+    renderRows(processedTree);
 
     if (contasTree.length === 0) {
       return hideTitle ? (
@@ -369,6 +481,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
             monthHeaderClassName={MONTH_HIGHLIGHT}
             collapsedHeaderClassName={HEADER_HIGHLIGHT}
             headerButtonClassName={HEADER_BTN}
+            renderHeaderExtra={renderHeaderExtra}
             showTotal={false}
           />
           <TableBody>
