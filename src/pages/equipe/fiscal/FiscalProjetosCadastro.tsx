@@ -104,7 +104,13 @@ const FiscalProjetosCadastro = () => {
   const { data: projects = [], isLoading } = useTaxProjects();
   const { data: projectHours = {} } = useProjectHours();
 
-  // ── Filtros locais ───────────────────────────────────────────────────
+  // Fetch OS products for listing table (all projects' ordem_servico_id)
+  const listingOsIds = useMemo(() => {
+    const ids = projects.map(p => (p as any).ordem_servico_id).filter(Boolean) as string[];
+    return [...new Set(ids)];
+  }, [projects]);
+  const { data: listingOsProdutos = [] } = useOsProdutosContratados(listingOsIds);
+  const listingOsProdutosByOs = useMemo(() => groupByOs(listingOsProdutos), [listingOsProdutos]);
   const filterOptions = useMemo(() => {
     const clientesMap = new Map<string, string>();
     const produtosSet = new Set<string>();
