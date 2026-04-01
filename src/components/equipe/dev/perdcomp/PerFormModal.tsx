@@ -86,7 +86,7 @@ const parseCurrencyToNumber = (value: string): number => {
 };
 
 const perSchema = z.object({
-  numero_processo_per: z.string().min(1, 'Número do processo é obrigatório'),
+  nr_per: z.string().min(1, 'Número do processo é obrigatório'),
   id_contribuinte: z.string().min(1, 'Contribuinte é obrigatório'),
   exercicio: z.coerce.number().min(2000).max(2100),
   tri_exercicio: z.coerce.number().min(1).max(4),
