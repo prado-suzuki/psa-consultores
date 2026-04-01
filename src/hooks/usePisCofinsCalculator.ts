@@ -111,7 +111,7 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
       ...normalizedData,
       periodos: normalizedData.periodos.map((p) => ({
         ...p,
-        itens_credito: p.itens_credito.filter(hasEfdRecord),
+        itens_credito: (p.itens_credito ?? []).filter(hasEfdRecord),
       })),
     };
   }, [normalizedData, tipoApuracao]);

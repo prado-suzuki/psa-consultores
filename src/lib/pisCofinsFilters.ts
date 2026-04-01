@@ -155,7 +155,7 @@ export function buildPivotGeneric(
 
   for (const periodo of periodos) {
     const month = periodo.dt_ini.substring(0, 7);
-    for (const item of periodo.itens_credito) {
+    for (const item of (periodo.itens_credito ?? [])) {
       if (!filterFn(item)) continue;
 
       const key = groupBy(item);
