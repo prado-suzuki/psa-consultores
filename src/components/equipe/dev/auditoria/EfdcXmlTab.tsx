@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, ChevronRight, ChevronDown, AlertCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
@@ -33,10 +34,13 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string> | null>>({});
+
+  // Modal state
+  const [selectedLote, setSelectedLote] = useState<EfdcXmlLote | null>(null);
+  const [cteSearch, setCteSearch] = useState('');
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -58,7 +62,6 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
   const processedLotes = useMemo(() => {
     let result = lotes;
 
-    // Text search
     if (debouncedSearch) {
       const term = debouncedSearch.toLowerCase();
       result = result.filter(
@@ -68,7 +71,6 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
       );
     }
 
-    // Column filters
     const filterKeys: FilterKey[] = ['emitente', 'cfop'];
     for (const key of filterKeys) {
       const filterSet = columnFilters[key];
@@ -77,7 +79,6 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
       }
     }
 
-    // Sort
     if (sortConfig) {
       const { key, direction } = sortConfig;
       const mult = direction === 'asc' ? 1 : -1;
@@ -91,7 +92,6 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
     return result;
   }, [lotes, debouncedSearch, columnFilters, sortConfig]);
 
-  // Unique values per column (cascade-aware)
   const uniqueValues = useMemo(() => {
     const keys: FilterKey[] = ['emitente', 'cfop'];
     const result: Record<string, string[]> = {};
@@ -119,20 +119,22 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
 
   useEffect(() => {
     setCurrentPage(0);
-    setExpandedRows(new Set());
   }, [processedLotes]);
 
   const totalPages = Math.ceil(processedLotes.length / PAGE_SIZE);
   const pagedLotes = processedLotes.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
-  const toggleRow = (idx: number) => {
-    setExpandedRows((prev) => {
-      const next = new Set(prev);
-      if (next.has(idx)) next.delete(idx);
-      else next.add(idx);
-      return next;
-    });
-  };
+  // Filtered CT-es for modal
+  const filteredCtes = useMemo(() => {
+    if (!selectedLote) return [];
+    if (!cteSearch) return selectedLote.CTES;
+    const term = cteSearch.toLowerCase();
+    return selectedLote.CTES.filter(
+      (cte) =>
+        (cte.CHV_CTE ?? '').toLowerCase().includes(term) ||
+        String(cte.NR_CTE).includes(term)
+    );
+  }, [selectedLote, cteSearch]);
 
   if (!hasQueried) {
     return (
@@ -167,139 +169,172 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
     );
   }
 
+  const modalDiff = selectedLote ? selectedLote.VLR_LOTE - selectedLote.SUM_LOTE : 0;
+  const modalHasDiff = Math.abs(modalDiff) > 0.05;
+
   return (
-    <Card>
-      <CardContent className="p-4 space-y-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="space-y-1 flex-1 min-w-[220px]">
-            <Label className="text-xs">CFOP / Intervalo</Label>
-            <div className="relative">
-              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por CFOP ou intervalo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-8 text-sm pl-7"
-              />
+    <>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1 flex-1 min-w-[220px]">
+              <Label className="text-xs">CFOP / Intervalo</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por CFOP ou intervalo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-8 text-sm pl-7"
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {processedLotes.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
-        ) : (
-          <>
-            <div className="rounded-md border overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="text-xs w-8" />
-                    <TableHead className="text-xs">Data Lote</TableHead>
-                    <TableHead className="text-xs">
-                      Emitente
-                      <ColumnFilterDropdown
-                        columnKey="emitente"
-                        uniqueValues={uniqueValues.emitente ?? []}
-                        activeSort={sortConfig}
-                        activeFilter={columnFilters.emitente ?? null}
-                        onSort={handleSort}
-                        onFilter={handleFilter}
-                      />
-                    </TableHead>
-                    <TableHead className="text-xs">
-                      CFOP
-                      <ColumnFilterDropdown
-                        columnKey="cfop"
-                        uniqueValues={uniqueValues.cfop ?? []}
-                        activeSort={sortConfig}
-                        activeFilter={columnFilters.cfop ?? null}
-                        onSort={handleSort}
-                        onFilter={handleFilter}
-                      />
-                    </TableHead>
-                    <TableHead className="text-xs">Intervalo</TableHead>
-                    <TableHead className="text-xs text-right">Valor Lote</TableHead>
-                    <TableHead className="text-xs text-right">Soma CT-es</TableHead>
-                    <TableHead className="text-xs text-right">Diferença</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pagedLotes.map((lote, idx) => {
-                    const globalIdx = currentPage * PAGE_SIZE + idx;
-                    const isExpanded = expandedRows.has(globalIdx);
+          {processedLotes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
+          ) : (
+            <>
+              <div className="rounded-md border overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data Lote</TableHead>
+                      <TableHead className="text-xs">
+                        Emitente
+                        <ColumnFilterDropdown
+                          columnKey="emitente"
+                          uniqueValues={uniqueValues.emitente ?? []}
+                          activeSort={sortConfig}
+                          activeFilter={columnFilters.emitente ?? null}
+                          onSort={handleSort}
+                          onFilter={handleFilter}
+                        />
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        CFOP
+                        <ColumnFilterDropdown
+                          columnKey="cfop"
+                          uniqueValues={uniqueValues.cfop ?? []}
+                          activeSort={sortConfig}
+                          activeFilter={columnFilters.cfop ?? null}
+                          onSort={handleSort}
+                          onFilter={handleFilter}
+                        />
+                      </TableHead>
+                      <TableHead className="text-xs">Intervalo</TableHead>
+                      <TableHead className="text-xs text-right">Valor Lote</TableHead>
+                      <TableHead className="text-xs text-right">Soma CT-es</TableHead>
+                      <TableHead className="text-xs text-right">Diferença</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedLotes.map((lote, idx) => {
+                      const diff = lote.VLR_LOTE - lote.SUM_LOTE;
+                      const hasDiff = Math.abs(diff) > 0.05;
 
-                    return (
-                      <>
+                      return (
                         <TableRow
-                          key={`master-${globalIdx}`}
+                          key={`row-${currentPage * PAGE_SIZE + idx}`}
                           className="cursor-pointer"
-                          onClick={() => toggleRow(globalIdx)}
+                          onClick={() => { setSelectedLote(lote); setCteSearch(''); }}
                         >
-                          <TableCell className="px-2">
-                            {isExpanded ? (
-                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                            ) : (
-                              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </TableCell>
                           <TableCell className="text-xs">{lote.DT_LOTE}</TableCell>
                           <TableCell className="text-xs max-w-[200px] truncate">{lote.NOME_EMIT}</TableCell>
                           <TableCell className="text-xs">{lote.CFOP}</TableCell>
                           <TableCell className="text-xs">{lote.INTERVALO}</TableCell>
                           <TableCell className="text-xs text-right">{formatBRL(lote.VLR_LOTE)}</TableCell>
-                          <TableCell className="text-xs text-right whitespace-nowrap">
-                            {formatBRL(lote.SUM_LOTE)}
+                          <TableCell className="text-xs text-right whitespace-nowrap">{formatBRL(lote.SUM_LOTE)}</TableCell>
+                          <TableCell className={`text-xs text-right whitespace-nowrap ${hasDiff ? 'text-destructive font-medium' : ''}`}>
+                            {formatBRL(diff)}
                           </TableCell>
-                          {(() => {
-                            const diff = lote.VLR_LOTE - lote.SUM_LOTE;
-                            const hasDiff = Math.abs(diff) > 0.05;
-                            return (
-                              <TableCell className={`text-xs text-right whitespace-nowrap ${hasDiff ? 'text-destructive font-medium' : ''}`}>
-                                {formatBRL(diff)}
-                              </TableCell>
-                            );
-                          })()}
                         </TableRow>
-                        {isExpanded && (
-                          <TableRow key={`detail-${globalIdx}`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={8} className="p-0 pl-10 pr-4 py-2">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead className="text-xs">Chave CT-e</TableHead>
-                                    <TableHead className="text-xs">Número</TableHead>
-                                    <TableHead className="text-xs text-right">Valor</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {lote.CTES.map((cte, cIdx) => (
-                                    <TableRow key={cte.CHV_CTE || cIdx}>
-                                      <TableCell className="text-xs font-mono">{cte.CHV_CTE}</TableCell>
-                                      <TableCell className="text-xs">{cte.NR_CTE}</TableCell>
-                                      <TableCell className="text-xs text-right">{formatBRL(cte.VLR_CTE)}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+              <TablePagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={processedLotes.length}
+                onPageChange={setCurrentPage}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Modal de detalhes CT-e */}
+      <Dialog open={selectedLote !== null} onOpenChange={(open) => { if (!open) setSelectedLote(null); }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">Detalhes do Lote</DialogTitle>
+          </DialogHeader>
+
+          {selectedLote && (
+            <div className="space-y-4">
+              {/* Resumo do lote */}
+              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
+                <div><span className="text-muted-foreground">Emitente:</span> {selectedLote.NOME_EMIT}</div>
+                <div><span className="text-muted-foreground">CFOP:</span> {selectedLote.CFOP}</div>
+                <div><span className="text-muted-foreground">Data Lote:</span> {selectedLote.DT_LOTE}</div>
+                <div><span className="text-muted-foreground">Intervalo:</span> {selectedLote.INTERVALO}</div>
+              </div>
+
+              <div className="flex items-center gap-4 text-sm border rounded-md p-3 bg-muted/30">
+                <div><span className="text-muted-foreground">Valor Lote:</span> {formatBRL(selectedLote.VLR_LOTE)}</div>
+                <div><span className="text-muted-foreground">Soma CT-es:</span> {formatBRL(selectedLote.SUM_LOTE)}</div>
+                <div className={modalHasDiff ? 'text-destructive font-medium' : ''}>
+                  <span className="text-muted-foreground">Diferença:</span> {formatBRL(modalDiff)}
+                </div>
+              </div>
+
+              {/* Busca CT-e */}
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por chave ou número do CT-e..."
+                  value={cteSearch}
+                  onChange={(e) => setCteSearch(e.target.value)}
+                  className="h-8 text-sm pl-7"
+                />
+              </div>
+
+              {/* Tabela CT-es */}
+              <div className="rounded-md border max-h-[400px] overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Chave CT-e</TableHead>
+                      <TableHead className="text-xs">Número</TableHead>
+                      <TableHead className="text-xs text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredCtes.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-sm text-muted-foreground py-4">
+                          Nenhum CT-e encontrado
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredCtes.map((cte, cIdx) => (
+                        <TableRow key={cte.CHV_CTE || cIdx}>
+                          <TableCell className="text-xs font-mono">{cte.CHV_CTE}</TableCell>
+                          <TableCell className="text-xs">{cte.NR_CTE}</TableCell>
+                          <TableCell className="text-xs text-right">{formatBRL(cte.VLR_CTE)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
-            <TablePagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={processedLotes.length}
-              onPageChange={setCurrentPage}
-            />
-          </>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
