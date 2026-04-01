@@ -694,11 +694,8 @@ const EquipeKanban = () => {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 bg-white" align="start">
               <Calendar
-                mode="single"
                 selected={filterStartDate}
                 onSelect={setFilterStartDate}
-                initialFocus
-                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
@@ -719,11 +716,8 @@ const EquipeKanban = () => {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 bg-white" align="start">
               <Calendar
-                mode="single"
                 selected={filterEndDate}
                 onSelect={setFilterEndDate}
-                initialFocus
-                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
