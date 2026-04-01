@@ -352,6 +352,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const insertPayload = toInsert.map(p => ({
               ordem_servico_id: osId,
               produto_segmento_id: p.produto_segmento_id,
+              horas_contratadas: p.horas_contratadas ?? null,
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
             if (insErr) throw insErr;
