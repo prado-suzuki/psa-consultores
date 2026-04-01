@@ -248,7 +248,7 @@ const CorrecoesSped = () => {
               Detalhes do Item EFD
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {selectedItem?.descr_item} — {selectedItem && formatCurrency(selectedItem.vl_item)}
+              {selectedItem?.DESCR_COMPL} — {selectedItem && formatCurrency(selectedItem.VL_ITEM)}
             </DialogDescription>
           </DialogHeader>
 
