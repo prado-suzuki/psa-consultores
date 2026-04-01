@@ -30,23 +30,23 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const updatePayload: { excluido: string; nr_cancelamento?: string | null } = {
+      const updatePayload = {
         excluido: action,
         nr_cancelamento: action === 'C' ? (nrCancelamento || null) : null,
       };
 
       if (type === 'per') {
         // Update the PER — cast to any to bypass auto-generated types until regeneration
-        const { error: perError } = await supabase
-          .from('per')
-          .update(updatePayload as any)
-          .eq('nr_per' as any, identifier);
+        const { error: perError } = await (supabase
+          .from('per') as any)
+          .update(updatePayload)
+          .eq('nr_per', identifier);
         if (perError) throw perError;
 
         // Cascade: update all child DCOMPs that are not already soft-deleted
-        const { error: dcompError } = await supabase
-          .from('dcomp')
-          .update(updatePayload as any)
+        const { error: dcompError } = await (supabase
+          .from('dcomp') as any)
+          .update(updatePayload)
           .eq('nr_per_orig', identifier)
           .or('excluido.is.null,excluido.eq.');
         if (dcompError) {
@@ -54,9 +54,9 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
         }
       } else {
         // Update just the DCOMP
-        const { error } = await supabase
-          .from('dcomp')
-          .update(updatePayload as any)
+        const { error } = await (supabase
+          .from('dcomp') as any)
+          .update(updatePayload)
           .eq('nr_documento', identifier);
         if (error) throw error;
       }
