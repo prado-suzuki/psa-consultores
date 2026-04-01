@@ -225,9 +225,9 @@ export function SituacaoFormModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {pers.map((per) => (
-                        <SelectItem key={per.numero_processo_per} value={per.numero_processo_per}>
-                          {per.numero_processo_per} ({per.exercicio}/{per.tri_exercicio}T)
+                      {pers.map((per: any) => (
+                        <SelectItem key={per.nr_per} value={per.nr_per}>
+                          {per.nr_per} ({per.exercicio}/{per.tri_exercicio}T)
                         </SelectItem>
                       ))}
                     </SelectContent>

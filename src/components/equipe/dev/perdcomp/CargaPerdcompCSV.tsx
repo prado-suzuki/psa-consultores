@@ -173,7 +173,8 @@ export function CargaPerdcompCSV() {
     const situacoesToInsert: any[] = [];
 
     for (const row of rows) {
-      const numeroProcesso = row.numero_processo_per?.trim();
+      // Aceita tanto nr_per (novo) quanto numero_processo_per (legado) no CSV
+      const numeroProcesso = (row.nr_per || row.numero_processo_per)?.trim();
       if (!numeroProcesso) continue;
 
       const dtSolicitada = parseDate(row.dt_solicitada);
@@ -182,7 +183,7 @@ export function CargaPerdcompCSV() {
       }
 
       const perData: ParsedPer = {
-        numero_processo_per: numeroProcesso,
+        nr_per: numeroProcesso,
         exercicio: parseInt(row.exercicio) || new Date().getFullYear(),
         tri_exercicio: parseInt(row.tri_exercicio) || 1,
         dt_solicitada: dtSolicitada,
@@ -217,8 +218,8 @@ export function CargaPerdcompCSV() {
       throw new Error("Nenhum registro válido de PER encontrado no CSV.");
     }
 
-    // Inserir PERs com upsert (atualiza se já existir)
-    const { error: perError } = await supabase.from("per").upsert(persToInsert, { onConflict: "numero_processo_per" });
+    // Inserir PERs com upsert (atualiza se já existir) — coluna renomeada para nr_per
+    const { error: perError } = await (supabase.from("per") as any).upsert(persToInsert, { onConflict: "nr_per" });
 
     if (perError) throw perError;
 
