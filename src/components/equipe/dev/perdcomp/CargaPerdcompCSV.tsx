@@ -34,6 +34,8 @@ interface ParsedDcomp {
   imposto: string;
   tp_credito: string;
   vlr_compensado: number;
+  excluido?: string;
+  nr_cancelamento?: string;
 }
 
 export function CargaPerdcompCSV() {
