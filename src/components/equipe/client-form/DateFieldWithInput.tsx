@@ -58,7 +58,6 @@ const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps)
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
           <Calendar
-            mode="single"
             selected={value ? parseDate(value) : undefined}
             onSelect={(date) => {
               if (date) {
@@ -69,8 +68,6 @@ const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps)
               }
             }}
             disabled={(date) => date.getFullYear() < 2000 || date.getFullYear() > 2060}
-            initialFocus
-            className="p-3 pointer-events-auto"
           />
         </PopoverContent>
       </Popover>
