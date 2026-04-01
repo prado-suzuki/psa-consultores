@@ -12,6 +12,27 @@ export interface NfeItem {
   vProd: number;
 }
 
+// ── 0200 (Cadastro de Itens) ──
+
+export interface Item0200 {
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  COD_ITEM: string;
+  DESCR_ITEM: string;
+  COD_BARRA: string;
+  COD_ANT_ITEM: string;
+  UNID_INV: string;
+  TIPO_ITEM: string;
+  COD_NCM: string;
+  EX_IPI: string;
+  COD_GEN: string;
+  COD_LST: string;
+  ALIQ_ICMS: number;
+}
+
 // ── C170 (NFe / NFCe) — ItemEfd com campos UPPER_CASE da API ──
 
 export interface ItemEfd {
@@ -56,6 +77,13 @@ export interface ItemEfd {
   ALIQ_COFINS_QUANT: number;
   VL_COFINS: number;
   COD_CTA: string;
+}
+
+// ── Wrapper: cada entrada em itens_efd agora tem c170, 0200 e nfe_itens ──
+
+export interface ItemEfdEntry {
+  c170: ItemEfd;
+  "0200": Item0200 | null;
   nfe_itens: NfeItem[];
 }
 
@@ -63,7 +91,7 @@ export interface NotaRevisao {
   chv_nfe: string;
   dt_doc: string;
   tipo_relacao: 'SEM_NFE' | '1:1' | 'CONSOLIDADO';
-  itens_efd: ItemEfd[];
+  itens_efd: ItemEfdEntry[];
 }
 
 export interface CorrecoesSpedResponse {
@@ -77,6 +105,11 @@ export interface FlatItemEfd extends ItemEfd {
   chv_nfe: string;
   dt_doc: string;
   tipo_relacao: 'SEM_NFE' | '1:1' | 'CONSOLIDADO';
+  nfe_itens: NfeItem[];
+  // Campos do registro 0200
+  DESCR_ITEM_0200: string | null;
+  COD_NCM: string | null;
+  TIPO_ITEM: string | null;
 }
 
 // ── A170 (NFSe) — flat array from API ──
