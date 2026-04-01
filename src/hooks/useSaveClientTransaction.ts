@@ -368,12 +368,18 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }
           }
 
-          // Update existing (with _dbId) — only if produto_segmento_id changed
+          // Update existing (with _dbId) — only if produto_segmento_id or horas_contratadas changed
           for (const dp of draftProdutos.filter(p => p._dbId)) {
-            const oldProdId = existingMap.get(dp._dbId!);
-            if (oldProdId && oldProdId !== dp.produto_segmento_id) {
+            const old = existingMap.get(dp._dbId!);
+            if (!old) continue;
+            const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
+            const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
+            if (prodChanged || horasChanged) {
               await (supabase.from("os_produtos_contratados" as any) as any)
-                .update({ produto_segmento_id: dp.produto_segmento_id })
+                .update({
+                  produto_segmento_id: dp.produto_segmento_id,
+                  horas_contratadas: dp.horas_contratadas ?? null,
+                })
                 .eq("id", dp._dbId);
             }
           }

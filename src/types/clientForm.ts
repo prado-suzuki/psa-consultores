@@ -48,6 +48,7 @@ export interface DraftProdutoContratado {
   _id: number;
   _dbId?: string;
   produto_segmento_id: string;
+  horas_contratadas?: number;
 }
 
 export interface DraftOrdemServico {

@@ -1,0 +1,1 @@
+ALTER TABLE public.os_produtos_contratados ADD COLUMN horas_contratadas numeric;
