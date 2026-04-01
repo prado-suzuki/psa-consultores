@@ -74,11 +74,8 @@ export function DashboardFilters({
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 bg-background" align="start">
             <Calendar
-              mode="single"
               selected={dateFrom}
               onSelect={onDateFromChange}
-              locale={ptBR}
-              className="pointer-events-auto"
             />
           </PopoverContent>
         </Popover>
