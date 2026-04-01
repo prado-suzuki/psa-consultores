@@ -189,15 +189,16 @@ export function PerFormModal({
     enabled: !!selectedClienteId,
   });
 
-  // Fetch existing PERs for the contribuinte (for rectification selection)
+  // Fetch existing PERs for the contribuinte (for rectification selection) — exclude soft-deleted
   const { data: persExistentes = [] } = useQuery({
     queryKey: ['pers-existentes', contribuinteId],
     queryFn: async () => {
       if (!contribuinteId) return [];
-      const { data, error } = await supabase
-        .from('per')
-        .select('numero_processo_per, exercicio, tri_exercicio, tp_credito')
+      const { data, error } = await (supabase
+        .from('per') as any)
+        .select('nr_per, exercicio, tri_exercicio, tp_credito')
         .eq('id_contribuinte', contribuinteId)
+        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (error) throw error;
       return data || [];
