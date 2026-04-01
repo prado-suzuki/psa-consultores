@@ -322,7 +322,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const draftProdutos = c.produtos_contratados || [];
           // os_produtos_contratados não está no schema tipado — cast justificado
           const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
-            .select("id, produto_segmento_id")
+            .select("id, produto_segmento_id, horas_contratadas")
             .eq("ordem_servico_id", osId);
           const existingMap = new Map((existingProdutos || []).map((p: any) => [p.id, p.produto_segmento_id]));
 
