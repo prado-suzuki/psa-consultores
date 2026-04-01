@@ -98,15 +98,14 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
         <DialogHeader>
           <DialogTitle>Excluir / Cancelar {label}</DialogTitle>
           <DialogDescription>
-          Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
-        </DialogDescription>
+            Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
+          </DialogDescription>
+        </DialogHeader>
         {type === 'per' && (
           <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-black">
             Atenção, esta ação valerá também para todos os DCOMPs vinculados a este PER.
           </div>
         )}
-          </DialogDescription>
-        </DialogHeader>
 
         <RadioGroup value={action} onValueChange={(v) => setAction(v as 'E' | 'C')} className="space-y-3">
           <div className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-muted/50 cursor-pointer" onClick={() => setAction('E')}>
