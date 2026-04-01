@@ -207,8 +207,8 @@ export function PerFormModal({
   });
 
   // Filter PERs based on search query
-  const filteredPersExistentes = persExistentes.filter(per => 
-    per.numero_processo_per.toLowerCase().includes(perSearchQuery.toLowerCase())
+  const filteredPersExistentes = persExistentes.filter((per: any) => 
+    per.nr_per.toLowerCase().includes(perSearchQuery.toLowerCase())
   );
 
   useEffect(() => {

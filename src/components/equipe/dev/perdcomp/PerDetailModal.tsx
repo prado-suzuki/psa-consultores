@@ -42,9 +42,10 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DcompFormModal } from './DcompFormModal';
+import { SoftDeleteModal } from './SoftDeleteModal';
 
 interface PerData {
-  numero_processo_per: string;
+  nr_per: string;
   id_contribuinte: string;
   exercicio: number;
   tri_exercicio: number;
@@ -53,6 +54,8 @@ interface PerData {
   vlr_credito: number;
   vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
+  excluido?: string | null;
+  nr_cancelamento?: string | null;
   contribuinte?: { nome_razao_social: string } | null;
 }
 
@@ -66,7 +69,6 @@ interface PerDetailModalProps {
 const SITUACAO_OPTIONS = [
   { value: 'Analise concluida', label: 'Análise concluída' },
   { value: 'Analise preliminar disponibilizada', label: 'Análise preliminar disponibilizada' },
-  { value: 'Cancelado', label: 'Cancelado' },
   { value: 'Contribuinte intimado', label: 'Contribuinte intimado' },
   { value: 'Despacho decisorio emitido', label: 'Despacho decisório emitido' },
   { value: 'Em analise', label: 'Em análise' },
@@ -75,7 +77,6 @@ const SITUACAO_OPTIONS = [
   { value: 'Em discussao administrativa - DRJ', label: 'Em discussão administrativa - DRJ' },
   { value: 'Homologado', label: 'Homologado' },
   { value: 'Nao admitido', label: 'Não admitido' },
-  { value: 'Pedido de cancelamento deferido', label: 'Pedido de cancelamento deferido' },
   { value: 'PER deferido', label: 'PER deferido' },
   { value: 'Retificado', label: 'Retificado' },
 ];
@@ -144,8 +145,11 @@ export function PerDetailModal({
   const [novaSituacao, setNovaSituacao] = useState<string>('');
   const [dcompModalOpen, setDcompModalOpen] = useState(false);
   const [editDcompData, setEditDcompData] = useState<any>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [dcompToDelete, setDcompToDelete] = useState<any>(null);
+
+  // Soft delete modal state
+  const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
+  const [softDeleteType, setSoftDeleteType] = useState<'per' | 'dcomp'>('per');
+  const [softDeleteId, setSoftDeleteId] = useState('');
 
   // Ressarcimento form state
   const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
@@ -155,18 +159,18 @@ export function PerDetailModal({
 
   // Query para dados atualizados do PER (refetch após mutations)
   const { data: perAtualizado } = useQuery({
-    queryKey: ['per-detail', per?.numero_processo_per],
+    queryKey: ['per-detail', per?.nr_per],
     queryFn: async () => {
-      if (!per?.numero_processo_per) return null;
-      const { data, error } = await supabase
-        .from('per')
+      if (!per?.nr_per) return null;
+      const { data, error } = await (supabase
+        .from('per') as any)
         .select('*, contribuinte(nome_razao_social)')
-        .eq('numero_processo_per', per.numero_processo_per)
+        .eq('nr_per', per.nr_per)
         .maybeSingle();
       if (error) throw error;
       return data;
     },
-    enabled: open && !!per?.numero_processo_per,
+    enabled: open && !!per?.nr_per,
   });
 
   // Usar dados atualizados com fallback para prop
@@ -174,36 +178,37 @@ export function PerDetailModal({
   const vlrRessarcido = (perAtual as any)?.vlr_ressarcido || 0;
   const perPago = vlrRessarcido > 0;
 
-  // Query DCOMPs vinculados ao PER
+  // Query DCOMPs vinculados ao PER — filter out soft-deleted
   const { data: dcomps = [], isLoading: loadingDcomps } = useQuery({
-    queryKey: ['per-dcomps', per?.numero_processo_per],
+    queryKey: ['per-dcomps', per?.nr_per],
     queryFn: async () => {
-      if (!per?.numero_processo_per) return [];
+      if (!per?.nr_per) return [];
       const { data, error } = await supabase
         .from('dcomp')
         .select('*')
-        .eq('nr_per_orig', per.numero_processo_per)
+        .eq('nr_per_orig', per.nr_per)
+        .or('excluido.is.null,excluido.eq.')
         .order('dt_envio', { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: open && !!per?.numero_processo_per,
+    enabled: open && !!per?.nr_per,
   });
 
   // Query histórico de situações
   const { data: situacoes = [], isLoading: loadingSituacoes } = useQuery({
-    queryKey: ['per-situacoes', per?.numero_processo_per],
+    queryKey: ['per-situacoes', per?.nr_per],
     queryFn: async () => {
-      if (!per?.numero_processo_per) return [];
+      if (!per?.nr_per) return [];
       const { data, error } = await supabase
         .from('per_situacao')
         .select('*')
-        .eq('nr_proc_per', per.numero_processo_per)
+        .eq('nr_proc_per', per.nr_per)
         .order('criado_em', { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: open && !!per?.numero_processo_per,
+    enabled: open && !!per?.nr_per,
   });
 
   // Situação atual (mais recente)
@@ -233,14 +238,14 @@ export function PerDetailModal({
   const updateSituacaoMutation = useMutation({
     mutationFn: async (situacao: string) => {
       const { data, error } = await supabase.from('per_situacao').insert({
-        nr_proc_per: per?.numero_processo_per,
+        nr_proc_per: per?.nr_per,
         situacao,
       }).select().single();
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['per-situacoes', per?.numero_processo_per] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('Situação atualizada com sucesso!');
       setNovaSituacao('');
@@ -258,17 +263,17 @@ export function PerDetailModal({
   const ressarcimentoMutation = useMutation({
     mutationFn: async ({ valor, dataPagamento, percentual }: { valor: number; dataPagamento: string; percentual: number | null }) => {
       // Update per.vlr_ressarcido + porcentagem_psa
-      const { error: perError } = await supabase
-        .from('per')
+      const { error: perError } = await (supabase
+        .from('per') as any)
         .update({ vlr_ressarcido: valor, porcentagem_psa: percentual })
-        .eq('numero_processo_per', per?.numero_processo_per);
+        .eq('nr_per', per?.nr_per);
       if (perError) throw perError;
 
       // Insert per_situacao with dt_pagamento
       const { data: sitData, error: sitError } = await supabase
         .from('per_situacao')
         .insert({
-          nr_proc_per: per?.numero_processo_per,
+          nr_proc_per: per?.nr_per,
           situacao: 'PER deferido',
           dt_pagamento: dataPagamento,
         })
@@ -279,9 +284,9 @@ export function PerDetailModal({
       return { valor, sitData };
     },
     onSuccess: async ({ valor, sitData }) => {
-      await queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
+      await queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
-      await queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
+      await queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       toast.success('Ressarcimento registrado com sucesso!');
       setRessarcimentoOpen(false);
@@ -292,7 +297,7 @@ export function PerDetailModal({
       if (per) {
         syncPerdcompToDW({
           per: [{
-            numero_processo_per: per.numero_processo_per,
+            nr_per: per.nr_per,
             id_contribuinte: per.id_contribuinte,
             exercicio: per.exercicio,
             tri_exercicio: per.tri_exercicio,
@@ -308,24 +313,6 @@ export function PerDetailModal({
     },
     onError: (error: any) => {
       toast.error(`Erro ao registrar ressarcimento: ${error.message}`);
-    },
-  });
-
-  // Mutation para excluir DCOMP
-  const deleteDcompMutation = useMutation({
-    mutationFn: async (nrDocumento: string) => {
-      const { error } = await supabase.from('dcomp').delete().eq('nr_documento', nrDocumento);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
-      queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
-      toast.success('DCOMP excluído com sucesso!');
-      setDeleteDialogOpen(false);
-      setDcompToDelete(null);
-    },
-    onError: (error: any) => {
-      toast.error(`Erro ao excluir DCOMP: ${error.message}`);
     },
   });
 
@@ -348,14 +335,16 @@ export function PerDetailModal({
   };
 
   const handleDeleteDcomp = (dcomp: any) => {
-    setDcompToDelete(dcomp);
-    setDeleteDialogOpen(true);
+    setSoftDeleteType('dcomp');
+    setSoftDeleteId(dcomp.nr_documento);
+    setSoftDeleteOpen(true);
   };
 
-  const confirmDeleteDcomp = () => {
-    if (dcompToDelete) {
-      deleteDcompMutation.mutate(dcompToDelete.nr_documento);
-    }
+  const handleDeletePer = () => {
+    if (!per) return;
+    setSoftDeleteType('per');
+    setSoftDeleteId(per.nr_per);
+    setSoftDeleteOpen(true);
   };
 
   const handleSaveRessarcimento = () => {
@@ -395,7 +384,7 @@ export function PerDetailModal({
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                  <span>{per.numero_processo_per}</span>
+                  <span>{per.nr_per}</span>
                   <Badge variant="secondary" className="text-xs uppercase">
                     {per.tp_credito}
                   </Badge>
@@ -443,14 +432,24 @@ export function PerDetailModal({
                 </div>
               </div>
               
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onOpenChange(false)}
-                className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
-              >
-                <X className="h-6 w-6" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleDeletePer}
+                  className="h-10 w-10 rounded-full text-slate-400 hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onOpenChange(false)}
+                  className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+                >
+                  <X className="h-6 w-6" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -736,13 +735,13 @@ export function PerDetailModal({
         onOpenChange={(open) => {
           setDcompModalOpen(open);
           if (!open) {
-            queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.numero_processo_per] });
-            queryClient.refetchQueries({ queryKey: ['per-detail', per?.numero_processo_per] });
+            queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.nr_per] });
+            queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
           }
         }}
         editData={editDcompData}
         contribuinteId={contribuinteId}
-        preSelectedPer={per?.numero_processo_per}
+        preSelectedPer={per?.nr_per}
       />
 
       {/* Dialog de Ressarcimento */}
@@ -751,7 +750,7 @@ export function PerDetailModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Novo Ressarcimento</AlertDialogTitle>
             <AlertDialogDescription>
-              Registre o valor efetivamente ressarcido e a data do pagamento para o PER {per.numero_processo_per}.
+              Registre o valor efetivamente ressarcido e a data do pagamento para o PER {per.nr_per}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-4 py-2">
@@ -807,27 +806,13 @@ export function PerDetailModal({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Dialog de confirmação de exclusão */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o DCOMP {dcompToDelete?.nr_documento}? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDeleteDcomp} 
-              disabled={deleteDcompMutation.isPending}
-            >
-              {deleteDcompMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Soft Delete Modal */}
+      <SoftDeleteModal
+        open={softDeleteOpen}
+        onOpenChange={setSoftDeleteOpen}
+        type={softDeleteType}
+        identifier={softDeleteId}
+      />
     </>
   );
 }
