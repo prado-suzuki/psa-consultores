@@ -13,7 +13,7 @@ import { Upload, CheckCircle2, AlertTriangle, Loader2, FileSpreadsheet, Info } f
 import { toast } from "@/hooks/use-toast";
 
 interface ParsedPer {
-  numero_processo_per: string;
+  nr_per: string;
   exercicio: number;
   tri_exercicio: number;
   dt_solicitada: string;
@@ -22,6 +22,8 @@ interface ParsedPer {
   nr_proc_ret?: string;
   situacao?: string;
   dt_pagamento?: string;
+  excluido?: string;
+  nr_cancelamento?: string;
 }
 
 interface ParsedDcomp {
