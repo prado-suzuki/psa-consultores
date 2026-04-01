@@ -369,13 +369,25 @@ export const useDeleteTaxProject = () => {
 
 function buildMembersList(projectId: string, data: TaxProjectFormData) {
   const members: { project_id: string; user_id: string; role: string }[] = [];
-  for (const uid of data.leader_ids) {
-    members.push({ project_id: projectId, user_id: uid, role: 'leader' });
+
+  // Responsible executor
+  if (data.responsible_id) {
+    members.push({ project_id: projectId, user_id: data.responsible_id, role: 'responsible' });
   }
+
+  // Leaders
+  for (const uid of data.leader_ids) {
+    if (!members.some(m => m.user_id === uid)) {
+      members.push({ project_id: projectId, user_id: uid, role: 'leader' });
+    }
+  }
+
+  // Members
   for (const uid of data.member_ids) {
     if (!members.some(m => m.user_id === uid)) {
       members.push({ project_id: projectId, user_id: uid, role: 'member' });
     }
   }
+
   return members;
 }
