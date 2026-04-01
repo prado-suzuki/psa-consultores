@@ -98,8 +98,13 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
         <DialogHeader>
           <DialogTitle>Excluir / Cancelar {label}</DialogTitle>
           <DialogDescription>
-            Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
-            {type === 'per' && '. Os DCOMPs vinculados serão atualizados em cascata.'}
+          Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
+        </DialogDescription>
+        {type === 'per' && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-black">
+            Atenção, esta ação valerá também para todos os DCOMPs vinculados a este PER.
+          </div>
+        )}
           </DialogDescription>
         </DialogHeader>
 
