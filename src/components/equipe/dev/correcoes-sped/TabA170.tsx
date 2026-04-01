@@ -35,9 +35,9 @@ export default function TabA170({ data, isLoading, error, hasQueried, ncmFilter,
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.DESCR_ITEM.toLowerCase().includes(s) ||
+          (i.DESCR_COMPL ?? '').toLowerCase().includes(s) ||
           (i.CHV_NFSE && i.CHV_NFSE.includes(s)) ||
-          i.COD_CTA.includes(s)
+          (i.COD_CTA ?? '').includes(s)
       );
     }
     return items;
@@ -118,8 +118,8 @@ export default function TabA170({ data, isLoading, error, hasQueried, ncmFilter,
                           <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_ITEM}>
-                        {item.DESCR_ITEM}
+                      <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_COMPL}>
+                        {item.DESCR_COMPL}
                       </TableCell>
                       <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
                         {formatCurrency(item.VL_ITEM)}

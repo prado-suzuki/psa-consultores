@@ -248,7 +248,7 @@ const CorrecoesSped = () => {
               Detalhes do Item EFD
             </DialogTitle>
             <DialogDescription className="text-xs">
-              {selectedItem?.descr_item} — {selectedItem && formatCurrency(selectedItem.vl_item)}
+              {selectedItem?.DESCR_COMPL} — {selectedItem && formatCurrency(selectedItem.VL_ITEM)}
             </DialogDescription>
           </DialogHeader>
 
@@ -257,24 +257,24 @@ const CorrecoesSped = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST PIS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.cst_pis}</p>
+                  <p className="text-sm font-mono font-medium">{selectedItem.CST_PIS}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. PIS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.aliq_pis.toFixed(2)}%</p>
+                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_PIS ?? 0).toFixed(2)}%</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST COFINS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.cst_cofins}</p>
+                  <p className="text-sm font-mono font-medium">{selectedItem.CST_COFINS}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. COFINS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.aliq_cofins.toFixed(2)}%</p>
+                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_COFINS ?? 0).toFixed(2)}%</p>
                 </div>
               </div>
 
               <div className="border-t pt-3">
-                <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
                   Itens XML (NFe) — {selectedItem.nfe_itens.length} {selectedItem.nfe_itens.length === 1 ? 'item' : 'itens'}
                 </h4>
 
@@ -286,7 +286,8 @@ const CorrecoesSped = () => {
                 ) : (
                   <div className="space-y-2">
                     {selectedItem.nfe_itens.map((nfe, i) => {
-                      const ncmMatch = selectedItem.cod_ncm === nfe.ncm;
+                      const efdNcm = selectedItem.nfe_itens[0]?.ncm ?? null;
+                      const ncmMatch = efdNcm === nfe.ncm;
                       return (
                         <div key={`${nfe.nItem}-${i}`} className="rounded-lg border p-3 space-y-2">
                           <div className="flex items-start justify-between gap-2">
@@ -303,7 +304,7 @@ const CorrecoesSped = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">NCM:</span>
                             <code className="text-xs font-mono">{nfe.ncm}</code>
-                            {selectedItem.cod_ncm && (
+                          {efdNcm && (
                               <Badge className={`text-[10px] border-0 ${ncmMatch ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                 {ncmMatch ? 'OK' : 'Divergente'}
                               </Badge>
