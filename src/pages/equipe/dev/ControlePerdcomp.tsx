@@ -10,19 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Search,
   Plus,
   Pencil,
+  Trash2,
   X,
   Loader2,
   Filter,
@@ -47,6 +38,7 @@ import { ptBR } from "date-fns/locale";
 import { PerFormModal } from "@/components/equipe/dev/perdcomp/PerFormModal";
 import { DcompFormModal } from "@/components/equipe/dev/perdcomp/DcompFormModal";
 import { PerDetailModal } from "@/components/equipe/dev/perdcomp/PerDetailModal";
+import { SoftDeleteModal } from "@/components/equipe/dev/perdcomp/SoftDeleteModal";
 import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -96,8 +88,11 @@ export default function ControlePerdcomp() {
   // Modal states
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<any>(null);
+
+  // Soft delete modal state
+  const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
+  const [softDeleteType, setSoftDeleteType] = useState<'per' | 'dcomp'>('per');
+  const [softDeleteId, setSoftDeleteId] = useState('');
 
   // PER Detail Modal states
   const [detailModalOpen, setDetailModalOpen] = useState(false);
@@ -138,7 +133,7 @@ export default function ControlePerdcomp() {
     }
   }, [clienteId, contribuintes, contribuinteId]);
 
-  // Query for PER data
+  // Query for PER data — filter out soft-deleted
   const { data: perData = [], isLoading: perLoading, isError: perError } = useQuery({
     queryKey: ["perdcomp-per", contribuinteId, searched],
     queryFn: async () => {
@@ -147,6 +142,7 @@ export default function ControlePerdcomp() {
         .from("per_with_contribuinte" as any)
         .select("*")
         .eq("id_contribuinte", contribuinteId)
+        .or('excluido.is.null,excluido.eq.')
         .order("exercicio", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
@@ -160,14 +156,15 @@ export default function ControlePerdcomp() {
     queryFn: async () => {
       if (!contribuinteId || !searched) return {};
 
-      // Get all PERs for this contribuinte
+      // Get all PERs for this contribuinte (exclude soft-deleted)
       const { data: pers, error: perError } = await supabase
         .from("per")
-        .select("numero_processo_per")
-        .eq("id_contribuinte", contribuinteId);
+        .select("nr_per" as any)
+        .eq("id_contribuinte", contribuinteId)
+        .or('excluido.is.null,excluido.eq.');
       if (perError) throw perError;
 
-      const perNumbers = pers?.map((p) => p.numero_processo_per) || [];
+      const perNumbers = pers?.map((p: any) => p.nr_per) || [];
       if (perNumbers.length === 0) return {};
 
       // Get all situações for these PERs
@@ -194,46 +191,32 @@ export default function ControlePerdcomp() {
     enabled: searched && !!contribuinteId,
   });
 
-  // Query for DCOMP data
+  // Query for DCOMP data — filter out soft-deleted
   const { data: dcompData = [], isLoading: dcompLoading } = useQuery({
     queryKey: ["perdcomp-dcomp", contribuinteId, searched],
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
-      // First get PERs for this contribuinte
+      // First get PERs for this contribuinte (exclude soft-deleted)
       const { data: pers, error: perError } = await supabase
         .from("per")
-        .select("numero_processo_per")
-        .eq("id_contribuinte", contribuinteId);
+        .select("nr_per" as any)
+        .eq("id_contribuinte", contribuinteId)
+        .or('excluido.is.null,excluido.eq.');
       if (perError) throw perError;
 
-      const perNumbers = pers?.map((p) => p.numero_processo_per) || [];
+      const perNumbers = pers?.map((p: any) => p.nr_per) || [];
       if (perNumbers.length === 0) return [];
 
       const { data, error } = await supabase
         .from("dcomp")
         .select("*")
         .in("nr_per_orig", perNumbers)
+        .or('excluido.is.null,excluido.eq.')
         .order("dt_envio", { ascending: false });
       if (error) throw error;
       return data || [];
     },
     enabled: searched && !!contribuinteId,
-  });
-
-  // Delete mutation for DCOMP only
-  const deleteDcompMutation = useMutation({
-    mutationFn: async (numero: string) => {
-      const { error } = await supabase.from("dcomp").delete().eq("nr_documento", numero);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["perdcomp-dcomp"] });
-      toast.success("DCOMP excluído com sucesso!");
-      setDeleteDialogOpen(false);
-    },
-    onError: (error: any) => {
-      toast.error(`Erro ao excluir: ${error.message}`);
-    },
   });
 
   const handleSearch = () => {
@@ -256,7 +239,7 @@ export default function ControlePerdcomp() {
   };
 
   // Create set of rectified processes (processes that appear in nr_proc_ret of another record)
-  const retificadosSet = new Set(perData.filter((item) => item.nr_proc_ret).map((item) => item.nr_proc_ret));
+  const retificadosSet = new Set(perData.filter((item: any) => item.nr_proc_ret).map((item: any) => item.nr_proc_ret));
 
   // Create map of total compensated value per PER
   const dcompTotalMap = useMemo(() => {
@@ -270,31 +253,30 @@ export default function ControlePerdcomp() {
   }, [dcompData]);
 
   // Frontend filtering - hide rectified processes and apply user filters
-  const filteredPerData = perData.filter((item) => {
+  const filteredPerData = perData.filter((item: any) => {
     // Hide processes that have been rectified (appear in nr_proc_ret of another record)
-    if (retificadosSet.has(item.numero_processo_per)) return false;
+    if (retificadosSet.has(item.nr_per)) return false;
     if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
     if (situacaoFilter.length > 0) {
-      const sit = perSituacoesMap[item.numero_processo_per]?.situacao || "";
+      const sit = perSituacoesMap[item.nr_per]?.situacao || "";
       if (!situacaoFilter.includes(sit)) return false;
     }
     if (processoFilter) {
-      const matchPer = item.numero_processo_per.includes(processoFilter);
+      const matchPer = item.nr_per.includes(processoFilter);
       const matchDcomp = dcompData.some(
-        (d) => d.nr_per_orig === item.numero_processo_per && d.nr_documento.includes(processoFilter),
+        (d: any) => d.nr_per_orig === item.nr_per && d.nr_documento.includes(processoFilter),
       );
       if (!matchPer && !matchDcomp) return false;
     }
     return true;
   });
 
-  // Static list of all possible situações (unified from all forms + "Analisado")
+  // Static list of all possible situações (unified from all forms)
   const PREDEFINED_SITUACOES = [
     'Aguardando Documentação',
     'Análise concluída',
     'Análise preliminar disponibilizada',
     'Analisado',
-    'Cancelado',
     'Contribuinte intimado',
     'Deferido',
     'Deferido Parcialmente',
@@ -307,7 +289,6 @@ export default function ControlePerdcomp() {
     'Indeferido',
     'Não admitido',
     'Pago',
-    'Pedido de cancelamento deferido',
     'PER deferido',
     'Pendente de Análise',
     'Retificado',
@@ -330,9 +311,9 @@ export default function ControlePerdcomp() {
   // Fetch Selic rates individually per PER (each PER has its own data_fim)
   const { data: selicPerMap = {}, isLoading: selicLoading } = useSelicDataPerPer(
     filteredPerData
-      .filter((p) => p.dt_solicitada)
-      .map((p) => ({
-        numero_processo_per: p.numero_processo_per,
+      .filter((p: any) => p.dt_solicitada)
+      .map((p: any) => ({
+        nr_per: p.nr_per,
         dt_solicitada: p.dt_solicitada,
       })),
   );
@@ -344,15 +325,15 @@ export default function ControlePerdcomp() {
       if (!per.dt_solicitada) continue;
 
       if (isWithinGracePeriod(per.dt_solicitada)) {
-        map[per.numero_processo_per] = { valorCorrigido: 0, fator: 0 };
+        map[per.nr_per] = { valorCorrigido: 0, fator: 0 };
         continue;
       }
 
-      const taxa = selicPerMap[per.numero_processo_per];
+      const taxa = selicPerMap[per.nr_per];
       if (!taxa) continue;
 
       const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec);
-      map[per.numero_processo_per] = { valorCorrigido, fator };
+      map[per.nr_per] = { valorCorrigido, fator };
     }
     return map;
   }, [selicPerMap, filteredPerData]);
@@ -366,10 +347,10 @@ export default function ControlePerdcomp() {
     let saldo = 0;
 
     for (const item of filteredPerData) {
-      const totalComp = dcompTotalMap[item.numero_processo_per] || 0;
+      const totalComp = dcompTotalMap[item.nr_per] || 0;
       const valRessarcido = (item as any).vlr_ressarcido || 0;
       const valSaldo = item.vlr_credito - totalComp - valRessarcido;
-      const correction = selicCorrectionMap[item.numero_processo_per];
+      const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
       corrigido += correction ? correction.valorCorrigido : 0;
@@ -383,7 +364,7 @@ export default function ControlePerdcomp() {
 
   // Sorting
   const getSortValue = (item: any, col: string) => {
-    const key = item.numero_processo_per;
+    const key = item.nr_per;
     switch (col) {
       case "processo":
         return key;
@@ -410,7 +391,7 @@ export default function ControlePerdcomp() {
 
   const sortedData = useMemo(() => {
     if (!sortColumn) return filteredPerData;
-    return [...filteredPerData].sort((a, b) => {
+    return [...filteredPerData].sort((a: any, b: any) => {
       const aVal = getSortValue(a, sortColumn);
       const bVal = getSortValue(b, sortColumn);
       const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
@@ -452,18 +433,13 @@ export default function ControlePerdcomp() {
     setDetailModalOpen(true);
   };
 
-  const handleDelete = (item: any) => {
-    setItemToDelete(item);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (!itemToDelete) return;
-    deleteDcompMutation.mutate(itemToDelete.nr_documento);
+  const handleSoftDeletePer = (item: any) => {
+    setSoftDeleteType('per');
+    setSoftDeleteId(item.nr_per);
+    setSoftDeleteOpen(true);
   };
 
   const isLoading = perLoading || dcompLoading;
-  const isDeleting = deleteDcompMutation.isPending;
 
   const renderTable = () => {
    if (!searched || !contribuinteId) {
@@ -588,7 +564,7 @@ export default function ControlePerdcomp() {
                     <SortIcon col="vlr_corrigido" />
                   </span>
                 </TableHead>
-                <TableHead className="w-[50px]"></TableHead>
+                <TableHead className="w-[80px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -599,20 +575,20 @@ export default function ControlePerdcomp() {
                   </TableCell>
                 </TableRow>
               ) : (
-                paginatedData.map((item) => {
-                  const situacaoInfo = perSituacoesMap[item.numero_processo_per];
-                  const totalCompensado = dcompTotalMap[item.numero_processo_per] || 0;
+                paginatedData.map((item: any) => {
+                  const situacaoInfo = perSituacoesMap[item.nr_per];
+                  const totalCompensado = dcompTotalMap[item.nr_per] || 0;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
                   const saldo = item.vlr_credito - totalCompensado - valorRessarcido;
-                  const correction = selicCorrectionMap[item.numero_processo_per];
+                  const correction = selicCorrectionMap[item.nr_per];
 
                   return (
                     <TableRow
-                      key={item.numero_processo_per}
+                      key={item.nr_per}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handlePerClick(item)}
                     >
-                      <TableCell className="font-medium">{item.numero_processo_per}</TableCell>
+                      <TableCell className="font-medium">{item.nr_per}</TableCell>
                       <TableCell>{situacaoInfo?.situacao || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : "-"}
@@ -667,17 +643,28 @@ export default function ControlePerdcomp() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleEdit(item);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                          Editar
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(item);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSoftDeletePer(item);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -906,24 +893,13 @@ export default function ControlePerdcomp() {
       {/* Form Modal */}
       {renderFormModal()}
 
-      {/* Delete Confirmation Dialog - Only for DCOMP */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o DCOMP {itemToDelete?.nr_documento}? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} disabled={isDeleting}>
-              {isDeleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Excluir
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Soft Delete Modal */}
+      <SoftDeleteModal
+        open={softDeleteOpen}
+        onOpenChange={setSoftDeleteOpen}
+        type={softDeleteType}
+        identifier={softDeleteId}
+      />
 
       {/* PER Detail Modal */}
       <PerDetailModal

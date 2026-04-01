@@ -36,28 +36,28 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
       };
 
       if (type === 'per') {
-        // Update the PER
-        const { error: perError } = await (supabase
+        // Update the PER — cast to any to bypass auto-generated types until regeneration
+        const { error: perError } = await supabase
           .from('per')
           .update(updatePayload as any)
-          .eq('nr_per' as any, identifier) as any);
+          .eq('nr_per' as any, identifier);
         if (perError) throw perError;
 
-        // Cascade: update all child DCOMPs
-        const { error: dcompError } = await (supabase
+        // Cascade: update all child DCOMPs that are not already soft-deleted
+        const { error: dcompError } = await supabase
           .from('dcomp')
           .update(updatePayload as any)
           .eq('nr_per_orig', identifier)
-          .or('excluido.is.null,excluido.eq.') as any);
+          .or('excluido.is.null,excluido.eq.');
         if (dcompError) {
           console.error('[SoftDelete] Erro ao atualizar DCOMPs em cascata:', dcompError);
         }
       } else {
         // Update just the DCOMP
-        const { error } = await (supabase
+        const { error } = await supabase
           .from('dcomp')
           .update(updatePayload as any)
-          .eq('nr_documento', identifier) as any);
+          .eq('nr_documento', identifier);
         if (error) throw error;
       }
     },
