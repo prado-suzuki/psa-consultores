@@ -220,6 +220,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                     <TableHead className="text-xs">Intervalo</TableHead>
                     <TableHead className="text-xs text-right">Valor Lote</TableHead>
                     <TableHead className="text-xs text-right">Soma CT-es</TableHead>
+                    <TableHead className="text-xs text-right">Diferença</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -249,10 +250,19 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                           <TableCell className="text-xs text-right whitespace-nowrap">
                             {formatBRL(lote.SUM_LOTE)}
                           </TableCell>
+                          {(() => {
+                            const diff = lote.VLR_LOTE - lote.SUM_LOTE;
+                            const hasDiff = Math.abs(diff) > 0.05;
+                            return (
+                              <TableCell className={`text-xs text-right whitespace-nowrap ${hasDiff ? 'text-destructive font-medium' : ''}`}>
+                                {formatBRL(diff)}
+                              </TableCell>
+                            );
+                          })()}
                         </TableRow>
                         {isExpanded && (
                           <TableRow key={`detail-${globalIdx}`} className="bg-muted/30 hover:bg-muted/30">
-                            <TableCell colSpan={7} className="p-0 pl-10 pr-4 py-2">
+                            <TableCell colSpan={8} className="p-0 pl-10 pr-4 py-2">
                               <Table>
                                 <TableHeader>
                                   <TableRow>
