@@ -687,6 +687,9 @@ const FiscalProjetosCadastro = () => {
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yy') : '-'}
                 </TableCell>
+                <TableCell className="text-sm text-right text-muted-foreground whitespace-nowrap">
+                  {totalHrsContratadas > 0 ? `${totalHrsContratadas}h` : '-'}
+                </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
