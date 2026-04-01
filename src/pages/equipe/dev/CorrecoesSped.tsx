@@ -304,7 +304,7 @@ const CorrecoesSped = () => {
                           <div className="flex items-center gap-2">
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">NCM:</span>
                             <code className="text-xs font-mono">{nfe.ncm}</code>
-                            {selectedItem.cod_ncm && (
+                          {efdNcm && (
                               <Badge className={`text-[10px] border-0 ${ncmMatch ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                                 {ncmMatch ? 'OK' : 'Divergente'}
                               </Badge>

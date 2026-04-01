@@ -2,7 +2,7 @@
  *  Tipagens centralizadas — Correções SPED (C170, A170, D100, F100)
  * ══════════════════════════════════════════════════════════════ */
 
-// ── C170 (NFe / NFCe) — tipos existentes ──
+// ── NfeItem (sub-item XML dentro de itens_efd) ──
 
 export interface NfeItem {
   nItem: number;
@@ -12,18 +12,50 @@ export interface NfeItem {
   vProd: number;
 }
 
+// ── C170 (NFe / NFCe) — ItemEfd com campos UPPER_CASE da API ──
+
 export interface ItemEfd {
-  num_item: number;
-  descr_item: string;
-  vl_item: number;
-  cod_ncm: string | null;
-  cst_pis: string;
-  aliq_pis: number;
-  vl_pis: number;
-  cst_cofins: string;
-  aliq_cofins: number;
-  vl_cofins: number;
-  cod_cta: string;
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  NUM_ITEM: number;
+  COD_ITEM: string;
+  DESCR_COMPL: string;
+  QTD: number;
+  UNID: string;
+  VL_ITEM: number;
+  VL_DESC: number;
+  IND_MOV: string;
+  CST_ICMS: number;
+  CFOP: string;
+  COD_NAT: string;
+  VL_BC_ICMS: number;
+  ALIQ_ICMS: number;
+  VL_ICMS: number;
+  VL_BC_ICMS_ST: number;
+  ALIQ_ST: number;
+  VL_ICMS_ST: number;
+  IND_APUR: string;
+  CST_IPI: string;
+  COD_ENQ: string;
+  VL_BC_IPI: number;
+  ALIQ_IPI: number;
+  VL_IPI: number;
+  CST_PIS: number;
+  VL_BC_PIS: number;
+  ALIQ_PIS: number;
+  QUANT_BC_PIS: number;
+  ALIQ_PIS_QUANT: number;
+  VL_PIS: number;
+  CST_COFINS: number;
+  VL_BC_COFINS: number;
+  ALIQ_COFINS: number;
+  QUANT_BC_COFINS: number;
+  ALIQ_COFINS_QUANT: number;
+  VL_COFINS: number;
+  COD_CTA: string;
   nfe_itens: NfeItem[];
 }
 
@@ -50,36 +82,71 @@ export interface FlatItemEfd extends ItemEfd {
 // ── A170 (NFSe) — flat array from API ──
 
 export interface A170Item {
-  ID_CONTRIBUINTE: string;
-  CHV_NFSE: string | null;
-  DT_DOC: string;
-  DESCR_ITEM: string;
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  NUM_ITEM: number;
+  COD_ITEM: string;
+  DESCR_COMPL: string;
   VL_ITEM: number;
-  CST_PIS: string;
+  VL_DESC: number;
+  NAT_BC_CRED: string;
+  IND_ORIG_CRED: string;
+  CST_PIS: number;
   VL_BC_PIS: number;
   ALIQ_PIS: number;
   VL_PIS: number;
-  CST_COFINS: string;
+  CST_COFINS: number;
   VL_BC_COFINS: number;
   ALIQ_COFINS: number;
   VL_COFINS: number;
   COD_CTA: string;
+  COD_CCUS: string;
+  ID_CONTRIBUINTE: string;
+  CHV_NFSE: string | null;
+  DT_DOC: string;
   DESCRICAO_CONTA: string;
 }
 
 // ── D100 (CTe) — flat array from API ──
 
 export interface D100Item {
-  ID_CONTRIBUINTE: string;
-  CNPJ_EFD: string;
+  uuid: string;
+  ID_ARQUIVO: string;
+  NUM_LINHA: number;
+  REG: string;
+  IND_OPER: string;
+  IND_EMIT: string;
+  COD_PART: string;
+  COD_MOD: string;
+  COD_SIT: number;
+  SER: string;
+  SUB: string;
+  NUM_DOC: string;
   CHV_CTE: string;
   DT_DOC: string;
-  SIMPLES: string;
+  DT_A_P: string;
+  TP_CTE: number;
+  CHV_CTE_REF: string;
   VL_DOC: number;
-  CST_PIS: string;
+  VL_DESC: number;
+  IND_FRT: string;
+  VL_SERV: number;
+  VL_BC_ICMS: number;
+  VL_ICMS: number;
+  VL_NT: number;
+  COD_INF: string;
+  COD_CTA: string;
+  ID_PAI: string;
+  ID_CONTRIBUINTE: string;
+  CNPJ_EFD: string;
+  SIMPLES: string;
+  CST_PIS: number;
   ALIQ_PIS: number;
   VL_PIS: number;
-  CST_COFINS: string;
+  CST_COFINS: number;
   ALIQ_COFINS: number;
   VL_COFINS: number;
 }
@@ -87,17 +154,32 @@ export interface D100Item {
 // ── F100 (Outros) — flat array from API ──
 
 export interface F100Item {
+  uuid: string;
+  ID_ARQUIVO: string;
+  NUM_LINHA: number;
+  REG: string;
+  IND_OPER: string;
+  COD_PART: string;
+  COD_ITEM: string;
+  DT_OPER: string;
+  VL_OPER: number;
+  CST_PIS: number;
+  VL_BC_PIS: number;
+  ALIQ_PIS: number;
+  VL_PIS: number;
+  CST_COFINS: number;
+  VL_BC_COFINS: number;
+  ALIQ_COFINS: number;
+  VL_COFINS: number;
+  NAT_BC_CRED: string;
+  IND_ORIG_CRED: string;
+  COD_CTA: string;
+  COD_CCUS: string;
+  DESC_DOC_OPER: string;
+  ID_PAI: string;
   ID_CONTRIBUINTE: string;
   CPF_CNPJ: string;
   TIPO_PESSOA: string;
   NOME: string;
-  DT_OPER: string;
   SIMPLES: string;
-  VL_OPER: number;
-  CST_PIS: string;
-  ALIQ_PIS: number;
-  VL_PIS: number;
-  CST_COFINS: string;
-  ALIQ_COFINS: number;
-  VL_COFINS: number;
 }

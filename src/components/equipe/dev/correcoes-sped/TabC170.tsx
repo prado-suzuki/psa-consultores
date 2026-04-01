@@ -8,8 +8,17 @@ import type { CorrecoesSpedResponse, FlatItemEfd, ItemEfd } from '@/types/correc
 
 type NcmFilter = 'all' | 'with' | 'without';
 
-const formatCurrency = (v: number) =>
-  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const formatCurrency = (v: number | null | undefined) =>
+  (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+const safeFixed = (v: number | null | undefined, d = 2) =>
+  (v ?? 0).toFixed(d);
+
+/** Extract NCM from the first matched nfe_item (if 1:1) */
+const getNcm = (item: FlatItemEfd): string | null => {
+  if (item.tipo_relacao === '1:1' && item.nfe_itens[0]) return item.nfe_itens[0].ncm;
+  return null;
+};
 
 interface TabC170Props {
   data: CorrecoesSpedResponse | undefined;
@@ -39,15 +48,15 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
 
   const filtered = useMemo(() => {
     let items = flatItems;
-    if (ncmFilter === 'with') items = items.filter((i) => !!i.cod_ncm);
-    if (ncmFilter === 'without') items = items.filter((i) => !i.cod_ncm);
+    if (ncmFilter === 'with') items = items.filter((i) => !!getNcm(i));
+    if (ncmFilter === 'without') items = items.filter((i) => !getNcm(i));
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.descr_item.toLowerCase().includes(s) ||
+          (i.DESCR_COMPL ?? '').toLowerCase().includes(s) ||
           i.chv_nfe.includes(s) ||
-          (i.cod_ncm && i.cod_ncm.includes(s))
+          (getNcm(i) && getNcm(i)!.includes(s))
       );
     }
     return items;
@@ -123,29 +132,30 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                 <TableBody>
                   {paged.map((item, idx) => {
                     const xml = item.tipo_relacao === '1:1' && item.nfe_itens[0] ? item.nfe_itens[0] : null;
-                    const ncmDivergent = xml && item.cod_ncm && item.cod_ncm !== xml.ncm;
-                    const valueDivergent = xml && Math.abs(item.vl_item - xml.vProd) > 0.01;
+                    const efdNcm = getNcm(item);
+                    const ncmDivergent = xml && efdNcm && efdNcm !== xml.ncm;
+                    const valueDivergent = xml && Math.abs((item.VL_ITEM ?? 0) - xml.vProd) > 0.01;
                     return (
-                      <TableRow key={`${item.chv_nfe}-${item.num_item}-${idx}`} className="group">
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.descr_item}>
-                          {item.descr_item}
+                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className="group">
+                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_COMPL}>
+                          {item.DESCR_COMPL}
                         </TableCell>
                         <TableCell className="py-1.5">
-                          {item.cod_ncm ? (
+                          {efdNcm ? (
                             <Badge
                               variant="outline"
                               className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800"
-                              onClick={() => onSelectNcm(item.cod_ncm!)}
+                              onClick={() => onSelectNcm(efdNcm)}
                             >
                               <BookOpen className="h-3 w-3 shrink-0" />
-                              {item.cod_ncm}
+                              {efdNcm}
                             </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {formatCurrency(item.vl_item)}
+                          {formatCurrency(item.VL_ITEM)}
                         </TableCell>
                         {/* XML zone */}
                         <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
@@ -186,13 +196,13 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                           {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
                         </TableCell>
                         {/* Tax zone */}
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.cst_pis}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_pis.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_pis)}</TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cst_cofins}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{item.aliq_cofins.toFixed(2)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.vl_cofins)}</TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.cod_cta}</TableCell>
+                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_PIS)}</TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
+                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_COFINS)}</TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
+                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.COD_CTA}</TableCell>
                       </TableRow>
                     );
                   })}
