@@ -1,42 +1,27 @@
 
 
-## Plan: Restringir notificações ao líder da Área Fiscal
+## Plan: Atualizar aviso de cascata no SoftDeleteModal
 
-### Contexto
+### Arquivo: `src/components/equipe/dev/perdcomp/SoftDeleteModal.tsx`
 
-Ricardo Migueis está confirmado como líder da **Área Fiscal** (`201bb999-85c8-437b-bd44-201720833cda`).
+**Alteração 1 — Texto e destaque visual (linhas 100-103)**
 
-A função `getGestorRecipients` atual busca líderes de **todas** as áreas com `page_categories @> ['tax']`, o que inclui 5 áreas e 3 pessoas distintas (Ricardo, Washington, Felipe). O objetivo é que apenas o líder da **Área Fiscal** receba notificações de chamados.
+Substituir a frase inline no `DialogDescription` por um card de alerta amarelo separado, exibido apenas quando `type === 'per'`:
 
-### Alteração
-
-**Arquivo:** `supabase/functions/notify-ticket/index.ts`
-
-Filtrar a query de áreas para buscar especificamente a área com nome `Área Fiscal`, em vez de todas as áreas com categoria `tax`:
-
-```typescript
-// ANTES
-const { data: areas } = await supabase
-  .from("estrutura_areas")
-  .select("id")
-  .contains("page_categories", ["tax"])
-  .eq("is_active", true);
-
-// DEPOIS
-const { data: areas } = await supabase
-  .from("estrutura_areas")
-  .select("id")
-  .eq("name", "Área Fiscal")
-  .eq("is_active", true);
+```tsx
+<DialogDescription>
+  Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
+</DialogDescription>
+{type === 'per' && (
+  <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-black">
+    Atenção, esta ação valerá também para todos os DCOMPs vinculados a este PER.
+  </div>
+)}
 ```
 
+O componente já está separado (`SoftDeleteModal`) e já diferencia os dois estados (`per` / `dcomp`). Nenhuma reestruturação necessária.
+
 ### Resultado
-
-| Antes | Depois |
-|---|---|
-| Ricardo, Washington e Felipe recebem | Apenas Ricardo (líder da Área Fiscal) recebe |
-| Qualquer mudança em áreas TAX afeta notificações | Apenas mudanças no líder da Área Fiscal afetam |
-
-### Arquivo modificado
-- `supabase/functions/notify-ticket/index.ts` (1 linha alterada na função `getGestorRecipients`)
+- Para PER: card amarelo com texto em preto aparece abaixo da descrição
+- Para DCOMP: nenhum aviso extra (comportamento atual mantido)
 
