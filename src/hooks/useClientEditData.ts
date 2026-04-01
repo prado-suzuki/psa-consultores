@@ -159,15 +159,16 @@ export const useClientEditData = (
           // Carregar produtos contratados de os_produtos_contratados
           // os_produtos_contratados não está no schema tipado — cast justificado
           const { data: produtosData } = await (supabase.from("os_produtos_contratados" as any) as any)
-            .select("id, ordem_servico_id, produto_segmento_id")
+            .select("id, ordem_servico_id, produto_segmento_id, horas_contratadas")
             .in("ordem_servico_id", osIds);
-          const produtosMap: Record<string, Array<{ _id: number; _dbId: string; produto_segmento_id: string }>> = {};
+          const produtosMap: Record<string, Array<{ _id: number; _dbId: string; produto_segmento_id: string; horas_contratadas?: number }>> = {};
           (produtosData || []).forEach((p: any) => {
             if (!produtosMap[p.ordem_servico_id]) produtosMap[p.ordem_servico_id] = [];
             produtosMap[p.ordem_servico_id].push({
               _id: Date.now() + Math.random(),
               _dbId: p.id,
               produto_segmento_id: p.produto_segmento_id,
+              horas_contratadas: p.horas_contratadas != null ? Number(p.horas_contratadas) : undefined,
             });
           });
 

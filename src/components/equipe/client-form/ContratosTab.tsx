@@ -85,8 +85,15 @@ function ProdutoContratadoBlock({
       toast.error("Este produto já foi adicionado a esta OS");
       return;
     }
-    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId }]);
+    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId, horas_contratadas: undefined }]);
     setAddingProductId("__none__");
+  };
+
+  const handleHorasChange = (idx: number, value: string) => {
+    const updated = [...produtos];
+    const num = parseFloat(value);
+    updated[idx] = { ...updated[idx], horas_contratadas: isNaN(num) ? undefined : num };
+    onChange(updated);
   };
 
   const handleRemove = (idx: number) => {
@@ -129,6 +136,7 @@ function ProdutoContratadoBlock({
           {produtos.map((pc, idx) => (
             <Badge key={idx} variant="secondary" className="text-xs">
               {getProductLabel(pc.produto_segmento_id, produtoOptions)}
+              {pc.horas_contratadas != null && ` (${pc.horas_contratadas}h)`}
             </Badge>
           ))}
         </div>
@@ -154,14 +162,26 @@ function ProdutoContratadoBlock({
       {produtos.length > 0 && (
         <div>
           <Label className="text-xs font-semibold uppercase text-muted-foreground">Produtos Adicionados</Label>
-          <div className="flex flex-wrap gap-2 mt-1">
+          <div className="space-y-2 mt-1">
             {produtos.map((pc, idx) => (
-              <Badge key={idx} variant="secondary" className="text-xs gap-1.5 pr-1">
-                {getProductLabel(pc.produto_segmento_id, produtoOptions)}
-                <button type="button" className="ml-1 rounded-full hover:bg-destructive/20 p-0.5" onClick={() => handleRemove(idx)}>
-                  <X size={12} className="text-destructive" />
-                </button>
-              </Badge>
+              <div key={idx} className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-xs gap-1.5 pr-1 shrink-0">
+                  {getProductLabel(pc.produto_segmento_id, produtoOptions)}
+                  <button type="button" className="ml-1 rounded-full hover:bg-destructive/20 p-0.5" onClick={() => handleRemove(idx)}>
+                    <X size={12} className="text-destructive" />
+                  </button>
+                </Badge>
+                <Input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={pc.horas_contratadas ?? ""}
+                  onChange={(e) => handleHorasChange(idx, e.target.value)}
+                  className="h-7 w-28"
+                  placeholder="Horas"
+                />
+                <span className="text-xs text-muted-foreground shrink-0">hrs contratadas</span>
+              </div>
             ))}
           </div>
         </div>

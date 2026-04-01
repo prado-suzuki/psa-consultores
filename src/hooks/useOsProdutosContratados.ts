@@ -7,6 +7,7 @@ export interface OsProdutoContratado {
   produto_segmento_id: string;
   produto_codigo?: string;
   produto_nome?: string;
+  horas_contratadas?: number;
 }
 
 /**
@@ -21,7 +22,7 @@ export function useOsProdutosContratados(osIds: string[]) {
       // os_produtos_contratados não está no schema tipado — cast justificado
       const { data, error } = await (supabase
         .from('os_produtos_contratados' as any) as any)
-        .select('id, ordem_servico_id, produto_segmento_id, produto_segmento:produto_segmento(id, codigo, nome)')
+        .select('id, ordem_servico_id, produto_segmento_id, horas_contratadas, produto_segmento:produto_segmento(id, codigo, nome)')
         .in('ordem_servico_id', osIds);
       if (error) throw error;
       return (data || []).map((row: any) => ({
@@ -30,6 +31,7 @@ export function useOsProdutosContratados(osIds: string[]) {
         produto_segmento_id: row.produto_segmento_id,
         produto_codigo: row.produto_segmento?.codigo || null,
         produto_nome: row.produto_segmento?.nome || null,
+        horas_contratadas: row.horas_contratadas != null ? Number(row.horas_contratadas) : undefined,
       })) as OsProdutoContratado[];
     },
     enabled: osIds.length > 0,

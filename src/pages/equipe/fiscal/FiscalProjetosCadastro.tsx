@@ -104,7 +104,13 @@ const FiscalProjetosCadastro = () => {
   const { data: projects = [], isLoading } = useTaxProjects();
   const { data: projectHours = {} } = useProjectHours();
 
-  // ── Filtros locais ───────────────────────────────────────────────────
+  // Fetch OS products for listing table (all projects' ordem_servico_id)
+  const listingOsIds = useMemo(() => {
+    const ids = projects.map(p => (p as any).ordem_servico_id).filter(Boolean) as string[];
+    return [...new Set(ids)];
+  }, [projects]);
+  const { data: listingOsProdutos = [] } = useOsProdutosContratados(listingOsIds);
+  const listingOsProdutosByOs = useMemo(() => groupByOs(listingOsProdutos), [listingOsProdutos]);
   const filterOptions = useMemo(() => {
     const clientesMap = new Map<string, string>();
     const produtosSet = new Set<string>();
@@ -612,7 +618,8 @@ const FiscalProjetosCadastro = () => {
                 </TableHead>
                 <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Início</TableHead>
                 <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Término</TableHead>
-                <TableHead style={{ width: '7%' }} className="text-right">Ações</TableHead>
+                <TableHead style={{ width: '6%' }} className="whitespace-nowrap text-right">Hrs Contr.</TableHead>
+                <TableHead style={{ width: '6%' }} className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
           );
@@ -624,6 +631,9 @@ const FiscalProjetosCadastro = () => {
             const liderName = project.leader
               ? `${project.leader.first_name} ${project.leader.last_name}`
               : null;
+            const osId = (project as any).ordem_servico_id;
+            const osProds = osId ? (listingOsProdutosByOs[osId] || []) : [];
+            const totalHrsContratadas = osProds.reduce((sum, p) => sum + (p.horas_contratadas ?? 0), 0);
             return (
               <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                 <TableCell className="whitespace-normal break-words">
@@ -677,6 +687,9 @@ const FiscalProjetosCadastro = () => {
                 <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                   {project.end_date ? format(parseDate(project.end_date), 'dd/MM/yy') : '-'}
                 </TableCell>
+                <TableCell className="text-sm text-right text-muted-foreground whitespace-nowrap">
+                  {totalHrsContratadas > 0 ? `${totalHrsContratadas}h` : '-'}
+                </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <div className="flex justify-end gap-2">
                     <Button variant="ghost" size="icon" onClick={() => handleOpenModal(project)}>
@@ -704,13 +717,13 @@ const FiscalProjetosCadastro = () => {
                     <TableBody>
                       {isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                             Carregando projetos...
                           </TableCell>
                         </TableRow>
                       ) : filteredProjects.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                             {hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
                           </TableCell>
                         </TableRow>

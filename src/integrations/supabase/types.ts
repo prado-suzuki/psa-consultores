@@ -2164,18 +2164,21 @@ export type Database = {
       os_produtos_contratados: {
         Row: {
           created_at: string | null
+          horas_contratadas: number | null
           id: string
           ordem_servico_id: string
           produto_segmento_id: string
         }
         Insert: {
           created_at?: string | null
+          horas_contratadas?: number | null
           id?: string
           ordem_servico_id: string
           produto_segmento_id: string
         }
         Update: {
           created_at?: string | null
+          horas_contratadas?: number | null
           id?: string
           ordem_servico_id?: string
           produto_segmento_id?: string

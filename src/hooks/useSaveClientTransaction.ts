@@ -322,9 +322,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const draftProdutos = c.produtos_contratados || [];
           // os_produtos_contratados não está no schema tipado — cast justificado
           const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
-            .select("id, produto_segmento_id")
+            .select("id, produto_segmento_id, horas_contratadas")
             .eq("ordem_servico_id", osId);
-          const existingMap = new Map((existingProdutos || []).map((p: any) => [p.id, p.produto_segmento_id]));
+          const existingMap = new Map<string, { produto_segmento_id: string; horas_contratadas: number | null }>((existingProdutos || []).map((p: any) => [p.id, { produto_segmento_id: p.produto_segmento_id, horas_contratadas: p.horas_contratadas }]));
 
           // Determine which to keep, insert, and delete
           const draftDbIds = new Set(draftProdutos.filter(p => p._dbId).map(p => p._dbId!));
@@ -352,6 +352,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const insertPayload = toInsert.map(p => ({
               ordem_servico_id: osId,
               produto_segmento_id: p.produto_segmento_id,
+              horas_contratadas: p.horas_contratadas ?? null,
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
             if (insErr) throw insErr;
@@ -367,12 +368,18 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }
           }
 
-          // Update existing (with _dbId) — only if produto_segmento_id changed
+          // Update existing (with _dbId) — only if produto_segmento_id or horas_contratadas changed
           for (const dp of draftProdutos.filter(p => p._dbId)) {
-            const oldProdId = existingMap.get(dp._dbId!);
-            if (oldProdId && oldProdId !== dp.produto_segmento_id) {
+            const old = existingMap.get(dp._dbId!);
+            if (!old) continue;
+            const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
+            const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
+            if (prodChanged || horasChanged) {
               await (supabase.from("os_produtos_contratados" as any) as any)
-                .update({ produto_segmento_id: dp.produto_segmento_id })
+                .update({
+                  produto_segmento_id: dp.produto_segmento_id,
+                  horas_contratadas: dp.horas_contratadas ?? null,
+                })
                 .eq("id", dp._dbId);
             }
           }
