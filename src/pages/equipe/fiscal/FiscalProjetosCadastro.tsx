@@ -631,6 +631,9 @@ const FiscalProjetosCadastro = () => {
             const liderName = project.leader
               ? `${project.leader.first_name} ${project.leader.last_name}`
               : null;
+            const osId = (project as any).ordem_servico_id;
+            const osProds = osId ? (listingOsProdutosByOs[osId] || []) : [];
+            const totalHrsContratadas = osProds.reduce((sum, p) => sum + (p.horas_contratadas ?? 0), 0);
             return (
               <TableRow key={project.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleOpenModal(project)}>
                 <TableCell className="whitespace-normal break-words">
