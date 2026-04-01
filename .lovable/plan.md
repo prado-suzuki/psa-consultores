@@ -1,88 +1,88 @@
 
 
-## Plan: Sync responsible_id com tax_project_members + Fix silent RLS failure
+## Plan: Resolver gestores dinamicamente via `estrutura_area_lideres`
 
 ### Problema
-A função `buildMembersList` em `src/hooks/useTaxProjects.ts` insere apenas `leader` e `member` em `tax_project_members`, ignorando o `responsible_id`. Isso faz com que o Responsável Executor não seja reconhecido pelo RLS como membro do projeto, bloqueando silenciosamente updates em `fiscal_tasks`.
+A constante `GESTOR_EMAIL` (linha 9) é hardcoded para um único e-mail. Todos os eventos que notificam "gestor" enviam apenas para essa pessoa, ignorando o Ricardo (líder da área TAX).
+
+### Solução
+Substituir a constante por uma função que consulta dinamicamente os líderes da área TAX no banco.
 
 ---
 
-### Alteração 1 — `src/hooks/useTaxProjects.ts` → `buildMembersList`
+### Alteração única — `supabase/functions/notify-ticket/index.ts`
 
-Adicionar o `responsible_id` à lista de membros com `role: 'responsible'`.
+**1. Remover** a constante `GESTOR_EMAIL` (linha 9).
 
-Na função `buildMembersList` (linha 370), receber também o `responsible_id` e incluí-lo:
+**2. Adicionar** função `getGestorRecipients`:
 
 ```typescript
-function buildMembersList(projectId: string, data: TaxProjectFormData) {
-  const members: { project_id: string; user_id: string; role: string }[] = [];
+async function getGestorRecipients(
+  supabase: ReturnType<typeof createClient>,
+  ticketId: string
+): Promise<Recipient[]> {
+  // Buscar área TAX (page_categories contém 'tax')
+  const { data: areas } = await supabase
+    .from('estrutura_areas')
+    .select('id')
+    .contains('page_categories', ['tax'])
+    .eq('is_active', true);
 
-  // Responsible executor
-  if (data.responsible_id) {
-    members.push({ project_id: projectId, user_id: data.responsible_id, role: 'responsible' });
-  }
+  if (!areas?.length) return [];
 
-  // Leaders
-  for (const uid of data.leader_ids) {
-    if (!members.some(m => m.user_id === uid)) {
-      members.push({ project_id: projectId, user_id: uid, role: 'leader' });
-    }
-  }
+  const areaIds = areas.map(a => a.id);
 
-  // Members
-  for (const uid of data.member_ids) {
-    if (!members.some(m => m.user_id === uid)) {
-      members.push({ project_id: projectId, user_id: uid, role: 'member' });
-    }
-  }
+  // Buscar líderes dessas áreas
+  const { data: lideres } = await supabase
+    .from('estrutura_area_lideres')
+    .select('user_id')
+    .in('area_id', areaIds);
 
-  return members;
+  if (!lideres?.length) return [];
+
+  const userIds = [...new Set(lideres.map(l => l.user_id))];
+
+  // Buscar e-mails dos líderes
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, email')
+    .in('id', userIds);
+
+  if (!profiles?.length) return [];
+
+  const gestorUrl = `${PUBLISHED_URL}/gestao/chamados/${ticketId}`;
+
+  return profiles
+    .filter(p => p.email)
+    .map(p => ({
+      email: p.email!,
+      ticket_url: gestorUrl,
+      role: 'gestor' as RecipientRole,
+    }));
 }
 ```
 
-Na mutação `useUpdateTaxProject`, ao calcular `removedMembers`, garantir que o antigo `responsible_id` (se trocado) seja removido **apenas se o role era `'responsible'`** — ou seja, só remover se o user não tem outro role no projeto. A lógica atual de `removedMembers` já faz isso corretamente porque compara sets de `user_id` completos (o novo `buildMembersList` já incluirá o novo responsible). Se o responsible antigo não estiver mais em nenhum role, será removido naturalmente.
-
----
-
-### Alteração 2 — `src/hooks/useFiscalTasks.ts` → `useUpdateFiscalTask`
-
-Após o `.maybeSingle()`, verificar se `data` é `null`. Se sim, lançar erro:
-
+**3. Substituir** todas as ocorrências de:
 ```typescript
-if (!data) {
-  throw new Error('Sem permissão para atualizar esta tarefa. Verifique se você é membro do projeto.');
-}
+recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+```
+por:
+```typescript
+const gestores = await getGestorRecipients(supabase, ticket.id);
+recipients.push(...gestores);
 ```
 
-Isso impede a escrita do audit log falso e mostra toast de erro.
+Isso afeta os eventos: `ticket_created`, `ticket_replied`, `ticket_overdue`, `ticket_resolved`.
 
 ---
 
-### Alteração 3 — Migration SQL (backfill dados existentes)
+### Resultado
 
-Inserir em `tax_project_members` todos os `responsible_id` de projetos existentes que ainda não são membros:
+| Antes | Depois |
+|---|---|
+| Apenas `patricia.melo@...` recebia notificações de gestor | Todos os líderes da área TAX (Ricardo, Patricia, etc.) recebem |
+| Hardcoded | Dinâmico — adicionar/remover líderes no EstruturaManager reflete automaticamente |
 
-```sql
-INSERT INTO public.tax_project_members (project_id, user_id, role)
-SELECT tp.id, tp.responsible_id, 'responsible'
-FROM public.tax_projects tp
-WHERE tp.responsible_id IS NOT NULL
-  AND NOT EXISTS (
-    SELECT 1 FROM public.tax_project_members tpm
-    WHERE tpm.project_id = tp.id
-      AND tpm.user_id = tp.responsible_id
-  );
-```
-
----
-
-### Resumo
-
-| # | Arquivo | Alteração |
-|---|---------|-----------|
-| 1 | `src/hooks/useTaxProjects.ts` | `buildMembersList` inclui `responsible_id` com role `'responsible'` |
-| 2 | `src/hooks/useFiscalTasks.ts` | Throw se `.maybeSingle()` retorna null (RLS bloqueou) |
-| 3 | Migration SQL | Backfill de responsible_ids existentes em `tax_project_members` |
-
-Nenhuma RLS policy alterada. Nenhuma tabela/coluna criada. Visual do modal inalterado.
+### Arquivo modificado
+- `supabase/functions/notify-ticket/index.ts`
 
