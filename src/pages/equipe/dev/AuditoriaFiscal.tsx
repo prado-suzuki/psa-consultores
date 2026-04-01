@@ -863,15 +863,11 @@ const AuditoriaFiscal = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="single"
                     selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
                     onSelect={(date) => {
                       setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
                       setSearchTriggered(false);
                     }}
-                    initialFocus
-                    locale={ptBR}
-                    className="pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
