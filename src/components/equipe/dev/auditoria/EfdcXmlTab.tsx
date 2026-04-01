@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Search, ChevronRight, ChevronDown, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
 interface EfdcXmlTabProps {
@@ -19,12 +20,23 @@ interface EfdcXmlTabProps {
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
+type FilterKey = 'emitente' | 'cfop';
+
+const extractValue = (lote: EfdcXmlLote, key: FilterKey): string => {
+  switch (key) {
+    case 'emitente': return lote.NOME_EMIT || '(vazio)';
+    case 'cfop': return lote.CFOP || '(vazio)';
+  }
+};
+
 const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
   const { hasQueried } = useAuditoriaStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string> | null>>({});
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
@@ -35,23 +47,83 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
     if (error) toast.error('Falha ao carregar os dados de XMLs. Tente novamente.');
   }, [error]);
 
-  const filteredLotes = useMemo(() => {
-    if (!debouncedSearch) return lotes;
-    const term = debouncedSearch.toLowerCase();
-    return lotes.filter(
-      (l) =>
-        (l.CFOP ?? '').toLowerCase().includes(term) ||
-        (l.INTERVALO ?? '').toLowerCase().includes(term)
-    );
-  }, [lotes, debouncedSearch]);
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => ({ ...prev, [key]: values }));
+  }, []);
+
+  const processedLotes = useMemo(() => {
+    let result = lotes;
+
+    // Text search
+    if (debouncedSearch) {
+      const term = debouncedSearch.toLowerCase();
+      result = result.filter(
+        (l) =>
+          (l.CFOP ?? '').toLowerCase().includes(term) ||
+          (l.INTERVALO ?? '').toLowerCase().includes(term)
+      );
+    }
+
+    // Column filters
+    const filterKeys: FilterKey[] = ['emitente', 'cfop'];
+    for (const key of filterKeys) {
+      const filterSet = columnFilters[key];
+      if (filterSet) {
+        result = result.filter((l) => filterSet.has(extractValue(l, key)));
+      }
+    }
+
+    // Sort
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      const mult = direction === 'asc' ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const va = extractValue(a, key as FilterKey);
+        const vb = extractValue(b, key as FilterKey);
+        return va.localeCompare(vb, 'pt-BR') * mult;
+      });
+    }
+
+    return result;
+  }, [lotes, debouncedSearch, columnFilters, sortConfig]);
+
+  // Unique values per column (cascade-aware)
+  const uniqueValues = useMemo(() => {
+    const keys: FilterKey[] = ['emitente', 'cfop'];
+    const result: Record<string, string[]> = {};
+    for (const targetKey of keys) {
+      let subset = lotes;
+      if (debouncedSearch) {
+        const term = debouncedSearch.toLowerCase();
+        subset = subset.filter(
+          (l) =>
+            (l.CFOP ?? '').toLowerCase().includes(term) ||
+            (l.INTERVALO ?? '').toLowerCase().includes(term)
+        );
+      }
+      for (const otherKey of keys) {
+        if (otherKey === targetKey) continue;
+        const filterSet = columnFilters[otherKey];
+        if (filterSet) {
+          subset = subset.filter((l) => filterSet.has(extractValue(l, otherKey)));
+        }
+      }
+      result[targetKey] = [...new Set(subset.map((l) => extractValue(l, targetKey)))];
+    }
+    return result;
+  }, [lotes, debouncedSearch, columnFilters]);
 
   useEffect(() => {
     setCurrentPage(0);
     setExpandedRows(new Set());
-  }, [debouncedSearch, lotes]);
+  }, [processedLotes]);
 
-  const totalPages = Math.ceil(filteredLotes.length / PAGE_SIZE);
-  const pagedLotes = filteredLotes.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+  const totalPages = Math.ceil(processedLotes.length / PAGE_SIZE);
+  const pagedLotes = processedLotes.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
   const toggleRow = (idx: number) => {
     setExpandedRows((prev) => {
@@ -113,7 +185,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
           </div>
         </div>
 
-        {filteredLotes.length === 0 ? (
+        {processedLotes.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum registro encontrado</p>
         ) : (
           <>
@@ -123,8 +195,28 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                   <TableRow>
                     <TableHead className="text-xs w-8" />
                     <TableHead className="text-xs">Data Lote</TableHead>
-                    <TableHead className="text-xs">Emitente</TableHead>
-                    <TableHead className="text-xs">CFOP</TableHead>
+                    <TableHead className="text-xs">
+                      Emitente
+                      <ColumnFilterDropdown
+                        columnKey="emitente"
+                        uniqueValues={uniqueValues.emitente ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.emitente ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
+                    <TableHead className="text-xs">
+                      CFOP
+                      <ColumnFilterDropdown
+                        columnKey="cfop"
+                        uniqueValues={uniqueValues.cfop ?? []}
+                        activeSort={sortConfig}
+                        activeFilter={columnFilters.cfop ?? null}
+                        onSort={handleSort}
+                        onFilter={handleFilter}
+                      />
+                    </TableHead>
                     <TableHead className="text-xs">Intervalo</TableHead>
                     <TableHead className="text-xs text-right">Valor Lote</TableHead>
                     <TableHead className="text-xs text-right">Soma CT-es</TableHead>
@@ -191,7 +283,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
-              totalItems={filteredLotes.length}
+              totalItems={processedLotes.length}
               onPageChange={setCurrentPage}
             />
           </>
