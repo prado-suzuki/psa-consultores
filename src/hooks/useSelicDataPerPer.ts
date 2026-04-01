@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import type { SelicTaxa } from '@/hooks/useSelicData';
 
 interface PerInput {
-  numero_processo_per: string;
+  nr_per: string;
   dt_solicitada: string;
 }
 
@@ -25,7 +25,7 @@ export function useSelicDataPerPer(pers: PerInput[]) {
   );
 
   const cacheKey = eligiblePers
-    .map((p) => p.numero_processo_per)
+    .map((p) => p.nr_per)
     .sort()
     .join(',');
 
@@ -42,7 +42,7 @@ export function useSelicDataPerPer(pers: PerInput[]) {
 
       for (const per of eligiblePers) {
         const endDate = getSelicEndDate(per.dt_solicitada);
-        perEndDates[per.numero_processo_per] = endDate;
+        perEndDates[per.nr_per] = endDate;
         if (per.dt_solicitada < oldestDtSolicitada) {
           oldestDtSolicitada = per.dt_solicitada;
         }
@@ -75,20 +75,20 @@ export function useSelicDataPerPer(pers: PerInput[]) {
 
       // 3. Para cada PER, localizar taxa direto da API (sem subtração)
       for (const per of eligiblePers) {
-        const endDate = perEndDates[per.numero_processo_per];
+        const endDate = perEndDates[per.nr_per];
         const endMonth = endDate.substring(0, 7); // YYYY-MM
         const taxa = taxasByMonth[endMonth];
 
         if (!taxa) {
-          console.warn(`[Selic] ${per.numero_processo_per}: sem registro para mês ${endMonth}, ignorado`);
+          console.warn(`[Selic] ${per.nr_per}: sem registro para mês ${endMonth}, ignorado`);
           continue;
         }
 
         console.log(
-          `[Selic] ${per.numero_processo_per}: vlr_acumulado_dec=${taxa.vlr_acumulado_dec.toFixed(4)} valor_acumulado=${taxa.valor_acumulado}%`
+          `[Selic] ${per.nr_per}: vlr_acumulado_dec=${taxa.vlr_acumulado_dec.toFixed(4)} valor_acumulado=${taxa.valor_acumulado}%`
         );
 
-        map[per.numero_processo_per] = taxa;
+        map[per.nr_per] = taxa;
       }
 
       console.log(`[Selic] Resultado: ${Object.keys(map).length}/${eligiblePers.length} PERs com taxa`);

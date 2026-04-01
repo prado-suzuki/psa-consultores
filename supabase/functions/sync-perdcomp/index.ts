@@ -12,7 +12,7 @@ const API_URLS = {
 }
 
 interface PerRecord {
-  numero_processo_per: string
+  nr_per: string
   id_contribuinte: string
   exercicio: number
   tri_exercicio: number
@@ -21,6 +21,8 @@ interface PerRecord {
   vlr_credito: number
   nr_proc_ret?: string | null
   porcentagem_psa?: number | null
+  excluido?: string | null
+  nr_cancelamento?: string | null
 }
 
 interface PerSituacaoRecord {
@@ -42,6 +44,8 @@ interface DcompRecord {
   vlr_compensado: number
   nr_dcomp_ret?: string | null
   porcentagem_psa?: number | null
+  excluido?: string | null
+  nr_cancelamento?: string | null
 }
 
 interface SyncPayload {

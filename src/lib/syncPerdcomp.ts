@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { isProductionEnvironment } from '@/config/api';
 
 interface PerSync {
-  numero_processo_per: string;
+  nr_per: string;
   id_contribuinte: string;
   exercicio: number;
   tri_exercicio: number;
@@ -12,6 +12,8 @@ interface PerSync {
   vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
   porcentagem_psa?: number | null;
+  excluido?: string | null;
+  nr_cancelamento?: string | null;
 }
 
 interface PerSituacaoSync {
@@ -33,6 +35,8 @@ interface DcompSync {
   vlr_compensado: number;
   nr_dcomp_ret?: string | null;
   porcentagem_psa?: number | null;
+  excluido?: string | null;
+  nr_cancelamento?: string | null;
 }
 
 interface SyncPerdcompPayload {
