@@ -751,8 +751,10 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_envio: string
+          excluido: string | null
           imposto: string
           mes_ano_exercicio: string
+          nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
@@ -766,8 +768,10 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio: string
+          excluido?: string | null
           imposto: string
           mes_ano_exercicio: string
+          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
@@ -781,8 +785,10 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio?: string
+          excluido?: string | null
           imposto?: string
           mes_ano_exercicio?: string
+          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
@@ -803,14 +809,14 @@ export type Database = {
             columns: ["nr_per_orig"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
           {
             foreignKeyName: "dcomp_nr_per_orig_fkey"
             columns: ["nr_per_orig"]
             isOneToOne: false
             referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
         ]
       }
@@ -2299,10 +2305,12 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string
+          excluido: string | null
           exercicio: number
           id_contribuinte: string
+          nr_cancelamento: string | null
+          nr_per: string
           nr_proc_ret: string | null
-          numero_processo_per: string
           porcentagem_psa: number | null
           tp_credito: string
           tri_exercicio: number
@@ -2315,10 +2323,12 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada: string
+          excluido?: string | null
           exercicio: number
           id_contribuinte: string
+          nr_cancelamento?: string | null
+          nr_per: string
           nr_proc_ret?: string | null
-          numero_processo_per: string
           porcentagem_psa?: number | null
           tp_credito: string
           tri_exercicio: number
@@ -2331,10 +2341,12 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada?: string
+          excluido?: string | null
           exercicio?: number
           id_contribuinte?: string
+          nr_cancelamento?: string | null
+          nr_per?: string
           nr_proc_ret?: string | null
-          numero_processo_per?: string
           porcentagem_psa?: number | null
           tp_credito?: string
           tri_exercicio?: number
@@ -2347,14 +2359,14 @@ export type Database = {
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
         ]
       }
@@ -2389,14 +2401,14 @@ export type Database = {
             columns: ["nr_proc_per"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
           {
             foreignKeyName: "per_situacao_nr_proc_per_fkey"
             columns: ["nr_proc_per"]
             isOneToOne: false
             referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
         ]
       }
@@ -4747,10 +4759,12 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string | null
+          excluido: string | null
           exercicio: number | null
           id_contribuinte: string | null
+          nr_cancelamento: string | null
+          nr_per: string | null
           nr_proc_ret: string | null
-          numero_processo_per: string | null
           porcentagem_psa: number | null
           tp_credito: string | null
           tri_exercicio: number | null
@@ -4763,14 +4777,14 @@ export type Database = {
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per_with_contribuinte"
-            referencedColumns: ["numero_processo_per"]
+            referencedColumns: ["nr_per"]
           },
         ]
       }
