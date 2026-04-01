@@ -131,7 +131,7 @@ const CorrecoesSped = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dtFin ? new Date(dtFin + 'T00:00:00') : undefined} onSelect={(d) => setDtFin(d ? format(d, 'yyyy-MM-dd') : '')} initialFocus className="p-3 pointer-events-auto" />
+                    <Calendar selected={dtFin ? new Date(dtFin + 'T00:00:00') : undefined} onSelect={(d) => setDtFin(d ? format(d, 'yyyy-MM-dd') : '')} />
                   </PopoverContent>
                 </Popover>
               </div>

@@ -764,15 +764,11 @@ const ConsultaXMLs = () => {
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                      mode="single"
                       selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
                       onSelect={(date) => {
                         setDataFim(date ? format(date, "yyyy-MM-dd") : "");
                         setSearchTriggered(false);
                       }}
-                      initialFocus
-                      locale={ptBR}
-                      className="pointer-events-auto"
                     />
                   </PopoverContent>
                 </Popover>

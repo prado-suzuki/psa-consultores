@@ -108,7 +108,7 @@ const AuditoriaCruzadaContent = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar mode="single" selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} initialFocus className="p-3 pointer-events-auto" />
+                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
                   </PopoverContent>
                 </Popover>
               </div>

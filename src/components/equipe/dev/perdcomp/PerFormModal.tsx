@@ -652,7 +652,6 @@ export function PerFormModal({
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0 pointer-events-auto" align="start">
                         <Calendar
-                          mode="single"
                           selected={selectedDate}
                           onSelect={(date) => {
                             if (date) {
@@ -661,9 +660,6 @@ export function PerFormModal({
                             setCalendarOpen(false);
                           }}
                           disabled={(date) => date > new Date()}
-                          initialFocus
-                          locale={ptBR}
-                          className="pointer-events-auto"
                         />
                       </PopoverContent>
                     </Popover>
