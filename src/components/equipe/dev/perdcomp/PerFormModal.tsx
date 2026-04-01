@@ -214,7 +214,7 @@ export function PerFormModal({
   useEffect(() => {
     if (editData) {
       form.reset({
-        numero_processo_per: editData.numero_processo_per,
+        nr_per: editData.nr_per,
         id_contribuinte: editData.id_contribuinte,
         exercicio: editData.exercicio,
         tri_exercicio: editData.tri_exercicio,
@@ -239,7 +239,7 @@ export function PerFormModal({
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_credito || 0));
       } else {
         form.reset({
-          numero_processo_per: '',
+          nr_per: '',
           id_contribuinte: contribuinteId || '',
           exercicio: new Date().getFullYear(),
           tri_exercicio: 1,
@@ -267,10 +267,10 @@ export function PerFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
       // Verificar se já existe PER com este número
-      const { data: existing } = await supabase
-        .from('per')
-        .select('numero_processo_per')
-        .eq('numero_processo_per', data.numero_processo_per)
+      const { data: existing } = await (supabase
+        .from('per') as any)
+        .select('nr_per')
+        .eq('nr_per', data.nr_per)
         .maybeSingle();
 
       if (existing) {
@@ -278,8 +278,8 @@ export function PerFormModal({
       }
 
       // Insert PER with nr_proc_ret if retificadora
-      const { error: perError } = await supabase.from('per').insert([{
-        numero_processo_per: data.numero_processo_per,
+      const { error: perError } = await (supabase.from('per') as any).insert([{
+        nr_per: data.nr_per,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
         tri_exercicio: data.tri_exercicio,
@@ -293,7 +293,7 @@ export function PerFormModal({
 
       // Automatically create initial situação as "Analisado"
       const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
-        nr_proc_per: data.numero_processo_per,
+        nr_proc_per: data.nr_per,
         situacao: 'Analisado',
       }).select().single();
       if (situacaoError) {
@@ -322,7 +322,7 @@ export function PerFormModal({
 
       // Sync fire-and-forget
       const perRecord = {
-        numero_processo_per: result.perData.numero_processo_per,
+        nr_per: result.perData.nr_per,
         id_contribuinte: result.perData.id_contribuinte,
         exercicio: result.perData.exercicio,
         tri_exercicio: result.perData.tri_exercicio,
@@ -349,8 +349,8 @@ export function PerFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
-      const { error } = await supabase
-        .from('per')
+      const { error } = await (supabase
+        .from('per') as any)
         .update({
           id_contribuinte: data.id_contribuinte,
           exercicio: data.exercicio,
@@ -361,7 +361,7 @@ export function PerFormModal({
           nr_proc_ret: data.nr_proc_ret || null,
           porcentagem_psa: data.porcentagem_psa ?? null,
         })
-        .eq('numero_processo_per', editData?.numero_processo_per);
+        .eq('nr_per', editData?.nr_per);
       if (error) throw error;
       return data;
     },
@@ -373,7 +373,7 @@ export function PerFormModal({
 
       syncPerdcompToDW({
         per: [{
-          numero_processo_per: editData?.numero_processo_per,
+          nr_per: editData?.nr_per,
           id_contribuinte: data.id_contribuinte,
           exercicio: data.exercicio,
           tri_exercicio: data.tri_exercicio,
