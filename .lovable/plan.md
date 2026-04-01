@@ -1,30 +1,70 @@
 
 
-## Plan: Autocomplete (Typeahead) no campo de busca por Conta Contábil
+## Plan: Atualizar tipos e consumidores para nova estrutura da API `/revisao/notas-itens`
 
-### Arquivo: `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx`
+### Mudança na API
 
-### O que muda
+Antes: `itens_efd` era um array flat de `ItemEfd` (com `nfe_itens` inline).
+Agora: `itens_efd` é um array de objetos com chaves `c170`, `0200` e `nfe_itens` separadas.
 
-Substituir o `<Input>` simples (linhas 106-113) por um componente autocomplete inline usando `Popover` + lista virtualizada de sugestões.
+### Arquivo 1: `src/types/correcoesSped.ts`
 
-### Lógica
+**Adicionar** interface `Item0200` com os campos do registro 0200 (COD_ITEM, DESCR_ITEM, COD_NCM, TIPO_ITEM, etc.).
 
-1. **Extrair contas únicas**: Função recursiva `collectAllContas(nodes)` que percorre toda a árvore de todos os períodos e retorna `Map<cod_cta, descricao_conta>` — deduplica por `cod_cta`. Executada via `useMemo` sobre `periodos`.
+**Adicionar** interface `ItemEfdEntry` (wrapper do novo formato):
+```typescript
+interface ItemEfdEntry {
+  c170: ItemEfd;
+  "0200": Item0200 | null;
+  nfe_itens: NfeItem[];
+}
+```
 
-2. **Filtrar sugestões**: `useMemo` que filtra as contas únicas pelo `searchTerm` (match em `cod_cta` ou `descricao_conta`, case-insensitive). Limite de 50 resultados para performance.
+**Mover** `nfe_itens` de `ItemEfd` para `ItemEfdEntry` (remover de `ItemEfd`).
 
-3. **UI do dropdown**: 
-   - `Popover` controlado (`open` = `searchTerm.length >= 1 && suggestions.length > 0 && inputFocused`)
-   - `PopoverTrigger` wraps o input existente (mantém ícone Search e estilo)
-   - `PopoverContent` com `max-h-[240px] overflow-y-auto` contendo lista de itens clicáveis
-   - Cada item mostra `cod_cta` em bold + `descricao_conta` truncado
+**Atualizar** `NotaRevisao.itens_efd` de `ItemEfd[]` para `ItemEfdEntry[]`.
 
-4. **Seleção**: Ao clicar numa sugestão, preenche `searchTerm` com `cod_cta` e fecha o dropdown. O debounce existente dispara a filtragem da árvore normalmente.
+**Atualizar** `FlatItemEfd` para estender de `ItemEfd` e incluir campos do 0200:
+```typescript
+interface FlatItemEfd extends ItemEfd {
+  chv_nfe: string;
+  dt_doc: string;
+  tipo_relacao: '...' ;
+  nfe_itens: NfeItem[];
+  // Campos do 0200
+  DESCR_ITEM_0200: string | null;
+  COD_NCM: string | null;
+  TIPO_ITEM: string | null;
+}
+```
 
-5. **Teclado**: ESC fecha o dropdown. Foco no input mantém o dropdown aberto.
+### Arquivo 2: `src/components/equipe/dev/correcoes-sped/TabC170.tsx`
+
+**Atualizar flatMap** para desestruturar o novo formato:
+```typescript
+data.notas.flatMap(nota =>
+  nota.itens_efd.map(entry => ({
+    ...entry.c170,
+    nfe_itens: entry.nfe_itens ?? [],
+    chv_nfe: nota.chv_nfe,
+    dt_doc: nota.dt_doc,
+    tipo_relacao: nota.tipo_relacao,
+    DESCR_ITEM_0200: entry["0200"]?.DESCR_ITEM ?? null,
+    COD_NCM: entry["0200"]?.COD_NCM ?? null,
+    TIPO_ITEM: entry["0200"]?.TIPO_ITEM ?? null,
+  }))
+)
+```
+
+**Atualizar `getNcm`**: Priorizar `COD_NCM` do registro 0200 sobre o NCM do XML.
+
+**Na tabela**: A coluna NCM do lado EFD agora usa `item.COD_NCM` (do 0200) em vez de extrair do XML. A coluna Descrição EFD pode opcionalmente mostrar `DESCR_ITEM_0200` se diferente de `DESCR_COMPL`.
+
+### Arquivo 3: `src/pages/equipe/dev/CorrecoesSped.tsx`
+
+**Atualizar** o modal de detalhes: `selectedItem` passa a ser `FlatItemEfd` (que já inclui `nfe_itens` e campos 0200). Ajustar referências a `selectedItem.nfe_itens` (que agora vem do flat item, não do `ItemEfd` original).
 
 ### Nenhum outro arquivo afetado
 
-Toda a lógica é local ao `BalanceteEfdTab`. O `filterContasTree` e o fluxo de dados para `BalanceteTreeTable` permanecem inalterados.
+Os hooks `useCorrecoesSped` e as abas A170/D100/F100 não consomem esta rota e permanecem inalterados.
 
