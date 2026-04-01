@@ -134,7 +134,7 @@ export function PerFormModal({
   const form = useForm<PerFormData>({
     resolver: zodResolver(perSchema),
     defaultValues: {
-      numero_processo_per: '',
+      nr_per: '',
       id_contribuinte: contribuinteId || '',
       exercicio: new Date().getFullYear(),
       tri_exercicio: 1,
