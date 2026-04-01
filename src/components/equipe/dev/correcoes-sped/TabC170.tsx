@@ -138,8 +138,8 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                     const valueDivergent = xml && Math.abs((item.VL_ITEM ?? 0) - xml.vProd) > 0.01;
                     return (
                       <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className="group">
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_COMPL}>
-                          {item.DESCR_COMPL}
+                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_ITEM_0200 || item.DESCR_COMPL}>
+                          {item.DESCR_ITEM_0200 || item.DESCR_COMPL}
                         </TableCell>
                         <TableCell className="py-1.5">
                           {efdNcm ? (
