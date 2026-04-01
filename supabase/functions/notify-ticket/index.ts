@@ -34,7 +34,7 @@ async function getGestorRecipients(
   const { data: areas } = await supabase
     .from("estrutura_areas")
     .select("id")
-    .contains("page_categories", ["tax"])
+    .eq("name", "Área Fiscal")
     .eq("is_active", true);
 
   if (!areas?.length) return [];
