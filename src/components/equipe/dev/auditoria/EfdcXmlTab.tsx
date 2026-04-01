@@ -220,6 +220,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                     <TableHead className="text-xs">Intervalo</TableHead>
                     <TableHead className="text-xs text-right">Valor Lote</TableHead>
                     <TableHead className="text-xs text-right">Soma CT-es</TableHead>
+                    <TableHead className="text-xs text-right">Diferença</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
