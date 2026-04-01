@@ -1,55 +1,30 @@
 
 
-## Plan: Adicionar filtros Excel (Conta e Descrição) na aba Balancete da Auditoria Cruzada
+## Plan: Autocomplete (Typeahead) no campo de busca por Conta Contábil
 
-### Contexto
+### Arquivo: `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx`
 
-As abas EFD ICMS e EFD XML já possuem `ColumnFilterDropdown`. A aba Balancete usa o `BalanceteTreeTable` que renderiza dados hierárquicos via `DynamicTableHeader` — este já suporta a prop `renderHeaderExtra` mas ela não é utilizada no `BalanceteTreeTable`.
+### O que muda
 
-### Abordagem
+Substituir o `<Input>` simples (linhas 106-113) por um componente autocomplete inline usando `Popover` + lista virtualizada de sugestões.
 
-Adicionar filtro/ordenação por coluna nas colunas sticky "Conta" e "Descrição" diretamente no `BalanceteTreeTable`, reutilizando o `ColumnFilterDropdown` existente.
+### Lógica
 
-Como os dados são hierárquicos (árvore), a lógica precisa:
-1. **Coletar valores únicos** recursivamente de toda a árvore merged (folhas e nós)
-2. **Filtrar a árvore** recursivamente — manter nó se ele próprio passa no filtro OU se algum filho passa
-3. **Ordenar** nós no mesmo nível pela coluna selecionada
+1. **Extrair contas únicas**: Função recursiva `collectAllContas(nodes)` que percorre toda a árvore de todos os períodos e retorna `Map<cod_cta, descricao_conta>` — deduplica por `cod_cta`. Executada via `useMemo` sobre `periodos`.
 
-### Alteração: `src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx`
+2. **Filtrar sugestões**: `useMemo` que filtra as contas únicas pelo `searchTerm` (match em `cod_cta` ou `descricao_conta`, case-insensitive). Limite de 50 resultados para performance.
 
-**Adicionar:**
-- Import do `ColumnFilterDropdown`
-- Estado `sortConfig` e `columnFilters` (mesmo padrão da `ApuracaoDataTable`)
-- Constante `FILTERABLE_KEYS` mapeando `{ key: 'cod_cta', label: 'Conta' }` e `{ key: 'descricao_conta', label: 'Descrição' }`
-- Função recursiva `collectUniqueValues(nodes, key)` → extrai valores únicos da árvore para cascata
-- Função recursiva `filterTree(nodes, filters)` → retorna árvore filtrada preservando ancestrais
-- Função recursiva `sortTree(nodes, key, direction)` → ordena nós no mesmo nível
-- `useMemo` com `cascadingUniqueValues` (para cada coluna, filtra pela outra antes de coletar)
-- `useMemo` com `processedTree` que aplica filtros + ordenação sobre `mergedTree`
-- Callback `renderHeaderExtra` que retorna `ColumnFilterDropdown` para as colunas filtráveis
-- Passar `renderHeaderExtra` para `DynamicTableHeader`
-- Usar `processedTree` em vez de `mergedTree` no `renderRows`
+3. **UI do dropdown**: 
+   - `Popover` controlado (`open` = `searchTerm.length >= 1 && suggestions.length > 0 && inputFocused`)
+   - `PopoverTrigger` wraps o input existente (mantém ícone Search e estilo)
+   - `PopoverContent` com `max-h-[240px] overflow-y-auto` contendo lista de itens clicáveis
+   - Cada item mostra `cod_cta` em bold + `descricao_conta` truncado
 
-**Lógica de filtragem recursiva:**
-```text
-filterTree(nodes, filters):
-  para cada nó:
-    selfMatch = nó.cod_cta está no filtro de Conta AND nó.descricao_conta está no filtro de Descrição
-    filteredChildren = filterTree(nó.children, filters)
-    incluir se selfMatch OU filteredChildren.length > 0
-```
+4. **Seleção**: Ao clicar numa sugestão, preenche `searchTerm` com `cod_cta` e fecha o dropdown. O debounce existente dispara a filtragem da árvore normalmente.
 
-**Lógica de cascata:**
-Para a coluna "Conta", os valores únicos são computados a partir da árvore filtrada apenas pelo filtro de "Descrição" (e vice-versa), garantindo que os checkboxes reflitam valores disponíveis.
+5. **Teclado**: ESC fecha o dropdown. Foco no input mantém o dropdown aberto.
 
-### Nenhum outro arquivo precisa ser alterado
+### Nenhum outro arquivo afetado
 
-O `BalanceteEfdTab` já passa os dados e o `BalanceteTreeTable` encapsula toda a lógica internamente. A busca por texto existente no `BalanceteEfdTab` continua funcionando em paralelo (filtra antes de passar para o componente).
-
-### Resultado
-
-- Ícone de funil aparece nos headers "Conta" e "Descrição" do Balancete
-- Dropdown com ordenação Asc/Desc e checkboxes de valores únicos
-- Filtros em cascata entre as duas colunas
-- Árvore preserva hierarquia (nós pais visíveis quando filhos passam no filtro)
+Toda a lógica é local ao `BalanceteEfdTab`. O `filterContasTree` e o fluxo de dados para `BalanceteTreeTable` permanecem inalterados.
 
