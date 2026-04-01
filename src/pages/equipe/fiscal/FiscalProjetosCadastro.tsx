@@ -618,7 +618,8 @@ const FiscalProjetosCadastro = () => {
                 </TableHead>
                 <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Início</TableHead>
                 <TableHead style={{ width: '7%' }} className="whitespace-nowrap">Término</TableHead>
-                <TableHead style={{ width: '7%' }} className="text-right">Ações</TableHead>
+                <TableHead style={{ width: '6%' }} className="whitespace-nowrap text-right">Hrs Contr.</TableHead>
+                <TableHead style={{ width: '6%' }} className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
           );
