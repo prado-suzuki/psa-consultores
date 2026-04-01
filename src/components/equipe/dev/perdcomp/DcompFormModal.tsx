@@ -138,10 +138,11 @@ export function DcompFormModal({
     queryKey: ['dcomps-existentes', preSelectedPer],
     queryFn: async () => {
       if (!preSelectedPer) return [];
-      const { data, error } = await supabase
-        .from('dcomp')
+      const { data, error } = await (supabase
+        .from('dcomp') as any)
         .select('nr_documento, mes_ano_exercicio, imposto, nr_dcomp_ret')
         .eq('nr_per_orig', preSelectedPer)
+        .or('excluido.is.null,excluido.eq.')
         .order('dt_envio', { ascending: false });
       if (error) throw error;
       return data || [];
