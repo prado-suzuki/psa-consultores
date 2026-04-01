@@ -160,13 +160,14 @@ export function DcompFormModal({
     return dcompsExistentes.filter((d) => !retificadosSet.has(d.nr_documento));
   })();
 
-  // Fetch PERs for selection
+  // Fetch PERs for selection — cast to any until types regeneration for nr_per rename
   const { data: pers = [] } = useQuery({
     queryKey: ['pers-for-dcomp', contribuinteId],
     queryFn: async () => {
-      let query = supabase
-        .from('per')
-        .select('numero_processo_per, id_contribuinte, exercicio, tri_exercicio')
+      let query = (supabase
+        .from('per') as any)
+        .select('nr_per, id_contribuinte, exercicio, tri_exercicio')
+        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       
       if (contribuinteId) {
