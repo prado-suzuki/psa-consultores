@@ -257,19 +257,19 @@ const CorrecoesSped = () => {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST PIS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.cst_pis}</p>
+                  <p className="text-sm font-mono font-medium">{selectedItem.CST_PIS}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. PIS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.aliq_pis.toFixed(2)}%</p>
+                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_PIS ?? 0).toFixed(2)}%</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST COFINS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.cst_cofins}</p>
+                  <p className="text-sm font-mono font-medium">{selectedItem.CST_COFINS}</p>
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. COFINS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.aliq_cofins.toFixed(2)}%</p>
+                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_COFINS ?? 0).toFixed(2)}%</p>
                 </div>
               </div>
 
