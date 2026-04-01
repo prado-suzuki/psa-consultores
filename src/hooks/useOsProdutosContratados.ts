@@ -7,6 +7,7 @@ export interface OsProdutoContratado {
   produto_segmento_id: string;
   produto_codigo?: string;
   produto_nome?: string;
+  horas_contratadas?: number;
 }
 
 /**
