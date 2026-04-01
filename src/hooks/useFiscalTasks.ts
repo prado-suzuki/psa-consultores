@@ -214,9 +214,14 @@ export interface TaskFilters {
           .select()
           .maybeSingle();
 
-        if (error) throw error;
+         if (error) throw error;
 
-         // Build changed_fields (convert undefined→null to avoid missing "new" in JSON)
+         // RLS blocked the update — no row was returned
+         if (!data) {
+           throw new Error('Sem permissão para atualizar esta tarefa. Verifique se você é membro do projeto.');
+         }
+
+          // Build changed_fields (convert undefined→null to avoid missing "new" in JSON)
          const changedFields: Record<string, { old: unknown; new: unknown }> = {};
          if (current) {
            for (const key of Object.keys(updates)) {
