@@ -136,6 +136,7 @@ function ProdutoContratadoBlock({
           {produtos.map((pc, idx) => (
             <Badge key={idx} variant="secondary" className="text-xs">
               {getProductLabel(pc.produto_segmento_id, produtoOptions)}
+              {pc.horas_contratadas != null && ` (${pc.horas_contratadas}h)`}
             </Badge>
           ))}
         </div>
