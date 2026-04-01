@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { AlertCircle, FileSearch, BookOpen, Network } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import type { CorrecoesSpedResponse, FlatItemEfd, ItemEfd } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, FlatItemEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -14,11 +14,8 @@ const formatCurrency = (v: number | null | undefined) =>
 const safeFixed = (v: number | null | undefined, d = 2) =>
   (v ?? 0).toFixed(d);
 
-/** Extract NCM from the first matched nfe_item (if 1:1) */
-const getNcm = (item: FlatItemEfd): string | null => {
-  if (item.tipo_relacao === '1:1' && item.nfe_itens[0]) return item.nfe_itens[0].ncm;
-  return null;
-};
+/** NCM from registro 0200 */
+const getNcm = (item: FlatItemEfd): string | null => item.COD_NCM ?? null;
 
 interface TabC170Props {
   data: CorrecoesSpedResponse | undefined;
@@ -27,7 +24,7 @@ interface TabC170Props {
   hasQueried: boolean;
   ncmFilter: NcmFilter;
   searchText: string;
-  onSelectItem: (item: ItemEfd) => void;
+  onSelectItem: (item: FlatItemEfd) => void;
   onSelectNcm: (ncm: string) => void;
 }
 
@@ -37,11 +34,15 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
   const flatItems: FlatItemEfd[] = useMemo(() => {
     if (!data?.notas) return [];
     return data.notas.flatMap((nota) =>
-      nota.itens_efd.map((item) => ({
-        ...item,
+      nota.itens_efd.map((entry) => ({
+        ...entry.c170,
+        nfe_itens: entry.nfe_itens ?? [],
         chv_nfe: nota.chv_nfe,
         dt_doc: nota.dt_doc,
         tipo_relacao: nota.tipo_relacao,
+        DESCR_ITEM_0200: entry["0200"]?.DESCR_ITEM ?? null,
+        COD_NCM: entry["0200"]?.COD_NCM ?? null,
+        TIPO_ITEM: entry["0200"]?.TIPO_ITEM ?? null,
       }))
     );
   }, [data]);
@@ -115,7 +116,7 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
+                    <TableHead className="text-[11px] min-w-[100px]">NCM (0200)</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
                     <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descrição</TableHead>
                     <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20">NCM</TableHead>

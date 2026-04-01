@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesSped, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100 } from '@/hooks/useCorrecoesSped';
-import type { ItemEfd } from '@/types/correcoesSped';
+import type { FlatItemEfd } from '@/types/correcoesSped';
 
 import TabC170 from '@/components/equipe/dev/correcoes-sped/TabC170';
 import TabA170 from '@/components/equipe/dev/correcoes-sped/TabA170';
