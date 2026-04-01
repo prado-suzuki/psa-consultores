@@ -63,7 +63,6 @@ const SITUACOES = [
   'Deferido Parcialmente',
   'Indeferido',
   'Pago',
-  'Cancelado',
   'Aguardando Documentação',
 ];
 
