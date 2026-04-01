@@ -6,7 +6,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GESTOR_EMAIL = "patricia.melo@psaconsultores.com.br";
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 
 const departmentLabels: Record<string, string> = {
@@ -24,6 +23,49 @@ interface Recipient {
   email: string;
   ticket_url: string;
   role: RecipientRole;
+}
+
+// ── Dynamic gestor lookup ──
+
+async function getGestorRecipients(
+  supabase: ReturnType<typeof createClient>,
+  ticketId: string
+): Promise<Recipient[]> {
+  const { data: areas } = await supabase
+    .from("estrutura_areas")
+    .select("id")
+    .contains("page_categories", ["tax"])
+    .eq("is_active", true);
+
+  if (!areas?.length) return [];
+
+  const areaIds = areas.map((a: { id: string }) => a.id);
+
+  const { data: lideres } = await supabase
+    .from("estrutura_area_lideres")
+    .select("user_id")
+    .in("area_id", areaIds);
+
+  if (!lideres?.length) return [];
+
+  const userIds = [...new Set(lideres.map((l: { user_id: string }) => l.user_id))];
+
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, email")
+    .in("id", userIds);
+
+  if (!profiles?.length) return [];
+
+  const gestorUrl = `${PUBLISHED_URL}/gestao/chamados/${ticketId}`;
+
+  return profiles
+    .filter((p: { email: string | null }) => p.email)
+    .map((p: { id: string; email: string }) => ({
+      email: p.email,
+      ticket_url: gestorUrl,
+      role: "gestor" as RecipientRole,
+    }));
 }
 
 // ── Auth helper ──
@@ -47,12 +89,10 @@ async function validateCaller(req: Request): Promise<{ authorized: boolean; erro
     return { authorized: false, error: "Invalid token" };
   }
 
-  // Accept service_role (server-to-server calls from check-ticket-deadlines)
   if (data.claims.role === "service_role") {
     return { authorized: true };
   }
 
-  // For user tokens, verify they are authenticated (any logged-in user can trigger notifications)
   const userId = data.claims.sub as string;
   if (!userId) {
     return { authorized: false, error: "No user ID in token" };
@@ -63,34 +103,13 @@ async function validateCaller(req: Request): Promise<{ authorized: boolean; erro
 
 // ── Helper functions ──
 
-async function getTicketUrlForUser(
-  supabase: ReturnType<typeof createClient>,
-  userId: string,
-  ticketId: string
-): Promise<{ url: string; role: RecipientRole }> {
-  const { data: roles } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-
-  const roleSet = new Set((roles || []).map((r: { role: string }) => r.role));
-
-  if (roleSet.has("admin")) {
-    return { url: `${PUBLISHED_URL}/gestao/chamados/${ticketId}`, role: "gestor" };
-  }
-  if (roleSet.has("team_member")) {
-    return { url: `${PUBLISHED_URL}/equipe/chamados/${ticketId}`, role: "responsavel" };
-  }
-  return { url: `${PUBLISHED_URL}/cliente/chamados/${ticketId}`, role: "cliente" };
-}
-
 async function getEmailForUser(
   supabase: ReturnType<typeof createClient>,
   userId: string
 ): Promise<string | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("email, first_name")
+    .select("email")
     .eq("id", userId)
     .single();
   return data?.email || null;
@@ -117,7 +136,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── Authentication check ──
     const authResult = await validateCaller(req);
     if (!authResult.authorized) {
       console.error("[notify-ticket] Auth failed:", authResult.error);
@@ -166,9 +184,7 @@ Deno.serve(async (req) => {
 
     const ticketDepartment = departmentLabels[ticket.department] || ticket.department || "N/A";
     const recipients: Recipient[] = [];
-    const gestorUrl = `${PUBLISHED_URL}/gestao/chamados/${ticket.id}`;
 
-    // Get assigned agent name for templates
     let assignedName = "";
     if (ticket.assigned_to) {
       assignedName = await getNameForUser(supabase, ticket.assigned_to);
@@ -177,7 +193,8 @@ Deno.serve(async (req) => {
     // ── Build recipients by event ──
 
     if (event_type === "ticket_created") {
-      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+      const gestores = await getGestorRecipients(supabase, ticket.id);
+      recipients.push(...gestores);
 
     } else if (event_type === "ticket_assigned") {
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
@@ -206,10 +223,12 @@ Deno.serve(async (req) => {
           recipients.push({ email: agentEmail, ticket_url: agentUrl, role: "responsavel" });
         }
       }
-      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+      const gestores = await getGestorRecipients(supabase, ticket.id);
+      recipients.push(...gestores);
 
     } else if (event_type === "ticket_overdue") {
-      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+      const gestores = await getGestorRecipients(supabase, ticket.id);
+      recipients.push(...gestores);
 
     } else if (event_type === "ticket_resolved") {
       const clientEmail = await getEmailForUser(supabase, ticket.user_id);
@@ -217,10 +236,11 @@ Deno.serve(async (req) => {
         const clientUrl = `${PUBLISHED_URL}/cliente/chamados/${ticket.id}`;
         recipients.push({ email: clientEmail, ticket_url: clientUrl, role: "cliente" });
       }
-      recipients.push({ email: GESTOR_EMAIL, ticket_url: gestorUrl, role: "gestor" });
+      const gestores = await getGestorRecipients(supabase, ticket.id);
+      recipients.push(...gestores);
     }
 
-    // Deduplicate by email
+    // Deduplicate by email+role
     const uniqueRecipients = Array.from(
       new Map(recipients.map((r) => [`${r.email}|${r.role}`, r])).values()
     );
