@@ -209,7 +209,7 @@ export function CargaPerdcompCSV() {
       if (situacao) {
         const dtPagamento = parseDate(row.dt_pagamento);
         situacoesToInsert.push({
-          nr_proc_per: numeroProcesso,
+          nr_proc_per: stripToDigits(numeroProcesso),
           situacao: situacao,
           dt_pagamento: dtPagamento,
           criado_por: userId,
