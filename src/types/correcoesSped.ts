@@ -112,6 +112,12 @@ export interface FlatItemEfd extends ItemEfd {
   TIPO_ITEM: string | null;
 }
 
+/** C170 row with original snapshot for editing */
+export interface C170Item extends FlatItemEfd {
+  ID_CONTRIBUINTE: string;
+  _originalSnapshot: ItemEfd;
+}
+
 // ── A170 (NFSe) — flat array from API ──
 
 export interface A170Snapshot {
@@ -157,8 +163,11 @@ export interface A170Item extends A170Snapshot {
 }
 
 export interface A170ResponseEntry {
+  ID_CONTRIBUINTE?: string;
   CHV_NFSE: string | null;
   DT_DOC: string;
+  descricao_conta?: string | null;
+  DESCRICAO_CONTA?: string | null;
   A170: A170Snapshot | string;
   "0200": Item0200 | string | null;
 }
@@ -206,9 +215,9 @@ export interface D100Item {
   VL_COFINS: number;
 }
 
-// ── F100 (Outros) — flat array from API ──
+// ── F100 (Outros) — nested structure from API ──
 
-export interface F100Item {
+export interface RegF100 {
   uuid: string;
   ID_ARQUIVO: string;
   NUM_LINHA: number;
@@ -232,9 +241,33 @@ export interface F100Item {
   COD_CCUS: string;
   DESC_DOC_OPER: string;
   ID_PAI: string;
+}
+
+export interface Reg0150 {
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  COD_PART: string;
+  NOME: string;
+  COD_PAIS: string;
+  CNPJ: string;
+  CPF: string;
+  IE: string;
+  COD_MUN: string;
+  SUFRAMA: string;
+  END: string;
+  NUM: string;
+  COMPL: string;
+  BAIRRO: string;
+}
+
+export interface F100Item {
   ID_CONTRIBUINTE: string;
   CPF_CNPJ: string;
   TIPO_PESSOA: string;
-  NOME: string;
   SIMPLES: string;
+  F100: RegF100;
+  '0150': Reg0150;
 }

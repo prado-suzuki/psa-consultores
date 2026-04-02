@@ -37,7 +37,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       const s = searchText.toLowerCase();
       items = items.filter(
         (i) =>
-          i.NOME.toLowerCase().includes(s) ||
+          i['0150'].NOME.toLowerCase().includes(s) ||
           i.CPF_CNPJ.includes(s)
       );
     }
@@ -110,8 +110,8 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                 <TableBody>
                   {paged.map((item, idx) => (
                     <TableRow key={`f100-${item.CPF_CNPJ}-${idx}`} className="group">
-                      <TableCell className="text-xs py-1.5 font-mono">{item.DT_OPER}</TableCell>
-                      <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item.NOME}>{item.NOME}</TableCell>
+                      <TableCell className="text-xs py-1.5 font-mono">{item.F100.DT_OPER}</TableCell>
+                      <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item['0150'].NOME}>{item['0150'].NOME}</TableCell>
                       <TableCell className="text-xs py-1.5 font-mono">{item.CPF_CNPJ}</TableCell>
                       <TableCell className="py-1.5">
                         <Badge variant="outline" className="text-[10px] font-medium">
@@ -123,14 +123,14 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                           {formatSimples(item.SIMPLES)}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.VL_OPER)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{formatCurrency(item.F100.VL_OPER)}</TableCell>
                       {/* Tax zone */}
-                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_PIS)}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
-                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_COFINS)}</TableCell>
-                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.F100.CST_PIS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.F100.ALIQ_PIS)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.F100.VL_PIS)}</TableCell>
+                      <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.F100.CST_COFINS}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.F100.ALIQ_COFINS)}</TableCell>
+                      <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.F100.VL_COFINS)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

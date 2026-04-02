@@ -263,6 +263,11 @@ export default function TabA170({
         return;
       }
 
+      if (!item.ID_CONTRIBUINTE) {
+        toast.error('Nao foi possivel identificar o contribuinte desta linha A170.');
+        return;
+      }
+
       const payload = {
         contribuinte_id: item.ID_CONTRIBUINTE,
         arquivo_id: item.ID_ARQUIVO,
@@ -274,8 +279,12 @@ export default function TabA170({
         tipo_operacao: 'U',
         snapshot: nextSnapshot as Json,
         campos_alterados: camposAlterados as unknown as Json,
+        motivo: 'Correcao manual realizada na tela de revisao do SPED.',
         usuario_id: user.id,
         ativo: true,
+        sync_status: 'P',
+        sync_error: null,
+        sync_sent_at: null,
       };
 
       if (correcaoAtiva?.id) {

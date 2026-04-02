@@ -12,11 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
-import { useCorrecoesSped, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100 } from '@/hooks/useCorrecoesSped';
+import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useEnviarCorrecoes } from '@/hooks/useCorrecoesSped';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import type { FlatItemEfd } from '@/types/correcoesSped';
 
 import TabC170 from '@/components/equipe/dev/correcoes-sped/TabC170';
@@ -37,6 +39,7 @@ const CorrecoesSped = () => {
   const [ncmFilter, setNcmFilter] = useState<NcmFilter>('all');
   const [searchText, setSearchText] = useState('');
   const [hasQueried, setHasQueried] = useState(false);
+  const [activeTab, setActiveTab] = useState('c170');
 
   // Modals
   const [selectedItem, setSelectedItem] = useState<FlatItemEfd | null>(null);
@@ -54,10 +57,12 @@ const CorrecoesSped = () => {
   const contribuinteSelecionado = contribuintes.find((item) => item.id === contribuinteId) ?? null;
 
   const queryParams = { id_contribuinte: contribuinteId, dt_ini: dtIni, dt_fin: dtFin };
-  const c170Query = useCorrecoesSped(queryParams);
+  const c170Query = useCorrecoesC170(queryParams);
   const a170Query = useCorrecoesA170(queryParams);
   const d100Query = useCorrecoesD100(queryParams);
   const f100Query = useCorrecoesF100(queryParams);
+
+  const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
 
   const anyFetching = c170Query.isFetching || a170Query.isFetching || d100Query.isFetching || f100Query.isFetching;
 
@@ -191,13 +196,38 @@ const CorrecoesSped = () => {
 
         {/* Tabs */}
         {hasQueried && (
-          <Tabs defaultValue="c170" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
-              <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
-              <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
-              <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
-            </TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="flex items-center gap-2 mb-2">
+              <TabsList className="grid w-full grid-cols-4">
+                <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
+                <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
+                <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
+                <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
+              </TabsList>
+              {(activeTab === 'c170' || activeTab === 'a170') && (
+                <Button size="sm" onClick={() => enviarCorrecoes(activeTab === 'c170' ? 'C170' : 'A170')} disabled={isSending} className="shrink-0">
+                  {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                  {isSending ? 'Enviando...' : `Enviar Correcoes ${activeTab === 'c170' ? 'C170' : 'A170'}`}
+                </Button>
+              )}
+              {/* TODO: remover — botão temporário de debug */}
+              <Button
+                size="sm"
+                variant="destructive"
+                className="shrink-0"
+                onClick={async () => {
+                  const { error } = await supabase.from('efd_correcoes').delete().gte('created_at', '1970-01-01');
+                  if (error) {
+                    toast.error(`Erro ao limpar: ${error.message}`);
+                  } else {
+                    toast.success('efd_correcoes limpa.');
+                  }
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Limpar efd_correcoes
+              </Button>
+            </div>
 
             <TabsContent value="c170">
               <TabC170
@@ -207,6 +237,8 @@ const CorrecoesSped = () => {
                 hasQueried={hasQueried}
                 ncmFilter={ncmFilter}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectItem={setSelectedItem}
                 onSelectNcm={setSelectedNcm}
               />

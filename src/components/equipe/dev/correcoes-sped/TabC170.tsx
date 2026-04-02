@@ -1,12 +1,31 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, FileSearch, BookOpen, Network } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import { AlertCircle, BookOpen, Check, FileSearch, Loader2, Network, Pencil, X } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
-import type { CorrecoesSpedResponse, FlatItemEfd } from '@/types/correcoesSped';
+import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
+
+type EditableC170Field =
+  | 'DESCR_COMPL'
+  | 'VL_ITEM'
+  | 'COD_CTA'
+  | 'CST_PIS'
+  | 'ALIQ_PIS'
+  | 'VL_PIS'
+  | 'CST_COFINS'
+  | 'ALIQ_COFINS'
+  | 'VL_COFINS';
+
+type C170Draft = Record<EditableC170Field, string>;
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -14,41 +33,111 @@ const formatCurrency = (v: number | null | undefined) =>
 const safeFixed = (v: number | null | undefined, d = 2) =>
   (v ?? 0).toFixed(d);
 
-/** NCM from registro 0200 */
-const getNcm = (item: FlatItemEfd): string | null => item.COD_NCM ?? null;
+const getNcm = (item: C170Item): string | null => item.COD_NCM ?? null;
+
+const editableFields: EditableC170Field[] = [
+  'DESCR_COMPL',
+  'VL_ITEM',
+  'COD_CTA',
+  'CST_PIS',
+  'ALIQ_PIS',
+  'VL_PIS',
+  'CST_COFINS',
+  'ALIQ_COFINS',
+  'VL_COFINS',
+];
+
+const numericFields = new Set<EditableC170Field>([
+  'VL_ITEM',
+  'CST_PIS',
+  'ALIQ_PIS',
+  'VL_PIS',
+  'CST_COFINS',
+  'ALIQ_COFINS',
+  'VL_COFINS',
+]);
+
+function toDraft(item: C170Item): C170Draft {
+  return {
+    DESCR_COMPL: item.DESCR_COMPL ?? '',
+    VL_ITEM: String(item.VL_ITEM ?? 0),
+    COD_CTA: item.COD_CTA ?? '',
+    CST_PIS: String(item.CST_PIS ?? 0),
+    ALIQ_PIS: String(item.ALIQ_PIS ?? 0),
+    VL_PIS: String(item.VL_PIS ?? 0),
+    CST_COFINS: String(item.CST_COFINS ?? 0),
+    ALIQ_COFINS: String(item.ALIQ_COFINS ?? 0),
+    VL_COFINS: String(item.VL_COFINS ?? 0),
+  };
+}
+
+function getSnapshotFromItem(item: C170Item): ItemEfd {
+  const { chv_nfe, dt_doc, tipo_relacao, nfe_itens, DESCR_ITEM_0200, COD_NCM, TIPO_ITEM, ID_CONTRIBUINTE, _originalSnapshot, ...snapshot } = item;
+  return snapshot as ItemEfd;
+}
+
+function serializeValue(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  return String(value);
+}
+
+function buildChangedFields(originalSnapshot: ItemEfd, nextSnapshot: ItemEfd): CampoAlteradoEfd[] {
+  const fields = new Set([...Object.keys(originalSnapshot), ...Object.keys(nextSnapshot)]);
+
+  return Array.from(fields)
+    .sort()
+    .flatMap((field) => {
+      const fromValue = originalSnapshot[field as keyof ItemEfd];
+      const toValue = nextSnapshot[field as keyof ItemEfd];
+
+      if (Object.is(fromValue, toValue)) return [];
+
+      return [{
+        campo: field,
+        de: serializeValue(fromValue),
+        para: serializeValue(toValue),
+      }];
+    });
+}
 
 interface TabC170Props {
-  data: CorrecoesSpedResponse | undefined;
+  data: C170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
   hasQueried: boolean;
   ncmFilter: NcmFilter;
   searchText: string;
+  empresaCnpj: string | null;
+  periodo: string | null;
   onSelectItem: (item: FlatItemEfd) => void;
   onSelectNcm: (ncm: string) => void;
 }
 
-export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter, searchText, onSelectItem, onSelectNcm }: TabC170Props) {
+export default function TabC170({
+  data,
+  isLoading,
+  error,
+  hasQueried,
+  ncmFilter,
+  searchText,
+  empresaCnpj,
+  periodo,
+  onSelectItem,
+  onSelectNcm,
+}: TabC170Props) {
+  const { user } = useAuth();
   const [page, setPage] = useState(0);
+  const [rows, setRows] = useState<C170Item[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<C170Draft | null>(null);
 
-  const flatItems: FlatItemEfd[] = useMemo(() => {
-    if (!data?.notas) return [];
-    return data.notas.flatMap((nota) =>
-      nota.itens_efd.map((entry) => ({
-        ...entry.c170,
-        nfe_itens: entry.nfe_itens ?? [],
-        chv_nfe: nota.chv_nfe,
-        dt_doc: nota.dt_doc,
-        tipo_relacao: nota.tipo_relacao,
-        DESCR_ITEM_0200: entry["0200"]?.DESCR_ITEM ?? null,
-        COD_NCM: entry["0200"]?.COD_NCM ?? null,
-        TIPO_ITEM: entry["0200"]?.TIPO_ITEM ?? null,
-      }))
-    );
+  useEffect(() => {
+    setRows(data ?? []);
   }, [data]);
 
   const filtered = useMemo(() => {
-    let items = flatItems;
+    let items = rows;
     if (ncmFilter === 'with') items = items.filter((i) => !!getNcm(i));
     if (ncmFilter === 'without') items = items.filter((i) => !getNcm(i));
     if (searchText.trim()) {
@@ -56,18 +145,198 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
       items = items.filter(
         (i) =>
           (i.DESCR_COMPL ?? '').toLowerCase().includes(s) ||
+          (i.DESCR_ITEM_0200 ?? '').toLowerCase().includes(s) ||
           i.chv_nfe.includes(s) ||
           (getNcm(i) && getNcm(i)!.includes(s))
       );
     }
     return items;
-  }, [flatItems, ncmFilter, searchText]);
+  }, [rows, ncmFilter, searchText]);
 
-  // Reset page when filters change
-  useMemo(() => setPage(0), [ncmFilter, searchText]);
+  useEffect(() => {
+    setPage(0);
+  }, [ncmFilter, searchText]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const handleStartEdit = (item: C170Item) => {
+    setEditingId(item.uuid);
+    setDraft(toDraft(item));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+
+  const handleDraftChange = (field: EditableC170Field, value: string) => {
+    setDraft((current) => current ? { ...current, [field]: value } : current);
+  };
+
+  const handleSave = async (item: C170Item) => {
+    if (!user) {
+      toast.error('Usuario nao autenticado para salvar a correcao.');
+      return;
+    }
+
+    if (!draft || editingId !== item.uuid) return;
+
+    const nextSnapshot = { ...getSnapshotFromItem(item) };
+
+    for (const field of editableFields) {
+      const rawValue = draft[field].trim();
+
+      if (numericFields.has(field)) {
+        if (!rawValue) {
+          toast.error(`Preencha o campo ${field}.`);
+          return;
+        }
+
+        const parsedValue = Number(rawValue.replace(',', '.'));
+
+        if (Number.isNaN(parsedValue)) {
+          toast.error(`Valor invalido para o campo ${field}.`);
+          return;
+        }
+
+        nextSnapshot[field] = parsedValue as never;
+        continue;
+      }
+
+      nextSnapshot[field] = rawValue as never;
+    }
+
+    const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+
+    setSavingId(item.uuid);
+
+    try {
+      const { data: correcaoAtiva, error: buscaError } = await supabase
+        .from('efd_correcoes')
+        .select('id')
+        .eq('registro_tipo', 'C170')
+        .eq('registro_original_id', item.uuid)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (buscaError) throw buscaError;
+
+      if (camposAlterados.length === 0) {
+        if (correcaoAtiva?.id) {
+          const { error: desativacaoError } = await supabase
+            .from('efd_correcoes')
+            .update({
+              ativo: false,
+              snapshot: nextSnapshot as unknown as Json,
+              campos_alterados: null,
+            })
+            .eq('id', correcaoAtiva.id);
+
+          if (desativacaoError) throw desativacaoError;
+          toast.success('Correcao removida; a linha voltou ao valor original.');
+        } else {
+          toast.success('Nenhuma alteracao para salvar.');
+        }
+
+        setRows((current) => current.map((row) =>
+          row.uuid === item.uuid
+            ? { ...row, ...item._originalSnapshot }
+            : row
+        ));
+        handleCancelEdit();
+        return;
+      }
+
+      const payload = {
+        contribuinte_id: item.ID_CONTRIBUINTE,
+        arquivo_id: item.ID_ARQUIVO,
+        empresa_cnpj: empresaCnpj,
+        periodo,
+        arquivo_tipo: 'efd_contribuicoes',
+        registro_tipo: 'C170',
+        registro_original_id: item.uuid,
+        tipo_operacao: 'U',
+        snapshot: nextSnapshot as unknown as Json,
+        campos_alterados: camposAlterados as unknown as Json,
+        motivo: 'Correcao manual realizada na tela de revisao do SPED.',
+        usuario_id: user.id,
+        ativo: true,
+        sync_status: 'P',
+        sync_error: null,
+        sync_sent_at: null,
+      };
+
+      if (correcaoAtiva?.id) {
+        const { error: desativacaoError } = await supabase
+          .from('efd_correcoes')
+          .update({ ativo: false })
+          .eq('registro_tipo', 'C170')
+          .eq('registro_original_id', item.uuid)
+          .eq('ativo', true);
+
+        if (desativacaoError) throw desativacaoError;
+      }
+
+      const { error: insertError } = await supabase
+        .from('efd_correcoes')
+        .insert(payload);
+
+      if (insertError) throw insertError;
+
+      setRows((current) => current.map((row) =>
+        row.uuid === item.uuid
+          ? { ...row, ...nextSnapshot }
+          : row
+      ));
+      handleCancelEdit();
+      toast.success('Correcao do C170 salva na tabela efd_correcoes.');
+    } catch (saveError) {
+      const message = saveError instanceof Error ? saveError.message : 'Erro inesperado ao salvar a correcao.';
+      toast.error(message);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const renderEditableCell = (
+    item: C170Item,
+    field: EditableC170Field,
+    className: string,
+    options?: { type?: 'text' | 'number'; step?: string }
+  ) => {
+    if (editingId !== item.uuid || !draft) {
+      const value = item[field];
+
+      if (field === 'DESCR_COMPL') {
+        return (
+          <span className="text-xs truncate block" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+            {item.DESCR_ITEM_0200 || item.DESCR_COMPL || '\u2014'}
+          </span>
+        );
+      }
+
+      if (field === 'VL_ITEM' || field === 'VL_PIS' || field === 'VL_COFINS') {
+        return formatCurrency(typeof value === 'number' ? value : Number(value ?? 0));
+      }
+
+      if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
+        return safeFixed(typeof value === 'number' ? value : Number(value ?? 0));
+      }
+
+      return value ?? '\u2014';
+    }
+
+    return (
+      <Input
+        type={options?.type ?? 'text'}
+        step={options?.step}
+        value={draft[field]}
+        onChange={(event) => handleDraftChange(field, event.target.value)}
+        className={className}
+      />
+    );
+  };
 
   if (isLoading) {
     return (
@@ -88,8 +357,9 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
     );
   }
 
-  if (!hasQueried) return null;
-  if (!data) return null;
+  if (!hasQueried || !data) return null;
+
+  const totalNotas = new Set(filtered.map((i) => i.chv_nfe)).size;
 
   return (
     <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
@@ -100,25 +370,29 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
           </div>
         ) : (
           <>
-            <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
+            <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
-                {' '}· {data.notas.length} notas
+                {' '}&middot; {totalNotas} notas
+              </span>
+              <span className="text-[11px] text-muted-foreground">
+                Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar e salvar a correcao da linha.
               </span>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
+                    <TableHead colSpan={4} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
                     <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML</TableHead>
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-[11px] min-w-[200px]">Descrição</TableHead>
+                    <TableHead className="text-[11px] min-w-[200px]">Descricao</TableHead>
                     <TableHead className="text-[11px] min-w-[100px]">NCM (0200)</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descrição</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[100px]">Acoes</TableHead>
+                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descricao</TableHead>
                     <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20">NCM</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20">Valor</TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
@@ -136,10 +410,12 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                     const efdNcm = getNcm(item);
                     const ncmDivergent = xml && efdNcm && efdNcm !== xml.ncm;
                     const valueDivergent = xml && Math.abs((item.VL_ITEM ?? 0) - xml.vProd) > 0.01;
+                    const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
+
                     return (
                       <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className="group">
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESCR_ITEM_0200 || item.DESCR_COMPL}>
-                          {item.DESCR_ITEM_0200 || item.DESCR_COMPL}
+                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate">
+                          {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
                         <TableCell className="py-1.5">
                           {efdNcm ? (
@@ -152,11 +428,54 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                               {efdNcm}
                             </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
+                            <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {formatCurrency(item.VL_ITEM)}
+                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        {/* Actions */}
+                        <TableCell className="py-1.5">
+                          <div className="flex items-center justify-center gap-1">
+                            {editingId === item.uuid ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => handleSave(item)}
+                                  disabled={savingId === item.uuid}
+                                >
+                                  {savingId === item.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={handleCancelEdit}
+                                  disabled={savingId === item.uuid}
+                                >
+                                  <X className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => handleStartEdit(item)}
+                                disabled={!!savingId}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {linhaCorrigida && editingId !== item.uuid && (
+                              <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         {/* XML zone */}
                         <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
@@ -178,7 +497,7 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                               Consolidado
                             </Badge>
                           ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
+                            <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>
                           )}
                         </TableCell>
                         <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5">
@@ -191,19 +510,33 @@ export default function TabC170({ data, isLoading, error, hasQueried, ncmFilter,
                             ) : (
                               <code className="text-xs font-mono text-muted-foreground">{xml.ncm}</code>
                             )
-                          ) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
+                          ) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
                         <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 dark:bg-emerald-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
-                          {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>}
+                          {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
                         {/* Tax zone */}
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{item.CST_PIS}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_PIS)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_PIS)}</TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.CST_COFINS}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{safeFixed(item.ALIQ_COFINS)}</TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{formatCurrency(item.VL_COFINS)}</TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{item.COD_CTA}</TableCell>
+                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
