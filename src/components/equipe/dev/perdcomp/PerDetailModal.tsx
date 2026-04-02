@@ -611,22 +611,23 @@ export function PerDetailModal({
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  {perPago ? (
+                  {perPago && (
                     <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1">
                       <CheckCircle2 className="h-4 w-4 mr-1" />
                       Ressarcido
                     </Badge>
-                  ) : (
-                    <>
-                      <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
-                        <DollarSign className="h-4 w-4 mr-2" />
-                        Novo Ressarcimento
-                      </Button>
-                      <Button onClick={handleNewDcomp} size="sm" disabled={saldoRestante <= 0}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Novo DCOMP
-                      </Button>
-                    </>
+                  )}
+                  {!perPago && (
+                    <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
+                      <DollarSign className="h-4 w-4 mr-2" />
+                      Novo Ressarcimento
+                    </Button>
+                  )}
+                  {saldoRestante > 0 && (
+                    <Button onClick={handleNewDcomp} size="sm">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Novo DCOMP
+                    </Button>
                   )}
                 </div>
               </div>
