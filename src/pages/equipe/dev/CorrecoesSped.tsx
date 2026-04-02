@@ -119,7 +119,7 @@ const CorrecoesSped = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
-                <Popover>
+                <Popover open={openIni} onOpenChange={setOpenIni}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtIni && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -127,7 +127,7 @@ const CorrecoesSped = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dtIni ? new Date(dtIni + 'T00:00:00') : undefined} onSelect={(d) => setDtIni(d ? format(d, 'yyyy-MM-dd') : '')} />
+                    <Calendar selected={dtIni ? new Date(dtIni + 'T00:00:00') : undefined} onSelect={(d) => { setDtIni(d ? format(d, 'yyyy-MM-dd') : ''); setOpenIni(false); }} />
                   </PopoverContent>
                 </Popover>
               </div>
