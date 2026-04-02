@@ -83,21 +83,27 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       return;
     }
 
-    // --- Pre-validation: distribuicao_receita UUIDs and percentage sums ---
+    // --- Pre-validation: empresa (cluster_id), distribuicao_receita UUIDs and percentage sums ---
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     for (const c of contracts) {
-      if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
-        for (const d of c.distribuicao_receita) {
-          if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
-            toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
-            return;
-          }
-        }
-        const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
-        if (Math.abs(totalPercent - 100) > 0.01) {
-          toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
+      if (!c.cluster_id) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Empresa/Faturamento`);
+        return;
+      }
+      if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Centro de Custo na Distribuição de Receita`);
+        return;
+      }
+      for (const d of c.distribuicao_receita) {
+        if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
+          toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
           return;
         }
+      }
+      const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
+      if (Math.abs(totalPercent - 100) > 0.01) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
+        return;
       }
     }
 
