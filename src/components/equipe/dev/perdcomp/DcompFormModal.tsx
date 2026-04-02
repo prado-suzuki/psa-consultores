@@ -426,9 +426,7 @@ export function DcompFormModal({
             <FormField
               control={form.control}
               name="dt_envio"
-              render={({ field }) => {
-                const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
-                return (
+              render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>Data de Envio <RequiredMark /></FormLabel>
                     <Popover open={dtEnvioPopoverOpen} onOpenChange={setDtEnvioPopoverOpen}>
