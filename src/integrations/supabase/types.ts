@@ -1677,7 +1677,7 @@ export type Database = {
             foreignKeyName: "fiscal_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
-            referencedRelation: "tax_projects"
+            referencedRelation: "org_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -2180,6 +2180,162 @@ export type Database = {
           {
             foreignKeyName: "ordem_servico_id_servico_fkey"
             columns: ["id_servico"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_project_members: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_project_members_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_projects: {
+        Row: {
+          contribuinte_id: string | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          end_date: string | null
+          estrutura_area_id: string | null
+          external_client_id: string | null
+          id: string
+          leader_id: string | null
+          name: string
+          objective: string | null
+          ordem_servico_id: string | null
+          responsible_id: string | null
+          servico_id: string | null
+          start_date: string | null
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          contribuinte_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          estrutura_area_id?: string | null
+          external_client_id?: string | null
+          id?: string
+          leader_id?: string | null
+          name: string
+          objective?: string | null
+          ordem_servico_id?: string | null
+          responsible_id?: string | null
+          servico_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          contribuinte_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          end_date?: string | null
+          estrutura_area_id?: string | null
+          external_client_id?: string | null
+          id?: string
+          leader_id?: string | null
+          name?: string
+          objective?: string | null
+          ordem_servico_id?: string | null
+          responsible_id?: string | null
+          servico_id?: string | null
+          start_date?: string | null
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_leader_id_fkey"
+            columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_responsible_id_fkey"
+            columns: ["responsible_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_servico_id_fkey"
+            columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
@@ -3270,17 +3426,17 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "org_project_servicos_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "tax_project_categorias_categoria_id_fkey"
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_project_categorias_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "tax_projects"
             referencedColumns: ["id"]
           },
         ]
@@ -4133,162 +4289,6 @@ export type Database = {
             columns: ["sprint_id"]
             isOneToOne: false
             referencedRelation: "sprints"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tax_project_members: {
-        Row: {
-          created_at: string
-          id: string
-          project_id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          project_id: string
-          role?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          project_id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_project_members_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "tax_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tax_projects: {
-        Row: {
-          contribuinte_id: string | null
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          end_date: string | null
-          estrutura_area_id: string | null
-          external_client_id: string | null
-          id: string
-          leader_id: string | null
-          name: string
-          objective: string | null
-          ordem_servico_id: string | null
-          responsible_id: string | null
-          servico_id: string | null
-          start_date: string | null
-          status: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          contribuinte_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          end_date?: string | null
-          estrutura_area_id?: string | null
-          external_client_id?: string | null
-          id?: string
-          leader_id?: string | null
-          name: string
-          objective?: string | null
-          ordem_servico_id?: string | null
-          responsible_id?: string | null
-          servico_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          contribuinte_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          end_date?: string | null
-          estrutura_area_id?: string | null
-          external_client_id?: string | null
-          id?: string
-          leader_id?: string | null
-          name?: string
-          objective?: string | null
-          ordem_servico_id?: string | null
-          responsible_id?: string | null
-          servico_id?: string | null
-          start_date?: string | null
-          status?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tax_projects_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_estrutura_area_id_fkey"
-            columns: ["estrutura_area_id"]
-            isOneToOne: false
-            referencedRelation: "estrutura_areas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_leader_id_fkey"
-            columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_leader_id_fkey"
-            columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_ordem_servico_id_fkey"
-            columns: ["ordem_servico_id"]
-            isOneToOne: false
-            referencedRelation: "ordem_servico"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_responsible_id_fkey"
-            columns: ["responsible_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_responsible_id_fkey"
-            columns: ["responsible_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tax_projects_servico_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
           },
         ]

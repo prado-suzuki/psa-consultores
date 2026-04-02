@@ -28,7 +28,7 @@ const FiscalDashboard = () => {
   const { data: projects = [], isLoading: loadingProjects } = useQuery({
     queryKey: ['fiscal-dash-projects'],
     queryFn: async () => {
-      const { data } = await supabase.from('tax_projects').select('id, name, status, estrutura_area_id').order('name');
+      const { data } = await supabase.from('org_projects').select('id, name, status, estrutura_area_id').order('name');
       return data || [];
     },
   });

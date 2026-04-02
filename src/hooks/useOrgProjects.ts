@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
-export interface TaxProject {
+export interface OrgProject {
   id: string;
   name: string;
   description: string | null;
@@ -31,12 +31,12 @@ export interface TaxProject {
   servico_nome?: string | null;
 }
 
-export interface TaxProjectMember {
+export interface OrgProjectMember {
   user_id: string;
   role: string;
 }
 
-export interface TaxProjectFormData {
+export interface OrgProjectFormData {
   name: string;
   description: string;
   status: string;
@@ -52,19 +52,27 @@ export interface TaxProjectFormData {
   servico_id: string;
 }
 
+// ── @deprecated aliases (backward compat) ──────────────────────────────
+/** @deprecated Use OrgProject */
+export type TaxProject = OrgProject;
+/** @deprecated Use OrgProjectMember */
+export type TaxProjectMember = OrgProjectMember;
+/** @deprecated Use OrgProjectFormData */
+export type TaxProjectFormData = OrgProjectFormData;
+
 // ── Queries ────────────────────────────────────────────────────────────
 
-export const useTaxProjects = () => {
+export const useOrgProjects = () => {
   return useQuery({
-    queryKey: ['tax-projects'],
+    queryKey: ['org-projects'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('tax_projects')
+        .from('org_projects')
         .select(`
           *,
-          responsible:profiles!tax_projects_responsible_id_fkey(id, first_name, last_name),
-          leader:profiles!tax_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:estrutura_areas!tax_projects_estrutura_area_id_fkey(id, name)
+          responsible:profiles!org_projects_responsible_id_fkey(id, first_name, last_name),
+          leader:profiles!org_projects_leader_id_fkey(id, first_name, last_name),
+          area_ref:estrutura_areas!org_projects_estrutura_area_id_fkey(id, name)
         `)
         .order('name');
       if (error) throw error;
@@ -131,17 +139,17 @@ export const useTaxProjects = () => {
         contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
         servico_contratado: p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null,
         servico_nome: p.servico_id ? servicoNomeMap[p.servico_id] || null : null,
-      })) as TaxProject[];
+      })) as OrgProject[];
     },
   });
 };
 
-/** Lightweight list of active tax projects (for dropdowns) */
-export const useTaxProjectsList = (onlyActive = true) => {
+/** Lightweight list of active org projects (for dropdowns) */
+export const useOrgProjectsList = (onlyActive = true) => {
   return useQuery({
-    queryKey: ['tax-projects-list', onlyActive],
+    queryKey: ['org-projects-list', onlyActive],
     queryFn: async () => {
-      let query = supabase.from('tax_projects').select('id, name, external_client_id, estrutura_area_id').order('name');
+      let query = supabase.from('org_projects').select('id, name, external_client_id, estrutura_area_id').order('name');
       if (onlyActive) query = query.eq('status', 'active');
       const { data, error } = await query;
       if (error) throw error;
@@ -152,15 +160,15 @@ export const useTaxProjectsList = (onlyActive = true) => {
 
 export const useProjectMembers = (projectId: string | undefined) => {
   return useQuery({
-    queryKey: ['tax-project-members', projectId],
+    queryKey: ['org-project-members', projectId],
     queryFn: async () => {
       if (!projectId) return [];
       const { data, error } = await supabase
-        .from('tax_project_members')
+        .from('org_project_members')
         .select('user_id, role')
         .eq('project_id', projectId);
       if (error) throw error;
-      return data as TaxProjectMember[];
+      return data as OrgProjectMember[];
     },
     enabled: !!projectId,
   });
@@ -203,14 +211,14 @@ export const useProjectHours = () => {
 
 // ── Mutations ──────────────────────────────────────────────────────────
 
-export const useCreateTaxProject = () => {
+export const useCreateOrgProject = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
   return useMutation({
-    mutationFn: async (data: TaxProjectFormData) => {
-      const { data: project, error } = await supabase.from('tax_projects').insert({
+    mutationFn: async (data: OrgProjectFormData) => {
+      const { data: project, error } = await supabase.from('org_projects').insert({
         name: data.name,
         description: data.description || null,
         status: data.status,
@@ -230,7 +238,7 @@ export const useCreateTaxProject = () => {
       // Insert project members
       const members = buildMembersList(project.id, data);
       if (members.length > 0) {
-        const { error: mErr } = await supabase.from('tax_project_members').insert(members);
+        const { error: mErr } = await supabase.from('org_project_members').insert(members);
         if (mErr) throw mErr;
       }
 
@@ -242,7 +250,7 @@ export const useCreateTaxProject = () => {
       return project;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tax-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['org-projects'] });
       toast.success('Projeto criado com sucesso');
     },
     onError: (error) => {
@@ -251,7 +259,7 @@ export const useCreateTaxProject = () => {
   });
 };
 
-export const useUpdateTaxProject = () => {
+export const useUpdateOrgProject = () => {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
 
@@ -260,9 +268,9 @@ export const useUpdateTaxProject = () => {
       id, data, oldProject, oldMembers,
     }: {
       id: string;
-      data: TaxProjectFormData;
-      oldProject: TaxProject;
-      oldMembers: TaxProjectMember[];
+      data: OrgProjectFormData;
+      oldProject: OrgProject;
+      oldMembers: OrgProjectMember[];
     }) => {
       // Build changed fields diff
       const changedFields: Record<string, { old: unknown; new: unknown }> = {};
@@ -292,7 +300,7 @@ export const useUpdateTaxProject = () => {
       }
 
       // Update project
-      const { error } = await supabase.from('tax_projects').update({
+      const { error } = await supabase.from('org_projects').update({
         name: data.name,
         description: data.description || null,
         status: data.status,
@@ -311,14 +319,14 @@ export const useUpdateTaxProject = () => {
       // Upsert project members + remove stale ones
       const members = buildMembersList(id, data);
       if (members.length > 0) {
-        const { error: mErr } = await supabase.from('tax_project_members').upsert(members, { onConflict: 'project_id,user_id' });
+        const { error: mErr } = await supabase.from('org_project_members').upsert(members, { onConflict: 'project_id,user_id' });
         if (mErr) throw mErr;
       }
       const newMemberUserIds = new Set(members.map(m => m.user_id));
       const oldMemberUserIds = oldMembers.map(m => m.user_id);
       const removedMembers = oldMemberUserIds.filter(uid => !newMemberUserIds.has(uid));
       if (removedMembers.length > 0) {
-        await supabase.from('tax_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
+        await supabase.from('org_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
       }
 
       // Log only if something changed
@@ -331,8 +339,8 @@ export const useUpdateTaxProject = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tax-projects'] });
-      queryClient.invalidateQueries({ queryKey: ['tax-project-members'] });
+      queryClient.invalidateQueries({ queryKey: ['org-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['org-project-members'] });
       toast.success('Projeto atualizado');
     },
     onError: (error) => {
@@ -341,13 +349,13 @@ export const useUpdateTaxProject = () => {
   });
 };
 
-export const useDeleteTaxProject = () => {
+export const useDeleteOrgProject = () => {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from('tax_projects').delete().eq('id', id);
+      const { error } = await supabase.from('org_projects').delete().eq('id', id);
       if (error) throw error;
 
       await logAction({
@@ -356,7 +364,7 @@ export const useDeleteTaxProject = () => {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tax-projects'] });
+      queryClient.invalidateQueries({ queryKey: ['org-projects'] });
       toast.success('Projeto excluído');
     },
     onError: (error) => {
@@ -365,9 +373,21 @@ export const useDeleteTaxProject = () => {
   });
 };
 
+// ── @deprecated aliases (backward compat) ──────────────────────────────
+/** @deprecated Use useOrgProjects */
+export const useTaxProjects = useOrgProjects;
+/** @deprecated Use useOrgProjectsList */
+export const useTaxProjectsList = useOrgProjectsList;
+/** @deprecated Use useCreateOrgProject */
+export const useCreateTaxProject = useCreateOrgProject;
+/** @deprecated Use useUpdateOrgProject */
+export const useUpdateTaxProject = useUpdateOrgProject;
+/** @deprecated Use useDeleteOrgProject */
+export const useDeleteTaxProject = useDeleteOrgProject;
+
 // ── Helpers ────────────────────────────────────────────────────────────
 
-function buildMembersList(projectId: string, data: TaxProjectFormData) {
+function buildMembersList(projectId: string, data: OrgProjectFormData) {
   const members: { project_id: string; user_id: string; role: string }[] = [];
 
   // Responsible executor

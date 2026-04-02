@@ -60,14 +60,14 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
-  useTaxProjects,
+  useOrgProjects,
   useProjectMembers,
   useProjectHours,
-  useCreateTaxProject,
-  useUpdateTaxProject,
-  useDeleteTaxProject,
-  TaxProject,
-} from '@/hooks/useTaxProjects';
+  useCreateOrgProject,
+  useUpdateOrgProject,
+  useDeleteOrgProject,
+  OrgProject,
+} from '@/hooks/useOrgProjects';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const emptyForm = {
@@ -88,7 +88,7 @@ const emptyForm = {
 const FiscalProjetosCadastro = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
+  const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [filterCliente, setFilterCliente] = useState('');
@@ -101,7 +101,7 @@ const FiscalProjetosCadastro = () => {
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
-  const { data: projects = [], isLoading } = useTaxProjects();
+  const { data: projects = [], isLoading } = useOrgProjects();
   const { data: projectHours = {} } = useProjectHours();
 
   // Fetch OS products for listing table (all projects' ordem_servico_id)
@@ -182,7 +182,7 @@ const FiscalProjetosCadastro = () => {
   // ── Agrupamento dinâmico ─────────────────────────────────────────────
   const groupedProjects = useMemo(() => {
     if (groupBy === 'none') return null;
-    const map = new Map<string, { label: string; projects: TaxProject[] }>();
+    const map = new Map<string, { label: string; projects: OrgProject[] }>();
     for (const p of filteredProjects) {
       let key: string;
       let label: string;
@@ -228,9 +228,9 @@ const FiscalProjetosCadastro = () => {
     memberIds: areaMemberIds,
   } = useEstruturaArea(estruturaAreaId);
 
-  const createProject = useCreateTaxProject();
-  const updateProject = useUpdateTaxProject();
-  const deleteProjectMut = useDeleteTaxProject();
+  const createProject = useCreateOrgProject();
+  const updateProject = useUpdateOrgProject();
+  const deleteProjectMut = useDeleteOrgProject();
 
   const { data: teamMembers = [] } = useTeamProfilesSafe();
   const { data: userRoles = [] } = useTeamRolesForProjects();
@@ -624,7 +624,7 @@ const FiscalProjetosCadastro = () => {
             </TableHeader>
           );
 
-          const renderProjectRow = (project: TaxProject) => {
+          const renderProjectRow = (project: OrgProject) => {
             const executorName = project.responsible
               ? `${project.responsible.first_name} ${project.responsible.last_name}`
               : null;

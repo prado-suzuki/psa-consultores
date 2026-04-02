@@ -194,16 +194,19 @@ export function useTeamMembersForTasks() {
   });
 }
 
-/** Projetos tax para filtros */
-export function useTaxProjectsForFilter() {
+/** Projetos org para filtros */
+export function useOrgProjectsForFilter() {
   return useQuery({
-    queryKey: ['tax-projects-for-filter'],
+    queryKey: ['org-projects-for-filter'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('tax_projects')
+        .from('org_projects')
         .select('id, name')
         .order('name');
       return data || [];
     },
   });
 }
+
+/** @deprecated Use useOrgProjectsForFilter */
+export const useTaxProjectsForFilter = useOrgProjectsForFilter;
