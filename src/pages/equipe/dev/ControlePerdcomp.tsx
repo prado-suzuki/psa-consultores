@@ -574,7 +574,7 @@ export default function ControlePerdcomp() {
                     <SortIcon col="vlr_corrigido" />
                   </span>
                 </TableHead>
-                <TableHead className="w-[80px]"></TableHead>
+                <TableHead className="w-[80px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
