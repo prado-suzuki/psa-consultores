@@ -182,7 +182,7 @@ const FiscalProjetosCadastro = () => {
   // ── Agrupamento dinâmico ─────────────────────────────────────────────
   const groupedProjects = useMemo(() => {
     if (groupBy === 'none') return null;
-    const map = new Map<string, { label: string; projects: TaxProject[] }>();
+    const map = new Map<string, { label: string; projects: OrgProject[] }>();
     for (const p of filteredProjects) {
       let key: string;
       let label: string;
