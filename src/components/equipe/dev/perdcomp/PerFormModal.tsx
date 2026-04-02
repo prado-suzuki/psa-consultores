@@ -362,7 +362,7 @@ export function PerFormModal({
           dt_solicitada: data.dt_solicitada,
           tp_credito: data.tp_credito,
           vlr_credito: data.vlr_credito,
-          nr_proc_ret: data.nr_proc_ret || null,
+          nr_proc_ret: data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null,
           porcentagem_psa: data.porcentagem_psa ?? null,
         })
         .eq('nr_per', editData?.nr_per);
