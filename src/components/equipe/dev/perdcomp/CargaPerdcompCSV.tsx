@@ -197,6 +197,8 @@ export function CargaPerdcompCSV() {
 
       persToInsert.push({
         ...perData,
+        nr_per: stripToDigits(perData.nr_per),
+        nr_proc_ret: perData.nr_proc_ret ? stripToDigits(perData.nr_proc_ret) : null,
         id_contribuinte: selectedContribuinte,
         criado_por: userId,
         porcentagem_psa: porcentagemPsa,
