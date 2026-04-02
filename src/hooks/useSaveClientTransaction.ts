@@ -437,7 +437,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
       // Cliente
       const clientDiff = snap
-        ? computeFieldDiff(snap.clientData as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
+        ? computeFieldDiff(snap.clientData as unknown as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
         : null;
       logAction({
         area: 'dev',
