@@ -12,6 +12,53 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+
+/* ── Sub-componente: contribuintes expandidos ── */
+const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["contribuintes-expand", clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contribuinte")
+        .select("id, cpf_cnpj, nome_razao_social, inscricao_estadual, simples_nacional")
+        .eq("cliente_id", clienteId)
+        .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
+        .order("nome_razao_social");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  if (isLoading) return <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" />Carregando contribuintes…</div>;
+
+  if (!data?.length) return <p className="text-sm text-muted-foreground py-2">Nenhum contribuinte cadastrado</p>;
+
+  return (
+    <div className="ml-8 bg-muted/50 rounded-lg p-3">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent border-b border-border">
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">CPF/CNPJ</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Razão Social</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Inscrição Estadual</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Simples Nacional</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((c) => (
+            <TableRow key={c.id} className="hover:bg-transparent border-b border-border/50">
+              <TableCell className="py-2 text-sm">{c.cpf_cnpj || "-"}</TableCell>
+              <TableCell className="py-2 text-sm">{c.nome_razao_social}</TableCell>
+              <TableCell className="py-2 text-sm">{c.inscricao_estadual || "-"}</TableCell>
+              <TableCell className="py-2 text-sm">{c.simples_nacional ? "Sim" : "Não"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
 import NewClientModal from "@/components/equipe/NewClientModal";
 
 const ITEMS_PER_PAGE = 10;
@@ -37,6 +84,7 @@ const GestaoClientes = () => {
   const [viewMode, setViewMode] = useState(false);
   const [deletingCliente, setDeletingCliente] = useState<{ id: string; nome: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
@@ -366,8 +414,9 @@ const GestaoClientes = () => {
           <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <Table>
               <TableHeader className="bg-slate-50">
-                <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
+               <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                   <TableHead className="w-10 px-2" />
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Categoria</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
@@ -377,35 +426,60 @@ const GestaoClientes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
-                {paginatedResults.map((row, index) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn("cursor-pointer transition-colors hover:bg-teal-50/60", index % 2 === 1 && "bg-slate-50/50")}
-                    onClick={() => handleClienteClick({ id: row.id })}
-                  >
-                    <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
-                    <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
-                    {canEdit && (
-                      <TableCell className="px-4 py-3.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                {paginatedResults.map((row, index) => {
+                  const isExpanded = expandedClienteId === row.id;
+                  const totalCols = canEdit ? 8 : 7;
+                  return (
+                    <> 
+                      <TableRow
+                        key={row.id}
+                        className={cn("cursor-pointer transition-colors hover:bg-teal-50/60", index % 2 === 1 && "bg-slate-50/50")}
+                        onClick={() => handleClienteClick({ id: row.id })}
+                      >
+                        <TableCell className="px-2 py-3.5 w-10">
+                          <button
+                            type="button"
+                            className="p-1 rounded hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedClienteId(isExpanded ? null : row.id);
+                            }}
+                          >
+                            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+                          </button>
+                        </TableCell>
+                        <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
+                        {canEdit && (
+                          <TableCell className="px-4 py-3.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow key={`${row.id}-expand`} className="hover:bg-transparent">
+                          <TableCell colSpan={totalCols} className="p-0 px-2 py-3">
+                            <ContribuinteSubTable clienteId={row.id} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
