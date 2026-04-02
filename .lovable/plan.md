@@ -1,34 +1,26 @@
 
 
-## Plan: Remover scroll automático por hover nos Selects
+## Diagnóstico
 
-### Problema
+O código do `SelectTrigger` (linhas 26-28) **não foi alterado** — o `ChevronDown` ainda está lá. Porém, a troca de `overflow-hidden` para `overflow-auto` no `SelectPrimitive.Content` pode causar um bug visual no Radix onde o ícone do trigger some ou fica cortado em determinados navegadores/condições de renderização.
 
-O componente `SelectContent` (em `src/components/ui/select.tsx`) usa `SelectScrollUpButton` e `SelectScrollDownButton` do Radix. Esses botões fazem scroll automático ao passar o mouse — comportamento padrão do Radix que a usuária não deseja.
+O Radix Select espera `overflow-hidden` no Content e delega o scroll ao `Viewport` internamente.
 
-### Solução
+## Correção
 
-Remover os componentes `SelectScrollUpButton` e `SelectScrollDownButton` de dentro do `SelectContent`. O scroll passará a funcionar via mousewheel/trackpad/scrollbar nativo, sem setas que ativam por hover.
+**Arquivo: `src/components/ui/select.tsx`** — linha 69:
 
-**Alteração em `src/components/ui/select.tsx`** (linhas 77 e 87):
+Reverter `overflow-auto` para `overflow-hidden` no `SelectPrimitive.Content`. Adicionar `overflow-y-auto` diretamente no `SelectPrimitive.Viewport` para garantir o scroll nativo sem os botões de hover.
 
-Antes:
-```tsx
-<SelectScrollUpButton />
-<SelectPrimitive.Viewport ...>
-  {children}
-</SelectPrimitive.Viewport>
-<SelectScrollDownButton />
+```
+Antes (Content):  "... overflow-auto rounded-md ..."
+Depois (Content): "... overflow-hidden rounded-md ..."
+
+Antes (Viewport): className="p-1"
+Depois (Viewport): className="p-1 max-h-96 overflow-y-auto"
 ```
 
-Depois:
-```tsx
-<SelectPrimitive.Viewport ...>
-  {children}
-</SelectPrimitive.Viewport>
-```
+E remover `max-h-96` do Content (mover para Viewport).
 
-Também trocar `overflow-hidden` por `overflow-auto` na classe do `SelectPrimitive.Content` para garantir scroll nativo.
-
-**1 arquivo, 3 linhas alteradas.** Afeta todos os Selects do sistema de uma vez.
+**1 arquivo, 2 linhas alteradas.** Os scroll buttons continuam removidos. O chevron do trigger volta a funcionar normalmente.
 
