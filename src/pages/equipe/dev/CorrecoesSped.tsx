@@ -37,8 +37,6 @@ const CorrecoesSped = () => {
   const [ncmFilter, setNcmFilter] = useState<NcmFilter>('all');
   const [searchText, setSearchText] = useState('');
   const [hasQueried, setHasQueried] = useState(false);
-  const [openIni, setOpenIni] = useState(false);
-  const [openFim, setOpenFim] = useState(false);
 
   // Modals
   const [selectedItem, setSelectedItem] = useState<FlatItemEfd | null>(null);
@@ -119,7 +117,7 @@ const CorrecoesSped = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
-                <Popover open={openIni} onOpenChange={setOpenIni}>
+                <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtIni && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -127,13 +125,13 @@ const CorrecoesSped = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dtIni ? new Date(dtIni + 'T00:00:00') : undefined} onSelect={(d) => { setDtIni(d ? format(d, 'yyyy-MM-dd') : ''); setOpenIni(false); }} />
+                    <Calendar selected={dtIni ? new Date(dtIni + 'T00:00:00') : undefined} onSelect={(d) => setDtIni(d ? format(d, 'yyyy-MM-dd') : '')} />
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Fim</Label>
-                <Popover open={openFim} onOpenChange={setOpenFim}>
+                <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtFin && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -141,7 +139,7 @@ const CorrecoesSped = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dtFin ? new Date(dtFin + 'T00:00:00') : undefined} onSelect={(d) => { setDtFin(d ? format(d, 'yyyy-MM-dd') : ''); setOpenFim(false); }} />
+                    <Calendar selected={dtFin ? new Date(dtFin + 'T00:00:00') : undefined} onSelect={(d) => setDtFin(d ? format(d, 'yyyy-MM-dd') : '')} />
                   </PopoverContent>
                 </Popover>
               </div>
