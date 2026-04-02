@@ -271,6 +271,8 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
+      queryClient.invalidateQueries({ queryKey: ['per-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('DCOMP atualizado com sucesso!');
       clear();
       onOpenChange(false);
