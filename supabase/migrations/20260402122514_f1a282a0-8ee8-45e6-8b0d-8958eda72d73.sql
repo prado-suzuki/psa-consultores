@@ -1,0 +1,1 @@
+ALTER TABLE public.efd_correcoes ALTER COLUMN arquivo_id TYPE varchar(50) USING arquivo_id::varchar(50);
