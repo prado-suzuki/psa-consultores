@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
+import { normalizeProcessNumber } from '@/lib/perdcompUtils';
 import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -390,7 +391,7 @@ export function PerDetailModal({
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-3">
-                  <span>{per.nr_per}</span>
+                  <span>{normalizeProcessNumber(per.nr_per)}</span>
                   <Badge variant="secondary" className="text-xs uppercase">
                     {per.tp_credito}
                   </Badge>
@@ -405,7 +406,7 @@ export function PerDetailModal({
                   <p className="text-xs text-orange-600 dark:text-orange-400 mt-1 flex items-center gap-1">
                     <ArrowRight className="h-3 w-3" />
                     <span>Retifica:</span>
-                    <span className="font-mono font-medium">{per.nr_proc_ret}</span>
+                    <span className="font-mono font-medium">{normalizeProcessNumber(per.nr_proc_ret)}</span>
                   </p>
                 )}
               </div>

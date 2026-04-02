@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentAmbiente } from '@/config/api';
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeProcessNumber } from '@/lib/perdcompUtils';
 
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -589,7 +590,7 @@ export default function ControlePerdcomp() {
                   const situacaoInfo = perSituacoesMap[item.nr_per];
                   const totalCompensado = dcompTotalMap[item.nr_per] || 0;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const saldo = item.vlr_credito - totalCompensado - valorRessarcido;
+                  const saldo = Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100;
                   const correction = selicCorrectionMap[item.nr_per];
 
                   return (
@@ -598,7 +599,7 @@ export default function ControlePerdcomp() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handlePerClick(item)}
                     >
-                      <TableCell className="font-medium">{item.nr_per}</TableCell>
+                      <TableCell className="font-medium">{normalizeProcessNumber(item.nr_per)}</TableCell>
                       <TableCell>{situacaoInfo?.situacao || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : "-"}
