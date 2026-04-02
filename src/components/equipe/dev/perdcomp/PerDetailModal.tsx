@@ -774,7 +774,20 @@ export function PerDetailModal({
                 }}
               />
             </div>
-            <RessarcimentoDatePicker value={ressarcimentoData} onChange={setRessarcimentoData} />
+            <div className="space-y-2">
+              <Label>Data do Pagamento</Label>
+              <Popover open={ressarcimentoCalOpen} onOpenChange={setRessarcimentoCalOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !ressarcimentoData && "text-muted-foreground")}>
+                    {ressarcimentoData ? format(new Date(ressarcimentoData + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => { setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : ''); setRessarcimentoCalOpen(false); }} />
+                </PopoverContent>
+              </Popover>
+            </div>
             <div className="space-y-2">
               <Label>Percentual Aplicado (%)</Label>
               <Input
