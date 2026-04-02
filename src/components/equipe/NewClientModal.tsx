@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, Loader2, CheckCircle2, Pencil, Building2 } from "lucide-react";
+import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftParticipant, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData, createDefaultDraftEntity, createDefaultDraftParticipant, createDefaultDraftContract } from "./client-form/constants";
