@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 
-// ── Types ──────────────────────────────────────────────────────────────
+// ── Types (org_projects rebuild) ───────────────────────────────────────
 
 export interface OrgProject {
   id: string;
