@@ -62,6 +62,17 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+const formatDateTime = (dateStr: string | null) => {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return dateStr;
+  }
+};
+
 interface PerSituacaoMap {
   [key: string]: {
     situacao: string;
