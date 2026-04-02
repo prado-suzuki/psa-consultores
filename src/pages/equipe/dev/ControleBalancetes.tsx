@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { getApiUrl, currentAmbiente } from '@/config/api';
@@ -158,6 +158,12 @@ const ControleBalancetes = () => {
       return data;
     },
   });
+
+  useEffect(() => {
+    if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId]);
 
   const handleClear = () => {
     setClienteId('');

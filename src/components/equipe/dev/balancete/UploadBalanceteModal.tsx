@@ -87,6 +87,12 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     enabled: open && !!clienteId,
   });
 
+  useEffect(() => {
+    if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId]);
+
   // Fetch config when contribuinte changes or modal opens
   useEffect(() => {
     if (!open || !contribuinteId) {

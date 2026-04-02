@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
@@ -44,6 +44,13 @@ const CorrecoesSped = () => {
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
+
+  useEffect(() => {
+    if (clienteId && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId]);
+
   const contribuinteSelecionado = contribuintes.find((item) => item.id === contribuinteId) ?? null;
 
   const queryParams = { id_contribuinte: contribuinteId, dt_ini: dtIni, dt_fin: dtFin };

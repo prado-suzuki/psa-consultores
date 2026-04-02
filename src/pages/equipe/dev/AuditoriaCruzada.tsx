@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
@@ -27,6 +28,12 @@ const AuditoriaCruzadaContent = () => {
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
+
+  useEffect(() => {
+    if (clienteId && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId, setContribuinteId]);
 
   const dtIni = dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '';
   const dtFim = dataFim ? format(dataFim, 'yyyy-MM-dd') : '';
