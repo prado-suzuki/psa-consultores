@@ -562,7 +562,7 @@ export function PerDetailModal({
                                 {sit.situacao}
                               </Badge>
                               <span className="text-xs text-slate-500">
-                                {formatDate(sit.criado_em)}
+                                {formatDateTime(sit.criado_em)}
                               </span>
                             </div>
                           </div>
