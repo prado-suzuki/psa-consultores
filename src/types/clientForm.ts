@@ -79,4 +79,5 @@ export interface NewClientModalProps {
   onOpenChange: (open: boolean) => void;
   editingClienteId?: string | null;
   readOnly?: boolean;
+  canEdit?: boolean;
 }

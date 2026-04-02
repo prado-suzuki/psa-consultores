@@ -297,12 +297,14 @@ export default function NewClientModal({
 
               {/* Footer */}
               <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
-                {isReadOnly ? (
+              {isReadOnly ? (
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
-                    <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
-                      <Pencil size={16} /> Editar
-                    </Button>
+                    {canEdit && (
+                      <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
+                        <Pencil size={16} /> Editar
+                      </Button>
+                    )}
                   </>
                 ) : (
                   <>
