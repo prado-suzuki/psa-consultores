@@ -426,35 +426,60 @@ const GestaoClientes = () => {
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
-                {paginatedResults.map((row, index) => (
-                  <TableRow
-                    key={row.id}
-                    className={cn("cursor-pointer transition-colors hover:bg-teal-50/60", index % 2 === 1 && "bg-slate-50/50")}
-                    onClick={() => handleClienteClick({ id: row.id })}
-                  >
-                    <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
-                    <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
-                    <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
-                    {canEdit && (
-                      <TableCell className="px-4 py-3.5">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
+                {paginatedResults.map((row, index) => {
+                  const isExpanded = expandedClienteId === row.id;
+                  const totalCols = canEdit ? 8 : 7;
+                  return (
+                    <> 
+                      <TableRow
+                        key={row.id}
+                        className={cn("cursor-pointer transition-colors hover:bg-teal-50/60", index % 2 === 1 && "bg-slate-50/50")}
+                        onClick={() => handleClienteClick({ id: row.id })}
+                      >
+                        <TableCell className="px-2 py-3.5 w-10">
+                          <button
+                            type="button"
+                            className="p-1 rounded hover:bg-muted"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedClienteId(isExpanded ? null : row.id);
+                            }}
+                          >
+                            <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
+                          </button>
+                        </TableCell>
+                        <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
+                        {canEdit && (
+                          <TableCell className="px-4 py-3.5">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                      {isExpanded && (
+                        <TableRow key={`${row.id}-expand`} className="hover:bg-transparent">
+                          <TableCell colSpan={totalCols} className="p-0 px-2 py-3">
+                            <ContribuinteSubTable clienteId={row.id} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
