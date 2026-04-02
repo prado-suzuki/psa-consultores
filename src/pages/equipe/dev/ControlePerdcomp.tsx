@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentAmbiente } from '@/config/api';
 import { supabase } from "@/integrations/supabase/client";
-import { normalizeProcessNumber } from '@/lib/perdcompUtils';
+import { normalizeCurrencyZero, normalizeProcessNumber } from '@/lib/perdcompUtils';
 
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,7 +49,7 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(value);
+  }).format(normalizeCurrencyZero(value));
 };
 
 const formatDate = (dateStr: string | null) => {
@@ -360,7 +360,7 @@ export default function ControlePerdcomp() {
     for (const item of filteredPerData) {
       const totalComp = dcompTotalMap[item.nr_per] || 0;
       const valRessarcido = (item as any).vlr_ressarcido || 0;
-      const valSaldo = item.vlr_credito - totalComp - valRessarcido;
+      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalComp - valRessarcido);
       const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
@@ -392,7 +392,7 @@ export default function ControlePerdcomp() {
       case "vlr_compensado":
         return dcompTotalMap[key] || 0;
       case "saldo":
-        return item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0);
+        return normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
       case "vlr_corrigido":
         return selicCorrectionMap[key]?.valorCorrigido || 0;
       default:
@@ -590,7 +590,7 @@ export default function ControlePerdcomp() {
                   const situacaoInfo = perSituacoesMap[item.nr_per];
                   const totalCompensado = dcompTotalMap[item.nr_per] || 0;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const saldo = Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100;
+                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100);
                   const correction = selicCorrectionMap[item.nr_per];
 
                   return (

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
-import { normalizeProcessNumber } from '@/lib/perdcompUtils';
+import { normalizeCurrencyZero, normalizeProcessNumber } from '@/lib/perdcompUtils';
 import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -106,7 +106,7 @@ const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value);
+  }).format(normalizeCurrencyZero(value));
 };
 
 const formatDate = (dateStr: string | null) => {
@@ -233,7 +233,9 @@ export function PerDetailModal({
   const saldoRestante = useMemo(() => {
     if (!perAtual) return 0;
     const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    return Math.round(((perAtual as any).vlr_credito - totalCompensado - vlrRessarcido) * 100) / 100;
+    return normalizeCurrencyZero(
+      Math.round(((perAtual as any).vlr_credito - totalCompensado - vlrRessarcido) * 100) / 100,
+    );
   }, [perAtual, dcompsVigentes, vlrRessarcido]);
 
   // Mutation para atualizar situação
