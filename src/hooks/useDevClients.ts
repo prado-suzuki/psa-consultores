@@ -114,7 +114,7 @@ export const useDevClientMutations = () => {
   }, [qc]);
 
   const logClientAction = useCallback((
-    entityType: 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico',
+    entityType: 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico',
     entityId: string,
     entityName: string,
     action: 'created' | 'updated' | 'deleted',
