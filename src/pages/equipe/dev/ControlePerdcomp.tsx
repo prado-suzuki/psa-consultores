@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { currentAmbiente } from '@/config/api';
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeProcessNumber } from '@/lib/perdcompUtils';
 
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
