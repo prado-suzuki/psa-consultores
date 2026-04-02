@@ -444,8 +444,7 @@ export function DcompFormModal({
                     </Popover>
                     <FormMessage />
                   </FormItem>
-                );
-              }}
+              )}
             />
 
             <FormField
