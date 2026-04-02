@@ -17,7 +17,8 @@ import NewClientModal from "@/components/equipe/NewClientModal";
 const ITEMS_PER_PAGE = 10;
 
 const GestaoClientes = () => {
-  // Estados do cliente
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const canEdit = isAdmin || isLider || isSublider;
   const [clienteId, setClienteId] = useState("");
   const [status, setStatus] = useState("");
   const [tipo, setTipo] = useState("");
