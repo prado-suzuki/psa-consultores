@@ -44,7 +44,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDraftWarning, setShowDraftWarning] = useState(false);
