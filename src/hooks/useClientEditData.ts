@@ -128,13 +128,13 @@ export const useClientEditData = (
         }
 
         // representante table — PK is id_representante
+        let snapParticipants: DraftRepresentante[] = [];
         const { data: parts } = await (supabase.from(representanteTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId)
           .eq("excluido", false);
         if (parts) {
-          setters.setParticipants(
-            parts.map((p: any) => ({
+          const mapped = parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
               _dbId: p.id_representante || p.id,
               nome: p.nome || "",
@@ -144,8 +144,9 @@ export const useClientEditData = (
               telefone: p.telefone || "",
               observacoes: p.observacoes || "",
               acesso_chamados: p.acesso_chamados ?? false,
-            })),
-          );
+            }));
+          setters.setParticipants(mapped);
+          snapParticipants = structuredClone(mapped);
         }
 
         // Carregar ordens de serviço do banco
