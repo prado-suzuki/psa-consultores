@@ -34,8 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Loader2, CalendarIcon } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { DatePickerPopover } from '@/components/ui/date-picker-popover';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
