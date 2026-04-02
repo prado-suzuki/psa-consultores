@@ -70,7 +70,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const {
     clientData, entities, participants, contracts, inscricoesMap,
     isEditing, editingClienteId, setoresCliente,
-    getDraftPendingTabs, onDuplicateFound, onSuccess,
+    getDraftPendingTabs, onDuplicateFound, onSuccess, originalSnapshot,
   } = params;
 
   const { logAction } = useAuditLog();
