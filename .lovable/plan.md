@@ -1,40 +1,44 @@
 
 
-## Plan: Substituir expand/collapse por Modal de detalhes CT-e
+## Plan: Auto-selecionar contribuinte único em ferramentas Dev faltantes
 
-### Arquivo: `src/components/equipe/dev/auditoria/EfdcXmlTab.tsx`
+### Diagnóstico
 
-### O que sai
-- Estado `expandedRows` e função `toggleRow`
-- Coluna com ícone chevron (primeira coluna do header e das linhas)
-- Linha expandida inline (`isExpanded && <TableRow>...</TableRow>`)
-- Imports `ChevronRight`, `ChevronDown`
+| Ferramenta | Tem auto-select? |
+|---|---|
+| ConsultaECF, EFD, ECD, EFDCIMS, XMLs | ✅ |
+| ControlePerdcomp, ApuracaoPisCofins | ✅ |
+| AuditoriaFiscal, CalculadoraIbsCbs | ✅ |
+| **AuditoriaCruzada** | ❌ |
+| **CorrecoesSped** | ❌ |
+| **ControleBalancetes** | ❌ |
+| **UploadBalanceteModal** | ❌ |
 
-### O que entra
+### Alterações
 
-**1. Estado do modal**
-```typescript
-const [selectedLote, setSelectedLote] = useState<EfdcXmlLote | null>(null);
-const [cteSearch, setCteSearch] = useState('');
-```
+Adicionar um `useEffect` idêntico ao padrão já existente nas demais ferramentas em cada arquivo:
 
-**2. Clique na linha** abre o modal em vez de expandir:
 ```tsx
-<TableRow className="cursor-pointer" onClick={() => setSelectedLote(lote)}>
+useEffect(() => {
+  if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+    setContribuinteId(contribuintes[0].id);
+  }
+}, [clienteId, contribuintes, contribuinteId]);
 ```
-Remove a primeira `<TableCell>` com chevron e o `<TableHead>` correspondente.
 
-**3. Modal (Dialog)** renderizado no final do componente:
-- `Dialog` controlado por `selectedLote !== null`
-- Header: Emitente, CFOP, Data Lote, Intervalo (dados do lote selecionado)
-- Resumo: Valor Lote | Soma CT-es | Diferença (com destaque vermelho se > 0.05)
-- Campo de busca por chave CT-e (filtra `CHV_CTE` e `NR_CTE`)
-- Tabela de CT-es filtrados: Chave CT-e, Número, Valor
-- `DialogContent` com `max-w-2xl` e tabela com `max-h-[400px] overflow-y-auto`
+#### 1. `src/pages/equipe/dev/AuditoriaCruzada.tsx`
+- Adicionar o `useEffect` após a linha que desestrutura `contribuintes` (linha ~29), usando `setContribuinteId` do `useAuditoriaStore()`
 
-**4. Imports**: Adicionar `Dialog, DialogContent, DialogHeader, DialogTitle`. Remover `ChevronRight, ChevronDown`.
+#### 2. `src/pages/equipe/dev/CorrecoesSped.tsx`
+- Adicionar o `useEffect` após a linha que desestrutura `contribuintes` (linha ~46)
 
-**5. ColSpan**: Header passa de 8 para 7 colunas (sem coluna chevron).
+#### 3. `src/pages/equipe/dev/ControleBalancetes.tsx`
+- Adicionar o `useEffect` após o fetch de contribuintes, usando `setContribuinteId` local
 
-### Nenhum outro arquivo afetado
+#### 4. `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx`
+- Adicionar o `useEffect` após o query de `contribuintes` (linha ~83), usando `setContribuinteId` local
+
+### Nenhum tipo ou hook alterado
+
+Apenas 4 arquivos recebem uma adição de ~5 linhas cada.
 
