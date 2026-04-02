@@ -389,7 +389,33 @@ export function DcompFormModal({
                 <FormItem>
                   <FormLabel>Mês/Ano Exercício <RequiredMark /></FormLabel>
                   <FormControl>
-                    <Input type="month" {...field} />
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="MM/AAAA"
+                      maxLength={7}
+                      value={field.value ? (() => {
+                        // ISO YYYY-MM -> display MM/AAAA
+                        if (/^\d{4}-\d{2}$/.test(field.value)) {
+                          const [y, m] = field.value.split('-');
+                          return `${m}/${y}`;
+                        }
+                        return field.value;
+                      })() : ''}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        let masked = digits;
+                        if (digits.length > 2) masked = digits.slice(0, 2) + '/' + digits.slice(2);
+                        // Convert complete MM/YYYY to ISO YYYY-MM
+                        if (digits.length === 6) {
+                          const mm = digits.slice(0, 2);
+                          const yyyy = digits.slice(2, 6);
+                          field.onChange(`${yyyy}-${mm}`);
+                        } else {
+                          field.onChange(masked);
+                        }
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
