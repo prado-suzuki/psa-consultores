@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from "@/components/ui/separator";
 import {
   Search,
   Plus,
@@ -861,6 +862,17 @@ export default function ControlePerdcomp() {
                 <PopoverContent className="w-56 p-2" align="start">
                   <ScrollArea className="max-h-64 overflow-auto">
                     <div className="space-y-1">
+                      <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm font-medium">
+                        <Checkbox
+                          checked={situacaoFilter.length === 0}
+                          onCheckedChange={() => {
+                            setSituacaoFilter([]);
+                            setCurrentPage(1);
+                          }}
+                        />
+                        Todas
+                      </label>
+                      <Separator className="my-1" />
                       {allSituacoes.map((s) => (
                         <label
                           key={s}
