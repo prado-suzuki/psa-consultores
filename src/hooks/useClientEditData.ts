@@ -71,9 +71,9 @@ export const useClientEditData = (
           .select("*")
           .eq("cliente_id", editingClienteId)
           .eq("excluido", false);
+        let snapEntities: DraftEntity[] = [];
         if (contribs) {
-          setters.setEntities(
-            contribs.map((c) => ({
+          const mapped = contribs.map((c) => ({
               _id: Date.now() + Math.random(),
               _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
@@ -96,8 +96,9 @@ export const useClientEditData = (
               uf: (c as any).uf || "",
               contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
               atividade_principal: "",
-            })),
-          );
+            }));
+          setters.setEntities(mapped);
+          snapEntities = structuredClone(mapped);
         }
 
         // Load inscricoes estaduais
