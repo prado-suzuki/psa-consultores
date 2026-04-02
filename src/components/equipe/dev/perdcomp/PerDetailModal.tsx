@@ -285,6 +285,7 @@ export function PerDetailModal({
     },
     onSuccess: async ({ valor, sitData }) => {
       await queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
+      await queryClient.refetchQueries({ queryKey: ['per-situacoes', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       await queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
