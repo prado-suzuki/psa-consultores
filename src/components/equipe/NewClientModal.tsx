@@ -24,6 +24,7 @@ import ContribuintesTab from "./client-form/ContribuintesTab";
 import ParticipantesTab from "./client-form/ParticipantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
+import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
