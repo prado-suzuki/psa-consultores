@@ -2097,6 +2097,7 @@ export type Database = {
       }
       ordem_servico: {
         Row: {
+          cluster_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
@@ -2115,6 +2116,7 @@ export type Database = {
           valor_reembolso_refeicao: number | null
         }
         Insert: {
+          cluster_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -2133,6 +2135,7 @@ export type Database = {
           valor_reembolso_refeicao?: number | null
         }
         Update: {
+          cluster_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -2151,6 +2154,13 @@ export type Database = {
           valor_reembolso_refeicao?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "ordem_servico_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "ordem_servico_id_produto_segmento_fkey"
             columns: ["id_produto_segmento"]
@@ -4811,6 +4821,7 @@ export type Database = {
       get_ordens_by_client_name: {
         Args: { p_client_id: string }
         Returns: {
+          cluster_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
