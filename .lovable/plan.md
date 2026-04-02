@@ -1,44 +1,47 @@
 
 
-## Plan: Auto-selecionar contribuinte único em ferramentas Dev faltantes
+## Plan: Corrigir cálculo do Saldo Disponível na tabela de PERs
 
-### Diagnóstico
+### Problema identificado
 
-| Ferramenta | Tem auto-select? |
-|---|---|
-| ConsultaECF, EFD, ECD, EFDCIMS, XMLs | ✅ |
-| ControlePerdcomp, ApuracaoPisCofins | ✅ |
-| AuditoriaFiscal, CalculadoraIbsCbs | ✅ |
-| **AuditoriaCruzada** | ❌ |
-| **CorrecoesSped** | ❌ |
-| **ControleBalancetes** | ❌ |
-| **UploadBalanceteModal** | ❌ |
+O `dcompTotalMap` em `ControlePerdcomp.tsx` soma **todos** os DCOMPs vinculados a cada PER, incluindo os que já foram **retificados** por outro DCOMP. Quando um DCOMP A é retificado por DCOMP B (`B.nr_dcomp_ret = A`), ambos são somados, duplicando o valor compensado e gerando saldo negativo incorreto (destacado em vermelho).
 
-### Alterações
+O `PerDetailModal` já trata isso corretamente — filtra DCOMPs retificados antes de somar. A tabela principal não faz essa filtragem.
 
-Adicionar um `useEffect` idêntico ao padrão já existente nas demais ferramentas em cada arquivo:
+### Correção: `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-```tsx
-useEffect(() => {
-  if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
-    setContribuinteId(contribuintes[0].id);
-  }
-}, [clienteId, contribuintes, contribuinteId]);
+**1. Criar set de DCOMPs retificados** (antes do `dcompTotalMap`, ~linha 244):
+
+```typescript
+const dcompsRetificadosSet = useMemo(() => {
+  return new Set(
+    dcompData
+      .filter((d: any) => d.nr_dcomp_ret)
+      .map((d: any) => d.nr_dcomp_ret)
+  );
+}, [dcompData]);
 ```
 
-#### 1. `src/pages/equipe/dev/AuditoriaCruzada.tsx`
-- Adicionar o `useEffect` após a linha que desestrutura `contribuintes` (linha ~29), usando `setContribuinteId` do `useAuditoriaStore()`
+**2. Filtrar DCOMPs vigentes no `dcompTotalMap`** (~linha 245-253):
 
-#### 2. `src/pages/equipe/dev/CorrecoesSped.tsx`
-- Adicionar o `useEffect` após a linha que desestrutura `contribuintes` (linha ~46)
+Alterar o loop para ignorar DCOMPs cujo `nr_documento` está no `dcompsRetificadosSet`:
 
-#### 3. `src/pages/equipe/dev/ControleBalancetes.tsx`
-- Adicionar o `useEffect` após o fetch de contribuintes, usando `setContribuinteId` local
+```typescript
+const dcompTotalMap = useMemo(() => {
+  const map: Record<string, number> = {};
+  for (const dcomp of dcompData) {
+    if (dcompsRetificadosSet.has(dcomp.nr_documento)) continue; // pular retificados
+    const perNum = dcomp.nr_per_orig;
+    if (!map[perNum]) map[perNum] = 0;
+    map[perNum] += dcomp.vlr_compensado || 0;
+  }
+  return map;
+}, [dcompData, dcompsRetificadosSet]);
+```
 
-#### 4. `src/components/equipe/dev/balancete/UploadBalanceteModal.tsx`
-- Adicionar o `useEffect` após o query de `contribuintes` (linha ~83), usando `setContribuinteId` local
+### Resultado
 
-### Nenhum tipo ou hook alterado
-
-Apenas 4 arquivos recebem uma adição de ~5 linhas cada.
+- Saldo Disponível na tabela principal passa a considerar apenas DCOMPs vigentes (mesmo comportamento do modal de detalhes)
+- PERs que antes apareciam em vermelho com saldo negativo passam a exibir o saldo correto
+- Nenhum outro arquivo afetado
 
