@@ -220,7 +220,50 @@ export default function ControlePerdcomp() {
     enabled: searched && !!contribuinteId,
   });
 
-  const handleSearch = () => {
+  const [isSearchingByProcess, setIsSearchingByProcess] = useState(false);
+
+  const handleSearch = async () => {
+    if (processoFilter && (!clienteId || !contribuinteId)) {
+      const filterDigits = processoFilter.replace(/\D/g, '');
+      if (!filterDigits) {
+        toast.error("Selecione o cliente e contribuinte");
+        return;
+      }
+      setIsSearchingByProcess(true);
+      try {
+        const { data: matchedPers } = await supabase
+          .from("per")
+          .select("id_contribuinte, nr_per")
+          .like("nr_per", `%${filterDigits}%`)
+          .or('excluido.is.null,excluido.eq.')
+          .limit(1);
+
+        if (!matchedPers || matchedPers.length === 0) {
+          toast.error("Nenhum PER encontrado com esse número");
+          return;
+        }
+
+        const contribId = matchedPers[0].id_contribuinte;
+        const { data: contrib } = await supabase
+          .from("contribuinte")
+          .select("cliente_id")
+          .eq("id", contribId)
+          .maybeSingle();
+
+        if (!contrib?.cliente_id) {
+          toast.error("Contribuinte sem cliente vinculado");
+          return;
+        }
+
+        setClienteId(contrib.cliente_id);
+        setContribuinteId(contribId);
+        setSearched(true);
+      } finally {
+        setIsSearchingByProcess(false);
+      }
+      return;
+    }
+
     if (!clienteId || !contribuinteId) {
       toast.error("Selecione o cliente e contribuinte");
       return;
@@ -882,9 +925,9 @@ export default function ControlePerdcomp() {
                 Limpar filtros
               </Button>
             )}
-            <Button onClick={handleSearch} disabled={isLoading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              {isLoading ? 'Buscando...' : 'Buscar'}
+            <Button onClick={handleSearch} disabled={isLoading || isSearchingByProcess} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              {(isLoading || isSearchingByProcess) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {(isLoading || isSearchingByProcess) ? 'Buscando...' : 'Buscar'}
             </Button>
           </div>
         </CardContent>
