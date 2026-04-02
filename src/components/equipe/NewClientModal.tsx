@@ -74,7 +74,7 @@ export default function NewClientModal({
 
   // Load existing data when editing
   const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap }), []);
-  const { loadingEdit } = useClientEditData(open, editingClienteId, editSetters);
+  const { loadingEdit, originalSnapshot } = useClientEditData(open, editingClienteId, editSetters);
 
   // External consults
   const { handleCnpjBlur: cnpjLookup, handleCepBlur: cepLookup, cnpjLoading, cepLoading } = useExternalConsults();
@@ -190,6 +190,7 @@ export default function NewClientModal({
     isEditing, editingClienteId, setoresCliente,
     getDraftPendingTabs, onDuplicateFound,
     onSuccess: () => resetAndClose(),
+    originalSnapshot,
   });
 
   const handleSave = () => {

@@ -34,6 +34,12 @@ export const useClientEditData = (
   setters: Setters,
 ) => {
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [originalSnapshot, setOriginalSnapshot] = useState<{
+    clientData: ClientDataShape;
+    entities: DraftEntity[];
+    participants: DraftRepresentante[];
+    contracts: DraftOrdemServico[];
+  } | null>(null);
 
   useEffect(() => {
     if (!open || !editingClienteId) return;
@@ -41,9 +47,10 @@ export const useClientEditData = (
     const loadData = async () => {
       setLoadingEdit(true);
       try {
+        let snapClient: ClientDataShape | null = null;
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          setters.setClientData({
+          const mapped = {
             nome: cli.nome || "",
             categoria: (cli as any).categoria || "Bronze",
             ativo: cli.ativo ?? true,
@@ -54,7 +61,9 @@ export const useClientEditData = (
             setor_cliente: cli.setor_cliente || "",
             setor_cliente_id: (cli as any).setor_cliente_id || "",
             regiao: (cli as any).regiao || "",
-          });
+          };
+          setters.setClientData(mapped);
+          snapClient = structuredClone(mapped);
         }
 
         const { data: contribs } = await supabase
@@ -62,9 +71,9 @@ export const useClientEditData = (
           .select("*")
           .eq("cliente_id", editingClienteId)
           .eq("excluido", false);
+        let snapEntities: DraftEntity[] = [];
         if (contribs) {
-          setters.setEntities(
-            contribs.map((c) => ({
+          const mapped = contribs.map((c) => ({
               _id: Date.now() + Math.random(),
               _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
@@ -87,8 +96,9 @@ export const useClientEditData = (
               uf: (c as any).uf || "",
               contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
               atividade_principal: "",
-            })),
-          );
+            }));
+          setters.setEntities(mapped);
+          snapEntities = structuredClone(mapped);
         }
 
         // Load inscricoes estaduais
@@ -118,13 +128,13 @@ export const useClientEditData = (
         }
 
         // representante table — PK is id_representante
+        let snapParticipants: DraftRepresentante[] = [];
         const { data: parts } = await (supabase.from(representanteTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId)
           .eq("excluido", false);
         if (parts) {
-          setters.setParticipants(
-            parts.map((p: any) => ({
+          const mapped = parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
               _dbId: p.id_representante || p.id,
               nome: p.nome || "",
@@ -134,8 +144,9 @@ export const useClientEditData = (
               telefone: p.telefone || "",
               observacoes: p.observacoes || "",
               acesso_chamados: p.acesso_chamados ?? false,
-            })),
-          );
+            }));
+          setters.setParticipants(mapped);
+          snapParticipants = structuredClone(mapped);
         }
 
         // Carregar ordens de serviço do banco
@@ -173,8 +184,7 @@ export const useClientEditData = (
             });
           });
 
-          setters.setContracts(
-            existingOS.map((os: any) => ({
+          const mappedContracts = existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
               _dbId: os.id,
               ordem_servico: os.numero_os || "",
@@ -191,10 +201,26 @@ export const useClientEditData = (
               produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
               cluster_id: os.cluster_id || "",
-            })),
-          );
+            }));
+          setters.setContracts(mappedContracts);
+
+          // Store snapshot
+          setOriginalSnapshot({
+            clientData: snapClient!,
+            entities: snapEntities,
+            participants: snapParticipants,
+            contracts: structuredClone(mappedContracts),
+          });
         } else {
           setters.setContracts([]);
+          if (snapClient) {
+            setOriginalSnapshot({
+              clientData: snapClient,
+              entities: snapEntities,
+              participants: snapParticipants,
+              contracts: [],
+            });
+          }
         }
       } catch (err: any) {
         console.error("Erro ao carregar dados do cliente:", err);
@@ -206,5 +232,5 @@ export const useClientEditData = (
     loadData();
   }, [open, editingClienteId]);
 
-  return { loadingEdit };
+  return { loadingEdit, originalSnapshot };
 };
