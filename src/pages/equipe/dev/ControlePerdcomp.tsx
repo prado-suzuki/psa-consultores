@@ -598,7 +598,7 @@ export default function ControlePerdcomp() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => handlePerClick(item)}
                     >
-                      <TableCell className="font-medium">{item.nr_per}</TableCell>
+                      <TableCell className="font-medium">{normalizeProcessNumber(item.nr_per)}</TableCell>
                       <TableCell>{situacaoInfo?.situacao || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
                         {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : "-"}
