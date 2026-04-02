@@ -82,7 +82,7 @@ interface ContribuinteRecord {
   cpf_cnpj: string | null;
 }
 
-const AuditoriaFiscal = () => {
+const ProcessoDifal = () => {
   const { toast } = useToast();
   const { fetchWithAuth } = useApiAuth();
   const { user } = useAuth();
@@ -1184,4 +1184,4 @@ const AuditoriaFiscal = () => {
   );
 };
 
-export default AuditoriaFiscal;
+export default ProcessoDifal;

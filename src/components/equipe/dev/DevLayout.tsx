@@ -61,7 +61,7 @@ const pisCofinsSubItems: NavItem[] = [
 ];
 
 const navItemsAfterSped: NavItem[] = [
-  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/auditoria-fiscal" },
+  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/processo-difal" },
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
   { icon: FileSpreadsheet, label: DEV_NAV_LABELS.controlePerdcomp, path: "/equipe/dev/controle-perdcomp" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },

@@ -74,7 +74,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/dev/auditoria-fiscal',
+    page_path: '/equipe/dev/processo-difal',
     page_name: 'Auditoria Fiscal',
     page_description: 'Ferramenta de auditoria fiscal',
     category: 'dev',

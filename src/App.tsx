@@ -46,7 +46,7 @@ import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
 import ConsultaECD from "./pages/equipe/dev/ConsultaECD";
 import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
-import AuditoriaFiscal from "./pages/equipe/dev/AuditoriaFiscal";
+import ProcessoDifal from "./pages/equipe/dev/ProcessoDifal";
 import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
 import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
@@ -162,7 +162,7 @@ const App = () => (
             <Route path="/equipe/dev/consulta-ecd" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/consulta-ecf" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate></TeamRoute>} />
-            <Route path="/equipe/dev/auditoria-fiscal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/auditoria-fiscal"><AuditoriaFiscal /></PageAccessGate></TeamRoute>} />
+            <Route path="/equipe/dev/processo-difal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/processo-difal"><ProcessoDifal /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-perdcomp" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate></TeamRoute>} />
             <Route path="/equipe/dev/controle-balancetes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate></TeamRoute>} />
             {/* Redirect legacy route */}

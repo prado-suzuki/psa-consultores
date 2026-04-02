@@ -85,7 +85,7 @@ const toolGroups: ToolGroup[] = [
       {
         name: DEV_NAV_LABELS.difalInteligente,
         description: 'Auditoria automatizada de DIFAL por NCM',
-        path: '/equipe/dev/auditoria-fiscal',
+        path: '/equipe/dev/processo-difal',
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
       },
     ],
