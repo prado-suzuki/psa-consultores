@@ -209,7 +209,7 @@ export function PerFormModal({
 
   // Filter PERs based on search query
   const filteredPersExistentes = persExistentes.filter((per: any) => 
-    per.nr_per.toLowerCase().includes(perSearchQuery.toLowerCase())
+    per.nr_per.includes(perSearchQuery.replace(/\D/g, ''))
   );
 
   useEffect(() => {

@@ -162,7 +162,7 @@ export function SituacaoFormModal({
   const updateMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
       const updateData: any = {
-        nr_proc_per: data.nr_proc_per,
+        nr_proc_per: stripToDigits(data.nr_proc_per),
         situacao: data.situacao,
       };
       if (data.dt_pagamento) {

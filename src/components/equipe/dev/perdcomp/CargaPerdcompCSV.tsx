@@ -289,6 +289,8 @@ export function CargaPerdcompCSV() {
 
       dcompsToInsert.push({
         ...dcompData,
+        nr_documento: stripToDigits(dcompData.nr_documento),
+        nr_per_orig: stripToDigits(dcompData.nr_per_orig),
         criado_por: userId,
         porcentagem_psa: porcentagemPsa,
       });
