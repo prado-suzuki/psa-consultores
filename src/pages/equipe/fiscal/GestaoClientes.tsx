@@ -224,16 +224,18 @@ const GestaoClientes = () => {
     <div className="space-y-6">
       {/* Topo: Botão à esquerda + texto auxiliar à direita */}
       <div className="flex justify-between items-center">
-        <Button
-          onClick={() => {
-            setEditingClienteId(null);
-            setViewMode(false);
-            setNovoClienteModalOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo cliente
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={() => {
+              setEditingClienteId(null);
+              setViewMode(false);
+              setNovoClienteModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo cliente
+          </Button>
+        )}
         <div className="hidden md:flex items-center text-slate-500 gap-2">
           <Search className="h-4 w-4" />
           <span className="text-sm">Gerencie sua base de dados de clientes</span>
