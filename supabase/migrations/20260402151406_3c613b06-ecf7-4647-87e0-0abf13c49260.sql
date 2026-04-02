@@ -1,0 +1,1 @@
+ALTER TABLE public.ordem_servico ADD COLUMN cluster_id uuid REFERENCES public.estrutura_clusters(id) ON DELETE SET NULL;

@@ -148,9 +148,9 @@ function ProdutoContratadoBlock({
     <div className="space-y-3">
       {/* Empresa filter */}
       <div>
-        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
         <Select value={clusterFilter} onValueChange={onClusterFilterChange}>
-          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
+          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todas as empresas</SelectItem>
             {allClusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -222,26 +222,76 @@ export default function ContratosTab({
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
 
-  const startEditContract = (c: DraftOrdemServico) => { setEditingContractId(c._id); setEditingContractData({ ...c }); };
+  const handleOsClusterFilterChange = (v: string) => {
+    setOsClusterFilter(v);
+    setDraftContract(prev => ({ ...prev, cluster_id: v === "__all__" ? "" : v }));
+  };
+
+  const handleOsEditClusterFilterChange = (v: string) => {
+    setOsEditClusterFilter(v);
+    if (editingContractData) {
+      setEditingContractData({ ...editingContractData, cluster_id: v === "__all__" ? "" : v });
+    }
+  };
+
+  const startEditContract = (c: DraftOrdemServico) => {
+    setEditingContractId(c._id);
+    setEditingContractData({ ...c });
+    setOsEditClusterFilter(c.cluster_id || "__all__");
+  };
   const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
+
+  const validateDistribuicao = (dist: Array<{ id_centro_custo: string; percentual_rateio: number }> | undefined, label: string): boolean => {
+    if (!dist || dist.length === 0) {
+      toast.error(`${label}: adicione ao menos um Centro de Custo na Distribuição de Receita`);
+      return false;
+    }
+    const hasEmpty = dist.some(d => !d.id_centro_custo);
+    if (hasEmpty) {
+      toast.error(`${label}: selecione um centro de custo válido para cada linha`);
+      return false;
+    }
+    const total = dist.reduce((s, d) => s + (d.percentual_rateio || 0), 0);
+    if (Math.abs(total - 100) > 0.01) {
+      toast.error(`${label}: a distribuição deve somar 100% (atual: ${total.toFixed(0)}%)`);
+      return false;
+    }
+    return true;
+  };
+
   const saveEditContract = () => {
     if (!editingContractData || editingContractId == null) return;
+    if (!editingContractData.cluster_id) {
+      toast.error("Selecione a Empresa/Faturamento");
+      return;
+    }
+    if (!editingContractData.produtos_contratados || editingContractData.produtos_contratados.length === 0) {
+      toast.error("Adicione ao menos um Produto Contratado");
+      return;
+    }
+    if (!validateDistribuicao(editingContractData.distribuicao_receita as any, `OS ${editingContractData.ordem_servico || ""}`)) return;
     setContracts(contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftOrdemServico) : c)));
     setEditingContractId(null); setEditingContractData(null);
     toast.success("OS atualizada");
   };
 
   const addContract = async () => {
+    if (!draftContract.cluster_id) {
+      toast.error("Selecione a Empresa/Faturamento");
+      return;
+    }
     if (!draftContract.produtos_contratados || draftContract.produtos_contratados.length === 0) {
       toast.error("Adicione ao menos um Produto Contratado");
       return;
     }
+    if (!validateDistribuicao(draftContract.distribuicao_receita, "Nova OS")) return;
     setIsAddingContract(true);
     try {
       const osNumber = await generateNextOsNumber(contracts as any);
       const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
       setContracts([...contracts, newContract]);
       setDraftContract(createDefaultDraftContract());
+      setOsClusterFilter("__all__");
     } finally { setIsAddingContract(false); }
   };
 
@@ -364,14 +414,14 @@ export default function ContratosTab({
                           produtoOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}
                           clusterFilter={osEditClusterFilter}
-                          onClusterFilterChange={setOsEditClusterFilter}
+                          onClusterFilterChange={handleOsEditClusterFilterChange}
                         />
                       </div>
 
                       {/* Distribuição de Receita */}
                       <div className="border border-dashed rounded-lg p-3 mt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)</h5>
+                          <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
                           <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setEditingContractData(prev => prev ? ({ ...prev, distribuicao_receita: [...((prev as any).distribuicao_receita || []), { id_centro_custo: "", percentual_rateio: 0 }] } as any) : prev)}><Plus size={12} /> Adicionar</Button>
                         </div>
                         {((ec as any).distribuicao_receita || []).map((cc: { id_centro_custo: string; percentual_rateio: number }, idx: number) => (
@@ -441,14 +491,14 @@ export default function ContratosTab({
                 produtoOptions={produtoSegmentoFullOptions}
                 allClusters={allClusters}
                 clusterFilter={osClusterFilter}
-                onClusterFilterChange={setOsClusterFilter}
+                onClusterFilterChange={handleOsClusterFilterChange}
               />
             </div>
 
             {/* Distribuição de Receita */}
             <div className="mt-4 border border-dashed rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)</h5>
+                <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
                 <Button type="button" size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => setDraftContract(prev => ({ ...prev, distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }] }))}><Plus size={14} /> Adicionar Centro de Custo</Button>
               </div>
               {draftContract.distribuicao_receita.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum centro de custo adicionado.</p>}
