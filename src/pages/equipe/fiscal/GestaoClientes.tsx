@@ -414,8 +414,9 @@ const GestaoClientes = () => {
           <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
             <Table>
               <TableHeader className="bg-slate-50">
-                <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
+               <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+                   <TableHead className="w-10 px-2" />
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Categoria</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
