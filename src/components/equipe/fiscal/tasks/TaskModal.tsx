@@ -108,7 +108,7 @@ export const TaskModal = ({
   });
 
   // ── Hooks centralizados ──────────────────────────────────────────────
-  const { data: projects = [] } = useTaxProjectsList(true);
+  const { data: projects = [] } = useOrgProjectsList(true);
 
   const watchedProjectId = form.watch('project_id') as string | undefined;
   

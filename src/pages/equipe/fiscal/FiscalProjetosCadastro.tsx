@@ -624,7 +624,7 @@ const FiscalProjetosCadastro = () => {
             </TableHeader>
           );
 
-          const renderProjectRow = (project: TaxProject) => {
+          const renderProjectRow = (project: OrgProject) => {
             const executorName = project.responsible
               ? `${project.responsible.first_name} ${project.responsible.last_name}`
               : null;

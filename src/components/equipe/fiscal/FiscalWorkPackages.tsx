@@ -44,7 +44,7 @@ export function FiscalWorkPackages() {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
   // Use centralized hook for projects dropdown
-  const { data: projects = [] } = useTaxProjectsList(true);
+  const { data: projects = [] } = useOrgProjectsList(true);
 
   // Build filters based on preset
   const filters = useMemo(() => {
