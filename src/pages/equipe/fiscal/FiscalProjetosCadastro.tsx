@@ -228,9 +228,9 @@ const FiscalProjetosCadastro = () => {
     memberIds: areaMemberIds,
   } = useEstruturaArea(estruturaAreaId);
 
-  const createProject = useCreateTaxProject();
-  const updateProject = useUpdateTaxProject();
-  const deleteProjectMut = useDeleteTaxProject();
+  const createProject = useCreateOrgProject();
+  const updateProject = useUpdateOrgProject();
+  const deleteProjectMut = useDeleteOrgProject();
 
   const { data: teamMembers = [] } = useTeamProfilesSafe();
   const { data: userRoles = [] } = useTeamRolesForProjects();
