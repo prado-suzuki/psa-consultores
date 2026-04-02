@@ -50,7 +50,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 import { RequiredMark } from '@/components/ui/required-mark';
-import { useTaxProjectsList } from '@/hooks/useTaxProjects';
+import { useOrgProjectsList } from '@/hooks/useOrgProjects';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const taskSchema = z.object({

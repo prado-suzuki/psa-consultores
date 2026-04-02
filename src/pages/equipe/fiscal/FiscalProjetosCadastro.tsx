@@ -60,14 +60,14 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
-  useTaxProjects,
+  useOrgProjects,
   useProjectMembers,
   useProjectHours,
-  useCreateTaxProject,
-  useUpdateTaxProject,
-  useDeleteTaxProject,
-  TaxProject,
-} from '@/hooks/useTaxProjects';
+  useCreateOrgProject,
+  useUpdateOrgProject,
+  useDeleteOrgProject,
+  OrgProject,
+} from '@/hooks/useOrgProjects';
 import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const emptyForm = {
