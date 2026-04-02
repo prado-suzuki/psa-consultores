@@ -268,10 +268,13 @@ export function PerFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
       // Verificar se já existe PER com este número
+      const cleanNrPer = stripToDigits(data.nr_per);
+      const cleanNrProcRet = data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null;
+
       const { data: existing } = await (supabase
         .from('per') as any)
         .select('nr_per')
-        .eq('nr_per', data.nr_per)
+        .eq('nr_per', cleanNrPer)
         .maybeSingle();
 
       if (existing) {
@@ -280,21 +283,21 @@ export function PerFormModal({
 
       // Insert PER with nr_proc_ret if retificadora
       const { error: perError } = await (supabase.from('per') as any).insert([{
-        nr_per: data.nr_per,
+        nr_per: cleanNrPer,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
         tri_exercicio: data.tri_exercicio,
         dt_solicitada: data.dt_solicitada,
         tp_credito: data.tp_credito,
         vlr_credito: data.vlr_credito,
-        nr_proc_ret: data.nr_proc_ret || null,
+        nr_proc_ret: cleanNrProcRet,
         porcentagem_psa: data.porcentagem_psa ?? null,
       }]);
       if (perError) throw perError;
 
       // Automatically create initial situação as "Analisado"
       const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
-        nr_proc_per: data.nr_per,
+        nr_proc_per: cleanNrPer,
         situacao: 'Analisado',
       }).select().single();
       if (situacaoError) {
