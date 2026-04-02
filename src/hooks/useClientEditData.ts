@@ -34,6 +34,12 @@ export const useClientEditData = (
   setters: Setters,
 ) => {
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [originalSnapshot, setOriginalSnapshot] = useState<{
+    clientData: ClientDataShape;
+    entities: DraftEntity[];
+    participants: DraftRepresentante[];
+    contracts: DraftOrdemServico[];
+  } | null>(null);
 
   useEffect(() => {
     if (!open || !editingClienteId) return;
