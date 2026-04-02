@@ -189,6 +189,7 @@ export const useClientEditData = (
               id_produto_segmento: os.id_produto_segmento || "",
               produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
+              cluster_id: os.cluster_id || "",
             })),
           );
         } else {

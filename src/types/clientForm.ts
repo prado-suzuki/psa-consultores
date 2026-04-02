@@ -68,6 +68,7 @@ export interface DraftOrdemServico {
   id_produto_segmento: string;
   produtos_contratados: DraftProdutoContratado[];
   distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
+  cluster_id: string;
 }
 
 /** @deprecated Use DraftOrdemServico */
