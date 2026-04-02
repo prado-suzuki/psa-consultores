@@ -925,9 +925,9 @@ export default function ControlePerdcomp() {
                 Limpar filtros
               </Button>
             )}
-            <Button onClick={handleSearch} disabled={isLoading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              {isLoading ? 'Buscando...' : 'Buscar'}
+            <Button onClick={handleSearch} disabled={isLoading || isSearchingByProcess} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+              {(isLoading || isSearchingByProcess) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              {(isLoading || isSearchingByProcess) ? 'Buscando...' : 'Buscar'}
             </Button>
           </div>
         </CardContent>
