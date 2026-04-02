@@ -373,7 +373,7 @@ export function DcompFormModal({
                         <SelectItem value="__none__">Nenhum (original)</SelectItem>
                         {dcompsVigentesParaRetificar.map((dcomp) => (
                           <SelectItem key={dcomp.nr_documento} value={dcomp.nr_documento}>
-                            {dcomp.nr_documento} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
+                            {normalizeProcessNumber(dcomp.nr_documento)} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
                           </SelectItem>
                         ))}
                       </SelectContent>

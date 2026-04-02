@@ -680,12 +680,12 @@ export function PerDetailModal({
                           return (
                             <TableRow key={dcomp.nr_documento}>
                               <TableCell className="font-medium">
-                                {isRetificacao ? originalDoc : dcomp.nr_documento}
+                {normalizeProcessNumber(isRetificacao ? originalDoc : dcomp.nr_documento)}
                               </TableCell>
                               <TableCell>
                                 {isRetificacao ? (
                                   <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                    {dcomp.nr_documento}
+                                    {normalizeProcessNumber(dcomp.nr_documento)}
                                   </span>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
