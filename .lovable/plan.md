@@ -1,75 +1,104 @@
 
 
-## Plan: Normalizar nr_per para somente dígitos
+## Plan: Busca por Nº Processo sem exigir cliente/contribuinte
 
-### Passo 0+1 — Data cleanup (via insert tool)
+### Problema atual
 
-Executar em sequência:
+O fluxo exige: selecionar cliente → contribuinte → clicar Buscar. O filtro de Nº Processo só funciona como filtro local sobre dados já carregados. Se o usuário digita um número sem ter selecionado cliente/contribuinte, recebe "Selecione o cliente e contribuinte".
 
-```sql
--- Passo 0: Deduplicação
-DELETE FROM per WHERE nr_per IN (
-  '04811.37532.030725.1.1.19-3203',
-  '23406.22411.030725.1.1.18-7808',
-  '23578.79007.260925.1.1.18-2904',
-  '31942.50758.311024.1.1.18-1220',
-  '32272.39472.260925.1.1.19-1489'
-);
+### Solução
 
--- Passo 1: Limpeza (filhos antes de pais)
-UPDATE per_situacao SET nr_proc_per = regexp_replace(nr_proc_per, '\D', '', 'g') WHERE nr_proc_per ~ '\D';
-UPDATE dcomp SET nr_per_orig = regexp_replace(nr_per_orig, '\D', '', 'g') WHERE nr_per_orig ~ '\D';
-UPDATE dcomp SET nr_dcomp_ret = regexp_replace(nr_dcomp_ret, '\D', '', 'g') WHERE nr_dcomp_ret IS NOT NULL AND nr_dcomp_ret ~ '\D';
-UPDATE dcomp SET nr_documento = regexp_replace(nr_documento, '\D', '', 'g') WHERE nr_documento ~ '\D';
-UPDATE per SET nr_proc_ret = regexp_replace(nr_proc_ret, '\D', '', 'g') WHERE nr_proc_ret IS NOT NULL AND nr_proc_ret ~ '\D';
-UPDATE per SET nr_per = regexp_replace(nr_per, '\D', '', 'g') WHERE nr_per ~ '\D';
-```
+Modificar `handleSearch` para detectar quando há `processoFilter` preenchido mas nenhum cliente/contribuinte. Nesse caso, buscar diretamente na tabela `per` pelo `nr_per` (usando digits-only), e ao encontrar, resolver o `id_contribuinte` → buscar o `cliente_id` do contribuinte → preencher automaticamente `clienteId` e `contribuinteId`, e então disparar a busca normal.
 
-### Passo 2 — Salvamento: strip antes de persistir
+### Alterações em `src/pages/equipe/dev/ControlePerdcomp.tsx`
 
-**`src/lib/perdcompUtils.ts`** — adicionar:
+**1. `handleSearch` (linha 223-229):**
+
+Antes:
 ```typescript
-export const stripToDigits = (v: string) => v.replace(/\D/g, '');
+const handleSearch = () => {
+  if (!clienteId || !contribuinteId) {
+    toast.error("Selecione o cliente e contribuinte");
+    return;
+  }
+  setSearched(true);
+};
 ```
 
-**`PerFormModal.tsx`** (linhas 281-296) — strip nos campos antes do insert:
-- `data.nr_per` → `stripToDigits(data.nr_per)`
-- `data.nr_proc_ret` → `stripToDigits(...)` 
-- `nr_proc_per` nas inserções de per_situacao (linhas 296, 306)
-
-**`DcompFormModal.tsx`** (linhas 220-231, 254-267) — strip nos campos:
-- `data.nr_documento` → `stripToDigits(data.nr_documento)`
-- `data.nr_per_orig` → `stripToDigits(data.nr_per_orig)`
-- `data.nr_dcomp_ret` → `stripToDigits(...)`
-
-**`SituacaoFormModal.tsx`** — strip `nr_proc_per` antes do insert/update.
-
-**`CargaPerdcompCSV.tsx`** — strip `nr_per`, `nr_proc_ret`, `nr_proc_per`, `nr_documento`, `nr_per_orig` durante importação.
-
-### Passo 3 — Busca: normalizar input do usuário
-
-**`ControlePerdcomp.tsx`** (linhas 275-280):
+Depois:
 ```typescript
-const filterDigits = processoFilter.replace(/\D/g, '');
-const matchPer = item.nr_per.includes(filterDigits);
-const matchDcomp = dcompData.some(
-  (d: any) => d.nr_per_orig === item.nr_per && d.nr_documento.includes(filterDigits),
-);
+const handleSearch = async () => {
+  // Se tem filtro de processo mas sem cliente/contribuinte → busca direta
+  if (processoFilter && (!clienteId || !contribuinteId)) {
+    const filterDigits = processoFilter.replace(/\D/g, '');
+    if (!filterDigits) {
+      toast.error("Selecione o cliente e contribuinte");
+      return;
+    }
+
+    // Buscar PER pelo número (parcial ou completo)
+    const { data: matchedPers } = await supabase
+      .from("per")
+      .select("id_contribuinte, nr_per")
+      .like("nr_per", `%${filterDigits}%`)
+      .or('excluido.is.null,excluido.eq.')
+      .limit(1);
+
+    if (!matchedPers || matchedPers.length === 0) {
+      toast.error("Nenhum PER encontrado com esse número");
+      return;
+    }
+
+    const contribId = matchedPers[0].id_contribuinte;
+
+    // Buscar cliente_id do contribuinte
+    const { data: contrib } = await supabase
+      .from("contribuinte")
+      .select("cliente_id")
+      .eq("id", contribId)
+      .maybeSingle();
+
+    if (!contrib?.cliente_id) {
+      toast.error("Contribuinte sem cliente vinculado");
+      return;
+    }
+
+    // Preencher os campos automaticamente
+    setClienteId(contrib.cliente_id);
+    setContribuinteId(contribId);
+    setSearched(true);
+    return;
+  }
+
+  if (!clienteId || !contribuinteId) {
+    toast.error("Selecione o cliente e contribuinte");
+    return;
+  }
+  setSearched(true);
+};
 ```
 
-**`PerFormModal.tsx`** (linha 211) — filtro de PERs existentes no combobox:
+**2. Remover `disabled` do contribuinte quando há processo digitado** — não necessário pois o preenchimento é automático.
+
+**3. Validação do botão Buscar (linha 885):**
+
+Atualizar a condição `disabled` do botão para permitir busca quando há `processoFilter`:
 ```typescript
-per.nr_per.includes(perSearchQuery.replace(/\D/g, ''))
+disabled={isLoading || (isSearchingByProcess)}
 ```
+Onde `isSearchingByProcess` é um novo state para loading durante a busca direta.
+
+**4. Estado de loading para busca por processo:**
+
+Adicionar `const [isSearchingByProcess, setIsSearchingByProcess] = useState(false);` e envolver a busca direta com esse estado para feedback visual.
 
 ### Resumo
 
-| Camada | Arquivos |
+| O quê | Detalhe |
 |---|---|
-| Data cleanup | SQL (insert tool) |
-| Utilidade | `perdcompUtils.ts` (+1 função) |
-| Save | `PerFormModal`, `DcompFormModal`, `SituacaoFormModal`, `CargaPerdcompCSV` |
-| Busca | `ControlePerdcomp`, `PerFormModal` |
+| Arquivo | `ControlePerdcomp.tsx` |
+| Lógica | Se `processoFilter` preenchido sem cliente/contribuinte → busca direta no banco por `nr_per`, resolve contribuinte → cliente, preenche ambos e dispara busca |
+| UX | Campos cliente e contribuinte são preenchidos automaticamente, resultado aparece normalmente |
 
-**6 arquivos + 1 SQL execution.**
+**1 arquivo, ~30 linhas adicionadas.**
 
