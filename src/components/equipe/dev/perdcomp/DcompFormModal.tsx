@@ -398,7 +398,7 @@ export function DcompFormModal({
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Envio <RequiredMark /></FormLabel>
-                  <Popover>
+                  <Popover open={calOpen} onOpenChange={setCalOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -408,7 +408,7 @@ export function DcompFormModal({
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }} />
+                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); setCalOpen(false); }} />
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
