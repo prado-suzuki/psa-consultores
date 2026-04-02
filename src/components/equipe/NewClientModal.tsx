@@ -298,6 +298,12 @@ export default function NewClientModal({
                   <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
                     <FaturamentoTab entities={entities} />
                   </TabsContent>
+
+                  {editingClienteId && (
+                    <TabsContent value="historico" className="mt-0 p-3 md:p-4">
+                      <HistoricoTab clienteId={editingClienteId} entities={entities} participants={participants} contracts={contracts} />
+                    </TabsContent>
+                  )}
                 </ScrollArea>
               </Tabs>
 
