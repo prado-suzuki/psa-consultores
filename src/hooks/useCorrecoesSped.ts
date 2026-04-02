@@ -15,7 +15,7 @@ interface UseCorrecoesSpedParams {
 const SUPABASE_IN_BATCH_SIZE = 200;
 
 async function batchedIn<T>(
-  buildQuery: () => ReturnType<typeof supabase.from>,
+  buildQuery: () => any,
   select: string,
   filters: { column: string; value: string }[],
   inColumn: string,

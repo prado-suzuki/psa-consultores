@@ -19,10 +19,11 @@
 > - **NUNCA** incluir `ALTER DATABASE postgres` em migrations.
 > - **NUNCA** remover tipagens TypeScript ou usar `any` sem justificativa documentada em comentário.
 > - **NUNCA** criar rotas protegidas sem registrá-las em `src/config/protectedPages.ts`.
+> - **NUNCA** alterar `src/constants/efdConfig.ts` para renomear "Participante" — refere-se ao SPED fiscal, não ao cadastro de clientes.
 >
 > ### Obrigações absolutas
 > - **SEMPRE** usar `useToast` ou `sonner` para feedback ao usuário.
-> - **SEMPRE** registrar operações CUD (Create/Update/Delete) em projetos e tarefas via `useAuditLog`.
+> - **SEMPRE** registrar operações CUD (Create/Update/Delete) via `useAuditLog`, incluindo `changed_fields` com diff campo-a-campo.
 > - **SEMPRE** manter RLS habilitado em tabelas com dados de usuário.
 > - **SEMPRE** usar `has_role()` (SECURITY DEFINER) para checar permissões em RLS policies.
 > - **SEMPRE** usar aliases de import: `@/components`, `@/hooks`, `@/lib`, `@/config`, `@/types`, `@/contexts`, `@/constants`.
@@ -54,6 +55,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 - **Dev** — `equipe/dev/`: EFD, XMLs, PERDCOMP, Selic, IBS/CBS, balancetes, auditoria fiscal, gestão de clientes
 - **Gestão** — `gestao/`: novidades, chamados, contatos, acessos
 - **Administração** — `administracao/`: usuários, acessos, performance
+- **Desempenho** — `gerencial/desempenho/`: ciclos, metas, feedbacks, reuniões 1a1, evolução, relatórios
 
 ---
 
@@ -80,14 +82,14 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 
 ```
 src/
-├── pages/           → Páginas por módulo (equipe/, cliente/, admin/, gestao/, administracao/)
+├── pages/           → Páginas por módulo (equipe/, cliente/, admin/, gestao/, administracao/, gerencial/)
 ├── components/      → Componentes por domínio (equipe/fiscal/, equipe/dev/, ui/, etc.)
 ├── hooks/           → Custom hooks — ÚNICA camada permitida para data fetching
 ├── contexts/        → AuthContext — ÚNICO contexto global
 ├── config/          → api.ts (URLs/ambientes), protectedPages.ts (registro de rotas)
-├── lib/             → Utilitários puros (dateUtils, selicCalculator, markdownRenderer, etc.)
-├── types/           → Tipos de domínio (workPackage, efd, difal, ibscbs)
-├── constants/       → brandColors, efdConfig, exportConfig
+├── lib/             → Utilitários puros (dateUtils, selicCalculator, markdownRenderer, diffUtils, etc.)
+├── types/           → Tipos de domínio (workPackage, efd, difal, ibscbs, clientForm, correcoesSped)
+├── constants/       → brandColors, efdConfig, exportConfig, devNavLabels
 └── integrations/    → Cliente Supabase (auto-gerado, NÃO EDITAR)
 ```
 
@@ -114,6 +116,24 @@ src/
 | `useUserEstrutura` | Dados organizacionais do usuário (área, equipe, cluster) |
 | `useSyncProtectedPages` | Sincroniza protectedPages.ts com banco |
 | `useApiAuth` | Autenticação para API externa (GCP Cloud Run) |
+| `useClientEditData` | Carrega dados do cliente para edição + retorna `originalSnapshot` para diff de auditoria |
+| `useSaveClientTransaction` | Salva cliente (cliente, contribuintes, representantes, OS) com auditoria granular |
+| `useCorrecoesSped` | Correções de registros EFD (C170, A170, D100, F100) com sync local/remoto |
+| `useDevClients` | Lista clientes e contribuintes filtrados por ambiente |
+| `useFiscalClients` | Lista clientes fiscais com filtros |
+| `useOrgProjects` | Projetos organizacionais (org_projects + org_project_members) |
+| `useCiclosAvaliacao` | Ciclos de avaliação de desempenho |
+| `useMetasDesempenho` | Metas individuais dentro de ciclos |
+| `useFeedbacksDesempenho` | Feedbacks 360° entre membros |
+| `useReunioes1a1` | Reuniões 1:1 líder-membro |
+| `useMinhaEvolucao` | Evolução pessoal do usuário logado |
+| `useProcedimentos` | CRUD de procedimentos dev |
+| `useRegrasNCM` | Regras PIS/COFINS por NCM |
+| `usePisCofinsApuracao` | Apuração PIS/COFINS |
+| `useEstruturaManager` | CRUD completo da estrutura organizacional |
+| `useCategorias` | Categorias de serviços/produtos |
+| `useServicosContratados` | Serviços contratados por clientes |
+| `usePerformanceData` | Dados de performance para dashboards |
 
 > **Exceções toleradas**: queries inline com `useQuery` em páginas de listagem simples. Migração gradual para hooks dedicados.
 
@@ -141,6 +161,7 @@ Cada módulo possui layout dedicado com sidebar/nav próprio:
 | `TeamRoute` | Role `team_member` ou `admin` |
 | `PageAccessGate` | Verificação granular via `user_page_access` + categoria de área |
 | `GestaoAccessGate` | Admin ou permissão explícita de gestão |
+| `DesempenhoAccessGate` | Admin, líder ou sublíder para módulo de desempenho |
 
 ### 4.2 Registro de páginas protegidas
 
@@ -223,21 +244,32 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `tickets`, `ticket_messages`, `ticket_attachments` (inferido), `documents`
 
 **Dev/Tributário:**
-`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `contrato`, `per`, `per_situacao` (inferido), `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`
+`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `representante`, `ordem_servico`, `os_produtos_contratados`, `distribuicao_receita`, `inscricoes_estaduais`, `per`, `per_situacao`, `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`, `efd_correcoes`
+
+**Projetos organizacionais:**
+`org_projects`, `org_project_members`
 
 **Projetos/Sprints:**
-`projects`, `sprints`, `sprint_deliverables`, `deliverable_attachments`, `daily_standups`, `routines`, `demand_items`, `processes`, `process_stages` (inferido), `sops` (inferido), `process_improvements`, `improvement_savings_details`, `improvement_team_members` (inferido)
+`projects`, `sprints`, `sprint_deliverables`, `deliverable_attachments`, `daily_standups`, `routines`, `demand_items`, `processes`, `process_stages`, `sops`, `process_improvements`, `improvement_savings_details`, `improvement_team_members`
 
 **Visibilidade cliente:**
 `client_visible_projects`, `client_documents`
 
 **Cadastros organizacionais:**
-`empresas_faturamento`, `centros_custo`
+`empresas_faturamento`, `centros_custo`, `produto_segmento`, `setor_cliente`
 
 **Contatos:**
 `contatos`
 
-### 6.3 Ambientes dev vs prod
+**Desempenho:**
+`ciclos_avaliacao`, `metas`, `atualizacoes_meta`, `kpis_meta`, `feedbacks`, `comentarios_avaliacao`, `reunioes_1a1`, `analises_semestrais`, `ppr_regras`
+
+### 6.3 Nomenclatura: participante vs representante
+
+- **Cadastro de clientes**: A tabela no banco é `representante` (renomeada de `participante`). No frontend: `DraftRepresentante`, `tipo_representante`. O alias `DraftParticipant` existe como deprecated.
+- **SPED fiscal** (`efdConfig.ts`): "Participante" é termo do layout fiscal oficial. NÃO renomear.
+
+### 6.4 Ambientes dev vs prod
 
 Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 
@@ -267,10 +299,14 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 | `dw-query` | Consultas ao Data Warehouse externo (GCP) |
 | `get-user-last-access` | Último acesso de um usuário |
 | `notify-ticket` | Notificações de chamados (email/push) |
+| `processar-procedimento` | Processamento de procedimentos via IA |
 | `restructure-novidade` | Reestruturação de novidades via IA |
 | `restructure-process` | Reestruturação de processos via IA |
 | `sync-cadastros` | Sincronização de cadastros com DW |
 | `sync-perdcomp` | Sincronização de PERDCOMP com DW |
+| `gerar-sintese-executiva` | Síntese executiva de desempenho via IA |
+| `gerar-recomendacoes-pessoas` | Recomendações de gestão de pessoas via IA |
+| `gerar-relatorio-individual` | Relatório individual de desempenho via IA |
 
 ### 7.2 Regras de implementação
 
@@ -291,7 +327,9 @@ interface AuditLogEntry {
   entity_type: 'project' | 'task' | 'subtask'
     | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
     | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
-    | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico';
+    | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
+    | 'regra_pis_cofins' | 'procedimento'
+    | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral';
   entity_id: string;
   entity_name: string;
   action: 'created' | 'updated' | 'deleted';
@@ -304,12 +342,34 @@ interface AuditLogEntry {
 
 ### 8.2 Uso obrigatório
 
-Toda operação de **criação**, **edição** ou **exclusão** em projetos (`tax_projects`) e tarefas (`fiscal_tasks`) DEVE chamar `logAction()` com diff de campos alterados.
+Toda operação de **criação**, **edição** ou **exclusão** DEVE chamar `logAction()` com diff de campos alterados (`changed_fields`).
 
-### 8.3 Visualização
+**Auditoria granular de cadastro de clientes:**
+- `useSaveClientTransaction` compara o draft com `originalSnapshot` (snapshot dos dados carregados do banco, capturado por `useClientEditData`)
+- Usa `computeFieldDiff` e `computeEntityListDiff` de `src/lib/diffUtils.ts` para gerar diffs campo-a-campo
+- Formato: `{ campo: { old: valorAnterior, new: valorNovo } }`
+- Para criações: `old = null`, `new = valor`
+- Para exclusões: registra `action: 'deleted'` com `entity_name` do snapshot original
+
+### 8.3 Utilitário de diff (`src/lib/diffUtils.ts`)
+
+```typescript
+computeFieldDiff(oldObj, newObj, fieldsToCompare) → Record<string, { old, new }>
+computeEntityListDiff(oldList, newList, dbIdField, fieldsToCompare) → { entityId, diff }[]
+```
+
+### 8.4 Formatação de campos (`auditFieldFormatter.ts`)
+
+- `FIELD_LABELS` — traduz nomes internos para português (ex: `setor_cliente` → "Área do Negócio")
+- `BOOLEAN_FIELDS` — campos booleanos formatados como "Sim"/"Não" (inclui `ativo`, `acesso_chamados`, `contribuinte_faturamento`, `simples_nacional`, `fixo`)
+- `UUID_FIELDS` — resolve UUIDs para nomes legíveis via lookup maps
+- `formatChangedFields()` — transforma o diff bruto em lista de `{ label, oldValue, newValue }` para exibição
+
+### 8.5 Visualização
 
 - `/equipe/tax/auditoria` — logs do módulo Tax
 - `/equipe/osg/auditoria` — logs do módulo OSG
+- Aba "Histórico" no modal de cliente — logs de cadastro
 - Componente: `AuditLogTable` com formatação de campos via `auditFieldFormatter.ts`
 
 ---
@@ -318,8 +378,25 @@ Toda operação de **criação**, **edição** ou **exclusão** em projetos (`ta
 
 ### 9.1 API Backend (GCP Cloud Run)
 
-Dois ambientes com URLs distintas (ver seção 6.3). Autenticação via `useApiAuth` hook que injeta token JWT do Supabase nos headers.
+Dois ambientes com URLs distintas (ver seção 6.4). Autenticação via `useApiAuth` hook que injeta token JWT do Supabase nos headers.
 
 ### 9.2 Sincronização com Data Warehouse
 
 Fire-and-forget via Edge Functions (`sync-perdcomp`, `sync-cadastros`). Token de autenticação: secret `DW_SYNC_TOKEN`. Lib auxiliar: `src/lib/syncPerdcomp.ts`.
+
+---
+
+## 10. Tipos de Domínio (`src/types/`)
+
+| Arquivo | Conteúdo |
+|---|---|
+| `clientForm.ts` | `DraftEntity`, `DraftRepresentante`, `DraftOrdemServico`, `DraftProdutoContratado`, `InscricaoIE`, `NewClientModalProps` |
+| `workPackage.ts` | Tipos de work packages (projetos) |
+| `efd.ts` | Tipos de EFD Contribuições |
+| `correcoesSped.ts` | Tipos de correções SPED (C170, A170, D100, F100) |
+| `pisCofins.ts` | Tipos de apuração PIS/COFINS |
+| `difal.ts` | Tipos de DIFAL |
+| `ibscbs.ts` | Tipos de IBS/CBS |
+| `efdcIcms.ts` | Tipos de EFD ICMS |
+| `efdcXml.ts` | Tipos de cruzamento EFD x XML |
+| `auditoriaCruzada.ts` | Tipos de auditoria cruzada |
