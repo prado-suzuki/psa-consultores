@@ -709,6 +709,32 @@ export function PerFormModal({
               )}
             />
 
+            <FormField
+              control={form.control}
+              name="porcentagem_psa"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Percentual Aplicado (%)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      placeholder="Ex: 15.00"
+                      value={field.value ?? ''}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value ? Math.min(Number(e.target.value), 100) : null
+                        )
+                      }
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
