@@ -2420,59 +2420,6 @@ export type Database = {
         }
         Relationships: []
       }
-      participante: {
-        Row: {
-          acesso_chamados: boolean | null
-          cargo: string | null
-          created_at: string | null
-          email: string | null
-          excluido: boolean
-          id_cliente: string
-          id_participante: string
-          nome: string
-          observacoes: string | null
-          telefone: string | null
-          tipo_participante: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          acesso_chamados?: boolean | null
-          cargo?: string | null
-          created_at?: string | null
-          email?: string | null
-          excluido?: boolean
-          id_cliente: string
-          id_participante?: string
-          nome: string
-          observacoes?: string | null
-          telefone?: string | null
-          tipo_participante?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          acesso_chamados?: boolean | null
-          cargo?: string | null
-          created_at?: string | null
-          email?: string | null
-          excluido?: boolean
-          id_cliente?: string
-          id_participante?: string
-          nome?: string
-          observacoes?: string | null
-          telefone?: string | null
-          tipo_participante?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "participante_id_cliente_fkey"
-            columns: ["id_cliente"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       per: {
         Row: {
           atualizado_em: string | null
@@ -3712,6 +3659,59 @@ export type Database = {
             columns: ["ciclo_id"]
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      representante: {
+        Row: {
+          acesso_chamados: boolean | null
+          cargo: string | null
+          created_at: string | null
+          email: string | null
+          excluido: boolean
+          id_cliente: string
+          id_representante: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          tipo_representante: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          acesso_chamados?: boolean | null
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          excluido?: boolean
+          id_cliente: string
+          id_representante?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo_representante?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          acesso_chamados?: boolean | null
+          cargo?: string | null
+          created_at?: string | null
+          email?: string | null
+          excluido?: boolean
+          id_cliente?: string
+          id_representante?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          tipo_representante?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "representante_id_cliente_fkey"
+            columns: ["id_cliente"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
         ]
