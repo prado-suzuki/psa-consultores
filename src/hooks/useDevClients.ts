@@ -9,7 +9,7 @@ import { useCallback } from 'react';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
+const representanteTable = 'representante';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
