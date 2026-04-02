@@ -443,6 +443,7 @@ const GestaoClientes = () => {
         }}
         editingClienteId={editingClienteId}
         readOnly={viewMode}
+        canEdit={canEdit}
       />
 
       {/* AlertDialog de confirmação de exclusão */}
