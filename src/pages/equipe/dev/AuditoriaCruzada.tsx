@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
