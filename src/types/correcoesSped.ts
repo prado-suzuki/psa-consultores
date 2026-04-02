@@ -114,7 +114,7 @@ export interface FlatItemEfd extends ItemEfd {
 
 // ── A170 (NFSe) — flat array from API ──
 
-export interface A170Item {
+export interface A170Snapshot {
   uuid: string;
   ID_ARQUIVO: string;
   ID_PAI: string;
@@ -142,6 +142,28 @@ export interface A170Item {
   DT_DOC: string;
   DESCRICAO_CONTA: string;
 }
+
+export interface CampoAlteradoEfd {
+  campo: string;
+  de: string | null;
+  para: string | null;
+}
+
+export interface A170Item extends A170Snapshot {
+  DESCR_ITEM_0200?: string | null;
+  COD_NCM?: string | null;
+  TIPO_ITEM?: string | null;
+  _originalSnapshot: A170Snapshot;
+}
+
+export interface A170ResponseEntry {
+  CHV_NFSE: string | null;
+  DT_DOC: string;
+  A170: A170Snapshot | string;
+  "0200": Item0200 | string | null;
+}
+
+export type A170Response = Record<string, A170ResponseEntry[]>;
 
 // ── D100 (CTe) — flat array from API ──
 

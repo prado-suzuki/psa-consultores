@@ -44,6 +44,7 @@ const CorrecoesSped = () => {
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
+  const contribuinteSelecionado = contribuintes.find((item) => item.id === contribuinteId) ?? null;
 
   const queryParams = { id_contribuinte: contribuinteId, dt_ini: dtIni, dt_fin: dtFin };
   const c170Query = useCorrecoesSped(queryParams);
@@ -212,6 +213,8 @@ const CorrecoesSped = () => {
                 hasQueried={hasQueried}
                 ncmFilter={ncmFilter}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectNcm={setSelectedNcm}
               />
             </TabsContent>
