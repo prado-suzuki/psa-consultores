@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,6 +26,8 @@ const AuditoriaCruzadaContent = () => {
     clienteId, contribuinteId, dataInicio, dataFim, hasQueried,
     setClienteId, setContribuinteId, setDataInicio, setDataFim, setHasQueried, handleLimpar,
   } = useAuditoriaStore();
+  const [openIni, setOpenIni] = React.useState(false);
+  const [openFim, setOpenFim] = React.useState(false);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
@@ -93,7 +96,7 @@ const AuditoriaCruzadaContent = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Início</Label>
-                <Popover>
+                <Popover open={openIni} onOpenChange={setOpenIni}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -101,13 +104,13 @@ const AuditoriaCruzadaContent = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dataInicio ?? undefined} onSelect={(d) => setDataInicio(d ?? null)} />
+                    <Calendar selected={dataInicio ?? undefined} onSelect={(d) => { setDataInicio(d ?? null); setOpenIni(false); }} />
                   </PopoverContent>
                 </Popover>
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Fim</Label>
-                <Popover>
+                <Popover open={openFim} onOpenChange={setOpenFim}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -115,7 +118,7 @@ const AuditoriaCruzadaContent = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
+                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => { setDataFim(d ?? null); setOpenFim(false); }} />
                   </PopoverContent>
                 </Popover>
               </div>

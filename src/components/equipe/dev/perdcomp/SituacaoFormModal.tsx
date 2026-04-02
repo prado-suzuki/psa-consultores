@@ -75,6 +75,7 @@ export function SituacaoFormModal({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  const [calOpen, setCalOpen] = useState(false);
 
   const form = useForm<SituacaoFormData>({
     resolver: zodResolver(situacaoSchema),
@@ -268,7 +269,7 @@ export function SituacaoFormModal({
               render={({ field }) => (
                 <FormItem className="flex flex-col">
                   <FormLabel>Data de Pagamento (opcional)</FormLabel>
-                  <Popover>
+                   <Popover open={calOpen} onOpenChange={setCalOpen}>
                     <PopoverTrigger asChild>
                       <FormControl>
                         <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
@@ -278,7 +279,7 @@ export function SituacaoFormModal({
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')} />
+                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); setCalOpen(false); }} />
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
