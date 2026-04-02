@@ -231,7 +231,7 @@ export function PerDetailModal({
   const saldoRestante = useMemo(() => {
     if (!perAtual) return 0;
     const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    return (perAtual as any).vlr_credito - totalCompensado - vlrRessarcido;
+    return Math.round(((perAtual as any).vlr_credito - totalCompensado - vlrRessarcido) * 100) / 100;
   }, [perAtual, dcompsVigentes, vlrRessarcido]);
 
   // Mutation para atualizar situação
