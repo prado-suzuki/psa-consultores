@@ -414,7 +414,7 @@ export default function ContratosTab({
                           produtoOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}
                           clusterFilter={osEditClusterFilter}
-                          onClusterFilterChange={setOsEditClusterFilter}
+                          onClusterFilterChange={handleOsEditClusterFilterChange}
                         />
                       </div>
 
