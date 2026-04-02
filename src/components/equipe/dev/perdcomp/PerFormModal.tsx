@@ -94,7 +94,7 @@ const perSchema = z.object({
   tp_credito: z.string().min(1, 'Tipo de crédito é obrigatório'),
   vlr_credito: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_proc_ret: z.string().nullable().optional(),
-  porcentagem_psa: z.coerce.number().nullable().optional(),
+  porcentagem_psa: z.coerce.number().max(100, 'Máximo 100%').nullable().optional(),
 });
 
 type PerFormData = z.infer<typeof perSchema>;
