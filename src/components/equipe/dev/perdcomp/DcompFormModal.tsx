@@ -51,7 +51,7 @@ const normalizeMesAno = (value: string): string => {
 
 // Format DCOMP document number: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX (26 digits)
 const formatDcompNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 26);
+  const digits = value.replace(/\D/g, '').slice(0, 24);
   const parts = [
     digits.slice(0, 5),
     digits.slice(5, 10),

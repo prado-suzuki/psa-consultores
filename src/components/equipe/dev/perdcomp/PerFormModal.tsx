@@ -57,13 +57,13 @@ import {
 
 // Format process number: XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX
 const formatProcessNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 26);
+  const digits = value.replace(/\D/g, '').slice(0, 24);
   let formatted = '';
   for (let i = 0; i < digits.length; i++) {
-    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18 || i === 20) {
+    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18) {
       formatted += '.';
     }
-    if (i === 22) {
+    if (i === 20) {
       formatted += '-';
     }
     formatted += digits[i];
