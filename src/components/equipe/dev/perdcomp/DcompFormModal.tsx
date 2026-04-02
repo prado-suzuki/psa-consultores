@@ -90,7 +90,7 @@ const dcompSchema = z.object({
   imposto: z.string().min(1, 'Imposto é obrigatório'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
-  porcentagem_psa: z.coerce.number().nullable().optional(),
+  porcentagem_psa: z.coerce.number().max(100, 'Máximo 100%').nullable().optional(),
 });
 
 type DcompFormData = z.infer<typeof dcompSchema>;
