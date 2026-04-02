@@ -145,6 +145,6 @@ export const useDevClientMutations = () => {
     softDeleteCliente,
     clienteTable,
     contribuinteTable,
-    participanteTable,
+    representanteTable,
   };
 };

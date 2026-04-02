@@ -187,15 +187,18 @@ export const createDefaultDraftEntity = (): Partial<import("@/types/clientForm")
   atividade_principal: "",
 });
 
-export const createDefaultDraftParticipant = () => ({
+export const createDefaultDraftRepresentante = () => ({
   nome: "",
-  tipo_participante: "",
+  tipo_representante: "",
   cargo: "",
   email: "",
   telefone: "",
   observacoes: "",
   acesso_chamados: false,
 });
+
+/** @deprecated Use createDefaultDraftRepresentante */
+export const createDefaultDraftParticipant = createDefaultDraftRepresentante;
 
 export const createDefaultDraftContract = () => ({
   ordem_servico: "",
