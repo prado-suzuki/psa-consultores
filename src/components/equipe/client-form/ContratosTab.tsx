@@ -222,6 +222,18 @@ export default function ContratosTab({
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
 
+  const handleOsClusterFilterChange = (v: string) => {
+    setOsClusterFilter(v);
+    setDraftContract(prev => ({ ...prev, cluster_id: v === "__all__" ? "" : v }));
+  };
+
+  const handleOsEditClusterFilterChange = (v: string) => {
+    setOsEditClusterFilter(v);
+    if (editingContractData) {
+      setEditingContractData({ ...editingContractData, cluster_id: v === "__all__" ? "" : v });
+    }
+  };
+
   const startEditContract = (c: DraftOrdemServico) => { setEditingContractId(c._id); setEditingContractData({ ...c }); };
   const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
   const saveEditContract = () => {
