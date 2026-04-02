@@ -14,3 +14,9 @@ export function normalizeProcessNumber(raw: string): string {
 export function normalizeCurrencyZero(value: number): number {
   return Math.abs(value) < 0.005 ? 0 : value;
 }
+
+/**
+ * Strips all non-digit characters from a process/document number.
+ * Used before persisting to ensure only digits are stored in the database.
+ */
+export const stripToDigits = (v: string): string => v.replace(/\D/g, '');

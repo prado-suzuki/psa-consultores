@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
+import { stripToDigits } from '@/lib/perdcompUtils';
 import { toast } from 'sonner';
 import {
   Dialog,
