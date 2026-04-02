@@ -110,7 +110,7 @@ const AuditoriaCruzadaContent = () => {
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">Data Fim</Label>
-                <Popover>
+                <Popover open={openFim} onOpenChange={setOpenFim}>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-3.5 w-3.5" />
@@ -118,7 +118,7 @@ const AuditoriaCruzadaContent = () => {
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
+                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => { setDataFim(d ?? null); setOpenFim(false); }} />
                   </PopoverContent>
                 </Popover>
               </div>
