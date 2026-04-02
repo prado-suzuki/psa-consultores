@@ -159,6 +159,12 @@ const ControleBalancetes = () => {
     },
   });
 
+  useEffect(() => {
+    if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+      setContribuinteId(contribuintes[0].id);
+    }
+  }, [clienteId, contribuintes, contribuinteId]);
+
   const handleClear = () => {
     setClienteId('');
     setContribuinteId('');
