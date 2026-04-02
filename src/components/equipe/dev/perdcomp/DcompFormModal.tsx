@@ -90,7 +90,7 @@ const dcompSchema = z.object({
   imposto: z.string().min(1, 'Imposto é obrigatório'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
-  porcentagem_psa: z.coerce.number().nullable().optional(),
+  porcentagem_psa: z.coerce.number().max(100, 'Máximo 100%').nullable().optional(),
 });
 
 type DcompFormData = z.infer<typeof dcompSchema>;
@@ -114,6 +114,7 @@ export function DcompFormModal({
   const queryClient = useQueryClient();
   const isEditing = !!editData;
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
+  const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
 
   const form = useForm<DcompFormData>({
     resolver: zodResolver(dcompSchema),
@@ -196,7 +197,7 @@ export function DcompFormModal({
     } else if (open) {
       const saved = restore();
       if (saved) {
-        form.reset(saved);
+        form.reset({ ...saved, nr_per_orig: preSelectedPer || saved.nr_per_orig });
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_compensado || 0));
       } else {
         form.reset({
@@ -235,6 +236,8 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
+      queryClient.invalidateQueries({ queryKey: ['per-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('DCOMP criado com sucesso!');
       clear();
       onOpenChange(false);
@@ -269,6 +272,8 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
+      queryClient.invalidateQueries({ queryKey: ['per-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       toast.success('DCOMP atualizado com sucesso!');
       clear();
       onOpenChange(false);
@@ -385,7 +390,33 @@ export function DcompFormModal({
                 <FormItem>
                   <FormLabel>Mês/Ano Exercício <RequiredMark /></FormLabel>
                   <FormControl>
-                    <Input type="month" {...field} />
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="MM/AAAA"
+                      maxLength={7}
+                      value={field.value ? (() => {
+                        // ISO YYYY-MM -> display MM/AAAA
+                        if (/^\d{4}-\d{2}$/.test(field.value)) {
+                          const [y, m] = field.value.split('-');
+                          return `${m}/${y}`;
+                        }
+                        return field.value;
+                      })() : ''}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
+                        let masked = digits;
+                        if (digits.length > 2) masked = digits.slice(0, 2) + '/' + digits.slice(2);
+                        // Convert complete MM/YYYY to ISO YYYY-MM
+                        if (digits.length === 6) {
+                          const mm = digits.slice(0, 2);
+                          const yyyy = digits.slice(2, 6);
+                          field.onChange(`${yyyy}-${mm}`);
+                        } else {
+                          field.onChange(masked);
+                        }
+                      }}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -396,23 +427,23 @@ export function DcompFormModal({
               control={form.control}
               name="dt_envio"
               render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data de Envio <RequiredMark /></FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(new Date(field.value + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')} />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Envio <RequiredMark /></FormLabel>
+                    <Popover open={dtEnvioPopoverOpen} onOpenChange={setDtEnvioPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(new Date(field.value + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); setDtEnvioPopoverOpen(false); }} />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
               )}
             />
 
@@ -477,9 +508,11 @@ export function DcompFormModal({
                     <Input
                       type="number"
                       step="0.01"
+                      min="0"
+                      max="100"
                       placeholder="Ex: 15.00"
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                      onChange={(e) => field.onChange(e.target.value ? Math.min(Number(e.target.value), 100) : null)}
                     />
                   </FormControl>
                   <FormMessage />

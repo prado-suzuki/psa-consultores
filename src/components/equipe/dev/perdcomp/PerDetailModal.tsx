@@ -156,6 +156,7 @@ export function PerDetailModal({
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
   const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
+  const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
   // Query para dados atualizados do PER (refetch após mutations)
   const { data: perAtualizado } = useQuery({
@@ -285,6 +286,7 @@ export function PerDetailModal({
     },
     onSuccess: async ({ valor, sitData }) => {
       await queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
+      await queryClient.refetchQueries({ queryKey: ['per-situacoes', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
       await queryClient.refetchQueries({ queryKey: ['per-dcomps', per?.nr_per] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
@@ -359,6 +361,10 @@ export function PerDetailModal({
       return;
     }
     const percentual = ressarcimentoPercentual ? parseFloat(ressarcimentoPercentual) : null;
+    if (percentual !== null && percentual > 100) {
+      toast.error('Percentual não pode ser maior que 100%');
+      return;
+    }
     ressarcimentoMutation.mutate({ valor, dataPagamento: ressarcimentoData, percentual });
   };
 
@@ -770,7 +776,7 @@ export function PerDetailModal({
             </div>
             <div className="space-y-2">
               <Label>Data do Pagamento</Label>
-              <Popover>
+              <Popover open={ressarcimentoCalOpen} onOpenChange={setRessarcimentoCalOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !ressarcimentoData && "text-muted-foreground")}>
                     {ressarcimentoData ? format(new Date(ressarcimentoData + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
@@ -778,7 +784,7 @@ export function PerDetailModal({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : '')} />
+                  <Calendar selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => { setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : ''); setRessarcimentoCalOpen(false); }} />
                 </PopoverContent>
               </Popover>
             </div>
@@ -787,9 +793,14 @@ export function PerDetailModal({
               <Input
                 type="number"
                 step="0.01"
+                min="0"
+                max="100"
                 placeholder="Ex: 15.00"
                 value={ressarcimentoPercentual}
-                onChange={(e) => setRessarcimentoPercentual(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '' || Number(v) <= 100) setRessarcimentoPercentual(v);
+                }}
               />
             </div>
           </div>
