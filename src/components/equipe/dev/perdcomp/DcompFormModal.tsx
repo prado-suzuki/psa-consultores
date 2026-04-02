@@ -219,14 +219,14 @@ export function DcompFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
       const record = {
-        nr_documento: data.nr_documento,
-        nr_per_orig: data.nr_per_orig,
+        nr_documento: stripToDigits(data.nr_documento),
+        nr_per_orig: stripToDigits(data.nr_per_orig),
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
         imposto: data.imposto,
         tp_credito: data.imposto,
         vlr_compensado: data.vlr_compensado,
-        nr_dcomp_ret: data.nr_dcomp_ret || null,
+        nr_dcomp_ret: data.nr_dcomp_ret ? stripToDigits(data.nr_dcomp_ret) : null,
         porcentagem_psa: data.porcentagem_psa ?? null,
       };
       const { error } = await supabase.from('dcomp').insert([record]);
