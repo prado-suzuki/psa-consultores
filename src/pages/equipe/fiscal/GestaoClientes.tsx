@@ -12,6 +12,53 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+
+/* ── Sub-componente: contribuintes expandidos ── */
+const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["contribuintes-expand", clienteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contribuinte")
+        .select("id, cpf_cnpj, nome_razao_social, inscricao_estadual, simples_nacional")
+        .eq("cliente_id", clienteId)
+        .eq("excluido", false)
+        .eq("ambiente", currentAmbiente)
+        .order("nome_razao_social");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  if (isLoading) return <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" />Carregando contribuintes…</div>;
+
+  if (!data?.length) return <p className="text-sm text-muted-foreground py-2">Nenhum contribuinte cadastrado</p>;
+
+  return (
+    <div className="ml-8 bg-muted/50 rounded-lg p-3">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent border-b border-border">
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">CPF/CNPJ</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Razão Social</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Inscrição Estadual</TableHead>
+            <TableHead className="text-xs font-semibold uppercase tracking-wider h-9">Simples Nacional</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((c) => (
+            <TableRow key={c.id} className="hover:bg-transparent border-b border-border/50">
+              <TableCell className="py-2 text-sm">{c.cpf_cnpj || "-"}</TableCell>
+              <TableCell className="py-2 text-sm">{c.nome_razao_social}</TableCell>
+              <TableCell className="py-2 text-sm">{c.inscricao_estadual || "-"}</TableCell>
+              <TableCell className="py-2 text-sm">{c.simples_nacional ? "Sim" : "Não"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+};
 import NewClientModal from "@/components/equipe/NewClientModal";
 
 const ITEMS_PER_PAGE = 10;
