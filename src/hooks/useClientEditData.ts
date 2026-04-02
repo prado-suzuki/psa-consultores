@@ -184,8 +184,7 @@ export const useClientEditData = (
             });
           });
 
-          setters.setContracts(
-            existingOS.map((os: any) => ({
+          const mappedContracts = existingOS.map((os: any) => ({
               _id: Date.now() + Math.random(),
               _dbId: os.id,
               ordem_servico: os.numero_os || "",
@@ -202,10 +201,26 @@ export const useClientEditData = (
               produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
               cluster_id: os.cluster_id || "",
-            })),
-          );
+            }));
+          setters.setContracts(mappedContracts);
+
+          // Store snapshot
+          setOriginalSnapshot({
+            clientData: snapClient!,
+            entities: snapEntities,
+            participants: snapParticipants,
+            contracts: structuredClone(mappedContracts),
+          });
         } else {
           setters.setContracts([]);
+          if (snapClient) {
+            setOriginalSnapshot({
+              clientData: snapClient,
+              entities: snapEntities,
+              participants: snapParticipants,
+              contracts: [],
+            });
+          }
         }
       } catch (err: any) {
         console.error("Erro ao carregar dados do cliente:", err);
@@ -217,5 +232,5 @@ export const useClientEditData = (
     loadData();
   }, [open, editingClienteId]);
 
-  return { loadingEdit };
+  return { loadingEdit, originalSnapshot };
 };
