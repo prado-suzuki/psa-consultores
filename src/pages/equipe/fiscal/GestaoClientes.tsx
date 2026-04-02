@@ -84,6 +84,7 @@ const GestaoClientes = () => {
   const [viewMode, setViewMode] = useState(false);
   const [deletingCliente, setDeletingCliente] = useState<{ id: string; nome: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
 
