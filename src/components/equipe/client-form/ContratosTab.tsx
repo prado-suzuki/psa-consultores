@@ -234,10 +234,42 @@ export default function ContratosTab({
     }
   };
 
-  const startEditContract = (c: DraftOrdemServico) => { setEditingContractId(c._id); setEditingContractData({ ...c }); };
+  const startEditContract = (c: DraftOrdemServico) => {
+    setEditingContractId(c._id);
+    setEditingContractData({ ...c });
+    setOsEditClusterFilter(c.cluster_id || "__all__");
+  };
   const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
+
+  const validateDistribuicao = (dist: Array<{ id_centro_custo: string; percentual_rateio: number }> | undefined, label: string): boolean => {
+    if (!dist || dist.length === 0) {
+      toast.error(`${label}: adicione ao menos um Centro de Custo na Distribuição de Receita`);
+      return false;
+    }
+    const hasEmpty = dist.some(d => !d.id_centro_custo);
+    if (hasEmpty) {
+      toast.error(`${label}: selecione um centro de custo válido para cada linha`);
+      return false;
+    }
+    const total = dist.reduce((s, d) => s + (d.percentual_rateio || 0), 0);
+    if (Math.abs(total - 100) > 0.01) {
+      toast.error(`${label}: a distribuição deve somar 100% (atual: ${total.toFixed(0)}%)`);
+      return false;
+    }
+    return true;
+  };
+
   const saveEditContract = () => {
     if (!editingContractData || editingContractId == null) return;
+    if (!editingContractData.cluster_id) {
+      toast.error("Selecione a Empresa/Faturamento");
+      return;
+    }
+    if (!editingContractData.produtos_contratados || editingContractData.produtos_contratados.length === 0) {
+      toast.error("Adicione ao menos um Produto Contratado");
+      return;
+    }
+    if (!validateDistribuicao(editingContractData.distribuicao_receita as any, `OS ${editingContractData.ordem_servico || ""}`)) return;
     setContracts(contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftOrdemServico) : c)));
     setEditingContractId(null); setEditingContractData(null);
     toast.success("OS atualizada");
