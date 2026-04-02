@@ -276,16 +276,22 @@ export default function ContratosTab({
   };
 
   const addContract = async () => {
+    if (!draftContract.cluster_id) {
+      toast.error("Selecione a Empresa/Faturamento");
+      return;
+    }
     if (!draftContract.produtos_contratados || draftContract.produtos_contratados.length === 0) {
       toast.error("Adicione ao menos um Produto Contratado");
       return;
     }
+    if (!validateDistribuicao(draftContract.distribuicao_receita, "Nova OS")) return;
     setIsAddingContract(true);
     try {
       const osNumber = await generateNextOsNumber(contracts as any);
       const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
       setContracts([...contracts, newContract]);
       setDraftContract(createDefaultDraftContract());
+      setOsClusterFilter("__all__");
     } finally { setIsAddingContract(false); }
   };
 
