@@ -425,25 +425,28 @@ export function DcompFormModal({
             <FormField
               control={form.control}
               name="dt_envio"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Data de Envio <RequiredMark /></FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                          {field.value ? format(new Date(field.value + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')} />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Data de Envio <RequiredMark /></FormLabel>
+                    <Popover open={dtEnvioPopoverOpen} onOpenChange={setDtEnvioPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button variant="outline" className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                            {field.value ? format(new Date(field.value + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : <span>Selecione...</span>}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); setDtEnvioPopoverOpen(false); }} />
+                      </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
 
             <FormField
