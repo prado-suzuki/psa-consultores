@@ -37,6 +37,8 @@ const CorrecoesSped = () => {
   const [ncmFilter, setNcmFilter] = useState<NcmFilter>('all');
   const [searchText, setSearchText] = useState('');
   const [hasQueried, setHasQueried] = useState(false);
+  const [openIni, setOpenIni] = useState(false);
+  const [openFim, setOpenFim] = useState(false);
 
   // Modals
   const [selectedItem, setSelectedItem] = useState<FlatItemEfd | null>(null);
