@@ -114,6 +114,7 @@ export function DcompFormModal({
   const queryClient = useQueryClient();
   const isEditing = !!editData;
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
+  const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
 
   const form = useForm<DcompFormData>({
     resolver: zodResolver(dcompSchema),
