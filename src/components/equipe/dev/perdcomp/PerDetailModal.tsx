@@ -156,6 +156,7 @@ export function PerDetailModal({
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
   const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
+  const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
   // Query para dados atualizados do PER (refetch após mutations)
   const { data: perAtualizado } = useQuery({
