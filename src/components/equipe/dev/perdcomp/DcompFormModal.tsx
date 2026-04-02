@@ -196,7 +196,7 @@ export function DcompFormModal({
     } else if (open) {
       const saved = restore();
       if (saved) {
-        form.reset(saved);
+        form.reset({ ...saved, nr_per_orig: preSelectedPer || saved.nr_per_orig });
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_compensado || 0));
       } else {
         form.reset({
