@@ -26,7 +26,7 @@ import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
 
 export default function NewClientModal({
-  open, onOpenChange, editingClienteId, readOnly = false,
+  open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
 }: NewClientModalProps) {
   const { user } = useAuth();
 
