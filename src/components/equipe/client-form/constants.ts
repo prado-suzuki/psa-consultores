@@ -7,7 +7,7 @@ import type { DraftOrdemServico } from "@/types/clientForm";
 
 // --- Dropdown options ---
 
-export const TIPO_PARTICIPANTE_OPTIONS = [
+export const TIPO_REPRESENTANTE_OPTIONS = [
   "Sócio/Proprietário",
   "Contador",
   "Advogado",
@@ -17,6 +17,9 @@ export const TIPO_PARTICIPANTE_OPTIONS = [
   "Consultor Externo",
   "Outros",
 ];
+
+/** @deprecated Use TIPO_REPRESENTANTE_OPTIONS */
+export const TIPO_PARTICIPANTE_OPTIONS = TIPO_REPRESENTANTE_OPTIONS;
 
 export const UF_STATES = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
