@@ -273,9 +273,10 @@ export default function ControlePerdcomp() {
       if (!situacaoFilter.includes(sit)) return false;
     }
     if (processoFilter) {
-      const matchPer = item.nr_per.includes(processoFilter);
+      const filterDigits = processoFilter.replace(/\D/g, '');
+      const matchPer = item.nr_per.includes(filterDigits);
       const matchDcomp = dcompData.some(
-        (d: any) => d.nr_per_orig === item.nr_per && d.nr_documento.includes(processoFilter),
+        (d: any) => d.nr_per_orig === item.nr_per && d.nr_documento.includes(filterDigits),
       );
       if (!matchPer && !matchDcomp) return false;
     }

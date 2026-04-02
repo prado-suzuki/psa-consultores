@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
+import { stripToDigits } from '@/lib/perdcompUtils';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -208,7 +209,7 @@ export function PerFormModal({
 
   // Filter PERs based on search query
   const filteredPersExistentes = persExistentes.filter((per: any) => 
-    per.nr_per.toLowerCase().includes(perSearchQuery.toLowerCase())
+    per.nr_per.includes(perSearchQuery.replace(/\D/g, ''))
   );
 
   useEffect(() => {
@@ -267,10 +268,13 @@ export function PerFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
       // Verificar se já existe PER com este número
+      const cleanNrPer = stripToDigits(data.nr_per);
+      const cleanNrProcRet = data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null;
+
       const { data: existing } = await (supabase
         .from('per') as any)
         .select('nr_per')
-        .eq('nr_per', data.nr_per)
+        .eq('nr_per', cleanNrPer)
         .maybeSingle();
 
       if (existing) {
@@ -279,21 +283,21 @@ export function PerFormModal({
 
       // Insert PER with nr_proc_ret if retificadora
       const { error: perError } = await (supabase.from('per') as any).insert([{
-        nr_per: data.nr_per,
+        nr_per: cleanNrPer,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
         tri_exercicio: data.tri_exercicio,
         dt_solicitada: data.dt_solicitada,
         tp_credito: data.tp_credito,
         vlr_credito: data.vlr_credito,
-        nr_proc_ret: data.nr_proc_ret || null,
+        nr_proc_ret: cleanNrProcRet,
         porcentagem_psa: data.porcentagem_psa ?? null,
       }]);
       if (perError) throw perError;
 
       // Automatically create initial situação as "Analisado"
       const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
-        nr_proc_per: data.nr_per,
+        nr_proc_per: cleanNrPer,
         situacao: 'Analisado',
       }).select().single();
       if (situacaoError) {
@@ -301,9 +305,9 @@ export function PerFormModal({
       }
 
       // If retificadora, update the original PER's situação to "Retificado"
-      if (data.nr_proc_ret) {
+      if (cleanNrProcRet) {
         const { error: retError } = await supabase.from('per_situacao').insert({
-          nr_proc_per: data.nr_proc_ret,
+          nr_proc_per: cleanNrProcRet,
           situacao: 'Retificado',
         });
         if (retError) {
@@ -358,7 +362,7 @@ export function PerFormModal({
           dt_solicitada: data.dt_solicitada,
           tp_credito: data.tp_credito,
           vlr_credito: data.vlr_credito,
-          nr_proc_ret: data.nr_proc_ret || null,
+          nr_proc_ret: data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null,
           porcentagem_psa: data.porcentagem_psa ?? null,
         })
         .eq('nr_per', editData?.nr_per);

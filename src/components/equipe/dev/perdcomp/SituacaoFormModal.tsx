@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
+import { stripToDigits } from '@/lib/perdcompUtils';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -133,7 +134,7 @@ export function SituacaoFormModal({
   const createMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
       const insertData: any = {
-        nr_proc_per: data.nr_proc_per,
+        nr_proc_per: stripToDigits(data.nr_proc_per),
         situacao: data.situacao,
       };
       if (data.dt_pagamento) {
@@ -161,7 +162,7 @@ export function SituacaoFormModal({
   const updateMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
       const updateData: any = {
-        nr_proc_per: data.nr_proc_per,
+        nr_proc_per: stripToDigits(data.nr_proc_per),
         situacao: data.situacao,
       };
       if (data.dt_pagamento) {

@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { currentAmbiente } from "@/config/api";
 import { supabase } from "@/integrations/supabase/client";
+import { stripToDigits } from "@/lib/perdcompUtils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,8 @@ export function CargaPerdcompCSV() {
 
       persToInsert.push({
         ...perData,
+        nr_per: stripToDigits(perData.nr_per),
+        nr_proc_ret: perData.nr_proc_ret ? stripToDigits(perData.nr_proc_ret) : null,
         id_contribuinte: selectedContribuinte,
         criado_por: userId,
         porcentagem_psa: porcentagemPsa,
@@ -206,7 +209,7 @@ export function CargaPerdcompCSV() {
       if (situacao) {
         const dtPagamento = parseDate(row.dt_pagamento);
         situacoesToInsert.push({
-          nr_proc_per: numeroProcesso,
+          nr_proc_per: stripToDigits(numeroProcesso),
           situacao: situacao,
           dt_pagamento: dtPagamento,
           criado_por: userId,
@@ -286,6 +289,8 @@ export function CargaPerdcompCSV() {
 
       dcompsToInsert.push({
         ...dcompData,
+        nr_documento: stripToDigits(dcompData.nr_documento),
+        nr_per_orig: stripToDigits(dcompData.nr_per_orig),
         criado_por: userId,
         porcentagem_psa: porcentagemPsa,
       });
