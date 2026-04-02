@@ -245,12 +245,17 @@ export default function NewClientModal({
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
-                  <TabsList className="w-full grid grid-cols-5 bg-gray-100/80 p-1 rounded-lg h-auto">
+                  <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", editingClienteId ? "grid-cols-6" : "grid-cols-5")}>
                     {(["cliente", "contribuintes", "participantes", "contratos", "faturamento"] as const).map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
                         {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "participantes" ? "Participantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
                       </TabsTrigger>
                     ))}
+                    {editingClienteId && (
+                      <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                        <History size={14} /> Histórico
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </div>
 
