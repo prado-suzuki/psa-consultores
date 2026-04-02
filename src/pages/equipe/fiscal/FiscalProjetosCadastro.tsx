@@ -101,7 +101,7 @@ const FiscalProjetosCadastro = () => {
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
-  const { data: projects = [], isLoading } = useTaxProjects();
+  const { data: projects = [], isLoading } = useOrgProjects();
   const { data: projectHours = {} } = useProjectHours();
 
   // Fetch OS products for listing table (all projects' ordem_servico_id)
