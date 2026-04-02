@@ -119,6 +119,17 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+const formatDateTime = (dateStr: string | null) => {
+  if (!dateStr) return '-';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return dateStr;
+  }
+};
+
 /**
  * Derives the original DCOMP of a rectification chain by traversing nr_dcomp_ret links.
  * Returns the nr_documento of the root DCOMP (the one with nr_dcomp_ret = null).
