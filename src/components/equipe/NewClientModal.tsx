@@ -190,6 +190,7 @@ export default function NewClientModal({
     isEditing, editingClienteId, setoresCliente,
     getDraftPendingTabs, onDuplicateFound,
     onSuccess: () => resetAndClose(),
+    originalSnapshot,
   });
 
   const handleSave = () => {
