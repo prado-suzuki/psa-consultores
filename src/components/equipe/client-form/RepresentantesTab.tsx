@@ -14,28 +14,28 @@ import {
 import { Pencil, Trash2, ChevronDown, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { TIPO_PARTICIPANTE_OPTIONS, formatPhone } from "./constants";
-import type { DraftParticipant } from "@/types/clientForm";
+import { TIPO_REPRESENTANTE_OPTIONS, formatPhone } from "./constants";
+import type { DraftRepresentante } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
 
-export interface ParticipantesTabProps {
-  participants: DraftParticipant[];
-  setParticipants: React.Dispatch<React.SetStateAction<DraftParticipant[]>>;
-  draftParticipant: Partial<DraftParticipant>;
-  setDraftParticipant: React.Dispatch<React.SetStateAction<Partial<DraftParticipant>>>;
+export interface RepresentantesTabProps {
+  participants: DraftRepresentante[];
+  setParticipants: React.Dispatch<React.SetStateAction<DraftRepresentante[]>>;
+  draftRepresentante: Partial<DraftRepresentante>;
+  setDraftRepresentante: React.Dispatch<React.SetStateAction<Partial<DraftRepresentante>>>;
   isReadOnly: boolean;
 }
 
-export default function ParticipantesTab({
+export default function RepresentantesTab({
   participants, setParticipants,
-  draftParticipant, setDraftParticipant,
+  draftRepresentante, setDraftRepresentante,
   isReadOnly,
-}: ParticipantesTabProps) {
+}: RepresentantesTabProps) {
   const [expandedParticipantId, setExpandedParticipantId] = useState<number | null>(null);
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
-  const [editingParticipantData, setEditingParticipantData] = useState<Partial<DraftParticipant> | null>(null);
+  const [editingParticipantData, setEditingParticipantData] = useState<Partial<DraftRepresentante> | null>(null);
 
-  const startEditParticipant = (p: DraftParticipant) => {
+  const startEditParticipant = (p: DraftRepresentante) => {
     setEditingParticipantId(p._id);
     setEditingParticipantData({ ...p });
   };
@@ -47,54 +47,54 @@ export default function ParticipantesTab({
     if (!editingParticipantData || editingParticipantId == null) return;
     setParticipants(
       participants.map((p) =>
-        p._id === editingParticipantId ? ({ ...p, ...editingParticipantData } as DraftParticipant) : p,
+        p._id === editingParticipantId ? ({ ...p, ...editingParticipantData } as DraftRepresentante) : p,
       ),
     );
     setEditingParticipantId(null);
     setEditingParticipantData(null);
-    toast.success("Participante atualizado");
+    toast.success("Representante atualizado");
   };
 
-  const addParticipant = () => {
-    if (!draftParticipant.nome?.trim()) {
+  const addRepresentante = () => {
+    if (!draftRepresentante.nome?.trim()) {
       toast.error("Nome é obrigatório");
       return;
     }
-    if (!draftParticipant.tipo_participante) {
-      toast.error("Tipo de Participante é obrigatório");
+    if (!draftRepresentante.tipo_representante) {
+      toast.error("Tipo de Representante é obrigatório");
       return;
     }
-    if (!draftParticipant.email?.trim()) {
+    if (!draftRepresentante.email?.trim()) {
       toast.error("Email é obrigatório");
       return;
     }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(draftParticipant.email!.trim())) {
+    if (!emailRegex.test(draftRepresentante.email!.trim())) {
       toast.error("Formato de e-mail inválido");
       return;
     }
-    if (draftParticipant.telefone?.trim()) {
-      const telDigits = draftParticipant.telefone.replace(/\D/g, "");
+    if (draftRepresentante.telefone?.trim()) {
+      const telDigits = draftRepresentante.telefone.replace(/\D/g, "");
       if (telDigits.length < 10) {
         toast.error("Telefone deve ter no mínimo 10 dígitos");
         return;
       }
     }
-    if (draftParticipant.observacoes?.trim() && draftParticipant.observacoes.trim().length < 3) {
+    if (draftRepresentante.observacoes?.trim() && draftRepresentante.observacoes.trim().length < 3) {
       toast.error("Observações deve ter no mínimo 3 caracteres");
       return;
     }
 
-    setParticipants([...participants, { ...draftParticipant, _id: Date.now() + Math.random() } as DraftParticipant]);
-    setDraftParticipant({
-      nome: "", tipo_participante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false,
+    setParticipants([...participants, { ...draftRepresentante, _id: Date.now() + Math.random() } as DraftRepresentante]);
+    setDraftRepresentante({
+      nome: "", tipo_representante: "", cargo: "", email: "", telefone: "", observacoes: "", acesso_chamados: false,
     });
   };
 
   return (
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
       <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
-        <h3 className="text-sm font-bold text-foreground">Participantes ({participants.length})</h3>
+        <h3 className="text-sm font-bold text-foreground">Representantes ({participants.length})</h3>
       </div>
       <div className="px-4 py-3">
         {participants.length > 0 && (
@@ -112,7 +112,7 @@ export default function ParticipantesTab({
                   >
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-foreground truncate">{part.nome}</div>
-                      <div className="text-sm text-muted-foreground">{part.tipo_participante}</div>
+                      <div className="text-sm text-muted-foreground">{part.tipo_representante}</div>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
                       {part.acesso_chamados && <Badge variant="outline" className="text-[10px]">Chamados</Badge>}
@@ -134,7 +134,7 @@ export default function ParticipantesTab({
                           </AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
-                              <AlertDialogTitle>Remover participante</AlertDialogTitle>
+                              <AlertDialogTitle>Remover representante</AlertDialogTitle>
                               <AlertDialogDescription>Tem certeza que deseja remover "{part.nome}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -148,7 +148,7 @@ export default function ParticipantesTab({
                       </div>
                       <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                         <FieldPair label="Nome" value={part.nome} />
-                        <FieldPair label="Cargo/função" value={part.tipo_participante} />
+                        <FieldPair label="Cargo/função" value={part.tipo_representante} />
                         <FieldPair label="Email" value={part.email} />
                         <FieldPair label="Telefone" value={part.telefone} />
                         <FieldPair label="Acesso a Chamados" value={part.acesso_chamados ? "Sim" : "Não"} />
@@ -171,11 +171,11 @@ export default function ParticipantesTab({
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
                           <div className="flex-1">
-                            <Select value={ep.tipo_participante || "__none__"} onValueChange={(v) => setEditingParticipantData({ ...ep, tipo_participante: v === "__none__" ? "" : v })}>
+                            <Select value={ep.tipo_representante || "__none__"} onValueChange={(v) => setEditingParticipantData({ ...ep, tipo_representante: v === "__none__" ? "" : v })}>
                               <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="__none__">Selecione...</SelectItem>
-                                {TIPO_PARTICIPANTE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                                {TIPO_REPRESENTANTE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                               </SelectContent>
                             </Select>
                           </div>
@@ -216,47 +216,47 @@ export default function ParticipantesTab({
 
         {!isReadOnly && (
           <div className="bg-muted/50 rounded-lg border p-4">
-            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Novo Participante</h4>
+            <h4 className="text-sm font-bold text-muted-foreground uppercase mb-3">Novo Representante</h4>
             <div className="flex flex-col gap-2.5">
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground"> Nome <RequiredMark /></Label>
-                <div className="flex-1"><Input value={draftParticipant.nome || ""} onChange={(e) => setDraftParticipant({ ...draftParticipant, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" /></div>
+                <div className="flex-1"><Input value={draftRepresentante.nome || ""} onChange={(e) => setDraftRepresentante({ ...draftRepresentante, nome: e.target.value })} placeholder="Nome do contato" className="font-medium h-8" /></div>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Cargo/função *</Label>
                 <div className="flex-1">
-                  <Select value={draftParticipant.tipo_participante || "__none__"} onValueChange={(v) => setDraftParticipant({ ...draftParticipant, tipo_participante: v === "__none__" ? "" : v })}>
+                  <Select value={draftRepresentante.tipo_representante || "__none__"} onValueChange={(v) => setDraftRepresentante({ ...draftRepresentante, tipo_representante: v === "__none__" ? "" : v })}>
                     <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none__">Selecione...</SelectItem>
-                      {TIPO_PARTICIPANTE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
+                      {TIPO_REPRESENTANTE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Email *</Label>
-                <div className="flex-1"><Input value={draftParticipant.email || ""} onChange={(e) => setDraftParticipant({ ...draftParticipant, email: e.target.value })} className="h-8" /></div>
+                <div className="flex-1"><Input value={draftRepresentante.email || ""} onChange={(e) => setDraftRepresentante({ ...draftRepresentante, email: e.target.value })} className="h-8" /></div>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                <div className="flex-1"><Input value={draftParticipant.telefone || ""} onChange={(e) => setDraftParticipant({ ...draftParticipant, telefone: formatPhone(e.target.value) })} className="h-8" /></div>
+                <div className="flex-1"><Input value={draftRepresentante.telefone || ""} onChange={(e) => setDraftRepresentante({ ...draftRepresentante, telefone: formatPhone(e.target.value) })} className="h-8" /></div>
               </div>
               <div className="flex flex-row items-center gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 h-8">
-                    <Switch checked={draftParticipant.acesso_chamados ?? false} onCheckedChange={(c) => setDraftParticipant({ ...draftParticipant, acesso_chamados: c })} />
-                    <span className="text-sm">{draftParticipant.acesso_chamados ? "Ativado" : "Desativado"}</span>
+                    <Switch checked={draftRepresentante.acesso_chamados ?? false} onCheckedChange={(c) => setDraftRepresentante({ ...draftRepresentante, acesso_chamados: c })} />
+                    <span className="text-sm">{draftRepresentante.acesso_chamados ? "Ativado" : "Desativado"}</span>
                   </div>
                 </div>
               </div>
               <div className="flex flex-row items-start gap-4">
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground pt-2">Observações</Label>
-                <div className="flex-1"><Textarea value={draftParticipant.observacoes || ""} onChange={(e) => setDraftParticipant({ ...draftParticipant, observacoes: e.target.value })} placeholder="Observações sobre o participante (mín. 20 caracteres se preenchido)..." className="min-h-[60px]" /></div>
+                <div className="flex-1"><Textarea value={draftRepresentante.observacoes || ""} onChange={(e) => setDraftRepresentante({ ...draftRepresentante, observacoes: e.target.value })} placeholder="Observações sobre o representante (mín. 20 caracteres se preenchido)..." className="min-h-[60px]" /></div>
               </div>
               <div className="flex justify-end mt-2">
-                <Button size="sm" variant="outline" onClick={addParticipant} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> Adicionar à Lista</Button>
+                <Button size="sm" variant="outline" onClick={addRepresentante} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> Adicionar à Lista</Button>
               </div>
             </div>
           </div>

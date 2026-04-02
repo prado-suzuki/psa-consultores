@@ -41,7 +41,7 @@ const ACTION_LABELS: Record<string, { label: string; color: string }> = {
 const ENTITY_LABELS: Record<string, string> = {
   cliente: 'Cliente',
   contribuinte: 'Contribuinte',
-  participante: 'Participante',
+  representante: 'Representante',
   ordem_servico: 'Ordem de Serviço',
 };
 

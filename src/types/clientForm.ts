@@ -32,17 +32,20 @@ export interface InscricaoIE {
   uf: string;
 }
 
-export interface DraftParticipant {
+export interface DraftRepresentante {
   _id: number;
   _dbId?: string;
   nome: string;
-  tipo_participante: string;
+  tipo_representante: string;
   cargo: string;
   email: string;
   telefone: string;
   observacoes: string;
   acesso_chamados: boolean;
 }
+
+/** @deprecated Use DraftRepresentante */
+export type DraftParticipant = DraftRepresentante;
 
 export interface DraftProdutoContratado {
   _id: number;

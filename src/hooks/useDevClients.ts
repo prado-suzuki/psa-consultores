@@ -9,7 +9,7 @@ import { useCallback } from 'react';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
+const representanteTable = 'representante';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -114,7 +114,7 @@ export const useDevClientMutations = () => {
   }, [qc]);
 
   const logClientAction = useCallback((
-    entityType: 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico',
+    entityType: 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico',
     entityId: string,
     entityName: string,
     action: 'created' | 'updated' | 'deleted',
@@ -145,6 +145,6 @@ export const useDevClientMutations = () => {
     softDeleteCliente,
     clienteTable,
     contribuinteTable,
-    participanteTable,
+    representanteTable,
   };
 };

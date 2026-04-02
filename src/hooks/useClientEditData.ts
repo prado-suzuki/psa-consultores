@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { DraftEntity, InscricaoIE, DraftParticipant, DraftOrdemServico } from '@/types/clientForm';
+import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
+const representanteTable = 'representante';
 
 interface ClientDataShape {
   nome: string;
@@ -23,7 +23,7 @@ interface ClientDataShape {
 interface Setters {
   setClientData: (data: ClientDataShape) => void;
   setEntities: (entities: DraftEntity[]) => void;
-  setParticipants: (participants: DraftParticipant[]) => void;
+  setParticipants: (participants: DraftRepresentante[]) => void;
   setContracts: (contracts: DraftOrdemServico[]) => void;
   setInscricoesMap: (map: Record<string, InscricaoIE[]>) => void;
 }
@@ -117,7 +117,8 @@ export const useClientEditData = (
           }
         }
 
-        const { data: parts } = await (supabase.from(participanteTable) as any)
+        // representante table — PK is id_representante
+        const { data: parts } = await (supabase.from(representanteTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId)
           .eq("excluido", false);
@@ -125,9 +126,9 @@ export const useClientEditData = (
           setters.setParticipants(
             parts.map((p: any) => ({
               _id: Date.now() + Math.random(),
-              _dbId: p.id || p.id_participante,
+              _dbId: p.id_representante || p.id,
               nome: p.nome || "",
-              tipo_participante: p.tipo_participante || "",
+              tipo_representante: p.tipo_representante || "",
               cargo: p.cargo || "",
               email: p.email || "",
               telefone: p.telefone || "",

@@ -8,7 +8,7 @@ type AuditEntityType =
   | 'project' | 'task' | 'subtask'
   | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
   | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
-  | 'cliente' | 'contribuinte' | 'participante' | 'ordem_servico'
+  | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
   | 'regra_pis_cofins' | 'procedimento'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral';
 
