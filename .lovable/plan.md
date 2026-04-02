@@ -1,83 +1,34 @@
 
 
-## Plan: Fase 2 — Correções de Regras de Negócio e Listagem PERDCOMP
+## Plan: Corrigir formatação do PER no header do modal e saldo vermelho em R$ 0,00
 
-### Análise e Correções
+### Problema 1: Numeração no formato antigo no header do modal
 
----
+O header do modal (linha 393) exibe `per.nr_per` diretamente do banco. PERs cadastrados antes da correção de formatação ainda estão armazenados no formato antigo (ex: `41501.74638.081025.1.1.19.95-56`). O modal não aplica nenhuma normalização.
 
-### 1. Filtro Situação — opção "Todas"
+**Correção em `PerDetailModal.tsx`**: Criar uma função `normalizeProcessNumber` que recebe qualquer string de número de processo, extrai apenas os dígitos, e reformata no padrão correto `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX` (24 dígitos). Aplicar essa função nos 2 locais que exibem números de processo:
+- Linha 393: `per.nr_per` no título
+- Linha 408: `per.nr_proc_ret` na indicação de retificação
 
-**Status**: O filtro de situação já é um multi-select com checkboxes (linha 806-839 de `ControlePerdcomp.tsx`). Quando nenhum checkbox está marcado, o texto exibido já é "Todas" (linha 796-797) e a lógica de filtro já retorna todos os registros (`situacaoFilter.length === 0` pula o filtro, linha 270). Há também um botão "Limpar seleção" quando há filtros ativos (linha 823-835).
+A mesma normalização deve ser aplicada na tabela principal em `ControlePerdcomp.tsx` onde `item.nr_per` é exibido (coluna do número do PER).
 
-**Conclusão**: Este item **já está implementado corretamente**. O comportamento "Todas" é o estado padrão (nenhuma seleção). Nenhuma alteração necessária.
+### Problema 2: Saldo R$ 0,00 exibido em vermelho (-R$ 0,00)
 
----
+**Causa**: Na tabela principal (`ControlePerdcomp.tsx`, linha 592), o cálculo `item.vlr_credito - totalCompensado - valorRessarcido` sofre imprecisão de ponto flutuante, resultando em algo como `-0.000000001`. A condição `saldo < 0` é verdadeira, exibindo em vermelho.
 
-### 2. Erro de duplicidade ao criar PER (PerFormModal.tsx)
+O `PerDetailModal.tsx` (linha 235) já foi corrigido com `Math.round(... * 100) / 100`, mas o `ControlePerdcomp.tsx` não.
 
-**Diagnóstico**: A mutation de criação (linha 270-278) faz um `SELECT` para verificar se já existe um PER com o mesmo `nr_per`. Se existe, lança erro. Isso é correto para PERs originais, mas uma retificadora tem **obrigatoriamente** um número de processo diferente do PER original (cada PER tem seu próprio número de documento). O campo `nr_proc_ret` aponta para o PER que está sendo retificado.
-
-**Conclusão**: A lógica está **correta**. Uma retificadora nunca deveria ter o mesmo `nr_per` do PER original — são documentos distintos. O erro só ocorre se o usuário tentar cadastrar o **mesmo número** duas vezes, o que é uma duplicata real. Nenhuma alteração necessária na validação. O fluxo de retificação já funciona: novo número em `nr_per`, número antigo em `nr_proc_ret`.
-
----
-
-### 3. Cabeçalho "Ações" na coluna de botões
-
-**Arquivo**: `src/pages/equipe/dev/ControlePerdcomp.tsx`
-
-**Diagnóstico**: A última `<TableHead>` (linha 577) está vazia: `<TableHead className="w-[80px]"></TableHead>`.
-
-**Correção**: Adicionar o texto "Ações" nessa célula.
-
-```tsx
-<TableHead className="w-[80px]">Ações</TableHead>
+**Correção em `ControlePerdcomp.tsx`** (linha 592): Aplicar o mesmo arredondamento:
+```typescript
+const saldo = Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100;
 ```
-
----
-
-### 4. Bloqueio de DCOMP após ressarcimento (PerDetailModal.tsx)
-
-**Diagnóstico**: Linhas 613-631 — quando `perPago` é `true` (há ressarcimento registrado), a UI exibe **apenas** a badge "Ressarcido", escondendo completamente os botões "Novo DCOMP" e "Novo Ressarcimento". Isso impede lançar DCOMPs mesmo quando `saldoRestante > 0`.
-
-**Correção**: Alterar a renderização condicional para:
-- Sempre exibir a badge "Ressarcido" quando `perPago` é true
-- Sempre exibir o botão "Novo DCOMP" quando `saldoRestante > 0`, independentemente do status de ressarcimento
-- Esconder apenas o botão "Novo Ressarcimento" quando já existe ressarcimento
-
-```tsx
-<div className="flex items-center gap-2">
-  {perPago && (
-    <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1">
-      <CheckCircle2 className="h-4 w-4 mr-1" />
-      Ressarcido
-    </Badge>
-  )}
-  {!perPago && (
-    <Button onClick={() => setRessarcimentoOpen(true)} size="sm" variant="outline">
-      <DollarSign className="h-4 w-4 mr-2" />
-      Novo Ressarcimento
-    </Button>
-  )}
-  {saldoRestante > 0 && (
-    <Button onClick={handleNewDcomp} size="sm">
-      <Plus className="h-4 w-4 mr-2" />
-      Novo DCOMP
-    </Button>
-  )}
-</div>
-```
-
----
 
 ### Resumo
 
-| # | Item | Ação |
-|---|------|------|
-| 1 | Filtro "Todas" | Já implementado — sem alteração |
-| 2 | Erro duplicidade PER | Lógica correta — sem alteração |
-| 3 | Cabeçalho "Ações" | `ControlePerdcomp.tsx` linha 577 — adicionar texto |
-| 4 | Bloqueio DCOMP por ressarcimento | `PerDetailModal.tsx` linhas 613-631 — refatorar condicional |
+| Arquivo | Alteração |
+|---|---|
+| `PerDetailModal.tsx` | Normalizar `nr_per` e `nr_proc_ret` no header com função de reformatação |
+| `ControlePerdcomp.tsx` | Arredondar saldo para 2 casas decimais + normalizar `nr_per` na tabela |
 
-**2 arquivos modificados, 2 alterações cirúrgicas.**
+**3 alterações cirúrgicas em 2 arquivos.**
 
