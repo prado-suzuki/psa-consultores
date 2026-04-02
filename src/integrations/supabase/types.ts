@@ -1081,6 +1081,9 @@ export type Database = {
           registro_original_id: string | null
           registro_tipo: string
           snapshot: Json
+          sync_error: string | null
+          sync_sent_at: string | null
+          sync_status: string | null
           tipo_operacao: string
           usuario_id: string
         }
@@ -1099,6 +1102,9 @@ export type Database = {
           registro_original_id?: string | null
           registro_tipo: string
           snapshot: Json
+          sync_error?: string | null
+          sync_sent_at?: string | null
+          sync_status?: string | null
           tipo_operacao: string
           usuario_id: string
         }
@@ -1117,6 +1123,9 @@ export type Database = {
           registro_original_id?: string | null
           registro_tipo?: string
           snapshot?: Json
+          sync_error?: string | null
+          sync_sent_at?: string | null
+          sync_status?: string | null
           tipo_operacao?: string
           usuario_id?: string
         }
