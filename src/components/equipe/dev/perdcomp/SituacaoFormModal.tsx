@@ -75,6 +75,7 @@ export function SituacaoFormModal({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  const [calOpen, setCalOpen] = useState(false);
 
   const form = useForm<SituacaoFormData>({
     resolver: zodResolver(situacaoSchema),
