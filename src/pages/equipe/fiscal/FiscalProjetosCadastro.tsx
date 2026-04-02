@@ -88,7 +88,7 @@ const emptyForm = {
 const FiscalProjetosCadastro = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingProject, setEditingProject] = useState<TaxProject | null>(null);
+  const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [filterCliente, setFilterCliente] = useState('');
