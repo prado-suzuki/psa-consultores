@@ -1,23 +1,64 @@
 
 
-## Diagnóstico: Bug "Could not find table 'public.tax_projects'"
+## Etapa 2 — Frontend: participante → representante
 
-### Situação atual
+O SQL já foi executado. Atualizar 9 arquivos do frontend.
 
-O código-fonte já está 100% correto:
-- `src/hooks/useOrgProjects.ts` usa `.from('org_projects')` com FK hints `org_projects_*`
-- Zero referências a `tax_projects` em qualquer arquivo `.ts`/`.tsx` (exceto uma FK name metadata em `types.ts` que não afeta queries)
-- `types.ts` já foi regenerado com `org_projects` e `org_project_members`
+---
 
-### Causa do erro
+### 1. `src/types/clientForm.ts`
+- Renomear `DraftParticipant` → `DraftRepresentante`, campo `tipo_participante` → `tipo_representante`
+- Adicionar alias: `/** @deprecated */ export type DraftParticipant = DraftRepresentante;`
 
-O preview em execução está rodando um **build antigo** (cache). As requests de rede mostram chamadas a `rest/v1/tax_projects` com FK hints `tax_projects_*` — código que já não existe mais nos fontes.
+### 2. `src/components/equipe/client-form/constants.ts`
+- `TIPO_PARTICIPANTE_OPTIONS` → `TIPO_REPRESENTANTE_OPTIONS` (manter alias deprecated)
+- `createDefaultDraftParticipant` → `createDefaultDraftRepresentante`, campo `tipo_participante` → `tipo_representante` (manter alias deprecated)
 
-### Plano
+### 3. Renomear `ParticipantesTab.tsx` → `RepresentantesTab.tsx`
+- Import: `TIPO_PARTICIPANTE_OPTIONS` → `TIPO_REPRESENTANTE_OPTIONS`
+- Import: `DraftParticipant` → `DraftRepresentante`
+- Interface: `ParticipantesTabProps` → `RepresentantesTabProps`
+- Refs `tipo_participante` → `tipo_representante`
+- Labels: "Participante" → "Representante", "Participantes" → "Representantes", "participante" → "representante"
+- Export: `ParticipantesTab` → `RepresentantesTab`
 
-1. **Forçar rebuild** — Adicionar um comentário trivial em `useOrgProjects.ts` (ex: `// rebuild trigger`) para garantir que o Vite invalide o cache e gere um novo build com o código atualizado.
+### 4. `src/components/equipe/NewClientModal.tsx`
+- Import: `ParticipantesTab` → `RepresentantesTab` from `./client-form/RepresentantesTab`
+- Import: `createDefaultDraftParticipant` → `createDefaultDraftRepresentante`
+- Tab union: `"participantes"` → `"representantes"`
+- All label strings: "Participantes" → "Representantes", "participantes" → "representantes"
+- State refs: `draftParticipant` / `setDraftParticipant` / `hasDraftParticipantData` — rename to `draftRepresentante` / `setDraftRepresentante` / `hasDraftRepresentanteData`
+- DialogDescription text updated
 
-Nenhuma correção de código é necessária — o problema é exclusivamente de cache do preview.
+### 5. `src/components/equipe/client-form/HistoricoTab.tsx`
+- Line 44: `participante: 'Participante'` → `representante: 'Representante'`
 
-**1 arquivo, 1 linha adicionada.**
+### 6. `src/hooks/useDevClients.ts`
+- Line 12: `participanteTable` → `representanteTable = 'representante'`
+- Line 117: union `'participante'` → `'representante'`
+- Bottom export: `participanteTable` → `representanteTable`
+
+### 7. `src/hooks/useClientEditData.ts`
+- Line 8: `participanteTable` → `representanteTable = 'representante'`
+- Line 120: `.from(participanteTable)` → `.from(representanteTable)`
+- Line 128: `p.id_participante` → `p.id_representante`
+- Line 130: `tipo_participante` → `tipo_representante`
+
+### 8. `src/hooks/useSaveClientTransaction.ts`
+- Line 11: `participanteTable` → `representanteTable = 'representante'`
+- All `.from(participanteTable)` → `.from(representanteTable)`
+- `id_participante` → `id_representante` (lines 169, 172, 174, 274, 276)
+- `tipo_participante` → `tipo_representante` (line 268)
+- Audit `entity_type: 'participante'` → `'representante'` (line 445)
+- Log text "participantes" → "representantes" (line 471)
+- Comment text updated
+
+### 9. `src/hooks/useAuditLog.ts`
+- Line 11: `'participante'` → `'representante'` in union type
+
+### NÃO alterar
+- `src/constants/efdConfig.ts` — "Participante" refere-se ao SPED fiscal
+- `src/integrations/supabase/types.ts` — regenera automaticamente
+
+**Total: 8 arquivos alterados, 1 arquivo renomeado.**
 
