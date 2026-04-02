@@ -241,16 +241,26 @@ export default function ControlePerdcomp() {
   // Create set of rectified processes (processes that appear in nr_proc_ret of another record)
   const retificadosSet = new Set(perData.filter((item: any) => item.nr_proc_ret).map((item: any) => item.nr_proc_ret));
 
-  // Create map of total compensated value per PER
+  // Set of DCOMPs that have been rectified by another DCOMP
+  const dcompsRetificadosSet = useMemo(() => {
+    return new Set(
+      dcompData
+        .filter((d: any) => d.nr_dcomp_ret)
+        .map((d: any) => d.nr_dcomp_ret)
+    );
+  }, [dcompData]);
+
+  // Create map of total compensated value per PER (excluding rectified DCOMPs)
   const dcompTotalMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const dcomp of dcompData) {
+      if (dcompsRetificadosSet.has(dcomp.nr_documento)) continue;
       const perNum = dcomp.nr_per_orig;
       if (!map[perNum]) map[perNum] = 0;
       map[perNum] += dcomp.vlr_compensado || 0;
     }
     return map;
-  }, [dcompData]);
+  }, [dcompData, dcompsRetificadosSet]);
 
   // Frontend filtering - hide rectified processes and apply user filters
   const filteredPerData = perData.filter((item: any) => {
