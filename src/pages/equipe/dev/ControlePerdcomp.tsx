@@ -62,6 +62,17 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+const formatDateTime = (dateStr: string | null) => {
+  if (!dateStr) return "-";
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return dateStr;
+  }
+};
+
 interface PerSituacaoMap {
   [key: string]: {
     situacao: string;
@@ -646,7 +657,7 @@ export default function ControlePerdcomp() {
                       <TableCell className="font-medium">{normalizeProcessNumber(item.nr_per)}</TableCell>
                       <TableCell>{situacaoInfo?.situacao || "-"}</TableCell>
                       <TableCell className="text-muted-foreground text-sm">
-                        {situacaoInfo?.criado_em ? formatDate(situacaoInfo.criado_em) : "-"}
+                        {situacaoInfo?.criado_em ? formatDateTime(situacaoInfo.criado_em) : "-"}
                       </TableCell>
                       <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
                       <TableCell>{item.exercicio}</TableCell>
