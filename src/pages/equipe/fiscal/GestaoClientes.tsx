@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { currentAmbiente } from "@/config/api";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,7 +17,8 @@ import NewClientModal from "@/components/equipe/NewClientModal";
 const ITEMS_PER_PAGE = 10;
 
 const GestaoClientes = () => {
-  // Estados do cliente
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const canEdit = isAdmin || isLider || isSublider;
   const [clienteId, setClienteId] = useState("");
   const [status, setStatus] = useState("");
   const [tipo, setTipo] = useState("");
@@ -222,16 +224,18 @@ const GestaoClientes = () => {
     <div className="space-y-6">
       {/* Topo: Botão à esquerda + texto auxiliar à direita */}
       <div className="flex justify-between items-center">
-        <Button
-          onClick={() => {
-            setEditingClienteId(null);
-            setViewMode(false);
-            setNovoClienteModalOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Novo cliente
-        </Button>
+        {canEdit && (
+          <Button
+            onClick={() => {
+              setEditingClienteId(null);
+              setViewMode(false);
+              setNovoClienteModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Novo cliente
+          </Button>
+        )}
         <div className="hidden md:flex items-center text-slate-500 gap-2">
           <Search className="h-4 w-4" />
           <span className="text-sm">Gerencie sua base de dados de clientes</span>
@@ -369,7 +373,7 @@ const GestaoClientes = () => {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
-                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>
+                   {canEdit && <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
@@ -385,19 +389,21 @@ const GestaoClientes = () => {
                     <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                     <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
                     <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
-                    <TableCell className="px-4 py-3.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
+                    {canEdit && (
+                      <TableCell className="px-4 py-3.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -437,6 +443,7 @@ const GestaoClientes = () => {
         }}
         editingClienteId={editingClienteId}
         readOnly={viewMode}
+        canEdit={canEdit}
       />
 
       {/* AlertDialog de confirmação de exclusão */}
