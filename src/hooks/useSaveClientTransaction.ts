@@ -547,7 +547,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     } finally {
       setSaving(false);
     }
-  }, [clientData, entities, participants, contracts, inscricoesMap, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient]);
+  }, [clientData, entities, participants, contracts, inscricoesMap, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot]);
 
   const handleSave = useCallback(() => {
     const pendingTabs = getDraftPendingTabs();
