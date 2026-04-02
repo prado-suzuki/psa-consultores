@@ -1,52 +1,48 @@
 
 
-## Plan: Corrigir formatação do número PER e DCOMP
+## Plan: Adicionar campo "Percentual Aplicado (%)" no modal de PER
 
-### Problema
+### Diagnóstico
 
-O `formatProcessNumber` em `PerFormModal.tsx` insere separadores errados nos últimos dígitos:
+O `PerFormModal.tsx` já possui `porcentagem_psa` no schema Zod (linha 97), nos defaultValues (linha 145), no reset de edição (linha 225), e nas mutations de create/update (linhas 290, 362). Porém, **não há nenhum `<FormField>` renderizado** para este campo no JSX.
 
-**Errado** (atual): posições 5,10,16,17,18 = dot, **20 = dot**, 22 = dash → `XXXXX.XXXXX.XXXXXX.X.X.XX.XX-XX`
-**Certo**: posições 5,10,16,17,18 = dot, **20 = dash** → `XXXXX.XXXXX.XXXXXX.X.X.XX-XXXX`
+### Correção: `src/components/equipe/dev/perdcomp/PerFormModal.tsx`
 
-Total de dígitos: **24** (não 26).
-
-O `formatDcompNumber` em `DcompFormModal.tsx` já produz o formato correto, mas aceita 26 dígitos no slice — deve ser 24.
-
-### Correções
-
-#### 1. `src/components/equipe/dev/perdcomp/PerFormModal.tsx` (~linha 59-72)
-
-Substituir `formatProcessNumber`:
-
+**1. Adicionar validação `.max(100)` no schema** (linha 97):
 ```typescript
-const formatProcessNumber = (value: string): string => {
-  const digits = value.replace(/\D/g, '').slice(0, 24);
-  let formatted = '';
-  for (let i = 0; i < digits.length; i++) {
-    if (i === 5 || i === 10 || i === 16 || i === 17 || i === 18) {
-      formatted += '.';
-    }
-    if (i === 20) {
-      formatted += '-';
-    }
-    formatted += digits[i];
-  }
-  return formatted;
-};
+porcentagem_psa: z.coerce.number().max(100, 'Máximo 100%').nullable().optional(),
 ```
 
-Mudanças: remover dot em `i === 20`, mover dash de `i === 22` para `i === 20`, max dígitos `24`.
+**2. Adicionar `<FormField>` antes do `<DialogFooter>`** (após linha 710, antes da 712):
+```tsx
+<FormField
+  control={form.control}
+  name="porcentagem_psa"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Percentual Aplicado (%)</FormLabel>
+      <FormControl>
+        <Input
+          type="number"
+          step="0.01"
+          min="0"
+          max="100"
+          placeholder="Ex: 15.00"
+          value={field.value ?? ''}
+          onChange={(e) =>
+            field.onChange(
+              e.target.value ? Math.min(Number(e.target.value), 100) : null
+            )
+          }
+        />
+      </FormControl>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+```
 
-#### 2. `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` (~linha 53-72)
+### Nenhum outro arquivo afetado
 
-Ajustar `slice(0, 26)` → `slice(0, 24)` para consistência. A lógica de partes já produz o formato correto.
-
-#### 3. Placeholders
-
-Atualizar os placeholders de ambos os inputs para `00000.00000.000000.0.0.00-0000` (já está correto — 24 dígitos formatados).
-
-### Dados existentes
-
-PERs já salvos com formato errado (ex: `32272.39472.260925.1.1.19.14-89`) continuarão exibidos assim na tabela pois o valor armazenado é o formatado. Para corrigir dados existentes, seria necessário um script de migração — isso pode ser feito como passo adicional se desejado.
+A lógica de persistência (create/update), draft, e reset de edição já tratam `porcentagem_psa`. Apenas o campo visual está ausente.
 
