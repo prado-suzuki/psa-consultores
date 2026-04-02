@@ -148,9 +148,9 @@ function ProdutoContratadoBlock({
     <div className="space-y-3">
       {/* Empresa filter */}
       <div>
-        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa</Label>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
         <Select value={clusterFilter} onValueChange={onClusterFilterChange}>
-          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Todas as empresas" /></SelectTrigger>
+          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todas as empresas</SelectItem>
             {allClusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
