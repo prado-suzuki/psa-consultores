@@ -589,7 +589,7 @@ export default function ControlePerdcomp() {
                   const situacaoInfo = perSituacoesMap[item.nr_per];
                   const totalCompensado = dcompTotalMap[item.nr_per] || 0;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const saldo = item.vlr_credito - totalCompensado - valorRessarcido;
+                  const saldo = Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100;
                   const correction = selicCorrectionMap[item.nr_per];
 
                   return (
