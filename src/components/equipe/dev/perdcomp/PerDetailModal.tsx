@@ -778,7 +778,7 @@ export function PerDetailModal({
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : '')} />
+                  <Calendar selected={ressarcimentoData ? new Date(ressarcimentoData + 'T00:00:00') : undefined} onSelect={(d) => { setRessarcimentoData(d ? format(d, 'yyyy-MM-dd') : ''); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }} />
                 </PopoverContent>
               </Popover>
             </div>

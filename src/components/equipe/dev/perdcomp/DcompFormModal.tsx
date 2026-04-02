@@ -408,7 +408,7 @@ export function DcompFormModal({
                       </FormControl>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => field.onChange(d ? format(d, 'yyyy-MM-dd') : '')} />
+                      <Calendar selected={field.value ? new Date(field.value + 'T00:00:00') : undefined} onSelect={(d) => { field.onChange(d ? format(d, 'yyyy-MM-dd') : ''); document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); }} />
                     </PopoverContent>
                   </Popover>
                   <FormMessage />
