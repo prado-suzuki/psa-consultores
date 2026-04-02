@@ -25,6 +25,8 @@ const AuditoriaCruzadaContent = () => {
     clienteId, contribuinteId, dataInicio, dataFim, hasQueried,
     setClienteId, setContribuinteId, setDataInicio, setDataFim, setHasQueried, handleLimpar,
   } = useAuditoriaStore();
+  const [openIni, setOpenIni] = React.useState(false);
+  const [openFim, setOpenFim] = React.useState(false);
 
   const { data: clientes = [] } = useClientesList({ ativo: true });
   const { data: contribuintes = [] } = useContribuintesByCliente(clienteId || null);
