@@ -421,7 +421,7 @@ export default function ContratosTab({
                       {/* Distribuição de Receita */}
                       <div className="border border-dashed rounded-lg p-3 mt-4">
                         <div className="flex items-center justify-between mb-2">
-                          <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)</h5>
+                          <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
                           <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setEditingContractData(prev => prev ? ({ ...prev, distribuicao_receita: [...((prev as any).distribuicao_receita || []), { id_centro_custo: "", percentual_rateio: 0 }] } as any) : prev)}><Plus size={12} /> Adicionar</Button>
                         </div>
                         {((ec as any).distribuicao_receita || []).map((cc: { id_centro_custo: string; percentual_rateio: number }, idx: number) => (

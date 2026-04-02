@@ -293,6 +293,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
         situacao: c.situacao_projeto || "em_andamento",
         observacoes: c.observacoes_projeto || null,
+        cluster_id: c.cluster_id || null,
         // id_produto_segmento removido do payload — agora usa os_produtos_contratados
       });
 
