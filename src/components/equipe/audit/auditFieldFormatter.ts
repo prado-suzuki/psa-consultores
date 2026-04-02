@@ -143,7 +143,7 @@ const ENUM_FIELDS: Record<string, Record<string, string>> = {
 };
 
 // Fields that contain booleans
-const BOOLEAN_FIELDS = new Set(['is_recurring']);
+const BOOLEAN_FIELDS = new Set(['is_recurring', 'ativo', 'acesso_chamados', 'contribuinte_faturamento']);
 
 export interface LookupMaps {
   profiles: Record<string, string>;
