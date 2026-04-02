@@ -92,15 +92,15 @@ export const usePerformanceData = (periodo: string, area: string) => {
     queryFn: async () => {
       // Fire all 3 queries in parallel
       const [projectsRes, tasksRes, membersRes] = await Promise.all([
-        (supabase.from('tax_projects') as any).select(`
+        (supabase.from('org_projects') as any).select(`
           id, name, status, start_date, end_date,
           external_client_id,
           estrutura_area_id,
-          cliente:cliente!tax_projects_external_client_id_fkey(nome),
-          area:estrutura_areas!tax_projects_estrutura_area_id_fkey(name, color)
+          cliente:cliente!org_projects_external_client_id_fkey(nome),
+          area:estrutura_areas!org_projects_estrutura_area_id_fkey(name, color)
         `).eq('is_active', true),
         supabase.from('fiscal_tasks').select('id, status, due_date, project_id, assigned_to, updated_at'),
-        supabase.from('tax_project_members').select('project_id, user_id'),
+        supabase.from('org_project_members').select('project_id, user_id'),
       ]);
 
       if (projectsRes.error) throw projectsRes.error;

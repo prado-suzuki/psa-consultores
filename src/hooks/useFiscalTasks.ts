@@ -92,7 +92,7 @@ export interface TaskFilters {
          .from('fiscal_tasks')
           .select(`
              *,
-             project:tax_projects(id, name),
+             project:org_projects(id, name),
              client:cliente(id, nome),
              contribuinte:contribuinte(id, nome_razao_social)
            `)

@@ -75,7 +75,7 @@ function useLookupMaps(): LookupMaps {
     queryKey: ['audit-lookup-projects'],
     queryFn: async () => {
       const { data } = await supabase
-        .from('tax_projects')
+        .from('org_projects')
         .select('id, name');
       return buildMap(data?.map(d => ({ id: d.id, label: d.name })) ?? null);
     },
