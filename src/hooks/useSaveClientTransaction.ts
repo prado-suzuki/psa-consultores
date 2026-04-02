@@ -426,17 +426,38 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
       queryClient.invalidateQueries({ queryKey: ["os-produtos-contratados"] });
 
-      // ─── Audit logs ───────────────────────────────────────────
+      // ─── Audit logs with granular changed_fields ─────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
+      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'setor_cliente', 'regiao'];
+      const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
+      const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
+      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id'];
+
+      const snap = isEditing ? originalSnapshot : null;
+
+      // Cliente
+      const clientDiff = snap
+        ? computeFieldDiff(snap.clientData as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
+        : null;
       logAction({
         area: 'dev',
         entity_type: 'cliente',
         entity_id: auditClienteId,
         entity_name: clientData.nome.trim(),
         action: isEditing ? 'updated' : 'created',
+        changed_fields: clientDiff && Object.keys(clientDiff).length > 0 ? clientDiff : undefined,
       });
 
+      // Contribuintes
+      const contribDiffs = snap
+        ? computeEntityListDiff(snap.entities as unknown as Record<string, unknown>[], entities as unknown as Record<string, unknown>[], '_dbId', contribFields)
+        : [];
+      const contribDiffMap = new Map(contribDiffs.map(d => [d.entityId, d.diff]));
+
       for (const e of entities) {
+        const diff = e._dbId ? contribDiffMap.get(e._dbId) : undefined;
+        // Skip audit for existing entities with no changes
+        if (e._dbId && (!diff || Object.keys(diff).length === 0)) continue;
         logAction({
           area: 'dev',
           entity_type: 'contribuinte',
@@ -444,10 +465,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           entity_name: e.nome_razao_social,
           action: e._dbId ? 'updated' : 'created',
           details: `Cliente: ${clientData.nome.trim()}`,
+          changed_fields: diff,
         });
       }
 
+      // Representantes
+      const partDiffs = snap
+        ? computeEntityListDiff(snap.participants as unknown as Record<string, unknown>[], participants as unknown as Record<string, unknown>[], '_dbId', partFields)
+        : [];
+      const partDiffMap = new Map(partDiffs.map(d => [d.entityId, d.diff]));
+
       for (const p of participants) {
+        const diff = p._dbId ? partDiffMap.get(p._dbId) : undefined;
+        if (p._dbId && (!diff || Object.keys(diff).length === 0)) continue;
         logAction({
           area: 'dev',
           entity_type: 'representante',
@@ -455,10 +485,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           entity_name: p.nome,
           action: p._dbId ? 'updated' : 'created',
           details: `Cliente: ${clientData.nome.trim()}`,
+          changed_fields: diff,
         });
       }
 
+      // Ordens de Serviço
+      const osDiffs = snap
+        ? computeEntityListDiff(snap.contracts as unknown as Record<string, unknown>[], contracts as unknown as Record<string, unknown>[], '_dbId', osFields)
+        : [];
+      const osDiffMap = new Map(osDiffs.map(d => [d.entityId, d.diff]));
+
       for (const c of contracts) {
+        const diff = c._dbId ? osDiffMap.get(c._dbId) : undefined;
+        if (c._dbId && (!diff || Object.keys(diff).length === 0)) continue;
         logAction({
           area: 'dev',
           entity_type: 'ordem_servico',
@@ -466,18 +505,30 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           entity_name: c.ordem_servico || '(sem número)',
           action: c._dbId ? 'updated' : 'created',
           details: `Cliente: ${clientData.nome.trim()}`,
+          changed_fields: diff,
         });
       }
 
-      if (isEditing) {
-        logAction({
-          area: 'dev',
-          entity_type: 'cliente',
-          entity_id: auditClienteId,
-          entity_name: clientData.nome.trim(),
-          action: 'updated',
-          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} representantes, ${contracts.length} OS`,
-        });
+      // Soft-deleted entities
+      if (isEditing && snap) {
+        const currentContribIds = new Set(entities.filter(e => e._dbId).map(e => e._dbId!));
+        for (const old of snap.entities) {
+          if (old._dbId && !currentContribIds.has(old._dbId)) {
+            logAction({ area: 'dev', entity_type: 'contribuinte', entity_id: old._dbId, entity_name: old.nome_razao_social, action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
+          }
+        }
+        const currentPartIds = new Set(participants.filter(p => p._dbId).map(p => p._dbId!));
+        for (const old of snap.participants) {
+          if (old._dbId && !currentPartIds.has(old._dbId)) {
+            logAction({ area: 'dev', entity_type: 'representante', entity_id: old._dbId, entity_name: old.nome, action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
+          }
+        }
+        const currentOsIds = new Set(contracts.filter(c => c._dbId).map(c => c._dbId!));
+        for (const old of snap.contracts) {
+          if (old._dbId && !currentOsIds.has(old._dbId)) {
+            logAction({ area: 'dev', entity_type: 'ordem_servico', entity_id: old._dbId, entity_name: old.ordem_servico || '(sem número)', action: 'deleted', details: `Cliente: ${clientData.nome.trim()}` });
+          }
+        }
       }
 
       toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
