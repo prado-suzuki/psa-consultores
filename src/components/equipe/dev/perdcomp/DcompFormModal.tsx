@@ -510,9 +510,11 @@ export function DcompFormModal({
                     <Input
                       type="number"
                       step="0.01"
+                      min="0"
+                      max="100"
                       placeholder="Ex: 15.00"
                       value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : null)}
+                      onChange={(e) => field.onChange(e.target.value ? Math.min(Number(e.target.value), 100) : null)}
                     />
                   </FormControl>
                   <FormMessage />

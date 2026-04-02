@@ -779,9 +779,14 @@ export function PerDetailModal({
               <Input
                 type="number"
                 step="0.01"
+                min="0"
+                max="100"
                 placeholder="Ex: 15.00"
                 value={ressarcimentoPercentual}
-                onChange={(e) => setRessarcimentoPercentual(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '' || Number(v) <= 100) setRessarcimentoPercentual(v);
+                }}
               />
             </div>
           </div>
