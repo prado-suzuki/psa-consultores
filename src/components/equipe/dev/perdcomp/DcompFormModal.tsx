@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
-import { stripToDigits } from '@/lib/perdcompUtils';
+import { stripToDigits, normalizeProcessNumber } from '@/lib/perdcompUtils';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -373,7 +373,7 @@ export function DcompFormModal({
                         <SelectItem value="__none__">Nenhum (original)</SelectItem>
                         {dcompsVigentesParaRetificar.map((dcomp) => (
                           <SelectItem key={dcomp.nr_documento} value={dcomp.nr_documento}>
-                            {dcomp.nr_documento} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
+                            {normalizeProcessNumber(dcomp.nr_documento)} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -119,6 +119,17 @@ const formatDate = (dateStr: string | null) => {
   }
 };
 
+const formatDateTime = (dateStr: string | null) => {
+  if (!dateStr) return '-';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+  } catch {
+    return dateStr;
+  }
+};
+
 /**
  * Derives the original DCOMP of a rectification chain by traversing nr_dcomp_ret links.
  * Returns the nr_documento of the root DCOMP (the one with nr_dcomp_ret = null).
@@ -551,7 +562,7 @@ export function PerDetailModal({
                                 {sit.situacao}
                               </Badge>
                               <span className="text-xs text-slate-500">
-                                {formatDate(sit.criado_em)}
+                                {formatDateTime(sit.criado_em)}
                               </span>
                             </div>
                           </div>
@@ -669,12 +680,12 @@ export function PerDetailModal({
                           return (
                             <TableRow key={dcomp.nr_documento}>
                               <TableCell className="font-medium">
-                                {isRetificacao ? originalDoc : dcomp.nr_documento}
+                {normalizeProcessNumber(isRetificacao ? originalDoc : dcomp.nr_documento)}
                               </TableCell>
                               <TableCell>
                                 {isRetificacao ? (
                                   <span className="text-orange-600 dark:text-orange-400 font-medium">
-                                    {dcomp.nr_documento}
+                                    {normalizeProcessNumber(dcomp.nr_documento)}
                                   </span>
                                 ) : (
                                   <span className="text-muted-foreground">-</span>
