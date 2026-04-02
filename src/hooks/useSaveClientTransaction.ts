@@ -4,11 +4,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
-import type { DraftEntity, InscricaoIE, DraftParticipant, DraftOrdemServico } from '@/types/clientForm';
+import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
-const participanteTable = 'participante';
+const representanteTable = 'representante';
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
@@ -46,7 +46,7 @@ interface ClientDataShape {
 interface SaveTransactionParams {
   clientData: ClientDataShape;
   entities: DraftEntity[];
-  participants: DraftParticipant[];
+  participants: DraftRepresentante[];
   contracts: DraftOrdemServico[];
   inscricoesMap: Record<string, InscricaoIE[]>;
   isEditing: boolean;
@@ -165,13 +165,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);
         }
 
-        // --- Participantes: update existentes, insert novos, soft-delete removidos ---
-        const partIdField = "id_participante";
+        // --- Representantes: update existentes, insert novos, soft-delete removidos ---
+        const partIdField = "id_representante";
         const currentPartDbIds = participants.filter(p => p._dbId).map(p => p._dbId!);
-        const { data: dbParts } = await (supabase.from(participanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
+        const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          await (supabase.from(participanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
+          await (supabase.from(representanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, soft-delete removidos ---
@@ -258,25 +258,25 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      // --- Persistir participantes (update ou insert) ---
-      const buildPartFields = (p: DraftParticipant) => ({
+      // --- Persistir representantes (update ou insert) ---
+      const buildPartFields = (p: DraftRepresentante) => ({
         id_cliente: clienteId,
         nome: p.nome,
         cargo: p.cargo || null,
         email: p.email || null,
         telefone: p.telefone || null,
-        tipo_participante: p.tipo_participante || null,
+        tipo_representante: p.tipo_representante || null,
         observacoes: p.observacoes || null,
         acesso_chamados: p.acesso_chamados ?? false,
       });
 
       for (const p of participants) {
-        const pIdField = "id_participante";
+        const pIdField = "id_representante";
         if (p._dbId) {
-          const { error } = await (supabase.from(participanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
+          const { error } = await (supabase.from(representanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
           if (error) throw error;
         } else {
-          const { error } = await (supabase.from(participanteTable) as any).insert(buildPartFields(p));
+          const { error } = await (supabase.from(representanteTable) as any).insert(buildPartFields(p));
           if (error) throw error;
         }
       }
@@ -294,7 +294,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         situacao: c.situacao_projeto || "em_andamento",
         observacoes: c.observacoes_projeto || null,
         cluster_id: c.cluster_id || null,
-        // id_produto_segmento removido do payload — agora usa os_produtos_contratados
       });
 
       for (const c of contracts) {
@@ -442,7 +441,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       for (const p of participants) {
         logAction({
           area: 'dev',
-          entity_type: 'participante',
+          entity_type: 'representante',
           entity_id: p._dbId || auditClienteId,
           entity_name: p.nome,
           action: p._dbId ? 'updated' : 'created',
@@ -468,7 +467,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           entity_id: auditClienteId,
           entity_name: clientData.nome.trim(),
           action: 'updated',
-          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} participantes, ${contracts.length} OS`,
+          details: `Atualização completa: ${entities.length} contribuintes, ${participants.length} representantes, ${contracts.length} OS`,
         });
       }
 

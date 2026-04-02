@@ -16,12 +16,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DraftEntity, InscricaoIE, DraftParticipant, DraftContract, NewClientModalProps } from "@/types/clientForm";
-import { defaultClientData, createDefaultDraftEntity, createDefaultDraftParticipant, createDefaultDraftContract } from "./client-form/constants";
+import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
+import { defaultClientData, createDefaultDraftEntity, createDefaultDraftRepresentante, createDefaultDraftContract } from "./client-form/constants";
 
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
-import ParticipantesTab from "./client-form/ParticipantesTab";
+import RepresentantesTab from "./client-form/RepresentantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
 import HistoricoTab from "./client-form/HistoricoTab";
@@ -44,7 +44,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento" | "historico">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDraftWarning, setShowDraftWarning] = useState(false);
@@ -65,8 +65,8 @@ export default function NewClientModal({
   const [clientData, setClientData] = useState(defaultClientData);
   const [entities, setEntities] = useState<DraftEntity[]>([]);
   const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>(createDefaultDraftEntity());
-  const [participants, setParticipants] = useState<DraftParticipant[]>([]);
-  const [draftParticipant, setDraftParticipant] = useState(createDefaultDraftParticipant());
+  const [participants, setParticipants] = useState<DraftRepresentante[]>([]);
+  const [draftRepresentante, setDraftRepresentante] = useState(createDefaultDraftRepresentante());
   const [contracts, setContracts] = useState<DraftContract[]>([]);
   const [draftContract, setDraftContract] = useState(createDefaultDraftContract());
   const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
@@ -81,26 +81,26 @@ export default function NewClientModal({
 
   // --- Draft detection ---
   const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
-  const hasDraftParticipantData = () => !!(draftParticipant.nome?.trim());
+  const hasDraftRepresentanteData = () => !!(draftRepresentante.nome?.trim());
   const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_produto_segmento?.trim());
 
   const getDraftPendingTabs = (): string[] => {
     const tabs: string[] = [];
     if (hasDraftEntityData()) tabs.push("Contribuintes");
-    if (hasDraftParticipantData()) tabs.push("Participantes");
+    if (hasDraftRepresentanteData()) tabs.push("Representantes");
     if (hasDraftContractData()) tabs.push("OS");
     return tabs;
   };
 
-  const tabLabelToKey: Record<string, typeof activeTab> = { "Contribuintes": "contribuintes", "Participantes": "participantes", "OS": "contratos" };
+  const tabLabelToKey: Record<string, typeof activeTab> = { "Contribuintes": "contribuintes", "Representantes": "representantes", "OS": "contratos" };
 
   const checkDraftAndNavigate = (targetTab: typeof activeTab) => {
     const currentTabDraft =
       (activeTab === "contribuintes" && hasDraftEntityData()) ||
-      (activeTab === "participantes" && hasDraftParticipantData()) ||
+      (activeTab === "representantes" && hasDraftRepresentanteData()) ||
       (activeTab === "contratos" && hasDraftContractData());
     if (currentTabDraft) {
-      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "participantes" ? "Participantes" : "OS";
+      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "representantes" ? "Representantes" : "OS";
       setDraftWarningContext({ action: "navigate", targetTab, pendingTabs: [currentPending] });
       setShowDraftWarning(true);
       return;
@@ -116,7 +116,7 @@ export default function NewClientModal({
 
   const clearCurrentDraft = () => {
     if (activeTab === "contribuintes") setDraftEntity(createDefaultDraftEntity());
-    else if (activeTab === "participantes") setDraftParticipant(createDefaultDraftParticipant());
+    else if (activeTab === "representantes") setDraftRepresentante(createDefaultDraftRepresentante());
     else if (activeTab === "contratos") setDraftContract(createDefaultDraftContract());
   };
 
@@ -208,7 +208,7 @@ export default function NewClientModal({
     setInscricoesMap({});
     setDraftInscricoes([]);
     setDraftContract(createDefaultDraftContract());
-    setDraftParticipant(createDefaultDraftParticipant());
+    setDraftRepresentante(createDefaultDraftRepresentante());
     setActiveTab("cliente");
     setIsReadOnly(readOnly);
     setShowExitConfirm(false);
@@ -226,7 +226,7 @@ export default function NewClientModal({
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleAttemptClose(); }}>
         <DialogContent className={cn("max-w-5xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden")} onInteractOutside={(e) => e.preventDefault()}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
-          <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, participantes e contratos</DialogDescription>
+          <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white shrink-0">
@@ -246,9 +246,9 @@ export default function NewClientModal({
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
                   <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", editingClienteId ? "grid-cols-6" : "grid-cols-5")}>
-                    {(["cliente", "contribuintes", "participantes", "contratos", "faturamento"] as const).map((tab) => (
+                    {(["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const).map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
-                        {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "participantes" ? "Participantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
+                        {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "representantes" ? "Representantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
                       </TabsTrigger>
                     ))}
                     {editingClienteId && (
@@ -276,10 +276,10 @@ export default function NewClientModal({
                     />
                   </TabsContent>
 
-                  <TabsContent value="participantes" className="mt-0 p-3 md:p-4">
-                    <ParticipantesTab
+                  <TabsContent value="representantes" className="mt-0 p-3 md:p-4">
+                    <RepresentantesTab
                       participants={participants} setParticipants={setParticipants}
-                      draftParticipant={draftParticipant} setDraftParticipant={setDraftParticipant}
+                      draftRepresentante={draftRepresentante} setDraftRepresentante={setDraftRepresentante}
                       isReadOnly={isReadOnly}
                     />
                   </TabsContent>
