@@ -498,7 +498,7 @@ export default function ContratosTab({
             {/* Distribuição de Receita */}
             <div className="mt-4 border border-dashed rounded-lg p-4">
               <div className="flex items-center justify-between mb-2">
-                <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)</h5>
+                <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
                 <Button type="button" size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => setDraftContract(prev => ({ ...prev, distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }] }))}><Plus size={14} /> Adicionar Centro de Custo</Button>
               </div>
               {draftContract.distribuicao_receita.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum centro de custo adicionado.</p>}
