@@ -44,6 +44,13 @@ interface ClientDataShape {
   regiao: string;
 }
 
+interface OriginalSnapshot {
+  clientData: ClientDataShape;
+  entities: DraftEntity[];
+  participants: DraftRepresentante[];
+  contracts: DraftOrdemServico[];
+}
+
 interface SaveTransactionParams {
   clientData: ClientDataShape;
   entities: DraftEntity[];
@@ -56,6 +63,7 @@ interface SaveTransactionParams {
   getDraftPendingTabs: () => string[];
   onDuplicateFound: (name: string) => Promise<boolean>;
   onSuccess: () => void;
+  originalSnapshot?: OriginalSnapshot | null;
 }
 
 export const useSaveClientTransaction = (params: SaveTransactionParams) => {
