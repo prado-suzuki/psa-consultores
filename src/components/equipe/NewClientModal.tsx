@@ -14,7 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, Loader2, CheckCircle2, Pencil, Building2 } from "lucide-react";
+import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftParticipant, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData, createDefaultDraftEntity, createDefaultDraftParticipant, createDefaultDraftContract } from "./client-form/constants";
@@ -24,6 +24,7 @@ import ContribuintesTab from "./client-form/ContribuintesTab";
 import ParticipantesTab from "./client-form/ParticipantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
+import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
@@ -43,7 +44,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "participantes" | "contratos" | "faturamento" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDraftWarning, setShowDraftWarning] = useState(false);
@@ -244,12 +245,17 @@ export default function NewClientModal({
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
-                  <TabsList className="w-full grid grid-cols-5 bg-gray-100/80 p-1 rounded-lg h-auto">
+                  <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", editingClienteId ? "grid-cols-6" : "grid-cols-5")}>
                     {(["cliente", "contribuintes", "participantes", "contratos", "faturamento"] as const).map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
                         {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "participantes" ? "Participantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
                       </TabsTrigger>
                     ))}
+                    {editingClienteId && (
+                      <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                        <History size={14} /> Histórico
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </div>
 
@@ -292,6 +298,12 @@ export default function NewClientModal({
                   <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
                     <FaturamentoTab entities={entities} />
                   </TabsContent>
+
+                  {editingClienteId && (
+                    <TabsContent value="historico" className="mt-0 p-3 md:p-4">
+                      <HistoricoTab clienteId={editingClienteId} entities={entities} participants={participants} contracts={contracts} />
+                    </TabsContent>
+                  )}
                 </ScrollArea>
               </Tabs>
 
