@@ -305,9 +305,9 @@ export function PerFormModal({
       }
 
       // If retificadora, update the original PER's situação to "Retificado"
-      if (data.nr_proc_ret) {
+      if (cleanNrProcRet) {
         const { error: retError } = await supabase.from('per_situacao').insert({
-          nr_proc_per: data.nr_proc_ret,
+          nr_proc_per: cleanNrProcRet,
           situacao: 'Retificado',
         });
         if (retError) {
