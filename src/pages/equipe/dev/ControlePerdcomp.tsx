@@ -861,6 +861,17 @@ export default function ControlePerdcomp() {
                 <PopoverContent className="w-56 p-2" align="start">
                   <ScrollArea className="max-h-64 overflow-auto">
                     <div className="space-y-1">
+                      <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm font-medium">
+                        <Checkbox
+                          checked={situacaoFilter.length === 0}
+                          onCheckedChange={() => {
+                            setSituacaoFilter([]);
+                            setCurrentPage(1);
+                          }}
+                        />
+                        Todas
+                      </label>
+                      <Separator className="my-1" />
                       {allSituacoes.map((s) => (
                         <label
                           key={s}
