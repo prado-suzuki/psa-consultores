@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,8 +142,24 @@ export default function TabA170({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<A170Draft | null>(null);
 
+  const locallyEditedIds = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    setRows(data ?? []);
+    if (!data) return;
+    if (editingId) return;
+
+    if (locallyEditedIds.current.size === 0) {
+      setRows(data);
+      return;
+    }
+
+    setRows(data.map(d => {
+      if (locallyEditedIds.current.has(d.uuid)) {
+        const local = rows.find(r => r.uuid === d.uuid);
+        return local ?? d;
+      }
+      return d;
+    }));
   }, [data]);
 
   const filtered = useMemo(() => {
@@ -310,6 +326,7 @@ export default function TabA170({
           ? { ...row, ...nextSnapshot }
           : row
       ));
+      locallyEditedIds.current.add(item.uuid);
       handleCancelEdit();
       toast.success('Correção do A170 salva na tabela efd_correcoes.');
     } catch (saveError) {
@@ -324,14 +341,14 @@ export default function TabA170({
     item: A170Item,
     field: EditableA170Field,
     className: string,
-    options?: { type?: 'text' | 'number'; align?: 'left' | 'center' | 'right'; step?: string }
   ) => {
     if (editingId !== item.uuid || !draft) {
       const value = item[field];
+      const isChanged = item._originalSnapshot && !Object.is(item[field], item._originalSnapshot[field as keyof typeof item._originalSnapshot]);
 
       if (field === 'CHV_NFSE') {
         return value ? (
-          <code className="text-[10px] font-mono text-muted-foreground" title={String(value)}>
+          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`} title={String(value)}>
             {String(value).slice(0, 12)}…
           </code>
         ) : (
@@ -342,7 +359,7 @@ export default function TabA170({
       if (field === 'DESCR_COMPL') {
         return (
           <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
-            <div className="text-xs truncate">{item.DESCR_COMPL || item.DESCR_ITEM_0200 || '—'}</div>
+            <div className={`text-xs truncate ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 || '—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
@@ -350,21 +367,22 @@ export default function TabA170({
         );
       }
 
+      const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
+
       if (field === 'VL_ITEM' || field === 'VL_BC_PIS' || field === 'VL_PIS' || field === 'VL_BC_COFINS' || field === 'VL_COFINS') {
-        return formatCurrency(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return safeFixed(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return value ?? '—';
+      return <span className={amberClass}>{value ?? '—'}</span>;
     }
 
     return (
       <Input
-        type={options?.type ?? 'text'}
-        step={options?.step}
+        type="text"
         value={draft[field]}
         onChange={(event) => handleDraftChange(field, event.target.value)}
         className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
@@ -433,7 +451,7 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[100px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -449,7 +467,7 @@ export default function TabA170({
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="py-1.5">
                           {item.COD_NCM ? (
@@ -469,32 +487,32 @@ export default function TabA170({
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10">
-                          <div className="flex items-center justify-center gap-1">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px]">
+                          <div className="flex flex-col items-center justify-center gap-1">
                             {editingId === item.uuid ? (
                               <>
                                 <Button
