@@ -296,35 +296,41 @@ const CorrecoesSped = () => {
               <Package className="h-4 w-4" />
               Detalhes do Item EFD
             </DialogTitle>
-            <DialogDescription className="text-xs">
-              {selectedItem?.DESCR_COMPL} — {selectedItem && formatCurrency(selectedItem.VL_ITEM)}
-            </DialogDescription>
+            <DialogDescription className="sr-only">Detalhes do item EFD selecionado</DialogDescription>
           </DialogHeader>
 
           {selectedItem && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST PIS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.CST_PIS}</p>
+              <div className="bg-muted/30 border rounded-lg p-4 space-y-3">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Registro EFD Original</h4>
+                <div className="flex items-baseline justify-between gap-2">
+                  <p className="text-sm font-medium truncate">{selectedItem.DESCR_COMPL}</p>
+                  <span className="text-base font-mono font-semibold shrink-0">{formatCurrency(selectedItem.VL_ITEM)}</span>
                 </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. PIS</p>
-                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_PIS ?? 0).toFixed(2)}%</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST COFINS</p>
-                  <p className="text-sm font-mono font-medium">{selectedItem.CST_COFINS}</p>
-                </div>
-                <div className="space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. COFINS</p>
-                  <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_COFINS ?? 0).toFixed(2)}%</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST PIS</p>
+                    <p className="text-sm font-mono font-medium">{selectedItem.CST_PIS}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. PIS</p>
+                    <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_PIS ?? 0).toFixed(2)}%</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">CST COFINS</p>
+                    <p className="text-sm font-mono font-medium">{selectedItem.CST_COFINS}</p>
+                  </div>
+                  <div className="space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Alíq. COFINS</p>
+                    <p className="text-sm font-mono font-medium">{(selectedItem.ALIQ_COFINS ?? 0).toFixed(2)}%</p>
+                  </div>
                 </div>
               </div>
 
               <div className="border-t pt-3">
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider flex items-center gap-1">
-                  Itens XML (NFe) — {selectedItem.nfe_itens.length} {selectedItem.nfe_itens.length === 1 ? 'item' : 'itens'}
+                  Itens XML (NFe)
+                  <Badge variant="secondary" className="ml-1 text-[10px]">{selectedItem.nfe_itens.length}</Badge>
                   <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Relação original de todos os itens da nota no XML. Útil para revisar registros do SPED que agruparam vários produtos em uma só linha.</TooltipContent></Tooltip>
                 </h4>
 
@@ -339,7 +345,7 @@ const CorrecoesSped = () => {
                       const efdNcm = selectedItem.nfe_itens[0]?.ncm ?? null;
                       const ncmMatch = efdNcm === nfe.ncm;
                       return (
-                        <div key={`${nfe.nItem}-${i}`} className="rounded-lg border p-3 space-y-2">
+                        <div key={`${nfe.nItem}-${i}`} className="rounded-lg border p-3 space-y-2 bg-background">
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">{nfe.xProd}</p>
@@ -355,7 +361,7 @@ const CorrecoesSped = () => {
                             <span className="text-[10px] text-muted-foreground uppercase tracking-wider">NCM:</span>
                             <code className="text-xs font-mono">{nfe.ncm}</code>
                           {efdNcm && (
-                              <Badge className={`text-[10px] border-0 ${ncmMatch ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                              <Badge variant={ncmMatch ? 'secondary' : 'destructive'} className="text-[10px]">
                                 {ncmMatch ? 'OK' : 'Divergente'}
                               </Badge>
                             )}
