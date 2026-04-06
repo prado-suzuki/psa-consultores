@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, BookOpen, Check, Loader2, Pencil, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Check, Info, Loader2, Pencil, X } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
 
@@ -405,8 +406,9 @@ export default function TabA170({
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
               </span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                 Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar e salvar a correção da linha.
+                <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">As correções feitas aqui são salvas no banco de dados. O registro original é preservado intacto.</TooltipContent></Tooltip>
               </span>
             </div>
             <div className="overflow-auto">
@@ -420,9 +422,9 @@ export default function TabA170({
                     <TableHead className="text-[11px] min-w-[140px]">CHV NFSe</TableHead>
                     <TableHead className="text-[11px] min-w-[240px]">Descrição</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[120px]">Valor</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]">NCM</TableHead>
-                    <TableHead className="text-[11px] min-w-[130px]">Conta</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[100px]">Ações</TableHead>
+                    <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM trazido do Registro 0200 correspondente a este item.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[100px]"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
@@ -503,7 +505,7 @@ export default function TabA170({
                               </Button>
                             )}
                             {linhaCorrigida && editingId !== item.uuid && (
-                              <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
+                              <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="text-[10px] cursor-help">Corrigido</Badge></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica que esta linha foi alterada e possui valores diferentes do arquivo SPED originalmente importado.</TooltipContent></Tooltip>
                             )}
                           </div>
                         </TableCell>
