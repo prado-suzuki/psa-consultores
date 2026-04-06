@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -142,8 +142,24 @@ export default function TabA170({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<A170Draft | null>(null);
 
+  const locallyEditedIds = useRef<Set<string>>(new Set());
+
   useEffect(() => {
-    setRows(data ?? []);
+    if (!data) return;
+    if (editingId) return;
+
+    if (locallyEditedIds.current.size === 0) {
+      setRows(data);
+      return;
+    }
+
+    setRows(data.map(d => {
+      if (locallyEditedIds.current.has(d.uuid)) {
+        const local = rows.find(r => r.uuid === d.uuid);
+        return local ?? d;
+      }
+      return d;
+    }));
   }, [data]);
 
   const filtered = useMemo(() => {
