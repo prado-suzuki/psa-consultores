@@ -70,16 +70,16 @@ function toDraft(item: A170Item): A170Draft {
   return {
     CHV_NFSE: item.CHV_NFSE ?? '',
     DESCR_COMPL: item.DESCR_COMPL ?? '',
-    VL_ITEM: String(item.VL_ITEM ?? 0),
+    VL_ITEM: item.VL_ITEM != null ? Number(item.VL_ITEM).toFixed(2).replace('.', ',') : '0,00',
     COD_CTA: item.COD_CTA ?? '',
-    CST_PIS: String(item.CST_PIS ?? 0),
-    VL_BC_PIS: String(item.VL_BC_PIS ?? 0),
-    ALIQ_PIS: String(item.ALIQ_PIS ?? 0),
-    VL_PIS: String(item.VL_PIS ?? 0),
-    CST_COFINS: String(item.CST_COFINS ?? 0),
-    VL_BC_COFINS: String(item.VL_BC_COFINS ?? 0),
-    ALIQ_COFINS: String(item.ALIQ_COFINS ?? 0),
-    VL_COFINS: String(item.VL_COFINS ?? 0),
+    CST_PIS: item.CST_PIS != null ? String(item.CST_PIS) : '',
+    VL_BC_PIS: item.VL_BC_PIS != null ? Number(item.VL_BC_PIS).toFixed(2).replace('.', ',') : '0,00',
+    ALIQ_PIS: item.ALIQ_PIS != null ? Number(item.ALIQ_PIS).toFixed(2).replace('.', ',') : '0,00',
+    VL_PIS: item.VL_PIS != null ? Number(item.VL_PIS).toFixed(2).replace('.', ',') : '0,00',
+    CST_COFINS: item.CST_COFINS != null ? String(item.CST_COFINS) : '',
+    VL_BC_COFINS: item.VL_BC_COFINS != null ? Number(item.VL_BC_COFINS).toFixed(2).replace('.', ',') : '0,00',
+    ALIQ_COFINS: item.ALIQ_COFINS != null ? Number(item.ALIQ_COFINS).toFixed(2).replace('.', ',') : '0,00',
+    VL_COFINS: item.VL_COFINS != null ? Number(item.VL_COFINS).toFixed(2).replace('.', ',') : '0,00',
   };
 }
 
@@ -483,7 +483,7 @@ export default function TabA170({
                             <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
                           )}
                         </TableCell>
-                        <TableCell className="py-1.5">
+                        <TableCell className="py-1.5 pr-[100px]">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">

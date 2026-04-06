@@ -61,14 +61,14 @@ const numericFields = new Set<EditableC170Field>([
 function toDraft(item: C170Item): C170Draft {
   return {
     DESCR_COMPL: item.DESCR_COMPL ?? '',
-    VL_ITEM: String(item.VL_ITEM ?? 0),
+    VL_ITEM: item.VL_ITEM != null ? Number(item.VL_ITEM).toFixed(2).replace('.', ',') : '0,00',
     COD_CTA: item.COD_CTA ?? '',
-    CST_PIS: String(item.CST_PIS ?? 0),
-    ALIQ_PIS: String(item.ALIQ_PIS ?? 0),
-    VL_PIS: String(item.VL_PIS ?? 0),
-    CST_COFINS: String(item.CST_COFINS ?? 0),
-    ALIQ_COFINS: String(item.ALIQ_COFINS ?? 0),
-    VL_COFINS: String(item.VL_COFINS ?? 0),
+    CST_PIS: item.CST_PIS != null ? String(item.CST_PIS) : '',
+    ALIQ_PIS: item.ALIQ_PIS != null ? Number(item.ALIQ_PIS).toFixed(2).replace('.', ',') : '0,00',
+    VL_PIS: item.VL_PIS != null ? Number(item.VL_PIS).toFixed(2).replace('.', ',') : '0,00',
+    CST_COFINS: item.CST_COFINS != null ? String(item.CST_COFINS) : '',
+    ALIQ_COFINS: item.ALIQ_COFINS != null ? Number(item.ALIQ_COFINS).toFixed(2).replace('.', ',') : '0,00',
+    VL_COFINS: item.VL_COFINS != null ? Number(item.VL_COFINS).toFixed(2).replace('.', ',') : '0,00',
   };
 }
 
@@ -329,7 +329,7 @@ export default function TabC170({
       if (field === 'DESCR_COMPL') {
         return (
           <span className={`text-xs truncate block ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
-            {item.DESCR_ITEM_0200 || item.DESCR_COMPL || '\u2014'}
+            {item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}
           </span>
         );
       }
@@ -511,7 +511,7 @@ export default function TabC170({
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
                           {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10 pr-[100px]">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
