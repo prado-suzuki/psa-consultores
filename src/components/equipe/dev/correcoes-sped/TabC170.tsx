@@ -321,34 +321,35 @@ export default function TabC170({
     item: C170Item,
     field: EditableC170Field,
     className: string,
-    options?: { type?: 'text' | 'number'; step?: string }
   ) => {
     if (editingId !== item.uuid || !draft) {
       const value = item[field];
+      const isChanged = item._originalSnapshot && !Object.is(item[field], item._originalSnapshot[field as keyof typeof item._originalSnapshot]);
 
       if (field === 'DESCR_COMPL') {
         return (
-          <span className="text-xs truncate block" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <span className={`text-xs truncate block ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
             {item.DESCR_ITEM_0200 || item.DESCR_COMPL || '\u2014'}
           </span>
         );
       }
 
+      const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
+
       if (field === 'VL_ITEM' || field === 'VL_PIS' || field === 'VL_COFINS') {
-        return formatCurrency(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return safeFixed(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return value ?? '\u2014';
+      return <span className={amberClass}>{value ?? '\u2014'}</span>;
     }
 
     return (
       <Input
-        type={options?.type ?? 'text'}
-        step={options?.step}
+        type="text"
         value={draft[field]}
         onChange={(event) => handleDraftChange(field, event.target.value)}
         className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}

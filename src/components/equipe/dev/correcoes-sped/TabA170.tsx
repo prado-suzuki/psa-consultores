@@ -341,14 +341,14 @@ export default function TabA170({
     item: A170Item,
     field: EditableA170Field,
     className: string,
-    options?: { type?: 'text' | 'number'; align?: 'left' | 'center' | 'right'; step?: string }
   ) => {
     if (editingId !== item.uuid || !draft) {
       const value = item[field];
+      const isChanged = item._originalSnapshot && !Object.is(item[field], item._originalSnapshot[field as keyof typeof item._originalSnapshot]);
 
       if (field === 'CHV_NFSE') {
         return value ? (
-          <code className="text-[10px] font-mono text-muted-foreground" title={String(value)}>
+          <code className={`text-[10px] font-mono text-muted-foreground ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`} title={String(value)}>
             {String(value).slice(0, 12)}…
           </code>
         ) : (
@@ -359,7 +359,7 @@ export default function TabA170({
       if (field === 'DESCR_COMPL') {
         return (
           <div className="space-y-0.5" title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
-            <div className="text-xs truncate">{item.DESCR_COMPL || item.DESCR_ITEM_0200 || '—'}</div>
+            <div className={`text-xs truncate ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`}>{item.DESCR_COMPL || item.DESCR_ITEM_0200 || '—'}</div>
             {item.DESCR_ITEM_0200 && item.DESCR_ITEM_0200 !== item.DESCR_COMPL && (
               <div className="text-[10px] text-muted-foreground truncate">0200: {item.DESCR_ITEM_0200}</div>
             )}
@@ -367,21 +367,22 @@ export default function TabA170({
         );
       }
 
+      const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
+
       if (field === 'VL_ITEM' || field === 'VL_BC_PIS' || field === 'VL_PIS' || field === 'VL_BC_COFINS' || field === 'VL_COFINS') {
-        return formatCurrency(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
       if (field === 'ALIQ_PIS' || field === 'ALIQ_COFINS') {
-        return safeFixed(typeof value === 'number' ? value : Number(value ?? 0));
+        return <span className={amberClass}>{safeFixed(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
       }
 
-      return value ?? '—';
+      return <span className={amberClass}>{value ?? '—'}</span>;
     }
 
     return (
       <Input
-        type={options?.type ?? 'text'}
-        step={options?.step}
+        type="text"
         value={draft[field]}
         onChange={(event) => handleDraftChange(field, event.target.value)}
         className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
