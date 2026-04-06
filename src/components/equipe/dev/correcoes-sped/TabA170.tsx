@@ -367,7 +367,7 @@ export default function TabA170({
         step={options?.step}
         value={draft[field]}
         onChange={(event) => handleDraftChange(field, event.target.value)}
-        className={className}
+        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
       />
     );
   };
@@ -415,8 +415,9 @@ export default function TabA170({
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
+                    <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
                     <TableHead colSpan={8} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[140px]">CHV NFSe</TableHead>
@@ -424,7 +425,6 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[120px]">Valor</TableHead>
                     <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM trazido do Registro 0200 correspondente a este item.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[100px]"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
@@ -433,6 +433,7 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[100px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -440,7 +441,7 @@ export default function TabA170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={item.uuid} className="group">
+                      <TableRow key={item.uuid} className={editingId === item.uuid ? "bg-accent/30" : "group"}>
                         <TableCell className="py-1.5">
                           {renderEditableCell(item, 'CHV_NFSE', 'h-8 text-xs font-mono')}
                         </TableCell>
@@ -467,7 +468,32 @@ export default function TabA170({
                         <TableCell className="py-1.5">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
-                        <TableCell className="py-1.5">
+                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                        </TableCell>
+                        {/* Actions — sticky right */}
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10">
                           <div className="flex items-center justify-center gap-1">
                             {editingId === item.uuid ? (
                               <>
@@ -508,30 +534,6 @@ export default function TabA170({
                               <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="text-[10px] cursor-help">Corrigido</Badge></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica que esta linha foi alterada e possui valores diferentes do arquivo SPED originalmente importado.</TooltipContent></Tooltip>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
-                        </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
                         </TableCell>
                       </TableRow>
                     );

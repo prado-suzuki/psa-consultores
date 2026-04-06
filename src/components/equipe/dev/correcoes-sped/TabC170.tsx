@@ -334,7 +334,7 @@ export default function TabC170({
         step={options?.step}
         value={draft[field]}
         onChange={(event) => handleDraftChange(field, event.target.value)}
-        className={className}
+        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
       />
     );
   };
@@ -384,9 +384,10 @@ export default function TabC170({
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={4} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
+                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
                     <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Dados XML<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Dados lidos diretamente do arquivo XML original para confronto com a escrituração (SPED).</TooltipContent></Tooltip></span></TableHead>
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[200px]">Descricao</TableHead>
@@ -403,6 +404,7 @@ export default function TabC170({
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
                     <TableHead className="text-[11px] min-w-[90px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[100px] sticky right-0 bg-background z-10">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -414,7 +416,7 @@ export default function TabC170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className="group">
+                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={editingId === item.uuid ? "bg-accent/30" : "group"}>
                         <TableCell className="text-xs py-1.5 max-w-[200px] truncate">
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
@@ -434,49 +436,6 @@ export default function TabC170({
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
                           {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
-                        </TableCell>
-                        {/* Actions */}
-                        <TableCell className="py-1.5">
-                          <div className="flex items-center justify-center gap-1">
-                            {editingId === item.uuid ? (
-                              <>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={() => handleSave(item)}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  {savingId === item.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={handleCancelEdit}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  <X className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => handleStartEdit(item)}
-                                disabled={!!savingId}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {linhaCorrigida && editingId !== item.uuid && (
-                              <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
-                            )}
-                          </div>
                         </TableCell>
                         {/* XML zone */}
                         <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
@@ -537,6 +496,49 @@ export default function TabC170({
                         </TableCell>
                         <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
+                        </TableCell>
+                        {/* Actions — sticky right */}
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10">
+                          <div className="flex items-center justify-center gap-1">
+                            {editingId === item.uuid ? (
+                              <>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => handleSave(item)}
+                                  disabled={savingId === item.uuid}
+                                >
+                                  {savingId === item.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={handleCancelEdit}
+                                  disabled={savingId === item.uuid}
+                                >
+                                  <X className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </>
+                            ) : (
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8"
+                                onClick={() => handleStartEdit(item)}
+                                disabled={!!savingId}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            )}
+                            {linhaCorrigida && editingId !== item.uuid && (
+                              <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
