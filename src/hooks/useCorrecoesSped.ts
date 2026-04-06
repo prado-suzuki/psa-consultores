@@ -229,11 +229,43 @@ export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
 }
 
 export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<D100Item[]>(
-    'correcoes-d100',
-    '/api/v1/pis_cofins/revisao/transp',
-    params,
-  );
+  const { fetchWithAuth } = useApiAuth();
+
+  return useQuery<D100Item[]>({
+    queryKey: ['correcoes-d100', params.id_contribuinte, params.dt_ini, params.dt_fin],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({
+        id_contribuinte: params.id_contribuinte,
+        dt_ini: params.dt_ini,
+        dt_fin: params.dt_fin,
+      });
+      const url = getApiUrl(`/api/v1/pis_cofins/revisao/transp?${searchParams}`);
+      const response = await fetchWithAuth(url);
+      if (!response.ok) {
+        throw new Error(`Erro ao consultar correcoes-d100: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as import('@/types/correcoesSped').D100ResponseEntry[];
+
+      if (!payload || payload.length === 0) return [];
+
+      return payload.map((entry) => ({
+        ...entry.D100,
+        ID_CONTRIBUINTE: entry.ID_CONTRIBUINTE,
+        CNPJ_EFD: entry.CNPJ_EFD,
+        SIMPLES: entry.SIMPLES,
+        CST_PIS: entry.D101?.CST_PIS ?? 0,
+        VL_BC_PIS: entry.D101?.VL_BC_PIS ?? 0,
+        ALIQ_PIS: entry.D101?.ALIQ_PIS ?? 0,
+        VL_PIS: entry.D101?.VL_PIS ?? 0,
+        CST_COFINS: entry.D105?.CST_COFINS ?? 0,
+        VL_BC_COFINS: entry.D105?.VL_BC_COFINS ?? 0,
+        ALIQ_COFINS: entry.D105?.ALIQ_COFINS ?? 0,
+        VL_COFINS: entry.D105?.VL_COFINS ?? 0,
+      }));
+    },
+    enabled: false,
+  });
 }
 
 export function useCorrecoesF100(params: UseCorrecoesSpedParams) {

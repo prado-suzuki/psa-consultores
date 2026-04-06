@@ -174,7 +174,77 @@ export interface A170ResponseEntry {
 
 export type A170Response = Record<string, A170ResponseEntry[]>;
 
-// ── D100 (CTe) — flat array from API ──
+// ── D100 (CTe) ──
+
+export interface RegD101 {
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  IND_NAT_FRT: string;
+  VL_ITEM: number;
+  CST_PIS: number;
+  NAT_BC_CRED: string;
+  VL_BC_PIS: number;
+  ALIQ_PIS: number;
+  VL_PIS: number;
+  COD_CTA: string;
+}
+
+export interface RegD105 {
+  uuid: string;
+  ID_ARQUIVO: string;
+  ID_PAI: string;
+  NUM_LINHA: number;
+  REG: string;
+  IND_NAT_FRT: string;
+  VL_ITEM: number;
+  CST_COFINS: number;
+  NAT_BC_CRED: string;
+  VL_BC_COFINS: number;
+  ALIQ_COFINS: number;
+  VL_COFINS: number;
+  COD_CTA: string;
+}
+
+export interface D100ResponseEntry {
+  ID_CONTRIBUINTE: string;
+  CNPJ_EFD: string;
+  SIMPLES: string;
+  D100: {
+    uuid: string;
+    ID_ARQUIVO: string;
+    NUM_LINHA: number;
+    REG: string;
+    IND_OPER: string;
+    IND_EMIT: string;
+    COD_PART: string;
+    COD_MOD: string;
+    COD_SIT: number;
+    SER: string;
+    SUB: string;
+    NUM_DOC: string;
+    CHV_CTE: string;
+    DT_DOC: string;
+    DT_A_P: string;
+    TP_CTE: number;
+    CHV_CTE_REF: string;
+    VL_DOC: number;
+    VL_DESC: number;
+    IND_FRT: string;
+    VL_SERV: number;
+    VL_BC_ICMS: number;
+    VL_ICMS: number;
+    VL_NT: number;
+    COD_INF: string;
+    COD_CTA: string;
+    ID_PAI: string;
+  };
+  D101: RegD101 | null;
+  D105: RegD105 | null;
+  '0150': Reg0150 | null;
+}
 
 export interface D100Item {
   uuid: string;
@@ -208,9 +278,11 @@ export interface D100Item {
   CNPJ_EFD: string;
   SIMPLES: string;
   CST_PIS: number;
+  VL_BC_PIS: number;
   ALIQ_PIS: number;
   VL_PIS: number;
   CST_COFINS: number;
+  VL_BC_COFINS: number;
   ALIQ_COFINS: number;
   VL_COFINS: number;
 }
