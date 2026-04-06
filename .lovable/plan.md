@@ -1,6 +1,6 @@
 
 
-## Correções de layout, estado e destaque visual nas tabelas editáveis
+## Correções: Conta visível, formatação de draft e prioridade de descrição
 
 ### Arquivos alterados: 2
 - `src/components/equipe/dev/correcoes-sped/TabC170.tsx`
@@ -8,80 +8,51 @@
 
 ---
 
-### 1. Largura fixa e layout vertical na coluna Ações
+### 1. Coluna "Conta" — garantir visibilidade
 
-**Ambos os arquivos:**
+A coluna Conta existe no código (C170 linha 423/514, A170 linha 445/486), mas pode estar oculta atrás da coluna sticky de Ações. Correção:
 
-- No `<TableHead>` de Ações, adicionar `w-[90px] min-w-[90px] max-w-[90px]`.
-- Na `<TableCell>` de Ações, trocar o container de `flex items-center justify-center gap-1` para `flex flex-col items-center justify-center gap-1`. O Badge "Corrigido" ficará abaixo dos botões em vez de ao lado, evitando que alargue a coluna.
+- Adicionar `pr-[100px]` (padding-right) na `<TableCell>` da Conta (última célula antes de Ações) para criar espaço entre o conteúdo e a coluna sticky sobreposta.
+- Alternativamente, adicionar `border-r` sutil na célula Conta para separar visualmente da coluna sticky.
 
-**C170** — linha 406 (TableHead) e linha 500-541 (TableCell).
-**A170** — linha 436 (TableHead) e linha 496-537 (TableCell).
+**C170** — linha 514: adicionar classe `pr-[100px]`.
+**A170** — linha 486: adicionar classe `pr-[100px]`.
 
-### 2. Destaque visual dos campos editados (amber)
+---
 
-**Ambos os arquivos — `renderEditableCell`:**
+### 2. Formatação brasileira no `toDraft`
 
-Quando `editingId !== item.uuid` (modo visualização), após determinar o valor a exibir, verificar se `item._originalSnapshot` existe e se `item[field]` difere de `item._originalSnapshot[field]` (usando `!Object.is()`). Se diferir, envolver o valor retornado com classe `text-amber-600 font-bold dark:text-amber-500`.
+Campos monetários e de alíquota devem exibir vírgula como separador decimal ao entrar em edição.
 
-Implementação: adicionar uma variável `isChanged` no início do branch de visualização e aplicar condicionalmente via wrapper `<span>`.
-
-**C170** — linhas 309-329.
-**A170** — linhas 329-362.
-
-### 3. Inputs numéricos: `type="text"` em vez de `type="number"`
-
-**Ambos os arquivos — chamadas de `renderEditableCell` no TableBody:**
-
-Remover `type: 'number'` e `step: '...'` de todas as chamadas de campos numéricos (VL_ITEM, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, VL_BC_PIS, VL_BC_COFINS). Isso evita que o input nativo de number rejeite vírgulas ou formate valores inesperadamente. A validação numérica já é feita no `handleSave` com `Number(rawValue.replace(',', '.'))`.
-
-**C170** — linhas 437, 479, 482, 485, 488, 491, 494.
-**A170** — linhas 452, 472, 475, 478, 481, 484, 487, 490, 493.
-
-### 4. Proteção do estado local contra refetch do React Query
-
-**Ambos os arquivos — `useEffect` que faz `setRows(data ?? [])`:**
-
-Alterar a lógica para só sobrescrever `rows` quando não há edição em andamento (`editingId === null`) E não há linhas corrigidas localmente. Adicionar um `useRef<Set<string>>` chamado `locallyEditedIds` que é populado no `handleSave` com sucesso e limpo quando `data` muda com novos UUIDs (indicando nova query real).
-
-Lógica simplificada:
+**C170** — linhas 62-72, alterar:
 ```
-const locallyEditedIds = useRef<Set<string>>(new Set());
-
-useEffect(() => {
-  if (!data) return;
-  if (editingId) return; // não sobrescrever durante edição
-
-  if (locallyEditedIds.current.size === 0) {
-    setRows(data);
-    return;
-  }
-
-  // Merge: manter rows locais para IDs editados, usar data para o resto
-  setRows(data.map(d => {
-    if (locallyEditedIds.current.has(d.uuid)) {
-      const local = rows.find(r => r.uuid === d.uuid);
-      return local ?? d;
-    }
-    return d;
-  }));
-}, [data]);
+VL_ITEM: item.VL_ITEM != null ? Number(item.VL_ITEM).toFixed(2).replace('.', ',') : '0,00',
+CST_PIS: item.CST_PIS != null ? String(item.CST_PIS) : '',
+ALIQ_PIS: item.ALIQ_PIS != null ? Number(item.ALIQ_PIS).toFixed(2).replace('.', ',') : '0,00',
+VL_PIS: item.VL_PIS != null ? Number(item.VL_PIS).toFixed(2).replace('.', ',') : '0,00',
+CST_COFINS: item.CST_COFINS != null ? String(item.CST_COFINS) : '',
+ALIQ_COFINS: item.ALIQ_COFINS != null ? Number(item.ALIQ_COFINS).toFixed(2).replace('.', ',') : '0,00',
+VL_COFINS: item.VL_COFINS != null ? Number(item.VL_COFINS).toFixed(2).replace('.', ',') : '0,00',
 ```
 
-No `handleSave`, após sucesso: `locallyEditedIds.current.add(item.uuid)`.
+**A170** — linhas 69-83, mesma lógica para todos os campos numéricos (VL_ITEM, VL_BC_PIS, ALIQ_PIS, VL_PIS, VL_BC_COFINS, ALIQ_COFINS, VL_COFINS). CST_PIS e CST_COFINS como `String()` sem formatação decimal.
 
-**C170** — linhas 136-138.
-**A170** — linhas 145-147.
+---
+
+### 3. Prioridade da descrição editada
+
+**C170** — linha 332: trocar `{item.DESCR_ITEM_0200 || item.DESCR_COMPL || '\u2014'}` para `{item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}`. Mesma inversão no `title` da linha 331.
+
+**A170** — já está correto (linha 362 prioriza `item.DESCR_COMPL`). Sem alteração.
 
 ---
 
 ### Resumo
-| Item | Descrição |
-|------|-----------|
-| Coluna Ações | `w-[90px]` fixo + layout `flex-col` para Badge abaixo dos botões |
-| Campos editados | Amber bold quando valor difere do `_originalSnapshot` |
-| Inputs numéricos | `type="text"` em todas as chamadas para evitar conflito com vírgulas |
-| Estado local | `useRef<Set>` de IDs editados + merge inteligente no `useEffect` |
+| Correção | C170 | A170 |
+|----------|------|------|
+| Conta visível (padding) | Linha 514 | Linha 486 |
+| toDraft formatado | Linhas 62-72 | Linhas 69-83 |
+| Descrição prioriza edição | Linha 331-332 | Já correto |
 
-**Total: 2 arquivos, ~40 linhas alteradas/adicionadas. Zero lógica de negócio removida.**
+**Total: 2 arquivos, ~20 linhas alteradas. Zero lógica de negócio removida.**
 
