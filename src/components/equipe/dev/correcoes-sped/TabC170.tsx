@@ -321,6 +321,7 @@ export default function TabC170({
     item: C170Item,
     field: EditableC170Field,
     className: string,
+    options?: { isCurrency?: boolean; isPercentage?: boolean },
   ) => {
     if (editingId !== item.uuid || !draft) {
       const value = item[field];
@@ -347,14 +348,32 @@ export default function TabC170({
       return <span className={amberClass}>{value ?? '\u2014'}</span>;
     }
 
-    return (
+    const input = (
       <Input
         type="text"
         value={draft[field]}
-        onChange={(event) => handleDraftChange(field, event.target.value)}
-        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
+        onChange={(event) => {
+          let val = event.target.value;
+          if (options?.isPercentage) {
+            const num = Number(val.replace(',', '.'));
+            if (!isNaN(num) && num > 100) val = '100';
+          }
+          handleDraftChange(field, val);
+        }}
+        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40 ${options?.isCurrency ? 'pl-7' : ''}`}
       />
     );
+
+    if (options?.isCurrency) {
+      return (
+        <div className="relative flex items-center w-full">
+          <span className="absolute left-2 text-xs font-medium text-muted-foreground pointer-events-none">R$</span>
+          {input}
+        </div>
+      );
+    }
+
+    return input;
   };
 
   if (isLoading) {
@@ -452,7 +471,7 @@ export default function TabC170({
                           )}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono')}
+                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
                         {/* XML zone */}
                         <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
@@ -497,19 +516,19 @@ export default function TabC170({
                           {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono')}
+                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { isPercentage: true })}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono')}
+                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
                           {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono')}
+                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { isPercentage: true })}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono')}
+                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
                         <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10 min-w-[110px] max-w-[110px]">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
