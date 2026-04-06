@@ -149,7 +149,7 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm }: NcmRegrasModalProps)
 
   const openEdit = (regra: RegraNCMRow) => {
     setFormRegra(regra);
-    setFormMode('view');
+    setFormMode('edit');
     setFormOpen(true);
   };
 
