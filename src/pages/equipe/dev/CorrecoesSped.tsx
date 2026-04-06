@@ -188,12 +188,15 @@ const CorrecoesSped = () => {
 
         {/* Empty state */}
         {!hasQueried && !anyFetching && (
-          <Card>
-            <CardContent className="p-12 flex flex-col items-center gap-3 text-center">
-              <FileSearch className="h-10 w-10 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">
-                Selecione o contribuinte e o período para consultar as notas e itens do SPED.
-              </p>
+          <Card className="border-dashed">
+            <CardContent className="p-16 flex flex-col items-center gap-4 text-center">
+              <FileSearch className="h-14 w-14 text-muted-foreground/30" />
+              <div className="space-y-1">
+                <h3 className="text-sm font-semibold text-foreground">Nenhum dado consultado</h3>
+                <p className="text-sm text-muted-foreground">
+                  Selecione o contribuinte e o período para consultar as notas e itens do SPED.
+                </p>
+              </div>
             </CardContent>
           </Card>
         )}

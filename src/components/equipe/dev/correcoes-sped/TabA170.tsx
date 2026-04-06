@@ -415,8 +415,8 @@ export default function TabA170({
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={8} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
+                    <TableHead colSpan={8} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[140px]">CHV NFSe</TableHead>
@@ -444,7 +444,7 @@ export default function TabA170({
                         <TableCell className="py-1.5">
                           {renderEditableCell(item, 'CHV_NFSE', 'h-8 text-xs font-mono')}
                         </TableCell>
-                        <TableCell className="py-1.5">
+                        <TableCell className="py-1.5 max-w-[240px] truncate" title={String(item.DESCR_COMPL ?? '')}>
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">

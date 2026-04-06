@@ -89,8 +89,8 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
-                    <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
+                    <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
