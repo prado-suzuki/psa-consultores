@@ -4,7 +4,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, F100Item } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, F100Item, F120Item, F130Item } from '@/types/correcoesSped';
 
 interface UseCorrecoesSpedParams {
   id_contribuinte: string;
@@ -272,6 +272,22 @@ export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
   return useCorrecoesQuery<F100Item[]>(
     'correcoes-f100',
     '/api/v1/pis_cofins/revisao/transp_outros',
+    params,
+  );
+}
+
+export function useCorrecoesF120(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<F120Item[]>(
+    'correcoes-f120',
+    '/api/v1/pis_cofins/revisao/ativo_imob_bens',
+    params,
+  );
+}
+
+export function useCorrecoesF130(params: UseCorrecoesSpedParams) {
+  return useCorrecoesQuery<F130Item[]>(
+    'correcoes-f130',
+    '/api/v1/pis_cofins/revisao/ativo_imob_credito',
     params,
   );
 }

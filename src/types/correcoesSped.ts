@@ -343,3 +343,78 @@ export interface F100Item {
   F100: RegF100;
   '0150': Reg0150;
 }
+
+// ── F120 (Ativo Imobilizado — Depreciação) ──
+
+export interface F120Reg {
+  uuid: string;
+  ID_ARQUIVO: string;
+  NUM_LINHA: number;
+  REG: string;
+  NAT_BC_CRED: string;
+  IDENT_BEM_IMOB: string;
+  IND_ORIG_CRED: string;
+  IND_UTIL_BEM_IMOB: string;
+  VL_OPER_DEP: number;
+  PARC_OPER_NAO_BC_CRED: number;
+  CST_PIS: number;
+  VL_BC_PIS: number;
+  ALIQ_PIS: number;
+  VL_PIS: number;
+  CST_COFINS: number;
+  VL_BC_COFINS: number;
+  ALIQ_COFINS: number;
+  VL_COFINS: number;
+  COD_CTA: string;
+  COD_CCUS: string;
+  ID_PAI: string;
+}
+
+export interface F120Item {
+  ID_CONTRIBUINTE: string;
+  NOME_RAZAO_SOCIAL: string;
+  DT_INI: string;
+  DT_FIN: string;
+  DESC_IDENT_BEM_IMOB: string;
+  DESC_IND_UTIL_BEM_IMOB: string;
+  F120: F120Reg;
+}
+
+// ── F130 (Ativo Imobilizado — Aquisição) ──
+
+export interface F130Reg {
+  uuid: string;
+  ID_ARQUIVO: string;
+  NUM_LINHA: number;
+  REG: string;
+  NAT_BC_CRED: string;
+  IDENT_BEM_IMOB: string;
+  IND_ORIG_CRED: string;
+  IND_UTIL_BEM_IMOB: string;
+  MES_OPER_AQUIS: string;
+  VL_OPER_AQUIS: number;
+  PARC_OPER_NAO_BC_CRED: number;
+  VL_BC_CRED: number;
+  IND_NR_PARC: string;
+  CST_PIS: number;
+  VL_BC_PIS: number;
+  ALIQ_PIS: number;
+  VL_PIS: number;
+  CST_COFINS: number;
+  VL_BC_COFINS: number;
+  ALIQ_COFINS: number;
+  VL_COFINS: number;
+  COD_CTA: string;
+  COD_CCUS: string;
+  ID_PAI: string;
+}
+
+export interface F130Item {
+  ID_CONTRIBUINTE: string;
+  NOME_RAZAO_SOCIAL: string;
+  DT_INI: string;
+  DT_FIN: string;
+  DESC_IDENT_BEM_IMOB: string;
+  DESC_IND_UTIL_BEM_IMOB: string;
+  F130: F130Reg;
+}

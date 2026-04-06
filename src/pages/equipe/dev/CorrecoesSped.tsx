@@ -17,7 +17,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
-import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useEnviarCorrecoes } from '@/hooks/useCorrecoesSped';
+import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes } from '@/hooks/useCorrecoesSped';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { FlatItemEfd } from '@/types/correcoesSped';
@@ -26,6 +26,8 @@ import TabC170 from '@/components/equipe/dev/correcoes-sped/TabC170';
 import TabA170 from '@/components/equipe/dev/correcoes-sped/TabA170';
 import TabD100 from '@/components/equipe/dev/correcoes-sped/TabD100';
 import TabF100 from '@/components/equipe/dev/correcoes-sped/TabF100';
+import TabF120 from '@/components/equipe/dev/correcoes-sped/TabF120';
+import TabF130 from '@/components/equipe/dev/correcoes-sped/TabF130';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -62,10 +64,12 @@ const CorrecoesSped = () => {
   const a170Query = useCorrecoesA170(queryParams);
   const d100Query = useCorrecoesD100(queryParams);
   const f100Query = useCorrecoesF100(queryParams);
+  const f120Query = useCorrecoesF120(queryParams);
+  const f130Query = useCorrecoesF130(queryParams);
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
 
-  const anyFetching = c170Query.isFetching || a170Query.isFetching || d100Query.isFetching || f100Query.isFetching;
+  const anyFetching = c170Query.isFetching || a170Query.isFetching || d100Query.isFetching || f100Query.isFetching || f120Query.isFetching || f130Query.isFetching;
 
   const handleConsultar = () => {
     if (!contribuinteId || !dtIni || !dtFin) return;
@@ -74,6 +78,8 @@ const CorrecoesSped = () => {
     a170Query.refetch();
     d100Query.refetch();
     f100Query.refetch();
+    f120Query.refetch();
+    f130Query.refetch();
   };
 
   const handleLimpar = () => {
@@ -205,11 +211,13 @@ const CorrecoesSped = () => {
         {hasQueried && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex items-center gap-2 mb-2">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
                 <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
                 <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
                 <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
+                <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
+                <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
               </TabsList>
               {(activeTab === 'c170' || activeTab === 'a170') && (
                 <Button size="sm" onClick={() => enviarCorrecoes(activeTab === 'c170' ? 'C170' : 'A170')} disabled={isSending} className="shrink-0">
@@ -280,6 +288,26 @@ const CorrecoesSped = () => {
                 data={f100Query.data}
                 isLoading={f100Query.isFetching}
                 error={f100Query.error as Error | null}
+                hasQueried={hasQueried}
+                searchText={searchText}
+              />
+            </TabsContent>
+
+            <TabsContent value="f120">
+              <TabF120
+                data={f120Query.data}
+                isLoading={f120Query.isFetching}
+                error={f120Query.error as Error | null}
+                hasQueried={hasQueried}
+                searchText={searchText}
+              />
+            </TabsContent>
+
+            <TabsContent value="f130">
+              <TabF130
+                data={f130Query.data}
+                isLoading={f130Query.isFetching}
+                error={f130Query.error as Error | null}
                 hasQueried={hasQueried}
                 searchText={searchText}
               />
