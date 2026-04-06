@@ -306,6 +306,7 @@ export default function TabC170({
           ? { ...row, ...nextSnapshot }
           : row
       ));
+      locallyEditedIds.current.add(item.uuid);
       handleCancelEdit();
       toast.success('Correcao do C170 salva na tabela efd_correcoes.');
     } catch (saveError) {
