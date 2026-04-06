@@ -504,7 +504,7 @@ export default function TabC170({
                         <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5">
                           {xml ? (
                             ncmDivergent ? (
-                              <Badge variant="outline" className="font-mono text-[11px] border-red-200 text-red-600 bg-red-50/50 dark:bg-red-950/20 dark:text-red-400 dark:border-red-800 gap-1">
+                              <Badge variant="destructive" className="font-mono text-[11px] gap-1">
                                 <AlertCircle className="h-3 w-3 shrink-0" />
                                 {xml.ncm}
                               </Badge>
