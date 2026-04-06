@@ -451,7 +451,7 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[100px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -467,7 +467,7 @@ export default function TabA170({
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
-                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="py-1.5">
                           {item.COD_NCM ? (
@@ -487,32 +487,32 @@ export default function TabA170({
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                          {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_BC_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                          {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono', { type: 'number', step: '1' })}
+                          {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_BC_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.0001' })}
+                          {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
-                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { type: 'number', step: '0.01' })}
+                          {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10">
-                          <div className="flex items-center justify-center gap-1">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px]">
+                          <div className="flex flex-col items-center justify-center gap-1">
                             {editingId === item.uuid ? (
                               <>
                                 <Button
