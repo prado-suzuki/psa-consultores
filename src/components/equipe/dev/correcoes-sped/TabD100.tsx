@@ -2,7 +2,8 @@ import { useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Info } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { D100Item } from '@/types/correcoesSped';
 
@@ -95,8 +96,8 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
                     <TableHead className="text-[11px] min-w-[140px]">CHV CTe</TableHead>
                     <TableHead className="text-[11px] min-w-[130px]">CNPJ</TableHead>
-                    <TableHead className="text-[11px] min-w-[70px]">Simples</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px]">Valor Doc</TableHead>
+                    <TableHead className="text-[11px] min-w-[70px]"><span className="flex items-center gap-1">Simples<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica se o participante da operação é optante pelo Simples Nacional.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px]"><span className="flex items-center gap-1 justify-end">Valor Doc<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Valor total do documento fiscal de transporte.</TooltipContent></Tooltip></span></TableHead>
                     {/* Taxes */}
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>

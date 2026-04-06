@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2 } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
@@ -149,7 +150,10 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">NCM</Label>
+                <span className="flex items-center gap-1">
+                  <Label className="text-xs">NCM</Label>
+                  <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Filtra os itens da tabela cruzando a informação com o NCM vinculado ao produto no Registro 0200 do SPED.</TooltipContent></Tooltip>
+                </span>
                 <Select value={ncmFilter} onValueChange={(v) => setNcmFilter(v as NcmFilter)}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue />
@@ -316,8 +320,9 @@ const CorrecoesSped = () => {
               </div>
 
               <div className="border-t pt-3">
-                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider flex items-center gap-1">
                   Itens XML (NFe) — {selectedItem.nfe_itens.length} {selectedItem.nfe_itens.length === 1 ? 'item' : 'itens'}
+                  <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Relação original de todos os itens da nota no XML. Útil para revisar registros do SPED que agruparam vários produtos em uma só linha.</TooltipContent></Tooltip>
                 </h4>
 
                 {selectedItem.nfe_itens.length === 0 ? (

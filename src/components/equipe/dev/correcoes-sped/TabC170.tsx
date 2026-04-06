@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, BookOpen, Check, FileSearch, Loader2, Network, Pencil, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, Pencil, X } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
 
@@ -384,24 +385,24 @@ export default function TabC170({
                 <TableHeader>
                   <TableRow className="border-b-0">
                     <TableHead colSpan={4} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2">EFD</TableHead>
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">XML</TableHead>
+                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-semibold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">XML<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Dados lidos diretamente do arquivo XML original para confronto com a escrituração (SPED).</TooltipContent></Tooltip></span></TableHead>
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-[11px] min-w-[200px]">Descricao</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]">NCM (0200)</TableHead>
+                    <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM (0200)<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM declarado na EFD. Como o Registro C170 não possui campo de NCM, este dado é trazido do Registro 0200 correspondente ao item.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
                     <TableHead className="text-[11px] text-center min-w-[100px]">Acoes</TableHead>
-                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20">Descricao</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20">NCM</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20">Valor</TableHead>
+                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Descricao<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Descrição do produto no XML (tag <xProd>). Exibe 'Consolidado' quando o sistema identifica que vários itens do XML foram agrupados em uma única linha no SPED."}</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"NCM do produto no XML (tag <NCM>). Fica em vermelho quando não bate com o NCM declarado no Registro 0200 do SPED."}</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1 justify-end">Valor<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Valor do produto no XML (tag <vProd>). Fica em laranja quando há diferença em relação ao valor bruto (VL_ITEM) declarado no SPED."}</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[90px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
+                    <TableHead className="text-[11px] min-w-[90px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
