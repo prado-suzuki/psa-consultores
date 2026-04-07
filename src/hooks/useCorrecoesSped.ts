@@ -4,7 +4,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, F100Item, F120Item, F130Item } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, D100ResponseEntry, F100Item, RegF100, F120Item, F120Reg, F130Item, F130Reg } from '@/types/correcoesSped';
 
 interface UseCorrecoesSpedParams {
   id_contribuinte: string;
