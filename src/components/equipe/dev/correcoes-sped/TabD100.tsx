@@ -246,20 +246,20 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
   return (
     <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
       <CardContent className="p-0">
+        <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
+          <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados</span>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" onClick={consultarSimples} disabled={isConsultandoSimples || !contribuinteId}>
+              {isConsultandoSimples ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1" />}
+              {isConsultandoSimples ? 'Consultando...' : 'Consultar Simples Nacional'}
+            </Button>
+            {filtered.length > 0 && <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>}
+          </div>
+        </div>
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Nenhum item D100 encontrado para os filtros selecionados.</div>
         ) : (
           <>
-            <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados</span>
-              <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={consultarSimples} disabled={isConsultandoSimples || !contribuinteId}>
-                  {isConsultandoSimples ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1" />}
-                  {isConsultandoSimples ? 'Consultando...' : 'Consultar Simples Nacional'}
-                </Button>
-                <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>
-              </div>
-            </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
