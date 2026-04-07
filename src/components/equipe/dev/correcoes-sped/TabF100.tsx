@@ -8,7 +8,8 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Info, Loader2, Pencil, X } from 'lucide-react';
+import { AlertCircle, Check, Info, Loader2, Pencil, Search, X } from 'lucide-react';
+import { useConsultaSimplesNacional } from '@/hooks/useConsultaSimplesNacional';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import type { F100Item, RegF100, CampoAlteradoEfd } from '@/types/correcoesSped';
@@ -69,8 +70,9 @@ interface TabF100Props {
   contribuinteId: string;
 }
 
-export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo }: TabF100Props) {
+export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId }: TabF100Props) {
   const { user } = useAuth();
+  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'f100' });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F100Item[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -221,7 +223,13 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
           <>
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados</span>
-              <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={consultarSimples} disabled={isConsultandoSimples || !contribuinteId}>
+                  {isConsultandoSimples ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1" />}
+                  {isConsultandoSimples ? 'Consultando...' : 'Consultar Simples Nacional'}
+                </Button>
+                <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>
+              </div>
             </div>
             <div className="overflow-auto">
               <Table>
