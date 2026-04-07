@@ -1,98 +1,68 @@
 
 
-## Habilitar edição inline em D100, F100, F120 e F130
+## Correção de UX e Restauração de Dados — NewClientModal
 
-### Arquivos alterados: 6
+### Fase 1: Correção de UX/UI (Prevenção)
 
----
-
-### 1. Tipos — `src/types/correcoesSped.ts`
-
-**D100Item**: Adicionar `_originalSnapshot: D100Item` (flat, pois o item já é achatado no hook). O snapshot captura o estado original dos campos editáveis para diff.
-
-**F100Item**: Adicionar `_originalSnapshot: RegF100` (o sub-objeto `F100` contém todos os campos editáveis).
-
-**F120Item**: Adicionar `_originalSnapshot: F120Reg` (análogo — edição acontece dentro do nó `F120`).
-
-**F130Item**: Adicionar `_originalSnapshot: F130Reg` (análogo — edição dentro do nó `F130`).
+**Arquivos alterados: 4**
 
 ---
 
-### 2. Hooks — `src/hooks/useCorrecoesSped.ts`
+#### 1.1 Botão Salvar com bloqueio + Tooltip — `src/components/equipe/NewClientModal.tsx`
 
-**useCorrecoesD100**: Expandir o `queryFn` para:
-- Guardar `_originalSnapshot` como cópia do item flat antes de aplicar correções
-- Buscar correções ativas via `batchedIn` com `registro_tipo = 'D100'`
-- Aplicar snapshot corrigido sobre o item (merge), preservando `_originalSnapshot`
+- Importar `Tooltip, TooltipTrigger, TooltipContent, TooltipProvider` de `@/components/ui/tooltip`
+- Computar `pendingDraftTabs = getDraftPendingTabs()` via `useMemo`
+- Derivar `hasPendingDrafts = pendingDraftTabs.length > 0`
+- No footer, adicionar `disabled={saving || hasPendingDrafts}` ao botão "Salvar"
+- Envolver o botão em `<TooltipProvider><Tooltip><TooltipTrigger asChild>...</TooltipTrigger><TooltipContent>` com mensagem dinâmica: `"Dados não adicionados em: {pendingDraftTabs.join(', ')}. Adicione-os à lista antes de salvar."`
+- O tooltip só aparece quando `hasPendingDrafts` (usar `open={hasPendingDrafts ? undefined : false}` para desabilitar quando não há pendência)
 
-**useCorrecoesF100**: Substituir `useCorrecoesQuery` por `useQuery` customizado para:
-- Guardar `_originalSnapshot: { ...entry.F100 }` em cada item
-- Buscar correções ativas com `registro_tipo = 'F100'`
-- Aplicar snapshot corrigido sobre o sub-objeto `F100`
+#### 1.2 Simplificar fluxo de alerta de rascunho
 
-**useCorrecoesF120** e **useCorrecoesF130**: Mesma transformação do F100, com `registro_tipo = 'F120'`/`'F130'` e snapshot do sub-objeto `F120`/`F130`.
+- Remover a lógica de `draftWarningContext.action === "save"` do `handleSave` e do `handleDraftWarningContinue` — com o botão bloqueado, o cenário "salvar com rascunho" não acontece mais
+- O `handleSave` passa a chamar `executeSave()` diretamente (sem checar `getDraftPendingTabs`)
+- Manter o `showDraftWarning` apenas para navegação entre abas (action `"navigate"`)
+- Remover o type `"save"` do `draftWarningContext`
 
----
+#### 1.3 Peso visual nos botões "Adicionar à Lista" — 3 arquivos
 
-### 3. Componentes — editar 4 arquivos
+**`src/components/equipe/client-form/ContribuintesTab.tsx`** (linha ~568):
+- Alterar de `variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"` para `className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white shadow-md"` (botão sólido primário)
 
-Para cada um dos 4 componentes (TabD100, TabF100, TabF120, TabF130), aplicar o mesmo padrão do TabC170:
+**`src/components/equipe/client-form/RepresentantesTab.tsx`** (linha ~259):
+- Mesma alteração: botão sólido teal
 
-**Infraestrutura de edição (adicionar em cada componente):**
-- Imports: `useAuth`, `supabase`, `toast`, `Button`, `Input`, `Pencil/Check/X/Loader2`, `useRef`, `useEffect`
-- Estado: `rows`, `editingId`, `savingId`, `draft`, `locallyEditedIds` (useRef)
-- `useEffect` de merge inteligente (protege linhas editadas localmente)
-- Props adicionais: `empresaCnpj` e `periodo` (passados do CorrecoesSped)
-
-**Definições específicas por componente:**
-
-| Componente | Draft fields | Snapshot source | registro_tipo | Campos isCurrency | Campos isPercentage |
-|------------|-------------|-----------------|---------------|-------------------|---------------------|
-| TabD100 | CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item flat | `D100` | VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
-| TabF100 | VL_OPER, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F100 | `F100` | VL_OPER, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
-| TabF120 | VL_OPER_DEP, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F120 | `F120` | VL_OPER_DEP, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
-| TabF130 | VL_OPER_AQUIS, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F130 | `F130` | VL_OPER_AQUIS, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
-
-**Funções replicadas em cada componente:**
-- `toDraft(item)`: extrai campos editáveis formatados (vírgula BRL para numéricos)
-- `getSnapshotFromItem(item)`: retorna o objeto snapshot puro (flat para D100, sub-objeto para F-blocks)
-- `buildChangedFields(original, next)`: compara campo a campo, retorna `CampoAlteradoEfd[]`
-- `handleSave(item)`: upsert em `efd_correcoes` (desativa anterior se existir, insere nova)
-- `renderEditableCell(item, field, className, options)`: renderiza Input ou valor formatado com destaque amber para alterados
-
-**Coluna "Ações" (sticky right):**
-- Super cabeçalho: `colSpan` do grupo Impostos **não muda**; adicionar +1 colSpan vazio para Ações
-- TableHead: `sticky right-0 bg-background z-10 border-l shadow w-[90px]`
-- TableCell: botões Pencil/Check/X + Badge "Corrigido" quando há snapshot alterado
-
-**Particularidade dos blocos F (F100, F120, F130):**
-- Os campos editáveis vivem dentro do sub-objeto (ex: `item.F100.CST_PIS`), então:
-  - `toDraft` lê de `item.F100.FIELD`
-  - `handleSave` constrói `nextSnapshot` como cópia do sub-objeto e aplica os campos do draft
-  - `buildChangedFields` compara `item._originalSnapshot` (que é o RegF100/F120Reg/F130Reg original) com `nextSnapshot`
-  - Após salvar, `setRows` atualiza `{ ...row, F100: { ...row.F100, ...nextSnapshot } }`
+**`src/components/equipe/client-form/ContratosTab.tsx`** (linha ~535):
+- Mesma alteração no botão "Adicionar OS à Lista": botão sólido teal
 
 ---
 
-### 4. Integração — `src/pages/equipe/dev/CorrecoesSped.tsx`
+### Fase 2: Restauração de Dados
 
-- Expandir a condição do botão "Enviar Correções" de `(activeTab === 'c170' || activeTab === 'a170')` para incluir `d100`, `f100`, `f120`, `f130`
-- Ajustar o label e a chamada `enviarCorrecoes(activeTab.toUpperCase())`
-- Passar `empresaCnpj` e `periodo` como props para TabD100, TabF100, TabF120, TabF130
+**Arquivo: 1 migration SQL**
+
+```sql
+UPDATE ordem_servico
+SET excluido = false
+WHERE excluido = true
+  AND id_cliente IN (
+    SELECT id FROM cliente WHERE nome = 'Grupo Zugair'
+  );
+```
+
+Usa subquery real baseada no nome do cliente, sem UUIDs hardcoded.
 
 ---
 
 ### Resumo
 
-| Arquivo | Ação |
-|---------|------|
-| `src/types/correcoesSped.ts` | +`_originalSnapshot` em 4 interfaces |
-| `src/hooks/useCorrecoesSped.ts` | Expandir 4 hooks com snapshot + batchedIn |
-| `src/components/.../TabD100.tsx` | Edição inline completa (~200 linhas adicionadas) |
-| `src/components/.../TabF100.tsx` | Edição inline completa (~200 linhas adicionadas) |
-| `src/components/.../TabF120.tsx` | Edição inline completa (~200 linhas adicionadas) |
-| `src/components/.../TabF130.tsx` | Edição inline completa (~200 linhas adicionadas) |
-| `src/pages/.../CorrecoesSped.tsx` | Botão enviar + props extras |
+| Arquivo | Alteração |
+|---------|-----------|
+| `NewClientModal.tsx` | Botão disabled + Tooltip + simplificar alerta |
+| `ContribuintesTab.tsx` | Botão "Adicionar" sólido teal |
+| `RepresentantesTab.tsx` | Botão "Adicionar" sólido teal |
+| `ContratosTab.tsx` | Botão "Adicionar OS" sólido teal |
+| Migration SQL | Restaurar OS do Grupo Zugair |
 
-**Total: 7 arquivos, ~850 linhas adicionadas/modificadas.**
+**Total: 4 arquivos de código + 1 migration, ~30 linhas alteradas.**
 
