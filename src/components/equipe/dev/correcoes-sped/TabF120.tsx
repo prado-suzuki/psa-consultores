@@ -45,9 +45,10 @@ function serializeValue(value: unknown): string | null {
 }
 
 function buildChangedFields(original: F120Reg, next: Record<string, unknown>): CampoAlteradoEfd[] {
-  const fields = new Set([...Object.keys(original), ...Object.keys(next)]);
+  const origRec = original as unknown as Record<string, unknown>;
+  const fields = new Set([...Object.keys(origRec), ...Object.keys(next)]);
   return Array.from(fields).sort().flatMap((field) => {
-    const from = (original as Record<string, unknown>)[field];
+    const from = origRec[field];
     const to = next[field];
     if (Object.is(from, to)) return [];
     return [{ campo: field, de: serializeValue(from), para: serializeValue(to) }];

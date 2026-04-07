@@ -47,7 +47,7 @@ function toDraft(item: D100Item): D100Draft {
 
 function getSnapshotFromItem(item: D100Item): Record<string, unknown> {
   const { _originalSnapshot, ...rest } = item;
-  return rest;
+  return rest as unknown as Record<string, unknown>;
 }
 
 function serializeValue(value: unknown): string | null {
@@ -56,10 +56,11 @@ function serializeValue(value: unknown): string | null {
 }
 
 function buildChangedFields(original: D100Item, next: Record<string, unknown>): CampoAlteradoEfd[] {
-  const fields = new Set([...Object.keys(original), ...Object.keys(next)]);
+  const origRec = original as unknown as Record<string, unknown>;
+  const fields = new Set([...Object.keys(origRec), ...Object.keys(next)]);
   return Array.from(fields).sort().flatMap((field) => {
     if (field === '_originalSnapshot') return [];
-    const fromValue = (original as Record<string, unknown>)[field];
+    const fromValue = origRec[field];
     const toValue = next[field];
     if (Object.is(fromValue, toValue)) return [];
     return [{ campo: field, de: serializeValue(fromValue), para: serializeValue(toValue) }];
