@@ -349,13 +349,12 @@ export default function NewClientModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
             <AlertDialogDescription>
-              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
-              {draftWarningContext?.action === "save" ? " Deseja salvar mesmo assim?" : " Deseja descartar e trocar de aba?"}
+              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista. Deseja descartar e trocar de aba?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleDraftWarningGoBack}>Continuar editando</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>{draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Descartar"}</AlertDialogAction>
+            <AlertDialogAction onClick={handleDraftWarningContinue}>Descartar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
