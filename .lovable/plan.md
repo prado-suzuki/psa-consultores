@@ -1,30 +1,30 @@
 
 
-## Botão "Consultar Simples Nacional" — F100 e D100
+## Tornar Data de Início e Data de Término obrigatórias
 
-### Contexto
+### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-API dedicada para Simples Nacional (diferente da API principal):
-- **Produção:** `https://api-simples-nacional-1010211821554.southamerica-east1.run.app/buscar`
-- **Dev:** simular resposta (endpoint não existe em dev)
+**1. Validação no `handleSubmit` (linha 431, após validação do responsável):**
 
----
+```typescript
+if (!formData.start_date) {
+  toast.error('Data de Início é obrigatória');
+  return;
+}
+if (!formData.end_date) {
+  toast.error('Data de Término é obrigatória');
+  return;
+}
+if (formData.start_date > formData.end_date) {
+  toast.error('Data de Término deve ser posterior à Data de Início');
+  return;
+}
+```
 
-### Arquivos: 4 (1 novo + 3 alterados)
+**2. Indicadores visuais nos labels (linhas 1025 e 1033):**
 
-#### 1. Criar hook — `src/hooks/useConsultaSimplesNacional.ts` (~40 linhas)
+- Linha 1025: `<Label>Data de Início</Label>` → `<Label>Data de Início <span className="text-destructive">*</span></Label>`
+- Linha 1033: `<Label>Data de Término</Label>` → `<Label>Data de Término <span className="text-destructive">*</span></Label>`
 
-- Aceita `{ id_contribuinte, registro: 'f100' | 'd100' }`
-- Obtém `user.email` via `useAuth`
-- Usa `isProductionEnvironment` de `@/config/api`:
-  - **Prod:** POST para `https://api-simples-nacional-1010211821554.southamerica-east1.run.app/buscar` com `{ id_contribuinte, registro, email }` e header `Authorization: Bearer token` (via `useApiAuth`)
-  - **Dev:** delay 1.5s + mock `{ job_id: 'mock', cnpjs_encontrados: 3, tasks_criadas: 3, execucao_id: 'mock' }`
-- Retorna `{ consultar, isLoading }`
-- Toast de sucesso/erro
-
-#### 2. `TabF100.tsx` — adicionar prop `contribuinteId`, botão no header do card
-
-#### 3. `TabD100.tsx` — mesma alteração com `registro: 'd100'`
-
-#### 4. `CorrecoesSped.tsx` — passar `contribuinteId` para ambas as abas
+Nenhum outro arquivo alterado.
 
