@@ -317,13 +317,24 @@ export default function NewClientModal({
                 ) : (
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
-                    <Button
-                      onClick={handleSave} disabled={saving}
-                      className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                      {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip open={hasPendingDrafts ? undefined : false}>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block">
+                            <Button
+                              onClick={handleSave} disabled={saving || hasPendingDrafts}
+                              className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                            >
+                              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                              {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-center">
+                          Dados não adicionados em: <strong>{pendingDraftTabs.join(", ")}</strong>. Adicione-os à lista antes de salvar.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </>
                 )}
               </div>
