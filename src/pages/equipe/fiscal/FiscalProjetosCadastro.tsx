@@ -429,6 +429,18 @@ const FiscalProjetosCadastro = () => {
       toast.error('Selecione o Responsável Executor');
       return;
     }
+    if (!formData.start_date) {
+      toast.error('Data de Início é obrigatória');
+      return;
+    }
+    if (!formData.end_date) {
+      toast.error('Data de Término é obrigatória');
+      return;
+    }
+    if (formData.start_date > formData.end_date) {
+      toast.error('Data de Término deve ser posterior à Data de Início');
+      return;
+    }
     if (editingProject) {
       updateProject.mutate(
         {
@@ -1022,7 +1034,7 @@ const FiscalProjetosCadastro = () => {
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Data de Início</Label>
+                    <Label>Data de Início <span className="text-destructive">*</span></Label>
                     <Input
                       type="date"
                       value={formData.start_date}
@@ -1030,7 +1042,7 @@ const FiscalProjetosCadastro = () => {
                     />
                   </div>
                   <div>
-                    <Label>Data de Término</Label>
+                    <Label>Data de Término <span className="text-destructive">*</span></Label>
                     <Input
                       type="date"
                       value={formData.end_date}
