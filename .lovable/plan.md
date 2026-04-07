@@ -1,55 +1,84 @@
 
 
-## Adicionar abas F120 e F130 à ferramenta Correções SPED
+## Habilitar edição inline em D100, F100, F120 e F130
 
-### Arquivos alterados/criados: 4
+### Arquivos alterados: 6
 
 ---
 
 ### 1. Tipos — `src/types/correcoesSped.ts`
 
-Adicionar ao final do arquivo:
+**D100Item**: Adicionar `_originalSnapshot: D100Item` (flat, pois o item já é achatado no hook). O snapshot captura o estado original dos campos editáveis para diff.
 
-- **`F120Reg`**: campos do registro F120 (uuid, ID_ARQUIVO, NUM_LINHA, REG, NAT_BC_CRED, IDENT_BEM_IMOB, IND_ORIG_CRED, IND_UTIL_BEM_IMOB, VL_OPER_DEP, PARC_OPER_NAO_BC_CRED, CST_PIS, VL_BC_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, VL_BC_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA, COD_CCUS, ID_PAI)
-- **`F120Item`**: wrapper com ID_CONTRIBUINTE, NOME_RAZAO_SOCIAL, DT_INI, DT_FIN, DESC_IDENT_BEM_IMOB, DESC_IND_UTIL_BEM_IMOB, F120: F120Reg
-- **`F130Reg`**: mesmos campos de impostos + MES_OPER_AQUIS, VL_OPER_AQUIS, PARC_OPER_NAO_BC_CRED, VL_BC_CRED, IND_NR_PARC (sem VL_OPER_DEP)
-- **`F130Item`**: wrapper idêntico ao F120Item mas com F130: F130Reg
+**F100Item**: Adicionar `_originalSnapshot: RegF100` (o sub-objeto `F100` contém todos os campos editáveis).
+
+**F120Item**: Adicionar `_originalSnapshot: F120Reg` (análogo — edição acontece dentro do nó `F120`).
+
+**F130Item**: Adicionar `_originalSnapshot: F130Reg` (análogo — edição dentro do nó `F130`).
 
 ---
 
 ### 2. Hooks — `src/hooks/useCorrecoesSped.ts`
 
-Adicionar dois hooks usando `useCorrecoesQuery` (mesmo padrão do `useCorrecoesF100`):
+**useCorrecoesD100**: Expandir o `queryFn` para:
+- Guardar `_originalSnapshot` como cópia do item flat antes de aplicar correções
+- Buscar correções ativas via `batchedIn` com `registro_tipo = 'D100'`
+- Aplicar snapshot corrigido sobre o item (merge), preservando `_originalSnapshot`
 
-- **`useCorrecoesF120`**: queryKey `correcoes-f120`, endpoint `/api/v1/pis_cofins/revisao/ativo_imob_bens`
-- **`useCorrecoesF130`**: queryKey `correcoes-f130`, endpoint `/api/v1/pis_cofins/revisao/ativo_imob_credito`
+**useCorrecoesF100**: Substituir `useCorrecoesQuery` por `useQuery` customizado para:
+- Guardar `_originalSnapshot: { ...entry.F100 }` em cada item
+- Buscar correções ativas com `registro_tipo = 'F100'`
+- Aplicar snapshot corrigido sobre o sub-objeto `F100`
 
-Atualizar import dos tipos para incluir `F120Item` e `F130Item`.
+**useCorrecoesF120** e **useCorrecoesF130**: Mesma transformação do F100, com `registro_tipo = 'F120'`/`'F130'` e snapshot do sub-objeto `F120`/`F130`.
 
 ---
 
-### 3. Componentes — criar 2 arquivos
+### 3. Componentes — editar 4 arquivos
 
-**`src/components/equipe/dev/correcoes-sped/TabF120.tsx`** (baseado em TabF100):
-- Props: `data: F120Item[]`, `isLoading`, `error`, `hasQueried`, `searchText`
-- Busca filtra por `DESC_IDENT_BEM_IMOB` e `DESC_IND_UTIL_BEM_IMOB`
-- Super cabeçalhos: "Dados do Bem" (4 cols) + "Impostos" (6 cols)
-- Colunas: Bem Imobilizado (desc), Utilização (desc), Nat. Crédito, Depreciação (VL_OPER_DEP), CST PIS, % PIS, VL PIS, CST COF, % COF, VL COF
-- Paginação via `TablePagination`
+Para cada um dos 4 componentes (TabD100, TabF100, TabF120, TabF130), aplicar o mesmo padrão do TabC170:
 
-**`src/components/equipe/dev/correcoes-sped/TabF130.tsx`** (baseado em TabF120):
-- Mesma estrutura, mas colunas do bem substituem Depreciação por "Mês Aquisição" (MES_OPER_AQUIS) e "Valor Aquisição" (VL_OPER_AQUIS) — super cabeçalho "Dados do Bem" com 5 cols
+**Infraestrutura de edição (adicionar em cada componente):**
+- Imports: `useAuth`, `supabase`, `toast`, `Button`, `Input`, `Pencil/Check/X/Loader2`, `useRef`, `useEffect`
+- Estado: `rows`, `editingId`, `savingId`, `draft`, `locallyEditedIds` (useRef)
+- `useEffect` de merge inteligente (protege linhas editadas localmente)
+- Props adicionais: `empresaCnpj` e `periodo` (passados do CorrecoesSped)
+
+**Definições específicas por componente:**
+
+| Componente | Draft fields | Snapshot source | registro_tipo | Campos isCurrency | Campos isPercentage |
+|------------|-------------|-----------------|---------------|-------------------|---------------------|
+| TabD100 | CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item flat | `D100` | VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
+| TabF100 | VL_OPER, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F100 | `F100` | VL_OPER, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
+| TabF120 | VL_OPER_DEP, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F120 | `F120` | VL_OPER_DEP, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
+| TabF130 | VL_OPER_AQUIS, CST_PIS, ALIQ_PIS, VL_PIS, CST_COFINS, ALIQ_COFINS, VL_COFINS, COD_CTA | item.F130 | `F130` | VL_OPER_AQUIS, VL_PIS, VL_COFINS | ALIQ_PIS, ALIQ_COFINS |
+
+**Funções replicadas em cada componente:**
+- `toDraft(item)`: extrai campos editáveis formatados (vírgula BRL para numéricos)
+- `getSnapshotFromItem(item)`: retorna o objeto snapshot puro (flat para D100, sub-objeto para F-blocks)
+- `buildChangedFields(original, next)`: compara campo a campo, retorna `CampoAlteradoEfd[]`
+- `handleSave(item)`: upsert em `efd_correcoes` (desativa anterior se existir, insere nova)
+- `renderEditableCell(item, field, className, options)`: renderiza Input ou valor formatado com destaque amber para alterados
+
+**Coluna "Ações" (sticky right):**
+- Super cabeçalho: `colSpan` do grupo Impostos **não muda**; adicionar +1 colSpan vazio para Ações
+- TableHead: `sticky right-0 bg-background z-10 border-l shadow w-[90px]`
+- TableCell: botões Pencil/Check/X + Badge "Corrigido" quando há snapshot alterado
+
+**Particularidade dos blocos F (F100, F120, F130):**
+- Os campos editáveis vivem dentro do sub-objeto (ex: `item.F100.CST_PIS`), então:
+  - `toDraft` lê de `item.F100.FIELD`
+  - `handleSave` constrói `nextSnapshot` como cópia do sub-objeto e aplica os campos do draft
+  - `buildChangedFields` compara `item._originalSnapshot` (que é o RegF100/F120Reg/F130Reg original) com `nextSnapshot`
+  - Após salvar, `setRows` atualiza `{ ...row, F100: { ...row.F100, ...nextSnapshot } }`
 
 ---
 
 ### 4. Integração — `src/pages/equipe/dev/CorrecoesSped.tsx`
 
-- Importar `TabF120`, `TabF130`, `useCorrecoesF120`, `useCorrecoesF130`
-- Instanciar os hooks com `queryParams`
-- Incluir no `anyFetching` e no `handleConsultar` (refetch)
-- Alterar `TabsList` de `grid-cols-4` para `grid-cols-6`
-- Adicionar `TabsTrigger` para "F120 (Deprec.)" e "F130 (Aquis.)"
-- Adicionar `TabsContent` renderizando os novos componentes
+- Expandir a condição do botão "Enviar Correções" de `(activeTab === 'c170' || activeTab === 'a170')` para incluir `d100`, `f100`, `f120`, `f130`
+- Ajustar o label e a chamada `enviarCorrecoes(activeTab.toUpperCase())`
+- Passar `empresaCnpj` e `periodo` como props para TabD100, TabF100, TabF120, TabF130
 
 ---
 
@@ -57,11 +86,13 @@ Atualizar import dos tipos para incluir `F120Item` e `F130Item`.
 
 | Arquivo | Ação |
 |---------|------|
-| `src/types/correcoesSped.ts` | +4 interfaces |
-| `src/hooks/useCorrecoesSped.ts` | +2 hooks, ~10 linhas |
-| `src/components/equipe/dev/correcoes-sped/TabF120.tsx` | Criar (~120 linhas) |
-| `src/components/equipe/dev/correcoes-sped/TabF130.tsx` | Criar (~130 linhas) |
-| `src/pages/equipe/dev/CorrecoesSped.tsx` | Integrar abas + hooks |
+| `src/types/correcoesSped.ts` | +`_originalSnapshot` em 4 interfaces |
+| `src/hooks/useCorrecoesSped.ts` | Expandir 4 hooks com snapshot + batchedIn |
+| `src/components/.../TabD100.tsx` | Edição inline completa (~200 linhas adicionadas) |
+| `src/components/.../TabF100.tsx` | Edição inline completa (~200 linhas adicionadas) |
+| `src/components/.../TabF120.tsx` | Edição inline completa (~200 linhas adicionadas) |
+| `src/components/.../TabF130.tsx` | Edição inline completa (~200 linhas adicionadas) |
+| `src/pages/.../CorrecoesSped.tsx` | Botão enviar + props extras |
 
-**Total: 5 arquivos, ~280 linhas adicionadas.**
+**Total: 7 arquivos, ~850 linhas adicionadas/modificadas.**
 
