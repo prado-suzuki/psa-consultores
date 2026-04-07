@@ -565,7 +565,7 @@ export default function ContribuintesTab({
                 </div>
               </div>
               <div className="flex justify-end mt-2">
-                <Button size="sm" variant="outline" onClick={addEntity} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> Adicionar à Lista</Button>
+                <Button size="sm" onClick={addEntity} className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white shadow-md"><Plus size={14} /> Adicionar à Lista</Button>
               </div>
             </div>
           </div>
