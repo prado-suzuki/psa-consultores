@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData, createDefaultDraftEntity, createDefaultDraftRepresentante, createDefaultDraftContract } from "./client-form/constants";
@@ -49,7 +50,7 @@ export default function NewClientModal({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDraftWarning, setShowDraftWarning] = useState(false);
   const [draftWarningContext, setDraftWarningContext] = useState<{
-    action: "save" | "navigate"; targetTab?: typeof activeTab; pendingTabs: string[];
+    action: "navigate"; targetTab?: typeof activeTab; pendingTabs: string[];
   } | null>(null);
 
   useEffect(() => { if (open) setIsReadOnly(readOnly); }, [open, readOnly]);
