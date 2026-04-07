@@ -282,6 +282,7 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
               />
             </TabsContent>
 
@@ -294,6 +295,7 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
               />
             </TabsContent>
 
