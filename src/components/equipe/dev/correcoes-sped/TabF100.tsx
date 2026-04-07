@@ -72,7 +72,7 @@ interface TabF100Props {
 
 export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId }: TabF100Props) {
   const { user } = useAuth();
-  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'f100' });
+  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100' });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F100Item[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);

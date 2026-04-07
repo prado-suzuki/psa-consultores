@@ -81,7 +81,7 @@ interface TabD100Props {
 
 export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId }: TabD100Props) {
   const { user } = useAuth();
-  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'd100' });
+  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'D100' });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<D100Item[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);

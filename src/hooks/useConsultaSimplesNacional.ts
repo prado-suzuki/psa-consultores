@@ -8,7 +8,7 @@ const API_SIMPLES_URL = 'https://api-simples-nacional-1010211821554.southamerica
 
 interface ConsultaSimplesParams {
   id_contribuinte: string;
-  registro: 'f100' | 'd100';
+  registro: 'F100' | 'D100';
 }
 
 interface ConsultaSimplesResponse {
