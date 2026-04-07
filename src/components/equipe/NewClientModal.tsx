@@ -124,13 +124,8 @@ export default function NewClientModal({
   const handleDraftWarningContinue = () => {
     if (!draftWarningContext) return;
     clearCurrentDraft();
-    if (draftWarningContext.action === "navigate" && draftWarningContext.targetTab) {
+    if (draftWarningContext.targetTab) {
       setActiveTab(draftWarningContext.targetTab);
-    } else if (draftWarningContext.action === "save") {
-      setShowDraftWarning(false);
-      setDraftWarningContext(null);
-      executeSave();
-      return;
     }
     setShowDraftWarning(false);
     setDraftWarningContext(null);
@@ -194,12 +189,11 @@ export default function NewClientModal({
     originalSnapshot,
   });
 
+  const pendingDraftTabs = getDraftPendingTabs();
+  const hasPendingDrafts = pendingDraftTabs.length > 0;
+
   const handleSave = () => {
-    const pendingTabs = hookHandleSave();
-    if (pendingTabs) {
-      setDraftWarningContext({ action: "save", pendingTabs });
-      setShowDraftWarning(true);
-    }
+    executeSave();
   };
 
   const resetAndClose = () => {
