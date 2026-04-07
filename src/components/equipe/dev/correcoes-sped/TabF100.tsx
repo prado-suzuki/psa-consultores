@@ -66,6 +66,7 @@ interface TabF100Props {
   searchText: string;
   empresaCnpj: string | null;
   periodo: string | null;
+  contribuinteId: string;
 }
 
 export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo }: TabF100Props) {
