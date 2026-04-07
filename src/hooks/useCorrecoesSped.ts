@@ -245,51 +245,203 @@ export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
         throw new Error(`Erro ao consultar correcoes-d100: ${response.status}`);
       }
 
-      const payload = (await response.json()) as import('@/types/correcoesSped').D100ResponseEntry[];
+      const payload = (await response.json()) as D100ResponseEntry[];
 
       if (!payload || payload.length === 0) return [];
 
-      return payload.map((entry) => ({
-        ...entry.D100,
-        ID_CONTRIBUINTE: entry.ID_CONTRIBUINTE,
-        CNPJ_EFD: entry.CNPJ_EFD,
-        SIMPLES: entry.SIMPLES,
-        CST_PIS: entry.D101?.CST_PIS ?? 0,
-        VL_BC_PIS: entry.D101?.VL_BC_PIS ?? 0,
-        ALIQ_PIS: entry.D101?.ALIQ_PIS ?? 0,
-        VL_PIS: entry.D101?.VL_PIS ?? 0,
-        CST_COFINS: entry.D105?.CST_COFINS ?? 0,
-        VL_BC_COFINS: entry.D105?.VL_BC_COFINS ?? 0,
-        ALIQ_COFINS: entry.D105?.ALIQ_COFINS ?? 0,
-        VL_COFINS: entry.D105?.VL_COFINS ?? 0,
-      }));
+      const items: D100Item[] = payload.map((entry) => {
+        const flat = {
+          ...entry.D100,
+          ID_CONTRIBUINTE: entry.ID_CONTRIBUINTE,
+          CNPJ_EFD: entry.CNPJ_EFD,
+          SIMPLES: entry.SIMPLES,
+          CST_PIS: entry.D101?.CST_PIS ?? 0,
+          VL_BC_PIS: entry.D101?.VL_BC_PIS ?? 0,
+          ALIQ_PIS: entry.D101?.ALIQ_PIS ?? 0,
+          VL_PIS: entry.D101?.VL_PIS ?? 0,
+          CST_COFINS: entry.D105?.CST_COFINS ?? 0,
+          VL_BC_COFINS: entry.D105?.VL_BC_COFINS ?? 0,
+          ALIQ_COFINS: entry.D105?.ALIQ_COFINS ?? 0,
+          VL_COFINS: entry.D105?.VL_COFINS ?? 0,
+        };
+        return { ...flat, _originalSnapshot: { ...flat } as unknown as D100Item };
+      });
+
+      if (items.length === 0) return items;
+
+      const uuids = items.map((i) => i.uuid).filter(Boolean);
+      const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
+        () => supabase.from('efd_correcoes'),
+        'registro_original_id, snapshot',
+        [{ column: 'registro_tipo', value: 'D100' }, { column: 'ativo', value: 'true' }],
+        'registro_original_id',
+        uuids,
+      );
+
+      const correcoesPorRegistro = new Map(
+        correcoes
+          .filter((c) => !!c.registro_original_id)
+          .map((c) => [c.registro_original_id!, c.snapshot as Record<string, unknown> | null])
+      );
+
+      return items.map((item) => {
+        const snap = correcoesPorRegistro.get(item.uuid);
+        if (!snap) return item;
+        return { ...item, ...(snap as Partial<D100Item>) };
+      });
     },
     enabled: false,
   });
 }
 
 export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<F100Item[]>(
-    'correcoes-f100',
-    '/api/v1/pis_cofins/revisao/transp_outros',
-    params,
-  );
+  const { fetchWithAuth } = useApiAuth();
+
+  return useQuery<F100Item[]>({
+    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({
+        id_contribuinte: params.id_contribuinte,
+        dt_ini: params.dt_ini,
+        dt_fin: params.dt_fin,
+      });
+      const url = getApiUrl(`/api/v1/pis_cofins/revisao/transp_outros?${searchParams}`);
+      const response = await fetchWithAuth(url);
+      if (!response.ok) {
+        throw new Error(`Erro ao consultar correcoes-f100: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as F100Item[];
+      if (!payload || payload.length === 0) return [];
+
+      const items: F100Item[] = payload.map((entry) => ({
+        ...entry,
+        _originalSnapshot: { ...entry.F100 },
+      }));
+
+      const uuids = items.map((i) => i.F100.uuid).filter(Boolean);
+      const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
+        () => supabase.from('efd_correcoes'),
+        'registro_original_id, snapshot',
+        [{ column: 'registro_tipo', value: 'F100' }, { column: 'ativo', value: 'true' }],
+        'registro_original_id',
+        uuids,
+      );
+
+      const correcoesPorRegistro = new Map(
+        correcoes
+          .filter((c) => !!c.registro_original_id)
+          .map((c) => [c.registro_original_id!, c.snapshot as Partial<RegF100> | null])
+      );
+
+      return items.map((item) => {
+        const snap = correcoesPorRegistro.get(item.F100.uuid);
+        if (!snap) return item;
+        return { ...item, F100: { ...item.F100, ...snap } };
+      });
+    },
+    enabled: false,
+  });
 }
 
 export function useCorrecoesF120(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<F120Item[]>(
-    'correcoes-f120',
-    '/api/v1/pis_cofins/revisao/ativo_imob_bens',
-    params,
-  );
+  const { fetchWithAuth } = useApiAuth();
+
+  return useQuery<F120Item[]>({
+    queryKey: ['correcoes-f120', params.id_contribuinte, params.dt_ini, params.dt_fin],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({
+        id_contribuinte: params.id_contribuinte,
+        dt_ini: params.dt_ini,
+        dt_fin: params.dt_fin,
+      });
+      const url = getApiUrl(`/api/v1/pis_cofins/revisao/ativo_imob_bens?${searchParams}`);
+      const response = await fetchWithAuth(url);
+      if (!response.ok) {
+        throw new Error(`Erro ao consultar correcoes-f120: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as F120Item[];
+      if (!payload || payload.length === 0) return [];
+
+      const items: F120Item[] = payload.map((entry) => ({
+        ...entry,
+        _originalSnapshot: { ...entry.F120 },
+      }));
+
+      const uuids = items.map((i) => i.F120.uuid).filter(Boolean);
+      const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
+        () => supabase.from('efd_correcoes'),
+        'registro_original_id, snapshot',
+        [{ column: 'registro_tipo', value: 'F120' }, { column: 'ativo', value: 'true' }],
+        'registro_original_id',
+        uuids,
+      );
+
+      const correcoesPorRegistro = new Map(
+        correcoes
+          .filter((c) => !!c.registro_original_id)
+          .map((c) => [c.registro_original_id!, c.snapshot as Partial<F120Reg> | null])
+      );
+
+      return items.map((item) => {
+        const snap = correcoesPorRegistro.get(item.F120.uuid);
+        if (!snap) return item;
+        return { ...item, F120: { ...item.F120, ...snap } };
+      });
+    },
+    enabled: false,
+  });
 }
 
 export function useCorrecoesF130(params: UseCorrecoesSpedParams) {
-  return useCorrecoesQuery<F130Item[]>(
-    'correcoes-f130',
-    '/api/v1/pis_cofins/revisao/ativo_imob_credito',
-    params,
-  );
+  const { fetchWithAuth } = useApiAuth();
+
+  return useQuery<F130Item[]>({
+    queryKey: ['correcoes-f130', params.id_contribuinte, params.dt_ini, params.dt_fin],
+    queryFn: async () => {
+      const searchParams = new URLSearchParams({
+        id_contribuinte: params.id_contribuinte,
+        dt_ini: params.dt_ini,
+        dt_fin: params.dt_fin,
+      });
+      const url = getApiUrl(`/api/v1/pis_cofins/revisao/ativo_imob_credito?${searchParams}`);
+      const response = await fetchWithAuth(url);
+      if (!response.ok) {
+        throw new Error(`Erro ao consultar correcoes-f130: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as F130Item[];
+      if (!payload || payload.length === 0) return [];
+
+      const items: F130Item[] = payload.map((entry) => ({
+        ...entry,
+        _originalSnapshot: { ...entry.F130 },
+      }));
+
+      const uuids = items.map((i) => i.F130.uuid).filter(Boolean);
+      const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
+        () => supabase.from('efd_correcoes'),
+        'registro_original_id, snapshot',
+        [{ column: 'registro_tipo', value: 'F130' }, { column: 'ativo', value: 'true' }],
+        'registro_original_id',
+        uuids,
+      );
+
+      const correcoesPorRegistro = new Map(
+        correcoes
+          .filter((c) => !!c.registro_original_id)
+          .map((c) => [c.registro_original_id!, c.snapshot as Partial<F130Reg> | null])
+      );
+
+      return items.map((item) => {
+        const snap = correcoesPorRegistro.get(item.F130.uuid);
+        if (!snap) return item;
+        return { ...item, F130: { ...item.F130, ...snap } };
+      });
+    },
+    enabled: false,
+  });
 }
 
 export function useEnviarCorrecoes() {
