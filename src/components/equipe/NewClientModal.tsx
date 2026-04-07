@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData, createDefaultDraftEntity, createDefaultDraftRepresentante, createDefaultDraftContract } from "./client-form/constants";
@@ -49,7 +50,7 @@ export default function NewClientModal({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showDraftWarning, setShowDraftWarning] = useState(false);
   const [draftWarningContext, setDraftWarningContext] = useState<{
-    action: "save" | "navigate"; targetTab?: typeof activeTab; pendingTabs: string[];
+    action: "navigate"; targetTab?: typeof activeTab; pendingTabs: string[];
   } | null>(null);
 
   useEffect(() => { if (open) setIsReadOnly(readOnly); }, [open, readOnly]);
@@ -123,13 +124,8 @@ export default function NewClientModal({
   const handleDraftWarningContinue = () => {
     if (!draftWarningContext) return;
     clearCurrentDraft();
-    if (draftWarningContext.action === "navigate" && draftWarningContext.targetTab) {
+    if (draftWarningContext.targetTab) {
       setActiveTab(draftWarningContext.targetTab);
-    } else if (draftWarningContext.action === "save") {
-      setShowDraftWarning(false);
-      setDraftWarningContext(null);
-      executeSave();
-      return;
     }
     setShowDraftWarning(false);
     setDraftWarningContext(null);
@@ -193,12 +189,11 @@ export default function NewClientModal({
     originalSnapshot,
   });
 
+  const pendingDraftTabs = getDraftPendingTabs();
+  const hasPendingDrafts = pendingDraftTabs.length > 0;
+
   const handleSave = () => {
-    const pendingTabs = hookHandleSave();
-    if (pendingTabs) {
-      setDraftWarningContext({ action: "save", pendingTabs });
-      setShowDraftWarning(true);
-    }
+    executeSave();
   };
 
   const resetAndClose = () => {
@@ -322,13 +317,24 @@ export default function NewClientModal({
                 ) : (
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
-                    <Button
-                      onClick={handleSave} disabled={saving}
-                      className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
-                    >
-                      {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                      {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip open={hasPendingDrafts ? undefined : false}>
+                        <TooltipTrigger asChild>
+                          <span className="inline-block">
+                            <Button
+                              onClick={handleSave} disabled={saving || hasPendingDrafts}
+                              className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                            >
+                              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                              {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-center">
+                          Dados não adicionados em: <strong>{pendingDraftTabs.join(", ")}</strong>. Adicione-os à lista antes de salvar.
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </>
                 )}
               </div>
@@ -354,13 +360,12 @@ export default function NewClientModal({
           <AlertDialogHeader>
             <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
             <AlertDialogDescription>
-              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista.
-              {draftWarningContext?.action === "save" ? " Deseja salvar mesmo assim?" : " Deseja descartar e trocar de aba?"}
+              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista. Deseja descartar e trocar de aba?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={handleDraftWarningGoBack}>Continuar editando</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>{draftWarningContext?.action === "save" ? "Salvar mesmo assim" : "Descartar"}</AlertDialogAction>
+            <AlertDialogAction onClick={handleDraftWarningContinue}>Descartar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

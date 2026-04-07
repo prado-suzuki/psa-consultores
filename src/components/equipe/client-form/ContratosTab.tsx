@@ -532,7 +532,7 @@ export default function ContratosTab({
             </div>
 
             <div className="flex justify-end mt-4 pt-2 border-t">
-              <Button size="sm" variant="outline" onClick={addContract} disabled={isAddingContract} className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"><Plus size={14} /> {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}</Button>
+              <Button size="sm" onClick={addContract} disabled={isAddingContract} className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white shadow-md"><Plus size={14} /> {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}</Button>
             </div>
           </div>
         )}
