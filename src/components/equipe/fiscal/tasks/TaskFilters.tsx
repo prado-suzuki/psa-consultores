@@ -59,6 +59,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('excluido', false)
         .order('nome');
       return data || [];
     },
