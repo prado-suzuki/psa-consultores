@@ -285,6 +285,7 @@ export interface D100Item {
   VL_BC_COFINS: number;
   ALIQ_COFINS: number;
   VL_COFINS: number;
+  _originalSnapshot: D100Item;
 }
 
 // ── F100 (Outros) — nested structure from API ──
@@ -342,6 +343,7 @@ export interface F100Item {
   SIMPLES: string;
   F100: RegF100;
   '0150': Reg0150;
+  _originalSnapshot: RegF100;
 }
 
 // ── F120 (Ativo Imobilizado — Depreciação) ──
@@ -378,6 +380,7 @@ export interface F120Item {
   DESC_IDENT_BEM_IMOB: string;
   DESC_IND_UTIL_BEM_IMOB: string;
   F120: F120Reg;
+  _originalSnapshot: F120Reg;
 }
 
 // ── F130 (Ativo Imobilizado — Aquisição) ──
@@ -417,4 +420,5 @@ export interface F130Item {
   DESC_IDENT_BEM_IMOB: string;
   DESC_IND_UTIL_BEM_IMOB: string;
   F130: F130Reg;
+  _originalSnapshot: F130Reg;
 }

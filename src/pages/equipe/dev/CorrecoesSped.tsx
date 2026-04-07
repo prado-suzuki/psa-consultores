@@ -219,10 +219,10 @@ const CorrecoesSped = () => {
                 <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
                 <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
               </TabsList>
-              {(activeTab === 'c170' || activeTab === 'a170') && (
-                <Button size="sm" onClick={() => enviarCorrecoes(activeTab === 'c170' ? 'C170' : 'A170')} disabled={isSending} className="shrink-0">
+              {['c170', 'a170', 'd100', 'f100', 'f120', 'f130'].includes(activeTab) && (
+                <Button size="sm" onClick={() => enviarCorrecoes(activeTab.toUpperCase())} disabled={isSending} className="shrink-0">
                   {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-                  {isSending ? 'Enviando...' : `Enviar Correcoes ${activeTab === 'c170' ? 'C170' : 'A170'}`}
+                  {isSending ? 'Enviando...' : `Enviar Correções ${activeTab.toUpperCase()}`}
                 </Button>
               )}
               {/* TODO: remover — botão temporário de debug */}
@@ -280,6 +280,8 @@ const CorrecoesSped = () => {
                 error={d100Query.error as Error | null}
                 hasQueried={hasQueried}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
               />
             </TabsContent>
 
@@ -290,6 +292,8 @@ const CorrecoesSped = () => {
                 error={f100Query.error as Error | null}
                 hasQueried={hasQueried}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
               />
             </TabsContent>
 
@@ -300,6 +304,8 @@ const CorrecoesSped = () => {
                 error={f120Query.error as Error | null}
                 hasQueried={hasQueried}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
               />
             </TabsContent>
 
@@ -310,6 +316,8 @@ const CorrecoesSped = () => {
                 error={f130Query.error as Error | null}
                 hasQueried={hasQueried}
                 searchText={searchText}
+                empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
+                periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
               />
             </TabsContent>
           </Tabs>
