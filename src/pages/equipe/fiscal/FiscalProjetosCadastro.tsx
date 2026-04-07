@@ -217,7 +217,7 @@ const FiscalProjetosCadastro = () => {
   };
 
   const statusLabelMap: Record<string, string> = {
-    active: 'Ativo', completed: 'Concluído', on_hold: 'Pausado', cancelled: 'Cancelado',
+    planned: 'Planejado', active: 'Ativo', completed: 'Concluído', on_hold: 'Pausado', cancelled: 'Cancelado',
   };
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
 
@@ -1016,6 +1016,7 @@ const FiscalProjetosCadastro = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="planned">Planejado</SelectItem>
                         <SelectItem value="active">Ativo</SelectItem>
                         <SelectItem value="completed">Concluído</SelectItem>
                         <SelectItem value="on_hold">Pausado</SelectItem>
