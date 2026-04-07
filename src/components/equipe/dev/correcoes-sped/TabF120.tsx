@@ -176,7 +176,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   ) => {
     if (editingId !== item.F120.uuid || !draft) {
       const value = item.F120[field as keyof F120Reg];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as Record<string, unknown>)[field] : undefined;
+      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 

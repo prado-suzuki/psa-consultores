@@ -200,7 +200,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
   ) => {
     if (editingId !== item.uuid || !draft) {
       const value = item[field];
-      const isChanged = item._originalSnapshot && !Object.is(item[field], (item._originalSnapshot as Record<string, unknown>)[field]);
+      const isChanged = item._originalSnapshot && !Object.is(item[field], (item._originalSnapshot as unknown as Record<string, unknown>)[field]);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
       if (field === 'VL_PIS' || field === 'VL_COFINS') return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;

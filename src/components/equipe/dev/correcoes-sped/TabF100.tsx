@@ -185,7 +185,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   ) => {
     if (editingId !== item.F100.uuid || !draft) {
       const value = item.F100[field as keyof RegF100];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as Record<string, unknown>)[field] : undefined;
+      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
