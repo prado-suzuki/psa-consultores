@@ -1,17 +1,20 @@
 
+## Adicionar item "Chamados" no menu lateral Tax
 
-## Correção — URL do responsável no notify-ticket
+### Alteração única
 
-### Problema
-A URL do responsável está hardcoded como `"https://psaconsultores.com.br/equipe"` em duas ocorrências (linhas 208 e 222), sem incluir o ID do chamado.
+**Arquivo:** `src/components/equipe/fiscal/FiscalSidebar.tsx`
 
-### Correção
-Alterar ambas as ocorrências para usar template literal com `ticket.id`:
+1. Adicionar `MessageSquare` ao import do `lucide-react` (linha 10)
+2. Adicionar novo item no array `menuItems` após "Auditoria" (após linha 81):
 
-**Arquivo:** `supabase/functions/notify-ticket/index.ts`
+```typescript
+{
+  id: 'chamados',
+  label: 'Chamados',
+  icon: MessageSquare,
+  path: '/equipe/chamados'
+}
+```
 
-- **Linha 208** (evento `ticket_assigned`): trocar por `` `https://psaconsultores.com.br/equipe/chamados/${ticket.id}` ``
-- **Linha 222** (evento `ticket_replied`): trocar por `` `https://psaconsultores.com.br/equipe/chamados/${ticket.id}` ``
-
-Nenhuma outra alteração necessária. A variável `ticket.id` já está disponível no escopo.
-
+Segue o mesmo padrão visual dos itens existentes (ícone + label, highlight emerald no active). Nenhuma página, rota ou RLS alterada.
