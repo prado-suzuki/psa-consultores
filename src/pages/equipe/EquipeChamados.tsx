@@ -43,8 +43,14 @@ interface Ticket {
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
+  estrutura_area_id: string | null;
   profiles?: Profile;
   attachment_count?: number;
+}
+
+interface Area {
+  id: string;
+  name: string;
 }
 
 type SortDirection = 'asc' | 'desc' | null;
@@ -138,11 +144,14 @@ export default function EquipeChamados() {
   const [loading, setLoading] = useState(true);
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [areaMap, setAreaMap] = useState<Map<string, string>>(new Map());
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
     prioridade: 'todas',
     departamento: 'todos',
+    area: 'todos',
     searchId: '',
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
@@ -151,7 +160,25 @@ export default function EquipeChamados() {
     if (user) {
       fetchTickets();
     }
+    fetchAreas();
   }, [user, canAssignTickets]);
+
+  const fetchAreas = async () => {
+    try {
+      const { data } = await supabase
+        .from('estrutura_areas')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      const list = data || [];
+      setAreas(list);
+      const map = new Map<string, string>();
+      list.forEach(a => map.set(a.id, a.name));
+      setAreaMap(map);
+    } catch (error) {
+      console.error('Error fetching areas:', error);
+    }
+  };
 
   useEffect(() => {
     if (canAssignTickets) {
@@ -186,7 +213,7 @@ export default function EquipeChamados() {
     try {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, estrutura_area_id')
         .order('created_at', { ascending: false });
       
       // If user can assign (leader), show all tickets. Otherwise, show only assigned tickets.
@@ -232,6 +259,7 @@ export default function EquipeChamados() {
         updated_at: ticket.updated_at || '',
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
+        estrutura_area_id: (ticket as any).estrutura_area_id || null,
         profiles: profilesMap.get(ticket.user_id),
         attachment_count: attachmentCountMap.get(ticket.id) || 0
       })) || [];
@@ -348,6 +376,11 @@ export default function EquipeChamados() {
       filtered = filtered.filter(t => t.department === filters.departamento);
     }
 
+    // Filtro por área
+    if (filters.area !== 'todos') {
+      filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
+    }
+
     // Filtro por ID
     if (filters.searchId) {
       filtered = filtered.filter(t => 
@@ -436,6 +469,7 @@ export default function EquipeChamados() {
       status: 'todos',
       prioridade: 'todas',
       departamento: 'todos',
+      area: 'todos',
       searchId: '',
     });
   };
@@ -534,6 +568,21 @@ export default function EquipeChamados() {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="space-y-2">
+                <Label>Área</Label>
+                <Select value={filters.area} onValueChange={(v) => setFilters({...filters, area: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todas Áreas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todas Áreas</SelectItem>
+                    {areas.map((area) => (
+                      <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -627,6 +676,7 @@ export default function EquipeChamados() {
                           {getSortIcon('department')}
                         </div>
                       </TableHead>
+                      <TableHead>Área</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('created_by')}
@@ -701,6 +751,11 @@ export default function EquipeChamados() {
                         <TableCell>
                           <span className="text-sm">
                             {departmentLabels[ticket.department] || ticket.department || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
                           </span>
                         </TableCell>
                         <TableCell>

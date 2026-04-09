@@ -90,6 +90,7 @@ export default function GestaoDetalhesChamado() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [agents, setAgents] = useState<Profile[]>([]);
+  const [areaName, setAreaName] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -227,6 +228,17 @@ export default function GestaoDetalhesChamado() {
         .maybeSingle();
 
       setTicket({ ...data, profiles: profileData || undefined });
+
+      // Fetch area name
+      const areaId = (data as any).estrutura_area_id;
+      if (areaId) {
+        const { data: areaData } = await supabase
+          .from('estrutura_areas')
+          .select('name')
+          .eq('id', areaId)
+          .maybeSingle();
+        if (areaData) setAreaName(areaData.name);
+      }
     } catch (error) {
       console.error('Error fetching ticket:', error);
       navigate('/gestao/chamados');
@@ -407,6 +419,11 @@ export default function GestaoDetalhesChamado() {
               <Badge variant="outline" className="border-slate-200 text-slate-600">
                 Departamento: {departmentLabels[ticket.department] || ticket.department}
               </Badge>
+              {areaName && (
+                <Badge variant="outline" className="border-teal-200 text-teal-700">
+                  Área: {areaName}
+                </Badge>
+              )}
             </div>
             
             <p className="text-slate-600">{ticket.description}</p>

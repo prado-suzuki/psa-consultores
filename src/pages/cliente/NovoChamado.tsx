@@ -90,14 +90,32 @@ export default function NovoChamado() {
       ticketSchema.parse(form);
       setLoading(true);
 
-      const { data: ticketData, error } = await supabase.from('tickets').insert({
+      // Try to find cliente_id from representante table
+      let clienteId: string | null = null;
+      if (user?.id) {
+        const { data: repData } = await supabase
+          .from('representante' as any)
+          .select('id_cliente')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (repData) {
+          clienteId = (repData as any).id_cliente;
+        }
+      }
+
+      const insertPayload: any = {
         user_id: user?.id,
         title: form.title,
         department: form.department,
         description: form.description,
         priority: form.priority,
         status: 'aberto',
-      }).select().single();
+      };
+      if (clienteId) {
+        insertPayload.cliente_id = clienteId;
+      }
+
+      const { data: ticketData, error } = await supabase.from('tickets').insert(insertPayload).select().single();
 
       if (error) throw error;
 
