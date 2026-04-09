@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Calculator,
   FolderKanban,
+  MessageSquare,
   ArrowLeft,
   LogOut,
   Shield
