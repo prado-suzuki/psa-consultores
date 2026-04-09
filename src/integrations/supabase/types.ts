@@ -4387,10 +4387,12 @@ export type Database = {
         Row: {
           activity_status: string | null
           assigned_to: string | null
+          cliente_id: string | null
           created_at: string | null
           deadline: string | null
           department: string | null
           description: string
+          estrutura_area_id: string | null
           id: string
           priority: string | null
           status: string | null
@@ -4401,10 +4403,12 @@ export type Database = {
         Insert: {
           activity_status?: string | null
           assigned_to?: string | null
+          cliente_id?: string | null
           created_at?: string | null
           deadline?: string | null
           department?: string | null
           description: string
+          estrutura_area_id?: string | null
           id?: string
           priority?: string | null
           status?: string | null
@@ -4415,10 +4419,12 @@ export type Database = {
         Update: {
           activity_status?: string | null
           assigned_to?: string | null
+          cliente_id?: string | null
           created_at?: string | null
           deadline?: string | null
           department?: string | null
           description?: string
+          estrutura_area_id?: string | null
           id?: string
           priority?: string | null
           status?: string | null
@@ -4439,6 +4445,20 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_estrutura_area_id_fkey"
+            columns: ["estrutura_area_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_areas"
             referencedColumns: ["id"]
           },
         ]
