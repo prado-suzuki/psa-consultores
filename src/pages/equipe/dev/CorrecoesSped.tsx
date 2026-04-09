@@ -69,12 +69,12 @@ const CorrecoesSped = () => {
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
 
-  const queryMap: Record<string, typeof c170Query> = {
+  const queryMap = {
     c170: c170Query, a170: a170Query, d100: d100Query,
     f100: f100Query, f120: f120Query, f130: f130Query,
-  };
+  } as const;
 
-  const activeQuery = queryMap[activeTab];
+  const activeQuery = queryMap[activeTab as keyof typeof queryMap];
   const anyFetching = activeQuery?.isFetching ?? false;
 
   const handleConsultar = () => {
