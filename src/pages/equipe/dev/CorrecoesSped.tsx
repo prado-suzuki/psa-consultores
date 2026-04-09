@@ -69,17 +69,18 @@ const CorrecoesSped = () => {
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
 
-  const anyFetching = c170Query.isFetching || a170Query.isFetching || d100Query.isFetching || f100Query.isFetching || f120Query.isFetching || f130Query.isFetching;
+  const queryMap: Record<string, typeof c170Query> = {
+    c170: c170Query, a170: a170Query, d100: d100Query,
+    f100: f100Query, f120: f120Query, f130: f130Query,
+  };
+
+  const activeQuery = queryMap[activeTab];
+  const anyFetching = activeQuery?.isFetching ?? false;
 
   const handleConsultar = () => {
     if (!contribuinteId || !dtIni || !dtFin) return;
     setHasQueried(true);
-    c170Query.refetch();
-    a170Query.refetch();
-    d100Query.refetch();
-    f100Query.refetch();
-    f120Query.refetch();
-    f130Query.refetch();
+    activeQuery?.refetch();
   };
 
   const handleLimpar = () => {
