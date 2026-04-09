@@ -55,9 +55,15 @@ interface Ticket {
   assigned_to: string | null;
   activity_status: string | null;
   deadline: string | null;
+  estrutura_area_id: string | null;
   profiles?: Profile;
   agent?: Profile;
   attachment_count?: number;
+}
+
+interface Area {
+  id: string;
+  name: string;
 }
 
 const deadlineOptions: Record<string, string> = {
@@ -120,17 +126,38 @@ export default function GestaoChamados() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [areaMap, setAreaMap] = useState<Map<string, string>>(new Map());
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
     departamento: 'todos',
+    area: 'todos',
     searchId: '',
   });
 
   useEffect(() => {
     fetchTickets();
     fetchAgents();
+    fetchAreas();
   }, []);
+
+  const fetchAreas = async () => {
+    try {
+      const { data } = await supabase
+        .from('estrutura_areas')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      const list = data || [];
+      setAreas(list);
+      const map = new Map<string, string>();
+      list.forEach(a => map.set(a.id, a.name));
+      setAreaMap(map);
+    } catch (error) {
+      console.error('Error fetching areas:', error);
+    }
+  };
 
   const fetchAgents = async () => {
     try {
@@ -157,7 +184,7 @@ export default function GestaoChamados() {
     try {
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, estrutura_area_id')
         .order('created_at', { ascending: false });
 
       if (ticketsError) throw ticketsError;
@@ -207,6 +234,7 @@ export default function GestaoChamados() {
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
         deadline: (ticket as any).deadline || null,
+        estrutura_area_id: (ticket as any).estrutura_area_id || null,
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0
@@ -270,6 +298,10 @@ export default function GestaoChamados() {
 
     if (filters.departamento !== 'todos') {
       filtered = filtered.filter(t => t.department === filters.departamento);
+    }
+
+    if (filters.area !== 'todos') {
+      filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
     }
 
     if (filters.searchId) {
@@ -596,6 +628,22 @@ export default function GestaoChamados() {
             </div>
 
             <div className="space-y-2">
+              <Label>Área</Label>
+              <Select value={filters.area} onValueChange={(v) => setFilters({...filters, area: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todas</SelectItem>
+                  {areas.map((area) => (
+                    <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+            <div className="space-y-2">
               <Label>Buscar</Label>
               <Input
                 placeholder="ID ou título..."
@@ -674,6 +722,7 @@ export default function GestaoChamados() {
                       Departamento {getSortIcon('department')}
                     </div>
                   </TableHead>
+                  <TableHead>Área</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('created_by')}>
                     <div className="flex items-center">
                       Cliente {getSortIcon('created_by')}
@@ -713,6 +762,9 @@ export default function GestaoChamados() {
                     </TableCell>
                     <TableCell className="text-slate-500">
                       {departmentLabels[ticket.department] || ticket.department}
+                    </TableCell>
+                    <TableCell className="text-slate-500">
+                      {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
                     </TableCell>
                     <TableCell>
                       {ticket.profiles?.first_name} {ticket.profiles?.last_name}

@@ -90,6 +90,7 @@ export default function EquipeDetalhesChamado() {
   const [sending, setSending] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [areaName, setAreaName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_FILE_TYPES = [
@@ -284,6 +285,17 @@ export default function EquipeDetalhesChamado() {
         .maybeSingle();
 
       setTicket({ ...data, profiles: profileData || undefined });
+
+      // Fetch area name
+      const areaId = (data as any).estrutura_area_id;
+      if (areaId) {
+        const { data: areaData } = await supabase
+          .from('estrutura_areas')
+          .select('name')
+          .eq('id', areaId)
+          .maybeSingle();
+        if (areaData) setAreaName(areaData.name);
+      }
     } catch (error) {
       console.error('Error fetching ticket:', error);
       navigate('/equipe/chamados');
@@ -444,6 +456,11 @@ export default function EquipeDetalhesChamado() {
                 <Badge variant="outline">
                   Departamento: {departmentLabels[ticket.department] || ticket.department}
                 </Badge>
+                {areaName && (
+                  <Badge variant="outline" className="border-teal-200 text-teal-700">
+                    Área: {areaName}
+                  </Badge>
+                )}
               </div>
               
               <p className="text-muted-foreground">{ticket.description}</p>
