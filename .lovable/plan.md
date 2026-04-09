@@ -1,30 +1,17 @@
 
 
-## Tornar Data de Início e Data de Término obrigatórias
+## Correção — URL do responsável no notify-ticket
 
-### Arquivo: `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+### Problema
+A URL do responsável está hardcoded como `"https://psaconsultores.com.br/equipe"` em duas ocorrências (linhas 208 e 222), sem incluir o ID do chamado.
 
-**1. Validação no `handleSubmit` (linha 431, após validação do responsável):**
+### Correção
+Alterar ambas as ocorrências para usar template literal com `ticket.id`:
 
-```typescript
-if (!formData.start_date) {
-  toast.error('Data de Início é obrigatória');
-  return;
-}
-if (!formData.end_date) {
-  toast.error('Data de Término é obrigatória');
-  return;
-}
-if (formData.start_date > formData.end_date) {
-  toast.error('Data de Término deve ser posterior à Data de Início');
-  return;
-}
-```
+**Arquivo:** `supabase/functions/notify-ticket/index.ts`
 
-**2. Indicadores visuais nos labels (linhas 1025 e 1033):**
+- **Linha 208** (evento `ticket_assigned`): trocar por `` `https://psaconsultores.com.br/equipe/chamados/${ticket.id}` ``
+- **Linha 222** (evento `ticket_replied`): trocar por `` `https://psaconsultores.com.br/equipe/chamados/${ticket.id}` ``
 
-- Linha 1025: `<Label>Data de Início</Label>` → `<Label>Data de Início <span className="text-destructive">*</span></Label>`
-- Linha 1033: `<Label>Data de Término</Label>` → `<Label>Data de Término <span className="text-destructive">*</span></Label>`
-
-Nenhum outro arquivo alterado.
+Nenhuma outra alteração necessária. A variável `ticket.id` já está disponível no escopo.
 
