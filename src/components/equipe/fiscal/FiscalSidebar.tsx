@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Calculator,
   FolderKanban,
+  MessageSquare,
   ArrowLeft,
   LogOut,
   Shield
@@ -78,6 +79,12 @@ const menuItems: MenuItem[] = [
     label: 'Auditoria',
     icon: Shield,
     path: '/equipe/tax/auditoria'
+  },
+  {
+    id: 'chamados',
+    label: 'Chamados',
+    icon: MessageSquare,
+    path: '/equipe/chamados'
   }
 ];
 
