@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -74,47 +74,61 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   const { user } = useAuth();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100' });
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<F100Item[]>([]);
+  const [editedRows, setEditedRows] = useState<Record<string, RegF100>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<F100Draft | null>(null);
-  const locallyEditedIds = useRef<Set<string>>(new Set());
+  const deferredSearchText = useDeferredValue(searchText);
 
   useEffect(() => {
     if (!data) return;
-    if (editingId) return;
-    if (locallyEditedIds.current.size === 0) { setRows(data); return; }
-    setRows(data.map(d => {
-      if (locallyEditedIds.current.has(d.F100.uuid)) {
-        const local = rows.find(r => r.F100.uuid === d.F100.uuid);
-        return local ?? d;
-      }
-      return d;
+    const validIds = new Set(data.map((item) => item.F100.uuid));
+    setEditedRows((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) => validIds.has(id));
+      if (nextEntries.length === Object.keys(current).length) return current;
+      return Object.fromEntries(nextEntries);
+    });
+  }, [data]);
+
+  const indexedItems = useMemo(() => {
+    if (!data) return [] as Array<{ item: F100Item; searchKey: string }>;
+    return data.map((item) => ({
+      item,
+      searchKey: `${item['0150'].NOME} ${item.CPF_CNPJ}`.toLowerCase(),
     }));
   }, [data]);
 
+  const getDisplayedF100 = (item: F100Item) => editedRows[item.F100.uuid] ?? item.F100;
+  const getOriginalSnapshot = (item: F100Item) => item._originalSnapshot ?? item.F100;
+
   const filtered = useMemo(() => {
-    let items = rows;
-    if (searchText.trim()) {
-      const s = searchText.toLowerCase();
-      items = items.filter((i) => i['0150'].NOME.toLowerCase().includes(s) || i.CPF_CNPJ.includes(s));
+    if (!deferredSearchText.trim()) {
+      return indexedItems.map(({ item }) => item);
     }
-    return items;
-  }, [rows, searchText]);
+    const searchTerm = deferredSearchText.trim().toLowerCase();
+    return indexedItems
+      .filter(({ searchKey }) => searchKey.includes(searchTerm))
+      .map(({ item }) => item);
+  }, [deferredSearchText, indexedItems]);
 
   useEffect(() => { setPage(0); }, [searchText]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleStartEdit = (item: F100Item) => { setEditingId(item.F100.uuid); setDraft(toDraft(item)); };
+  const handleStartEdit = (item: F100Item) => {
+    setEditingId(item.F100.uuid);
+    setDraft(toDraft({ ...item, F100: getDisplayedF100(item) }));
+  };
   const handleCancelEdit = () => { setEditingId(null); setDraft(null); };
   const handleDraftChange = (field: EditableF100Field, value: string) => { setDraft((c) => c ? { ...c, [field]: value } : c); };
 
   const handleSave = async (item: F100Item) => {
     if (!user || !draft || editingId !== item.F100.uuid) return;
 
-    const nextSnapshot: Record<string, unknown> = { ...item.F100 };
+    const originalSnapshot = getOriginalSnapshot(item);
+    const displayedF100 = getDisplayedF100(item);
+    const nextSnapshot: Record<string, unknown> = { ...displayedF100 };
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
@@ -128,7 +142,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       nextSnapshot[field] = raw;
     }
 
-    const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+    const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
     setSavingId(item.F100.uuid);
 
     try {
@@ -144,7 +158,11 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
           if (e) throw e;
           toast.success('Correção removida; a linha voltou ao valor original.');
         } else { toast.success('Nenhuma alteração para salvar.'); }
-        setRows((c) => c.map((r) => r.F100.uuid === item.F100.uuid ? { ...r, F100: { ...item._originalSnapshot } } : r));
+        setEditedRows((current) => {
+          const next = { ...current };
+          delete next[item.F100.uuid];
+          return next;
+        });
         handleCancelEdit(); return;
       }
 
@@ -174,8 +192,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
       if (insertError) throw insertError;
 
-      setRows((c) => c.map((r) => r.F100.uuid === item.F100.uuid ? { ...r, F100: { ...r.F100, ...nextSnapshot } as RegF100 } : r));
-      locallyEditedIds.current.add(item.F100.uuid);
+      setEditedRows((current) => ({ ...current, [item.F100.uuid]: nextSnapshot as RegF100 }));
       handleCancelEdit();
       toast.success('Correção do F100 salva.');
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correção.'); }
@@ -186,9 +203,12 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
     item: F100Item, field: EditableF100Field, className: string,
     options?: { isCurrency?: boolean; isPercentage?: boolean },
   ) => {
+    const displayedF100 = getDisplayedF100(item);
+    const originalSnapshot = getOriginalSnapshot(item);
+
     if (editingId !== item.F100.uuid || !draft) {
-      const value = item.F100[field as keyof RegF100];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
+      const value = displayedF100[field as keyof RegF100];
+      const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
@@ -258,10 +278,11 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => {
-                    const linhaCorrigida = buildChangedFields(item._originalSnapshot, item.F100 as unknown as Record<string, unknown>).length > 0;
+                    const displayedF100 = getDisplayedF100(item);
+                    const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF100 as unknown as Record<string, unknown>).length > 0;
                     return (
                       <TableRow key={`f100-${item.F100.uuid}-${idx}`} className={editingId === item.F100.uuid ? 'bg-accent/30' : 'group'}>
-                        <TableCell className="text-xs py-1.5 font-mono">{item.F100.DT_OPER}</TableCell>
+                        <TableCell className="text-xs py-1.5 font-mono">{displayedF100.DT_OPER}</TableCell>
                         <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item['0150'].NOME}>{item['0150'].NOME}</TableCell>
                         <TableCell className="text-xs py-1.5 font-mono">{item.CPF_CNPJ}</TableCell>
                         <TableCell className="py-1.5"><Badge variant="outline" className="text-[10px] font-medium">{item.TIPO_PESSOA}</Badge></TableCell>

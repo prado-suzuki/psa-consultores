@@ -314,10 +314,7 @@ export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
       const payload = (await response.json()) as F100Item[];
       if (!payload || payload.length === 0) return [];
 
-      const items: F100Item[] = payload.map((entry) => ({
-        ...entry,
-        _originalSnapshot: { ...entry.F100 },
-      }));
+      const items = payload;
 
       const uuids = items.map((i) => i.F100.uuid).filter(Boolean);
       const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
@@ -337,7 +334,11 @@ export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
       return items.map((item) => {
         const snap = correcoesPorRegistro.get(item.F100.uuid);
         if (!snap) return item;
-        return { ...item, F100: { ...item.F100, ...snap } };
+        return {
+          ...item,
+          _originalSnapshot: item.F100,
+          F100: { ...item.F100, ...snap },
+        };
       });
     },
     enabled: false,

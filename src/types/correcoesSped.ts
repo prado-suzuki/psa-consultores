@@ -343,7 +343,7 @@ export interface F100Item {
   SIMPLES: string;
   F100: RegF100;
   '0150': Reg0150;
-  _originalSnapshot: RegF100;
+  _originalSnapshot?: RegF100;
 }
 
 // ── F120 (Ativo Imobilizado — Depreciação) ──
