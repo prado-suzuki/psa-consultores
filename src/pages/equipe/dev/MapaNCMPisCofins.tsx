@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
@@ -11,11 +11,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2 } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 type ModalMode = 'view' | 'edit' | 'create' | null;
+type ColKey = 'ncm' | 'setor' | 'cst' | 'desc_cst' | 'base_legal' | 'credito';
+
+const extractColValue = (r: RegraNCMRow, key: ColKey, setorMap: Record<string, { sigla?: string; nome?: string }>): string => {
+  switch (key) {
+    case 'ncm': return r.cod_ncm ?? '—';
+    case 'setor': return setorMap[r.id_segmento ?? '']?.nome ?? r.id_segmento ?? '—';
+    case 'cst': return r.cst_pis ?? '—';
+    case 'desc_cst': return r.desc_cst ?? '—';
+    case 'base_legal': return r.base_legal || '—';
+    case 'credito': return r.permite_credito === 'S' ? 'Sim' : 'Não';
+  }
+};
 
 const MapaNCMPisCofins = () => {
   const { regras, isLoading, createRegra, updateRegra, deleteRegra } = useRegrasNCM();
