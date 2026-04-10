@@ -1,23 +1,20 @@
 
 
-## Correção: incluir "Planejado" no dropdown de projetos (manter "Suspenso" fora)
+## Adicionar "Comércio Atacadista" à tabela `setor_cliente`
 
-### Arquivo: `src/hooks/useOrgProjects.ts` (linha 153)
+Inserir um novo registro na tabela `setor_cliente` com:
+- **sigla**: `ATA`
+- **nome**: `Comércio Atacadista`
+- **descricao**: `Atividades relacionadas ao comércio atacadista`
 
-Trocar:
-```typescript
-if (onlyActive) query = query.eq('status', 'active');
+### Execução
+
+Uma única migration SQL:
+
+```sql
+INSERT INTO public.setor_cliente (nome, sigla, descricao)
+VALUES ('Comércio Atacadista', 'ATA', 'Atividades relacionadas ao comércio atacadista');
 ```
-Por:
-```typescript
-if (onlyActive) query = query.in('status', ['active', 'planned']);
-```
 
-Isso faz com que projetos **planejados** apareçam no dropdown de criação de tarefas (resolvendo casos como o Everest se o status for `planned`), mas projetos **em suspenso** (`on_hold`) continuem ocultos — impedindo criação de tarefas neles.
-
-### Build errors (mesmo deploy)
-
-1. **`supabase/functions/notify-ticket/index.ts`** — Usar `any` no tipo do client para eliminar os 15 erros de tipo. Trocar `ReturnType<typeof createClient>` por `any` nos parâmetros de `getGestorRecipients`, `getEmailForUser` e `getNameForUser`.
-
-2. **`src/components/equipe/dev/correcoes-sped/TabF100.tsx`** (linha 195) — Adicionar cast intermediário `as unknown` antes de `as RegF100`.
+Nenhuma alteração de código é necessária — o dropdown no `ClienteTab.tsx` já carrega dinamicamente da tabela `setor_cliente` via `useSetoresCliente()`.
 
