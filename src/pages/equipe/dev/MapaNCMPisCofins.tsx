@@ -45,6 +45,18 @@ const MapaNCMPisCofins = () => {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string> | null>>({});
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters(prev => ({ ...prev, [key]: values }));
+  }, []);
+
+  const colKeys: ColKey[] = ['ncm', 'setor', 'cst', 'desc_cst', 'base_legal', 'credito'];
 
   const filtered = useMemo(() => {
     let list = regras;
@@ -60,14 +72,54 @@ const MapaNCMPisCofins = () => {
           (setorLabel?.nome ?? '').toLowerCase().includes(q);
       });
     }
+    // Column filters
+    for (const key of colKeys) {
+      const filterSet = columnFilters[key];
+      if (filterSet) {
+        list = list.filter(r => filterSet.has(extractColValue(r, key, setorMap)));
+      }
+    }
+    // Sort
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      const mult = direction === 'asc' ? 1 : -1;
+      list = [...list].sort((a, b) => {
+        const va = extractColValue(a, key as ColKey, setorMap);
+        const vb = extractColValue(b, key as ColKey, setorMap);
+        return va.localeCompare(vb, 'pt-BR') * mult;
+      });
+    }
     return list;
-  }, [regras, search, creditOnly, setorMap]);
+  }, [regras, search, creditOnly, setorMap, columnFilters, sortConfig]);
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
-
-  // Reset page when filters change
-  useEffect(() => { setCurrentPage(0); }, [filtered.length]);
+  // Unique values per column (cascade-aware)
+  const uniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const targetKey of colKeys) {
+      let subset = regras;
+      if (creditOnly) subset = subset.filter(r => r.permite_credito === 'S');
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        subset = subset.filter(r => {
+          const setorLabel = setorMap[r.id_segmento ?? ''];
+          return (r.cod_ncm ?? '').toLowerCase().includes(q) ||
+            (r.desc_cst ?? '').toLowerCase().includes(q) ||
+            (r.base_legal ?? '').toLowerCase().includes(q) ||
+            (setorLabel?.sigla ?? '').toLowerCase().includes(q) ||
+            (setorLabel?.nome ?? '').toLowerCase().includes(q);
+        });
+      }
+      for (const otherKey of colKeys) {
+        if (otherKey === targetKey) continue;
+        const filterSet = columnFilters[otherKey];
+        if (filterSet) {
+          subset = subset.filter(r => filterSet.has(extractColValue(r, otherKey, setorMap)));
+        }
+      }
+      result[targetKey] = [...new Set(subset.map(r => extractColValue(r, targetKey, setorMap)))];
+    }
+    return result;
+  }, [regras, search, creditOnly, setorMap, columnFilters]);
 
   const handleSubmit = (values: any) => {
     if (modalMode === 'edit' && selectedRegra) {
