@@ -65,19 +65,16 @@ export const useClientEditData = (
             regiao: (cli as any).regiao || "",
             cluster_ids: [],
           };
+
+          // Load cluster associations before finalizing mapped
+          const { data: clusterRows } = await (supabase.from('cliente_clusters' as any) as any)
+            .select('cluster_id')
+            .eq('cliente_id', editingClienteId);
+          mapped.cluster_ids = (clusterRows || []).map((r: any) => r.cluster_id as string);
+
           setters.setClientData(mapped);
           snapClient = structuredClone(mapped);
         }
-
-        // Load cluster associations
-        const { data: clusterRows } = await (supabase.from('cliente_clusters' as any) as any)
-          .select('cluster_id')
-          .eq('cliente_id', editingClienteId);
-        const loadedClusterIds = (clusterRows || []).map((r: any) => r.cluster_id as string);
-        if (snapClient) {
-          snapClient.cluster_ids = loadedClusterIds;
-        }
-        setters.setClientData(prev => ({ ...prev, cluster_ids: loadedClusterIds }) as any);
 
         const { data: contribs } = await supabase
           .from(contribuinteTable)
