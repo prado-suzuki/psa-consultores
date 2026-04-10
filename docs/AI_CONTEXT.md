@@ -241,7 +241,7 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `tax_projects`, `tax_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
 
 **Chamados:**
-`tickets`, `ticket_messages`, `ticket_attachments` (inferido), `documents`
+`tickets` (com `cliente_id` → `cliente`, `estrutura_area_id` → `estrutura_areas`), `ticket_messages`, `ticket_attachments` (inferido), `documents`
 
 **Dev/Tributário:**
 `cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `representante`, `ordem_servico`, `os_produtos_contratados`, `distribuicao_receita`, `inscricoes_estaduais`, `per`, `per_situacao`, `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`, `efd_correcoes`
@@ -374,7 +374,26 @@ computeEntityListDiff(oldList, newList, dbIdField, fieldsToCompare) → { entity
 
 ---
 
-## 9. Integrações Externas
+## 9. Roteamento de Chamados por Cluster
+
+### 9.1 Fluxo de criação (CreateTicketDialog.tsx)
+
+O formulário de criação de chamados pela gestão segue o fluxo:
+
+1. **Usuário** — select de profiles com role `client` → grava `tickets.user_id`
+2. **Empresa** — select da tabela `cliente` (filtro `ativo=true`, `excluido=false`, `ambiente=currentAmbiente`) → grava `tickets.cliente_id`
+3. **Área** — ao selecionar empresa, busca clusters via `cliente_clusters` → filtra `estrutura_areas` por `cluster_id IN (clusters)` → grava `tickets.estrutura_area_id`. Se empresa sem clusters, mostra todas as áreas ativas (fallback). Auto-seleciona se houver 1 área só.
+4. **Assunto** — select hardcoded (ICMS/IPI, PIS/COFINS, etc.) → grava `tickets.department`. É classificação do tema, **não** roteamento.
+
+> **TODO pendente**: Quando `representante.user_id` estiver preenchido, filtrar empresas pelo vínculo representante → cliente (Ação 4 do plano de cadastros).
+
+### 9.2 Campos obrigatórios no submit
+
+`user_id`, `cliente_id`, `estrutura_area_id`, `title`, `description`. `department` e `priority` são opcionais.
+
+---
+
+## 10. Integrações Externas
 
 ### 9.1 API Backend (GCP Cloud Run)
 
@@ -386,7 +405,7 @@ Fire-and-forget via Edge Functions (`sync-perdcomp`, `sync-cadastros`). Token de
 
 ---
 
-## 10. Tipos de Domínio (`src/types/`)
+## 11. Tipos de Domínio (`src/types/`)
 
 | Arquivo | Conteúdo |
 |---|---|
