@@ -192,7 +192,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
       if (insertError) throw insertError;
 
-      setEditedRows((current) => ({ ...current, [item.F100.uuid]: nextSnapshot as RegF100 }));
+      setEditedRows((current) => ({ ...current, [item.F100.uuid]: nextSnapshot as unknown as RegF100 }));
       handleCancelEdit();
       toast.success('Correção do F100 salva.');
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correção.'); }

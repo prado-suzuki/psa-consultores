@@ -150,7 +150,7 @@ export const useOrgProjectsList = (onlyActive = true) => {
     queryKey: ['org-projects-list', onlyActive],
     queryFn: async () => {
       let query = supabase.from('org_projects').select('id, name, external_client_id, estrutura_area_id').order('name');
-      if (onlyActive) query = query.eq('status', 'active');
+      if (onlyActive) query = query.in('status', ['active', 'planned']);
       const { data, error } = await query;
       if (error) throw error;
       return data || [];

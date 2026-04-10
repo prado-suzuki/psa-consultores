@@ -28,7 +28,7 @@ interface Recipient {
 // ── Dynamic gestor lookup ──
 
 async function getGestorRecipients(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   ticketId: string
 ): Promise<Recipient[]> {
   const { data: areas } = await supabase
@@ -104,7 +104,7 @@ async function validateCaller(req: Request): Promise<{ authorized: boolean; erro
 // ── Helper functions ──
 
 async function getEmailForUser(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string
 ): Promise<string | null> {
   const { data } = await supabase
@@ -116,7 +116,7 @@ async function getEmailForUser(
 }
 
 async function getNameForUser(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   userId: string
 ): Promise<string> {
   const { data } = await supabase
