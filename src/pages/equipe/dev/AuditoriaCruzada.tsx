@@ -136,7 +136,7 @@ const AuditoriaCruzadaContent = () => {
         <Tabs defaultValue="balancete-efd" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">Balancete</TabsTrigger>
-            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS</TabsTrigger>
+            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS | XML NFe</TabsTrigger>
             <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs</TabsTrigger>
           </TabsList>
 
