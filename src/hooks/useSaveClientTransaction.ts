@@ -57,6 +57,7 @@ interface SaveTransactionParams {
   participants: DraftRepresentante[];
   contracts: DraftOrdemServico[];
   inscricoesMap: Record<string, InscricaoIE[]>;
+  clusterIds?: string[];
   isEditing: boolean;
   editingClienteId?: string | null;
   setoresCliente: SetorCliente[];
@@ -68,7 +69,7 @@ interface SaveTransactionParams {
 
 export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const {
-    clientData, entities, participants, contracts, inscricoesMap,
+    clientData, entities, participants, contracts, inscricoesMap, clusterIds = [],
     isEditing, editingClienteId, setoresCliente,
     getDraftPendingTabs, onDuplicateFound, onSuccess, originalSnapshot,
   } = params;
@@ -401,6 +402,27 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
+      // --- Persist cliente_clusters (incremental upsert) ---
+      // cliente_clusters não está no schema tipado — cast justificado
+      const { data: existingClusters } = await (supabase.from('cliente_clusters' as any) as any)
+        .select('id, cluster_id')
+        .eq('cliente_id', clienteId);
+      const existingClusterIds = new Set((existingClusters || []).map((r: any) => r.cluster_id as string));
+      const desiredClusterIds = new Set(clusterIds);
+      // INSERT new
+      const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
+      if (toInsertClusters.length > 0) {
+        const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
+        const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
+        if (insErr) throw insErr;
+      }
+      // DELETE removed
+      const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
+      if (toDeleteClusterRows.length > 0) {
+        const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
+        await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+      }
+
       syncCadastrosToDW({
         clientes: [
           {
@@ -547,7 +569,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     } finally {
       setSaving(false);
     }
-  }, [clientData, entities, participants, contracts, inscricoesMap, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot]);
+  }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot]);
 
   const handleSave = useCallback(() => {
     const pendingTabs = getDraftPendingTabs();

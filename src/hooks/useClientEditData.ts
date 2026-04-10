@@ -26,6 +26,7 @@ interface Setters {
   setParticipants: (participants: DraftRepresentante[]) => void;
   setContracts: (contracts: DraftOrdemServico[]) => void;
   setInscricoesMap: (map: Record<string, InscricaoIE[]>) => void;
+  setClusterIds?: (ids: string[]) => void;
 }
 
 export const useClientEditData = (
@@ -64,6 +65,14 @@ export const useClientEditData = (
           };
           setters.setClientData(mapped);
           snapClient = structuredClone(mapped);
+        }
+
+        // Load cluster associations
+        const { data: clusterRows } = await (supabase.from('cliente_clusters' as any) as any)
+          .select('cluster_id')
+          .eq('cliente_id', editingClienteId);
+        if (clusterRows && setters.setClusterIds) {
+          setters.setClusterIds(clusterRows.map((r: any) => r.cluster_id as string));
         }
 
         const { data: contribs } = await supabase

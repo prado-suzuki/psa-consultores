@@ -177,14 +177,21 @@ export function useClienteOrdens(clientId: string | null) {
   });
 }
 
-/** Profiles para dropdowns de tarefas (formato {id, name}) */
+/** Profiles para dropdowns de tarefas — filtrados por roles internas (exclui client/timecliente) */
 export function useTeamMembersForTasks() {
   return useQuery({
     queryKey: ['team-members-for-tasks'],
     queryFn: async () => {
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .in('role', ['team_member', 'sublider', 'lider', 'admin']);
+      const allowedIds = [...new Set((roles || []).map(r => r.user_id))];
+      if (allowedIds.length === 0) return [];
       const { data } = await supabase
         .from('profiles_safe')
         .select('id, first_name, last_name')
+        .in('id', allowedIds)
         .order('first_name');
       return (data || []).map(p => ({
         id: p.id,

@@ -74,7 +74,8 @@ export default function NewClientModal({
   const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
 
   // Load existing data when editing
-  const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap }), []);
+  const setClusterIds = useCallback((ids: string[]) => setClientData(prev => ({ ...prev, cluster_ids: ids })), []);
+  const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap, setClusterIds }), [setClusterIds]);
   const { loadingEdit, originalSnapshot } = useClientEditData(open, editingClienteId, editSetters);
 
   // External consults
@@ -183,6 +184,7 @@ export default function NewClientModal({
   // --- SAVE ---
   const { handleSave: hookHandleSave, executeSave, saving } = useSaveClientTransaction({
     clientData, entities, participants, contracts, inscricoesMap,
+    clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
     getDraftPendingTabs, onDuplicateFound,
     onSuccess: () => resetAndClose(),
@@ -257,7 +259,7 @@ export default function NewClientModal({
 
                 <ScrollArea className="flex-1">
                   <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
-                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} />
+                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} allClusters={allClusters} />
                   </TabsContent>
 
                   <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
