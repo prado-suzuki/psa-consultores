@@ -73,9 +73,11 @@ export const useClientEditData = (
         const { data: clusterRows } = await (supabase.from('cliente_clusters' as any) as any)
           .select('cluster_id')
           .eq('cliente_id', editingClienteId);
-        if (clusterRows && setters.setClusterIds) {
-          setters.setClusterIds(clusterRows.map((r: any) => r.cluster_id as string));
+        const loadedClusterIds = (clusterRows || []).map((r: any) => r.cluster_id as string);
+        if (snapClient) {
+          snapClient.cluster_ids = loadedClusterIds;
         }
+        setters.setClientData(prev => ({ ...prev, cluster_ids: loadedClusterIds }) as any);
 
         const { data: contribs } = await supabase
           .from(contribuinteTable)
