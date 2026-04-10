@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -48,27 +48,36 @@ const priorityLabels: Record<string, string> = {
   urgente: 'Urgente',
 };
 
+interface Empresa {
+  id: string;
+  nome: string;
+}
+
 interface Area {
   id: string;
   name: string;
+  cluster_id: string;
 }
 
 export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTicketDialogProps) {
   const { user } = useAuth();
   const [clients, setClients] = useState<Profile[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [filteredAreas, setFilteredAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingClients, setLoadingClients] = useState(true);
-  const [loadingAreas, setLoadingAreas] = useState(true);
+  const [loadingEmpresas, setLoadingEmpresas] = useState(true);
+  const [loadingAreas, setLoadingAreas] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     department: '',
     priority: 'normal',
     user_id: '',
+    cliente_id: '',
     estrutura_area_id: '',
   });
 
@@ -77,7 +86,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
   useEffect(() => {
     if (open) {
       fetchClients();
-      fetchAreas();
+      fetchEmpresas();
       const saved = restore();
       if (saved) {
         setFormData(saved as typeof formData);
@@ -85,17 +94,65 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     }
   }, [open]);
 
-  const fetchAreas = async () => {
+  // When cliente_id changes, fetch clusters → filter areas
+  useEffect(() => {
+    if (!formData.cliente_id) {
+      setFilteredAreas([]);
+      return;
+    }
+    fetchAreasForCliente(formData.cliente_id);
+  }, [formData.cliente_id]);
+
+  const fetchEmpresas = async () => {
+    try {
+      setLoadingEmpresas(true);
+      const { data } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .eq('excluido', false)
+        .order('nome');
+      setEmpresas(data || []);
+    } catch (error) {
+      console.error('Error fetching empresas:', error);
+    } finally {
+      setLoadingEmpresas(false);
+    }
+  };
+
+  const fetchAreasForCliente = async (clienteId: string) => {
     try {
       setLoadingAreas(true);
-      const { data } = await supabase
+
+      // 1. Get clusters for this client
+      const { data: clusterLinks } = await supabase
+        .from('cliente_clusters')
+        .select('cluster_id')
+        .eq('cliente_id', clienteId);
+
+      const clusterIds = (clusterLinks || []).map(c => c.cluster_id);
+
+      // 2. Fetch areas — filtered by clusters if any, otherwise all active
+      let query = supabase
         .from('estrutura_areas')
-        .select('id, name')
+        .select('id, name, cluster_id')
         .eq('is_active', true)
         .order('name');
-      setAreas(data || []);
+
+      if (clusterIds.length > 0) {
+        query = query.in('cluster_id', clusterIds);
+      }
+
+      const { data: areasData } = await query;
+      const result = (areasData || []) as Area[];
+      setFilteredAreas(result);
+
+      // Auto-select if only one area
+      if (result.length === 1) {
+        setFormData(prev => ({ ...prev, estrutura_area_id: result[0].id }));
+      }
     } catch (error) {
-      console.error('Error fetching areas:', error);
+      console.error('Error fetching areas for client:', error);
     } finally {
       setLoadingAreas(false);
     }
@@ -104,7 +161,6 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
   const fetchClients = async () => {
     try {
       setLoadingClients(true);
-      // Get clients (users with 'client' role)
       const { data: rolesData } = await supabase
         .from('user_roles')
         .select('user_id')
@@ -146,8 +202,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleEmpresaChange = (v: string) => {
+    setFormData(prev => ({ ...prev, cliente_id: v, estrutura_area_id: '' }));
+  };
+
   const handleSubmit = async () => {
-    if (!formData.title || !formData.description || (!formData.department && !formData.estrutura_area_id) || !formData.user_id) {
+    if (!formData.title || !formData.description || !formData.user_id || !formData.cliente_id || !formData.estrutura_area_id) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos obrigatórios.',
@@ -158,19 +218,17 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
     setLoading(true);
     try {
-      // Create the ticket
       const insertPayload: any = {
-          title: formData.title,
-          description: formData.description,
-          department: formData.department || formData.estrutura_area_id ? (formData.department || areas.find(a => a.id === formData.estrutura_area_id)?.name || '') : '',
-          priority: formData.priority,
-          user_id: formData.user_id,
-          status: 'aberto',
-          activity_status: 'aguardando_resposta',
-        };
-      if (formData.estrutura_area_id) {
-        insertPayload.estrutura_area_id = formData.estrutura_area_id;
-      }
+        title: formData.title,
+        description: formData.description,
+        department: formData.department || null,
+        priority: formData.priority,
+        user_id: formData.user_id,
+        cliente_id: formData.cliente_id,
+        estrutura_area_id: formData.estrutura_area_id,
+        status: 'aberto',
+        activity_status: 'aguardando_resposta',
+      };
 
       const { data: ticket, error: ticketError } = await supabase
         .from('tickets')
@@ -229,6 +287,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         department: '',
         priority: 'normal',
         user_id: '',
+        cliente_id: '',
         estrutura_area_id: '',
       });
       setSelectedFiles([]);
@@ -258,20 +317,39 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Usuário (Cliente) */}
           <div className="space-y-2">
-            <Label htmlFor="client" className="text-slate-700">Cliente <RequiredMark /></Label>
+            <Label htmlFor="client" className="text-slate-700">Usuário (Cliente) <RequiredMark /></Label>
             <Select
               value={formData.user_id}
               onValueChange={(v) => setFormData({ ...formData, user_id: v })}
             >
               <SelectTrigger className="bg-white border-slate-200">
-                <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o cliente"} />
+                <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o usuário"} />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.first_name} {client.last_name} ({client.email})
                   </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Empresa */}
+          <div className="space-y-2">
+            <Label className="text-slate-700">Empresa <RequiredMark /></Label>
+            <Select
+              value={formData.cliente_id}
+              onValueChange={handleEmpresaChange}
+            >
+              <SelectTrigger className="bg-white border-slate-200">
+                <SelectValue placeholder={loadingEmpresas ? "Carregando..." : "Selecione a empresa"} />
+              </SelectTrigger>
+              <SelectContent>
+                {empresas.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>{emp.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -300,20 +378,27 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
             />
           </div>
 
+          {/* Área (filtrada pelos clusters da empresa) */}
           <div className="space-y-2">
             <Label className="text-slate-700">Área <RequiredMark /></Label>
             <Select
               value={formData.estrutura_area_id}
-              onValueChange={(v) => {
-                const area = areas.find(a => a.id === v);
-                setFormData({ ...formData, estrutura_area_id: v, department: area?.name || '' });
-              }}
+              onValueChange={(v) => setFormData({ ...formData, estrutura_area_id: v })}
+              disabled={!formData.cliente_id}
             >
               <SelectTrigger className="bg-white border-slate-200">
-                <SelectValue placeholder={loadingAreas ? "Carregando..." : "Selecione a área"} />
+                <SelectValue
+                  placeholder={
+                    !formData.cliente_id
+                      ? "Selecione a empresa primeiro"
+                      : loadingAreas
+                        ? "Carregando..."
+                        : "Selecione a área"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                {areas.map((area) => (
+                {filteredAreas.map((area) => (
                   <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -322,7 +407,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-700">Departamento (legado)</Label>
+              <Label className="text-slate-700">Assunto</Label>
               <Select
                 value={formData.department}
                 onValueChange={(v) => setFormData({ ...formData, department: v })}
