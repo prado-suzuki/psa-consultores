@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { FiscalTask } from '@/hooks/useFiscalTasks';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
-import { TaskCard } from './TaskCard';
+import { Badge } from '@/components/ui/badge';
 
 interface TaskCalendarProps {
   tasks: FiscalTask[];
