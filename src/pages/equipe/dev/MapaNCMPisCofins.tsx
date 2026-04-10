@@ -121,6 +121,11 @@ const MapaNCMPisCofins = () => {
     return result;
   }, [regras, search, creditOnly, setorMap, columnFilters]);
 
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
+
+  useEffect(() => { setCurrentPage(0); }, [filtered.length]);
+
   const handleSubmit = (values: any) => {
     if (modalMode === 'edit' && selectedRegra) {
       updateRegra.mutate({ id: selectedRegra.id, ...values }, {
