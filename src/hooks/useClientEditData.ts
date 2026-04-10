@@ -52,7 +52,7 @@ export const useClientEditData = (
         let snapClient: ClientDataShape | null = null;
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const mapped = {
+          const mapped: ClientDataShape = {
             nome: cli.nome || "",
             categoria: (cli as any).categoria || "Bronze",
             ativo: cli.ativo ?? true,
@@ -63,6 +63,7 @@ export const useClientEditData = (
             setor_cliente: cli.setor_cliente || "",
             setor_cliente_id: (cli as any).setor_cliente_id || "",
             regiao: (cli as any).regiao || "",
+            cluster_ids: [],
           };
           setters.setClientData(mapped);
           snapClient = structuredClone(mapped);
