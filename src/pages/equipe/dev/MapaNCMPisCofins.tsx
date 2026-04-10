@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
@@ -11,11 +11,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2 } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 type ModalMode = 'view' | 'edit' | 'create' | null;
+type ColKey = 'ncm' | 'setor' | 'cst' | 'desc_cst' | 'base_legal' | 'credito';
+
+const extractColValue = (r: RegraNCMRow, key: ColKey, setorMap: Record<string, { sigla?: string; nome?: string }>): string => {
+  switch (key) {
+    case 'ncm': return r.cod_ncm ?? '—';
+    case 'setor': return setorMap[r.id_segmento ?? '']?.nome ?? r.id_segmento ?? '—';
+    case 'cst': return r.cst_pis ?? '—';
+    case 'desc_cst': return r.desc_cst ?? '—';
+    case 'base_legal': return r.base_legal || '—';
+    case 'credito': return r.permite_credito === 'S' ? 'Sim' : 'Não';
+  }
+};
 
 const MapaNCMPisCofins = () => {
   const { regras, isLoading, createRegra, updateRegra, deleteRegra } = useRegrasNCM();
@@ -32,6 +45,18 @@ const MapaNCMPisCofins = () => {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string> | null>>({});
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters(prev => ({ ...prev, [key]: values }));
+  }, []);
+
+  const colKeys: ColKey[] = ['ncm', 'setor', 'cst', 'desc_cst', 'base_legal', 'credito'];
 
   const filtered = useMemo(() => {
     let list = regras;
@@ -47,13 +72,58 @@ const MapaNCMPisCofins = () => {
           (setorLabel?.nome ?? '').toLowerCase().includes(q);
       });
     }
+    // Column filters
+    for (const key of colKeys) {
+      const filterSet = columnFilters[key];
+      if (filterSet) {
+        list = list.filter(r => filterSet.has(extractColValue(r, key, setorMap)));
+      }
+    }
+    // Sort
+    if (sortConfig) {
+      const { key, direction } = sortConfig;
+      const mult = direction === 'asc' ? 1 : -1;
+      list = [...list].sort((a, b) => {
+        const va = extractColValue(a, key as ColKey, setorMap);
+        const vb = extractColValue(b, key as ColKey, setorMap);
+        return va.localeCompare(vb, 'pt-BR') * mult;
+      });
+    }
     return list;
-  }, [regras, search, creditOnly, setorMap]);
+  }, [regras, search, creditOnly, setorMap, columnFilters, sortConfig]);
+
+  // Unique values per column (cascade-aware)
+  const uniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const targetKey of colKeys) {
+      let subset = regras;
+      if (creditOnly) subset = subset.filter(r => r.permite_credito === 'S');
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        subset = subset.filter(r => {
+          const setorLabel = setorMap[r.id_segmento ?? ''];
+          return (r.cod_ncm ?? '').toLowerCase().includes(q) ||
+            (r.desc_cst ?? '').toLowerCase().includes(q) ||
+            (r.base_legal ?? '').toLowerCase().includes(q) ||
+            (setorLabel?.sigla ?? '').toLowerCase().includes(q) ||
+            (setorLabel?.nome ?? '').toLowerCase().includes(q);
+        });
+      }
+      for (const otherKey of colKeys) {
+        if (otherKey === targetKey) continue;
+        const filterSet = columnFilters[otherKey];
+        if (filterSet) {
+          subset = subset.filter(r => filterSet.has(extractColValue(r, otherKey, setorMap)));
+        }
+      }
+      result[targetKey] = [...new Set(subset.map(r => extractColValue(r, targetKey, setorMap)))];
+    }
+    return result;
+  }, [regras, search, creditOnly, setorMap, columnFilters]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
 
-  // Reset page when filters change
   useEffect(() => { setCurrentPage(0); }, [filtered.length]);
 
   const handleSubmit = (values: any) => {
@@ -121,12 +191,30 @@ const MapaNCMPisCofins = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">NCM</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Setor</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST PIS/COFINS</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Descrição CST</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Base Legal</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">Crédito</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  NCM
+                  <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Setor
+                  <ColumnFilterDropdown columnKey="setor" uniqueValues={uniqueValues.setor ?? []} activeSort={sortConfig} activeFilter={columnFilters.setor ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  CST PIS/COFINS
+                  <ColumnFilterDropdown columnKey="cst" uniqueValues={uniqueValues.cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Descrição CST
+                  <ColumnFilterDropdown columnKey="desc_cst" uniqueValues={uniqueValues.desc_cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.desc_cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Base Legal
+                  <ColumnFilterDropdown columnKey="base_legal" uniqueValues={uniqueValues.base_legal ?? []} activeSort={sortConfig} activeFilter={columnFilters.base_legal ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">
+                  Crédito
+                  <ColumnFilterDropdown columnKey="credito" uniqueValues={uniqueValues.credito ?? []} activeSort={sortConfig} activeFilter={columnFilters.credito ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
