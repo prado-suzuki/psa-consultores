@@ -27,7 +27,6 @@ interface Setters {
   setParticipants: (participants: DraftRepresentante[]) => void;
   setContracts: (contracts: DraftOrdemServico[]) => void;
   setInscricoesMap: (map: Record<string, InscricaoIE[]>) => void;
-  setClusterIds?: (ids: string[]) => void;
 }
 
 export const useClientEditData = (

@@ -74,8 +74,7 @@ export default function NewClientModal({
   const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
 
   // Load existing data when editing
-  const setClusterIds = useCallback((ids: string[]) => setClientData(prev => ({ ...prev, cluster_ids: ids })), []);
-  const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap, setClusterIds }), [setClusterIds]);
+  const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap }), []);
   const { loadingEdit, originalSnapshot } = useClientEditData(open, editingClienteId, editSetters);
 
   // External consults
