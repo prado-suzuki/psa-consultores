@@ -42,6 +42,7 @@ interface ClientDataShape {
   setor_cliente: string;
   setor_cliente_id: string;
   regiao: string;
+  cluster_ids: string[];
 }
 
 interface OriginalSnapshot {
