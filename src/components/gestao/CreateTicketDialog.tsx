@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -103,6 +104,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     fetchAreasForCliente(formData.cliente_id);
   }, [formData.cliente_id]);
 
+  // TODO: Quando representante.user_id estiver preenchido, filtrar empresas pelo vínculo representante → cliente
   const fetchEmpresas = async () => {
     try {
       setLoadingEmpresas(true);
@@ -111,6 +113,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         .select('id, nome')
         .eq('ativo', true)
         .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       setEmpresas(data || []);
     } catch (error) {
