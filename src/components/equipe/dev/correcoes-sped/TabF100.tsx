@@ -229,7 +229,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
         const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
         if (insertError) throw insertError;
 
-        nextEditedRows[item.F100.uuid] = nextSnapshot as RegF100;
+        nextEditedRows[item.F100.uuid] = nextSnapshot as unknown as RegF100;
         savedCount += 1;
       }
 
