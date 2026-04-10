@@ -18,6 +18,7 @@ interface ClientDataShape {
   setor_cliente: string;
   setor_cliente_id: string;
   regiao: string;
+  cluster_ids: string[];
 }
 
 interface Setters {
@@ -50,7 +51,7 @@ export const useClientEditData = (
         let snapClient: ClientDataShape | null = null;
         const { data: cli } = await supabase.from(clienteTable).select("*").eq("id", editingClienteId).maybeSingle();
         if (cli) {
-          const mapped = {
+          const mapped: ClientDataShape = {
             nome: cli.nome || "",
             categoria: (cli as any).categoria || "Bronze",
             ativo: cli.ativo ?? true,
@@ -61,7 +62,15 @@ export const useClientEditData = (
             setor_cliente: cli.setor_cliente || "",
             setor_cliente_id: (cli as any).setor_cliente_id || "",
             regiao: (cli as any).regiao || "",
+            cluster_ids: [],
           };
+
+          // Load cluster associations before finalizing mapped
+          const { data: clusterRows } = await (supabase.from('cliente_clusters' as any) as any)
+            .select('cluster_id')
+            .eq('cliente_id', editingClienteId);
+          mapped.cluster_ids = (clusterRows || []).map((r: any) => r.cluster_id as string);
+
           setters.setClientData(mapped);
           snapClient = structuredClone(mapped);
         }

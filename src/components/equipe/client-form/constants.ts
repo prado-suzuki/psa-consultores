@@ -163,6 +163,7 @@ export const defaultClientData = {
   setor_cliente: "",
   setor_cliente_id: "",
   regiao: "",
+  cluster_ids: [] as string[],
 };
 
 export const createDefaultDraftEntity = (): Partial<import("@/types/clientForm").DraftEntity> => ({

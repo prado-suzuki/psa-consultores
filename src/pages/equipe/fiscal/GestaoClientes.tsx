@@ -187,7 +187,25 @@ const GestaoClientes = () => {
       const { data, error } = await clienteQuery.order("nome");
       if (error) throw error;
 
-      return data || [];
+      // Enrich with cluster names
+      const clienteIds = (data || []).map(c => c.id);
+      let clusterMap: Record<string, string[]> = {};
+      if (clienteIds.length > 0) {
+        // cliente_clusters não está no schema tipado — cast justificado
+        const { data: ccRows } = await (supabase.from('cliente_clusters' as any) as any)
+          .select('cliente_id, cluster_id, estrutura_clusters(name)')
+          .in('cliente_id', clienteIds);
+        if (ccRows) {
+          for (const row of ccRows as any[]) {
+            const cid = row.cliente_id as string;
+            const cname = row.estrutura_clusters?.name as string;
+            if (!clusterMap[cid]) clusterMap[cid] = [];
+            if (cname) clusterMap[cid].push(cname);
+          }
+        }
+      }
+
+      return (data || []).map(c => ({ ...c, _clusters: clusterMap[c.id] || [] }));
     },
     enabled: searched,
   });
@@ -422,13 +440,14 @@ const GestaoClientes = () => {
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Clusters</TableHead>
                    {canEdit && <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody className="divide-y divide-slate-100">
                 {paginatedResults.map((row, index) => {
                   const isExpanded = expandedClienteId === row.id;
-                  const totalCols = canEdit ? 8 : 7;
+                  const totalCols = canEdit ? 9 : 8;
                   return (
                     <> 
                       <TableRow
@@ -454,6 +473,13 @@ const GestaoClientes = () => {
                         <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5">
+                          {(row as any)._clusters && (row as any)._clusters.length > 0
+                            ? (row as any)._clusters.map((name: string) => (
+                                <Badge key={name} variant="secondary" className="text-xs mr-1 mb-0.5">{name}</Badge>
+                              ))
+                            : <span className="text-muted-foreground">—</span>}
+                        </TableCell>
                         {canEdit && (
                           <TableCell className="px-4 py-3.5">
                             <Button

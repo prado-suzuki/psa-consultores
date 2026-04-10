@@ -459,6 +459,42 @@ export type Database = {
           },
         ]
       }
+      cliente_clusters: {
+        Row: {
+          cliente_id: string
+          cluster_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          cliente_id: string
+          cluster_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          cliente_id?: string
+          cluster_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_clusters_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cliente_clusters_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comentarios_avaliacao: {
         Row: {
           autor_id: string

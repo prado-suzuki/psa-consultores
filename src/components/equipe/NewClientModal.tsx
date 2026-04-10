@@ -183,6 +183,7 @@ export default function NewClientModal({
   // --- SAVE ---
   const { handleSave: hookHandleSave, executeSave, saving } = useSaveClientTransaction({
     clientData, entities, participants, contracts, inscricoesMap,
+    clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
     getDraftPendingTabs, onDuplicateFound,
     onSuccess: () => resetAndClose(),
@@ -257,7 +258,7 @@ export default function NewClientModal({
 
                 <ScrollArea className="flex-1">
                   <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
-                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} />
+                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} allClusters={allClusters} />
                   </TabsContent>
 
                   <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
