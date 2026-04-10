@@ -1,19 +1,15 @@
 
 
-## Correção: Filtro de ambiente na lista de empresas
+## ✅ Concluído: Roteamento de chamados por cluster do cliente
 
 ### Arquivo: `src/components/gestao/CreateTicketDialog.tsx`
 
-**Problema**: A query em `fetchEmpresas` (linha 109-114) já filtra `ativo=true` e `excluido=false`, mas **não filtra por `ambiente`**, causando duplicatas (registros de prod e dev aparecem juntos).
+**Implementado**:
+1. Select de **Empresa** (tabela `cliente`, filtrado por `ativo`, `excluido`, `ambiente`)
+2. Select de **Área** filtrado pelos clusters da empresa via `cliente_clusters` → `estrutura_areas`
+3. Auto-seleção quando há 1 área só; fallback para todas as áreas se empresa sem clusters
+4. Label "Departamento" renomeado para "Assunto"
+5. `cliente_id` e `estrutura_area_id` incluídos no INSERT do ticket
+6. Filtro `.eq('ambiente', currentAmbiente)` na query de empresas
 
-**Alterações**:
-
-1. **Adicionar import** de `currentAmbiente` de `@/config/api` (linha 4)
-2. **Adicionar filtro** `.eq('ambiente', currentAmbiente)` na query de `fetchEmpresas` (linha 113)
-3. **Adicionar comentário TODO** acima da função `fetchEmpresas`:
-   ```
-   // TODO: Quando representante.user_id estiver preenchido, filtrar empresas pelo vínculo representante → cliente
-   ```
-
-Nenhuma outra alteração.
-
+**TODO pendente (Ação 4)**: Quando `representante.user_id` estiver preenchido, filtrar empresas pelo vínculo representante → cliente.
