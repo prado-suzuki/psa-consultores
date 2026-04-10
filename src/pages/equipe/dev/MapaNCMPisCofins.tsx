@@ -191,12 +191,30 @@ const MapaNCMPisCofins = () => {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">NCM</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Setor</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">CST PIS/COFINS</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Descrição CST</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">Base Legal</TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">Crédito</TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  NCM
+                  <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Setor
+                  <ColumnFilterDropdown columnKey="setor" uniqueValues={uniqueValues.setor ?? []} activeSort={sortConfig} activeFilter={columnFilters.setor ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  CST PIS/COFINS
+                  <ColumnFilterDropdown columnKey="cst" uniqueValues={uniqueValues.cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Descrição CST
+                  <ColumnFilterDropdown columnKey="desc_cst" uniqueValues={uniqueValues.desc_cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.desc_cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  Base Legal
+                  <ColumnFilterDropdown columnKey="base_legal" uniqueValues={uniqueValues.base_legal ?? []} activeSort={sortConfig} activeFilter={columnFilters.base_legal ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
+                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">
+                  Crédito
+                  <ColumnFilterDropdown columnKey="credito" uniqueValues={uniqueValues.credito ?? []} activeSort={sortConfig} activeFilter={columnFilters.credito ?? null} onSort={handleSort} onFilter={handleFilter} />
+                </TableHead>
                 <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
