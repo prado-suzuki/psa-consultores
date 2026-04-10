@@ -2,14 +2,14 @@ import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { FiscalTask } from '@/hooks/useFiscalTasks';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
-import { TaskCard } from './TaskCard';
+import { Badge } from '@/components/ui/badge';
 
 interface TaskCalendarProps {
   tasks: FiscalTask[];
@@ -133,13 +133,26 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                 </p>
               ) : (
                 selectedDateTasks.map(task => (
-                  <TaskCard
-                    key={task.id}
-                    task={task}
-                    onEdit={onEdit}
-                    onDelete={onDelete}
-                    onReassign={onReassign}
-                  />
+                  <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <Badge className={cn("text-white text-xs", statusColors[task.status]?.bgSolid || 'bg-slate-400')}>
+                            {statusColors[task.status]?.label || task.status}
+                          </Badge>
+                        </div>
+                        <p className="font-medium text-sm break-words">{task.title}</p>
+                        {task.assigned_to_name && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {task.assigned_to_name}
+                          </p>
+                        )}
+                      </div>
+                      <Button size="sm" variant="ghost" onClick={() => onEdit(task)}>
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
                 ))
               )}
             </div>
