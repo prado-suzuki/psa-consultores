@@ -1,6 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,10 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Info, Loader2, Pencil, Search, X } from 'lucide-react';
+import { AlertCircle, Check, Info, Loader2, Search, X } from 'lucide-react';
 import { useConsultaSimplesNacional } from '@/hooks/useConsultaSimplesNacional';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { F100Item, RegF100, CampoAlteradoEfd } from '@/types/correcoesSped';
 
 const formatCurrency = (v: number | null | undefined) =>
@@ -28,6 +30,7 @@ type F100Draft = Record<EditableF100Field, string>;
 
 const editableFields: EditableF100Field[] = ['VL_OPER', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS', 'COD_CTA'];
 const numericFields = new Set<EditableF100Field>(['VL_OPER', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS']);
+const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs';
 
 function toDraft(item: F100Item): F100Draft {
   const f = item.F100;
@@ -75,9 +78,10 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100' });
   const [page, setPage] = useState(0);
   const [editedRows, setEditedRows] = useState<Record<string, RegF100>>({});
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<F100Draft | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, F100Draft>>({});
+  const selection = useRowSelection();
   const deferredSearchText = useDeferredValue(searchText);
 
   useEffect(() => {
@@ -113,20 +117,28 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
 
   useEffect(() => { setPage(0); }, [searchText]);
 
+  const filteredIds = useMemo(() => filtered.map((i) => i.F100.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleStartEdit = (item: F100Item) => {
-    setEditingId(item.F100.uuid);
-    setDraft(toDraft({ ...item, F100: getDisplayedF100(item) }));
+  const handleEnableEditMode = () => {
+    if (!data) return;
+    setDrafts(Object.fromEntries(data.map((item) => [item.F100.uuid, toDraft({ ...item, F100: getDisplayedF100(item) })])));
+    selection.clear();
+    setIsEditMode(true);
   };
-  const handleCancelEdit = () => { setEditingId(null); setDraft(null); };
-  const handleDraftChange = (field: EditableF100Field, value: string) => { setDraft((c) => c ? { ...c, [field]: value } : c); };
 
-  const handleSave = async (item: F100Item) => {
-    if (!user || !draft || editingId !== item.F100.uuid) return;
+  const handleCancelEditMode = () => {
+    setIsEditMode(false);
+    setDrafts({});
+    selection.clear();
+  };
 
-    const originalSnapshot = getOriginalSnapshot(item);
+  const handleDraftChange = (id: string, field: EditableF100Field, value: string) => {
+    setDrafts((current) => applyBatchChange(current, selection.selectedIds, id, field, value));
+  };
+
+  const buildNextSnapshot = (item: F100Item, draft: F100Draft) => {
     const displayedF100 = getDisplayedF100(item);
     const nextSnapshot: Record<string, unknown> = { ...displayedF100 };
 
@@ -142,61 +154,96 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       nextSnapshot[field] = raw;
     }
 
-    const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
-    setSavingId(item.F100.uuid);
+    return nextSnapshot;
+  };
+
+  const handleSaveAll = async () => {
+    if (!user || !data) {
+      if (!user) toast.error('Usuário não autenticado para salvar a correção.');
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const { data: correcaoAtiva, error: buscaError } = await supabase
-        .from('efd_correcoes').select('id')
-        .eq('registro_tipo', 'F100').eq('registro_original_id', item.F100.uuid).eq('ativo', true)
-        .maybeSingle();
-      if (buscaError) throw buscaError;
+      let changedCount = 0;
+      let savedCount = 0;
+      const nextEditedRows = { ...editedRows };
 
-      if (camposAlterados.length === 0) {
+      for (const item of data) {
+        const draft = drafts[item.F100.uuid];
+        if (!draft) continue;
+
+        const originalSnapshot = getOriginalSnapshot(item);
+        const displayedF100 = getDisplayedF100(item);
+        const nextSnapshot = buildNextSnapshot(item, draft);
+        if (!nextSnapshot) {
+          setIsSaving(false);
+          return;
+        }
+
+        if (buildChangedFields(displayedF100, nextSnapshot).length === 0) continue;
+
+        changedCount += 1;
+        const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
+
+        const { data: correcaoAtiva, error: buscaError } = await supabase
+          .from('efd_correcoes').select('id')
+          .eq('registro_tipo', 'F100').eq('registro_original_id', item.F100.uuid).eq('ativo', true)
+          .maybeSingle();
+        if (buscaError) throw buscaError;
+
+        if (camposAlterados.length === 0) {
+          if (correcaoAtiva?.id) {
+            const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
+            if (e) throw e;
+          }
+          delete nextEditedRows[item.F100.uuid];
+          savedCount += 1;
+          continue;
+        }
+
+        const payload = {
+          contribuinte_id: item.ID_CONTRIBUINTE,
+          arquivo_id: item.F100.ID_ARQUIVO,
+          empresa_cnpj: empresaCnpj,
+          periodo,
+          arquivo_tipo: 'efd_contribuicoes',
+          registro_tipo: 'F100',
+          registro_original_id: item.F100.uuid,
+          tipo_operacao: 'U',
+          snapshot: nextSnapshot as unknown as Json,
+          campos_alterados: camposAlterados as unknown as Json,
+          motivo: 'Correção manual realizada na tela de revisão do SPED.',
+          usuario_id: user.id,
+          ativo: true,
+          sync_status: 'P',
+          sync_error: null,
+          sync_sent_at: null,
+        };
+
         if (correcaoAtiva?.id) {
-          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
+          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'F100').eq('registro_original_id', item.F100.uuid).eq('ativo', true);
           if (e) throw e;
-          toast.success('Correção removida; a linha voltou ao valor original.');
-        } else { toast.success('Nenhuma alteração para salvar.'); }
-        setEditedRows((current) => {
-          const next = { ...current };
-          delete next[item.F100.uuid];
-          return next;
-        });
-        handleCancelEdit(); return;
+        }
+        const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
+        if (insertError) throw insertError;
+
+        nextEditedRows[item.F100.uuid] = nextSnapshot as RegF100;
+        savedCount += 1;
       }
 
-      const payload = {
-        contribuinte_id: item.ID_CONTRIBUINTE,
-        arquivo_id: item.F100.ID_ARQUIVO,
-        empresa_cnpj: empresaCnpj,
-        periodo,
-        arquivo_tipo: 'efd_contribuicoes',
-        registro_tipo: 'F100',
-        registro_original_id: item.F100.uuid,
-        tipo_operacao: 'U',
-        snapshot: nextSnapshot as unknown as Json,
-        campos_alterados: camposAlterados as unknown as Json,
-        motivo: 'Correção manual realizada na tela de revisão do SPED.',
-        usuario_id: user.id,
-        ativo: true,
-        sync_status: 'P',
-        sync_error: null,
-        sync_sent_at: null,
-      };
-
-      if (correcaoAtiva?.id) {
-        const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'F100').eq('registro_original_id', item.F100.uuid).eq('ativo', true);
-        if (e) throw e;
+      if (changedCount === 0) {
+        toast.success('Nenhuma alteração para salvar.');
+        handleCancelEditMode();
+        return;
       }
-      const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
-      if (insertError) throw insertError;
 
-      setEditedRows((current) => ({ ...current, [item.F100.uuid]: nextSnapshot as unknown as RegF100 }));
-      handleCancelEdit();
-      toast.success('Correção do F100 salva.');
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correção.'); }
-    finally { setSavingId(null); }
+      setEditedRows(nextEditedRows);
+      handleCancelEditMode();
+      toast.success(savedCount === 1 ? '1 correção do F100 salva.' : `${savedCount} correções do F100 salvas.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correções.'); }
+    finally { setIsSaving(false); }
   };
 
   const renderEditableCell = (
@@ -205,8 +252,9 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   ) => {
     const displayedF100 = getDisplayedF100(item);
     const originalSnapshot = getOriginalSnapshot(item);
+    const draft = drafts[item.F100.uuid];
 
-    if (editingId !== item.F100.uuid || !draft) {
+    if (!isEditMode || !draft) {
       const value = displayedF100[field as keyof RegF100];
       const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
@@ -219,8 +267,8 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
 
     const input = (
       <Input type="text" value={draft[field]}
-        onChange={(e) => { let val = e.target.value; if (options?.isPercentage) { const n = Number(val.replace(',', '.')); if (!isNaN(n) && n > 100) val = '100'; } handleDraftChange(field, val); }}
-        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40 ${options?.isCurrency ? 'pl-7' : ''}`}
+        onChange={(e) => { let val = e.target.value; if (options?.isPercentage) { const n = Number(val.replace(',', '.')); if (!isNaN(n) && n > 100) val = '100'; } handleDraftChange(item.F100.uuid, field, val); }}
+        className={`${inlineInputClass} ${className} ${options?.isCurrency ? 'pl-4' : ''}`}
       />
     );
 
@@ -235,16 +283,28 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   if (!hasQueried || !data) return null;
 
   return (
-    <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
+    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados</span>
+          <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" onClick={consultarSimples} disabled={isConsultandoSimples || !contribuinteId}>
               {isConsultandoSimples ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1" />}
               {isConsultandoSimples ? 'Consultando...' : 'Consultar Simples Nacional'}
             </Button>
-            {filtered.length > 0 && <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>}
+            {filtered.length > 0 && (
+              <>
+                {isEditMode && (
+                  <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
+                    <X className="h-3.5 w-3.5 mr-1" />Cancelar
+                  </Button>
+                )}
+                <Button size="sm" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
+                </Button>
+              </>
+            )}
           </div>
         </div>
         {filtered.length === 0 ? (
@@ -255,11 +315,20 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
+                    {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
                     <TableHead colSpan={6} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40"><span className="flex items-center gap-1">Dados EFD<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">O Bloco F consolida receitas financeiras, aluguéis e demais operações não escrituradas nos Blocos A, C e D.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
+                    {isEditMode && (
+                      <TableHead className="w-[40px] min-w-[40px] text-center">
+                        <Checkbox
+                          checked={filteredIds.length > 0 && filteredIds.every((id) => selection.selectedIds.has(id)) ? true : filteredIds.some((id) => selection.selectedIds.has(id)) ? 'indeterminate' : false}
+                          onCheckedChange={() => selection.toggleAll(filteredIds)}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
                     <TableHead className="text-[11px] min-w-[180px]">Nome</TableHead>
                     <TableHead className="text-[11px] min-w-[120px]">CPF/CNPJ</TableHead>
@@ -273,7 +342,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
                     <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
-                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Ações</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -281,7 +350,12 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                     const displayedF100 = getDisplayedF100(item);
                     const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF100 as unknown as Record<string, unknown>).length > 0;
                     return (
-                      <TableRow key={`f100-${item.F100.uuid}-${idx}`} className={editingId === item.F100.uuid ? 'bg-accent/30' : 'group'}>
+                      <TableRow key={`f100-${item.F100.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F100.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                        {isEditMode && (
+                          <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
+                            <Checkbox checked={selection.selectedIds.has(item.F100.uuid)} onCheckedChange={() => selection.toggle(item.F100.uuid)} />
+                          </TableCell>
+                        )}
                         <TableCell className="text-xs py-1.5 font-mono">{displayedF100.DT_OPER}</TableCell>
                         <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item['0150'].NOME}>{item['0150'].NOME}</TableCell>
                         <TableCell className="text-xs py-1.5 font-mono">{item.CPF_CNPJ}</TableCell>
@@ -297,15 +371,8 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                         <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}</TableCell>
                         <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
-                            {editingId === item.F100.uuid ? (
-                              <>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleSave(item)} disabled={savingId === item.F100.uuid}>{savingId === item.F100.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}</Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelEdit} disabled={savingId === item.F100.uuid}><X className="h-4 w-4 text-muted-foreground" /></Button>
-                              </>
-                            ) : (
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleStartEdit(item)} disabled={!!savingId}><Pencil className="h-4 w-4" /></Button>
-                            )}
-                            {linhaCorrigida && editingId !== item.F100.uuid && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
+                            {linhaCorrigida && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
+                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>

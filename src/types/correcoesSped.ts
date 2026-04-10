@@ -159,6 +159,10 @@ export interface A170Item extends A170Snapshot {
   DESCR_ITEM_0200?: string | null;
   COD_NCM?: string | null;
   TIPO_ITEM?: string | null;
+  NOME_0150?: string | null;
+  CPF_CNPJ_0150?: string | null;
+  VL_PIS_RET?: number | null;
+  VL_COFINS_RET?: number | null;
   _originalSnapshot: A170Snapshot;
 }
 
@@ -170,6 +174,9 @@ export interface A170ResponseEntry {
   DESCRICAO_CONTA?: string | null;
   A170: A170Snapshot | string;
   "0200": Item0200 | string | null;
+  "0150"?: Reg0150 | string | null;
+  pis_ret?: number | null;
+  cofins_ret?: number | null;
 }
 
 export type A170Response = Record<string, A170ResponseEntry[]>;
@@ -379,6 +386,7 @@ export interface F120Item {
   DT_FIN: string;
   DESC_IDENT_BEM_IMOB: string;
   DESC_IND_UTIL_BEM_IMOB: string;
+  DESC_NAT_BC_CRED: string;
   F120: F120Reg;
   _originalSnapshot: F120Reg;
 }
@@ -419,6 +427,7 @@ export interface F130Item {
   DT_FIN: string;
   DESC_IDENT_BEM_IMOB: string;
   DESC_IND_UTIL_BEM_IMOB: string;
+  DESC_NAT_BC_CRED: string;
   F130: F130Reg;
   _originalSnapshot: F130Reg;
 }

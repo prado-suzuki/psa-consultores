@@ -40,6 +40,9 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Sombra do modo edição nas tabelas SPED */
+    --edit-shadow-color: 30 89% 51%;
+
     /* Paleta Teal */
     --teal-500: 175 82% 29%;
     --teal-600: 175 84% 25%;
@@ -115,6 +118,8 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 84 85% 35%;
+
+    --edit-shadow-color: 30 89% 51%;
   }
 }
 

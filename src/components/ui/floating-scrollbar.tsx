@@ -2,9 +2,11 @@ import { useEffect, useRef, useState, useCallback, type RefObject } from "react"
 
 interface FloatingScrollbarProps {
   targetRef: RefObject<HTMLElement | null>;
+  /** Always show when content overflows, regardless of native scrollbar visibility */
+  alwaysVisible?: boolean;
 }
 
-export function FloatingScrollbar({ targetRef }: FloatingScrollbarProps) {
+export function FloatingScrollbar({ targetRef, alwaysVisible = false }: FloatingScrollbarProps) {
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const syncing = useRef(false);
@@ -24,10 +26,10 @@ export function FloatingScrollbar({ targetRef }: FloatingScrollbarProps) {
     const viewportHeight = window.innerHeight;
     const nativeScrollbarVisible = bottomOfTarget <= viewportHeight;
 
-    setVisible(hasOverflow && !nativeScrollbarVisible);
+    setVisible(hasOverflow && (alwaysVisible || !nativeScrollbarVisible));
     setStyle({ left: rect.left, width: rect.width });
     setContentWidth(target.scrollWidth);
-  }, [targetRef]);
+  }, [targetRef, alwaysVisible]);
 
   useEffect(() => {
     const target = targetRef.current;

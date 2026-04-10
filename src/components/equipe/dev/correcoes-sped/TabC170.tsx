@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,9 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, Pencil, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
@@ -57,10 +59,11 @@ const numericFields = new Set<EditableC170Field>([
   'ALIQ_COFINS',
   'VL_COFINS',
 ]);
+const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs';
 
 function toDraft(item: C170Item): C170Draft {
   return {
-    DESCR_COMPL: item.DESCR_COMPL ?? '',
+    DESCR_COMPL: item.DESCR_COMPL || item.DESCR_ITEM_0200 || '',
     VL_ITEM: item.VL_ITEM != null ? Number(item.VL_ITEM).toFixed(2).replace('.', ',') : '0,00',
     COD_CTA: item.COD_CTA ?? '',
     CST_PIS: item.CST_PIS != null ? String(item.CST_PIS) : '',
@@ -129,29 +132,30 @@ export default function TabC170({
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<C170Item[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<C170Draft | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, C170Draft>>({});
+  const selection = useRowSelection();
 
   const locallyEditedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!data) return;
-    if (editingId) return;
+    if (isEditMode) return;
 
     if (locallyEditedIds.current.size === 0) {
       setRows(data);
       return;
     }
 
-    setRows(data.map(d => {
+    setRows((currentRows) => data.map((d) => {
       if (locallyEditedIds.current.has(d.uuid)) {
-        const local = rows.find(r => r.uuid === d.uuid);
+        const local = currentRows.find((r) => r.uuid === d.uuid);
         return local ?? d;
       }
       return d;
     }));
-  }, [data]);
+  }, [data, isEditMode]);
 
   const filtered = useMemo(() => {
     let items = rows;
@@ -174,31 +178,27 @@ export default function TabC170({
     setPage(0);
   }, [ncmFilter, searchText]);
 
+  const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleStartEdit = (item: C170Item) => {
-    setEditingId(item.uuid);
-    setDraft(toDraft(item));
+  const handleEnableEditMode = () => {
+    setDrafts(Object.fromEntries(rows.map((row) => [row.uuid, toDraft(row)])));
+    selection.clear();
+    setIsEditMode(true);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setDraft(null);
+  const handleCancelEditMode = () => {
+    setIsEditMode(false);
+    setDrafts({});
+    selection.clear();
   };
 
-  const handleDraftChange = (field: EditableC170Field, value: string) => {
-    setDraft((current) => current ? { ...current, [field]: value } : current);
+  const handleDraftChange = (id: string, field: EditableC170Field, value: string) => {
+    setDrafts((current) => applyBatchChange(current, selection.selectedIds, id, field, value));
   };
 
-  const handleSave = async (item: C170Item) => {
-    if (!user) {
-      toast.error('Usuario nao autenticado para salvar a correcao.');
-      return;
-    }
-
-    if (!draft || editingId !== item.uuid) return;
-
+  const buildNextSnapshot = (item: C170Item, draft: C170Draft) => {
     const nextSnapshot = { ...getSnapshotFromItem(item) };
 
     for (const field of editableFields) {
@@ -221,99 +221,134 @@ export default function TabC170({
         continue;
       }
 
+      if (field === 'DESCR_COMPL') {
+        if (!item.DESCR_COMPL && rawValue === (item.DESCR_ITEM_0200 ?? '')) {
+          nextSnapshot[field] = item.DESCR_COMPL as never;
+        } else {
+          nextSnapshot[field] = (rawValue || null) as never;
+        }
+        continue;
+      }
+
       nextSnapshot[field] = rawValue as never;
     }
 
-    const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+    return nextSnapshot;
+  };
 
-    setSavingId(item.uuid);
+  const handleSaveAll = async () => {
+    if (!user) {
+      toast.error('Usuario nao autenticado para salvar a correcao.');
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const { data: correcaoAtiva, error: buscaError } = await supabase
-        .from('efd_correcoes')
-        .select('id')
-        .eq('registro_tipo', 'C170')
-        .eq('registro_original_id', item.uuid)
-        .eq('ativo', true)
-        .maybeSingle();
+      let changedCount = 0;
+      let savedCount = 0;
+      const nextRows = [...rows];
 
-      if (buscaError) throw buscaError;
+      for (const [index, item] of rows.entries()) {
+        const draft = drafts[item.uuid];
+        if (!draft) continue;
 
-      if (camposAlterados.length === 0) {
+        const nextSnapshot = buildNextSnapshot(item, draft);
+        if (!nextSnapshot) {
+          setIsSaving(false);
+          return;
+        }
+
+        if (buildChangedFields(getSnapshotFromItem(item), nextSnapshot).length === 0) continue;
+
+        changedCount += 1;
+        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+
+        const { data: correcaoAtiva, error: buscaError } = await supabase
+          .from('efd_correcoes')
+          .select('id')
+          .eq('registro_tipo', 'C170')
+          .eq('registro_original_id', item.uuid)
+          .eq('ativo', true)
+          .maybeSingle();
+
+        if (buscaError) throw buscaError;
+
+        if (camposAlterados.length === 0) {
+          if (correcaoAtiva?.id) {
+            const { error: desativacaoError } = await supabase
+              .from('efd_correcoes')
+              .update({
+                ativo: false,
+                snapshot: nextSnapshot as unknown as Json,
+                campos_alterados: null,
+              })
+              .eq('id', correcaoAtiva.id);
+
+            if (desativacaoError) throw desativacaoError;
+          }
+
+          nextRows[index] = { ...item, ...item._originalSnapshot };
+          locallyEditedIds.current.add(item.uuid);
+          savedCount += 1;
+          continue;
+        }
+
+        const payload = {
+          contribuinte_id: item.ID_CONTRIBUINTE,
+          arquivo_id: item.ID_ARQUIVO,
+          empresa_cnpj: empresaCnpj,
+          periodo,
+          arquivo_tipo: 'efd_contribuicoes',
+          registro_tipo: 'C170',
+          registro_original_id: item.uuid,
+          tipo_operacao: 'U',
+          snapshot: nextSnapshot as unknown as Json,
+          campos_alterados: camposAlterados as unknown as Json,
+          motivo: 'Correcao manual realizada na tela de revisao do SPED.',
+          usuario_id: user.id,
+          ativo: true,
+          sync_status: 'P',
+          sync_error: null,
+          sync_sent_at: null,
+        };
+
         if (correcaoAtiva?.id) {
           const { error: desativacaoError } = await supabase
             .from('efd_correcoes')
-            .update({
-              ativo: false,
-              snapshot: nextSnapshot as unknown as Json,
-              campos_alterados: null,
-            })
-            .eq('id', correcaoAtiva.id);
+            .update({ ativo: false })
+            .eq('registro_tipo', 'C170')
+            .eq('registro_original_id', item.uuid)
+            .eq('ativo', true);
 
           if (desativacaoError) throw desativacaoError;
-          toast.success('Correcao removida; a linha voltou ao valor original.');
-        } else {
-          toast.success('Nenhuma alteracao para salvar.');
         }
 
-        setRows((current) => current.map((row) =>
-          row.uuid === item.uuid
-            ? { ...row, ...item._originalSnapshot }
-            : row
-        ));
-        handleCancelEdit();
+        const { error: insertError } = await supabase
+          .from('efd_correcoes')
+          .insert(payload);
+
+        if (insertError) throw insertError;
+
+        nextRows[index] = { ...item, ...nextSnapshot };
+        locallyEditedIds.current.add(item.uuid);
+        savedCount += 1;
+      }
+
+      if (changedCount === 0) {
+        toast.success('Nenhuma alteracao para salvar.');
+        handleCancelEditMode();
         return;
       }
 
-      const payload = {
-        contribuinte_id: item.ID_CONTRIBUINTE,
-        arquivo_id: item.ID_ARQUIVO,
-        empresa_cnpj: empresaCnpj,
-        periodo,
-        arquivo_tipo: 'efd_contribuicoes',
-        registro_tipo: 'C170',
-        registro_original_id: item.uuid,
-        tipo_operacao: 'U',
-        snapshot: nextSnapshot as unknown as Json,
-        campos_alterados: camposAlterados as unknown as Json,
-        motivo: 'Correcao manual realizada na tela de revisao do SPED.',
-        usuario_id: user.id,
-        ativo: true,
-        sync_status: 'P',
-        sync_error: null,
-        sync_sent_at: null,
-      };
-
-      if (correcaoAtiva?.id) {
-        const { error: desativacaoError } = await supabase
-          .from('efd_correcoes')
-          .update({ ativo: false })
-          .eq('registro_tipo', 'C170')
-          .eq('registro_original_id', item.uuid)
-          .eq('ativo', true);
-
-        if (desativacaoError) throw desativacaoError;
-      }
-
-      const { error: insertError } = await supabase
-        .from('efd_correcoes')
-        .insert(payload);
-
-      if (insertError) throw insertError;
-
-      setRows((current) => current.map((row) =>
-        row.uuid === item.uuid
-          ? { ...row, ...nextSnapshot }
-          : row
-      ));
-      locallyEditedIds.current.add(item.uuid);
-      handleCancelEdit();
-      toast.success('Correcao do C170 salva na tabela efd_correcoes.');
+      setRows(nextRows);
+      handleCancelEditMode();
+      toast.success(savedCount === 1 ? '1 correcao do C170 salva.' : `${savedCount} correcoes do C170 salvas.`);
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : 'Erro inesperado ao salvar a correcao.';
+      const message = saveError instanceof Error ? saveError.message : 'Erro inesperado ao salvar as correcoes.';
       toast.error(message);
     } finally {
-      setSavingId(null);
+      setIsSaving(false);
     }
   };
 
@@ -323,7 +358,9 @@ export default function TabC170({
     className: string,
     options?: { isCurrency?: boolean; isPercentage?: boolean },
   ) => {
-    if (editingId !== item.uuid || !draft) {
+    const draft = drafts[item.uuid];
+
+    if (!isEditMode || !draft) {
       const value = item[field];
       const isChanged = item._originalSnapshot && !Object.is(item[field], item._originalSnapshot[field as keyof typeof item._originalSnapshot]);
 
@@ -358,9 +395,9 @@ export default function TabC170({
             const num = Number(val.replace(',', '.'));
             if (!isNaN(num) && num > 100) val = '100';
           }
-          handleDraftChange(field, val);
+          handleDraftChange(item.uuid, field, val);
         }}
-        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40 ${options?.isCurrency ? 'pl-7' : ''}`}
+        className={`${inlineInputClass} ${className} ${options?.isCurrency ? 'pl-4' : ''}`}
       />
     );
 
@@ -400,7 +437,7 @@ export default function TabC170({
   const totalNotas = new Set(filtered.map((i) => i.chv_nfe)).size;
 
   return (
-    <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
+    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
@@ -412,21 +449,39 @@ export default function TabC170({
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
                 {' '}&middot; {totalNotas} notas
+                {isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}
               </span>
-              <span className="text-[11px] text-muted-foreground">
-                Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar e salvar a correcao da linha.
-              </span>
+              <div className="flex items-center gap-2">
+                {isEditMode && (
+                  <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
+                    <X className="h-3.5 w-3.5 mr-1" />Cancelar
+                  </Button>
+                )}
+                <Button size="sm" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
+                </Button>
+              </div>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
+                    {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
                     <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
                     <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Dados XML<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Dados lidos diretamente do arquivo XML original para confronto com a escrituração (SPED).</TooltipContent></Tooltip></span></TableHead>
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
+                    {isEditMode && (
+                      <TableHead className="w-[40px] min-w-[40px] text-center">
+                        <Checkbox
+                          checked={filteredIds.length > 0 && filteredIds.every((id) => selection.selectedIds.has(id)) ? true : filteredIds.some((id) => selection.selectedIds.has(id)) ? 'indeterminate' : false}
+                          onCheckedChange={() => selection.toggleAll(filteredIds)}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead className="text-[11px] min-w-[200px]">Descricao</TableHead>
                     <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM (0200)<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM declarado na EFD. Como o Registro C170 não possui campo de NCM, este dado é trazido do Registro 0200 correspondente ao item.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
@@ -440,7 +495,7 @@ export default function TabC170({
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
                     <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Ações</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -452,7 +507,12 @@ export default function TabC170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={editingId === item.uuid ? "bg-accent/30" : "group"}>
+                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                        {isEditMode && (
+                          <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
+                            <Checkbox checked={selection.selectedIds.has(item.uuid)} onCheckedChange={() => selection.toggle(item.uuid)} />
+                          </TableCell>
+                        )}
                         <TableCell className="text-xs py-1.5 max-w-[200px] truncate">
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
@@ -536,44 +596,10 @@ export default function TabC170({
                         {/* Actions — sticky right */}
                         <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
-                            {editingId === item.uuid ? (
-                              <>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={() => handleSave(item)}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  {savingId === item.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={handleCancelEdit}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  <X className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => handleStartEdit(item)}
-                                disabled={!!savingId}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {linhaCorrigida && editingId !== item.uuid && (
+                            {linhaCorrigida && (
                               <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
                             )}
+                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>

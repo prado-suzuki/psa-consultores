@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,9 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, BookOpen, Check, Info, Loader2, Pencil, X } from 'lucide-react';
+import { AlertCircle, Check, Info, Loader2, X } from 'lucide-react';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
 
 type NcmFilter = 'all' | 'with' | 'without';
@@ -65,11 +68,12 @@ const numericFields = new Set<EditableA170Field>([
 ]);
 
 const nullableTextFields = new Set<EditableA170Field>(['CHV_NFSE']);
+const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs';
 
 function toDraft(item: A170Item): A170Draft {
   return {
     CHV_NFSE: item.CHV_NFSE ?? '',
-    DESCR_COMPL: item.DESCR_COMPL ?? '',
+    DESCR_COMPL: item.DESCR_COMPL || item.DESCR_ITEM_0200 || '',
     VL_ITEM: item.VL_ITEM != null ? Number(item.VL_ITEM).toFixed(2).replace('.', ',') : '0,00',
     COD_CTA: item.COD_CTA ?? '',
     CST_PIS: item.CST_PIS != null ? String(item.CST_PIS) : '',
@@ -84,7 +88,7 @@ function toDraft(item: A170Item): A170Draft {
 }
 
 function getSnapshotFromItem(item: A170Item): A170Snapshot {
-  const { DESCR_ITEM_0200, COD_NCM, TIPO_ITEM, _originalSnapshot, ...snapshot } = item;
+  const { DESCR_ITEM_0200, COD_NCM, TIPO_ITEM, NOME_0150, CPF_CNPJ_0150, VL_PIS_RET, VL_COFINS_RET, _originalSnapshot, ...snapshot } = item;
   return snapshot;
 }
 
@@ -138,29 +142,31 @@ export default function TabA170({
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<A170Item[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<A170Draft | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, A170Draft>>({});
+  const selection = useRowSelection();
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const locallyEditedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!data) return;
-    if (editingId) return;
+    if (isEditMode) return;
 
     if (locallyEditedIds.current.size === 0) {
       setRows(data);
       return;
     }
 
-    setRows(data.map(d => {
+    setRows((currentRows) => data.map((d) => {
       if (locallyEditedIds.current.has(d.uuid)) {
-        const local = rows.find(r => r.uuid === d.uuid);
+        const local = currentRows.find((r) => r.uuid === d.uuid);
         return local ?? d;
       }
       return d;
     }));
-  }, [data]);
+  }, [data, isEditMode]);
 
   const filtered = useMemo(() => {
     let items = rows;
@@ -174,7 +180,9 @@ export default function TabA170({
           (i.DESCR_ITEM_0200 ?? '').toLowerCase().includes(s) ||
           (i.CHV_NFSE ?? '').toLowerCase().includes(s) ||
           (i.COD_CTA ?? '').toLowerCase().includes(s) ||
-          (i.COD_NCM ?? '').includes(s)
+          (i.COD_NCM ?? '').includes(s) ||
+          (i.NOME_0150 ?? '').toLowerCase().includes(s) ||
+          (i.CPF_CNPJ_0150 ?? '').toLowerCase().includes(s)
       );
     }
     return items;
@@ -184,31 +192,27 @@ export default function TabA170({
     setPage(0);
   }, [ncmFilter, searchText]);
 
+  const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleStartEdit = (item: A170Item) => {
-    setEditingId(item.uuid);
-    setDraft(toDraft(item));
+  const handleEnableEditMode = () => {
+    setDrafts(Object.fromEntries(rows.map((row) => [row.uuid, toDraft(row)])));
+    selection.clear();
+    setIsEditMode(true);
   };
 
-  const handleCancelEdit = () => {
-    setEditingId(null);
-    setDraft(null);
+  const handleCancelEditMode = () => {
+    setIsEditMode(false);
+    setDrafts({});
+    selection.clear();
   };
 
-  const handleDraftChange = (field: EditableA170Field, value: string) => {
-    setDraft((current) => current ? { ...current, [field]: value } : current);
+  const handleDraftChange = (id: string, field: EditableA170Field, value: string) => {
+    setDrafts((current) => applyBatchChange(current, selection.selectedIds, id, field, value));
   };
 
-  const handleSave = async (item: A170Item) => {
-    if (!user) {
-      toast.error('Usuário não autenticado para salvar a correção.');
-      return;
-    }
-
-    if (!draft || editingId !== item.uuid) return;
-
+  const buildNextSnapshot = (item: A170Item, draft: A170Draft) => {
     const nextSnapshot = { ...getSnapshotFromItem(item) };
 
     for (const field of editableFields) {
@@ -231,6 +235,15 @@ export default function TabA170({
         continue;
       }
 
+      if (field === 'DESCR_COMPL') {
+        if (!item.DESCR_COMPL && rawValue === (item.DESCR_ITEM_0200 ?? '')) {
+          nextSnapshot[field] = item.DESCR_COMPL as never;
+        } else {
+          nextSnapshot[field] = (rawValue || null) as never;
+        }
+        continue;
+      }
+
       if (nullableTextFields.has(field)) {
         nextSnapshot[field] = (rawValue || null) as never;
         continue;
@@ -239,101 +252,128 @@ export default function TabA170({
       nextSnapshot[field] = rawValue as never;
     }
 
-    const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+    return nextSnapshot;
+  };
 
-    setSavingId(item.uuid);
+  const handleSaveAll = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado para salvar a correção.');
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const { data: correcaoAtiva, error: buscaError } = await supabase
-        .from('efd_correcoes')
-        .select('id')
-        .eq('registro_tipo', 'A170')
-        .eq('registro_original_id', item.uuid)
-        .eq('ativo', true)
-        .maybeSingle();
+      let changedCount = 0;
+      let savedCount = 0;
+      const nextRows = [...rows];
 
-      if (buscaError) throw buscaError;
+      for (const [index, item] of rows.entries()) {
+        const draft = drafts[item.uuid];
+        if (!draft) continue;
 
-      if (camposAlterados.length === 0) {
+        const nextSnapshot = buildNextSnapshot(item, draft);
+        if (!nextSnapshot) {
+          setIsSaving(false);
+          return;
+        }
+
+        if (buildChangedFields(getSnapshotFromItem(item), nextSnapshot).length === 0) continue;
+
+        changedCount += 1;
+        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+
+        const { data: correcaoAtiva, error: buscaError } = await supabase
+          .from('efd_correcoes')
+          .select('id')
+          .eq('registro_tipo', 'A170')
+          .eq('registro_original_id', item.uuid)
+          .eq('ativo', true)
+          .maybeSingle();
+
+        if (buscaError) throw buscaError;
+
+        if (camposAlterados.length === 0) {
+          if (correcaoAtiva?.id) {
+            const { error: desativacaoError } = await supabase
+              .from('efd_correcoes')
+              .update({
+                ativo: false,
+                snapshot: nextSnapshot as Json,
+                campos_alterados: null,
+              })
+              .eq('id', correcaoAtiva.id);
+
+            if (desativacaoError) throw desativacaoError;
+          }
+
+          nextRows[index] = { ...item, ...item._originalSnapshot };
+          locallyEditedIds.current.add(item.uuid);
+          savedCount += 1;
+          continue;
+        }
+
+        if (!item.ID_CONTRIBUINTE) {
+          toast.error('Nao foi possivel identificar o contribuinte desta linha A170.');
+          setIsSaving(false);
+          return;
+        }
+
+        const payload = {
+          contribuinte_id: item.ID_CONTRIBUINTE,
+          arquivo_id: item.ID_ARQUIVO,
+          empresa_cnpj: empresaCnpj,
+          periodo,
+          arquivo_tipo: 'efd_contribuicoes',
+          registro_tipo: 'A170',
+          registro_original_id: item.uuid,
+          tipo_operacao: 'U',
+          snapshot: nextSnapshot as Json,
+          campos_alterados: camposAlterados as unknown as Json,
+          motivo: 'Correcao manual realizada na tela de revisao do SPED.',
+          usuario_id: user.id,
+          ativo: true,
+          sync_status: 'P',
+          sync_error: null,
+          sync_sent_at: null,
+        };
+
         if (correcaoAtiva?.id) {
           const { error: desativacaoError } = await supabase
             .from('efd_correcoes')
-            .update({
-              ativo: false,
-              snapshot: nextSnapshot as Json,
-              campos_alterados: null,
-            })
-            .eq('id', correcaoAtiva.id);
+            .update({ ativo: false })
+            .eq('registro_tipo', 'A170')
+            .eq('registro_original_id', item.uuid)
+            .eq('ativo', true);
 
           if (desativacaoError) throw desativacaoError;
-          toast.success('Correção removida; a linha voltou ao valor original.');
-        } else {
-          toast.success('Nenhuma alteração para salvar.');
         }
 
-        setRows((current) => current.map((row) =>
-          row.uuid === item.uuid
-            ? { ...row, ...item._originalSnapshot }
-            : row
-        ));
-        handleCancelEdit();
-        return;
-      }
-
-      if (!item.ID_CONTRIBUINTE) {
-        toast.error('Nao foi possivel identificar o contribuinte desta linha A170.');
-        return;
-      }
-
-      const payload = {
-        contribuinte_id: item.ID_CONTRIBUINTE,
-        arquivo_id: item.ID_ARQUIVO,
-        empresa_cnpj: empresaCnpj,
-        periodo,
-        arquivo_tipo: 'efd_contribuicoes',
-        registro_tipo: 'A170',
-        registro_original_id: item.uuid,
-        tipo_operacao: 'U',
-        snapshot: nextSnapshot as Json,
-        campos_alterados: camposAlterados as unknown as Json,
-        motivo: 'Correcao manual realizada na tela de revisao do SPED.',
-        usuario_id: user.id,
-        ativo: true,
-        sync_status: 'P',
-        sync_error: null,
-        sync_sent_at: null,
-      };
-
-      if (correcaoAtiva?.id) {
-        const { error: desativacaoError } = await supabase
+        const { error: insertError } = await supabase
           .from('efd_correcoes')
-          .update({ ativo: false })
-          .eq('registro_tipo', 'A170')
-          .eq('registro_original_id', item.uuid)
-          .eq('ativo', true);
+          .insert(payload);
 
-        if (desativacaoError) throw desativacaoError;
+        if (insertError) throw insertError;
+
+        nextRows[index] = { ...item, ...nextSnapshot };
+        locallyEditedIds.current.add(item.uuid);
+        savedCount += 1;
       }
 
-      const { error: insertError } = await supabase
-        .from('efd_correcoes')
-        .insert(payload);
+      if (changedCount === 0) {
+        toast.success('Nenhuma alteração para salvar.');
+        handleCancelEditMode();
+        return;
+      }
 
-      if (insertError) throw insertError;
-
-      setRows((current) => current.map((row) =>
-        row.uuid === item.uuid
-          ? { ...row, ...nextSnapshot }
-          : row
-      ));
-      locallyEditedIds.current.add(item.uuid);
-      handleCancelEdit();
-      toast.success('Correção do A170 salva na tabela efd_correcoes.');
+      setRows(nextRows);
+      handleCancelEditMode();
+      toast.success(savedCount === 1 ? '1 correção do A170 salva.' : `${savedCount} correções do A170 salvas.`);
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : 'Erro inesperado ao salvar a correção.';
+      const message = saveError instanceof Error ? saveError.message : 'Erro inesperado ao salvar as correções.';
       toast.error(message);
     } finally {
-      setSavingId(null);
+      setIsSaving(false);
     }
   };
 
@@ -342,7 +382,9 @@ export default function TabA170({
     field: EditableA170Field,
     className: string,
   ) => {
-    if (editingId !== item.uuid || !draft) {
+    const draft = drafts[item.uuid];
+
+    if (!isEditMode || !draft) {
       const value = item[field];
       const isChanged = item._originalSnapshot && !Object.is(item[field], item._originalSnapshot[field as keyof typeof item._originalSnapshot]);
 
@@ -384,8 +426,8 @@ export default function TabA170({
       <Input
         type="text"
         value={draft[field]}
-        onChange={(event) => handleDraftChange(field, event.target.value)}
-        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40`}
+        onChange={(event) => handleDraftChange(item.uuid, field, event.target.value)}
+        className={`${inlineInputClass} ${className}`}
       />
     );
   };
@@ -412,7 +454,7 @@ export default function TabA170({
   if (!hasQueried || !data) return null;
 
   return (
-    <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
+    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">
@@ -423,25 +465,44 @@ export default function TabA170({
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between gap-3">
               <span className="text-xs font-medium text-muted-foreground">
                 {filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados
+                {isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}
               </span>
-              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar e salvar a correção da linha.
+              <div className="flex items-center gap-2">
                 <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">As correções feitas aqui são salvas no banco de dados. O registro original é preservado intacto.</TooltipContent></Tooltip>
-              </span>
+                {isEditMode && (
+                  <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
+                    <X className="h-3.5 w-3.5 mr-1" />Cancelar
+                  </Button>
+                )}
+                <Button size="sm" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
+                </Button>
+              </div>
             </div>
-            <div className="overflow-auto">
+            <div ref={scrollRef} className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
+                    {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
                     <TableHead colSpan={5} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">Dados EFD</TableHead>
-                    <TableHead colSpan={8} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
+                    <TableHead colSpan={10} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">Impostos</TableHead>
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-[11px] min-w-[140px]">CHV NFSe</TableHead>
+                    {isEditMode && (
+                      <TableHead className="w-[40px] min-w-[40px] text-center">
+                        <Checkbox
+                          checked={filteredIds.length > 0 && filteredIds.every((id) => selection.selectedIds.has(id)) ? true : filteredIds.some((id) => selection.selectedIds.has(id)) ? 'indeterminate' : false}
+                          onCheckedChange={() => selection.toggleAll(filteredIds)}
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead className="text-[11px] min-w-[180px]">Prestador</TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]">CPF/CNPJ</TableHead>
                     <TableHead className="text-[11px] min-w-[240px]">Descrição</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[120px]">Valor</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM trazido do Registro 0200 correspondente a este item.</TooltipContent></Tooltip></span></TableHead>
+
                     <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC PIS</TableHead>
@@ -451,7 +512,9 @@ export default function TabA170({
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Ações<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Permite corrigir os valores da linha. Se você desfazer as edições e salvar com os valores originais, a correção será inativada.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">PIS Ret</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">COFINS Ret</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10"><span className="flex items-center gap-1 justify-center">Status<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Mostra se a linha já possui correção aplicada e se a tabela está em modo de edição.</TooltipContent></Tooltip></span></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -459,29 +522,23 @@ export default function TabA170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={item.uuid} className={editingId === item.uuid ? "bg-accent/30" : "group"}>
-                        <TableCell className="py-1.5">
-                          {renderEditableCell(item, 'CHV_NFSE', 'h-8 text-xs font-mono')}
+                      <TableRow key={item.uuid} className={isEditMode ? (selection.selectedIds.has(item.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                        {isEditMode && (
+                          <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
+                            <Checkbox checked={selection.selectedIds.has(item.uuid)} onCheckedChange={() => selection.toggle(item.uuid)} />
+                          </TableCell>
+                        )}
+                        <TableCell className="text-xs py-1.5 max-w-[180px] truncate" title={item.NOME_0150 ?? undefined}>
+                          {item.NOME_0150 || <span className="text-muted-foreground/50 italic">—</span>}
+                        </TableCell>
+                        <TableCell className="text-xs py-1.5 font-mono">
+                          {item.CPF_CNPJ_0150 || <span className="text-muted-foreground/50 italic">—</span>}
                         </TableCell>
                         <TableCell className="py-1.5 max-w-[240px] truncate" title={String(item.DESCR_COMPL ?? '')}>
                           {renderEditableCell(item, 'DESCR_COMPL', 'h-8 text-xs')}
                         </TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">
                           {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono')}
-                        </TableCell>
-                        <TableCell className="py-1.5">
-                          {item.COD_NCM ? (
-                            <Badge
-                              variant="outline"
-                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800"
-                              onClick={() => onSelectNcm(item.COD_NCM!)}
-                            >
-                              <BookOpen className="h-3 w-3 shrink-0" />
-                              {item.COD_NCM}
-                            </Badge>
-                          ) : (
-                            <span className="text-xs text-muted-foreground/50 italic text-center block">—</span>
-                          )}
                         </TableCell>
                         <TableCell className="py-1.5 pr-[100px]">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
@@ -510,47 +567,19 @@ export default function TabA170({
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
                           {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono')}
                         </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {formatCurrency(item.VL_PIS_RET ?? 0)}
+                        </TableCell>
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                          {formatCurrency(item.VL_COFINS_RET ?? 0)}
+                        </TableCell>
                         {/* Actions — sticky right */}
                         <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px]">
                           <div className="flex flex-col items-center justify-center gap-1">
-                            {editingId === item.uuid ? (
-                              <>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={() => handleSave(item)}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  {savingId === item.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}
-                                </Button>
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-8 w-8"
-                                  onClick={handleCancelEdit}
-                                  disabled={savingId === item.uuid}
-                                >
-                                  <X className="h-4 w-4 text-muted-foreground" />
-                                </Button>
-                              </>
-                            ) : (
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-8 w-8"
-                                onClick={() => handleStartEdit(item)}
-                                disabled={!!savingId}
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {linhaCorrigida && editingId !== item.uuid && (
+                            {linhaCorrigida && (
                               <Tooltip><TooltipTrigger asChild><Badge variant="outline" className="text-[10px] cursor-help">Corrigido</Badge></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica que esta linha foi alterada e possui valores diferentes do arquivo SPED originalmente importado.</TooltipContent></Tooltip>
                             )}
+                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -559,6 +588,7 @@ export default function TabA170({
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={scrollRef} alwaysVisible />
             <div className="px-4 pb-3">
               <TablePagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
             </div>

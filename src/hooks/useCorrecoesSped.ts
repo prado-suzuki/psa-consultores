@@ -4,7 +4,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, D100ResponseEntry, F100Item, RegF100, F120Item, F120Reg, F130Item, F130Reg } from '@/types/correcoesSped';
+import type { CorrecoesSpedResponse, C170Item, ItemEfd, A170Item, A170Response, A170Snapshot, D100Item, D100ResponseEntry, F100Item, RegF100, F120Item, F120Reg, F130Item, F130Reg, Reg0150 } from '@/types/correcoesSped';
 
 interface UseCorrecoesSpedParams {
   id_contribuinte: string;
@@ -172,6 +172,7 @@ export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
         (entries ?? []).flatMap((entry) => {
           const a170 = parseApiObject<A170Snapshot>(entry.A170);
           const item0200 = parseApiObject(entry['0200']);
+          const reg0150 = parseApiObject<Reg0150>(entry['0150']);
 
           if (!a170) return [];
 
@@ -188,6 +189,10 @@ export function useCorrecoesA170(params: UseCorrecoesSpedParams) {
             DESCR_ITEM_0200: item0200?.DESCR_ITEM ?? null,
             COD_NCM: item0200?.COD_NCM ?? null,
             TIPO_ITEM: item0200?.TIPO_ITEM ?? null,
+            NOME_0150: reg0150?.NOME ?? null,
+            CPF_CNPJ_0150: reg0150?.CNPJ || reg0150?.CPF || null,
+            VL_PIS_RET: entry.pis_ret ?? null,
+            VL_COFINS_RET: entry.cofins_ret ?? null,
             _originalSnapshot: originalSnapshot,
           }];
         })

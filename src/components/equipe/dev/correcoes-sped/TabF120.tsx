@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,9 +9,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Info, Loader2, Pencil, X } from 'lucide-react';
+import { AlertCircle, Check, Info, Loader2, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { F120Item, F120Reg, CampoAlteradoEfd } from '@/types/correcoesSped';
 
 const formatCurrency = (v: number | null | undefined) =>
@@ -24,6 +26,7 @@ type F120Draft = Record<EditableF120Field, string>;
 
 const editableFields: EditableF120Field[] = ['VL_OPER_DEP', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS', 'COD_CTA'];
 const numericFields = new Set<EditableF120Field>(['VL_OPER_DEP', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS']);
+const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs';
 
 function toDraft(item: F120Item): F120Draft {
   const f = item.F120;
@@ -69,23 +72,24 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F120Item[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<F120Draft | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [drafts, setDrafts] = useState<Record<string, F120Draft>>({});
+  const selection = useRowSelection();
   const locallyEditedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!data) return;
-    if (editingId) return;
+    if (isEditMode) return;
     if (locallyEditedIds.current.size === 0) { setRows(data); return; }
-    setRows(data.map(d => {
+    setRows((currentRows) => data.map(d => {
       if (locallyEditedIds.current.has(d.F120.uuid)) {
-        const local = rows.find(r => r.F120.uuid === d.F120.uuid);
+        const local = currentRows.find(r => r.F120.uuid === d.F120.uuid);
         return local ?? d;
       }
       return d;
     }));
-  }, [data]);
+  }, [data, isEditMode]);
 
   const filtered = useMemo(() => {
     let items = rows;
@@ -102,15 +106,27 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
 
   useEffect(() => { setPage(0); }, [searchText]);
 
+  const filteredIds = useMemo(() => filtered.map((i) => i.F120.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const handleStartEdit = (item: F120Item) => { setEditingId(item.F120.uuid); setDraft(toDraft(item)); };
-  const handleCancelEdit = () => { setEditingId(null); setDraft(null); };
-  const handleDraftChange = (field: EditableF120Field, value: string) => { setDraft((c) => c ? { ...c, [field]: value } : c); };
+  const handleEnableEditMode = () => {
+    setDrafts(Object.fromEntries(rows.map((row) => [row.F120.uuid, toDraft(row)])));
+    selection.clear();
+    setIsEditMode(true);
+  };
 
-  const handleSave = async (item: F120Item) => {
-    if (!user || !draft || editingId !== item.F120.uuid) return;
+  const handleCancelEditMode = () => {
+    setIsEditMode(false);
+    setDrafts({});
+    selection.clear();
+  };
+
+  const handleDraftChange = (id: string, field: EditableF120Field, value: string) => {
+    setDrafts((current) => applyBatchChange(current, selection.selectedIds, id, field, value));
+  };
+
+  const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
     const nextSnapshot: Record<string, unknown> = { ...item.F120 };
 
     for (const field of editableFields) {
@@ -125,56 +141,96 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
       nextSnapshot[field] = raw;
     }
 
-    const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
-    setSavingId(item.F120.uuid);
+    return nextSnapshot;
+  };
+
+  const handleSaveAll = async () => {
+    if (!user) {
+      toast.error('Usuário não autenticado para salvar a correção.');
+      return;
+    }
+
+    setIsSaving(true);
 
     try {
-      const { data: correcaoAtiva, error: buscaError } = await supabase
-        .from('efd_correcoes').select('id')
-        .eq('registro_tipo', 'F120').eq('registro_original_id', item.F120.uuid).eq('ativo', true)
-        .maybeSingle();
-      if (buscaError) throw buscaError;
+      let changedCount = 0;
+      let savedCount = 0;
+      const nextRows = [...rows];
 
-      if (camposAlterados.length === 0) {
+      for (const [index, item] of rows.entries()) {
+        const draft = drafts[item.F120.uuid];
+        if (!draft) continue;
+
+        const nextSnapshot = buildNextSnapshot(item, draft);
+        if (!nextSnapshot) {
+          setIsSaving(false);
+          return;
+        }
+
+        if (buildChangedFields(item.F120, nextSnapshot).length === 0) continue;
+
+        changedCount += 1;
+        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+
+        const { data: correcaoAtiva, error: buscaError } = await supabase
+          .from('efd_correcoes').select('id')
+          .eq('registro_tipo', 'F120').eq('registro_original_id', item.F120.uuid).eq('ativo', true)
+          .maybeSingle();
+        if (buscaError) throw buscaError;
+
+        if (camposAlterados.length === 0) {
+          if (correcaoAtiva?.id) {
+            const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
+            if (e) throw e;
+          }
+          nextRows[index] = { ...item, F120: { ...item._originalSnapshot } };
+          locallyEditedIds.current.add(item.F120.uuid);
+          savedCount += 1;
+          continue;
+        }
+
+        const payload = {
+          contribuinte_id: item.ID_CONTRIBUINTE, arquivo_id: item.F120.ID_ARQUIVO,
+          empresa_cnpj: empresaCnpj, periodo, arquivo_tipo: 'efd_contribuicoes',
+          registro_tipo: 'F120', registro_original_id: item.F120.uuid,
+          tipo_operacao: 'U', snapshot: nextSnapshot as unknown as Json,
+          campos_alterados: camposAlterados as unknown as Json,
+          motivo: 'Correção manual realizada na tela de revisão do SPED.',
+          usuario_id: user.id, ativo: true, sync_status: 'P', sync_error: null, sync_sent_at: null,
+        };
+
         if (correcaoAtiva?.id) {
-          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
+          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'F120').eq('registro_original_id', item.F120.uuid).eq('ativo', true);
           if (e) throw e;
-          toast.success('Correção removida.');
-        } else { toast.success('Nenhuma alteração para salvar.'); }
-        setRows((c) => c.map((r) => r.F120.uuid === item.F120.uuid ? { ...r, F120: { ...item._originalSnapshot } } : r));
-        handleCancelEdit(); return;
+        }
+        const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
+        if (insertError) throw insertError;
+
+        nextRows[index] = { ...item, F120: { ...item.F120, ...nextSnapshot } as F120Reg };
+        locallyEditedIds.current.add(item.F120.uuid);
+        savedCount += 1;
       }
 
-      const payload = {
-        contribuinte_id: item.ID_CONTRIBUINTE, arquivo_id: item.F120.ID_ARQUIVO,
-        empresa_cnpj: empresaCnpj, periodo, arquivo_tipo: 'efd_contribuicoes',
-        registro_tipo: 'F120', registro_original_id: item.F120.uuid,
-        tipo_operacao: 'U', snapshot: nextSnapshot as unknown as Json,
-        campos_alterados: camposAlterados as unknown as Json,
-        motivo: 'Correção manual realizada na tela de revisão do SPED.',
-        usuario_id: user.id, ativo: true, sync_status: 'P', sync_error: null, sync_sent_at: null,
-      };
-
-      if (correcaoAtiva?.id) {
-        const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'F120').eq('registro_original_id', item.F120.uuid).eq('ativo', true);
-        if (e) throw e;
+      if (changedCount === 0) {
+        toast.success('Nenhuma alteração para salvar.');
+        handleCancelEditMode();
+        return;
       }
-      const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
-      if (insertError) throw insertError;
 
-      setRows((c) => c.map((r) => r.F120.uuid === item.F120.uuid ? { ...r, F120: { ...r.F120, ...nextSnapshot } as F120Reg } : r));
-      locallyEditedIds.current.add(item.F120.uuid);
-      handleCancelEdit();
-      toast.success('Correção do F120 salva.');
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correção.'); }
-    finally { setSavingId(null); }
+      setRows(nextRows);
+      handleCancelEditMode();
+      toast.success(savedCount === 1 ? '1 correção do F120 salva.' : `${savedCount} correções do F120 salvas.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correções.'); }
+    finally { setIsSaving(false); }
   };
 
   const renderEditableCell = (
     item: F120Item, field: EditableF120Field, className: string,
     options?: { isCurrency?: boolean; isPercentage?: boolean },
   ) => {
-    if (editingId !== item.F120.uuid || !draft) {
+    const draft = drafts[item.F120.uuid];
+
+    if (!isEditMode || !draft) {
       const value = item.F120[field as keyof F120Reg];
       const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
       const isChanged = !Object.is(value, origValue);
@@ -187,8 +243,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
 
     const input = (
       <Input type="text" value={draft[field]}
-        onChange={(e) => { let val = e.target.value; if (options?.isPercentage) { const n = Number(val.replace(',', '.')); if (!isNaN(n) && n > 100) val = '100'; } handleDraftChange(field, val); }}
-        className={`${className} bg-background border-primary/20 focus-visible:ring-primary/40 ${options?.isCurrency ? 'pl-7' : ''}`}
+        onChange={(e) => { let val = e.target.value; if (options?.isPercentage) { const n = Number(val.replace(',', '.')); if (!isNaN(n) && n > 100) val = '100'; } handleDraftChange(item.F120.uuid, field, val); }}
+        className={`${inlineInputClass} ${className} ${options?.isCurrency ? 'pl-4' : ''}`}
       />
     );
 
@@ -203,20 +259,31 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   if (!hasQueried || !data) return null;
 
   return (
-    <Card className="shadow-md border-0 ring-1 ring-border/50 overflow-hidden">
+    <Card className={`border-0 overflow-hidden ${isEditMode ? 'shadow-[0_0_30px_0px_hsl(var(--edit-shadow-color)/0.55)]' : 'shadow-md ring-1 ring-border/50'}`}>
       <CardContent className="p-0">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Nenhum item F120 encontrado para os filtros selecionados.</div>
         ) : (
           <>
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados</span>
-              <span className="text-[11px] text-muted-foreground">Clique no <Pencil className="inline h-3 w-3 align-[-1px]" /> para editar.</span>
+              <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
+              <div className="flex items-center gap-2">
+                {isEditMode && (
+                  <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
+                    <X className="h-3.5 w-3.5 mr-1" />Cancelar
+                  </Button>
+                )}
+                <Button size="sm" onClick={isEditMode ? handleSaveAll : handleEnableEditMode} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                  {isSaving ? 'Salvando...' : isEditMode ? 'Salvar alterações' : 'Habilitar modo edição'}
+                </Button>
+              </div>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-b-0">
+                    {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
                     <TableHead colSpan={4} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">
                       <span className="flex items-center gap-1">Dados do Bem<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Registro F120 — Bens do ativo imobilizado com depreciação/amortização geradores de crédito.</TooltipContent></Tooltip></span>
                     </TableHead>
@@ -224,9 +291,17 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
-                    <TableHead className="text-[11px] min-w-[200px]">Bem Imobilizado</TableHead>
-                    <TableHead className="text-[11px] min-w-[140px]">Utilização</TableHead>
-                    <TableHead className="text-[11px] min-w-[80px]">Nat. Créd.</TableHead>
+                    {isEditMode && (
+                      <TableHead className="w-[40px] min-w-[40px] text-center">
+                        <Checkbox
+                          checked={filteredIds.length > 0 && filteredIds.every((id) => selection.selectedIds.has(id)) ? true : filteredIds.some((id) => selection.selectedIds.has(id)) ? 'indeterminate' : false}
+                          onCheckedChange={() => selection.toggleAll(filteredIds)}
+                        />
+                      </TableHead>
+                    )}
+                    <TableHead className="text-[11px] min-w-[200px] whitespace-normal break-words">Bem Imobilizado</TableHead>
+                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words">Utilização</TableHead>
+                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words">Nat. Créd.</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[120px]">Depreciação</TableHead>
                     <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
@@ -235,17 +310,22 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                     <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
                     <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
-                    <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Ações</TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => {
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, item.F120 as unknown as Record<string, unknown>).length > 0;
                     return (
-                      <TableRow key={`f120-${item.F120.uuid}-${idx}`} className={editingId === item.F120.uuid ? 'bg-accent/30' : 'group'}>
-                        <TableCell className="text-xs py-1.5 max-w-[200px] truncate" title={item.DESC_IDENT_BEM_IMOB}>{item.DESC_IDENT_BEM_IMOB}</TableCell>
-                        <TableCell className="text-xs py-1.5 max-w-[140px] truncate" title={item.DESC_IND_UTIL_BEM_IMOB}>{item.DESC_IND_UTIL_BEM_IMOB}</TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono">{item.F120.NAT_BC_CRED}</TableCell>
+                      <TableRow key={`f120-${item.F120.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F120.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                        {isEditMode && (
+                          <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
+                            <Checkbox checked={selection.selectedIds.has(item.F120.uuid)} onCheckedChange={() => selection.toggle(item.F120.uuid)} />
+                          </TableCell>
+                        )}
+                        <TableCell className="text-xs py-1.5 max-w-[200px] whitespace-normal break-words leading-5">{item.DESC_IDENT_BEM_IMOB}</TableCell>
+                        <TableCell className="text-xs py-1.5 max-w-[140px] whitespace-normal break-words leading-5">{item.DESC_IND_UTIL_BEM_IMOB}</TableCell>
+                        <TableCell className="text-xs py-1.5 max-w-[220px] whitespace-normal break-words leading-5">{item.DESC_NAT_BC_CRED}</TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{renderEditableCell(item, 'VL_OPER_DEP', 'h-8 text-xs text-right font-mono', { isCurrency: true })}</TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}</TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">{renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { isPercentage: true })}</TableCell>
@@ -256,15 +336,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                         <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">{renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}</TableCell>
                         <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
-                            {editingId === item.F120.uuid ? (
-                              <>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleSave(item)} disabled={savingId === item.F120.uuid}>{savingId === item.F120.uuid ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4 text-emerald-600" />}</Button>
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={handleCancelEdit} disabled={savingId === item.F120.uuid}><X className="h-4 w-4 text-muted-foreground" /></Button>
-                              </>
-                            ) : (
-                              <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleStartEdit(item)} disabled={!!savingId}><Pencil className="h-4 w-4" /></Button>
-                            )}
-                            {linhaCorrigida && editingId !== item.F120.uuid && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
+                            {linhaCorrigida && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
+                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>
