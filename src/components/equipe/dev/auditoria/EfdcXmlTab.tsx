@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { parseDate } from '@/lib/dateUtils';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
 interface EfdcXmlTabProps {
@@ -20,6 +21,9 @@ interface EfdcXmlTabProps {
 
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const formatDate = (value?: string) =>
+  value ? parseDate(value).toLocaleDateString('pt-BR') : '—';
 
 type FilterKey = 'emitente' | 'cfop';
 
@@ -199,6 +203,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="text-xs">Data Início</TableHead>
                       <TableHead className="text-xs">Data Lote</TableHead>
                       <TableHead className="text-xs">
                         Emitente
@@ -222,6 +227,8 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                           onFilter={handleFilter}
                         />
                       </TableHead>
+                      <TableHead className="text-xs">Série</TableHead>
+                      <TableHead className="text-xs">Cód. Sit.</TableHead>
                       <TableHead className="text-xs">Intervalo</TableHead>
                       <TableHead className="text-xs text-right">Valor Lote</TableHead>
                       <TableHead className="text-xs text-right">Soma CT-es</TableHead>
@@ -239,9 +246,12 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                           className="cursor-pointer"
                           onClick={() => { setSelectedLote(lote); setCteSearch(''); }}
                         >
-                          <TableCell className="text-xs">{lote.DT_LOTE}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{formatDate(lote.DT_INI)}</TableCell>
+                          <TableCell className="text-xs whitespace-nowrap">{formatDate(lote.DT_LOTE)}</TableCell>
                           <TableCell className="text-xs max-w-[200px] truncate">{lote.NOME_EMIT}</TableCell>
                           <TableCell className="text-xs">{lote.CFOP}</TableCell>
+                          <TableCell className="text-xs">{lote.SERIE || '—'}</TableCell>
+                          <TableCell className="text-xs">{lote.COD_SIT ?? '—'}</TableCell>
                           <TableCell className="text-xs">{lote.INTERVALO}</TableCell>
                           <TableCell className="text-xs text-right">{formatBRL(lote.VLR_LOTE)}</TableCell>
                           <TableCell className="text-xs text-right whitespace-nowrap">{formatBRL(lote.SUM_LOTE)}</TableCell>
@@ -278,7 +288,10 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
               <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
                 <div><span className="text-muted-foreground">Emitente:</span> {selectedLote.NOME_EMIT}</div>
                 <div><span className="text-muted-foreground">CFOP:</span> {selectedLote.CFOP}</div>
-                <div><span className="text-muted-foreground">Data Lote:</span> {selectedLote.DT_LOTE}</div>
+                <div><span className="text-muted-foreground">Data Início:</span> {formatDate(selectedLote.DT_INI)}</div>
+                <div><span className="text-muted-foreground">Data Lote:</span> {formatDate(selectedLote.DT_LOTE)}</div>
+                <div><span className="text-muted-foreground">Série:</span> {selectedLote.SERIE || '—'}</div>
+                <div><span className="text-muted-foreground">Cód. Sit.:</span> {selectedLote.COD_SIT ?? '—'}</div>
                 <div><span className="text-muted-foreground">Intervalo:</span> {selectedLote.INTERVALO}</div>
               </div>
 

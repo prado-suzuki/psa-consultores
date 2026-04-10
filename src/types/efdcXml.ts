@@ -10,6 +10,8 @@ export interface EfdcXmlLote {
   NOME_EMIT: string;
   MOD: string;
   SERIE: string;
+  DT_INI?: string;
+  COD_SIT?: number | string;
   CFOP: string;
   DT_LOTE: string;
   INTERVALO: string;

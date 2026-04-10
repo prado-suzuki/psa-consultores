@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { parseDate } from '@/lib/dateUtils';
 import type { EfdcIcmsNota } from '@/types/efdcIcms';
 
 interface EfdcIcmsTabProps {
@@ -19,6 +20,9 @@ interface EfdcIcmsTabProps {
 
 const formatBRL = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+
+const formatDate = (value?: string) =>
+  value ? parseDate(value).toLocaleDateString('pt-BR') : '—';
 
 type FilterKey = 'cfop_icms' | 'cta_icms' | 'cfop_contrib' | 'cta_contrib';
 
@@ -175,6 +179,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead rowSpan={2} className="text-xs align-bottom">Dt. Ini</TableHead>
                     <TableHead rowSpan={2} className="text-xs align-bottom border-r">Chave NFe</TableHead>
                     <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD ICMS</TableHead>
                     <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD Contribuições</TableHead>
@@ -234,6 +239,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                 <TableBody>
                   {pagedNotas.map((nota, idx) => (
                     <TableRow key={`${nota.CHV_NFE}-${currentPage}-${idx}`}>
+                      <TableCell className="text-xs whitespace-nowrap">{formatDate(nota.EFD_ICMS.DT_INI)}</TableCell>
                       <TableCell className="text-xs font-mono whitespace-nowrap border-r">{nota.CHV_NFE}</TableCell>
                       <TableCell className="text-xs">{nota.EFD_ICMS.CFOP.join(', ')}</TableCell>
                       <TableCell className="text-xs">{nota.EFD_ICMS.COD_CTA.filter(Boolean).join(', ')}</TableCell>

@@ -60,7 +60,7 @@ const AuditoriaCruzadaContent = () => {
   };
 
   return (
-    <DevLayout title="Auditoria Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
+    <DevLayout title="Análise Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
       <div className="space-y-4">
         <Card className="bg-muted/50 border-dashed">
           <CardContent className="p-4">
@@ -137,7 +137,7 @@ const AuditoriaCruzadaContent = () => {
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">Balancete</TabsTrigger>
             <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS | XML NFe</TabsTrigger>
-            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs</TabsTrigger>
+            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs de CTE por Lote</TabsTrigger>
           </TabsList>
 
           <TabsContent value="balancete-efd">

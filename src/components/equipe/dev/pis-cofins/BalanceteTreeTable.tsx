@@ -8,8 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { useTableHeaders } from "@/hooks/useTableHeaders";
-import { DynamicTableHeader } from "./DynamicTableHeader";
 import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
@@ -189,6 +187,13 @@ const STICKY_HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-r-[#0B7A70]";
 const MONTH_HIGHLIGHT = "bg-[#3fd8c7] text-white border-[#0B7A70]";
 const HEADER_BTN = "text-white hover:bg-white/10 hover:text-white";
 
+type DisplayColumn = {
+  id: string;
+  label: string;
+  dataKeys: string[];
+  metric: "vlr_efd" | "saldo";
+};
+
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
   function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -273,29 +278,50 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       return (v: MergedNode["periodoValues"][string]) => v.saldo_periodo;
     }, [periodoFechado]);
 
-    // Build columnsData for useTableHeaders
-    const columnsData = useMemo(() => {
+    const yearsMap = useMemo(() => {
       const yearsMap = new Map<string, string[]>();
       for (const p of periods) {
         const year = p.substring(0, 4);
         if (!yearsMap.has(year)) yearsMap.set(year, []);
         yearsMap.get(year)!.push(p);
       }
-      return { periods, yearsMap };
+      return yearsMap;
     }, [periods]);
 
-    const {
-      headerRow1,
-      headerRow2,
-      hasExpandedYear,
-      headerRowsCount,
-      headerBottom,
-    } = useTableHeaders({ columnsData, expandedYears });
+    const yearEntries = useMemo(
+      () => Array.from(yearsMap.entries()).sort((a, b) => a[0].localeCompare(b[0])),
+      [yearsMap],
+    );
 
-    const getColValue = (node: MergedNode, dataKeys: string[]) => {
+    const hasExpandedYear = expandedYears.size > 0;
+    const headerRowsCount = hasExpandedYear ? 3 : 2;
+
+    const displayColumns = useMemo<DisplayColumn[]>(() => {
+      const cols: DisplayColumn[] = [];
+      for (const [year, months] of yearEntries) {
+        const sortedMonths = [...months].sort((a, b) => a.localeCompare(b));
+        if (expandedYears.has(year)) {
+          for (const month of sortedMonths) {
+            cols.push(
+              { id: `${month}-vlr_efd`, label: "Vlr. EFD", dataKeys: [month], metric: "vlr_efd" },
+              { id: `${month}-saldo`, label: periodoFechado ? "Saldo Atual" : "Saldo Per.", dataKeys: [month], metric: "saldo" },
+            );
+          }
+        } else {
+          cols.push(
+            { id: `${year}-vlr_efd`, label: "Vlr. EFD", dataKeys: sortedMonths, metric: "vlr_efd" },
+            { id: `${year}-saldo`, label: periodoFechado ? "Saldo Atual" : "Saldo Per.", dataKeys: sortedMonths, metric: "saldo" },
+          );
+        }
+      }
+      return cols;
+    }, [yearEntries, expandedYears, periodoFechado]);
+
+    const getColValue = (node: MergedNode, dataKeys: string[], metric: DisplayColumn["metric"]) => {
       return dataKeys.reduce((sum, key) => {
         const pv = node.periodoValues[key];
-        return sum + (pv ? valueAccessor(pv) : 0);
+        if (!pv) return sum;
+        return sum + (metric === "vlr_efd" ? pv.vlr_efd : valueAccessor(pv));
       }, 0);
     };
 
@@ -428,8 +454,8 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
               </div>
             </TableCell>
 
-            {headerBottom.map(col => {
-              const val = getColValue(node, col.dataKeys);
+            {displayColumns.map(col => {
+              const val = getColValue(node, col.dataKeys, col.metric);
               return (
                 <TableCell
                   key={col.id}
@@ -468,22 +494,95 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
       <>
       <Card ref={scrollRef} className="overflow-x-auto max-w-full">
         <table className="w-full caption-bottom text-sm min-w-max">
-          <DynamicTableHeader
-            stickyConfig={STICKY_COLS}
-            headerRow1={headerRow1}
-            headerRow2={headerRow2}
-            hasExpandedYear={hasExpandedYear}
-            headerRowsCount={headerRowsCount}
-            toggleYear={toggleYear}
-            headerClassName={HEADER_HIGHLIGHT}
-            stickyHeaderClassName={STICKY_HEADER_HIGHLIGHT}
-            expandedHeaderClassName={HEADER_HIGHLIGHT}
-            monthHeaderClassName={MONTH_HIGHLIGHT}
-            collapsedHeaderClassName={HEADER_HIGHLIGHT}
-            headerButtonClassName={HEADER_BTN}
-            renderHeaderExtra={renderHeaderExtra}
-            showTotal={false}
-          />
+          <thead className={cn("bg-muted sticky top-0 z-30 [&_tr]:border-b", HEADER_HIGHLIGHT)}>
+            <TableRow>
+              {STICKY_COLS.map((col) => (
+                <TableCell
+                  key={col.label}
+                  className={cn(
+                    "!font-bold uppercase text-xs text-muted-foreground border-r sticky z-40 bg-muted",
+                    STICKY_HEADER_HIGHLIGHT,
+                    col.isLast && "shadow-[2px_0_4px_-2px_rgba(0,0,0,0.08)]",
+                  )}
+                  style={{ left: col.left, minWidth: col.width }}
+                  rowSpan={headerRowsCount}
+                >
+                  <span className="inline-flex items-center">
+                    {col.label}
+                    {renderHeaderExtra(col.label)}
+                  </span>
+                </TableCell>
+              ))}
+
+              {yearEntries.map(([year, months]) => {
+                const isExpanded = expandedYears.has(year);
+                const colSpan = isExpanded ? months.length * 2 : 2;
+                return (
+                  <TableCell
+                    key={year}
+                    colSpan={colSpan}
+                    className={cn("text-center border-b border-r bg-primary/10 !font-bold uppercase text-xs text-muted-foreground", HEADER_HIGHLIGHT)}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      {year}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn("h-6 w-6 hover:bg-muted-foreground/20", HEADER_BTN)}
+                        onClick={() => toggleYear(year)}
+                        title={isExpanded ? "Colapsar Ano" : "Expandir Ano"}
+                      >
+                        {isExpanded ? "-" : "+"}
+                      </Button>
+                    </div>
+                  </TableCell>
+                );
+              })}
+            </TableRow>
+
+            <TableRow>
+              {yearEntries.map(([year, months]) => {
+                const sortedMonths = [...months].sort((a, b) => a.localeCompare(b));
+                if (expandedYears.has(year)) {
+                  return sortedMonths.map((month) => (
+                    <TableCell
+                      key={month}
+                      colSpan={2}
+                      className={cn("text-center border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}
+                    >
+                      {month.split('-').reverse().join('/')}
+                    </TableCell>
+                  ));
+                }
+
+                return [
+                  <TableCell key={`${year}-vlr`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-muted", HEADER_HIGHLIGHT)}>
+                    Vlr. EFD
+                  </TableCell>,
+                  <TableCell key={`${year}-saldo`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-muted", HEADER_HIGHLIGHT)}>
+                    {periodoFechado ? "Saldo Atual" : "Saldo Per."}
+                  </TableCell>,
+                ];
+              })}
+            </TableRow>
+
+            {hasExpandedYear && (
+              <TableRow>
+                {yearEntries.flatMap(([year, months]) => {
+                  if (!expandedYears.has(year)) return [];
+                  const sortedMonths = [...months].sort((a, b) => a.localeCompare(b));
+                  return sortedMonths.flatMap((month) => [
+                    <TableCell key={`${month}-vlr_efd`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}>
+                      Vlr. EFD
+                    </TableCell>,
+                    <TableCell key={`${month}-saldo`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}>
+                      {periodoFechado ? "Saldo Atual" : "Saldo Per."}
+                    </TableCell>,
+                  ]);
+                })}
+              </TableRow>
+            )}
+          </thead>
           <TableBody>
             {rows.length > 0 ? rows : (
               <TableRow>
