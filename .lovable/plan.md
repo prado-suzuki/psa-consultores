@@ -1,38 +1,50 @@
 
 
-## Fix: Serviço e Produto resetados ao abrir Editar Projeto
+## Fix: servico_id resetado no segundo disparo do useEffect
 
 ### Causa raiz
-O `useEffect` da linha 299 dispara ao mudar `selectedOsId` e **sempre** limpa `servico_id` e `selectedProdutoId` — inclusive quando o modal abre em modo edição via `handleOpenModal`. O mesmo ocorre com o `useEffect` da linha 260 que auto-seleciona produto quando a OS tem 1 produto, mas reseta para `null` caso contrário.
+O `isOpeningEditRef` protege apenas o primeiro disparo do useEffect de sync OS (linha 318). Quando `clienteOS` carrega assincronamente, o useEffect da linha 307 re-seta `selectedOsId` (mesmo valor), o que re-dispara o efeito da linha 318 com `isOpeningEditRef.current === false`, executando `servico_id: ''`.
 
 ### Solução
 
-**Arquivo único:** `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
+**Arquivo:** `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`
 
-1. **Adicionar `useRef`** `isOpeningEditRef` (default `false`) junto aos estados existentes (~linha 91)
+1. **useEffect de sync cliente→OS (linha 307):** Não re-setar `selectedOsId` se o valor já é o mesmo (evitar re-disparo):
+   ```ts
+   useEffect(() => {
+     if (!formData.external_client_id) {
+       setSelectedOsId(null);
+       return;
+     }
+     if (clienteOS.length === 1) {
+       const osId = getOsId(clienteOS[0]);
+       setSelectedOsId(prev => prev === osId ? prev : osId);
+     }
+   }, [clienteOS, formData.external_client_id]);
+   ```
 
-2. **`handleOpenModal` (~linha 388):** Setar `isOpeningEditRef.current = true` **antes** de `setSelectedOsId` e `setSelectedProdutoId` ao editar
+2. **useEffect de sync OS (linha 318):** Reforçar o guard — se `editingProject` existe e o `selectedOsId` não mudou em relação ao `formData.ordem_servico_id`, não limpar `servico_id`:
+   ```ts
+   useEffect(() => {
+     if (isOpeningEditRef.current) {
+       setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '' }));
+       isOpeningEditRef.current = false;
+       return;
+     }
+     // Skip clearing if editing and OS hasn't actually changed
+     if (editingProject && formData.ordem_servico_id === (selectedOsId || '')) {
+       return;
+     }
+     setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
+     setSelectedProdutoId(null);
+     ...
+   }, [selectedOsId]);
+   ```
 
-3. **`useEffect` sync OS (linha 299):** Guard com `isOpeningEditRef.current`:
-   - Se `true`: apenas sincronizar `ordem_servico_id` sem limpar `servico_id` nem `selectedProdutoId`, setar ref de volta para `false`
-   - Se `false`: manter comportamento atual (limpar campos)
-
-4. **`useEffect` auto-select produto (linha 260):** Guard com `isOpeningEditRef.current`:
-   - Se `true`: não sobrescrever `selectedProdutoId` (retornar early)
-   - Se `false`: manter comportamento atual
-
-5. **Restaurar `selectedProdutoId` ao editar:** No `handleOpenModal`, após setar `formData` com o `servico_id` salvo, buscar nos `osProdutosByOs` qual produto contém esse serviço via `produto_servico` e pre-selecionar `selectedProdutoId`. Como os dados de `osProdutosByOs` podem não estar carregados ainda, adicionar um `useEffect` auxiliar que, quando `editingProject` existe e `osProdutosByOs` fica disponível, resolve o `selectedProdutoId` correto a partir do `servico_id` salvo no `formData`.
-
-### Audit logging
-Já implementado — `useOrgProjects.ts` linha 289 compara `servico_id` old vs new e registra no `changed_fields`. Nenhuma alteração necessária no audit.
-
-### Resumo de alterações
+### Alterações
 
 | Linha aprox. | Mudança |
 |---|---|
-| ~91 | `const isOpeningEditRef = useRef(false)` |
-| ~260 | Guard: skip auto-select produto se `isOpeningEditRef.current` |
-| ~299 | Guard: skip limpar `servico_id`/`selectedProdutoId` se `isOpeningEditRef.current` |
-| ~389 | Setar `isOpeningEditRef.current = true` antes de `setSelectedOsId` |
-| Novo useEffect | Restaurar `selectedProdutoId` quando `editingProject` + `osProdutosByOs` + `servicosByProduto` disponíveis |
+| ~312-314 | `setSelectedOsId` com callback funcional para evitar re-disparo com mesmo valor |
+| ~318-324 | Guard adicional: se editando e OS não mudou, não limpar `servico_id` |
 
