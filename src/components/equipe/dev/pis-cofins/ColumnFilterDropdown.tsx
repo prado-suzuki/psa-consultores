@@ -66,12 +66,14 @@ export function ColumnFilterDropdown({
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "ml-1 inline-flex items-center justify-center rounded p-0.5 transition-colors hover:bg-accent/50",
-            isActive ? "text-primary" : "text-muted-foreground opacity-60 hover:opacity-100",
+            "ml-1 inline-flex items-center justify-center rounded p-0.5 transition-colors",
+            isActive
+              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground",
           )}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <Filter className="h-3.5 w-3.5 text-white" />
+          <Filter className="h-3.5 w-3.5" />
         </button>
       </PopoverTrigger>
       <PopoverContent

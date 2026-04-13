@@ -1,21 +1,42 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, X } from 'lucide-react';
+import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, Search, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 
 type NcmFilter = 'all' | 'with' | 'without';
+
+const FILTERABLE_KEYS: { key: string; label: string }[] = [
+  { key: 'DESCR_DISPLAY', label: 'Descrição' },
+  { key: 'COD_NCM', label: 'NCM (0200)' },
+  { key: 'CST_PIS', label: 'CST PIS' },
+  { key: 'ALIQ_PIS', label: '% PIS' },
+  { key: 'CST_COFINS', label: 'CST COF' },
+  { key: 'ALIQ_COFINS', label: '% COF' },
+  { key: 'COD_CTA', label: 'Conta' },
+];
+
+const rowAccessor = (item: C170Item, key: string): string => {
+  if (key === 'DESCR_DISPLAY') return item.DESCR_COMPL || item.DESCR_ITEM_0200 || '';
+  const val = item[key as keyof C170Item];
+  if (val === null || val === undefined) return '';
+  return String(val);
+};
 
 type EditableC170Field =
   | 'DESCR_COMPL'
@@ -135,7 +156,28 @@ export default function TabC170({
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, C170Draft>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const [regraFilterId, setRegraFilterId] = useState<string | null>(null);
+  const [regraPopoverOpen, setRegraPopoverOpen] = useState(false);
+  const [regraSearch, setRegraSearch] = useState('');
+  const { regras } = useRegrasNCM();
   const selection = useRowSelection();
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      if (values === null) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: values };
+    });
+  }, []);
 
   const locallyEditedIds = useRef<Set<string>>(new Set());
 
@@ -157,10 +199,21 @@ export default function TabC170({
     }));
   }, [data, isEditMode]);
 
-  const filtered = useMemo(() => {
+  const regraFilteredNcms = useMemo(() => {
+    if (!regraFilterId) return null;
+    return new Set(regras.filter((r) => r.id === regraFilterId).map((r) => r.cod_ncm));
+  }, [regraFilterId, regras]);
+
+  const baseFiltered = useMemo(() => {
     let items = rows;
     if (ncmFilter === 'with') items = items.filter((i) => !!getNcm(i));
     if (ncmFilter === 'without') items = items.filter((i) => !getNcm(i));
+    if (regraFilteredNcms) {
+      items = items.filter((i) => {
+        const ncm = getNcm(i);
+        return ncm !== null && regraFilteredNcms.has(ncm);
+      });
+    }
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
       items = items.filter(
@@ -174,9 +227,41 @@ export default function TabC170({
     return items;
   }, [rows, ncmFilter, searchText]);
 
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of FILTERABLE_KEYS) {
+      let subset = baseFiltered;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) {
+          subset = subset.filter((r) => allowed.has(rowAccessor(r, fk)));
+        }
+      }
+      result[key] = [...new Set(subset.map((r) => rowAccessor(r, key)))];
+    }
+    return result;
+  }, [baseFiltered, columnFilters]);
+
+  const filtered = useMemo(() => {
+    let items = baseFiltered;
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      if (allowed.size > 0) {
+        items = items.filter((i) => allowed.has(rowAccessor(i, key)));
+      }
+    }
+    if (sortConfig) {
+      items = [...items].sort((a, b) => {
+        const av = rowAccessor(a, sortConfig.key);
+        const bv = rowAccessor(b, sortConfig.key);
+        const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+    return items;
+  }, [baseFiltered, columnFilters, sortConfig]);
+
   useEffect(() => {
     setPage(0);
-  }, [ncmFilter, searchText]);
+  }, [ncmFilter, searchText, columnFilters, sortConfig, regraFilterId]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -482,19 +567,74 @@ export default function TabC170({
                         />
                       </TableHead>
                     )}
-                    <TableHead className="text-[11px] min-w-[200px]">Descricao</TableHead>
-                    <TableHead className="text-[11px] min-w-[100px]"><span className="flex items-center gap-1">NCM (0200)<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM declarado na EFD. Como o Registro C170 não possui campo de NCM, este dado é trazido do Registro 0200 correspondente ao item.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[200px]"><span className="flex items-center gap-1">Descricao<ColumnFilterDropdown columnKey="DESCR_DISPLAY" uniqueValues={cascadingUniqueValues['DESCR_DISPLAY'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DESCR_DISPLAY'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[100px]">
+                      <span className="flex items-center gap-1">NCM (0200)<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">NCM declarado na EFD. Como o Registro C170 não possui campo de NCM, este dado é trazido do Registro 0200 correspondente ao item.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_NCM" uniqueValues={cascadingUniqueValues['COD_NCM'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_NCM'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span>
+                      <Popover open={regraPopoverOpen} onOpenChange={(o) => { setRegraPopoverOpen(o); if (o) setRegraSearch(''); }}>
+                        <PopoverTrigger asChild>
+                          <button
+                            className={`mt-0.5 flex items-center gap-1 rounded px-1 py-0.5 text-[10px] font-normal transition-colors max-w-[96px] truncate ${regraFilterId ? 'bg-primary text-primary-foreground hover:bg-primary/90' : 'bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground'}`}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            title={regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.desc_cst ?? 'Regra selecionada') : 'Filtrar por regra MAPA'}
+                          >
+                            <Search className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{regraFilterId ? (regras.find((r) => r.id === regraFilterId)?.cod_ncm ?? 'Regra') : 'Regra MAPA'}</span>
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent align="start" side="bottom" className="w-72 p-0" onPointerDown={(e) => e.stopPropagation()}>
+                          <div className="border-b px-3 py-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">Filtrar por Regra MAPA</p>
+                            <div className="relative">
+                              <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                              <Input
+                                autoFocus
+                                placeholder="NCM ou descrição..."
+                                value={regraSearch}
+                                onChange={(e) => setRegraSearch(e.target.value)}
+                                className="h-7 pl-7 text-xs"
+                              />
+                            </div>
+                          </div>
+                          <ScrollArea className="max-h-56">
+                            <div className="p-1">
+                              <button
+                                className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors ${!regraFilterId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                                onClick={() => { setRegraFilterId(null); setRegraPopoverOpen(false); }}
+                              >
+                                Todas as regras
+                              </button>
+                              {regras
+                                .filter((r) => {
+                                  const q = regraSearch.toLowerCase();
+                                  if (!q) return true;
+                                  return r.cod_ncm.toLowerCase().includes(q) || (r.desc_cst ?? '').toLowerCase().includes(q);
+                                })
+                                .map((r) => (
+                                  <button
+                                    key={r.id}
+                                    className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors flex items-baseline gap-2 ${regraFilterId === r.id ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                                    onClick={() => { setRegraFilterId(r.id); setRegraPopoverOpen(false); }}
+                                  >
+                                    <span className="font-mono shrink-0">{r.cod_ncm}</span>
+                                    {r.desc_cst && <span className="truncate text-[10px] opacity-70">{r.desc_cst}</span>}
+                                  </button>
+                                ))}
+                            </div>
+                          </ScrollArea>
+                        </PopoverContent>
+                      </Popover>
+                    </TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
                     <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Descricao<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Descrição do produto no XML (tag <xProd>). Exibe 'Consolidado' quando o sistema identifica que vários itens do XML foram agrupados em uma única linha no SPED."}</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"NCM do produto no XML (tag <NCM>). Fica em vermelho quando não bate com o NCM declarado no Registro 0200 do SPED."}</TooltipContent></Tooltip></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1 justify-end">Valor<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Valor do produto no XML (tag <vProd>). Fica em laranja quando há diferença em relação ao valor bruto (VL_ITEM) declarado no SPED."}</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST PIS<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% PIS<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST COF<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% COF<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                      <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
