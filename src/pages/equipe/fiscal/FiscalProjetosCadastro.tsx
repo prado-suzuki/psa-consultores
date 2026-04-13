@@ -286,20 +286,6 @@ const FiscalProjetosCadastro = () => {
     enabled: !!selectedProdutoId,
   });
 
-  // Restore selectedProdutoId when editing and osProdutos become available
-  useEffect(() => {
-    if (!editingProject || !formData.servico_id || selectedProdutoId) return;
-    // Find which produto contains the saved servico_id
-    for (const prod of selectedOsProdutos) {
-      const match = servicosByProduto.find(s => s.id === formData.servico_id);
-      if (match) {
-        // servicosByProduto is for selectedProdutoId — but we need to check all produtos
-        // So we iterate selectedOsProdutos and check via produto_servico
-        break;
-      }
-    }
-  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId]);
-
   // Resolve produto from servico_id when editing (async lookup)
   useEffect(() => {
     if (!editingProject || !formData.servico_id || selectedProdutoId) return;
