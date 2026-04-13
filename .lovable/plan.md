@@ -1,35 +1,47 @@
 
 
-## Correção: Equipe não consegue enviar arquivos em chamados
+## Diagnóstico: Clientes duplicados nos filtros — falta filtro `.eq('ambiente', currentAmbiente)`
 
 ### Causa raiz
+Queries à tabela `cliente` sem o filtro `.eq('ambiente', currentAmbiente)` retornam registros de ambos os ambientes (prod e dev), causando duplicatas visíveis nos dropdowns.
 
-A tabela `ticket_attachments` possui apenas duas políticas de INSERT:
-1. **Admins** → `has_role(admin)`
-2. **Clientes** → `uploaded_by = auth.uid() AND ticket.user_id = auth.uid()`
+### Arquivos com problema (3 arquivos, 2 queries precisam de correção completa, 1 parcial)
 
-Membros da equipe com roles `team_member`, `lider` ou `sublider` **não têm permissão de INSERT** na tabela `ticket_attachments`. O upload do arquivo ao storage funciona (há policy genérica), mas a inserção do registro na tabela falha com erro de RLS, causando o "Erro ao enviar arquivos".
+**1. `src/components/equipe/fiscal/tasks/TaskFilters.tsx` (linha 58-63)**
+- Query `clients-for-task-filters`: **falta `.eq('ambiente', currentAmbiente)`**
+- Este é o filtro mostrado no screenshot do usuário
+- Adicionar import de `currentAmbiente` e o filtro na query
 
-### Solução
+**2. `src/pages/equipe/EquipeProjetos.tsx` (linha 398-402)**
+- Função `fetchExternalClients`: **falta `.eq('ambiente', currentAmbiente)` e `.eq('excluido', false)`**
+- Adicionar import de `currentAmbiente` e ambos os filtros
 
-Criar uma migração SQL adicionando duas políticas de INSERT:
+**3. `src/pages/equipe/dev/ConsultaEFDICMS.tsx` (linha 76-81)**
+- Query `clientes-efd-icms`: **falta `.eq('excluido', false)`** (ambiente já está presente)
+- Adicionar o filtro de excluido
 
-```sql
--- Team members (team_member) podem inserir anexos em qualquer chamado
-CREATE POLICY "team_member_insert_ticket_attachments"
-ON public.ticket_attachments FOR INSERT
-TO authenticated
-WITH CHECK (
-  auth.uid() = uploaded_by
-  AND (
-    has_role(auth.uid(), 'team_member'::app_role)
-    OR has_role(auth.uid(), 'lider'::app_role)
-    OR has_role(auth.uid(), 'sublider'::app_role)
-  )
-);
-```
+### Arquivos já corretos (sem alteração necessária)
+- `TaskModal.tsx` ✅
+- `PerFormModal.tsx` ✅
+- `useDevClients.ts` ✅
+- `useFiscalClients.ts` ✅
+- `ConsultaEFD.tsx` ✅
+- `ConsultaECD.tsx` ✅
+- `ConsultaXMLs.tsx` ✅
+- `ApuracaoPisCofins.tsx` ✅
+- `ControleBalancetes.tsx` ✅
+- `ProcessoDifal.tsx` ✅
+- `CalculadoraIbsCbs.tsx` ✅
+- `AuditLogTable.tsx` ✅
+- `GestaoClientes.tsx` ✅
+- `FiscalDashboard.tsx` ✅
+- `useOrgProjects.ts` — busca por IDs específicos, não lista dropdown, OK
 
-Isso permite que qualquer membro da equipe (team_member, lider, sublider) insira anexos, desde que `uploaded_by` seja seu próprio `auth.uid()`.
+### Alterações por arquivo
 
-Nenhuma alteração de código nos componentes — o problema é exclusivamente de RLS.
+| Arquivo | Alteração |
+|---------|-----------|
+| `TaskFilters.tsx` | Importar `currentAmbiente`, adicionar `.eq('ambiente', currentAmbiente)` na query |
+| `EquipeProjetos.tsx` | Importar `currentAmbiente`, adicionar `.eq('ambiente', currentAmbiente)` e `.eq('excluido', false)` |
+| `ConsultaEFDICMS.tsx` | Adicionar `.eq('excluido', false)` na query de clientes |
 
