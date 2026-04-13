@@ -717,7 +717,15 @@ export type Database = {
           id_contribuinte?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contribuinte_bal_config_id_contribuinte_fkey"
+            columns: ["id_contribuinte"]
+            isOneToOne: true
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_standups: {
         Row: {
@@ -1870,7 +1878,15 @@ export type Database = {
           uf?: string
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "inscricao_contribuinte_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       itens_acao_1a1: {
         Row: {
