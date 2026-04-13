@@ -1,15 +1,35 @@
 
 
-## ✅ Concluído: Roteamento de chamados por cluster do cliente
+## Correção: Equipe não consegue enviar arquivos em chamados
 
-### Arquivo: `src/components/gestao/CreateTicketDialog.tsx`
+### Causa raiz
 
-**Implementado**:
-1. Select de **Empresa** (tabela `cliente`, filtrado por `ativo`, `excluido`, `ambiente`)
-2. Select de **Área** filtrado pelos clusters da empresa via `cliente_clusters` → `estrutura_areas`
-3. Auto-seleção quando há 1 área só; fallback para todas as áreas se empresa sem clusters
-4. Label "Departamento" renomeado para "Assunto"
-5. `cliente_id` e `estrutura_area_id` incluídos no INSERT do ticket
-6. Filtro `.eq('ambiente', currentAmbiente)` na query de empresas
+A tabela `ticket_attachments` possui apenas duas políticas de INSERT:
+1. **Admins** → `has_role(admin)`
+2. **Clientes** → `uploaded_by = auth.uid() AND ticket.user_id = auth.uid()`
 
-**TODO pendente (Ação 4)**: Quando `representante.user_id` estiver preenchido, filtrar empresas pelo vínculo representante → cliente.
+Membros da equipe com roles `team_member`, `lider` ou `sublider` **não têm permissão de INSERT** na tabela `ticket_attachments`. O upload do arquivo ao storage funciona (há policy genérica), mas a inserção do registro na tabela falha com erro de RLS, causando o "Erro ao enviar arquivos".
+
+### Solução
+
+Criar uma migração SQL adicionando duas políticas de INSERT:
+
+```sql
+-- Team members (team_member) podem inserir anexos em qualquer chamado
+CREATE POLICY "team_member_insert_ticket_attachments"
+ON public.ticket_attachments FOR INSERT
+TO authenticated
+WITH CHECK (
+  auth.uid() = uploaded_by
+  AND (
+    has_role(auth.uid(), 'team_member'::app_role)
+    OR has_role(auth.uid(), 'lider'::app_role)
+    OR has_role(auth.uid(), 'sublider'::app_role)
+  )
+);
+```
+
+Isso permite que qualquer membro da equipe (team_member, lider, sublider) insira anexos, desde que `uploaded_by` seja seu próprio `auth.uid()`.
+
+Nenhuma alteração de código nos componentes — o problema é exclusivamente de RLS.
+
