@@ -77,6 +77,7 @@ const ConsultaEFDICMS = () => {
         .from('cliente')
         .select("id, nome")
         .eq("ativo", true)
+        .eq("excluido", false)
         .eq("ambiente", currentAmbiente)
         .order("nome");
       return (data || []) as unknown as { id: string; nome: string }[];

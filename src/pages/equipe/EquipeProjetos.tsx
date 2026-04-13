@@ -399,6 +399,8 @@ const EquipeProjetos = () => {
         .from('cliente')
         .select('id, nome')
         .eq('ativo', true)
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       
       if (error) throw error;
