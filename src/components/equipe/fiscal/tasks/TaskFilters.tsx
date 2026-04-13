@@ -24,6 +24,7 @@ import {
 } from '@/hooks/useFiscalTasks';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 
 
 interface TaskFiltersProps {
@@ -60,6 +61,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
         .select('id, nome')
         .eq('ativo', true)
         .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
         .order('nome');
       return data || [];
     },
