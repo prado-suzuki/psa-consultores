@@ -66,7 +66,7 @@ const taskSchema = z.object({
   project_id: z.string().min(1, 'Projeto é obrigatório'),
   client_id: z.string().optional(),
   contribuinte_id: z.string().optional(),
-  estimated_hours: z.coerce.number().positive('Deve ser maior que 0').optional().or(z.literal('')),
+  estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -298,7 +298,7 @@ export const TaskModal = ({
       project_id: values.project_id || undefined,
       client_id: values.client_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
-      estimated_hours: typeof values.estimated_hours === 'number' ? values.estimated_hours : undefined,
+      estimated_hours: values.estimated_hours,
     };
 
     try {
@@ -585,7 +585,7 @@ export const TaskModal = ({
                 name="estimated_hours"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Horas estimadas</FormLabel>
+                    <FormLabel>Horas estimadas <RequiredMark /></FormLabel>
                     <FormControl>
                       <Input
                         type="number"
