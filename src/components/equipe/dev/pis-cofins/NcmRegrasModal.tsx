@@ -27,6 +27,7 @@ interface NcmRegrasModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ncm: string | null;
+  setorClienteId?: string | null;
 }
 
 /* ── Card colapsável de regra ── */
@@ -121,7 +122,7 @@ const Field = ({ label, value }: { label: string; value?: string | number | null
 );
 
 /* ── Modal principal ── */
-export const NcmRegrasModal = ({ open, onOpenChange, ncm }: NcmRegrasModalProps) => {
+export const NcmRegrasModal = ({ open, onOpenChange, ncm, setorClienteId }: NcmRegrasModalProps) => {
   const { regras, isLoading, createRegra, updateRegra } = useRegrasNCM();
   const { data: setores = [] } = useSetoresCliente();
 
@@ -131,8 +132,15 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm }: NcmRegrasModalProps)
   );
 
   const filtered = useMemo(
-    () => (ncm ? regras.filter((r) => r.cod_ncm === ncm) : []),
-    [regras, ncm],
+    () =>
+      ncm
+        ? regras.filter(
+            (r) =>
+              r.cod_ncm === ncm &&
+              (!setorClienteId || r.id_segmento === setorClienteId),
+          )
+        : [],
+    [regras, ncm, setorClienteId],
   );
 
   // RegraFormSheet state
