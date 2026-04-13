@@ -420,6 +420,7 @@ const CorrecoesSped = () => {
         open={!!selectedNcm}
         onOpenChange={(v) => { if (!v) setSelectedNcm(null); }}
         ncm={selectedNcm}
+        setorClienteId={contribuinteSelecionado?.setor_cliente_id ?? null}
       />
     </DevLayout>
   );

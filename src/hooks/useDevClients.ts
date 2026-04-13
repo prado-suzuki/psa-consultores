@@ -32,6 +32,7 @@ export interface ContribuinteListItem {
   nome_razao_social: string;
   cpf_cnpj: string | null;
   cliente_id: string;
+  setor_cliente_id: string | null;
 }
 
 // ── Queries ────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ export const useContribuintesByCliente = (clienteId: string | null | undefined) 
       if (!clienteId) return [];
       const { data, error } = await supabase
         .from('contribuinte')
-        .select('id, nome_razao_social, cpf_cnpj')
+        .select('id, nome_razao_social, cpf_cnpj, setor_cliente_id')
         .eq('cliente_id', clienteId)
         .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
