@@ -1,10 +1,12 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { useFiscalTasks } from '@/hooks/useFiscalTasks';
 import { statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
 
-export const TaskKPICards = () => {
-  const { data: tasks = [] } = useFiscalTasks({});
+interface TaskKPICardsProps {
+  tasks: { status: string }[];
+}
+
+export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
 
   const counts = statusList.reduce((acc, s) => {
     acc[s.key] = tasks.filter(t => t.status === s.key).length;

@@ -102,7 +102,7 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
          </div>
  
          {/* KPI Cards */}
-         <TaskKPICards />
+         <TaskKPICards tasks={tasks} />
  
          {/* Views */}
          <Tabs value={activeView} onValueChange={setActiveView}>
