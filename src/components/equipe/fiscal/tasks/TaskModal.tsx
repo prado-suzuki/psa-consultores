@@ -46,8 +46,7 @@ import {
  useCreateFiscalTask,
  useUpdateFiscalTask
 } from '@/hooks/useFiscalTasks';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useExternalClients, useContribuintes } from '@/hooks/useTaxReferenceData';
 
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useOrgProjectsList } from '@/hooks/useOrgProjects';
@@ -122,21 +121,8 @@ export const TaskModal = ({
 
   // ── Queries ────────────────────────────────────────────────────────
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-tasks'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      if (error) throw error;
-      return data as { id: string; nome: string }[];
-    },
-    enabled: open,
-  });
+  const { data: externalClients = [] } = useExternalClients();
+  const clients = externalClients.map(c => ({ id: c.id, nome: c.nome }));
 
   // Draft persistence – only active for new tasks (not editing)
   const watchedValues = form.watch();
@@ -156,22 +142,8 @@ export const TaskModal = ({
     return teamMembers.filter(m => areaMemberIds.includes(m.id));
   }, [teamMembers, areaMemberIds]);
 
-  // Fetch contribuintes filtered by selected client
-  const { data: contribuintesTask = [] } = useQuery({
-    queryKey: ['contribuintes-for-task', watchedClientId],
-    queryFn: async () => {
-      if (!watchedClientId) return [];
-      const { data } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', watchedClientId)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome_razao_social');
-      return data || [];
-    },
-    enabled: open && !!watchedClientId,
-  });
+  // Contribuintes filtered by selected client
+  const { data: contribuintesTask = [] } = useContribuintes(watchedClientId || null);
 
   // Clear contribuinte and project when client changes (only on user action, not during reset)
   useEffect(() => {
