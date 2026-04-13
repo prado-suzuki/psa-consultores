@@ -22,9 +22,7 @@ import {
   FiscalTaskStatus,
   FiscalTaskPriority,
 } from '@/hooks/useFiscalTasks';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
+import { useExternalClients, useContribuintes } from '@/hooks/useTaxReferenceData';
 
 
 interface TaskFiltersProps {
@@ -53,34 +51,11 @@ const priorityOptions: { value: FiscalTaskPriority; label: string }[] = [
 
 export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients-for-task-filters'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      return data || [];
-    },
-  });
+  const { data: externalClients = [] } = useExternalClients();
+  const clients = externalClients.map(c => ({ id: c.id, nome: c.nome }));
 
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes-for-task-filters', filters.clientId],
-    queryFn: async () => {
-      if (!filters.clientId) return [];
-      const { data } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social')
-        .eq('cliente_id', filters.clientId)
-        .eq('excluido', false)
-        .order('nome_razao_social');
-      return data || [];
-    },
-    enabled: !!filters.clientId,
-  });
+  const { data: rawContribuintes = [] } = useContribuintes(filters.clientId || null);
+  const contribuintes = rawContribuintes.map(c => ({ id: c.id, nome_razao_social: c.nome_razao_social }));
 
   const handleSearchChange = (value: string) => {
     onFiltersChange({ ...filters, search: value || undefined });
