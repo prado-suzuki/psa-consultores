@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
 import { CalendarIcon } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
-import { currentAmbiente } from '@/config/api';
+
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Dialog,
