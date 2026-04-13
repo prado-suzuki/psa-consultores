@@ -176,17 +176,92 @@ export function useClienteOrdens(clientId: string | null) {
     enabled: !!clientId,
   });
 }
-
-/** Profiles para dropdowns de tarefas — filtrados por roles internas (exclui client/timecliente) */
-export function useTeamMembersForTasks() {
+/** Resolve cluster_id a partir de page_categories das áreas — reutilizável ('tax', 'osg', etc.) */
+export function useClusterIdByPageCategory(category: string) {
   return useQuery({
-    queryKey: ['team-members-for-tasks'],
+    queryKey: ['cluster-id-by-page-category', category],
     queryFn: async () => {
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['team_member', 'sublider', 'lider', 'admin']);
-      const allowedIds = [...new Set((roles || []).map(r => r.user_id))];
+      const { data } = await supabase
+        .from('estrutura_areas')
+        .select('cluster_id')
+        .contains('page_categories', [category])
+        .limit(1)
+        .single();
+      return data?.cluster_id ?? null;
+    },
+  });
+}
+
+/** Profiles para dropdowns de tarefas — se clusterId fornecido, filtra pela estrutura organizacional */
+export function useTeamMembersForTasks(clusterId?: string) {
+  return useQuery({
+    queryKey: ['team-members-for-tasks', clusterId ?? 'all'],
+    queryFn: async () => {
+      let allowedIds: string[];
+
+      if (clusterId) {
+        // 1. Áreas do cluster
+        const { data: areas } = await supabase
+          .from('estrutura_areas')
+          .select('id')
+          .eq('cluster_id', clusterId)
+          .eq('is_active', true);
+        const areaIds = (areas || []).map(a => a.id);
+        if (areaIds.length === 0) return [];
+
+        // 2. Equipes dessas áreas
+        const { data: equipes } = await supabase
+          .from('estrutura_equipes')
+          .select('id')
+          .in('area_id', areaIds);
+        const equipeIds = (equipes || []).map(e => e.id);
+
+        // 3. Membros das equipes
+        const membrosPromise = equipeIds.length > 0
+          ? supabase.from('estrutura_equipe_membros').select('user_id').in('equipe_id', equipeIds)
+          : Promise.resolve({ data: [] as { user_id: string }[] });
+
+        // 4. Líderes das áreas
+        const lideresPromise = supabase
+          .from('estrutura_area_lideres')
+          .select('user_id')
+          .in('area_id', areaIds);
+
+        // 5. Admins (sempre visíveis)
+        const adminsPromise = supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'admin');
+
+        const [{ data: membros }, { data: lideres }, { data: admins }] = await Promise.all([
+          membrosPromise,
+          lideresPromise,
+          adminsPromise,
+        ]);
+
+        const combined = new Set([
+          ...(membros || []).map(m => m.user_id),
+          ...(lideres || []).map(l => l.user_id),
+          ...(admins || []).map(a => a.user_id),
+        ]);
+        if (combined.size === 0) return [];
+
+        // 6. Validar roles internas
+        const { data: validRoles } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .in('role', ['team_member', 'sublider', 'lider', 'admin'])
+          .in('user_id', [...combined]);
+        allowedIds = [...new Set((validRoles || []).map(r => r.user_id))];
+      } else {
+        // Sem cluster: todos com roles internas (comportamento original)
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .in('role', ['team_member', 'sublider', 'lider', 'admin']);
+        allowedIds = [...new Set((roles || []).map(r => r.user_id))];
+      }
+
       if (allowedIds.length === 0) return [];
       const { data } = await supabase
         .from('profiles_safe')

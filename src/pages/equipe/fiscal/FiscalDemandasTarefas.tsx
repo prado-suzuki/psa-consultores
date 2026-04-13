@@ -3,7 +3,7 @@
  import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
  import { Button } from '@/components/ui/button';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
- import { useTeamMembersForTasks, useTaxProjectsForFilter } from '@/hooks/useTaxReferenceData';
+ import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
  import { 
    useFiscalTasks, 
    useDeleteFiscalTask,
@@ -43,7 +43,8 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
    const { data: tasks = [], isLoading } = useFiscalTasks(filters);
    const deleteTask = useDeleteFiscalTask();
  
-  const { data: teamMembers = [] } = useTeamMembersForTasks();
+  const { data: taxClusterId } = useClusterIdByPageCategory('tax');
+  const { data: teamMembers = [] } = useTeamMembersForTasks(taxClusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
  
   const handleEditTask = (task: FiscalTask) => {
