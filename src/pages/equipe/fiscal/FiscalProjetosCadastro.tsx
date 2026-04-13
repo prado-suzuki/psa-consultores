@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -98,6 +98,7 @@ const FiscalProjetosCadastro = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'area'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const isOpeningEditRef = useRef(false);
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
@@ -258,6 +259,7 @@ const FiscalProjetosCadastro = () => {
 
   // Auto-select produto if OS has exactly 1 product
   useEffect(() => {
+    if (isOpeningEditRef.current) return;
     if (selectedOsProdutos.length === 1) {
       setSelectedProdutoId(selectedOsProdutos[0].produto_segmento_id);
     } else {
@@ -297,6 +299,11 @@ const FiscalProjetosCadastro = () => {
 
   // Sync ordem_servico_id + auto-fill dates from selected OS + clear servico + clear produto
   useEffect(() => {
+    if (isOpeningEditRef.current) {
+      setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '' }));
+      isOpeningEditRef.current = false;
+      return;
+    }
     setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
     setSelectedProdutoId(null);
     if (!selectedOsId || editingProject) return;
@@ -388,6 +395,7 @@ const FiscalProjetosCadastro = () => {
   const handleOpenModal = (project?: any) => {
     if (project) {
       setEditingProject(project);
+      isOpeningEditRef.current = true;
       setSelectedOsId(project.ordem_servico_id || null);
       setFormData({
         name: project.name,
