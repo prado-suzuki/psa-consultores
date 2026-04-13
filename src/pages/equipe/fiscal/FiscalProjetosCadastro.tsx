@@ -286,7 +286,38 @@ const FiscalProjetosCadastro = () => {
     enabled: !!selectedProdutoId,
   });
 
-  // Auto-select when single OS
+  // Restore selectedProdutoId when editing and osProdutos become available
+  useEffect(() => {
+    if (!editingProject || !formData.servico_id || selectedProdutoId) return;
+    // Find which produto contains the saved servico_id
+    for (const prod of selectedOsProdutos) {
+      const match = servicosByProduto.find(s => s.id === formData.servico_id);
+      if (match) {
+        // servicosByProduto is for selectedProdutoId — but we need to check all produtos
+        // So we iterate selectedOsProdutos and check via produto_servico
+        break;
+      }
+    }
+  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId]);
+
+  // Resolve produto from servico_id when editing (async lookup)
+  useEffect(() => {
+    if (!editingProject || !formData.servico_id || selectedProdutoId) return;
+    if (selectedOsProdutos.length === 0) return;
+    const produtoIds = selectedOsProdutos.map(p => p.produto_segmento_id);
+    supabase
+      .from('produto_servico')
+      .select('produto_segmento_id')
+      .eq('servico_prestado_id', formData.servico_id)
+      .in('produto_segmento_id', produtoIds)
+      .limit(1)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setSelectedProdutoId(data[0].produto_segmento_id);
+        }
+      });
+  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId]);
+
   useEffect(() => {
     if (!formData.external_client_id) {
       setSelectedOsId(null);
