@@ -1,39 +1,49 @@
 
 
-## Plano: Extrair queries inline e corrigir filtro de ambiente
+## Plano: Swap simples de IDs dos contribuintes Granlider
 
-### Diagnóstico
+### Objetivo
+Trocar os UUIDs para que o contribuinte **ativo** fique com o ID do DW (`b0d3712c`) e o **excluído** fique com `e3291d4f`.
 
-| Arquivo | Problema |
-|---|---|
-| `TaskModal.tsx` L125-138 | Query inline de clientes (já tem `ambiente`, mas viola padrão de hooks) |
-| `TaskModal.tsx` L160-173 | Query inline de contribuintes (já tem `ambiente`, viola padrão) |
-| `TaskFilters.tsx` L56-68 | Query inline de clientes (tem `ambiente`, viola padrão) |
-| `TaskFilters.tsx` L70-82 | Query inline de contribuintes — **BUG: falta `.eq('ambiente', currentAmbiente)`** |
+### Dados atuais
 
-### Solução
+| Registro | UUID atual | cliente excluido? |
+|---|---|---|
+| Ativo | `e3291d4f-c014-4f89-829e-c7bddfbcd5ba` | não |
+| Antigo (DW) | `b0d3712c-42ad-4519-a3be-88b6463cd733` | sim |
 
-Hooks `useExternalClients` e `useContribuintes` **já existem** em `useTaxReferenceData.ts` com os filtros corretos. Basta reutilizá-los.
+Não há FK formal na tabela `contribuinte`, mas há referências em `inscricao_contribuinte` e `contribuinte_bal_config` que precisam acompanhar o swap.
 
-### Alterações
+### Migração SQL (1 transação, UUID temporário como ponte)
 
-**1. `src/components/equipe/fiscal/tasks/TaskModal.tsx`**
-- Remover queries inline de clientes (L125-138) e contribuintes (L160-173)
-- Remover imports de `useQuery` e `supabase`
-- Importar `useExternalClients`, `useContribuintes` de `useTaxReferenceData`
-- Usar: `const { data: clients = [] } = useExternalClients()` (prop `enabled` via wrapper ou condicional no componente)
-- Usar: `const { data: contribuintesTask = [] } = useContribuintes(watchedClientId)`
+```sql
+DO $$
+DECLARE
+  old_id uuid := 'b0d3712c-42ad-4519-a3be-88b6463cd733';
+  new_id uuid := 'e3291d4f-c014-4f89-829e-c7bddfbcd5ba';
+  temp_id uuid := gen_random_uuid();
+BEGIN
+  -- 1. Mover antigo para temp (liberar old_id)
+  UPDATE contribuinte SET id = temp_id WHERE id = old_id;
+  UPDATE contribuinte_bal_config SET id_contribuinte = temp_id WHERE id_contribuinte = old_id;
 
-**2. `src/components/equipe/fiscal/tasks/TaskFilters.tsx`**
-- Remover queries inline de clientes (L56-68) e contribuintes (L70-82)
-- Remover imports de `useQuery`, `supabase`, `currentAmbiente`
-- Importar `useExternalClients`, `useContribuintes` de `useTaxReferenceData`
-- Usar os mesmos hooks — corrige automaticamente o bug do `ambiente` faltante nos contribuintes
+  -- 2. Ativo recebe old_id (DW)
+  UPDATE contribuinte SET id = old_id WHERE id = new_id;
+  UPDATE inscricao_contribuinte SET contribuinte_id = old_id WHERE contribuinte_id = new_id;
 
-**Nenhum hook novo necessário** — os existentes já cobrem o caso.
+  -- 3. Temp (antigo) recebe new_id
+  UPDATE contribuinte SET id = new_id WHERE id = temp_id;
+  UPDATE contribuinte_bal_config SET id_contribuinte = new_id WHERE id_contribuinte = temp_id;
+END $$;
+```
 
-### Resultado
-- 4 queries inline eliminadas
-- Bug de contribuintes sem filtro de ambiente corrigido
-- Zero imports de `supabase` nesses dois componentes
+### Resultado final
+
+| Registro | UUID novo | Estado |
+|---|---|---|
+| Contribuinte ativo (cliente ativo) | `b0d3712c` ← DW | ✅ Correto |
+| Contribuinte antigo (cliente excluído) | `e3291d4f` | Descartável |
+
+### Execução
+Uma única migração via migration tool. Nenhuma alteração de código.
 
