@@ -1,49 +1,53 @@
 
 
-## Plano: Swap simples de IDs dos contribuintes Granlider
+## Plano: Executar o swap de IDs dos contribuintes Granlider
 
-### Objetivo
-Trocar os UUIDs para que o contribuinte **ativo** fique com o ID do DW (`b0d3712c`) e o **excluído** fique com `e3291d4f`.
+### Problema
+A migração anterior apenas recriou as foreign key constraints, mas o bloco `DO $$` com o swap de UUIDs nunca foi executado. Os dados continuam inalterados.
 
-### Dados atuais
+### Migração SQL
 
-| Registro | UUID atual | cliente excluido? |
-|---|---|---|
-| Ativo | `e3291d4f-c014-4f89-829e-c7bddfbcd5ba` | não |
-| Antigo (DW) | `b0d3712c-42ad-4519-a3be-88b6463cd733` | sim |
-
-Não há FK formal na tabela `contribuinte`, mas há referências em `inscricao_contribuinte` e `contribuinte_bal_config` que precisam acompanhar o swap.
-
-### Migração SQL (1 transação, UUID temporário como ponte)
+Uma única migração que:
+1. Dropa temporariamente as FKs que referenciam `contribuinte(id)`
+2. Executa o swap via UUID temporário
+3. Recria as FKs
 
 ```sql
+-- Drop FKs
+ALTER TABLE inscricao_contribuinte DROP CONSTRAINT IF EXISTS inscricao_contribuinte_contribuinte_id_fkey;
+ALTER TABLE contribuinte_bal_config DROP CONSTRAINT IF EXISTS contribuinte_bal_config_id_contribuinte_fkey;
+ALTER TABLE fiscal_tasks DROP CONSTRAINT IF EXISTS fiscal_tasks_contribuinte_id_fkey;
+
 DO $$
 DECLARE
   old_id uuid := 'b0d3712c-42ad-4519-a3be-88b6463cd733';
   new_id uuid := 'e3291d4f-c014-4f89-829e-c7bddfbcd5ba';
   temp_id uuid := gen_random_uuid();
 BEGIN
-  -- 1. Mover antigo para temp (liberar old_id)
+  -- 1. Antigo → temp
   UPDATE contribuinte SET id = temp_id WHERE id = old_id;
-  UPDATE contribuinte_bal_config SET id_contribuinte = temp_id WHERE id_contribuinte = old_id;
-
-  -- 2. Ativo recebe old_id (DW)
+  -- 2. Ativo → old (DW)
   UPDATE contribuinte SET id = old_id WHERE id = new_id;
-  UPDATE inscricao_contribuinte SET contribuinte_id = old_id WHERE contribuinte_id = new_id;
-
-  -- 3. Temp (antigo) recebe new_id
+  -- 3. Temp → new
   UPDATE contribuinte SET id = new_id WHERE id = temp_id;
-  UPDATE contribuinte_bal_config SET id_contribuinte = new_id WHERE id_contribuinte = temp_id;
 END $$;
+
+-- Recriar FKs
+ALTER TABLE inscricao_contribuinte ADD CONSTRAINT inscricao_contribuinte_contribuinte_id_fkey
+  FOREIGN KEY (contribuinte_id) REFERENCES contribuinte(id) NOT VALID;
+ALTER TABLE contribuinte_bal_config ADD CONSTRAINT contribuinte_bal_config_id_contribuinte_fkey
+  FOREIGN KEY (id_contribuinte) REFERENCES contribuinte(id) NOT VALID;
+ALTER TABLE fiscal_tasks ADD CONSTRAINT fiscal_tasks_contribuinte_id_fkey
+  FOREIGN KEY (contribuinte_id) REFERENCES contribuinte(id) NOT VALID;
 ```
 
-### Resultado final
+### Resultado esperado
 
-| Registro | UUID novo | Estado |
-|---|---|---|
-| Contribuinte ativo (cliente ativo) | `b0d3712c` ← DW | ✅ Correto |
-| Contribuinte antigo (cliente excluído) | `e3291d4f` | Descartável |
+| Registro | UUID final |
+|---|---|
+| Contribuinte ativo (cliente ativo) | `b0d3712c` (DW) |
+| Contribuinte antigo (cliente excluído) | `e3291d4f` |
 
-### Execução
-Uma única migração via migration tool. Nenhuma alteração de código.
+### Nota
+Só troca o `id` na tabela `contribuinte`. As tabelas referenciadas (`inscricao_contribuinte`, `contribuinte_bal_config`, `fiscal_tasks`) mantêm os valores antigos — apontam para os mesmos registros físicos que agora têm IDs diferentes. Se alguma dessas tabelas tiver registros apontando para esses IDs específicos, eles também precisam ser atualizados. Vou verificar isso antes de executar.
 
