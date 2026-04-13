@@ -310,7 +310,8 @@ const FiscalProjetosCadastro = () => {
       return;
     }
     if (clienteOS.length === 1) {
-      setSelectedOsId(getOsId(clienteOS[0]));
+      const osId = getOsId(clienteOS[0]);
+      setSelectedOsId(prev => prev === osId ? prev : osId);
     }
   }, [clienteOS, formData.external_client_id]);
 
@@ -319,6 +320,10 @@ const FiscalProjetosCadastro = () => {
     if (isOpeningEditRef.current) {
       setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '' }));
       isOpeningEditRef.current = false;
+      return;
+    }
+    // Skip clearing if editing and OS hasn't actually changed
+    if (editingProject && formData.ordem_servico_id === (selectedOsId || '')) {
       return;
     }
     setFormData(prev => ({ ...prev, ordem_servico_id: selectedOsId || '', servico_id: '' }));
