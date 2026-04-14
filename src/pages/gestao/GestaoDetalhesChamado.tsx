@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useTicketDetail, useTicketMessages, useTicketAttachments, useTicketAgents } from '@/hooks/useTickets';
+import { useAssignTicket, useSendTicketMessage, useUpdateTicketStatus } from '@/hooks/useTicketMutations';
+import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -12,42 +14,6 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  profiles?: Profile;
-}
-
-interface Message {
-  id: string;
-  message: string;
-  is_admin: boolean;
-  created_at: string;
-  user_id: string;
-}
-
-interface Attachment {
-  id: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
-  file_type: string;
-  uploaded_at: string;
-}
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500',
@@ -83,264 +49,82 @@ export default function GestaoDetalhesChamado() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  const { data: ticket, isLoading: loading } = useTicketDetail(id);
+  const { data: messages = [] } = useTicketMessages(id);
+  const { data: attachments = [] } = useTicketAttachments(id);
+  const { data: agents = [] } = useTicketAgents();
+
+  const assignTicket = useAssignTicket();
+  const sendMessage = useSendTicketMessage();
+  const updateStatus = useUpdateTicketStatus();
+
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [agents, setAgents] = useState<Profile[]>([]);
-  const [areaName, setAreaName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (id) {
-      fetchTicketDetails();
-      fetchMessages();
-      fetchAttachments();
-    }
-    fetchAgents();
-  }, [id]);
-
-  const fetchAgents = async () => {
-    try {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['admin', 'team_member']);
-
-      if (roleData && roleData.length > 0) {
-        const userIds = roleData.map(r => r.user_id);
-        const { data: profiles } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-        setAgents(profiles || []);
-      }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  };
 
   const handleAssign = async (agentId: string) => {
+    if (!id) return;
     const newAssignedTo = agentId === 'none' ? null : agentId;
+    const agent = agents.find(a => a.id === agentId);
+    const agentName = agent ? `${agent.first_name} ${agent.last_name}` : null;
+
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ assigned_to: newAssignedTo })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      const agent = agents.find(a => a.id === agentId);
-      const agentName = agent ? `${agent.first_name} ${agent.last_name}` : null;
-
-      setTicket(prev => prev ? { ...prev, assigned_to: newAssignedTo } : null);
-
-      if (newAssignedTo) {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_assigned',
-            ticket_id: id,
-            actor_name: 'Gestão PSA',
-            assigned_to_name: agentName,
-          }
-        }).catch(console.error);
-      }
-
+      await assignTicket.mutateAsync({ ticketId: id, agentId: newAssignedTo, agentName });
       toast({
         title: 'Responsável atualizado',
         description: agentName ? `Chamado atribuído para ${agentName}.` : 'Responsável removido.',
       });
-    } catch (error) {
-      toast({
-        title: 'Erro ao atribuir responsável',
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: 'Erro ao atribuir responsável', variant: 'destructive' });
     }
   };
 
-  const fetchAttachments = async () => {
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
     try {
-      const { data, error } = await supabase
-        .from('ticket_attachments')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('uploaded_at', { ascending: true });
-
-      if (error) throw error;
-      setAttachments(data || []);
-    } catch (error) {
-      console.error('Error fetching attachments:', error);
-    }
-  };
-
-  const downloadFile = async (attachment: Attachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('ticket-attachments')
-        .download(attachment.file_path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast({
-        title: 'Erro ao baixar arquivo',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const isImageFile = (fileType: string) => {
-    return fileType?.startsWith('image/');
-  };
-
-  const fetchTicketDetails = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) {
-        toast({
-          title: 'Chamado não encontrado',
-          variant: 'destructive',
-        });
-        navigate('/gestao/chamados');
-        return;
-      }
-
-      // Fetch profile separately
-      const { data: profileData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .eq('id', data.user_id)
-        .maybeSingle();
-
-      setTicket({ ...data, profiles: profileData || undefined });
-
-      // Fetch area name
-      const areaId = (data as any).estrutura_area_id;
-      if (areaId) {
-        const { data: areaData } = await supabase
-          .from('estrutura_areas')
-          .select('name')
-          .eq('id', areaId)
-          .maybeSingle();
-        if (areaData) setAreaName(areaData.name);
-      }
-    } catch (error) {
-      console.error('Error fetching ticket:', error);
-      navigate('/gestao/chamados');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      await downloadTicketFile(filePath, fileName);
+    } catch {
+      toast({ title: 'Erro ao baixar arquivo', variant: 'destructive' });
     }
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !id) return;
 
-    setSending(true);
     try {
-      const { error } = await supabase.from('ticket_messages').insert({
-        ticket_id: id,
-        user_id: user.id,
-        message: newMessage.trim(),
-        is_admin: true,
+      await sendMessage.mutateAsync({
+        ticketId: id,
+        userId: user.id,
+        message: newMessage,
+        isAdmin: true,
+        actorName: 'Equipe PSA',
       });
-
-      if (error) throw error;
-
-      // Update activity status
-      await supabase
-        .from('tickets')
-        .update({ activity_status: 'respondido' })
-        .eq('id', id);
-
-      // Notificar cliente sobre resposta (fire-and-forget)
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: id,
-          actor_name: 'Equipe PSA',
-          message_preview: newMessage.trim().substring(0, 200),
-        }
-      }).catch(console.error);
-
       toast({
         title: 'Mensagem enviada',
         description: 'Sua resposta foi enviada com sucesso.',
       });
-
       setNewMessage('');
-      fetchMessages();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao enviar mensagem',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setSending(false);
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    if (!id) return;
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setTicket(prev => prev ? { ...prev, status: newStatus } : null);
-
-      // Notificar quando status muda para resolvido
-      if (newStatus === 'resolvido') {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_resolved',
-            ticket_id: id,
-            actor_name: 'Equipe PSA',
-          }
-        }).catch(console.error);
-      }
-
+      await updateStatus.mutateAsync({
+        ticketId: id,
+        newStatus,
+        actorName: 'Equipe PSA',
+      });
       toast({
         title: 'Status atualizado',
         description: `Status alterado para ${statusLabels[newStatus]}.`,
       });
-    } catch (error) {
-      toast({
-        title: 'Erro ao atualizar status',
-        variant: 'destructive',
-      });
+    } catch {
+      toast({ title: 'Erro ao atualizar status', variant: 'destructive' });
     }
   };
 
@@ -354,7 +138,12 @@ export default function GestaoDetalhesChamado() {
     );
   }
 
-  if (!ticket) return null;
+  if (!ticket) {
+    navigate('/gestao/chamados');
+    return null;
+  }
+
+  const sending = sendMessage.isPending;
 
   return (
     <GestaoLayout 
@@ -419,9 +208,9 @@ export default function GestaoDetalhesChamado() {
               <Badge variant="outline" className="border-slate-200 text-slate-600">
                 Departamento: {departmentLabels[ticket.department] || ticket.department}
               </Badge>
-              {areaName && (
+              {ticket.areaName && (
                 <Badge variant="outline" className="border-teal-200 text-teal-700">
-                  Área: {areaName}
+                  Área: {ticket.areaName}
                 </Badge>
               )}
             </div>
@@ -452,7 +241,7 @@ export default function GestaoDetalhesChamado() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => downloadFile(attachment)}
+                        onClick={() => handleDownloadFile(attachment.file_path, attachment.file_name)}
                         className="text-slate-600 hover:text-teal-600"
                       >
                         <Download className="h-4 w-4" />

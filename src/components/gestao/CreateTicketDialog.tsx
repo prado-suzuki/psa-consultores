@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
+import { useCreateTicketGestao, useTicketEmpresas, useTicketAreasForCliente, useTicketClientProfiles } from '@/hooks/useCreateTicket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,13 +18,6 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Plus, Upload, X, FileText } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-}
 
 interface CreateTicketDialogProps {
   open: boolean;
@@ -49,26 +41,13 @@ const priorityLabels: Record<string, string> = {
   urgente: 'Urgente',
 };
 
-interface Empresa {
-  id: string;
-  nome: string;
-}
-
-interface Area {
-  id: string;
-  name: string;
-  cluster_id: string;
-}
-
 export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTicketDialogProps) {
   const { user } = useAuth();
-  const [clients, setClients] = useState<Profile[]>([]);
-  const [empresas, setEmpresas] = useState<Empresa[]>([]);
-  const [filteredAreas, setFilteredAreas] = useState<Area[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingClients, setLoadingClients] = useState(true);
-  const [loadingEmpresas, setLoadingEmpresas] = useState(true);
-  const [loadingAreas, setLoadingAreas] = useState(false);
+  const createTicket = useCreateTicketGestao();
+
+  const { data: clients = [], isLoading: loadingClients } = useTicketClientProfiles();
+  const { data: empresas = [], isLoading: loadingEmpresas } = useTicketEmpresas();
+
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,12 +61,14 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     estrutura_area_id: '',
   });
 
+  const { data: filteredAreas = [], isLoading: loadingAreas } = useTicketAreasForCliente(
+    formData.cliente_id || undefined
+  );
+
   const { restore, clear } = useDraftPersistence('ticket-form-draft', formData, open, user?.id);
 
   useEffect(() => {
     if (open) {
-      fetchClients();
-      fetchEmpresas();
       const saved = restore();
       if (saved) {
         setFormData(saved as typeof formData);
@@ -95,95 +76,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     }
   }, [open]);
 
-  // When cliente_id changes, fetch clusters → filter areas
+  // Auto-select if only one area
   useEffect(() => {
-    if (!formData.cliente_id) {
-      setFilteredAreas([]);
-      return;
+    if (filteredAreas.length === 1) {
+      setFormData(prev => ({ ...prev, estrutura_area_id: filteredAreas[0].id }));
     }
-    fetchAreasForCliente(formData.cliente_id);
-  }, [formData.cliente_id]);
-
-  // TODO: Quando representante.user_id estiver preenchido, filtrar empresas pelo vínculo representante → cliente
-  const fetchEmpresas = async () => {
-    try {
-      setLoadingEmpresas(true);
-      const { data } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      setEmpresas(data || []);
-    } catch (error) {
-      console.error('Error fetching empresas:', error);
-    } finally {
-      setLoadingEmpresas(false);
-    }
-  };
-
-  const fetchAreasForCliente = async (clienteId: string) => {
-    try {
-      setLoadingAreas(true);
-
-      // 1. Get clusters for this client
-      const { data: clusterLinks } = await supabase
-        .from('cliente_clusters')
-        .select('cluster_id')
-        .eq('cliente_id', clienteId);
-
-      const clusterIds = (clusterLinks || []).map(c => c.cluster_id);
-
-      // 2. Fetch areas — filtered by clusters if any, otherwise all active
-      let query = supabase
-        .from('estrutura_areas')
-        .select('id, name, cluster_id')
-        .eq('is_active', true)
-        .order('name');
-
-      if (clusterIds.length > 0) {
-        query = query.in('cluster_id', clusterIds);
-      }
-
-      const { data: areasData } = await query;
-      const result = (areasData || []) as Area[];
-      setFilteredAreas(result);
-
-      // Auto-select if only one area
-      if (result.length === 1) {
-        setFormData(prev => ({ ...prev, estrutura_area_id: result[0].id }));
-      }
-    } catch (error) {
-      console.error('Error fetching areas for client:', error);
-    } finally {
-      setLoadingAreas(false);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      setLoadingClients(true);
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', 'client');
-
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        const { data: profilesData } = await supabase
-          .rpc('get_profiles_with_email' as any)
-          .in('id', userIds)
-          .order('first_name');
-
-        setClients(profilesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching clients:', error);
-    } finally {
-      setLoadingClients(false);
-    }
-  };
+  }, [filteredAreas]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -219,9 +117,8 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
       return;
     }
 
-    setLoading(true);
     try {
-      const insertPayload: any = {
+      await createTicket.mutateAsync({
         title: formData.title,
         description: formData.description,
         department: formData.department || null,
@@ -229,61 +126,14 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         user_id: formData.user_id,
         cliente_id: formData.cliente_id,
         estrutura_area_id: formData.estrutura_area_id,
-        status: 'aberto',
-        activity_status: 'aguardando_resposta',
-      };
-
-      const { data: ticket, error: ticketError } = await supabase
-        .from('tickets')
-        .insert(insertPayload)
-        .select()
-        .single();
-
-      if (ticketError) throw ticketError;
-
-      // Upload attachments if any
-      if (selectedFiles.length > 0 && ticket) {
-        for (const file of selectedFiles) {
-          const fileExt = file.name.split('.').pop();
-          const fileName = `${ticket.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-          const { error: uploadError } = await supabase.storage
-            .from('ticket-attachments')
-            .upload(fileName, file);
-
-          if (uploadError) {
-            console.error('Error uploading file:', uploadError);
-            continue;
-          }
-
-          await supabase.from('ticket_attachments').insert({
-            ticket_id: ticket.id,
-            file_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            file_type: file.type,
-            uploaded_by: formData.user_id,
-          });
-        }
-      }
-
-      // Disparar notificação (fire-and-forget)
-      if (ticket) {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_created',
-            ticket_id: ticket.id,
-            actor_name: 'Gestão PSA',
-          }
-        }).catch(console.error);
-      }
+        files: selectedFiles,
+      });
 
       toast({
         title: 'Chamado criado',
         description: 'O chamado foi criado com sucesso.',
       });
 
-      // Reset form
       setFormData({
         title: '',
         description: '',
@@ -297,17 +147,16 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
       clear();
       onSuccess();
       onOpenChange(false);
-    } catch (error) {
-      console.error('Error creating ticket:', error);
+    } catch {
       toast({
         title: 'Erro ao criar chamado',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setLoading(false);
     }
   };
+
+  const loading = createTicket.isPending;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
