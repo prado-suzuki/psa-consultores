@@ -1,7 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,34 +16,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
-import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
+import { isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil } from '@/lib/dateUtils';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  activity_status: string | null;
-  deadline: string | null;
-  profiles?: Profile;
-  agent?: Profile;
-  attachment_count?: number;
-}
+import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useAssignTicket } from '@/hooks/useTicketMutations';
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'prazo' | 'activity_status' | null;
@@ -146,10 +122,9 @@ const departmentLabels: Record<string, string> = {
 
 export default function AdminChamados() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [agents, setAgents] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tickets = [], isLoading: loading } = useTicketsList();
+  const { data: agents = [] } = useTicketAgents();
+  const assignMutation = useAssignTicket();
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -162,103 +137,6 @@ export default function AdminChamados() {
     searchId: '',
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
-
-  useEffect(() => {
-    fetchTickets();
-    fetchAgents();
-  }, []);
-
-  const fetchAgents = async () => {
-    try {
-      // Fetch team members and admins who can be assigned tickets
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['team_member', 'admin']);
-
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        const { data: profilesData } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-
-        setAgents(profilesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  };
-
-  const fetchTickets = async () => {
-    try {
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline')
-        .order('created_at', { ascending: false });
-
-      if (ticketsError) throw ticketsError;
-
-      // Fetch profiles for creators
-      const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      // Fetch profiles for agents
-      const agentIds = ticketsData?.filter(t => t.assigned_to).map(t => t.assigned_to as string) || [];
-      const uniqueAgentIds = [...new Set(agentIds)];
-      const { data: agentsData } = uniqueAgentIds.length > 0 
-        ? await supabase
-            .from('profiles_safe')
-            .select('id, first_name, last_name')
-            .in('id', uniqueAgentIds)
-        : { data: [] };
-
-      const profilesMap = new Map<string, Profile>();
-      profilesData?.forEach(p => profilesMap.set(p.id, p));
-      
-      const agentsMap = new Map<string, Profile>();
-      agentsData?.forEach(a => agentsMap.set(a.id, a));
-
-      // Fetch attachment counts for all tickets
-      const ticketIds = ticketsData?.map(t => t.id) || [];
-      const { data: attachmentCounts } = await supabase
-        .from('ticket_attachments')
-        .select('ticket_id')
-        .in('ticket_id', ticketIds);
-
-      const attachmentCountMap = new Map<string, number>();
-      attachmentCounts?.forEach(a => {
-        attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
-      });
-      
-      const enrichedTickets: Ticket[] = ticketsData?.map(ticket => ({
-        id: ticket.id,
-        title: ticket.title,
-        description: ticket.description,
-        status: ticket.status || 'aberto',
-        priority: ticket.priority || 'normal',
-        department: ticket.department || '',
-        user_id: ticket.user_id,
-        created_at: ticket.created_at || '',
-        updated_at: ticket.updated_at || '',
-        assigned_to: ticket.assigned_to || null,
-        activity_status: ticket.activity_status || 'aguardando_resposta',
-        deadline: ticket.deadline ?? null,
-        profiles: profilesMap.get(ticket.user_id),
-        agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
-        attachment_count: attachmentCountMap.get(ticket.id) || 0
-      })) || [];
-
-      setTickets(enrichedTickets);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -414,34 +292,28 @@ export default function AdminChamados() {
     return filtered;
   }, [tickets, filters, sortColumn, sortDirection, mostrarUrgentes]);
 
-  const assignAgent = async (ticketId: string, agentId: string | null) => {
-    try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ assigned_to: agentId })
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      const agent = agents.find(a => a.id === agentId);
-      toast({
-        title: 'Agente atribuído',
-        description: agentId 
-          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
-          : 'Atribuição removida',
-      });
-
-      // Invalidate notification cache for all users
-      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
-      
-      fetchTickets();
-    } catch (error) {
-      toast({
-        title: 'Erro ao atribuir agente',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
-    }
+  const assignAgent = (ticketId: string, agentId: string | null) => {
+    const agent = agents.find(a => a.id === agentId);
+    assignMutation.mutate(
+      { ticketId, agentId, agentName: agent ? `${agent.first_name} ${agent.last_name}` : null },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Agente atribuído',
+            description: agentId
+              ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}`
+              : 'Atribuição removida',
+          });
+        },
+        onError: () => {
+          toast({
+            title: 'Erro ao atribuir agente',
+            description: 'Tente novamente mais tarde.',
+            variant: 'destructive',
+          });
+        },
+      }
+    );
   };
 
   const toggleTicketSelection = (ticketId: string) => {
