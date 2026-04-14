@@ -1,87 +1,83 @@
 
 
-# Atualização do AI_CONTEXT.md — Plano de alterações
+# Migração de queries inline — Chamados (Etapas 1-4)
 
-## Seções a alterar
+## Ajustes confirmados
 
-### 1. Seção 3.2 — Catálogo de hooks (L100-137)
-**Adicionar** ao final da tabela:
+1. **useTicketAreas**: `useEstruturaAreas` ja filtra `.eq('is_active', true)` (L22). Nao precisa de wrapper — componentes usarao `useEstruturaAreas` diretamente (sem `page_categories`, busca geral com `.eq('is_active', true)`). Porem `useEstruturaAreas` exige `category` obrigatorio e filtra por `page_categories`. As queries de chamados buscam TODAS as areas ativas sem filtro de category. Solucao: criar uma variante `useAllActiveAreas()` em `useEstruturaAreas.ts` (2 linhas) que nao filtra por category.
 
-| Hook | Propósito |
-|---|---|
-| `useClusterIdByPageCategory` | Resolve `cluster_id` a partir de `page_categories` das áreas |
-| `useTeamMembersForTasks` | Filtra membros por cluster para seletores de tarefas |
-| `useExternalClients` | Clientes externos para projetos (em `useTaxReferenceData.ts`) |
-| `useContribuintes` | Contribuintes filtrados por cliente (em `useTaxReferenceData.ts`) |
-| `useFiscalDashProjects` | Projetos para dashboard fiscal (em `useFiscalDashboardData.ts`) |
-| `useFiscalDashTasks` | Tarefas para dashboard fiscal (em `useFiscalDashboardData.ts`) |
-| `useClientesLista` | Lista simples de clientes para dropdown (em `useGestaoClientes.ts`) |
-| `useClientesFiltrados` | Clientes com filtros + enriquecimento de clusters (em `useGestaoClientes.ts`) |
-| `useContribuintesPorCliente` | Contribuintes por cliente para filtro (em `useGestaoClientes.ts`) |
-| `useContribuintesExpand` | Contribuintes expandidos na tabela (em `useGestaoClientes.ts`) |
-| `useDeleteCliente` | Soft-delete de cliente com invalidação de cache (em `useDeleteCliente.ts`) |
-| `useSetoresCliente` | Lista de setores de cliente (em `useSetorCliente.ts`) |
-
-**Remover** a nota de exceção na L138 ("Exceções toleradas: queries inline...") e substituir por:
-> **Regra estrita**: nenhuma query `supabase.from()` diretamente em componentes. Migração completa para hooks dedicados.
+2. **downloadFile**: Sera funcao utilitaria em `src/lib/ticketUtils.ts`, nao hook.
 
 ---
 
-### 2. Seção 4.1 — Guardas de rota (L156-164)
-**Alterar** a linha do `TeamRoute`:
+## Arquivos a criar
 
-De: `TeamRoute` | Role `team_member` ou `admin`
-Para: `TeamRoute` | Qualquer "Internal User": `team_member`, `admin`, `lider` ou `sublider`
+### 1. `src/lib/ticketUtils.ts`
+- `downloadTicketFile(filePath: string, fileName: string)` — download de storage + createObjectURL + click
+- `isImageFile(fileType: string)` — helper reutilizado em 3 componentes
 
----
+### 2. `src/hooks/useTickets.ts` — Queries de leitura
 
-### 3. Seção 6.2 — Tabelas-chave (L236-265)
+| Hook | Tabela(s) | Usado por |
+|------|-----------|-----------|
+| `useMyTickets(userId)` | `tickets` JOIN `profiles_safe` | MeusChamados |
+| `useTicketsList(options?)` | `tickets` + `profiles_safe` + `ticket_attachments` | GestaoChamados, EquipeChamados |
+| `useTicketDetail(ticketId)` | `tickets` + `profiles_safe` + `estrutura_areas` | GestaoDetalhes, EquipeDetalhes, DetalhesChamado |
+| `useTicketMessages(ticketId, enrichProfiles?)` | `ticket_messages` + `profiles_safe` | GestaoDetalhes, EquipeDetalhes, DetalhesChamado |
+| `useTicketAttachments(ticketId)` | `ticket_attachments` | GestaoDetalhes, EquipeDetalhes, DetalhesChamado |
+| `useTicketAgents()` | `user_roles` + `profiles_safe` | GestaoChamados, GestaoDetalhes, EquipeChamados |
 
-**Tax/Fiscal (L241)** — substituir `tax_projects`, `tax_project_members` por `org_projects`, `org_project_members` (já renomeados).
+### 3. `src/hooks/useTicketMutations.ts` — Mutations
 
-**Dev/Tributário (L247)** — adicionar `os_produtos_contratados` (com `horas_contratadas`), `inscricao_contribuinte` (nome correto da tabela). Confirmar `representante` (já listado).
+| Hook | Operacao | Usado por |
+|------|----------|-----------|
+| `useAssignTicket()` | UPDATE `tickets.assigned_to` + notify | GestaoChamados, GestaoDetalhes, EquipeChamados |
+| `useUpdateTicketStatus()` | UPDATE `tickets.status` + notify | GestaoDetalhes, EquipeDetalhes |
+| `useUpdateTicketDeadline()` | UPDATE `tickets.deadline` | GestaoChamados |
+| `useSendTicketMessage()` | INSERT `ticket_messages` + UPDATE `tickets.activity_status` + notify | GestaoDetalhes, EquipeDetalhes, DetalhesChamado |
+| `useUploadTicketAttachments()` | storage upload + INSERT `ticket_attachments` + notify | DetalhesChamado, EquipeDetalhes |
+| `useDeleteTickets()` | DELETE cascata (storage + attachments + messages + tickets) | GestaoChamados |
 
-**Chamados (L244)** — adicionar: `deadline`, `estrutura_area_id`, `cliente_id` como colunas notáveis de `tickets`.
+Todas as mutations invalidam `['tickets']` e queries relacionadas.
 
-**Cadastros organizacionais (L259)** — adicionar `cliente_clusters` (tabela N:N cliente↔cluster).
+### 4. `src/hooks/useCreateTicket.ts` — Criacao de chamados
 
-**Auth/Org (L238)** — adicionar `user_invitations` (tabela criada, sem frontend).
+| Hook | Operacao | Usado por |
+|------|----------|-----------|
+| `useCreateTicketCliente()` | resolve representante + INSERT ticket + upload files + notify | NovoChamado |
+| `useCreateTicketGestao()` | INSERT ticket + upload files + notify | CreateTicketDialog |
+| `useTicketEmpresas()` | SELECT `cliente` ativas | CreateTicketDialog |
+| `useTicketAreasForCliente(clienteId)` | `cliente_clusters` + `estrutura_areas` | CreateTicketDialog |
+| `useTicketClientProfiles()` | `user_roles` role=client + RPC `get_profiles_with_email` | CreateTicketDialog |
 
----
-
-### 4. Seção 6.1 — Princípios (L228-233)
-**Adicionar** novo princípio:
-- `is_ticket_assigned_to(uuid, uuid)` — função SECURITY DEFINER para verificar atribuição de chamados em RLS (evita recursão)
-
----
-
-### 5. Seção 6.4 — Ambientes (L273-286)
-**Reforçar** na L284: o filtro `.eq('ambiente', currentAmbiente)` é obrigatório também em `ordem_servico`, `representante` e `inscricao_contribuinte`, além de `cliente` e `contribuinte`.
-
----
-
-### 6. Nova seção 6.5 — Convenções de dados adicionais
-**Adicionar** após seção 6.4:
-
-```markdown
-### 6.5 Convenções de dados adicionais
-
-- **Horas estimadas em tarefas**: `fiscal_tasks.estimated_hours` é obrigatório no formulário de tarefas.
-- **Prazo de chamados**: usar `tickets.deadline` real do banco. Fallback: 5 dias úteis a partir da criação se `deadline` for null.
-- **Soft-delete**: tabelas `cliente`, `contribuinte`, `representante`, `ordem_servico` usam coluna `excluido` (boolean). Queries DEVEM filtrar `.eq('excluido', false)`.
-```
-
----
-
-### 7. Seção 5.3 — Estrutura organizacional (L205-222)
-**Corrigir** L221: substituir `tax_projects → tax_areas → estrutura_areas` por `org_projects → tax_areas → estrutura_areas` (tabela renomeada).
-
-**Adicionar** após L216: `cliente_clusters` — associação N:N entre `cliente` e `estrutura_clusters`.
+### 5. Alteracao em `src/hooks/useEstruturaAreas.ts`
+Adicionar export `useAllActiveAreas()` — SELECT todas areas ativas sem filtro de `page_categories`.
 
 ---
 
-## Resumo
-- **0 seções removidas** — apenas adições e correções
-- **7 blocos alterados/adicionados** no documento
-- Todas as mudanças refletem o estado real do código atual
+## Etapa 4: Refatorar MeusChamados.tsx
+
+- Remover import de `supabase`
+- Remover `fetchTickets` inline (L95-115)
+- Usar `useMyTickets(user?.id)` do novo hook
+- Substituir `useState<Ticket[]>` + `useEffect` por dados do hook
+- Manter toda logica de filtro client-side (useMemo) inalterada
+- ~20 linhas removidas, ~5 adicionadas
+
+---
+
+## Resumo da execucao
+
+| Etapa | Arquivo | Acao |
+|-------|---------|------|
+| 1 | `src/lib/ticketUtils.ts` | Criar |
+| 1 | `src/hooks/useEstruturaAreas.ts` | Adicionar `useAllActiveAreas` |
+| 2 | `src/hooks/useTickets.ts` | Criar (6 hooks) |
+| 3 | `src/hooks/useTicketMutations.ts` | Criar (6 hooks) |
+| 3 | `src/hooks/useCreateTicket.ts` | Criar (5 hooks) |
+| 4 | `src/pages/cliente/MeusChamados.tsx` | Refatorar (1 query removida) |
+
+- **5 arquivos criados/editados**
+- **1 componente refatorado** (demais nas etapas 5-11)
+- Zero alteracao de banco/RLS/rotas
 
