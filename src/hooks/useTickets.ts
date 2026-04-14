@@ -28,6 +28,7 @@ export interface TicketListItem {
   agent?: TicketProfile;
   attachment_count?: number;
   assigned_agent?: { first_name: string; last_name: string } | null;
+  cliente_nome?: string | null;
 }
 
 export interface TicketDetail {
@@ -106,7 +107,7 @@ export function useTicketsList(options?: TicketsListOptions) {
     queryFn: async (): Promise<TicketListItem[]> => {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id, cliente_id')
         .order('created_at', { ascending: false });
 
       if (assignedTo) {
@@ -150,6 +151,14 @@ export function useTicketsList(options?: TicketsListOptions) {
         attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
       });
 
+      // Cliente (empresa) names
+      const clienteIds = [...new Set(ticketsData.filter(t => (t as any).cliente_id).map(t => (t as any).cliente_id as string))];
+      const { data: clientesData } = clienteIds.length > 0
+        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
+        : { data: [] as { id: string; nome: string }[] };
+      const clienteMap = new Map<string, string>();
+      clientesData?.forEach(c => clienteMap.set(c.id, c.nome));
+
       return ticketsData.map(ticket => ({
         id: ticket.id,
         title: ticket.title,
@@ -168,6 +177,7 @@ export function useTicketsList(options?: TicketsListOptions) {
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0,
+        cliente_nome: (ticket as any).cliente_id ? clienteMap.get((ticket as any).cliente_id) || null : null,
       }));
     },
   });

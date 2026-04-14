@@ -582,10 +582,11 @@ export default function AdminChamados() {
                         onClick={() => handleSort('created_by')}
                       >
                         <div className="flex items-center">
-                          Criado por
+                          Representante
                           {getSortIcon('created_by')}
                         </div>
                       </TableHead>
+                      <TableHead>Cliente</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors min-w-[180px]"
                         onClick={() => handleSort('agent')}
@@ -675,6 +676,11 @@ export default function AdminChamados() {
                             {ticket.profiles 
                               ? `${ticket.profiles.first_name} ${ticket.profiles.last_name}`
                               : '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {ticket.cliente_nome || '—'}
                           </span>
                         </TableCell>
                         <TableCell>
