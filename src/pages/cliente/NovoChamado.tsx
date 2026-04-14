@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTicketCliente } from '@/hooks/useCreateTicket';
+import { useClienteClusters } from '@/hooks/useClienteClusters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,13 +28,23 @@ export default function NovoChamado() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createTicket = useCreateTicketCliente();
+  const { data: clusterData, isLoading: loadingClusters } = useClienteClusters(user?.id);
+  const clusters = clusterData?.clusters || [];
 
   const [form, setForm] = useState({
     title: '',
     department: '',
     description: '',
     priority: 'normal',
+    cluster_id: '',
   });
+
+  // Auto-select when exactly 1 cluster
+  useEffect(() => {
+    if (clusters.length === 1 && !form.cluster_id) {
+      setForm(prev => ({ ...prev, cluster_id: clusters[0].id }));
+    }
+  }, [clusters]);
   const [errors, setErrors] = useState<any>({});
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
@@ -90,6 +101,7 @@ export default function NovoChamado() {
         priority: form.priority,
         files: selectedFiles,
         actorName: user.user_metadata?.first_name || 'Cliente',
+        cluster_id: form.cluster_id || null,
       });
 
       toast({
