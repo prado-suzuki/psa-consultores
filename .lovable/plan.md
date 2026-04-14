@@ -1,55 +1,87 @@
 
 
-# AdminChamados.tsx — Migração para hooks + correção de deadline
+# Roteamento automático de chamados por cluster
 
-## Diagnóstico
+## Pré-requisitos confirmados
+- `tickets.cluster_id` (uuid, nullable) — já existe no banco
+- `representante.user_id` — já existe e preenchido
+- `cliente_clusters` — tabela N:N funcional
+- `estrutura_clusters` — tem `id`, `name`
 
-AdminChamados.tsx tem **3 queries inline + 1 mutation**:
+## Arquivos e alterações
 
-| # | Função | Tabela | Operação |
-|---|--------|--------|----------|
-| 1 | `fetchTickets` (L193-261) | `tickets` + `profiles_safe` + `ticket_attachments` | SELECT (4 queries encadeadas) |
-| 2 | `fetchAgents` (L171-191) | `user_roles` + `profiles_safe` | SELECT (2 queries encadeadas) |
-| 3 | `assignAgent` (L417-445) | `tickets` | UPDATE |
+### 1. Novo: `src/hooks/useClienteClusters.ts`
+Hook que busca clusters do cliente logado:
+```
+representante (user_id = auth.uid()) → id_cliente
+cliente_clusters (cliente_id) → cluster_id
+estrutura_clusters (id) → name
+```
+Retorna `{ clusters: { id, name }[], clienteId: string | null, isLoading }`.
 
-**Deadline**: Já usa `deadline` real do banco com fallback 5 dias (L61-103). Lógica **já está correta** — idêntica à de EquipeChamados/GestaoChamados.
+### 2. `src/pages/cliente/NovoChamado.tsx`
+- Importar `useClienteClusters`
+- Lógica condicional:
+  - 0 clusters → campo oculto, `cluster_id` fica `null`
+  - 1 cluster → auto-preenchido, exibe texto informativo "Empresa: X", sem select
+  - 2+ clusters → select obrigatório "Para qual empresa é o chamado?"
+- Adicionar `cluster_id` ao state do form
+- Passar `cluster_id` ao `useCreateTicketCliente`
 
-## Plano
+### 3. `src/hooks/useCreateTicket.ts`
+- `CreateTicketClienteParams`: adicionar `cluster_id?: string | null`
+- `useCreateTicketCliente` mutationFn: incluir `cluster_id` no `insertPayload` se presente
+- `CreateTicketGestaoParams`: adicionar `cluster_id?: string | null`
+- `useCreateTicketGestao` mutationFn: incluir `cluster_id` no `insertPayload` se presente
 
-### Substituições
+### 4. `src/components/gestao/CreateTicketDialog.tsx`
+- Derivar `cluster_id` do `estrutura_area_id` selecionado usando `filteredAreas` (que já tem `cluster_id` no tipo `TicketArea`)
+- No `handleSubmit`, resolver: `const selectedArea = filteredAreas.find(a => a.id === formData.estrutura_area_id); cluster_id = selectedArea?.cluster_id`
+- Passar ao `createTicket.mutateAsync`
 
-| Inline | Hook existente |
-|--------|---------------|
-| `fetchTickets` | `useTicketsList()` de `useTickets.ts` |
-| `fetchAgents` | `useTicketAgents()` de `useTickets.ts` |
-| `assignAgent` | `useAssignTicket()` de `useTicketMutations.ts` |
+### 5. `src/hooks/useTickets.ts`
+- `useTicketsList`: adicionar `cluster_id` ao select string
+- `TicketListItem`: adicionar `cluster_id?: string | null`
+- `TicketDetail`: adicionar `cluster_id?: string | null`
 
-### Alterações em AdminChamados.tsx
+### 6. `src/pages/gestao/GestaoChamados.tsx`
+- Buscar clusters com query simples (ou reutilizar dados já disponíveis via `useAllActiveAreas` → mapear `cluster_id` → nome)
+- Adicionar coluna "Cluster" na tabela, read-only, com lookup de nome via `estrutura_clusters`
+- Novo hook inline ou query: buscar `estrutura_clusters` para montar `clusterMap`
 
-**Remover**:
-- Imports: `supabase`, `useQueryClient`
-- Interface local `Profile`, `Ticket` (usar tipos de `useTickets.ts`)
-- `useState` para `tickets`, `agents`, `loading`
-- `useEffect` com `fetchTickets`/`fetchAgents`
-- Funções `fetchTickets`, `fetchAgents`, `assignAgent`
+### 7. `src/pages/equipe/EquipeChamados.tsx`
+- Mesmo padrão: adicionar coluna "Cluster" read-only na tabela
+- Reutilizar o mesmo `clusterMap`
 
-**Adicionar**:
-- `import { useTicketsList, useTicketAgents } from '@/hooks/useTickets'`
-- `import { useAssignTicket } from '@/hooks/useTicketMutations'`
-- `const { data: tickets = [], isLoading: loading } = useTicketsList()`
-- `const { data: agents = [] } = useTicketAgents()`
-- `const assignMutation = useAssignTicket()`
-- Handler `assignAgent` chama `assignMutation.mutate(...)` com toast no `onSuccess`
+## Hook auxiliar para clusters (listagem)
+Para evitar queries inline nos componentes de listagem, criar `useAllActiveClusters` em `useEstruturaAreas.ts` (arquivo já tem `useAllActiveAreas`):
+```ts
+export const useAllActiveClusters = () => useQuery({
+  queryKey: ['estrutura-clusters', '__all__'],
+  queryFn: async () => {
+    const { data, error } = await supabase
+      .from('estrutura_clusters')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    if (error) throw error;
+    return data || [];
+  },
+});
+```
 
-**Manter inalterado**:
-- `calcularPrazoResposta` (lógica de deadline já correta)
-- Constantes de cores/labels
-- Toda lógica de filtros e ordenação (`filteredAndSortedTickets`)
-- JSX completo
+## Resumo de impacto
 
-### Resultado
-- Zero `supabase.from()` no componente
-- ~90 linhas removidas (fetching + state + interfaces)
-- Deadline: sem alteração necessária (já usa padrão correto)
-- 0 hooks novos, 0 alterações de banco
+| Arquivo | Ação |
+|---|---|
+| **Novo**: `src/hooks/useClienteClusters.ts` | Hook para clusters do cliente logado |
+| `src/hooks/useEstruturaAreas.ts` | Adicionar `useAllActiveClusters` |
+| `src/hooks/useCreateTicket.ts` | `cluster_id` nos params e payloads |
+| `src/hooks/useTickets.ts` | `cluster_id` no select e tipos |
+| `src/pages/cliente/NovoChamado.tsx` | Select condicional de cluster |
+| `src/components/gestao/CreateTicketDialog.tsx` | Derivar cluster_id da área |
+| `src/pages/gestao/GestaoChamados.tsx` | Coluna Cluster |
+| `src/pages/equipe/EquipeChamados.tsx` | Coluna Cluster |
+
+**0 migrations** (coluna já existe), **1 hook novo**, **1 hook adicionado a arquivo existente**, **6 arquivos editados**.
 
