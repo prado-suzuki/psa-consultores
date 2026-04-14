@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useMyTickets } from '@/hooks/useTickets';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,23 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department?: string;
-  activity_status?: string;
-  created_at: string;
-  deadline?: string | null;
-  assigned_to?: string | null;
-  assigned_agent?: {
-    first_name: string;
-    last_name: string;
-  } | null;
-}
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500',
@@ -79,40 +62,13 @@ const departmentLabels: Record<string, string> = {
 export default function MeusChamados() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tickets = [], isLoading: loading } = useMyTickets(user?.id);
 
   // Filter states
   const [filterPeriod, setFilterPeriod] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterActivityStatus, setFilterActivityStatus] = useState<string>('all');
   const [filterDepartment, setFilterDepartment] = useState<string>('all');
-
-  useEffect(() => {
-    fetchTickets();
-  }, [user]);
-
-  const fetchTickets = async () => {
-    if (!user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select(`
-          *,
-          assigned_agent:profiles_safe!assigned_to(first_name, last_name)
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setTickets(data || []);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
@@ -151,20 +107,9 @@ export default function MeusChamados() {
         }
       }
 
-      // Status filter
-      if (filterStatus !== 'all' && ticket.status !== filterStatus) {
-        return false;
-      }
-
-      // Activity status filter
-      if (filterActivityStatus !== 'all' && ticket.activity_status !== filterActivityStatus) {
-        return false;
-      }
-
-      // Department filter
-      if (filterDepartment !== 'all' && ticket.department !== filterDepartment) {
-        return false;
-      }
+      if (filterStatus !== 'all' && ticket.status !== filterStatus) return false;
+      if (filterActivityStatus !== 'all' && ticket.activity_status !== filterActivityStatus) return false;
+      if (filterDepartment !== 'all' && ticket.department !== filterDepartment) return false;
 
       return true;
     });
