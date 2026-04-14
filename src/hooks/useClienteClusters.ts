@@ -19,6 +19,7 @@ export function useClienteClusters(userId: string | undefined) {
         .from('representante' as any)
         .select('id_cliente')
         .eq('user_id', userId!)
+        .eq('excluido', false)
         .maybeSingle();
 
       if (!repData) return { clusters: [] as ClienteCluster[], clienteId: null };
