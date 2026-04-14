@@ -1,41 +1,33 @@
 
 
-## Diagnóstico: Líder sem tag team_member não acessa nada
+## Diagnóstico: Prazo não salva em /gestao/chamados
 
 ### Causa raiz
 
-Dois arquivos usam apenas `isAdmin` e `isTeamMember` como portas de entrada, ignorando `isLider` e `isSublider`:
-
-| Arquivo | Linha | Problema |
-|---|---|---|
-| `TeamRoute.tsx` | 19 | `!isTeamMember && !isAdmin` → líder é redirecionado para `/` |
-| `usePageAccess.ts` | 42-46 | Checks de categoria `geral` e estrutura só entram se `isTeamMember` |
-
-### Correção proposta
-
-**1. `TeamRoute.tsx`** — incluir `isLider` e `isSublider` na verificação:
-
-```tsx
-const { user, isTeamMember, isAdmin, isLider, isSublider, mustChangePassword, loading } = useAuth();
-// ...
-if (!isTeamMember && !isAdmin && !isLider && !isSublider) {
-  return <Navigate to="/" replace />;
-}
-```
-
-**2. `usePageAccess.ts`** — criar helper `isInternalUser` e usá-lo nos checks:
+A query de leitura dos tickets (linha 187) lista as colunas explicitamente mas **não inclui `deadline`**:
 
 ```ts
-const { user, isAdmin, isTeamMember, isLider, isSublider, loading: authLoading } = useAuth();
-const isInternalUser = isTeamMember || isLider || isSublider;
-
-// L21: admin check (sem mudança)
-// L42: geral → isInternalUser em vez de isTeamMember
-// L46: estrutura check → isInternalUser em vez de isTeamMember
+.select('id, title, ..., activity_status, estrutura_area_id')
+//                                          ↑ deadline está ausente
 ```
 
+O `update` na função `setDeadline` (linha 399-402) **funciona** — grava no banco. Porém, como o `fetchTickets` nunca traz o campo de volta, ao recarregar a página o valor aparece como "Sem prazo".
+
+O state local é atualizado (linha 406), então parece funcionar até o próximo refresh.
+
+### Correção
+
+**1 arquivo, 1 linha:**
+
+Em `src/pages/gestao/GestaoChamados.tsx`, linha 187, adicionar `deadline` à lista de colunas do select:
+
+```ts
+.select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
+```
+
+Isso faz o valor persistido ser lido corretamente do banco, e o cast `(ticket as any).deadline` na linha 236 passará a receber o valor real.
+
 ### Impacto
-- 2 arquivos editados
+- 1 arquivo editado, 1 linha alterada
 - Zero mudança de banco de dados
-- Líderes e sublíderes passam a acessar normalmente sem precisar da tag `team_member`
 
