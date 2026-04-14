@@ -109,6 +109,7 @@ interface CreateTicketClienteParams {
   priority: string;
   files: File[];
   actorName?: string;
+  cluster_id?: string | null;
 }
 
 export function useCreateTicketCliente() {
@@ -139,6 +140,9 @@ export function useCreateTicketCliente() {
       };
       if (clienteId) {
         insertPayload.cliente_id = clienteId;
+      }
+      if (params.cluster_id) {
+        insertPayload.cluster_id = params.cluster_id;
       }
 
       const { data: ticketData, error } = await supabase
@@ -211,6 +215,7 @@ interface CreateTicketGestaoParams {
   cliente_id: string;
   estrutura_area_id: string;
   files: File[];
+  cluster_id?: string | null;
 }
 
 export function useCreateTicketGestao() {
@@ -227,6 +232,7 @@ export function useCreateTicketGestao() {
         user_id: params.user_id,
         cliente_id: params.cliente_id,
         estrutura_area_id: params.estrutura_area_id,
+        cluster_id: params.cluster_id || null,
         status: 'aberto',
         activity_status: 'aguardando_resposta',
       };
