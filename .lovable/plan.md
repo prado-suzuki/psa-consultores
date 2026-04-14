@@ -1,49 +1,54 @@
 
 
-# Filtro de visibilidade por cluster — Plano de implementação
+# Renomear "Cliente" → "Representante" + nova coluna "Cliente" (empresa)
 
-## Estado atual
-
-| Arquivo | Tem `useAllActiveClusters`? | Tem `clusterMap`? | Tem coluna Cluster? | Tem filtro cluster? |
-|---|---|---|---|---|
-| GestaoChamados | Sim | Sim | Sim | **Não** |
-| EquipeChamados | Sim | Sim | Sim | **Não** |
-| AdminChamados | **Não** | **Não** | **Não** | **Não** |
+## Contexto
+Atualmente a coluna "Cliente" nas 3 telas mostra o nome de quem abriu o chamado (profiles.first_name/last_name). Isso é o representante, não a empresa. Precisamos:
+1. Renomear essa coluna para "Representante"
+2. Adicionar coluna "Cliente" com o nome da empresa (tabela `cliente`)
 
 ## Alterações
 
-### 1. `GestaoChamados.tsx`
-- Adicionar `cluster: 'todos'` ao state `filters` (L105-111)
-- Adicionar Select "Cluster" na grid de filtros (depois do filtro de Área, L427-440)
-- Adicionar filtro no `filteredAndSortedTickets`: `if (filters.cluster !== 'todos') filtered = filtered.filter(t => t.cluster_id === filters.cluster)` (após L167)
-- Incluir `cluster: 'todos'` no reset implícito (se houver)
+### 1. `src/hooks/useTickets.ts`
+- Adicionar `cliente_id` ao select string do `useTicketsList`
+- Adicionar `cliente_nome?: string | null` ao tipo `TicketListItem`
+- Enriquecer tickets com nome do cliente: buscar `cliente.nome` para os `cliente_id` únicos (mesmo padrão usado para profiles/agents)
+- Criar `clienteMap` e mapear no return
 
-### 2. `EquipeChamados.tsx`
-- Importar `useUserEstrutura` de `@/hooks/useUserEstrutura`
-- Obter clusters do usuário logado: `const { clusters: userClusters } = useUserEstrutura()`
-- Inicializar `cluster` no state: se `userClusters.length === 1` → default ao ID do cluster; senão `'todos'`
-- Adicionar Select "Cluster" nos filtros (após Área, L423-436):
-  - Se `canAssignTickets` (líder/admin): mostrar todos os clusters via `clustersData`
-  - Se membro normal: mostrar apenas `userClusters` no dropdown
-- Adicionar filtro no `filteredAndSortedTickets` (após L236)
-- Incluir `cluster` no `resetFilters` (L317-326) — resetar para o cluster do usuário se tiver 1, senão `'todos'`
+### 2. `src/pages/gestao/GestaoChamados.tsx`
+- Header: renomear "Cliente" → "Representante"
+- Adicionar nova coluna "Cliente" (empresa) logo após "Representante"
+- Body: renderizar `ticket.cliente_nome || '—'` na nova célula
+- Exportação Excel: ajustar labels ("Representante" e "Cliente")
 
-### 3. `AdminChamados.tsx`
-- Importar `useAllActiveClusters` de `@/hooks/useEstruturaAreas`
-- Criar `clusterMap` (mesmo padrão dos outros)
-- Adicionar `cluster: 'todos'` ao state `filters` (L131-138)
-- Adicionar Select "Cluster" na segunda row de filtros (L435-487, entre Departamento e ID)
-- Adicionar filtro no `filteredAndSortedTickets` (após L213)
-- Adicionar coluna "Cluster" na tabela (após Departamento, L539-547)
-- Renderizar valor na TableBody (após L634)
-- Incluir `cluster: 'todos'` no `resetFilters` (L337-346)
+### 3. `src/pages/equipe/EquipeChamados.tsx`
+- Header: renomear "Cliente" → "Representante"
+- Adicionar nova coluna "Cliente" logo após "Representante"
+- Body: renderizar `ticket.cliente_nome || '—'`
 
-## Arquivos editados
+### 4. `src/pages/admin/AdminChamados.tsx`
+- Header: renomear "Criado por" → "Representante"
+- Adicionar nova coluna "Cliente" logo após "Representante"
+- Body: renderizar `ticket.cliente_nome || '—'`
+
+## Dados — enriquecimento no hook
+No `useTicketsList`, após buscar tickets:
+```
+const clienteIds = [...new Set(ticketsData.filter(t => t.cliente_id).map(t => t.cliente_id))];
+const { data: clientesData } = clienteIds.length > 0
+  ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
+  : { data: [] };
+const clienteMap = new Map(clientesData?.map(c => [c.id, c.nome]));
+```
+E no return: `cliente_nome: ticket.cliente_id ? clienteMap.get(ticket.cliente_id) || null : null`
+
+## Resumo
 | Arquivo | Mudança |
 |---|---|
-| `src/pages/gestao/GestaoChamados.tsx` | +filtro cluster no state, UI e lógica |
-| `src/pages/equipe/EquipeChamados.tsx` | +import useUserEstrutura, pré-filtro por cluster do usuário, dropdown condicional |
-| `src/pages/admin/AdminChamados.tsx` | +import clusters, clusterMap, filtro, coluna, dropdown |
+| `src/hooks/useTickets.ts` | +`cliente_id` no select, +enriquecimento com `cliente.nome`, +tipo |
+| `src/pages/gestao/GestaoChamados.tsx` | Rename coluna + nova coluna Cliente |
+| `src/pages/equipe/EquipeChamados.tsx` | Rename coluna + nova coluna Cliente |
+| `src/pages/admin/AdminChamados.tsx` | Rename coluna + nova coluna Cliente |
 
-**0 hooks novos, 0 migrations, 3 arquivos editados.**
+**0 migrations, 0 hooks novos, 4 arquivos editados.**
 
