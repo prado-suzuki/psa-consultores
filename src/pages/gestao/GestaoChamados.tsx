@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useAllActiveAreas } from '@/hooks/useEstruturaAreas';
+import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
 import { Button } from '@/components/ui/button';
@@ -30,41 +31,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react';
-import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow, addDays, differenceInCalendarDays } from 'date-fns';
+import { format, isWithinInterval, subDays, addDays, differenceInCalendarDays, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
 import * as XLSX from 'xlsx';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  activity_status: string | null;
-  deadline: string | null;
-  estrutura_area_id: string | null;
-  profiles?: Profile;
-  agent?: Profile;
-  attachment_count?: number;
-}
-
-interface Area {
-  id: string;
-  name: string;
-}
 
 const deadlineOptions: Record<string, string> = {
   'none': 'Sem prazo',
@@ -93,18 +64,6 @@ const statusLabels: Record<string, string> = {
   fechado: 'Fechado',
 };
 
-const activityLabels: Record<string, string> = {
-  aguardando_resposta: 'Aguardando resposta',
-  respondido: 'Respondido',
-  em_analise: 'Em análise',
-};
-
-const activityColors: Record<string, string> = {
-  aguardando_resposta: 'bg-orange-100 text-orange-800',
-  respondido: 'bg-green-100 text-green-800',
-  em_analise: 'bg-blue-100 text-blue-800',
-};
-
 const departmentLabels: Record<string, string> = {
   contabilidade: 'Contabilidade/Societário',
   icms_ipi: 'ICMS/IPI',
@@ -116,18 +75,26 @@ const departmentLabels: Record<string, string> = {
 
 export default function GestaoChamados() {
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [agents, setAgents] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const { data: tickets = [], isLoading: loading } = useTicketsList();
+  const { data: agents = [] } = useTicketAgents();
+  const { data: areasData = [] } = useAllActiveAreas();
+
+  const assignTicket = useAssignTicket();
+  const updateDeadline = useUpdateTicketDeadline();
+  const deleteTickets = useDeleteTickets();
+
+  const areaMap = useMemo(() => {
+    const map = new Map<string, string>();
+    areasData.forEach(a => map.set(a.id, a.name));
+    return map;
+  }, [areasData]);
+
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [areaMap, setAreaMap] = useState<Map<string, string>>(new Map());
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
@@ -135,118 +102,6 @@ export default function GestaoChamados() {
     area: 'todos',
     searchId: '',
   });
-
-  useEffect(() => {
-    fetchTickets();
-    fetchAgents();
-    fetchAreas();
-  }, []);
-
-  const fetchAreas = async () => {
-    try {
-      const { data } = await supabase
-        .from('estrutura_areas')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      const list = data || [];
-      setAreas(list);
-      const map = new Map<string, string>();
-      list.forEach(a => map.set(a.id, a.name));
-      setAreaMap(map);
-    } catch (error) {
-      console.error('Error fetching areas:', error);
-    }
-  };
-
-  const fetchAgents = async () => {
-    try {
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['team_member', 'admin']);
-
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        const { data: profilesData } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-
-        setAgents(profilesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  };
-
-  const fetchTickets = async () => {
-    try {
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
-        .order('created_at', { ascending: false });
-
-      if (ticketsError) throw ticketsError;
-
-      const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      const agentIds = ticketsData?.filter(t => t.assigned_to).map(t => t.assigned_to as string) || [];
-      const uniqueAgentIds = [...new Set(agentIds)];
-      const { data: agentsData } = uniqueAgentIds.length > 0 
-        ? await supabase
-            .from('profiles_safe')
-            .select('id, first_name, last_name')
-            .in('id', uniqueAgentIds)
-        : { data: [] };
-
-      const profilesMap = new Map<string, Profile>();
-      profilesData?.forEach(p => profilesMap.set(p.id, p));
-      
-      const agentsMap = new Map<string, Profile>();
-      agentsData?.forEach(a => agentsMap.set(a.id, a));
-
-      const ticketIds = ticketsData?.map(t => t.id) || [];
-      const { data: attachmentCounts } = await supabase
-        .from('ticket_attachments')
-        .select('ticket_id')
-        .in('ticket_id', ticketIds);
-
-      const attachmentCountMap = new Map<string, number>();
-      attachmentCounts?.forEach(a => {
-        attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
-      });
-      
-      const enrichedTickets: Ticket[] = ticketsData?.map(ticket => ({
-        id: ticket.id,
-        title: ticket.title,
-        description: ticket.description,
-        status: ticket.status || 'aberto',
-        priority: ticket.priority || 'normal',
-        department: ticket.department || '',
-        user_id: ticket.user_id,
-        created_at: ticket.created_at || '',
-        updated_at: ticket.updated_at || '',
-        assigned_to: ticket.assigned_to || null,
-        activity_status: ticket.activity_status || 'aguardando_resposta',
-        deadline: (ticket as any).deadline || null,
-        estrutura_area_id: (ticket as any).estrutura_area_id || null,
-        profiles: profilesMap.get(ticket.user_id),
-        agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
-        attachment_count: attachmentCountMap.get(ticket.id) || 0
-      })) || [];
-
-      setTickets(enrichedTickets);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -352,39 +207,21 @@ export default function GestaoChamados() {
     return filtered;
   }, [tickets, filters, sortColumn, sortDirection]);
 
-  const assignAgent = async (ticketId: string, agentId: string | null) => {
+  const handleAssignAgent = async (ticketId: string, agentId: string | null) => {
+    const agent = agents.find(a => a.id === agentId);
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ assigned_to: agentId })
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      const agent = agents.find(a => a.id === agentId);
+      await assignTicket.mutateAsync({
+        ticketId,
+        agentId,
+        agentName: agent ? `${agent.first_name} ${agent.last_name}` : null,
+      });
       toast({
         title: 'Agente atribuído',
         description: agentId 
           ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
           : 'Atribuição removida',
       });
-
-      // Notificar cliente e responsável sobre atribuição (fire-and-forget)
-      if (agentId) {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_assigned',
-            ticket_id: ticketId,
-            actor_name: `${agent?.first_name} ${agent?.last_name}`,
-          }
-        }).catch(console.error);
-      }
-
-      // Invalidate notification cache for all users
-      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
-      
-      fetchTickets();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao atribuir agente',
         description: 'Tente novamente mais tarde.',
@@ -393,31 +230,23 @@ export default function GestaoChamados() {
     }
   };
 
-  const setDeadline = async (ticketId: string, createdAt: string, days: string) => {
+  const handleSetDeadline = async (ticketId: string, createdAt: string, days: string) => {
+    const deadline = days === 'none' ? null : format(addDays(new Date(createdAt), parseInt(days)), 'yyyy-MM-dd');
     try {
-      const deadline = days === 'none' ? null : format(addDays(new Date(createdAt), parseInt(days)), 'yyyy-MM-dd');
-      const { error } = await supabase
-        .from('tickets')
-        .update({ deadline } as any)
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, deadline } : t));
+      await updateDeadline.mutateAsync({ ticketId, deadline });
       toast({ title: 'Prazo atualizado' });
-    } catch (error) {
+    } catch {
       toast({ title: 'Erro ao atualizar prazo', variant: 'destructive' });
     }
   };
 
-  const getDeadlineSelectValue = (ticket: Ticket): string => {
+  const getDeadlineSelectValue = (ticket: { deadline: string | null; created_at: string }): string => {
     if (!ticket.deadline) return 'none';
     const days = differenceInCalendarDays(parseDate(ticket.deadline), new Date(ticket.created_at));
     const validOptions = ['1', '3', '5', '7', '10', '15'];
     return validOptions.includes(String(days)) ? String(days) : 'none';
   };
 
-  // Selection handlers
   const toggleSelectAll = () => {
     if (selectedTickets.length === filteredAndSortedTickets.length) {
       setSelectedTickets([]);
@@ -434,7 +263,6 @@ export default function GestaoChamados() {
     );
   };
 
-  // Export to Excel
   const handleExport = () => {
     const exportData = filteredAndSortedTickets.map(ticket => ({
       'ID': ticket.id.slice(0, 8),
@@ -459,63 +287,23 @@ export default function GestaoChamados() {
     });
   };
 
-  // Delete selected tickets
   const handleDeleteTickets = async () => {
     if (selectedTickets.length === 0) return;
-    
-    setDeleting(true);
+
     try {
-      // Delete attachments from storage first
-      for (const ticketId of selectedTickets) {
-        const { data: attachments } = await supabase
-          .from('ticket_attachments')
-          .select('file_path')
-          .eq('ticket_id', ticketId);
-
-        if (attachments && attachments.length > 0) {
-          const filePaths = attachments.map(a => a.file_path);
-          await supabase.storage.from('ticket-attachments').remove(filePaths);
-        }
-      }
-
-      // Delete attachment records
-      await supabase
-        .from('ticket_attachments')
-        .delete()
-        .in('ticket_id', selectedTickets);
-
-      // Delete messages
-      await supabase
-        .from('ticket_messages')
-        .delete()
-        .in('ticket_id', selectedTickets);
-
-      // Delete tickets
-      const { error } = await supabase
-        .from('tickets')
-        .delete()
-        .in('id', selectedTickets);
-
-      if (error) throw error;
-
+      await deleteTickets.mutateAsync({ ticketIds: selectedTickets });
       toast({
         title: 'Chamados excluídos',
         description: `${selectedTickets.length} chamado(s) excluído(s) com sucesso.`,
       });
-
       setSelectedTickets([]);
       setDeleteDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
-      fetchTickets();
-    } catch (error) {
-      console.error('Error deleting tickets:', error);
+    } catch {
       toast({
         title: 'Erro ao excluir chamados',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -525,6 +313,8 @@ export default function GestaoChamados() {
     emAndamento: tickets.filter(t => t.status === 'em_andamento').length,
     resolvidos: tickets.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
   };
+
+  const deleting = deleteTickets.isPending;
 
   return (
     <GestaoLayout 
@@ -635,7 +425,7 @@ export default function GestaoChamados() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todas</SelectItem>
-                  {areas.map((area) => (
+                  {areasData.map((area) => (
                     <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -772,7 +562,7 @@ export default function GestaoChamados() {
                     <TableCell>
                       <Select
                         value={ticket.assigned_to || 'none'}
-                        onValueChange={(v) => assignAgent(ticket.id, v === 'none' ? null : v)}
+                        onValueChange={(v) => handleAssignAgent(ticket.id, v === 'none' ? null : v)}
                       >
                         <SelectTrigger className="w-[150px]">
                           <SelectValue placeholder="Atribuir" />
@@ -791,7 +581,7 @@ export default function GestaoChamados() {
                       <div className="space-y-1">
                         <Select
                           value={getDeadlineSelectValue(ticket)}
-                          onValueChange={(v) => setDeadline(ticket.id, ticket.created_at, v)}
+                          onValueChange={(v) => handleSetDeadline(ticket.id, ticket.created_at, v)}
                         >
                           <SelectTrigger className="w-[120px] h-8 text-xs">
                             <SelectValue placeholder="Prazo" />
@@ -846,7 +636,7 @@ export default function GestaoChamados() {
       <CreateTicketDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSuccess={fetchTickets}
+        onSuccess={() => {}}
       />
 
       {/* Delete Confirmation Dialog */}
