@@ -18,30 +18,40 @@ export interface TicketNotification {
   };
 }
 
-function calcularPrazoNotification(updatedAt: string, activityStatus: string): TicketNotification['prazoInfo'] {
-  const now = new Date();
-  const updated = new Date(updatedAt);
-  
-  // Calculate business days elapsed
-  let businessDays = 0;
-  const current = new Date(updated);
-  
-  while (current < now) {
-    current.setDate(current.getDate() + 1);
-    const dayOfWeek = current.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      businessDays++;
-    }
-  }
-  
-  const prazoMaximo = 5;
-  const diasRestantes = prazoMaximo - businessDays;
-  
+function calcularPrazoNotification(
+  deadline: string | null,
+  createdAt: string,
+  activityStatus: string
+): TicketNotification['prazoInfo'] {
   // Only consider deadline if awaiting analyst response
   if (activityStatus !== 'aguardando_resposta') {
-    return { status: 'normal', label: 'Aguardando cliente', daysRemaining: diasRestantes };
+    return { status: 'normal', label: 'Aguardando cliente', daysRemaining: 99 };
   }
-  
+
+  const now = new Date();
+  let diasRestantes: number;
+
+  if (deadline) {
+    // Use real deadline from DB (calendar days)
+    const deadlineDate = new Date(deadline + 'T23:59:59');
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const deadlineDay = new Date(deadlineDate.getFullYear(), deadlineDate.getMonth(), deadlineDate.getDate());
+    diasRestantes = Math.ceil((deadlineDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  } else {
+    // Fallback: 5 business days from created_at
+    const created = new Date(createdAt);
+    let businessDays = 0;
+    const current = new Date(created);
+    while (current < now) {
+      current.setDate(current.getDate() + 1);
+      const dayOfWeek = current.getDay();
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        businessDays++;
+      }
+    }
+    diasRestantes = 5 - businessDays;
+  }
+
   if (diasRestantes < 0) {
     return { status: 'atrasado', label: `Atrasado ${Math.abs(diasRestantes)} dia(s)`, daysRemaining: diasRestantes };
   } else if (diasRestantes <= 1) {
@@ -68,9 +78,11 @@ export function useTicketNotifications() {
           title,
           department,
           priority,
+          created_at,
           updated_at,
           activity_status,
           status,
+          deadline,
           user_id
         `)
         .eq('assigned_to', userId)
@@ -114,7 +126,7 @@ export function useTicketNotifications() {
         activity_status: ticket.activity_status || 'aguardando_resposta',
         status: ticket.status,
         clientName: ticket.user_id ? profilesMap[ticket.user_id] || 'Cliente' : 'Cliente',
-        prazoInfo: calcularPrazoNotification(ticket.updated_at, ticket.activity_status || 'aguardando_resposta')
+        prazoInfo: calcularPrazoNotification(ticket.deadline ?? null, ticket.created_at, ticket.activity_status || 'aguardando_resposta')
       }));
       
       // Sort by urgency: atrasado first, then urgente, then by days remaining

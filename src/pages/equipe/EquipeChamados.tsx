@@ -44,6 +44,7 @@ interface Ticket {
   assigned_to: string | null;
   activity_status: string | null;
   estrutura_area_id: string | null;
+  deadline: string | null;
   profiles?: Profile;
   attachment_count?: number;
 }
@@ -68,7 +69,8 @@ const calcularPrazoResposta = (
   dataCriacao: string, 
   dataAtualizacao: string,
   status: string, 
-  activityStatus: string | null
+  activityStatus: string | null,
+  deadline: string | null = null
 ): PrazoInfo => {
   if (status === 'resolvido' || status === 'fechado') {
     return { tipo: 'concluido' };
@@ -78,11 +80,18 @@ const calcularPrazoResposta = (
     return { tipo: 'aguardando_cliente' };
   }
   
-  const prazoEmDias = 5;
   const hoje = new Date();
-  const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
-  const prazoFinal = new Date(dataReferencia);
-  prazoFinal.setDate(prazoFinal.getDate() + prazoEmDias);
+  let prazoFinal: Date;
+
+  if (deadline) {
+    // Use real deadline from DB
+    prazoFinal = new Date(deadline + 'T23:59:59');
+  } else {
+    // Fallback: 5 days from reference date
+    const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
+    prazoFinal = new Date(dataReferencia);
+    prazoFinal.setDate(prazoFinal.getDate() + 5);
+  }
   
   const diffTime = prazoFinal.getTime() - hoje.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -213,7 +222,7 @@ export default function EquipeChamados() {
     try {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, estrutura_area_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
         .order('created_at', { ascending: false });
       
       // If user can assign (leader), show all tickets. Otherwise, show only assigned tickets.
