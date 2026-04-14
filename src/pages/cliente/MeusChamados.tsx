@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, User, Filter, X } from 'lucide-react';
-import { format, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Select,
@@ -25,6 +25,7 @@ interface Ticket {
   department?: string;
   activity_status?: string;
   created_at: string;
+  deadline?: string | null;
   assigned_to?: string | null;
   assigned_agent?: {
     first_name: string;
@@ -366,9 +367,17 @@ export default function MeusChamados() {
                           </div>
                         )}
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                      </span>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Criado em {format(new Date(ticket.created_at), "dd/MM/yyyy")}</span>
+                        {ticket.deadline && (
+                          <>
+                            <span>•</span>
+                            <span className={isPast(new Date(ticket.deadline + 'T23:59:59')) ? 'text-destructive font-medium' : ''}>
+                              Prazo: {format(new Date(ticket.deadline + 'T12:00:00'), "dd/MM/yyyy")}
+                            </span>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </Card>
