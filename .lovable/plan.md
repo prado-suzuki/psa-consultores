@@ -1,58 +1,55 @@
 
-# Migração Etapas 5-8 — Plano resumido
 
-## Etapa 5: DetalhesChamado.tsx (543 linhas)
+# AdminChamados.tsx — Migração para hooks + correção de deadline
 
-**Remover**: `supabase` import, `fetchTicketDetails`, `fetchMessages`, `fetchAttachments`, `downloadFile`, `isImageFile`, `uploadFiles` inline, `handleSendMessage` inline, `useState` para ticket/messages/attachments/loading.
+## Diagnóstico
 
-**Substituir por**:
-- `useTicketDetail(id, { ownerOnly: user?.id })` → ticket data + loading
-- `useTicketMessages(id, true)` → messages com enriquecimento de perfis admin
-- `useTicketAttachments(id)` → attachments
-- `useSendTicketMessage()` → handleSendMessage
-- `useUploadTicketAttachments()` → uploadFiles
-- `downloadTicketFile` + `isImageFile` de `@/lib/ticketUtils`
-- Redirect on `!ticket && !isLoading` em vez de catch no fetch
+AdminChamados.tsx tem **3 queries inline + 1 mutation**:
 
-## Etapa 6: NovoChamado.tsx (305 linhas)
+| # | Função | Tabela | Operação |
+|---|--------|--------|----------|
+| 1 | `fetchTickets` (L193-261) | `tickets` + `profiles_safe` + `ticket_attachments` | SELECT (4 queries encadeadas) |
+| 2 | `fetchAgents` (L171-191) | `user_roles` + `profiles_safe` | SELECT (2 queries encadeadas) |
+| 3 | `assignAgent` (L417-445) | `tickets` | UPDATE |
 
-**Remover**: `supabase` import, `uploadFiles` inline, toda lógica dentro de `handleSubmit` (representante lookup + insert + notify).
+**Deadline**: Já usa `deadline` real do banco com fallback 5 dias (L61-103). Lógica **já está correta** — idêntica à de EquipeChamados/GestaoChamados.
 
-**Substituir por**:
-- `useCreateTicketCliente()` mutation
-- `handleSubmit` chama `createMutation.mutateAsync(...)` com validação Zod antes
-- `loading` vem de `createMutation.isPending`
+## Plano
 
-## Etapa 7: EquipeChamados.tsx (892 linhas)
+### Substituições
 
-**Remover**: `supabase` import, `useQueryClient`, `fetchTickets`, `fetchAgents`, `fetchAreas`, `assignAgent` inline, `useState` para tickets/agents/areas/areaMap/loading.
+| Inline | Hook existente |
+|--------|---------------|
+| `fetchTickets` | `useTicketsList()` de `useTickets.ts` |
+| `fetchAgents` | `useTicketAgents()` de `useTickets.ts` |
+| `assignAgent` | `useAssignTicket()` de `useTicketMutations.ts` |
 
-**Substituir por**:
-- `useTicketsList({ assignedTo: user?.id, filterAssigned: !canAssignTickets })` → tickets + loading
-- `useTicketAgents()` → agents (condicionado a canAssignTickets)
-- `useAllActiveAreas()` → areas (já criado em useEstruturaAreas.ts)
-- `useAssignTicket()` → assignAgent mutation
-- `areaMap` derivado com `useMemo` de areas data
+### Alterações em AdminChamados.tsx
 
-## Etapa 8: EquipeDetalhesChamado.tsx (637 linhas)
+**Remover**:
+- Imports: `supabase`, `useQueryClient`
+- Interface local `Profile`, `Ticket` (usar tipos de `useTickets.ts`)
+- `useState` para `tickets`, `agents`, `loading`
+- `useEffect` com `fetchTickets`/`fetchAgents`
+- Funções `fetchTickets`, `fetchAgents`, `assignAgent`
 
-**Remover**: `supabase` import, `fetchTicketDetails`, `fetchMessages`, `fetchAttachments`, `downloadFile`, `isImageFile`, `uploadFiles`, `handleSendMessage`, `handleStatusChange` inline, `useState` para ticket/messages/attachments/loading/areaName.
+**Adicionar**:
+- `import { useTicketsList, useTicketAgents } from '@/hooks/useTickets'`
+- `import { useAssignTicket } from '@/hooks/useTicketMutations'`
+- `const { data: tickets = [], isLoading: loading } = useTicketsList()`
+- `const { data: agents = [] } = useTicketAgents()`
+- `const assignMutation = useAssignTicket()`
+- Handler `assignAgent` chama `assignMutation.mutate(...)` com toast no `onSuccess`
 
-**Substituir por**:
-- `useTicketDetail(id)` → ticket data (inclui profiles e areaName)
-- `useTicketMessages(id)` → messages (sem enriquecimento — equipe view)
-- `useTicketAttachments(id)` → attachments
-- `useSendTicketMessage()` → handleSendMessage (isAdmin: true)
-- `useUpdateTicketStatus()` → handleStatusChange
-- `useUploadTicketAttachments()` → uploadFiles
-- `downloadTicketFile` + `isImageFile` de `@/lib/ticketUtils`
-- Access check: `useEffect` redireciona se `ticket.assigned_to !== user.id`
+**Manter inalterado**:
+- `calcularPrazoResposta` (lógica de deadline já correta)
+- Constantes de cores/labels
+- Toda lógica de filtros e ordenação (`filteredAndSortedTickets`)
+- JSX completo
 
-## Ordem de execução
-5 → 6 → 7 → 8 (sem dependências entre eles, mas menor risco primeiro)
+### Resultado
+- Zero `supabase.from()` no componente
+- ~90 linhas removidas (fetching + state + interfaces)
+- Deadline: sem alteração necessária (já usa padrão correto)
+- 0 hooks novos, 0 alterações de banco
 
-## Resultado
-- 4 componentes com zero `supabase.from()`
-- ~200 linhas de lógica inline removidas
-- 0 hooks novos (todos já existem das etapas 1-3)
-- 0 alterações de banco/RLS/rotas
