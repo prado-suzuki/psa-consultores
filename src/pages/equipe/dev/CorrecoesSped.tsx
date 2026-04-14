@@ -12,9 +12,30 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Check } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+
+const NAT_BC_CRED_OPTIONS = [
+  { value: '01', label: 'Aquisição de bens para revenda' },
+  { value: '02', label: 'Aquisição de bens utilizados como insumos' },
+  { value: '03', label: 'Energia elétrica e térmica, inclusive sob a forma de vapor' },
+  { value: '04', label: 'Aluguéis de máquinas e equipamentos' },
+  { value: '05', label: 'Contraprestações de arrendamento mercantil' },
+  { value: '06', label: 'Máquinas e equipamentos incorporados ao ativo imobilizado (crédito sobre depreciação)' },
+  { value: '07', label: 'Máquinas e equipamentos incorporados ao ativo imobilizado (crédito sobre valor de aquisição)' },
+  { value: '08', label: 'Aquisição e Depreciação de edificações e benfeitorias em imóveis' },
+  { value: '09', label: 'Encargos de depreciação e amortização de bens incorpóreos' },
+  { value: '10', label: 'Devolução de mercadorias sujeitas à substituição tributária' },
+  { value: '11', label: 'Devolução de Vendas Sujeitas a Incidência Não-Cumulativa' },
+  { value: '12', label: 'Outras Operações com Direito ao Crédito (com incidência sobre receitas)' },
+  { value: '13', label: 'Outras Operações com Direito ao Crédito' },
+  { value: '14', label: 'Atividade Imobiliária – Custo Incorrido de unidade não concluída' },
+  { value: '15', label: 'Atividade Imobiliária – Custo Orçado de unidade não concluída (RET)' },
+  { value: '16', label: 'Serviços de Limpeza, Conservação e Manutenção – vale transporte, alimentação, fardamento' },
+  { value: '99', label: 'Outras' },
+] as const;
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
 import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes } from '@/hooks/useCorrecoesSped';
@@ -43,6 +64,9 @@ const CorrecoesSped = () => {
   const [searchText, setSearchText] = useState('');
   const [hasQueried, setHasQueried] = useState(false);
   const [activeTab, setActiveTab] = useState('c170');
+  const [natBcCred, setNatBcCred] = useState('');
+  const [codCta, setCodCta] = useState('');
+  const [natBcCredOpen, setNatBcCredOpen] = useState(false);
 
   // Modals
   const [selectedItem, setSelectedItem] = useState<FlatItemEfd | null>(null);
@@ -63,7 +87,11 @@ const CorrecoesSped = () => {
   const c170Query = useCorrecoesC170(queryParams);
   const a170Query = useCorrecoesA170(queryParams);
   const d100Query = useCorrecoesD100(queryParams);
-  const f100Query = useCorrecoesF100(queryParams);
+  const f100Query = useCorrecoesF100({
+    ...queryParams,
+    nat_bc_cred: natBcCred || undefined,
+    cod_cta: codCta || undefined,
+  });
   const f120Query = useCorrecoesF120(queryParams);
   const f130Query = useCorrecoesF130(queryParams);
 
@@ -91,9 +119,13 @@ const CorrecoesSped = () => {
     setNcmFilter('all');
     setSearchText('');
     setHasQueried(false);
+    setNatBcCred('');
+    setCodCta('');
+    setNatBcCredOpen(false);
   };
 
-  const canConsult = !!contribuinteId && !!dtIni && !!dtFin;
+  const f100FiltersValid = !!natBcCred || !!codCta;
+  const canConsult = !!contribuinteId && !!dtIni && !!dtFin && (activeTab !== 'f100' || f100FiltersValid);
 
   return (
     <DevLayout title="Correções no SPED" subtitle="Revisão de notas e itens EFD vs XML para correções no SPED Contribuições.">
@@ -173,6 +205,60 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
             </div>
+            {activeTab === 'f100' && (
+              <div className="mt-3 pt-3 border-t border-dashed grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="flex items-center gap-1">
+                    <Label className="text-xs">Nat. Base de Crédito</Label>
+                    <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código NAT_BC_CRED do registro F100 (Tab. 4.3.7). Obrigatório se Cód. Conta não for informado.</TooltipContent></Tooltip>
+                  </span>
+                  <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-8 w-full justify-between text-sm font-normal">
+                        {natBcCred
+                          ? <span className="truncate"><span className="font-mono font-medium">{natBcCred}</span>{' – '}{NAT_BC_CRED_OPTIONS.find((o) => o.value === natBcCred)?.label ?? natBcCred}</span>
+                          : <span className="text-muted-foreground">Selecione ou digite...</span>}
+                        <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[420px] p-0" align="start">
+                      <Command>
+                        <CommandInput placeholder="Buscar por código ou descrição..." className="h-8 text-sm" />
+                        <CommandList>
+                          <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
+                          <CommandGroup>
+                            {NAT_BC_CRED_OPTIONS.map((option) => (
+                              <CommandItem
+                                key={option.value}
+                                value={`${option.value} ${option.label}`}
+                                onSelect={() => { setNatBcCred(option.value); setNatBcCredOpen(false); }}
+                                className="text-xs"
+                              >
+                                <Check className={cn('mr-2 h-3.5 w-3.5 shrink-0', natBcCred === option.value ? 'opacity-100' : 'opacity-0')} />
+                                <span className="font-mono font-semibold mr-2 shrink-0">{option.value}</span>
+                                <span className="truncate text-muted-foreground">{option.label}</span>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1">
+                  <span className="flex items-center gap-1">
+                    <Label className="text-xs">Código da Conta</Label>
+                    <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">COD_CTA do registro F100. Ex: 31010201. Obrigatório se Nat. Base de Crédito não for informado.</TooltipContent></Tooltip>
+                  </span>
+                  <Input
+                    placeholder="Ex: 31010201"
+                    value={codCta}
+                    onChange={(e) => setCodCta(e.target.value)}
+                    className="h-8 text-sm font-mono"
+                  />
+                </div>
+              </div>
+            )}
             <div className="flex flex-col sm:flex-row justify-between gap-2 mt-3">
               <Input
                 placeholder="Buscar por descrição, chave ou NCM..."
@@ -184,7 +270,7 @@ const CorrecoesSped = () => {
                 <Button variant="outline" size="sm" onClick={handleLimpar}>
                   <X className="h-3.5 w-3.5 mr-1" />Limpar
                 </Button>
-                <Button size="sm" onClick={handleConsultar} disabled={!canConsult || anyFetching}>
+                <Button size="sm" onClick={handleConsultar} disabled={!canConsult || anyFetching} title={activeTab === 'f100' && !f100FiltersValid ? 'Informe Nat. Base de Crédito ou Cód. Conta para consultar F100' : undefined}>
                   <Search className="h-3.5 w-3.5 mr-1" />
                   {anyFetching ? 'Consultando...' : 'Consultar'}
                 </Button>
@@ -284,6 +370,9 @@ const CorrecoesSped = () => {
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 contribuinteId={contribuinteId}
+                cod_cta={codCta || undefined}
+                dt_ini={dtIni || undefined}
+                dt_fin={dtFin || undefined}
               />
             </TabsContent>
 
@@ -297,6 +386,10 @@ const CorrecoesSped = () => {
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 contribuinteId={contribuinteId}
+                nat_bc_cred={natBcCred || undefined}
+                cod_cta={codCta || undefined}
+                dt_ini={dtIni || undefined}
+                dt_fin={dtFin || undefined}
               />
             </TabsContent>
 

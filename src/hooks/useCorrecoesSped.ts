@@ -12,6 +12,11 @@ interface UseCorrecoesSpedParams {
   dt_fin: string;
 }
 
+interface UseCorrecoesF100Params extends UseCorrecoesSpedParams {
+  nat_bc_cred?: string;
+  cod_cta?: string;
+}
+
 const SUPABASE_IN_BATCH_SIZE = 200;
 
 async function batchedIn<T>(
@@ -299,17 +304,19 @@ export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
   });
 }
 
-export function useCorrecoesF100(params: UseCorrecoesSpedParams) {
+export function useCorrecoesF100(params: UseCorrecoesF100Params) {
   const { fetchWithAuth } = useApiAuth();
 
   return useQuery<F100Item[]>({
-    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin],
+    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin, params.nat_bc_cred, params.cod_cta],
     queryFn: async () => {
       const searchParams = new URLSearchParams({
         id_contribuinte: params.id_contribuinte,
         dt_ini: params.dt_ini,
         dt_fin: params.dt_fin,
       });
+      if (params.nat_bc_cred) searchParams.set('nat_bc_cred', params.nat_bc_cred);
+      if (params.cod_cta) searchParams.set('cod_cta', params.cod_cta);
       const url = getApiUrl(`/api/v1/pis_cofins/revisao/transp_outros?${searchParams}`);
       const response = await fetchWithAuth(url);
       if (!response.ok) {

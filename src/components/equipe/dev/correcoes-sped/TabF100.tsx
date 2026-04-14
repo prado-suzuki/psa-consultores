@@ -71,11 +71,15 @@ interface TabF100Props {
   empresaCnpj: string | null;
   periodo: string | null;
   contribuinteId: string;
+  nat_bc_cred?: string;
+  cod_cta?: string;
+  dt_ini?: string;
+  dt_fin?: string;
 }
 
-export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId }: TabF100Props) {
+export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_cred, cod_cta, dt_ini, dt_fin }: TabF100Props) {
   const { user } = useAuth();
-  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100' });
+  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100', nat_bc_cred, cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
   const [editedRows, setEditedRows] = useState<Record<string, RegF100>>({});
   const [isEditMode, setIsEditMode] = useState(false);
