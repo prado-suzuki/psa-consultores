@@ -1,53 +1,30 @@
 
 
-# Correções de Prazo/Deadline na Área de Chamados
+# Correção: Nome do responsável visível ao cliente em MeusChamados.tsx
 
-## Resumo
-3 arquivos editados, zero mudança de banco. Unificar lógica de prazo para usar o campo `deadline` real do banco com fallback para 5 dias hardcoded.
+## Diagnóstico
 
----
+O código já faz o JOIN e já renderiza o nome — **o problema é RLS**. A query `profiles!assigned_to` tenta ler o perfil de outro usuário, mas a policy de `profiles` só permite `auth.uid() = id`. O JOIN retorna `null` silenciosamente.
 
-## 1. `GestaoChamados.tsx` — L187
+## Solução
 
-Adicionar `deadline` ao `.select()`:
+Trocar o JOIN de `profiles` (tabela com RLS restritivo) para `profiles_safe` (view sem RLS, expõe apenas `id, first_name, last_name`). Isso segue o padrão do projeto documentado em AI_CONTEXT.
 
+### Arquivo: `src/pages/cliente/MeusChamados.tsx`
+
+**Alteração única** — L100-103, trocar:
 ```ts
-.select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
+assigned_agent:profiles!assigned_to(first_name, last_name)
+```
+por:
+```ts
+assigned_agent:profiles_safe!assigned_to(first_name, last_name)
 ```
 
----
+O resto do código (interface, renderização, lógica condicional) permanece inalterado — já funciona corretamente.
 
-## 2. `useTicketNotifications.ts`
-
-**a)** Adicionar `deadline, created_at` ao `.select()` da query (L66-75).
-
-**b)** Alterar `calcularPrazoNotification` para aceitar `deadline: string | null` e `createdAt: string`:
-- Se `deadline` existir → calcular dias restantes como `deadline - hoje` (dias corridos)
-- Se `deadline` for null → fallback: `created_at + 5 dias úteis - hoje` (lógica atual)
-
-**c)** Atualizar a chamada no `.map()` para passar `ticket.deadline` e `ticket.created_at`.
-
----
-
-## 3. `EquipeChamados.tsx`
-
-**a)** Adicionar `deadline` à interface `Ticket`:
-```ts
-deadline: string | null;
-```
-
-**b)** Adicionar `deadline` ao `.select()` da `fetchTickets` (L216).
-
-**c)** Incluir `deadline` no mapeamento `enrichedTickets` (L250-265).
-
-**d)** Alterar `calcularPrazoResposta` para aceitar `deadline: string | null` como 5º parâmetro:
-- Se `deadline` existir → calcular prazo a partir dele (dias corridos até deadline)
-- Se null → manter lógica atual (5 dias a partir de `dataReferencia`)
-
-**e)** Atualizar todas as 16 chamadas de `calcularPrazoResposta` para passar `ticket.deadline` como 5º argumento (4 locais distintos: L395, L411-412, L778).
-
----
-
-## Nota
-Segue a regra do AI_CONTEXT de exceções toleradas para queries inline — refatoração para hooks será feita em etapa posterior.
+## Impacto
+- 1 arquivo, 1 linha alterada
+- Zero mudança de banco
+- Segue o padrão `profiles_safe` já usado em 32+ arquivos do projeto
 
