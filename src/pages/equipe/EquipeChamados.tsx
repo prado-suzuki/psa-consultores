@@ -269,6 +269,7 @@ export default function EquipeChamados() {
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
         estrutura_area_id: (ticket as any).estrutura_area_id || null,
+        deadline: (ticket as any).deadline ?? null,
         profiles: profilesMap.get(ticket.user_id),
         attachment_count: attachmentCountMap.get(ticket.id) || 0
       })) || [];
@@ -401,7 +402,7 @@ export default function EquipeChamados() {
     if (mostrarUrgentes) {
       filtered = filtered.filter(t => {
         if (t.status === 'resolvido' || t.status === 'fechado') return false;
-        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status);
+        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status, t.deadline);
         return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
       });
     }
@@ -417,8 +418,8 @@ export default function EquipeChamados() {
         };
 
         filtered.sort((a, b) => {
-          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status);
-          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status);
+          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status, a.deadline);
+          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status, b.deadline);
           const prioridadeA = getPrioridade(prazoA);
           const prioridadeB = getPrioridade(prazoB);
 
@@ -788,7 +789,8 @@ export default function EquipeChamados() {
                               ticket.created_at, 
                               ticket.updated_at,
                               ticket.status, 
-                              ticket.activity_status
+                              ticket.activity_status,
+                              ticket.deadline
                             );
                             
                             if (prazo.tipo === 'concluido') {
