@@ -1,7 +1,5 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -18,34 +16,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
-import { format, isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
+import { isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil } from '@/lib/dateUtils';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  activity_status: string | null;
-  deadline: string | null;
-  profiles?: Profile;
-  agent?: Profile;
-  attachment_count?: number;
-}
+import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useAssignTicket } from '@/hooks/useTicketMutations';
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'prazo' | 'activity_status' | null;
