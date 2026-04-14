@@ -576,6 +576,7 @@ export default function AdminChamados() {
                           {getSortIcon('department')}
                         </div>
                       </TableHead>
+                      <TableHead>Cluster</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('created_by')}
