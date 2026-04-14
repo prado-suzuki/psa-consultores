@@ -99,7 +99,7 @@ export default function MeusChamados() {
         .from('tickets')
         .select(`
           *,
-          assigned_agent:profiles!assigned_to(first_name, last_name)
+          assigned_agent:profiles_safe!assigned_to(first_name, last_name)
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
