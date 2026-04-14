@@ -28,6 +28,7 @@ export interface TicketListItem {
   agent?: TicketProfile;
   attachment_count?: number;
   assigned_agent?: { first_name: string; last_name: string } | null;
+  cliente_nome?: string | null;
 }
 
 export interface TicketDetail {
