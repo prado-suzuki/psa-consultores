@@ -1,87 +1,49 @@
 
 
-# Roteamento automático de chamados por cluster
+# Filtro de visibilidade por cluster — Plano de implementação
 
-## Pré-requisitos confirmados
-- `tickets.cluster_id` (uuid, nullable) — já existe no banco
-- `representante.user_id` — já existe e preenchido
-- `cliente_clusters` — tabela N:N funcional
-- `estrutura_clusters` — tem `id`, `name`
+## Estado atual
 
-## Arquivos e alterações
+| Arquivo | Tem `useAllActiveClusters`? | Tem `clusterMap`? | Tem coluna Cluster? | Tem filtro cluster? |
+|---|---|---|---|---|
+| GestaoChamados | Sim | Sim | Sim | **Não** |
+| EquipeChamados | Sim | Sim | Sim | **Não** |
+| AdminChamados | **Não** | **Não** | **Não** | **Não** |
 
-### 1. Novo: `src/hooks/useClienteClusters.ts`
-Hook que busca clusters do cliente logado:
-```
-representante (user_id = auth.uid()) → id_cliente
-cliente_clusters (cliente_id) → cluster_id
-estrutura_clusters (id) → name
-```
-Retorna `{ clusters: { id, name }[], clienteId: string | null, isLoading }`.
+## Alterações
 
-### 2. `src/pages/cliente/NovoChamado.tsx`
-- Importar `useClienteClusters`
-- Lógica condicional:
-  - 0 clusters → campo oculto, `cluster_id` fica `null`
-  - 1 cluster → auto-preenchido, exibe texto informativo "Empresa: X", sem select
-  - 2+ clusters → select obrigatório "Para qual empresa é o chamado?"
-- Adicionar `cluster_id` ao state do form
-- Passar `cluster_id` ao `useCreateTicketCliente`
+### 1. `GestaoChamados.tsx`
+- Adicionar `cluster: 'todos'` ao state `filters` (L105-111)
+- Adicionar Select "Cluster" na grid de filtros (depois do filtro de Área, L427-440)
+- Adicionar filtro no `filteredAndSortedTickets`: `if (filters.cluster !== 'todos') filtered = filtered.filter(t => t.cluster_id === filters.cluster)` (após L167)
+- Incluir `cluster: 'todos'` no reset implícito (se houver)
 
-### 3. `src/hooks/useCreateTicket.ts`
-- `CreateTicketClienteParams`: adicionar `cluster_id?: string | null`
-- `useCreateTicketCliente` mutationFn: incluir `cluster_id` no `insertPayload` se presente
-- `CreateTicketGestaoParams`: adicionar `cluster_id?: string | null`
-- `useCreateTicketGestao` mutationFn: incluir `cluster_id` no `insertPayload` se presente
+### 2. `EquipeChamados.tsx`
+- Importar `useUserEstrutura` de `@/hooks/useUserEstrutura`
+- Obter clusters do usuário logado: `const { clusters: userClusters } = useUserEstrutura()`
+- Inicializar `cluster` no state: se `userClusters.length === 1` → default ao ID do cluster; senão `'todos'`
+- Adicionar Select "Cluster" nos filtros (após Área, L423-436):
+  - Se `canAssignTickets` (líder/admin): mostrar todos os clusters via `clustersData`
+  - Se membro normal: mostrar apenas `userClusters` no dropdown
+- Adicionar filtro no `filteredAndSortedTickets` (após L236)
+- Incluir `cluster` no `resetFilters` (L317-326) — resetar para o cluster do usuário se tiver 1, senão `'todos'`
 
-### 4. `src/components/gestao/CreateTicketDialog.tsx`
-- Derivar `cluster_id` do `estrutura_area_id` selecionado usando `filteredAreas` (que já tem `cluster_id` no tipo `TicketArea`)
-- No `handleSubmit`, resolver: `const selectedArea = filteredAreas.find(a => a.id === formData.estrutura_area_id); cluster_id = selectedArea?.cluster_id`
-- Passar ao `createTicket.mutateAsync`
+### 3. `AdminChamados.tsx`
+- Importar `useAllActiveClusters` de `@/hooks/useEstruturaAreas`
+- Criar `clusterMap` (mesmo padrão dos outros)
+- Adicionar `cluster: 'todos'` ao state `filters` (L131-138)
+- Adicionar Select "Cluster" na segunda row de filtros (L435-487, entre Departamento e ID)
+- Adicionar filtro no `filteredAndSortedTickets` (após L213)
+- Adicionar coluna "Cluster" na tabela (após Departamento, L539-547)
+- Renderizar valor na TableBody (após L634)
+- Incluir `cluster: 'todos'` no `resetFilters` (L337-346)
 
-### 5. `src/hooks/useTickets.ts`
-- `useTicketsList`: adicionar `cluster_id` ao select string
-- `TicketListItem`: adicionar `cluster_id?: string | null`
-- `TicketDetail`: adicionar `cluster_id?: string | null`
-
-### 6. `src/pages/gestao/GestaoChamados.tsx`
-- Buscar clusters com query simples (ou reutilizar dados já disponíveis via `useAllActiveAreas` → mapear `cluster_id` → nome)
-- Adicionar coluna "Cluster" na tabela, read-only, com lookup de nome via `estrutura_clusters`
-- Novo hook inline ou query: buscar `estrutura_clusters` para montar `clusterMap`
-
-### 7. `src/pages/equipe/EquipeChamados.tsx`
-- Mesmo padrão: adicionar coluna "Cluster" read-only na tabela
-- Reutilizar o mesmo `clusterMap`
-
-## Hook auxiliar para clusters (listagem)
-Para evitar queries inline nos componentes de listagem, criar `useAllActiveClusters` em `useEstruturaAreas.ts` (arquivo já tem `useAllActiveAreas`):
-```ts
-export const useAllActiveClusters = () => useQuery({
-  queryKey: ['estrutura-clusters', '__all__'],
-  queryFn: async () => {
-    const { data, error } = await supabase
-      .from('estrutura_clusters')
-      .select('id, name')
-      .eq('is_active', true)
-      .order('name');
-    if (error) throw error;
-    return data || [];
-  },
-});
-```
-
-## Resumo de impacto
-
-| Arquivo | Ação |
+## Arquivos editados
+| Arquivo | Mudança |
 |---|---|
-| **Novo**: `src/hooks/useClienteClusters.ts` | Hook para clusters do cliente logado |
-| `src/hooks/useEstruturaAreas.ts` | Adicionar `useAllActiveClusters` |
-| `src/hooks/useCreateTicket.ts` | `cluster_id` nos params e payloads |
-| `src/hooks/useTickets.ts` | `cluster_id` no select e tipos |
-| `src/pages/cliente/NovoChamado.tsx` | Select condicional de cluster |
-| `src/components/gestao/CreateTicketDialog.tsx` | Derivar cluster_id da área |
-| `src/pages/gestao/GestaoChamados.tsx` | Coluna Cluster |
-| `src/pages/equipe/EquipeChamados.tsx` | Coluna Cluster |
+| `src/pages/gestao/GestaoChamados.tsx` | +filtro cluster no state, UI e lógica |
+| `src/pages/equipe/EquipeChamados.tsx` | +import useUserEstrutura, pré-filtro por cluster do usuário, dropdown condicional |
+| `src/pages/admin/AdminChamados.tsx` | +import clusters, clusterMap, filtro, coluna, dropdown |
 
-**0 migrations** (coluna já existe), **1 hook novo**, **1 hook adicionado a arquivo existente**, **6 arquivos editados**.
+**0 hooks novos, 0 migrations, 3 arquivos editados.**
 
