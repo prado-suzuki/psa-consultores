@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
@@ -116,6 +117,7 @@ export default function EquipeChamados() {
   const { user } = useAuth();
   const { toast } = useToast();
   const canAssignTickets = useCanAssignTickets();
+  const { clusters: userClusters } = useUserEstrutura();
   
   const { data: tickets = [], isLoading: loading } = useTicketsList({
     assignedTo: user?.id,
@@ -140,12 +142,14 @@ export default function EquipeChamados() {
 
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const defaultCluster = userClusters.length === 1 ? userClusters[0].id : 'todos';
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
     prioridade: 'todas',
     departamento: 'todos',
     area: 'todos',
+    cluster: defaultCluster,
     searchId: '',
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
@@ -235,6 +239,10 @@ export default function EquipeChamados() {
       filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
     }
 
+    if (filters.cluster !== 'todos') {
+      filtered = filtered.filter(t => t.cluster_id === filters.cluster);
+    }
+
     if (filters.searchId) {
       filtered = filtered.filter(t => 
         t.id.toLowerCase().includes(filters.searchId.toLowerCase())
@@ -321,6 +329,7 @@ export default function EquipeChamados() {
       prioridade: 'todas',
       departamento: 'todos',
       area: 'todos',
+      cluster: userClusters.length === 1 ? userClusters[0].id : 'todos',
       searchId: '',
     });
   };
@@ -430,6 +439,21 @@ export default function EquipeChamados() {
                     <SelectItem value="todos">Todas Áreas</SelectItem>
                     {areasData.map((area) => (
                       <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Cluster</Label>
+                <Select value={filters.cluster} onValueChange={(v) => setFilters({...filters, cluster: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {(canAssignTickets ? clustersData : userClusters).map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
