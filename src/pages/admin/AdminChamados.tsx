@@ -338,7 +338,7 @@ export default function AdminChamados() {
     if (mostrarUrgentes) {
       filtered = filtered.filter(t => {
         if (t.status === 'resolvido' || t.status === 'fechado') return false;
-        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status);
+        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status, t.deadline);
         return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
       });
     }
@@ -355,8 +355,8 @@ export default function AdminChamados() {
         };
 
         filtered.sort((a, b) => {
-          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status);
-          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status);
+          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status, a.deadline);
+          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status, b.deadline);
           const prioridadeA = getPrioridade(prazoA);
           const prioridadeB = getPrioridade(prazoB);
 
@@ -800,7 +800,8 @@ export default function AdminChamados() {
                               ticket.created_at, 
                               ticket.updated_at,
                               ticket.status, 
-                              ticket.activity_status
+                              ticket.activity_status,
+                              ticket.deadline
                             );
                             
                             if (prazo.tipo === 'concluido') {
