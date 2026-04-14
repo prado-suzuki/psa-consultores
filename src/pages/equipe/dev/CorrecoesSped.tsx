@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Check } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Check, Download } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
@@ -38,7 +38,7 @@ const NAT_BC_CRED_OPTIONS = [
 ] as const;
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
-import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes } from '@/hooks/useCorrecoesSped';
+import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes, useExportarCorrecoes } from '@/hooks/useCorrecoesSped';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { FlatItemEfd } from '@/types/correcoesSped';
@@ -96,6 +96,29 @@ const CorrecoesSped = () => {
   const f130Query = useCorrecoesF130(queryParams);
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
+  const { exportar: exportarCorrecoes, isExporting } = useExportarCorrecoes();
+
+  const getIdArquivos = (): string[] => {
+    let ids: string[] = [];
+    switch (activeTab) {
+      case 'c170': ids = (c170Query.data ?? []).map((i) => i.ID_ARQUIVO); break;
+      case 'a170': ids = (a170Query.data ?? []).map((i) => i.ID_ARQUIVO); break;
+      case 'd100': ids = (d100Query.data ?? []).map((i) => i.ID_ARQUIVO); break;
+      case 'f100': ids = (f100Query.data ?? []).map((i) => i.F100.ID_ARQUIVO); break;
+      case 'f120': ids = (f120Query.data ?? []).map((i) => i.F120.ID_ARQUIVO); break;
+      case 'f130': ids = (f130Query.data ?? []).map((i) => i.F130.ID_ARQUIVO); break;
+    }
+    return [...new Set(ids.filter(Boolean))];
+  };
+
+  const handleExportar = () => {
+    exportarCorrecoes({
+      tipo: 'contribuicoes',
+      idContribuinte: contribuinteId,
+      idArquivos: getIdArquivos(),
+      registros: [activeTab.toUpperCase()],
+    });
+  };
 
   const queryMap = {
     c170: c170Query, a170: a170Query, d100: d100Query,
@@ -307,10 +330,22 @@ const CorrecoesSped = () => {
                 <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
               </TabsList>
               {['c170', 'a170', 'd100', 'f100', 'f120', 'f130'].includes(activeTab) && (
-                <Button size="sm" onClick={() => enviarCorrecoes(activeTab.toUpperCase())} disabled={isSending} className="shrink-0">
-                  {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-                  {isSending ? 'Enviando...' : `Enviar Correções ${activeTab.toUpperCase()}`}
-                </Button>
+                <>
+                  <Button size="sm" onClick={() => enviarCorrecoes(activeTab.toUpperCase())} disabled={isSending} className="shrink-0">
+                    {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
+                    {isSending ? 'Enviando...' : `Enviar Correções ${activeTab.toUpperCase()}`}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleExportar}
+                    disabled={isExporting || getIdArquivos().length === 0}
+                    className="shrink-0"
+                  >
+                    {isExporting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
+                    {isExporting ? 'Exportando...' : `Exportar correções`}
+                  </Button>
+                </>
               )}
               {/* TODO: remover — botão temporário de debug */}
               <Button

@@ -457,6 +457,70 @@ export function useCorrecoesF130(params: UseCorrecoesSpedParams) {
   });
 }
 
+export function useExportarCorrecoes() {
+  const { fetchWithAuth } = useApiAuth();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportar = async ({
+    tipo,
+    idContribuinte,
+    idArquivos,
+    registros,
+  }: {
+    tipo: string;
+    idContribuinte: string;
+    idArquivos: string[];
+    registros: string[];
+  }) => {
+    if (!idContribuinte || idArquivos.length === 0 || registros.length === 0) return;
+    setIsExporting(true);
+    try {
+      const url = getApiUrl(`/api/v1/efd/${tipo}/${idContribuinte}/exportar_correcoes`);
+      const response = await fetchWithAuth(
+        url,
+        {
+          method: 'POST',
+          body: JSON.stringify({ id_arquivos: idArquivos, registros }),
+        },
+        120_000,
+        1,
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const errorCode = errorData?.detail?.error_code ?? '';
+        const errorMsg = errorData?.detail?.error_message ?? `HTTP ${response.status}`;
+        throw new Error(errorCode ? `${errorCode}: ${errorMsg}` : errorMsg);
+      }
+
+      const contentType = response.headers.get('Content-Type') ?? '';
+
+      if (contentType.includes('application/json')) {
+        const { url: fileUrl } = await response.json();
+        window.open(fileUrl, '_blank');
+      } else {
+        const blob = await response.blob();
+        const disposition = response.headers.get('Content-Disposition') ?? '';
+        const fileName = disposition.split('filename=')[1]?.replace(/"/g, '') ?? 'exportacao.xlsx';
+        const anchor = document.createElement('a');
+        anchor.href = URL.createObjectURL(blob);
+        anchor.download = fileName;
+        anchor.click();
+        URL.revokeObjectURL(anchor.href);
+      }
+
+      toast.success('Exportação concluída.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro inesperado ao exportar.';
+      toast.error(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  return { exportar, isExporting };
+}
+
 export function useEnviarCorrecoes() {
   const { fetchWithAuth } = useApiAuth();
   const [isSending, setIsSending] = useState(false);
