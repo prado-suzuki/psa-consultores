@@ -1,30 +1,36 @@
 
 
-# Correção: Nome do responsável visível ao cliente em MeusChamados.tsx
+# MeusChamados.tsx — Datas de criação e prazo no card
 
-## Diagnóstico
-
-O código já faz o JOIN e já renderiza o nome — **o problema é RLS**. A query `profiles!assigned_to` tenta ler o perfil de outro usuário, mas a policy de `profiles` só permite `auth.uid() = id`. O JOIN retorna `null` silenciosamente.
-
-## Solução
-
-Trocar o JOIN de `profiles` (tabela com RLS restritivo) para `profiles_safe` (view sem RLS, expõe apenas `id, first_name, last_name`). Isso segue o padrão do projeto documentado em AI_CONTEXT.
+## Alterações
 
 ### Arquivo: `src/pages/cliente/MeusChamados.tsx`
 
-**Alteração única** — L100-103, trocar:
+**1. Interface Ticket (L20-33)** — adicionar `deadline`:
 ```ts
-assigned_agent:profiles!assigned_to(first_name, last_name)
-```
-por:
-```ts
-assigned_agent:profiles_safe!assigned_to(first_name, last_name)
+deadline?: string | null;
 ```
 
-O resto do código (interface, renderização, lógica condicional) permanece inalterado — já funciona corretamente.
+**2. Card — substituir a data existente (L369-371)** pelo layout em linha única:
+```tsx
+<div className="flex items-center gap-2 text-xs text-muted-foreground">
+  <span>Criado em {format(new Date(ticket.created_at), "dd/MM/yyyy")}</span>
+  {ticket.deadline && (
+    <>
+      <span>•</span>
+      <span className={isPast(new Date(ticket.deadline + 'T23:59:59')) ? 'text-destructive font-medium' : ''}>
+        Prazo: {format(new Date(ticket.deadline + 'T12:00:00'), "dd/MM/yyyy")}
+      </span>
+    </>
+  )}
+</div>
+```
 
-## Impacto
-- 1 arquivo, 1 linha alterada
-- Zero mudança de banco
-- Segue o padrão `profiles_safe` já usado em 32+ arquivos do projeto
+**3. Import** — adicionar `isPast` do date-fns (já importa `format`).
+
+## Notas
+- A query já usa `SELECT *`, então `deadline` já vem do banco — nenhuma alteração na query.
+- Se `deadline` for null, o prazo simplesmente não aparece.
+- Se `deadline` já passou, exibe em vermelho (`text-destructive`).
+- 1 arquivo, ~10 linhas alteradas.
 
