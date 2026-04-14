@@ -151,6 +151,14 @@ export function useTicketsList(options?: TicketsListOptions) {
         attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
       });
 
+      // Cliente (empresa) names
+      const clienteIds = [...new Set(ticketsData.filter(t => (t as any).cliente_id).map(t => (t as any).cliente_id as string))];
+      const { data: clientesData } = clienteIds.length > 0
+        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
+        : { data: [] as { id: string; nome: string }[] };
+      const clienteMap = new Map<string, string>();
+      clientesData?.forEach(c => clienteMap.set(c.id, c.nome));
+
       return ticketsData.map(ticket => ({
         id: ticket.id,
         title: ticket.title,
@@ -169,6 +177,7 @@ export function useTicketsList(options?: TicketsListOptions) {
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0,
+        cliente_nome: (ticket as any).cliente_id ? clienteMap.get((ticket as any).cliente_id) || null : null,
       }));
     },
   });
