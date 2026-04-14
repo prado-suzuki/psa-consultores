@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useTicketDetail, useTicketMessages, useTicketAttachments } from '@/hooks/useTickets';
+import { useSendTicketMessage, useUpdateTicketStatus, useUploadTicketAttachments } from '@/hooks/useTicketMutations';
+import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,42 +13,6 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  profiles?: Profile;
-}
-
-interface Message {
-  id: string;
-  message: string;
-  is_admin: boolean;
-  created_at: string;
-  user_id: string;
-}
-
-interface Attachment {
-  id: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
-  file_type: string;
-  uploaded_at: string;
-}
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500',
@@ -78,40 +44,34 @@ const departmentLabels: Record<string, string> = {
   outros: 'Outros',
 };
 
+const ALLOWED_FILE_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'image/jpeg',
+  'image/png',
+  'application/zip',
+];
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
 export default function EquipeDetalhesChamado() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  const { data: ticket, isLoading: loading } = useTicketDetail(id);
+  const { data: messages = [] } = useTicketMessages(id);
+  const { data: attachments = [] } = useTicketAttachments(id);
+
+  const sendMessage = useSendTicketMessage();
+  const updateStatus = useUpdateTicketStatus();
+  const uploadAttachments = useUploadTicketAttachments();
+
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [areaName, setAreaName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const ALLOWED_FILE_TYPES = [
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'image/jpeg',
-    'image/png',
-    'application/zip',
-  ];
-  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-
-  useEffect(() => {
-    if (id) {
-      fetchTicketDetails();
-      fetchMessages();
-      fetchAttachments();
-    }
-  }, [id]);
 
   // Validate that the ticket is assigned to the current user
   useEffect(() => {
@@ -124,49 +84,6 @@ export default function EquipeDetalhesChamado() {
       navigate('/equipe/chamados');
     }
   }, [ticket, user, navigate]);
-
-  const fetchAttachments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ticket_attachments')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('uploaded_at', { ascending: true });
-
-      if (error) throw error;
-      setAttachments(data || []);
-    } catch (error) {
-      console.error('Error fetching attachments:', error);
-    }
-  };
-
-  const downloadFile = async (attachment: Attachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('ticket-attachments')
-        .download(attachment.file_path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast({
-        title: 'Erro ao baixar arquivo',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const isImageFile = (fileType: string) => {
-    return fileType?.startsWith('image/');
-  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -201,199 +118,76 @@ export default function EquipeDetalhesChamado() {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadFiles = async () => {
+  const handleUploadFiles = async () => {
     if (!user || !id || selectedFiles.length === 0) return;
 
-    setUploading(true);
     try {
-      for (const file of selectedFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('ticket-attachments')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { error: dbError } = await supabase
-          .from('ticket_attachments')
-          .insert({
-            ticket_id: id,
-            file_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            file_type: file.type,
-            uploaded_by: user.id,
-          });
-
-        if (dbError) throw dbError;
-      }
-
+      await uploadAttachments.mutateAsync({
+        ticketId: id,
+        files: selectedFiles,
+        userId: user.id,
+        actorName: 'Responsável',
+      });
       toast({
         title: 'Arquivos enviados',
         description: `${selectedFiles.length} arquivo(s) anexado(s) com sucesso.`,
       });
-
-      // Notificar sobre novo anexo (fire-and-forget)
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: id,
-          actor_name: 'Responsável',
-          message_preview: `${selectedFiles.length} arquivo(s) anexado(s)`,
-        }
-      }).catch(console.error);
-
       setSelectedFiles([]);
-      fetchAttachments();
-    } catch (error) {
-      console.error('Error uploading files:', error);
+    } catch {
       toast({
         title: 'Erro ao enviar arquivos',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setUploading(false);
     }
   };
 
-  const fetchTicketDetails = async () => {
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) {
-        toast({
-          title: 'Chamado não encontrado',
-          variant: 'destructive',
-        });
-        navigate('/equipe/chamados');
-        return;
-      }
-
-      // Fetch profile separately
-      const { data: profileData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .eq('id', data.user_id)
-        .maybeSingle();
-
-      setTicket({ ...data, profiles: profileData || undefined });
-
-      // Fetch area name
-      const areaId = (data as any).estrutura_area_id;
-      if (areaId) {
-        const { data: areaData } = await supabase
-          .from('estrutura_areas')
-          .select('name')
-          .eq('id', areaId)
-          .maybeSingle();
-        if (areaData) setAreaName(areaData.name);
-      }
-    } catch (error) {
-      console.error('Error fetching ticket:', error);
-      navigate('/equipe/chamados');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-      setMessages(data || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      await downloadTicketFile(filePath, fileName);
+    } catch {
+      toast({ title: 'Erro ao baixar arquivo', variant: 'destructive' });
     }
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !id) return;
 
-    setSending(true);
     try {
-      const { error } = await supabase.from('ticket_messages').insert({
-        ticket_id: id,
-        user_id: user.id,
-        message: newMessage.trim(),
-        is_admin: true,
+      await sendMessage.mutateAsync({
+        ticketId: id,
+        userId: user.id,
+        message: newMessage,
+        isAdmin: true,
+        actorName: 'Responsável',
       });
-
-      if (error) throw error;
-
-      // Update activity status
-      await supabase
-        .from('tickets')
-        .update({ activity_status: 'respondido' })
-        .eq('id', id);
-
-      // Notificar cliente sobre resposta do responsável (fire-and-forget)
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: id,
-          actor_name: 'Responsável',
-          message_preview: newMessage.trim().substring(0, 200),
-        }
-      }).catch(console.error);
-
       toast({
         title: 'Mensagem enviada',
         description: 'Sua resposta foi enviada com sucesso.',
       });
-
       setNewMessage('');
-      fetchMessages();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao enviar mensagem',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setSending(false);
     }
   };
 
   const handleStatusChange = async (newStatus: string) => {
+    if (!id) return;
     try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      setTicket(prev => prev ? { ...prev, status: newStatus } : null);
-
-      // Notificar quando status muda para resolvido
-      if (newStatus === 'resolvido') {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_resolved',
-            ticket_id: id,
-            actor_name: 'Responsável',
-          }
-        }).catch(console.error);
-      }
-
+      await updateStatus.mutateAsync({
+        ticketId: id,
+        newStatus,
+        actorName: 'Responsável',
+      });
       toast({
         title: 'Status atualizado',
         description: `Status alterado para ${statusLabels[newStatus]}.`,
       });
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao atualizar status',
         variant: 'destructive',
@@ -409,7 +203,13 @@ export default function EquipeDetalhesChamado() {
     );
   }
 
-  if (!ticket) return null;
+  if (!ticket) {
+    navigate('/equipe/chamados');
+    return null;
+  }
+
+  const uploading = uploadAttachments.isPending;
+  const sending = sendMessage.isPending;
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
@@ -456,9 +256,9 @@ export default function EquipeDetalhesChamado() {
                 <Badge variant="outline">
                   Departamento: {departmentLabels[ticket.department] || ticket.department}
                 </Badge>
-                {areaName && (
+                {ticket.areaName && (
                   <Badge variant="outline" className="border-teal-200 text-teal-700">
-                    Área: {areaName}
+                    Área: {ticket.areaName}
                   </Badge>
                 )}
               </div>
@@ -489,7 +289,7 @@ export default function EquipeDetalhesChamado() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => downloadFile(attachment)}
+                          onClick={() => handleDownloadFile(attachment.file_path, attachment.file_name)}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -554,7 +354,7 @@ export default function EquipeDetalhesChamado() {
                       ))}
                       
                       <Button
-                        onClick={uploadFiles}
+                        onClick={handleUploadFiles}
                         disabled={uploading}
                         className="mt-2"
                       >
