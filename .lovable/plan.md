@@ -1,33 +1,53 @@
 
 
-## Diagnóstico: Prazo não salva em /gestao/chamados
+# Correções de Prazo/Deadline na Área de Chamados
 
-### Causa raiz
+## Resumo
+3 arquivos editados, zero mudança de banco. Unificar lógica de prazo para usar o campo `deadline` real do banco com fallback para 5 dias hardcoded.
 
-A query de leitura dos tickets (linha 187) lista as colunas explicitamente mas **não inclui `deadline`**:
+---
 
-```ts
-.select('id, title, ..., activity_status, estrutura_area_id')
-//                                          ↑ deadline está ausente
-```
+## 1. `GestaoChamados.tsx` — L187
 
-O `update` na função `setDeadline` (linha 399-402) **funciona** — grava no banco. Porém, como o `fetchTickets` nunca traz o campo de volta, ao recarregar a página o valor aparece como "Sem prazo".
-
-O state local é atualizado (linha 406), então parece funcionar até o próximo refresh.
-
-### Correção
-
-**1 arquivo, 1 linha:**
-
-Em `src/pages/gestao/GestaoChamados.tsx`, linha 187, adicionar `deadline` à lista de colunas do select:
+Adicionar `deadline` ao `.select()`:
 
 ```ts
 .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
 ```
 
-Isso faz o valor persistido ser lido corretamente do banco, e o cast `(ticket as any).deadline` na linha 236 passará a receber o valor real.
+---
 
-### Impacto
-- 1 arquivo editado, 1 linha alterada
-- Zero mudança de banco de dados
+## 2. `useTicketNotifications.ts`
+
+**a)** Adicionar `deadline, created_at` ao `.select()` da query (L66-75).
+
+**b)** Alterar `calcularPrazoNotification` para aceitar `deadline: string | null` e `createdAt: string`:
+- Se `deadline` existir → calcular dias restantes como `deadline - hoje` (dias corridos)
+- Se `deadline` for null → fallback: `created_at + 5 dias úteis - hoje` (lógica atual)
+
+**c)** Atualizar a chamada no `.map()` para passar `ticket.deadline` e `ticket.created_at`.
+
+---
+
+## 3. `EquipeChamados.tsx`
+
+**a)** Adicionar `deadline` à interface `Ticket`:
+```ts
+deadline: string | null;
+```
+
+**b)** Adicionar `deadline` ao `.select()` da `fetchTickets` (L216).
+
+**c)** Incluir `deadline` no mapeamento `enrichedTickets` (L250-265).
+
+**d)** Alterar `calcularPrazoResposta` para aceitar `deadline: string | null` como 5º parâmetro:
+- Se `deadline` existir → calcular prazo a partir dele (dias corridos até deadline)
+- Se null → manter lógica atual (5 dias a partir de `dataReferencia`)
+
+**e)** Atualizar todas as 16 chamadas de `calcularPrazoResposta` para passar `ticket.deadline` como 5º argumento (4 locais distintos: L395, L411-412, L778).
+
+---
+
+## Nota
+Segue a regra do AI_CONTEXT de exceções toleradas para queries inline — refatoração para hooks será feita em etapa posterior.
 
