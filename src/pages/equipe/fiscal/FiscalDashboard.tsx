@@ -2,16 +2,16 @@ import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FolderKanban, Clock, CheckCircle, AlertTriangle, ListChecks, AlertCircle, Loader2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from 'recharts';
 import { format, differenceInDays, startOfDay } from 'date-fns';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
+import { useFiscalDashProjects, useFiscalDashTasks } from '@/hooks/useFiscalDashboardData';
+import { useFiscalClientsList } from '@/hooks/useFiscalClients';
+import { useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 
 const PIE_COLORS: Record<string, string> = {
   backlog: '#94a3b8',
@@ -25,42 +25,11 @@ const PIE_COLORS: Record<string, string> = {
 const today = startOfDay(new Date());
 
 const FiscalDashboard = () => {
-  const { data: projects = [], isLoading: loadingProjects } = useQuery({
-    queryKey: ['fiscal-dash-projects'],
-    queryFn: async () => {
-      const { data } = await supabase.from('org_projects').select('id, name, status, estrutura_area_id').order('name');
-      return data || [];
-    },
-  });
-
-  const { data: tasks = [], isLoading: loadingTasks } = useQuery({
-    queryKey: ['fiscal-dash-tasks'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('fiscal_tasks')
-        .select('id, title, status, project_id, client_id, assigned_to, assigned_to_name, estimated_hours, due_date')
-        .is('parent_task_id', null);
-      return data || [];
-    },
-  });
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ['fiscal-dash-clients'],
-    queryFn: async () => {
-      const { data } = await supabase.from('cliente').select('id, nome').eq('excluido', false).eq('ambiente', currentAmbiente);
-      return data || [];
-    },
-  });
-
+  const { data: projects = [], isLoading: loadingProjects } = useFiscalDashProjects();
+  const { data: tasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
+  const { data: clients = [] } = useFiscalClientsList();
   const { data: areas = [] } = useEstruturaAreas('tax');
-
-  const { data: members = [] } = useQuery({
-    queryKey: ['fiscal-dash-members'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles_safe').select('id, first_name, last_name');
-      return data || [];
-    },
-  });
+  const { data: members = [] } = useTeamProfilesSafe();
 
   const isLoading = loadingProjects || loadingTasks;
 

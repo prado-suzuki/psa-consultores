@@ -1,7 +1,4 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { currentAmbiente } from "@/config/api";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
@@ -11,24 +8,19 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "@/hooks/use-toast";
+
+import {
+  useClientesLista,
+  useContribuintesPorCliente,
+  useClientesFiltrados,
+  useContribuintesExpand,
+} from "@/hooks/useGestaoClientes";
+import { useDeleteCliente } from "@/hooks/useDeleteCliente";
+import NewClientModal from "@/components/equipe/NewClientModal";
 
 /* ── Sub-componente: contribuintes expandidos ── */
 const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
-  const { data, isLoading } = useQuery({
-    queryKey: ["contribuintes-expand", clienteId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contribuinte")
-        .select("id, cpf_cnpj, nome_razao_social, inscricao_estadual, simples_nacional")
-        .eq("cliente_id", clienteId)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
+  const { data, isLoading } = useContribuintesExpand(clienteId);
 
   if (isLoading) return <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm"><Loader2 className="h-4 w-4 animate-spin" />Carregando contribuintes…</div>;
 
@@ -59,7 +51,6 @@ const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
     </div>
   );
 };
-import NewClientModal from "@/components/equipe/NewClientModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -83,57 +74,20 @@ const GestaoClientes = () => {
   const [editingClienteId, setEditingClienteId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState(false);
   const [deletingCliente, setDeletingCliente] = useState<{ id: string; nome: string } | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null);
 
-  const queryClient = useQueryClient();
+  // Hooks centralizados
+  const { data: clientes = [] } = useClientesLista();
+  const { data: contribuintes = [] } = useContribuintesPorCliente(clienteId);
+  const {
+    data: resultados = [],
+    isLoading,
+    refetch,
+  } = useClientesFiltrados({ clienteId, status, tipo, categoria, nomeRazaoSocial }, searched);
+  const deleteMutation = useDeleteCliente();
 
   // Verifica se há filtros ativos
   const hasActiveFilters = clienteId || status || tipo || categoria || nomeRazaoSocial;
-
-  // Verifica se há filtros de contribuinte ativos
-  const hasContribuinteFilters = !!nomeRazaoSocial;
-
-  // Query para lista de clientes (id + nome)
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-lista"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select("id, nome")
-        .not("nome", "is", null)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome");
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Query para contribuintes - filtrado por cliente_id quando selecionado
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes-por-cliente", clienteId],
-    queryFn: async () => {
-      let query = supabase
-        .from('contribuinte')
-        .select("id, nome_razao_social, cliente_id")
-        .not("nome_razao_social", "is", null)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-
-      if (clienteId && clienteId !== "__todos__") {
-        query = query.eq("cliente_id", clienteId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const uniqueContribuintes = [...new Map(data?.map((d) => [d.nome_razao_social, d]) || []).values()];
-      return uniqueContribuintes;
-    },
-  });
 
   // Limpar contribuinte quando cliente mudar
   useEffect(() => {
@@ -146,69 +100,6 @@ const GestaoClientes = () => {
       setNomeRazaoSocial(contribuintes[0].nome_razao_social);
     }
   }, [clienteId, contribuintes, nomeRazaoSocial]);
-
-  // Query principal - busca clientes
-  const {
-    data: resultados = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["clientes-filtrados", clienteId, status, tipo, categoria, nomeRazaoSocial],
-    queryFn: async () => {
-      let filteredClienteIds: string[] | null = null;
-
-      if (hasContribuinteFilters) {
-        let contribuinteQuery = supabase.from('contribuinte').select("cliente_id").eq("excluido", false);
-
-        if (nomeRazaoSocial) contribuinteQuery = contribuinteQuery.eq("nome_razao_social", nomeRazaoSocial);
-
-        const { data: contribData, error: contribError } = await contribuinteQuery;
-        if (contribError) throw contribError;
-
-        filteredClienteIds = [...new Set(contribData?.map((c) => c.cliente_id))] as string[];
-
-        if (filteredClienteIds.length === 0) return [];
-      }
-
-      let clienteQuery = supabase.from('cliente').select("*").eq("excluido", false).eq("ambiente", currentAmbiente);
-
-      if (clienteId && clienteId !== "__todos__") {
-        clienteQuery = clienteQuery.eq("id", clienteId);
-      }
-
-      if (status) clienteQuery = clienteQuery.eq("ativo", status === "true");
-      if (tipo) clienteQuery = clienteQuery.eq("fixo", tipo);
-      if (categoria) clienteQuery = clienteQuery.eq("categoria", categoria);
-
-      if (filteredClienteIds !== null) {
-        clienteQuery = clienteQuery.in("id", filteredClienteIds);
-      }
-
-      const { data, error } = await clienteQuery.order("nome");
-      if (error) throw error;
-
-      // Enrich with cluster names
-      const clienteIds = (data || []).map(c => c.id);
-      let clusterMap: Record<string, string[]> = {};
-      if (clienteIds.length > 0) {
-        // cliente_clusters não está no schema tipado — cast justificado
-        const { data: ccRows } = await (supabase.from('cliente_clusters' as any) as any)
-          .select('cliente_id, cluster_id, estrutura_clusters(name)')
-          .in('cliente_id', clienteIds);
-        if (ccRows) {
-          for (const row of ccRows as any[]) {
-            const cid = row.cliente_id as string;
-            const cname = row.estrutura_clusters?.name as string;
-            if (!clusterMap[cid]) clusterMap[cid] = [];
-            if (cname) clusterMap[cid].push(cname);
-          }
-        }
-      }
-
-      return (data || []).map(c => ({ ...c, _clusters: clusterMap[c.id] || [] }));
-    },
-    enabled: searched,
-  });
 
   // Reset página quando buscar novamente
   useEffect(() => {
@@ -239,20 +130,9 @@ const GestaoClientes = () => {
 
   const handleDeleteConfirm = async () => {
     if (!deletingCliente) return;
-    setIsDeleting(true);
-    try {
-      const { error } = await supabase.from('cliente').update({ excluido: true } as any).eq("id", deletingCliente.id);
-      if (error) throw error;
-      queryClient.invalidateQueries({ queryKey: ["clientes"] });
-      queryClient.invalidateQueries({ queryKey: ["clientes-lista"] });
-      queryClient.invalidateQueries({ queryKey: ["clientes-filtrados"] });
-      toast({ title: "Cliente excluído", description: `O cliente "${deletingCliente.nome}" foi removido.` });
-    } catch (e: any) {
-      toast({ title: "Erro ao excluir", description: e.message, variant: "destructive" });
-    } finally {
-      setIsDeleting(false);
-      setDeletingCliente(null);
-    }
+    deleteMutation.mutate(deletingCliente, {
+      onSettled: () => setDeletingCliente(null),
+    });
   };
 
   const handleClienteClick = (cliente: { id: string }) => {
@@ -468,14 +348,14 @@ const GestaoClientes = () => {
                           </button>
                         </TableCell>
                         <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
-                        <TableCell className="px-4 py-3.5">{formatCategoria((row as any).categoria)}</TableCell>
+                        <TableCell className="px-4 py-3.5">{formatCategoria(row.categoria)}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
                         <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
                         <TableCell className="px-4 py-3.5">
-                          {(row as any)._clusters && (row as any)._clusters.length > 0
-                            ? (row as any)._clusters.map((name: string) => (
+                          {row._clusters && row._clusters.length > 0
+                            ? row._clusters.map((name: string) => (
                                 <Badge key={name} variant="secondary" className="text-xs mr-1 mb-0.5">{name}</Badge>
                               ))
                             : <span className="text-muted-foreground">—</span>}
@@ -556,13 +436,13 @@ const GestaoClientes = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              disabled={isDeleting}
+              disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
