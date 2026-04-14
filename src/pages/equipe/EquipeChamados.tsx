@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
-import { useQueryClient } from '@tanstack/react-query';
+import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useAllActiveAreas } from '@/hooks/useEstruturaAreas';
+import { useAssignTicket } from '@/hooks/useTicketMutations';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,35 +25,6 @@ import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-re
 import { isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isTodayBrazil } from '@/lib/dateUtils';
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  department: string;
-  created_at: string;
-  updated_at: string;
-  user_id: string;
-  assigned_to: string | null;
-  activity_status: string | null;
-  estrutura_area_id: string | null;
-  deadline: string | null;
-  profiles?: Profile;
-  attachment_count?: number;
-}
-
-interface Area {
-  id: string;
-  name: string;
-}
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'updated_at' | 'prazo' | 'activity_status' | null;
@@ -84,10 +56,8 @@ const calcularPrazoResposta = (
   let prazoFinal: Date;
 
   if (deadline) {
-    // Use real deadline from DB
     prazoFinal = new Date(deadline + 'T23:59:59');
   } else {
-    // Fallback: 5 days from reference date
     const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
     prazoFinal = new Date(dataReferencia);
     prazoFinal.setDate(prazoFinal.getDate() + 5);
@@ -145,16 +115,24 @@ export default function EquipeChamados() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const canAssignTickets = useCanAssignTickets();
   
-  const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [agents, setAgents] = useState<Profile[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: tickets = [], isLoading: loading } = useTicketsList({
+    assignedTo: user?.id,
+    filterAssigned: !canAssignTickets,
+  });
+  const { data: agents = [] } = useTicketAgents();
+  const { data: areasData = [] } = useAllActiveAreas();
+  const assignTicket = useAssignTicket();
+
+  const areaMap = useMemo(() => {
+    const map = new Map<string, string>();
+    areasData.forEach(a => map.set(a.id, a.name));
+    return map;
+  }, [areasData]);
+
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [areaMap, setAreaMap] = useState<Map<string, string>>(new Map());
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
@@ -165,156 +143,21 @@ export default function EquipeChamados() {
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
 
-  useEffect(() => {
-    if (user) {
-      fetchTickets();
-    }
-    fetchAreas();
-  }, [user, canAssignTickets]);
-
-  const fetchAreas = async () => {
+  const handleAssignAgent = async (ticketId: string, agentId: string | null) => {
+    const agent = agents.find(a => a.id === agentId);
     try {
-      const { data } = await supabase
-        .from('estrutura_areas')
-        .select('id, name')
-        .eq('is_active', true)
-        .order('name');
-      const list = data || [];
-      setAreas(list);
-      const map = new Map<string, string>();
-      list.forEach(a => map.set(a.id, a.name));
-      setAreaMap(map);
-    } catch (error) {
-      console.error('Error fetching areas:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (canAssignTickets) {
-      fetchAgents();
-    }
-  }, [canAssignTickets]);
-
-  const fetchAgents = async () => {
-    try {
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-        .in('role', ['team_member', 'admin']);
-
-      if (rolesData) {
-        const userIds = rolesData.map(r => r.user_id);
-        const { data: profilesData } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-
-        setAgents(profilesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching agents:', error);
-    }
-  };
-
-  const fetchTickets = async () => {
-    if (!user) return;
-    
-    try {
-      let query = supabase
-        .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
-        .order('created_at', { ascending: false });
-      
-      // If user can assign (leader), show all tickets. Otherwise, show only assigned tickets.
-      if (!canAssignTickets) {
-        query = query.eq('assigned_to', user.id);
-      }
-
-      const { data: ticketsData, error: ticketsError } = await query;
-
-      if (ticketsError) throw ticketsError;
-
-      // Fetch profiles for creators
-      const userIds = [...new Set(ticketsData?.map(t => t.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      const profilesMap = new Map<string, Profile>();
-      profilesData?.forEach(p => profilesMap.set(p.id, p));
-
-      // Fetch attachment counts for all tickets
-      const ticketIds = ticketsData?.map(t => t.id) || [];
-      const { data: attachmentCounts } = await supabase
-        .from('ticket_attachments')
-        .select('ticket_id')
-        .in('ticket_id', ticketIds);
-
-      const attachmentCountMap = new Map<string, number>();
-      attachmentCounts?.forEach(a => {
-        attachmentCountMap.set(a.ticket_id, (attachmentCountMap.get(a.ticket_id) || 0) + 1);
+      await assignTicket.mutateAsync({
+        ticketId,
+        agentId,
+        agentName: agent ? `${agent.first_name} ${agent.last_name}` : null,
       });
-      
-      const enrichedTickets: Ticket[] = ticketsData?.map(ticket => ({
-        id: ticket.id,
-        title: ticket.title,
-        description: ticket.description,
-        status: ticket.status || 'aberto',
-        priority: ticket.priority || 'normal',
-        department: ticket.department || '',
-        user_id: ticket.user_id,
-        created_at: ticket.created_at || '',
-        updated_at: ticket.updated_at || '',
-        assigned_to: ticket.assigned_to || null,
-        activity_status: ticket.activity_status || 'aguardando_resposta',
-        estrutura_area_id: (ticket as any).estrutura_area_id || null,
-        deadline: (ticket as any).deadline ?? null,
-        profiles: profilesMap.get(ticket.user_id),
-        attachment_count: attachmentCountMap.get(ticket.id) || 0
-      })) || [];
-
-      setTickets(enrichedTickets);
-    } catch (error) {
-      console.error('Error fetching tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const assignAgent = async (ticketId: string, agentId: string | null) => {
-    try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ assigned_to: agentId })
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      const agent = agents.find(a => a.id === agentId);
       toast({
         title: 'Agente atribuído',
         description: agentId 
           ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
           : 'Atribuição removida',
       });
-
-      // Notificar cliente e responsável sobre atribuição (fire-and-forget)
-      if (agentId) {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_assigned',
-            ticket_id: ticketId,
-            actor_name: `${agent?.first_name} ${agent?.last_name}`,
-          }
-        }).catch(console.error);
-      }
-
-      // Invalidate notification cache
-      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
-      
-      fetchTickets();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao atribuir agente',
         description: 'Tente novamente mais tarde.',
@@ -322,7 +165,6 @@ export default function EquipeChamados() {
       });
     }
   };
-
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn === column) {
@@ -351,7 +193,6 @@ export default function EquipeChamados() {
   const filteredAndSortedTickets = useMemo(() => {
     let filtered = [...tickets];
 
-    // Filtro por período
     if (filters.periodo !== 'todas') {
       const now = new Date();
       filtered = filtered.filter(t => {
@@ -371,34 +212,28 @@ export default function EquipeChamados() {
       });
     }
 
-    // Filtro por status
     if (filters.status !== 'todos') {
       filtered = filtered.filter(t => t.status === filters.status);
     }
 
-    // Filtro por prioridade
     if (filters.prioridade !== 'todas') {
       filtered = filtered.filter(t => t.priority === filters.prioridade);
     }
 
-    // Filtro por departamento
     if (filters.departamento !== 'todos') {
       filtered = filtered.filter(t => t.department === filters.departamento);
     }
 
-    // Filtro por área
     if (filters.area !== 'todos') {
       filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
     }
 
-    // Filtro por ID
     if (filters.searchId) {
       filtered = filtered.filter(t => 
         t.id.toLowerCase().includes(filters.searchId.toLowerCase())
       );
     }
 
-    // Filtro de chamados urgentes
     if (mostrarUrgentes) {
       filtered = filtered.filter(t => {
         if (t.status === 'resolvido' || t.status === 'fechado') return false;
@@ -407,7 +242,6 @@ export default function EquipeChamados() {
       });
     }
 
-    // Ordenação
     if (sortColumn && sortDirection) {
       if (sortColumn === 'prazo') {
         const getPrioridade = (prazo: PrazoInfo) => {
@@ -587,7 +421,7 @@ export default function EquipeChamados() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="todos">Todas Áreas</SelectItem>
-                    {areas.map((area) => (
+                    {areasData.map((area) => (
                       <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -852,7 +686,7 @@ export default function EquipeChamados() {
                           <TableCell>
                             <Select
                               value={ticket.assigned_to || 'none'}
-                              onValueChange={(v) => assignAgent(ticket.id, v === 'none' ? null : v)}
+                              onValueChange={(v) => handleAssignAgent(ticket.id, v === 'none' ? null : v)}
                             >
                               <SelectTrigger className="w-[150px]">
                                 <SelectValue placeholder="Atribuir" />

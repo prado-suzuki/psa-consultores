@@ -1,7 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useTicketDetail, useTicketMessages, useTicketAttachments } from '@/hooks/useTickets';
+import { useSendTicketMessage, useUploadTicketAttachments } from '@/hooks/useTicketMutations';
+import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,36 +12,6 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-interface Ticket {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  priority: string;
-  created_at: string;
-}
-
-interface Message {
-  id: string;
-  message: string;
-  is_admin: boolean;
-  created_at: string;
-  user_id: string;
-  author?: {
-    first_name: string;
-    last_name: string;
-  };
-}
-
-interface Attachment {
-  id: string;
-  file_name: string;
-  file_path: string;
-  file_size: number;
-  file_type: string;
-  uploaded_at: string;
-}
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500',
@@ -71,66 +43,23 @@ export default function DetalhesChamado() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [ticket, setTicket] = useState<Ticket | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
+
+  const { data: ticket, isLoading: loading } = useTicketDetail(id, { ownerOnly: user?.id });
+  const { data: messages = [] } = useTicketMessages(id, true);
+  const { data: attachments = [] } = useTicketAttachments(id);
+
+  const sendMessage = useSendTicketMessage();
+  const uploadAttachments = useUploadTicketAttachments();
+
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchTicketDetails();
-      fetchMessages();
-      fetchAttachments();
-    }
-  }, [id, user]);
-
-  const fetchAttachments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ticket_attachments')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('uploaded_at', { ascending: true });
-
-      if (error) throw error;
-      setAttachments(data || []);
-    } catch (error) {
-      console.error('Error fetching attachments:', error);
-    }
-  };
-
-  const downloadFile = async (attachment: Attachment) => {
-    try {
-      const { data, error } = await supabase.storage
-        .from('ticket-attachments')
-        .download(attachment.file_path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      toast({
-        title: 'Erro ao baixar arquivo',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const isImageFile = (fileType: string) => {
-    return fileType?.startsWith('image/');
-  };
+  // Redirect if ticket not found after loading
+  if (!loading && !ticket) {
+    navigate('/cliente/chamados');
+    return null;
+  }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -165,172 +94,60 @@ export default function DetalhesChamado() {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
-  const uploadFiles = async () => {
+  const handleUploadFiles = async () => {
     if (!user || !id || selectedFiles.length === 0) return;
 
-    setUploading(true);
     try {
-      for (const file of selectedFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('ticket-attachments')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-
-        const { error: dbError } = await supabase
-          .from('ticket_attachments')
-          .insert({
-            ticket_id: id,
-            file_name: file.name,
-            file_path: fileName,
-            file_size: file.size,
-            file_type: file.type,
-            uploaded_by: user.id,
-          });
-
-        if (dbError) throw dbError;
-      }
-
+      await uploadAttachments.mutateAsync({
+        ticketId: id,
+        files: selectedFiles,
+        userId: user.id,
+        actorName: 'Cliente',
+      });
       toast({
         title: 'Arquivos enviados',
         description: `${selectedFiles.length} arquivo(s) anexado(s) com sucesso.`,
       });
-
-      // Notificar sobre novo anexo (fire-and-forget)
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: id,
-          actor_name: 'Cliente',
-          message_preview: `${selectedFiles.length} arquivo(s) anexado(s)`,
-        }
-      }).catch(console.error);
-
       setSelectedFiles([]);
-      fetchAttachments();
     } catch (error) {
-      console.error('Error uploading files:', error);
       toast({
         title: 'Erro ao enviar arquivos',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setUploading(false);
     }
   };
 
-  const fetchTicketDetails = async () => {
+  const handleDownloadFile = async (filePath: string, fileName: string) => {
     try {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error) throw error;
-      setTicket(data);
-    } catch (error) {
-      console.error('Error fetching ticket:', error);
-      navigate('/cliente/chamados');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const { data: messagesData, error: messagesError } = await supabase
-        .from('ticket_messages')
-        .select('*')
-        .eq('ticket_id', id)
-        .order('created_at', { ascending: true });
-
-      if (messagesError) throw messagesError;
-
-      const adminUserIds = [...new Set(
-        messagesData
-          ?.filter(m => m.is_admin)
-          .map(m => m.user_id) || []
-      )];
-
-      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
-
-      if (adminUserIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', adminUserIds);
-
-        profilesData?.forEach(p => {
-          profilesMap[p.id] = {
-            first_name: p.first_name || '',
-            last_name: p.last_name || ''
-          };
-        });
-      }
-
-      const enrichedMessages = messagesData?.map(msg => ({
-        ...msg,
-        author: msg.is_admin ? profilesMap[msg.user_id] : undefined
-      })) || [];
-
-      setMessages(enrichedMessages);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
+      await downloadTicketFile(filePath, fileName);
+    } catch {
+      toast({ title: 'Erro ao baixar arquivo', variant: 'destructive' });
     }
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user) return;
+    if (!newMessage.trim() || !user || !id) return;
 
-    setSending(true);
     try {
-      const { error } = await supabase.from('ticket_messages').insert({
-        ticket_id: id,
-        user_id: user.id,
-        message: newMessage.trim(),
-        is_admin: false,
+      await sendMessage.mutateAsync({
+        ticketId: id,
+        userId: user.id,
+        message: newMessage,
+        isAdmin: false,
+        actorName: 'Cliente',
       });
-
-      if (error) throw error;
-
-      await supabase
-        .from('tickets')
-        .update({
-          activity_status: 'aguardando_resposta',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id);
-
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: id,
-          actor_name: 'Cliente',
-          message_preview: newMessage.trim().substring(0, 200),
-        }
-      }).catch(console.error);
-
       toast({
         title: 'Mensagem enviada',
         description: 'Sua mensagem foi enviada com sucesso.',
       });
-
       setNewMessage('');
-      fetchMessages();
-    } catch (error) {
+    } catch {
       toast({
         title: 'Erro ao enviar mensagem',
         description: 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
-    } finally {
-      setSending(false);
     }
   };
 
@@ -343,6 +160,9 @@ export default function DetalhesChamado() {
   }
 
   if (!ticket) return null;
+
+  const uploading = uploadAttachments.isPending;
+  const sending = sendMessage.isPending;
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
@@ -391,7 +211,7 @@ export default function DetalhesChamado() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => downloadFile(attachment)}
+                          onClick={() => handleDownloadFile(attachment.file_path, attachment.file_name)}
                         >
                           <Download className="h-4 w-4" />
                         </Button>
@@ -456,7 +276,7 @@ export default function DetalhesChamado() {
                       ))}
 
                       <Button
-                        onClick={uploadFiles}
+                        onClick={handleUploadFiles}
                         disabled={uploading}
                         className="mt-2"
                       >

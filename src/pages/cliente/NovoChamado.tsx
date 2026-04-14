@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useCreateTicketCliente } from '@/hooks/useCreateTicket';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,7 +26,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export default function NovoChamado() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
+  const createTicket = useCreateTicketCliente();
+
   const [form, setForm] = useState({
     title: '',
     department: '',
@@ -59,87 +60,12 @@ export default function NovoChamado() {
     setSelectedFiles(selectedFiles.filter((_, i) => i !== index));
   };
 
-  const uploadFiles = async (ticketId: string) => {
-    for (const file of selectedFiles) {
-      const filePath = `${ticketId}/${Date.now()}_${file.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('ticket-attachments')
-        .upload(filePath, file);
-      
-      if (!uploadError) {
-        await supabase
-          .from('ticket_attachments')
-          .insert({
-            ticket_id: ticketId,
-            file_name: file.name,
-            file_path: filePath,
-            file_size: file.size,
-            file_type: file.type,
-            uploaded_by: user?.id,
-          });
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrors({});
 
     try {
       ticketSchema.parse(form);
-      setLoading(true);
-
-      // Try to find cliente_id from representante table
-      let clienteId: string | null = null;
-      if (user?.id) {
-        const { data: repData } = await supabase
-          .from('representante' as any)
-          .select('id_cliente')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        if (repData) {
-          clienteId = (repData as any).id_cliente;
-        }
-      }
-
-      const insertPayload: any = {
-        user_id: user?.id,
-        title: form.title,
-        department: form.department,
-        description: form.description,
-        priority: form.priority,
-        status: 'aberto',
-      };
-      if (clienteId) {
-        insertPayload.cliente_id = clienteId;
-      }
-
-      const { data: ticketData, error } = await supabase.from('tickets').insert(insertPayload).select().single();
-
-      if (error) throw error;
-
-      // Disparar notificação (fire-and-forget)
-      if (ticketData) {
-        supabase.functions.invoke('notify-ticket', {
-          body: {
-            event_type: 'ticket_created',
-            ticket_id: ticketData.id,
-            actor_name: user?.user_metadata?.first_name || 'Cliente',
-          }
-        }).catch(console.error);
-      }
-
-      if (selectedFiles.length > 0 && ticketData) {
-        await uploadFiles(ticketData.id);
-      }
-
-      toast({
-        title: 'Chamado criado com sucesso!',
-        description: 'Nossa equipe entrará em contato em breve.',
-      });
-
-      navigate('/cliente/chamados');
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: any = {};
@@ -149,17 +75,39 @@ export default function NovoChamado() {
           }
         });
         setErrors(fieldErrors);
-      } else {
-        toast({
-          title: 'Erro ao criar chamado',
-          description: 'Tente novamente mais tarde.',
-          variant: 'destructive',
-        });
       }
-    } finally {
-      setLoading(false);
+      return;
+    }
+
+    if (!user?.id) return;
+
+    try {
+      await createTicket.mutateAsync({
+        userId: user.id,
+        title: form.title,
+        department: form.department,
+        description: form.description,
+        priority: form.priority,
+        files: selectedFiles,
+        actorName: user.user_metadata?.first_name || 'Cliente',
+      });
+
+      toast({
+        title: 'Chamado criado com sucesso!',
+        description: 'Nossa equipe entrará em contato em breve.',
+      });
+
+      navigate('/cliente/chamados');
+    } catch {
+      toast({
+        title: 'Erro ao criar chamado',
+        description: 'Tente novamente mais tarde.',
+        variant: 'destructive',
+      });
     }
   };
+
+  const loading = createTicket.isPending;
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
