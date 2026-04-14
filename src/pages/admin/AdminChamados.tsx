@@ -41,6 +41,7 @@ interface Ticket {
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
+  deadline: string | null;
   profiles?: Profile;
   agent?: Profile;
   attachment_count?: number;
@@ -61,7 +62,8 @@ const calcularPrazoResposta = (
   dataCriacao: string, 
   dataAtualizacao: string,
   status: string, 
-  activityStatus: string | null
+  activityStatus: string | null,
+  deadline: string | null = null
 ): PrazoInfo => {
   // Chamado resolvido ou fechado
   if (status === 'resolvido' || status === 'fechado') {
@@ -73,12 +75,19 @@ const calcularPrazoResposta = (
     return { tipo: 'aguardando_cliente' };
   }
   
-  // Calcular prazo baseado na última atualização (quando aguardando resposta da equipe)
-  const prazoEmDias = 5;
   const hoje = new Date();
-  const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
-  const prazoFinal = new Date(dataReferencia);
-  prazoFinal.setDate(prazoFinal.getDate() + prazoEmDias);
+  let prazoFinal: Date;
+
+  if (deadline) {
+    // Use real deadline from DB (calendar days)
+    prazoFinal = new Date(deadline + 'T23:59:59');
+  } else {
+    // Fallback: 5 days from reference date
+    const prazoEmDias = 5;
+    const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
+    prazoFinal = new Date(dataReferencia);
+    prazoFinal.setDate(prazoFinal.getDate() + prazoEmDias);
+  }
   
   const diffTime = prazoFinal.getTime() - hoje.getTime();
   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -185,7 +194,7 @@ export default function AdminChamados() {
     try {
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline')
         .order('created_at', { ascending: false });
 
       if (ticketsError) throw ticketsError;
@@ -237,6 +246,7 @@ export default function AdminChamados() {
         updated_at: ticket.updated_at || '',
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
+        deadline: ticket.deadline ?? null,
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0
@@ -328,7 +338,7 @@ export default function AdminChamados() {
     if (mostrarUrgentes) {
       filtered = filtered.filter(t => {
         if (t.status === 'resolvido' || t.status === 'fechado') return false;
-        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status);
+        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status, t.deadline);
         return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
       });
     }
@@ -345,8 +355,8 @@ export default function AdminChamados() {
         };
 
         filtered.sort((a, b) => {
-          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status);
-          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status);
+          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status, a.deadline);
+          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status, b.deadline);
           const prioridadeA = getPrioridade(prazoA);
           const prioridadeB = getPrioridade(prazoB);
 
@@ -790,7 +800,8 @@ export default function AdminChamados() {
                               ticket.created_at, 
                               ticket.updated_at,
                               ticket.status, 
-                              ticket.activity_status
+                              ticket.activity_status,
+                              ticket.deadline
                             );
                             
                             if (prazo.tipo === 'concluido') {
