@@ -292,34 +292,28 @@ export default function AdminChamados() {
     return filtered;
   }, [tickets, filters, sortColumn, sortDirection, mostrarUrgentes]);
 
-  const assignAgent = async (ticketId: string, agentId: string | null) => {
-    try {
-      const { error } = await supabase
-        .from('tickets')
-        .update({ assigned_to: agentId })
-        .eq('id', ticketId);
-
-      if (error) throw error;
-
-      const agent = agents.find(a => a.id === agentId);
-      toast({
-        title: 'Agente atribuído',
-        description: agentId 
-          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
-          : 'Atribuição removida',
-      });
-
-      // Invalidate notification cache for all users
-      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
-      
-      fetchTickets();
-    } catch (error) {
-      toast({
-        title: 'Erro ao atribuir agente',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
-    }
+  const assignAgent = (ticketId: string, agentId: string | null) => {
+    const agent = agents.find(a => a.id === agentId);
+    assignMutation.mutate(
+      { ticketId, agentId, agentName: agent ? `${agent.first_name} ${agent.last_name}` : null },
+      {
+        onSuccess: () => {
+          toast({
+            title: 'Agente atribuído',
+            description: agentId
+              ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}`
+              : 'Atribuição removida',
+          });
+        },
+        onError: () => {
+          toast({
+            title: 'Erro ao atribuir agente',
+            description: 'Tente novamente mais tarde.',
+            variant: 'destructive',
+          });
+        },
+      }
+    );
   };
 
   const toggleTicketSelection = (ticketId: string) => {
