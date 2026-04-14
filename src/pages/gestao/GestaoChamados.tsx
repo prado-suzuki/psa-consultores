@@ -184,7 +184,7 @@ export default function GestaoChamados() {
     try {
       const { data: ticketsData, error: ticketsError } = await supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, estrutura_area_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
         .order('created_at', { ascending: false });
 
       if (ticketsError) throw ticketsError;
