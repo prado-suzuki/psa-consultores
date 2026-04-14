@@ -4951,6 +4951,10 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      is_ticket_assigned_to: {
+        Args: { p_ticket_id: string; p_user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role:
