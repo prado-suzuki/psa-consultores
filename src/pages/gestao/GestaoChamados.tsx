@@ -281,7 +281,8 @@ export default function GestaoChamados() {
       'Título': ticket.title,
       'Status': statusLabels[ticket.status] || ticket.status,
       'Departamento': departmentLabels[ticket.department] || ticket.department,
-      'Cliente': `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.trim(),
+      'Representante': `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.trim(),
+      'Cliente': ticket.cliente_nome || '—',
       'Responsável': ticket.agent ? `${ticket.agent.first_name} ${ticket.agent.last_name}` : 'Não atribuído',
       'Prazo': ticket.deadline ? format(parseDate(ticket.deadline), 'dd/MM/yyyy') : '',
       'Criado em': format(new Date(ticket.created_at), 'dd/MM/yyyy HH:mm'),
@@ -543,9 +544,10 @@ export default function GestaoChamados() {
                   <TableHead>Cluster</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('created_by')}>
                     <div className="flex items-center">
-                      Cliente {getSortIcon('created_by')}
+                      Representante {getSortIcon('created_by')}
                     </div>
                   </TableHead>
+                  <TableHead>Cliente</TableHead>
                   <TableHead>Responsável</TableHead>
                   <TableHead>Prazo</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('updated_at')}>
@@ -589,6 +591,9 @@ export default function GestaoChamados() {
                     </TableCell>
                     <TableCell>
                       {ticket.profiles?.first_name} {ticket.profiles?.last_name}
+                    </TableCell>
+                    <TableCell className="text-slate-500">
+                      {ticket.cliente_nome || '—'}
                     </TableCell>
                     <TableCell>
                       <Select
