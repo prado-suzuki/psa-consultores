@@ -46,3 +46,21 @@ export const useAllActiveAreas = () => {
     },
   });
 };
+
+/**
+ * Fetches ALL active clusters for lookup maps in ticket listings.
+ */
+export const useAllActiveClusters = () => {
+  return useQuery({
+    queryKey: ['estrutura-clusters', '__all__'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_clusters')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string }[];
+    },
+  });
+};

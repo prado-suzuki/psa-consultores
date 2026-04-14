@@ -118,6 +118,10 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
     }
 
     try {
+      // Derive cluster_id from selected area
+      const selectedArea = filteredAreas.find(a => a.id === formData.estrutura_area_id);
+      const clusterId = selectedArea?.cluster_id || null;
+
       await createTicket.mutateAsync({
         title: formData.title,
         description: formData.description,
@@ -127,6 +131,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         cliente_id: formData.cliente_id,
         estrutura_area_id: formData.estrutura_area_id,
         files: selectedFiles,
+        cluster_id: clusterId,
       });
 
       toast({

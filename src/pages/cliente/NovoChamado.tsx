@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCreateTicketCliente } from '@/hooks/useCreateTicket';
+import { useClienteClusters } from '@/hooks/useClienteClusters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,13 +28,23 @@ export default function NovoChamado() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const createTicket = useCreateTicketCliente();
+  const { data: clusterData, isLoading: loadingClusters } = useClienteClusters(user?.id);
+  const clusters = clusterData?.clusters || [];
 
   const [form, setForm] = useState({
     title: '',
     department: '',
     description: '',
     priority: 'normal',
+    cluster_id: '',
   });
+
+  // Auto-select when exactly 1 cluster
+  useEffect(() => {
+    if (clusters.length === 1 && !form.cluster_id) {
+      setForm(prev => ({ ...prev, cluster_id: clusters[0].id }));
+    }
+  }, [clusters]);
   const [errors, setErrors] = useState<any>({});
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
 
@@ -90,6 +101,7 @@ export default function NovoChamado() {
         priority: form.priority,
         files: selectedFiles,
         actorName: user.user_metadata?.first_name || 'Cliente',
+        cluster_id: form.cluster_id || null,
       });
 
       toast({
@@ -130,6 +142,33 @@ export default function NovoChamado() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 bg-background p-8 rounded-lg shadow-sm">
+            {/* Cluster select — only shown when client has 2+ clusters */}
+            {!loadingClusters && clusters.length > 1 && (
+              <div className="space-y-2">
+                <Label>Para qual empresa é o chamado? <RequiredMark /></Label>
+                <Select
+                  value={form.cluster_id}
+                  onValueChange={(value) => setForm({ ...form, cluster_id: value })}
+                >
+                  <SelectTrigger className={!form.cluster_id && errors.cluster_id ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clusters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Auto-selected cluster info */}
+            {!loadingClusters && clusters.length === 1 && (
+              <div className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                Empresa: <span className="font-medium text-foreground">{clusters[0].name}</span>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Título do Chamado <RequiredMark /></Label>
               <Input

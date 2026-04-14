@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
-import { useAllActiveAreas } from '@/hooks/useEstruturaAreas';
+import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
@@ -79,6 +79,7 @@ export default function GestaoChamados() {
   const { data: tickets = [], isLoading: loading } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
   const { data: areasData = [] } = useAllActiveAreas();
+  const { data: clustersData = [] } = useAllActiveClusters();
 
   const assignTicket = useAssignTicket();
   const updateDeadline = useUpdateTicketDeadline();
@@ -89,6 +90,12 @@ export default function GestaoChamados() {
     areasData.forEach(a => map.set(a.id, a.name));
     return map;
   }, [areasData]);
+
+  const clusterMap = useMemo(() => {
+    const map = new Map<string, string>();
+    clustersData.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [clustersData]);
 
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -513,6 +520,7 @@ export default function GestaoChamados() {
                     </div>
                   </TableHead>
                   <TableHead>Área</TableHead>
+                  <TableHead>Cluster</TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('created_by')}>
                     <div className="flex items-center">
                       Cliente {getSortIcon('created_by')}
@@ -555,6 +563,9 @@ export default function GestaoChamados() {
                     </TableCell>
                     <TableCell className="text-slate-500">
                       {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
+                    </TableCell>
+                    <TableCell className="text-slate-500">
+                      {ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '—' : '—'}
                     </TableCell>
                     <TableCell>
                       {ticket.profiles?.first_name} {ticket.profiles?.last_name}

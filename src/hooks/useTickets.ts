@@ -23,6 +23,7 @@ export interface TicketListItem {
   activity_status: string | null;
   deadline: string | null;
   estrutura_area_id: string | null;
+  cluster_id: string | null;
   profiles?: TicketProfile;
   agent?: TicketProfile;
   attachment_count?: number;
@@ -105,7 +106,7 @@ export function useTicketsList(options?: TicketsListOptions) {
     queryFn: async (): Promise<TicketListItem[]> => {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id')
         .order('created_at', { ascending: false });
 
       if (assignedTo) {
@@ -163,6 +164,7 @@ export function useTicketsList(options?: TicketsListOptions) {
         activity_status: ticket.activity_status || 'aguardando_resposta',
         deadline: (ticket as any).deadline ?? null,
         estrutura_area_id: (ticket as any).estrutura_area_id ?? null,
+        cluster_id: (ticket as any).cluster_id ?? null,
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0,
