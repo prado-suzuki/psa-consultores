@@ -142,6 +142,33 @@ export default function NovoChamado() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6 bg-background p-8 rounded-lg shadow-sm">
+            {/* Cluster select — only shown when client has 2+ clusters */}
+            {!loadingClusters && clusters.length > 1 && (
+              <div className="space-y-2">
+                <Label>Para qual empresa é o chamado? <RequiredMark /></Label>
+                <Select
+                  value={form.cluster_id}
+                  onValueChange={(value) => setForm({ ...form, cluster_id: value })}
+                >
+                  <SelectTrigger className={!form.cluster_id && errors.cluster_id ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione a empresa" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clusters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Auto-selected cluster info */}
+            {!loadingClusters && clusters.length === 1 && (
+              <div className="rounded-md border border-border bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+                Empresa: <span className="font-medium text-foreground">{clusters[0].name}</span>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="title">Título do Chamado <RequiredMark /></Label>
               <Input
