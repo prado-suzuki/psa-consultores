@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
-import { useAllActiveAreas } from '@/hooks/useEstruturaAreas';
+import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket } from '@/hooks/useTicketMutations';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -123,6 +123,7 @@ export default function EquipeChamados() {
   });
   const { data: agents = [] } = useTicketAgents();
   const { data: areasData = [] } = useAllActiveAreas();
+  const { data: clustersData = [] } = useAllActiveClusters();
   const assignTicket = useAssignTicket();
 
   const areaMap = useMemo(() => {
@@ -130,6 +131,12 @@ export default function EquipeChamados() {
     areasData.forEach(a => map.set(a.id, a.name));
     return map;
   }, [areasData]);
+
+  const clusterMap = useMemo(() => {
+    const map = new Map<string, string>();
+    clustersData.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [clustersData]);
 
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -521,6 +528,7 @@ export default function EquipeChamados() {
                         </div>
                       </TableHead>
                       <TableHead>Área</TableHead>
+                      <TableHead>Cluster</TableHead>
                       <TableHead 
                         className="cursor-pointer hover:bg-muted/70 transition-colors"
                         onClick={() => handleSort('created_by')}
@@ -600,6 +608,11 @@ export default function EquipeChamados() {
                         <TableCell>
                           <span className="text-sm">
                             {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">
+                            {ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '—' : '—'}
                           </span>
                         </TableCell>
                         <TableCell>
