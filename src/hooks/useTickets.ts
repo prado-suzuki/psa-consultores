@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { currentAmbiente } from '@/config/api';
 
 // ── Shared types ──────────────────────────────────────────────
 
@@ -154,7 +155,7 @@ export function useTicketsList(options?: TicketsListOptions) {
       // Cliente (empresa) names
       const clienteIds = [...new Set(ticketsData.filter(t => (t as any).cliente_id).map(t => (t as any).cliente_id as string))];
       const { data: clientesData } = clienteIds.length > 0
-        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
+        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds).eq('ambiente', currentAmbiente)
         : { data: [] as { id: string; nome: string }[] };
       const clienteMap = new Map<string, string>();
       clientesData?.forEach(c => clienteMap.set(c.id, c.nome));
