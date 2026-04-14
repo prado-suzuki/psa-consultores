@@ -107,6 +107,7 @@ export default function GestaoChamados() {
     status: 'todos',
     departamento: 'todos',
     area: 'todos',
+    cluster: 'todos',
     searchId: '',
   });
 
@@ -164,6 +165,10 @@ export default function GestaoChamados() {
 
     if (filters.area !== 'todos') {
       filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
+    }
+
+    if (filters.cluster !== 'todos') {
+      filtered = filtered.filter(t => t.cluster_id === filters.cluster);
     }
 
     if (filters.searchId) {
@@ -434,6 +439,21 @@ export default function GestaoChamados() {
                   <SelectItem value="todos">Todas</SelectItem>
                   {areasData.map((area) => (
                     <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Cluster</Label>
+              <Select value={filters.cluster} onValueChange={(v) => setFilters({...filters, cluster: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  {clustersData.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -22,6 +22,7 @@ import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil } from '@/lib/dateUtils';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAssignTicket } from '@/hooks/useTicketMutations';
+import { useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'agent' | 'updated_at' | 'prazo' | 'activity_status' | null;
@@ -124,7 +125,15 @@ export default function AdminChamados() {
   const navigate = useNavigate();
   const { data: tickets = [], isLoading: loading } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
+  const { data: clustersData = [] } = useAllActiveClusters();
   const assignMutation = useAssignTicket();
+
+  const clusterMap = useMemo(() => {
+    const map = new Map<string, string>();
+    clustersData.forEach(c => map.set(c.id, c.name));
+    return map;
+  }, [clustersData]);
+
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -134,6 +143,7 @@ export default function AdminChamados() {
     estado: 'todos',
     prioridade: 'todas',
     departamento: 'todos',
+    cluster: 'todos',
     searchId: '',
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
@@ -198,6 +208,11 @@ export default function AdminChamados() {
     // Filtro por prioridade
     if (filters.prioridade !== 'todas') {
       filtered = filtered.filter(t => t.priority === filters.prioridade);
+    }
+
+    // Filtro por cluster
+    if (filters.cluster !== 'todos') {
+      filtered = filtered.filter(t => t.cluster_id === filters.cluster);
     }
 
     // Filtro por departamento
@@ -341,6 +356,7 @@ export default function AdminChamados() {
       estado: 'todos',
       prioridade: 'todas',
       departamento: 'todos',
+      cluster: 'todos',
       searchId: '',
     });
   };
@@ -433,6 +449,21 @@ export default function AdminChamados() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <div className="space-y-2">
+                <Label>Cluster</Label>
+                <Select value={filters.cluster} onValueChange={(v) => setFilters({...filters, cluster: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    {clustersData.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="space-y-2">
                 <Label>Departamento</Label>
                 <Select value={filters.departamento} onValueChange={(v) => setFilters({...filters, departamento: v})}>
@@ -631,6 +662,11 @@ export default function AdminChamados() {
                         <TableCell>
                           <span className="text-sm">
                             {departmentLabels[ticket.department] || ticket.department || '-'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">
+                            {ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '-' : '-'}
                           </span>
                         </TableCell>
                         <TableCell>
