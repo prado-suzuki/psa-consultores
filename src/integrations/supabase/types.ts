@@ -3729,6 +3729,7 @@ export type Database = {
           telefone: string | null
           tipo_representante: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           acesso_chamados?: boolean | null
@@ -3743,6 +3744,7 @@ export type Database = {
           telefone?: string | null
           tipo_representante?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           acesso_chamados?: boolean | null
@@ -3757,6 +3759,7 @@ export type Database = {
           telefone?: string | null
           tipo_representante?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -4440,6 +4443,7 @@ export type Database = {
           activity_status: string | null
           assigned_to: string | null
           cliente_id: string | null
+          cluster_id: string | null
           created_at: string | null
           deadline: string | null
           department: string | null
@@ -4456,6 +4460,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           deadline?: string | null
           department?: string | null
@@ -4472,6 +4477,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           deadline?: string | null
           department?: string | null
@@ -4504,6 +4510,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tickets_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
           {
