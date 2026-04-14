@@ -134,8 +134,20 @@ src/
 | `useCategorias` | Categorias de serviços/produtos |
 | `useServicosContratados` | Serviços contratados por clientes |
 | `usePerformanceData` | Dados de performance para dashboards |
+| `useClusterIdByPageCategory` | Resolve `cluster_id` a partir de `page_categories` das áreas (em `useTaxReferenceData.ts`) |
+| `useTeamMembersForTasks` | Filtra membros por cluster para seletores de tarefas (em `useTaxReferenceData.ts`) |
+| `useExternalClients` | Clientes externos para projetos (em `useTaxReferenceData.ts`) |
+| `useContribuintes` | Contribuintes filtrados por cliente (em `useTaxReferenceData.ts`) |
+| `useFiscalDashProjects` | Projetos para dashboard fiscal (em `useFiscalDashboardData.ts`) |
+| `useFiscalDashTasks` | Tarefas para dashboard fiscal (em `useFiscalDashboardData.ts`) |
+| `useClientesLista` | Lista simples de clientes para dropdown (em `useGestaoClientes.ts`) |
+| `useClientesFiltrados` | Clientes com filtros + enriquecimento de clusters (em `useGestaoClientes.ts`) |
+| `useContribuintesPorCliente` | Contribuintes por cliente para filtro (em `useGestaoClientes.ts`) |
+| `useContribuintesExpand` | Contribuintes expandidos na tabela (em `useGestaoClientes.ts`) |
+| `useDeleteCliente` | Soft-delete de cliente com invalidação de cache (em `useDeleteCliente.ts`) |
+| `useSetoresCliente` | Lista de setores de cliente (em `useSetorCliente.ts`) |
 
-> **Exceções toleradas**: queries inline com `useQuery` em páginas de listagem simples. Migração gradual para hooks dedicados.
+> **Regra estrita**: nenhuma query `supabase.from()` diretamente em componentes. Migração completa para hooks dedicados.
 
 ### 3.3 Layouts por módulo
 
@@ -158,7 +170,7 @@ Cada módulo possui layout dedicado com sidebar/nav próprio:
 |---|---|
 | `ProtectedRoute` | Qualquer usuário autenticado |
 | `AdminRoute` | Role `admin` |
-| `TeamRoute` | Role `team_member` ou `admin` |
+| `TeamRoute` | Qualquer "Internal User": `team_member`, `admin`, `lider` ou `sublider` |
 | `PageAccessGate` | Verificação granular via `user_page_access` + categoria de área |
 | `GestaoAccessGate` | Admin ou permissão explícita de gestão |
 | `DesempenhoAccessGate` | Admin, líder ou sublíder para módulo de desempenho |
@@ -218,7 +230,9 @@ Clusters → Áreas → Equipes → Membros
 **Conexão Tax ↔ Estrutura:**
 `tax_areas.estrutura_area_id` → `estrutura_areas.id` (FK, ON DELETE SET NULL)
 
-Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_area_lideres`.
+- `cliente_clusters` — associação N:N entre `cliente` e `estrutura_clusters`
+
+Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_area_lideres`.
 
 ---
 
@@ -230,21 +244,22 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 - `user_id` referencia `profiles.id`, nunca `auth.users.id` diretamente em FK
 - Roles em `user_roles`, checadas via `has_role(uuid, app_role)` — função SECURITY DEFINER
 - Membership de projetos checada via `is_project_member(uuid, uuid)` — função SECURITY DEFINER
+- Atribuição de chamados checada via `is_ticket_assigned_to(uuid, uuid)` — função SECURITY DEFINER (evita recursão RLS)
 - Nunca `CHECK` com `now()`; usar triggers de validação
 
 ### 6.2 Tabelas-chave por domínio
 
 **Auth/Org:**
-`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_area_lideres`
+`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_area_lideres`, `user_invitations` (criada, sem frontend)
 
 **Tax/Fiscal:**
-`tax_projects`, `tax_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
+`org_projects`, `org_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
 
 **Chamados:**
-`tickets` (com `cliente_id` → `cliente`, `estrutura_area_id` → `estrutura_areas`), `ticket_messages`, `ticket_attachments` (inferido), `documents`
+`tickets` (colunas notáveis: `deadline`, `cliente_id` → `cliente`, `estrutura_area_id` → `estrutura_areas`), `ticket_messages`, `ticket_attachments` (inferido), `documents`
 
 **Dev/Tributário:**
-`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `representante`, `ordem_servico`, `os_produtos_contratados`, `distribuicao_receita`, `inscricoes_estaduais`, `per`, `per_situacao`, `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`, `efd_correcoes`
+`cliente` (col `ambiente`: `'prod'`|`'dev'`), `contribuinte` (col `ambiente`: `'prod'`|`'dev'`), `representante`, `ordem_servico`, `os_produtos_contratados` (N:N com `horas_contratadas`), `distribuicao_receita`, `inscricao_contribuinte`, `per`, `per_situacao`, `dcomp`, `contribuinte_bal_config`, `difal_sessao`, `difal_decisao`, `export_profiles`, `efd_correcoes`
 
 **Projetos organizacionais:**
 `org_projects`, `org_project_members`
@@ -256,7 +271,7 @@ Caminho de joins: `tax_projects` → `tax_areas` → `estrutura_areas` → `estr
 `client_visible_projects`, `client_documents`
 
 **Cadastros organizacionais:**
-`empresas_faturamento`, `centros_custo`, `produto_segmento`, `setor_cliente`
+`empresas_faturamento`, `centros_custo`, `produto_segmento`, `setor_cliente`, `cliente_clusters` (N:N cliente↔cluster)
 
 **Contatos:**
 `contatos`
@@ -281,8 +296,14 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 **Separação de dados por ambiente (coluna `ambiente`):**
 - Tabelas `cliente` e `contribuinte` possuem coluna `ambiente` com valores `'prod'` | `'dev'` (default `'prod'`).
 - `src/config/api.ts` exporta `currentAmbiente: Ambiente` (tipo `'prod' | 'dev'`), selecionado automaticamente via `isProductionEnvironment`.
-- Todas as queries nessas tabelas DEVEM filtrar via `.eq('ambiente', currentAmbiente)`.
+- Todas as queries nessas tabelas DEVEM filtrar via `.eq('ambiente', currentAmbiente)`. Aplica-se também a `ordem_servico`, `representante` e `inscricao_contribuinte`.
 - `GerenciarDados.tsx` permite toggle manual entre ambientes para operações administrativas.
+
+### 6.5 Convenções de dados adicionais
+
+- **Horas estimadas em tarefas**: `fiscal_tasks.estimated_hours` é obrigatório no formulário de tarefas.
+- **Prazo de chamados**: usar `tickets.deadline` real do banco. Fallback: 5 dias úteis a partir da criação se `deadline` for null.
+- **Soft-delete**: tabelas `cliente`, `contribuinte`, `representante`, `ordem_servico` usam coluna `excluido` (boolean). Queries DEVEM filtrar `.eq('excluido', false)`.
 
 ---
 
