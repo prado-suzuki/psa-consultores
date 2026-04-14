@@ -12,10 +12,11 @@ import { supabase } from '@/integrations/supabase/client';
  * - NEW: User belongs to a team whose area's page_categories includes the page's category
  */
 export function usePageAccess(pagePath: string) {
-  const { user, isAdmin, isTeamMember, loading: authLoading } = useAuth();
+  const { user, isAdmin, isTeamMember, isLider, isSublider, loading: authLoading } = useAuth();
+  const isInternalUser = isTeamMember || isLider || isSublider;
 
   const { data: hasAccess, isLoading } = useQuery({
-    queryKey: ['page-access', user?.id, pagePath, isAdmin, isTeamMember],
+    queryKey: ['page-access', user?.id, pagePath, isAdmin, isInternalUser],
     queryFn: async () => {
       if (!user) return false;
       if (isAdmin) return true;
@@ -40,10 +41,10 @@ export function usePageAccess(pagePath: string) {
       if (access) return true;
 
       // NEW: Category 'geral' → any team_member gets access
-      if (page.category === 'geral' && isTeamMember) return true;
+      if (page.category === 'geral' && isInternalUser) return true;
 
       // NEW: Check membership-based access via estrutura
-      if (isTeamMember) {
+      if (isInternalUser) {
         // Get user's team memberships → areas → check page_categories
         const { data: memberships } = await supabase
           .from('estrutura_equipe_membros')
