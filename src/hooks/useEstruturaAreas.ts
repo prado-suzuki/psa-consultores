@@ -27,3 +27,22 @@ export const useEstruturaAreas = (category: string) => {
     },
   });
 };
+
+/**
+ * Fetches ALL active estrutura_areas without filtering by page_categories.
+ * Used by ticket area selectors and filters.
+ */
+export const useAllActiveAreas = () => {
+  return useQuery({
+    queryKey: ['estrutura-areas', '__all__'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_areas')
+        .select('id, name, color, cluster_id')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return (data || []) as EstruturaArea[];
+    },
+  });
+};
