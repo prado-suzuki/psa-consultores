@@ -44,10 +44,10 @@ export const Header = () => {
         <div className="flex h-16 items-center justify-between">
           {/* Logo - Left */}
           <a href="#" className="flex items-center">
-            <img 
-              src={logo} 
-              alt="PSA Consultores" 
-              className="h-8 w-auto brightness-0 invert" 
+            <img
+              src={logo}
+              alt="PSA Consultores"
+              className="h-8 w-auto brightness-0 invert"
             />
           </a>
 
@@ -84,9 +84,10 @@ export const Header = () => {
                 <TooltipTrigger asChild>
                   <a
                     href="/equipe"
+                    aria-label="Acessar área da equipe"
                     className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200"
                   >
-                    <Users className="h-5 w-5 text-primary" />
+                    <Users className="h-5 w-5 text-primary" aria-hidden="true" />
                   </a>
                 </TooltipTrigger>
                 <TooltipContent>
@@ -94,7 +95,7 @@ export const Header = () => {
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            
+
             <Link
               to="/ajuda"
               className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
