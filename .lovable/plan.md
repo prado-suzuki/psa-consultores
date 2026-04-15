@@ -1,30 +1,38 @@
 
 
-# Corrigir site em branco em psaconsultores.com.br
+# Correção: site em branco por chunk splitting de React
 
-## Diagnóstico
-O HTML servido na URL publicada (`psaconsultores.com.br` e `psa-consultores.lovable.app`) está vindo com o `<head>` completamente vazio — sem `<script>`, sem CSS, sem meta tags. Apenas o `<div id="root"></div>` existe no body. Isso significa que o build de produção que foi publicado está corrompido.
+## Diagnóstico confirmado
+A regra `manualChunks` na linha 35 de `vite.config.ts` coloca `react-dom` e `react-router` no chunk `react-vendor`, mas **não inclui `react`** (o pacote core). Isso quebra a dependência interna do `react-dom` sobre `react.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED`, gerando o erro fatal em produção.
 
-O preview (dev server Vite) funciona normalmente porque serve os arquivos diretamente, sem depender do build estático.
+## Correção
+Arquivo: `vite.config.ts`, linha 35.
 
-## Causa provável
-A última publicação capturou um build quebrado. Pode ter ocorrido um erro de build silencioso (ex: import de arquivo inexistente, erro de TypeScript não bloqueante) que gerou um `index.html` sem os scripts injetados pelo Vite.
+Alterar a condição para incluir `react` no mesmo chunk:
 
-## Plano de correção
+```typescript
+// ANTES (quebrado):
+if (id.includes("react-dom") || id.includes("react-router")) {
+  return "react-vendor";
+}
 
-### 1. Verificar se o build atual compila sem erros
-- Rodar `npx vite build` no sandbox para confirmar que o build de produção gera corretamente os arquivos em `dist/`
-- Inspecionar o `dist/index.html` gerado para verificar se contém as tags `<script>` e `<link>` esperadas
-- Se houver erro de build, corrigir antes de republicar
+// DEPOIS (corrigido):
+if (
+  id.includes("/react/") ||
+  id.includes("/react-dom/") ||
+  id.includes("react-router") ||
+  id.includes("scheduler")
+) {
+  return "react-vendor";
+}
+```
 
-### 2. Republicar o projeto
-- Após confirmar que o build está limpo, solicitar ao usuário que clique em **Publish → Update** para gerar uma nova publicação com o build correto
+Detalhes:
+- `/react/` com barras evita falsos positivos (ex: `react-hook-form` não será capturado)
+- `/react-dom/` com barras pela mesma razão
+- `scheduler` é dependência interna do `react-dom`, deve ficar junto
+- `react-router` pode continuar com match parcial pois não há conflito
 
-### 3. Verificar a publicação
-- Após republish, acessar `psaconsultores.com.br` e confirmar que o site carrega normalmente com Header, Hero e demais seções
-
-## Detalhes técnicos
-- Arquivos envolvidos: `index.html`, `vite.config.ts`, `src/main.tsx`
-- O `index.html` fonte está correto (contém todos os meta tags, scripts, etc.)
-- O problema está exclusivamente no artefato de build/deploy
+## Após a correção
+Republicar o projeto (Publish → Update). O novo build gerará um chunk `react-vendor` contendo `react` + `react-dom` + `scheduler` + `react-router` juntos, eliminando o erro.
 
