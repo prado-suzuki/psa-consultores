@@ -10,65 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, ArrowLeft, Mail, Lock, Building2, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
+import { AREAS_LIST, AREA_ROUTES, type AreaKey } from '@/config/areaCategories';
+import { checkAreaAccess } from '@/lib/accessControl';
 
-const areas = [
-  { id: 'board', label: 'Gerencial' },
-  { id: 'controle_site', label: 'Chamados' },
-  { id: 'digital', label: 'Digital' },
-  { id: 'osg', label: 'OSG' },
-  { id: 'tax', label: 'Tax' },
-];
-
-// Verifica se o usuário tem acesso à área específica
-const checkAreaAccess = async (userId: string, area: string, isAdmin: boolean): Promise<boolean> => {
-  // Admins têm acesso a todas as áreas
-  if (isAdmin) return true;
-
-  try {
-    // Mapeia as áreas para suas categorias de permissão
-    const areaCategories: Record<string, string[]> = {
-      digital: ['rotina', 'dev'],
-      tax: ['tax', 'projetos', 'fiscal'],
-      osg: ['osg'],
-      controle_site: ['gestao'],
-      board: ['board'],
-    };
-
-    const categories = areaCategories[area];
-    if (!categories) return false;
-
-    // Buscar páginas da categoria
-    const { data: pages } = await supabase
-      .from('page_permissions')
-      .select('id')
-      .in('category', categories);
-
-    if (!pages?.length) return false;
-
-    const { data: access } = await supabase
-      .from('user_page_access')
-      .select('id')
-      .eq('user_id', userId)
-      .in('page_permission_id', pages.map(p => p.id))
-      .limit(1);
-
-    return access !== null && access.length > 0;
-  } catch (error) {
-    console.error('Erro ao verificar acesso:', error);
-    return false;
-  }
-};
+const areas = AREAS_LIST;
 
 const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
-  const areaRoutes: Record<string, string> = {
-    digital: '/equipe/digital',
-    tax: '/equipe/tax/dashboard',
-    osg: '/equipe/osg/dashboard',
-    controle_site: '/gestao',
-    board: '/equipe/board/dashboard',
-  };
-  
-  navigate(areaRoutes[area] || '/equipe/dashboard');
+  navigate(AREA_ROUTES[area as AreaKey] || '/equipe/dashboard');
 };
 
 const EquipeAuth = () => {
@@ -81,12 +29,13 @@ const EquipeAuth = () => {
   const [pendingArea, setPendingArea] = useState<string | null>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const { signIn, user, isTeamMember, isAdmin, loading } = useAuth();
+  const { signIn, user, isTeamMember, isAdmin, isLider, isSublider, loading } = useAuth();
   const navigate = useNavigate();
+  const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
 
   // Navegação reativa: só navega quando AuthContext confirma user + roles
   useEffect(() => {
-    if (pendingArea && !loading && user && (isTeamMember || isAdmin)) {
+    if (pendingArea && !loading && user && isInternalUser) {
       if (user.user_metadata?.must_change_password === true) {
         navigate('/primeiro-acesso', { replace: true });
         setPendingArea(null);
@@ -95,7 +44,7 @@ const EquipeAuth = () => {
       navigateToArea(navigate, pendingArea);
       setPendingArea(null);
     }
-  }, [pendingArea, loading, user, isTeamMember, isAdmin, navigate]);
+  }, [pendingArea, loading, user, isInternalUser, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,11 +64,11 @@ const EquipeAuth = () => {
 
   const handleAreaSelect = async (area: string) => {
     setSelectedArea(area);
-    
+
     // Se usuário já autenticado, verificar acesso antes de navegar
-    if (user && (isTeamMember || isAdmin)) {
+    if (user && isInternalUser) {
       setIsCheckingAccess(true);
-      
+
       const hasAccess = await checkAreaAccess(user.id, area, isAdmin);
       
       if (!hasAccess) {
@@ -156,12 +105,15 @@ const EquipeAuth = () => {
             .from('user_roles')
             .select('role')
             .eq('user_id', session.user.id);
-          
+
           const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
           const userIsTeamMember = roles?.some(r => r.role === 'team_member') || false;
-          
-          // Verificar se é membro da equipe
-          if (!userIsAdmin && !userIsTeamMember) {
+          const userIsLider = roles?.some(r => r.role === 'lider') || false;
+          const userIsSublider = roles?.some(r => r.role === 'sublider') || false;
+
+          // Verificar se é qualquer tipo de usuário interno (admin, team_member, lider ou sublider).
+          // Uma única role é suficiente — não exigir dupla-tag (team_member + sublider).
+          if (!userIsAdmin && !userIsTeamMember && !userIsLider && !userIsSublider) {
             toast.error('Acesso restrito a membros da equipe', {
               position: 'bottom-right',
               duration: 3000,
@@ -169,7 +121,7 @@ const EquipeAuth = () => {
             setIsLoading(false);
             return;
           }
-          
+
           // Verificar acesso à área selecionada
           const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
           
