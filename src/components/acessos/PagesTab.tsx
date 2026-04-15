@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { RefreshCw, ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react';
 import {
   usePagePermissions,
   useTogglePagePermission,
@@ -29,9 +29,19 @@ export const PagesTab = () => {
   const togglePageMutation = useTogglePagePermission();
   const { syncPages, isSyncing } = useSyncProtectedPages();
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+  const [allExpanded, setAllExpanded] = useState(false);
 
   const toggleCategoryExpansion = (category: string) => {
     setExpandedCategories((prev) => ({ ...prev, [category]: !prev[category] }));
+  };
+
+  const toggleAllCategories = () => {
+    const newState = !allExpanded;
+    setAllExpanded(newState);
+    const categories = Object.keys(groupedPages);
+    const updated: Record<string, boolean> = {};
+    categories.forEach((cat) => { updated[cat] = newState; });
+    setExpandedCategories(updated);
   };
 
   const groupedPages = useMemo(
@@ -52,18 +62,31 @@ export const PagesTab = () => {
           <h3 className="text-base font-medium text-slate-900">Páginas Cadastradas</h3>
           <p className="text-sm text-slate-500">Atualize para ver novas páginas implementadas</p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => syncPages()}
-          disabled={loadingPages || isSyncing}
-          className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
-          />
-          {isSyncing ? 'Sincronizando...' : 'Atualizar lista'}
-        </Button>
+        <div className="flex items-center gap-2">
+          {Object.keys(groupedPages).length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleAllCategories}
+              className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
+            >
+              <ChevronsUpDown className="h-4 w-4 mr-2" />
+              {allExpanded ? 'Recolher tudo' : 'Expandir tudo'}
+            </Button>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => syncPages()}
+            disabled={loadingPages || isSyncing}
+            className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
+          >
+            <RefreshCw
+              className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
+            />
+            {isSyncing ? 'Sincronizando...' : 'Atualizar lista'}
+          </Button>
+        </div>
       </div>
 
       {loadingPages ? (
@@ -72,7 +95,7 @@ export const PagesTab = () => {
         </div>
       ) : (
         Object.entries(groupedPages).map(([category, categoryPages]) => {
-          const isExpanded = expandedCategories[category];
+          const isExpanded = expandedCategories[category] ?? false;
           const visiblePages = isExpanded
             ? categoryPages
             : categoryPages.slice(0, INITIAL_VISIBLE_PAGES);
