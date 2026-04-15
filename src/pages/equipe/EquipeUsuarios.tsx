@@ -35,14 +35,8 @@ import { toast } from 'sonner';
 import { UserPlus, MoreHorizontal, Search, Shield, ShieldOff, UserCheck, UserX, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { RequiredMark } from '@/components/ui/required-mark';
-
-interface UserWithRoles {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  roles: string[];
-}
+import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
+import { useAddUserRole, useRemoveUserRole } from '@/hooks/useUserRoles';
 
 type FilterType = 'all' | 'team_member' | 'admin' | 'no_access';
 
@@ -62,40 +56,9 @@ export default function EquipeUsuarios() {
   });
   const [createdCredentials, setCreatedCredentials] = useState<{ email: string; password: string } | null>(null);
 
-  // Fetch users with their roles
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['team-users'],
-    queryFn: async () => {
-      // Fetch profiles with email
-      const { data: profiles, error: profilesError } = await supabase
-        .rpc('get_profiles_with_email' as any);
-
-      if (profilesError) throw profilesError;
-
-      // Fetch all roles
-      const { data: allRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      const usersWithRoles: UserWithRoles[] = profiles.map(profile => {
-        const userRoles = allRoles
-          .filter(r => r.user_id === profile.id)
-          .map(r => r.role);
-        
-        return {
-          id: profile.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          email: profile.email || '',
-          roles: userRoles,
-        };
-      });
-
-      return usersWithRoles;
-    },
-  });
+  // Fetch users with their roles via hook compartilhado
+  const { data: usersRaw, isLoading } = useUsersWithRoles();
+  const users = usersRaw ?? [];
 
   // Create user mutation
   const createUserMutation = useMutation({
@@ -119,7 +82,7 @@ export default function EquipeUsuarios() {
     },
     onSuccess: () => {
       setCreatedCredentials({ email: newUser.email, password: newUser.password });
-      queryClient.invalidateQueries({ queryKey: ['team-users'] });
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       toast.success('Usuário criado com sucesso!');
     },
     onError: (error: Error) => {
@@ -127,41 +90,9 @@ export default function EquipeUsuarios() {
     },
   });
 
-  // Add role mutation
-  const addRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role: role as any });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-users'] });
-      toast.success('Acesso concedido!');
-    },
-    onError: () => {
-      toast.error('Erro ao conceder acesso');
-    },
-  });
-
-  // Remove role mutation
-  const removeRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role as any);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['team-users'] });
-      toast.success('Acesso removido!');
-    },
-    onError: () => {
-      toast.error('Erro ao remover acesso');
-    },
-  });
+  // Mutations de role via hooks centralizados
+  const addRoleMutation = useAddUserRole();
+  const removeRoleMutation = useRemoveUserRole();
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
