@@ -1,0 +1,9 @@
+dist
+node_modules
+*.tsbuildinfo
+*.lockb
+package-lock.json
+bun.lock
+src/integrations/supabase/types.ts
+supabase/config.toml
+.lovable/
