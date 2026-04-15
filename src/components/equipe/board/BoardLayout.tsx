@@ -55,7 +55,9 @@ const buildDesempenhoSubItems = (pendingDecisions: number) => [
 const buildNavItems = (isAdmin: boolean, isLider: boolean, pendingDecisions: number): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   ...((isAdmin || isLider) ? [
-    { icon: BarChart3, label: 'Performance', path: '/equipe/board/performance', adminOnly: true },
+    // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
+    // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
+    { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true },
     { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) },
   ] : []),
 ];
@@ -63,7 +65,7 @@ const buildNavItems = (isAdmin: boolean, isLider: boolean, pendingDecisions: num
 const getBreadcrumb = (pathname: string) => {
   const segments: { label: string; path: string }[] = [{ label: 'Board', path: '/equipe/board' }];
   if (pathname.includes('/performance')) {
-    segments.push({ label: 'Performance', path: '/equipe/board/performance' });
+    segments.push({ label: 'Operacional', path: '/equipe/board/performance' });
   } else if (pathname.includes('/desempenho')) {
     segments.push({ label: 'Desempenho', path: '/equipe/board/desempenho' });
     if (pathname.includes('/ciclos')) segments.push({ label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' });
