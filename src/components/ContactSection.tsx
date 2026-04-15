@@ -168,9 +168,11 @@ export const ContactSection = () => {
     <section id="contato" className="py-20 md:py-28 bg-gray-50 overflow-hidden relative">
       {/* Background Logo */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-        <img 
-          src={logoPsa} 
-          alt="" 
+        <img
+          src={logoPsa}
+          alt=""
+          aria-hidden="true"
+          role="presentation"
           className="w-[600px] md:w-[800px] opacity-5"
         />
       </div>
