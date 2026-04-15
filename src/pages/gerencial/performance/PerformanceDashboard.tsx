@@ -156,11 +156,11 @@ const PerformanceDashboard = () => {
   const isLoading = projectsQuery.isLoading && membersQuery.isLoading;
 
   return (
-    <BoardLayout title="Performance" subtitle="Visao consolidada">
+    <BoardLayout title="Operacional" subtitle="Visao consolidada">
       <div ref={revealRef} style={{ background: 'var(--board-v4-page)' }}>
         {/* Header */}
         <div className="pg-head" data-reveal>
-          <div className="pg-title">Performance</div>
+          <div className="pg-title">Operacional</div>
           <div className="pg-sub">Visao consolidada de projetos, equipe e ROI — dados em tempo real</div>
         </div>
 
