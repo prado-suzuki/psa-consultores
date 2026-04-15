@@ -7,7 +7,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4 md:px-6">
         {/* Link Trabalhe Conosco */}
         <div className="flex justify-center mb-2">
-          <a 
+          <a
             href="https://www.linkedin.com/company/prado-consultores-associados/jobs/"
             target="_blank"
             rel="noopener noreferrer"
@@ -30,14 +30,30 @@ export const Footer = () => {
 
           {/* Social Links */}
           <div className="flex gap-4">
-            <a href="https://www.linkedin.com/company/prado-consultores-associados/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
-              <Linkedin className="h-5 w-5" />
+            <a
+              href="https://www.linkedin.com/company/prado-consultores-associados/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="PSA Consultores no LinkedIn"
+              className="text-gray-400 hover:text-primary transition-colors"
+            >
+              <Linkedin className="h-5 w-5" aria-hidden="true" />
             </a>
-            <a href="https://www.instagram.com/psaconsultores.br/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors">
-              <Instagram className="h-5 w-5" />
+            <a
+              href="https://www.instagram.com/psaconsultores.br/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="PSA Consultores no Instagram"
+              className="text-gray-400 hover:text-primary transition-colors"
+            >
+              <Instagram className="h-5 w-5" aria-hidden="true" />
             </a>
-            <a href="mailto:contato@psaconsultores.com.br" className="text-gray-400 hover:text-primary transition-colors">
-              <Mail className="h-5 w-5" />
+            <a
+              href="mailto:contato@psaconsultores.com.br"
+              aria-label="Enviar email para contato@psaconsultores.com.br"
+              className="text-gray-400 hover:text-primary transition-colors"
+            >
+              <Mail className="h-5 w-5" aria-hidden="true" />
             </a>
           </div>
         </div>
