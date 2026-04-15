@@ -98,6 +98,8 @@ export const ServiceCarouselCard = ({ data }: ServiceCarouselCardProps) => {
               <img
                 src={currentCard.imgUrl}
                 alt=""
+                aria-hidden="true"
+                role="presentation"
                 className="w-full h-full object-cover"
               />
               {/* Gradient Overlay */}
