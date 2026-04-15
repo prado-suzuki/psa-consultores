@@ -1,4 +1,3 @@
-import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,112 +10,110 @@ import { TeamRoute } from "@/components/auth/TeamRoute";
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGate";
-import { PageLoader } from "./components/PageLoader";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { queryClient } from "./lib/queryClient";
 
-// Rotas públicas mais visitadas — mantidas como import estático para garantir
-// primeiro paint rápido na landing e no fluxo de 404.
+// Rotas com import estático — todas as 86 rotas carregam no bundle inicial.
+// Decisão: o lazy-loading (PR anterior) adicionava latência ruim por primeira
+// navegação no ambiente dev do Lovable (Vite compila chunk on-demand).
+// O ErrorBoundary + queryClient centralizado continuam ativos.
+
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 
-// Todas as demais rotas são carregadas sob demanda via React.lazy, gerando
-// chunks separados no build. Isso reduz significativamente o bundle inicial
-// (antes: ~3.9 MB single chunk) e ativa o code-splitting automático do Vite.
-
 // Público / Auth
-const Auth = lazy(() => import("./pages/Auth"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const PrimeiroAcesso = lazy(() => import("./pages/PrimeiroAcesso"));
-const Missao = lazy(() => import("./pages/Missao"));
-const Novidades = lazy(() => import("./pages/Novidades"));
-const Ajuda = lazy(() => import("./pages/Ajuda"));
+import Auth from "./pages/Auth";
+import ResetPassword from "./pages/ResetPassword";
+import PrimeiroAcesso from "./pages/PrimeiroAcesso";
+import Missao from "./pages/Missao";
+import Novidades from "./pages/Novidades";
+import Ajuda from "./pages/Ajuda";
 
 // Portal do Cliente
-const ClienteDashboard = lazy(() => import("./pages/cliente/ClienteDashboard"));
-const NovoChamado = lazy(() => import("./pages/cliente/NovoChamado"));
-const MeusChamados = lazy(() => import("./pages/cliente/MeusChamados"));
-const DetalhesChamado = lazy(() => import("./pages/cliente/DetalhesChamado"));
+import ClienteDashboard from "./pages/cliente/ClienteDashboard";
+import NovoChamado from "./pages/cliente/NovoChamado";
+import MeusChamados from "./pages/cliente/MeusChamados";
+import DetalhesChamado from "./pages/cliente/DetalhesChamado";
 
 // Admin
-const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
-const AdminClientes = lazy(() => import("./pages/admin/AdminClientes"));
-const AdminChamados = lazy(() => import("./pages/admin/AdminChamados"));
-const AdminDetalhesChamado = lazy(() => import("./pages/admin/AdminDetalhesChamado"));
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminClientes from "./pages/admin/AdminClientes";
+import AdminChamados from "./pages/admin/AdminChamados";
+import AdminDetalhesChamado from "./pages/admin/AdminDetalhesChamado";
 
 // Equipe (core)
-const EquipeAuth = lazy(() => import("./pages/equipe/EquipeAuth"));
-const EquipeChamados = lazy(() => import("./pages/equipe/EquipeChamados"));
-const EquipeDetalhesChamado = lazy(() => import("./pages/equipe/EquipeDetalhesChamado"));
-const EquipeDashboard = lazy(() => import("./pages/equipe/EquipeDashboard"));
-const EquipeProjetos = lazy(() => import("./pages/equipe/EquipeProjetos"));
-const EquipeKanban = lazy(() => import("./pages/equipe/EquipeKanban"));
-const EquipeSprints = lazy(() => import("./pages/equipe/EquipeSprints"));
-const EquipeSprintDetalhes = lazy(() => import("./pages/equipe/EquipeSprintDetalhes"));
-const EquipeDaily = lazy(() => import("./pages/equipe/EquipeDaily"));
-const EquipeRotinas = lazy(() => import("./pages/equipe/EquipeRotinas"));
-const EquipeTarefas = lazy(() => import("./pages/equipe/EquipeTarefas"));
-const EquipeNovaTarefa = lazy(() => import("./pages/equipe/EquipeNovaTarefa"));
-const EquipeProcessos = lazy(() => import("./pages/equipe/EquipeProcessos"));
-const EquipeBiblioteca = lazy(() => import("./pages/equipe/EquipeBiblioteca"));
-const EquipeBacklog = lazy(() => import("./pages/equipe/EquipeBacklog"));
-const EquipeRelatorios = lazy(() => import("./pages/equipe/EquipeRelatorios"));
-const EquipeControleAcessos = lazy(() => import("./pages/equipe/EquipeControleAcessos"));
-const DigitalAreaSelector = lazy(() => import("./pages/equipe/DigitalAreaSelector"));
+import EquipeAuth from "./pages/equipe/EquipeAuth";
+import EquipeChamados from "./pages/equipe/EquipeChamados";
+import EquipeDetalhesChamado from "./pages/equipe/EquipeDetalhesChamado";
+import EquipeDashboard from "./pages/equipe/EquipeDashboard";
+import EquipeProjetos from "./pages/equipe/EquipeProjetos";
+import EquipeKanban from "./pages/equipe/EquipeKanban";
+import EquipeSprints from "./pages/equipe/EquipeSprints";
+import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
+import EquipeDaily from "./pages/equipe/EquipeDaily";
+import EquipeRotinas from "./pages/equipe/EquipeRotinas";
+import EquipeTarefas from "./pages/equipe/EquipeTarefas";
+import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
+import EquipeProcessos from "./pages/equipe/EquipeProcessos";
+import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
+import EquipeBacklog from "./pages/equipe/EquipeBacklog";
+import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
+import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
+import DigitalAreaSelector from "./pages/equipe/DigitalAreaSelector";
 
 // Equipe > Dev
-const DevDashboard = lazy(() => import("./pages/equipe/dev/DevDashboard"));
-const NovaFerramenta = lazy(() => import("./pages/equipe/dev/NovaFerramenta"));
-const DetalheFerramenta = lazy(() => import("./pages/equipe/dev/DetalheFerramenta"));
-const ConsultaXMLs = lazy(() => import("./pages/equipe/dev/ConsultaXMLs"));
-const ConsultaEFD = lazy(() => import("./pages/equipe/dev/ConsultaEFD"));
-const ConsultaEFDICMS = lazy(() => import("./pages/equipe/dev/ConsultaEFDICMS"));
-const ConsultaECD = lazy(() => import("./pages/equipe/dev/ConsultaECD"));
-const ConsultaECF = lazy(() => import("./pages/equipe/dev/ConsultaECF"));
-const GerenciarDados = lazy(() => import("./pages/equipe/dev/GerenciarDados"));
-const ProcessoDifal = lazy(() => import("./pages/equipe/dev/ProcessoDifal"));
-const ControlePerdcomp = lazy(() => import("./pages/equipe/dev/ControlePerdcomp"));
-const CalculadoraIbsCbs = lazy(() => import("./pages/equipe/dev/CalculadoraIbsCbs"));
-const ControleBalancetes = lazy(() => import("./pages/equipe/dev/ControleBalancetes"));
-const ApuracaoPisCofins = lazy(() => import("./pages/equipe/dev/ApuracaoPisCofins"));
-const MapaNCMPisCofins = lazy(() => import("./pages/equipe/dev/MapaNCMPisCofins"));
-const AuditoriaCruzada = lazy(() => import("./pages/equipe/dev/AuditoriaCruzada"));
-const CorrecoesSped = lazy(() => import("./pages/equipe/dev/CorrecoesSped"));
-const ProcedimentosDev = lazy(() => import("./pages/equipe/dev/ProcedimentosDev"));
+import DevDashboard from "./pages/equipe/dev/DevDashboard";
+import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
+import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
+import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
+import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
+import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
+import ConsultaECD from "./pages/equipe/dev/ConsultaECD";
+import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
+import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
+import ProcessoDifal from "./pages/equipe/dev/ProcessoDifal";
+import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
+import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
+import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
+import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
+import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
+import AuditoriaCruzada from "./pages/equipe/dev/AuditoriaCruzada";
+import CorrecoesSped from "./pages/equipe/dev/CorrecoesSped";
+import ProcedimentosDev from "./pages/equipe/dev/ProcedimentosDev";
 
 // Equipe > Fiscal / Tax
-const FiscalDashboard = lazy(() => import("./pages/equipe/fiscal/FiscalDashboard"));
-const FiscalDemandasTarefas = lazy(() => import("./pages/equipe/fiscal/FiscalDemandasTarefas"));
-const FiscalProjetosCadastro = lazy(() => import("./pages/equipe/fiscal/FiscalProjetosCadastro"));
-const FiscalAuditoria = lazy(() => import("./pages/equipe/fiscal/FiscalAuditoria"));
-const FiscalCadastrosClientes = lazy(() => import("./pages/equipe/fiscal/FiscalCadastrosClientes"));
-const GestaoClientes = lazy(() => import("./pages/equipe/fiscal/GestaoClientes"));
+import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
+import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
+import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
+import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
+import FiscalCadastrosClientes from "./pages/equipe/fiscal/FiscalCadastrosClientes";
+import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 
 // Equipe > OSG / Board
-const OsgDashboard = lazy(() => import("./pages/equipe/osg/OsgDashboard"));
-const OsgAuditoria = lazy(() => import("./pages/equipe/osg/OsgAuditoria"));
-const BoardDashboard = lazy(() => import("./pages/equipe/board/BoardDashboard"));
+import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
+import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
+import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 
 // Gestão
-const GestaoNovidades = lazy(() => import("./pages/gestao/GestaoNovidades"));
-const GestaoChamados = lazy(() => import("./pages/gestao/GestaoChamados"));
-const GestaoDetalhesChamado = lazy(() => import("./pages/gestao/GestaoDetalhesChamado"));
-const GestaoContatos = lazy(() => import("./pages/gestao/GestaoContatos"));
-const GestaoAcessos = lazy(() => import("./pages/gestao/GestaoAcessos"));
+import GestaoNovidades from "./pages/gestao/GestaoNovidades";
+import GestaoChamados from "./pages/gestao/GestaoChamados";
+import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
+import GestaoContatos from "./pages/gestao/GestaoContatos";
+import GestaoAcessos from "./pages/gestao/GestaoAcessos";
 
 // Gerencial > Desempenho
-const DesempenhoVisaoGeral = lazy(() => import("./pages/gerencial/desempenho/DesempenhoVisaoGeral"));
-const DesempenhoCiclos = lazy(() => import("./pages/gerencial/desempenho/DesempenhoCiclos"));
-const DesempenhoMetas = lazy(() => import("./pages/gerencial/desempenho/DesempenhoMetas"));
-const DesempenhoFeedbacks = lazy(() => import("./pages/gerencial/desempenho/DesempenhoFeedbacks"));
-const DesempenhoReunioes1a1 = lazy(() => import("./pages/gerencial/desempenho/DesempenhoReunioes1a1"));
-const DesempenhoEvolucao = lazy(() => import("./pages/gerencial/desempenho/DesempenhoEvolucao"));
-const DesempenhoDecisoes = lazy(() => import("./pages/gerencial/desempenho/DesempenhoDecisoes"));
-const DesempenhoRelatorios = lazy(() => import("./pages/gerencial/desempenho/DesempenhoRelatorios"));
-const MinhaEvolucao = lazy(() => import("./pages/gerencial/desempenho/MinhaEvolucao"));
+import DesempenhoVisaoGeral from "./pages/gerencial/desempenho/DesempenhoVisaoGeral";
+import DesempenhoCiclos from "./pages/gerencial/desempenho/DesempenhoCiclos";
+import DesempenhoMetas from "./pages/gerencial/desempenho/DesempenhoMetas";
+import DesempenhoFeedbacks from "./pages/gerencial/desempenho/DesempenhoFeedbacks";
+import DesempenhoReunioes1a1 from "./pages/gerencial/desempenho/DesempenhoReunioes1a1";
+import DesempenhoEvolucao from "./pages/gerencial/desempenho/DesempenhoEvolucao";
+import DesempenhoDecisoes from "./pages/gerencial/desempenho/DesempenhoDecisoes";
+import DesempenhoRelatorios from "./pages/gerencial/desempenho/DesempenhoRelatorios";
+import MinhaEvolucao from "./pages/gerencial/desempenho/MinhaEvolucao";
 
 // Gerencial > Performance
-const PerformanceDashboard = lazy(() => import("./pages/gerencial/performance/PerformanceDashboard"));
+import PerformanceDashboard from "./pages/gerencial/performance/PerformanceDashboard";
 
 const App = () => (
   <ErrorBoundary scope="Root">
@@ -126,8 +123,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
+            <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
               <Route path="/novidades" element={<Novidades />} />
@@ -226,8 +222,7 @@ const App = () => (
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            </Routes>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
