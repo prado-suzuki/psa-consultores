@@ -16,7 +16,125 @@ export interface ProtectedPage {
 }
 
 export const PROTECTED_PAGES: ProtectedPage[] = [
+  // =============================================
+  // === GERAL PAGES (acessíveis a todo membro) ===
+  // =============================================
+  {
+    page_path: '/equipe/dashboard',
+    page_name: 'Dashboard Equipe',
+    page_description: 'Painel principal da equipe',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/relatorios',
+    page_name: 'Relatórios',
+    page_description: 'Relatórios gerais da equipe',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/kanban',
+    page_name: 'Kanban',
+    page_description: 'Quadro Kanban de tarefas',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/sprints',
+    page_name: 'Sprints',
+    page_description: 'Gerenciamento de sprints',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/daily',
+    page_name: 'Daily',
+    page_description: 'Registro de daily standups',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/rotinas',
+    page_name: 'Rotinas',
+    page_description: 'Gerenciamento de rotinas recorrentes',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tarefas',
+    page_name: 'Tarefas',
+    page_description: 'Listagem e gestão de tarefas',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tarefas/nova',
+    page_name: 'Nova Tarefa',
+    page_description: 'Criação de nova tarefa',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/processos',
+    page_name: 'Processos',
+    page_description: 'Gestão de processos internos',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/projetos',
+    page_name: 'Projetos',
+    page_description: 'Gerenciamento de projetos',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/biblioteca',
+    page_name: 'Biblioteca',
+    page_description: 'Biblioteca de documentos e recursos',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/backlog',
+    page_name: 'Backlog',
+    page_description: 'Backlog de tarefas e demandas',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/chamados',
+    page_name: 'Chamados Equipe',
+    page_description: 'Visualizar e gerenciar chamados atribuídos',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/acessos',
+    page_name: 'Controle de Acessos (Equipe)',
+    page_description: 'Gerenciar permissões de páginas e usuários',
+    category: 'gestao',
+    requires_admin: true,
+    requires_team_member: true,
+  },
+
+  // =============================================
   // === DEV PAGES ===
+  // =============================================
   {
     page_path: '/equipe/dev',
     page_name: 'Dev Dashboard',
@@ -66,8 +184,24 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/dev/consulta-ecd',
+    page_name: 'Consulta ECD',
+    page_description: 'Consulta de arquivos ECD',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/consulta-ecf',
+    page_name: 'Consulta ECF',
+    page_description: 'Consulta de arquivos ECF',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/dev/gerenciar-dados',
-    page_name: 'Gerenciar dados',
+    page_name: 'Gerenciar Dados',
     page_description: 'Gerenciamento de dados',
     category: 'dev',
     requires_admin: false,
@@ -89,42 +223,74 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/controle-balancetes',
+    page_name: 'Controle Balancetes',
+    page_description: 'Gerenciamento de balancetes',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/gestao-clientes',
+    page_name: 'Gestão Clientes',
+    page_description: 'Gerenciamento de clientes Dev',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/calculadora-ibs-cbs',
+    page_name: 'Calculadora IBS/CBS',
+    page_description: 'Calculadora de IBS e CBS',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/apuracao-pis-cofins',
+    page_name: 'Apuração PIS/COFINS',
+    page_description: 'Motor de apuração PIS e COFINS',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/mapa-ncm-pis-cofins',
+    page_name: 'Mapa NCM PIS/COFINS',
+    page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/cruzamento-dados',
+    page_name: 'Análise Cruzada',
+    page_description: 'Cruzamento de dados EFD, Balancete e XMLs',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/correcoes-sped',
+    page_name: 'Correções no SPED',
+    page_description: 'Revisão de notas e itens EFD vs XML para correções',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/procedimentos',
+    page_name: 'Procedimentos',
+    page_description: 'Biblioteca de procedimentos técnicos gerados por IA',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
-  // === GESTÃO PAGES ===
-  {
-    page_path: '/gestao',
-    page_name: 'Novidades',
-    page_description: 'Gerenciar novidades do site',
-    category: 'gestao',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/gestao/chamados',
-    page_name: 'Chamados',
-    page_description: 'Gerenciar chamados',
-    category: 'gestao',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/gestao/contatos',
-    page_name: 'Contatos',
-    page_description: 'Gerenciar contatos do site',
-    category: 'gestao',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/gestao/acessos',
-    page_name: 'Controle de Acessos',
-    page_description: 'Gerenciar permissões de acesso',
-    category: 'gestao',
-    requires_admin: true,
-    requires_team_member: true,
-  },
-
+  // =============================================
   // === TAX PAGES ===
+  // =============================================
   {
     page_path: '/equipe/tax/dashboard',
     page_name: 'Tax Dashboard',
@@ -157,112 +323,23 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-
-  // === DEV PAGES (missing) ===
-  {
-    page_path: '/equipe/dev/consulta-ecd',
-    page_name: 'Consulta ECD',
-    page_description: 'Consulta de arquivos ECD',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/dev/consulta-ecf',
-    page_name: 'Consulta ECF',
-    page_description: 'Consulta de arquivos ECF',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/dev/gestao-clientes',
-    page_name: 'Gestão Clientes',
-    page_description: 'Gerenciamento de clientes Dev',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/dev/calculadora-ibs-cbs',
-    page_name: 'Calculadora IBS/CBS',
-    page_description: 'Calculadora de IBS e CBS',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/dev/controle-balancetes',
-    page_name: 'Controle Balancetes',
-    page_description: 'Gerenciamento de balancetes',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-  {
-    page_path: '/equipe/dev/correcoes-sped',
-    page_name: 'Correções no SPED',
-    page_description: 'Revisão de notas e itens EFD vs XML para correções',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/dev/mapa-ncm-pis-cofins',
-    page_name: 'Mapa NCM PIS/COFINS',
-    page_description: 'Gerenciamento de regras fiscais NCM para PIS/COFINS',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-  {
-    page_path: '/equipe/dev/procedimentos',
-    page_name: 'Procedimentos',
-    page_description: 'Biblioteca de procedimentos técnicos gerados por IA',
-    category: 'dev',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-  // === OSG PAGES ===
-  {
-    page_path: '/equipe/osg/dashboard',
-    page_name: 'OSG Dashboard',
-    page_description: 'Painel principal da área OSG',
-    category: 'osg',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-
-  // === BOARD PAGES ===
-  {
-    page_path: '/equipe/board/dashboard',
-    page_name: 'Board Dashboard',
-    page_description: 'Painel principal da área Board',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-  // === GERAL PAGES ===
-  {
-    page_path: '/equipe/chamados',
-    page_name: 'Chamados Equipe',
-    page_description: 'Visualizar e gerenciar chamados atribuídos',
-    category: 'geral',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
-  // === AUDITORIA PAGES ===
   {
     page_path: '/equipe/tax/auditoria',
     page_name: 'Auditoria Tax',
     page_description: 'Histórico de alterações em projetos e tarefas Tax',
     category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // =============================================
+  // === OSG PAGES ===
+  // =============================================
+  {
+    page_path: '/equipe/osg/dashboard',
+    page_name: 'OSG Dashboard',
+    page_description: 'Painel principal da área OSG',
+    category: 'osg',
     requires_admin: false,
     requires_team_member: true,
   },
@@ -274,7 +351,26 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  // === DESEMPENHO PAGES ===
+
+  // =============================================
+  // === BOARD PAGES ===
+  // =============================================
+  {
+    page_path: '/equipe/board/dashboard',
+    page_name: 'Board Dashboard',
+    page_description: 'Painel principal da área Board',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/performance',
+    page_name: 'Performance',
+    page_description: 'Painel executivo consolidado de performance',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
   {
     page_path: '/equipe/board/desempenho',
     page_name: 'Desempenho - Visão Geral',
@@ -323,37 +419,64 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  // === PERFORMANCE PAGE ===
-  {
-    page_path: '/equipe/board/performance',
-    page_name: 'Performance',
-    page_description: 'Painel executivo consolidado de performance',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
   {
     page_path: '/equipe/board/desempenho/decisoes',
-    page_name: 'Desempenho - Decisoes',
-    page_description: 'Recomendacoes de IA para promocao e reajuste',
+    page_name: 'Desempenho - Decisões',
+    page_description: 'Recomendações de IA para promoção e reajuste',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,
   },
   {
     page_path: '/equipe/board/desempenho/relatorios',
-    page_name: 'Desempenho - Relatorios',
-    page_description: 'Geracao de relatorios individuais com IA',
+    page_name: 'Desempenho - Relatórios',
+    page_description: 'Geração de relatórios individuais com IA',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,
   },
   {
     page_path: '/equipe/board/desempenho/minha-evolucao',
-    page_name: 'Minha Evolucao',
-    page_description: 'Visao individual de metas, feedbacks e PPR',
+    page_name: 'Minha Evolução',
+    page_description: 'Visão individual de metas, feedbacks e PPR',
     category: 'board',
     requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // =============================================
+  // === GESTÃO PAGES ===
+  // =============================================
+  {
+    page_path: '/gestao',
+    page_name: 'Novidades',
+    page_description: 'Gerenciar novidades do site',
+    category: 'gestao',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/gestao/chamados',
+    page_name: 'Chamados',
+    page_description: 'Gerenciar chamados',
+    category: 'gestao',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/gestao/contatos',
+    page_name: 'Contatos',
+    page_description: 'Gerenciar contatos do site',
+    category: 'gestao',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/gestao/acessos',
+    page_name: 'Controle de Acessos',
+    page_description: 'Gerenciar permissões de acesso',
+    category: 'gestao',
+    requires_admin: true,
     requires_team_member: true,
   },
 ];
