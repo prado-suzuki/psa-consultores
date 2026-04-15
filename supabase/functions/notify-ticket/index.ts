@@ -1,11 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
+import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
+// corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 
 const departmentLabels: Record<string, string> = {
@@ -131,9 +127,10 @@ async function getNameForUser(
 // ── Main handler ──
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const _preflight = handleCorsPreflightRequest(req);
+  if (_preflight) return _preflight;
+
+  const corsHeaders = buildCorsHeaders(req);
 
   try {
     const authResult = await validateCaller(req);

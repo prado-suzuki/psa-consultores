@@ -1,12 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
+import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
+// corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const SYSTEM_PROMPT = `Você é um assistente especializado em documentação técnica tributária e fiscal brasileira.
 Analise o documento fornecido e extraia as informações estruturadas solicitadas.`;
 
@@ -73,9 +69,10 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2)
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const _preflight = handleCorsPreflightRequest(req);
+  if (_preflight) return _preflight;
+
+  const corsHeaders = buildCorsHeaders(req);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

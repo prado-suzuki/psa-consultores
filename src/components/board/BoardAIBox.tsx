@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { renderSimpleBoldMarkdown } from '@/lib/safeBoldMarkdown';
 
 interface BoardAIBoxProps {
   edgeFn?: string;
@@ -62,7 +63,7 @@ export const BoardAIBox: React.FC<BoardAIBoxProps> = ({
         </div>
       ) : data ? (
         <>
-          <div className="ai-text" dangerouslySetInnerHTML={{ __html: data.sintese.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+          <div className="ai-text">{renderSimpleBoldMarkdown(data.sintese)}</div>
           {data.bullets.length > 0 && (
             <div className="ai-bullets">
               {data.bullets.map((b, i) => <div key={i} className="ai-b">{b}</div>)}

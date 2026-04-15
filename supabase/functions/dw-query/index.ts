@@ -1,10 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key',
-}
-
+import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
+// corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const ALLOWED_TABLES = [
   'per', 'per_situacao', 'dcomp', 'per_with_contribuinte',
   'cliente', 'contribuinte', 'representante', 'inscricao_contribuinte',
@@ -16,9 +13,10 @@ const ALLOWED_TABLES = [
 type AllowedTable = typeof ALLOWED_TABLES[number]
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
+  const _preflight = handleCorsPreflightRequest(req);
+  if (_preflight) return _preflight;
+
+  const corsHeaders = buildCorsHeaders(req);
 
   try {
     // Validate API key
