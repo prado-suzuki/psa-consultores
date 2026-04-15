@@ -32,7 +32,12 @@ export default defineConfig(({ mode }) => ({
         manualChunks: (id) => {
           if (!id.includes("node_modules")) return undefined;
 
-          if (id.includes("react-dom") || id.includes("react-router")) {
+          if (
+            id.includes("/react/") ||
+            id.includes("/react-dom/") ||
+            id.includes("react-router") ||
+            id.includes("scheduler")
+          ) {
             return "react-vendor";
           }
           if (id.includes("@radix-ui") || id.includes("cmdk") || id.includes("vaul")) {
