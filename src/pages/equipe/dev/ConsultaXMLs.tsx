@@ -242,9 +242,9 @@ const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCliente, setSelectedCliente] = useState("");
   const [selectedContribuinte, setSelectedContribuinte] = useState("");
-  const [dataInicio, setDataInicio] = useState(DEFAULT_DATA_INICIO);
-  const [dataFim, setDataFim] = useState(DEFAULT_DATA_FIM);
-  const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos">(DEFAULT_TIPO_DOCUMENTO);
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
+  const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos" | "">("");
   const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida" | "">(DEFAULT_TIPO_MOV);
   const [emitente, setEmitente] = useState("");
   const [destinatario, setDestinatario] = useState("");
@@ -259,9 +259,9 @@ const ConsultaXMLs = () => {
     return (
       selectedCliente !== "" ||
       selectedContribuinte !== "" ||
-      dataInicio !== DEFAULT_DATA_INICIO ||
-      dataFim !== DEFAULT_DATA_FIM ||
-      tipoDocumento !== DEFAULT_TIPO_DOCUMENTO ||
+      dataInicio !== "" ||
+      dataFim !== "" ||
+      tipoDocumento !== "" ||
       tipoMov !== DEFAULT_TIPO_MOV ||
       emitente !== "" ||
       destinatario !== "" ||
@@ -272,9 +272,9 @@ const ConsultaXMLs = () => {
   const handleClearFilters = () => {
     setSelectedCliente("");
     setSelectedContribuinte("");
-    setDataInicio(DEFAULT_DATA_INICIO);
-    setDataFim(DEFAULT_DATA_FIM);
-    setTipoDocumento(DEFAULT_TIPO_DOCUMENTO);
+    setDataInicio("");
+    setDataFim("");
+    setTipoDocumento("");
     setTipoMov(DEFAULT_TIPO_MOV);
     setEmitente("");
     setDestinatario("");
@@ -284,7 +284,7 @@ const ConsultaXMLs = () => {
     setCurrentPage(1);
     toast({
       title: "Filtros limpos",
-      description: "Todos os filtros foram resetados para os valores padrão",
+      description: "Todos os filtros foram resetados",
     });
   };
   const navigate = useNavigate();
@@ -499,6 +499,14 @@ const ConsultaXMLs = () => {
   };
 
   const handleSearch = () => {
+    if (!selectedCliente || !selectedContribuinte || !tipoDocumento || !dataInicio || !dataFim) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha Cliente, Contribuinte, Tipo Doc., Data Início e Data Fim.",
+        variant: "destructive",
+      });
+      return;
+    }
     setCurrentPage(1);
     setCommittedChave(chaveAcesso);
     setSearchTriggered(true);
@@ -606,10 +614,11 @@ const ConsultaXMLs = () => {
     }
   };
 
-  const isBuscarDisabled = !selectedContribuinte || isLoading;
-  const isBaixarXmlsDisabled = downloadingBatch || isLoading || !selectedContribuinte || !dataInicio ||
+  const allRequiredFilled = !!(selectedCliente && selectedContribuinte && tipoDocumento && dataInicio && dataFim);
+  const isBuscarDisabled = !allRequiredFilled || isLoading;
+  const isBaixarXmlsDisabled = downloadingBatch || isLoading || !allRequiredFilled ||
     (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0);
-  const isExportDisabled = isLoading || !selectedContribuinte ||
+  const isExportDisabled = isLoading || !allRequiredFilled ||
     (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0);
 
   return (
@@ -674,13 +683,12 @@ const ConsultaXMLs = () => {
                               Carregando...
                             </span>
                           ) : (
-                            "Todos os clientes"
+                            "Selecione um cliente"
                           )
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os clientes</SelectItem>
                       {clientes?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.nome}
@@ -739,7 +747,7 @@ const ConsultaXMLs = () => {
                 </div>
                 <div className="md:col-span-2">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                    Tipo Doc.
+                    Tipo Doc. <RequiredMark />
                     <FieldTooltip text={TOOLTIPS.tipoDoc} />
                   </label>
                   <Select
@@ -751,7 +759,7 @@ const ConsultaXMLs = () => {
                     }}
                   >
                     <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                      <SelectValue />
+                      <SelectValue placeholder="Selecione o tipo do doc" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="nfe">NFe</SelectItem>
@@ -799,7 +807,7 @@ const ConsultaXMLs = () => {
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div className="md:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                    Data Início
+                    Data Início <RequiredMark />
                     <FieldTooltip text={TOOLTIPS.dataInicio} />
                   </label>
                   <Popover>
@@ -832,7 +840,7 @@ const ConsultaXMLs = () => {
                 </div>
                 <div className="md:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                    Data Fim
+                    Data Fim <RequiredMark />
                     <FieldTooltip text={TOOLTIPS.dataFim} />
                   </label>
                   <Popover>
