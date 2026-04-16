@@ -46,34 +46,7 @@ export async function checkAreaAccess(
       if (access && access.length > 0) return true;
     }
 
-    // 2. Acesso herdado via estrutura organizacional
-    const { data: memberships } = await supabase
-      .from('estrutura_equipe_membros')
-      .select('equipe_id')
-      .eq('user_id', userId);
-
-    if (!memberships?.length) return false;
-
-    const equipeIds = memberships.map((m) => m.equipe_id);
-    const { data: equipes } = await supabase
-      .from('estrutura_equipes')
-      .select('area_id')
-      .in('id', equipeIds);
-
-    if (!equipes?.length) return false;
-
-    const areaIds = [...new Set(equipes.map((e) => e.area_id).filter(Boolean))];
-    if (!areaIds.length) return false;
-
-    const { data: areas } = await supabase
-      .from('estrutura_areas')
-      .select('page_categories')
-      .in('id', areaIds);
-
-    return !!areas?.some((a) => {
-      const pageCats = (a.page_categories as string[] | null) ?? [];
-      return categories.some((cat) => pageCats.includes(cat));
-    });
+    return false;
   } catch (error) {
     console.error('[accessControl] Erro ao verificar acesso à área:', error);
     return false;

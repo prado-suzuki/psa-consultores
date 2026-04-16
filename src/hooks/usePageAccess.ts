@@ -43,36 +43,6 @@ export function usePageAccess(pagePath: string) {
       // NEW: Category 'geral' → any team_member gets access
       if (page.category === 'geral' && isInternalUser) return true;
 
-      // NEW: Check membership-based access via estrutura
-      if (isInternalUser) {
-        // Get user's team memberships → areas → check page_categories
-        const { data: memberships } = await supabase
-          .from('estrutura_equipe_membros')
-          .select('equipe_id')
-          .eq('user_id', user.id);
-
-        if (memberships?.length) {
-          const equipeIds = memberships.map(m => m.equipe_id);
-
-          const { data: equipes } = await supabase
-            .from('estrutura_equipes')
-            .select('area_id')
-            .in('id', equipeIds);
-
-          if (equipes?.length) {
-            const areaIds = [...new Set(equipes.map(e => e.area_id))];
-
-            const { data: areas } = await supabase
-              .from('estrutura_areas')
-              .select('page_categories')
-              .in('id', areaIds);
-
-            if (areas?.some(a => (a.page_categories as string[] || []).includes(page.category))) {
-              return true;
-            }
-          }
-        }
-      }
 
       return false;
     },
