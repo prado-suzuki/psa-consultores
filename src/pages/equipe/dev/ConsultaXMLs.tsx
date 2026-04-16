@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Search,
   FileText,
@@ -39,6 +40,48 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { API_BASE_URL, currentAmbiente } from "@/config/api";
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helper ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Selecione o grupo econômico. A lista de contribuintes será filtrada automaticamente conforme o cliente escolhido. Caso selecione 'Todos', todos os contribuintes cadastrados serão exibidos.",
+  contribuinte: "Empresa ou pessoa física vinculada ao cliente selecionado (CNPJ/CPF). Apenas um contribuinte por consulta. Se houver apenas um cadastrado, a seleção será automática. Campo obrigatório para acionar a busca.",
+  tipoDoc: "Tipo de documento fiscal: NFe (Nota Fiscal Eletrônica) ou CTe (Conhecimento de Transporte Eletrônico). A tabela de resultados e as colunas de exportação se adaptam ao tipo selecionado.",
+  tipoMov: "Filtra a direção da operação: Entrada (documentos recebidos pelo contribuinte) ou Saída (documentos emitidos). Selecione 'Todos' para exibir ambos.",
+  dataInicio: "Data inicial do período de emissão dos documentos. Obrigatório. Define o limite inferior da consulta junto com a Data Fim.",
+  dataFim: "Data final do período de emissão. Obrigatório. O intervalo entre Data Início e Data Fim determina o escopo completo da busca.",
+  emitente: "Filtra documentos por CPF ou CNPJ de quem emitiu o documento. Opcional. Aceita somente números — a formatação é removida automaticamente.",
+  destinatario: "Filtra documentos por CPF ou CNPJ do destinatário. Opcional. Aceita somente números.",
+  chaveAcesso: "Chave numérica única de 44 dígitos que identifica o documento fiscal (NFe ou CTe). Opcional. Quando informada, a busca retorna apenas o documento correspondente.",
+  buscar: "Executa a consulta com os filtros aplicados. Requer ao menos um Contribuinte selecionado e o período definido.",
+  limpar: "Redefine todos os filtros para os valores padrão e limpa os resultados da tabela, permitindo iniciar uma nova consulta.",
+  baixarXmls: "Baixa em lote todos os arquivos XML do resultado atual (respeitando os filtros aplicados). O download será um arquivo .zip quando houver múltiplos documentos, ou .xml quando for apenas um.",
+  exportarExcel: "Abre o painel de exportação avançada. Permite selecionar colunas, salvar perfis de exportação e visualizar um preview antes de gerar a planilha. A exportação inclui todos os registros do filtro, não apenas a página atual.",
+  downloadLinha: "Baixa o arquivo XML original deste documento específico.",
+  paginacao: "Navega entre as páginas de resultados. A tabela exibe 10 registros por página.",
+} as const;
 
 const DEFAULT_DATA_INICIO = "2024-01-01";
 const DEFAULT_DATA_FIM = "2026-01-31";
@@ -75,7 +118,6 @@ interface NFeRecord {
   dest: NFeDest;
 }
 
-// Interfaces CT-e
 interface CTeActor {
   CNPJ: string | null;
   CPF: string | null;
@@ -147,7 +189,6 @@ interface CTeRecord {
   };
   docs_nfe: string[];
   medidas: CTeMedida[];
-  // Array actors (may come as singular object or plural array)
   rems?: CTeActor[];
   rem?: CTeActor;
   expeds?: CTeActor[];
@@ -237,7 +278,6 @@ const ConsultaXMLs = () => {
   };
   const navigate = useNavigate();
 
-  // Buscar lista de clientes
   const { data: clientes, isLoading: loadingClientes } = useQuery({
     queryKey: ["clientes-list"],
     queryFn: async () => {
@@ -266,7 +306,6 @@ const ConsultaXMLs = () => {
     },
   });
 
-  // Buscar lista de contribuintes
   const {
     data: contribuintes,
     isLoading: loadingContribuintes,
@@ -556,447 +595,475 @@ const ConsultaXMLs = () => {
     }
   };
 
+  const isBuscarDisabled = !selectedContribuinte || isLoading;
+  const isBaixarXmlsDisabled = downloadingBatch || isLoading || !selectedContribuinte || !dataInicio ||
+    (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0);
+  const isExportDisabled = isLoading || !selectedContribuinte ||
+    (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0);
+
   return (
     <DevLayout title="Consulta de XMLs" subtitle="Busque e visualize documentos fiscais" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/">
-      <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
-        {/* Alerta de Instruções */}
-        <div className="flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-slate-700">
-            Utilize os filtros de <strong>Data</strong> e <strong>Contribuinte</strong> abaixo para localizar as notas
-            fiscais desejadas. Após a busca, você pode conferir os detalhes na tabela ou gerar um relatório clicando em{" "}
-            <strong>Exportar Excel</strong>.
-          </p>
-        </div>
+      <TooltipProvider delayDuration={300}>
+        <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
+          {/* Alerta de Instruções */}
+          <Alert className="bg-blue-50/80 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
+            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">Como usar esta ferramenta</AlertTitle>
+            <AlertDescription className="text-sm text-slate-700 dark:text-slate-300 mt-1 space-y-1">
+              <p>
+                <strong>1.</strong> Preencha os filtros obrigatórios: <strong>Cliente</strong>, <strong>Contribuinte</strong>, <strong>Tipo de Documento</strong> e o <strong>período</strong> (Data Início e Data Fim).
+                Opcionalmente, refine por Tipo de Movimentação, CPF/CNPJ do Emitente ou Destinatário, ou busque diretamente pela Chave de Acesso (44 dígitos).
+              </p>
+              <p><strong>2.</strong> Clique em <strong>Buscar</strong> para consultar a base de documentos fiscais.</p>
+              <p><strong>3.</strong> Analise os resultados na tabela — cada linha representa um XML (NFe ou CTe) com dados de emitente, chave, valor e data.</p>
+              <p>
+                <strong>4.</strong> Use <strong>Exportar Excel</strong> para gerar uma planilha personalizada com todos os registros do filtro (não apenas a página visível), ou <strong>Baixar XMLs</strong> para obter os arquivos originais em lote (.zip).
+              </p>
+            </AlertDescription>
+          </Alert>
 
-        {/* Filtros */}
-        <Card>
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg flex items-center gap-2 text-primary">
-              <Filter className="h-5 w-5" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Grid de Inputs */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /></label>
-                <Select
-                  value={selectedCliente}
-                  onValueChange={(value) => {
-                    setSelectedCliente(value);
-                    setSelectedContribuinte("");
-                    setSearchTriggered(false);
-                  }}
-                >
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                    <SelectValue
-                      placeholder={
-                        loadingClientes ? (
-                          <span className="flex items-center gap-2">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                            Carregando...
-                          </span>
-                        ) : (
-                          "Todos os clientes"
-                        )
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    {clientes?.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /></label>
-                {errorContribuintes ? (
-                  <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
-                    {(errorContribuintes as Error).message}
-                    <Button
-                      variant="link"
-                      className="text-destructive p-0 h-auto ml-2"
-                      onClick={() => navigate("/equipe")}
-                    >
-                      Fazer login novamente
-                    </Button>
-                  </div>
-                ) : (
+          {/* Filtros */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg flex items-center gap-2 text-primary">
+                <Filter className="h-5 w-5" />
+                <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Grid de Inputs */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Cliente <RequiredMark />
+                    <FieldTooltip text={TOOLTIPS.cliente} />
+                  </label>
                   <Select
-                    value={selectedContribuinte}
+                    value={selectedCliente}
                     onValueChange={(value) => {
-                      setSelectedContribuinte(value);
+                      setSelectedCliente(value);
+                      setSelectedContribuinte("");
                       setSearchTriggered(false);
                     }}
                   >
                     <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                       <SelectValue
                         placeholder={
-                          loadingContribuintes ? (
+                          loadingClientes ? (
                             <span className="flex items-center gap-2">
                               <Loader2 className="h-4 w-4 animate-spin" />
                               Carregando...
                             </span>
                           ) : (
-                            "Selecione um contribuinte"
+                            "Todos os clientes"
                           )
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {contribuintes?.map((c) => (
+                      <SelectItem value="all">Todos os clientes</SelectItem>
+                      {clientes?.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
-                          {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ""}
+                          {c.nome}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                )}
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Tipo Doc.</label>
-                <Select
-                  value={tipoDocumento}
-                  onValueChange={(value: "nfe" | "cte" | "todos") => {
-                    setTipoDocumento(value);
-                    setSearchTriggered(false);
-                    setCurrentPage(1);
-                  }}
-                >
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="nfe">NFe</SelectItem>
-                    <SelectItem value="cte">CTe</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Tipo Mov.</label>
-                <Select
-                  value={tipoMov}
-                  onValueChange={(value: "Entrada" | "Saida" | "todos") => {
-                    setTipoMov(value === "todos" ? "" : value);
-                    setSearchTriggered(false);
-                  }}
-                >
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">
-                      <span className="text-muted-foreground">Todos</span>
-                    </SelectItem>
-                    <SelectItem value="Entrada">
-                      <span className="flex items-center gap-1.5">
-                        <ArrowDownLeft className="h-3.5 w-3.5 text-green-600" />
-                        Entrada
-                      </span>
-                    </SelectItem>
-                    <SelectItem value="Saida">
-                      <span className="flex items-center gap-1.5">
-                        <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
-                        Saída
-                      </span>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Datas e Filtros Adicionais */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Início</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                        !dataInicio && "text-muted-foreground",
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {dataInicio ? (
-                        format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                      ) : (
-                        <span>Selecione</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
-                      onSelect={(date) => {
-                        setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
+                </div>
+                <div className="md:col-span-4">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Contribuinte <RequiredMark />
+                    <FieldTooltip text={TOOLTIPS.contribuinte} />
+                  </label>
+                  {errorContribuintes ? (
+                    <div className="text-destructive text-sm p-3 border border-destructive/50 rounded-md bg-destructive/10">
+                      {(errorContribuintes as Error).message}
+                      <Button
+                        variant="link"
+                        className="text-destructive p-0 h-auto ml-2"
+                        onClick={() => navigate("/equipe")}
+                      >
+                        Fazer login novamente
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select
+                      value={selectedContribuinte}
+                      onValueChange={(value) => {
+                        setSelectedContribuinte(value);
                         setSearchTriggered(false);
                       }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim</label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                        !dataFim && "text-muted-foreground",
-                      )}
                     >
-                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {dataFim ? (
-                        format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
-                      ) : (
-                        <span>Selecione</span>
-                      )}
+                      <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                        <SelectValue
+                          placeholder={
+                            loadingContribuintes ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                Carregando...
+                              </span>
+                            ) : (
+                              "Selecione um contribuinte"
+                            )
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {contribuintes?.map((c) => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.nome_razao_social} {c.cpf_cnpj ? `(${formatCNPJ(c.cpf_cnpj)})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Tipo Doc.
+                    <FieldTooltip text={TOOLTIPS.tipoDoc} />
+                  </label>
+                  <Select
+                    value={tipoDocumento}
+                    onValueChange={(value: "nfe" | "cte" | "todos") => {
+                      setTipoDocumento(value);
+                      setSearchTriggered(false);
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="nfe">NFe</SelectItem>
+                      <SelectItem value="cte">CTe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Tipo Mov.
+                    <FieldTooltip text={TOOLTIPS.tipoMov} />
+                  </label>
+                  <Select
+                    value={tipoMov}
+                    onValueChange={(value: "Entrada" | "Saida" | "todos") => {
+                      setTipoMov(value === "todos" ? "" : value);
+                      setSearchTriggered(false);
+                    }}
+                  >
+                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todos">
+                        <span className="text-muted-foreground">Todos</span>
+                      </SelectItem>
+                      <SelectItem value="Entrada">
+                        <span className="flex items-center gap-1.5">
+                          <ArrowDownLeft className="h-3.5 w-3.5 text-green-600" />
+                          Entrada
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="Saida">
+                        <span className="flex items-center gap-1.5">
+                          <ArrowUpRight className="h-3.5 w-3.5 text-blue-600" />
+                          Saída
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Datas e Filtros Adicionais */}
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Data Início
+                    <FieldTooltip text={TOOLTIPS.dataInicio} />
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                          !dataInicio && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                        {dataInicio ? (
+                          format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        ) : (
+                          <span>Selecione</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                        onSelect={(date) => {
+                          setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
+                          setSearchTriggered(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="md:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Data Fim
+                    <FieldTooltip text={TOOLTIPS.dataFim} />
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
+                          !dataFim && "text-muted-foreground",
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                        {dataFim ? (
+                          format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        ) : (
+                          <span>Selecione</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                        onSelect={(date) => {
+                          setDataFim(date ? format(date, "yyyy-MM-dd") : "");
+                          setSearchTriggered(false);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    CPF/CNPJ Emitente
+                    <FieldTooltip text={TOOLTIPS.emitente} />
+                  </label>
+                  <Input
+                    placeholder="Digite o CPF ou CNPJ"
+                    value={emitente}
+                    onChange={(e) => {
+                      setEmitente(e.target.value);
+                      setSearchTriggered(false);
+                    }}
+                    className="h-11"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    CPF/CNPJ Destinatário
+                    <FieldTooltip text={TOOLTIPS.destinatario} />
+                  </label>
+                  <Input
+                    placeholder="Digite o CPF ou CNPJ"
+                    value={destinatario}
+                    onChange={(e) => {
+                      setDestinatario(e.target.value);
+                      setSearchTriggered(false);
+                    }}
+                    className="h-11"
+                  />
+                </div>
+                <div className="md:col-span-4">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                    Chave de Acesso
+                    <FieldTooltip text={TOOLTIPS.chaveAcesso} />
+                  </label>
+                  <Input
+                    placeholder="Digite a chave de acesso (44 dígitos)"
+                    value={chaveAcesso}
+                    onChange={(e) => {
+                      setChaveAcesso(e.target.value);
+                    }}
+                    className="h-11 font-mono text-sm"
+                    maxLength={50}
+                  />
+                </div>
+              </div>
+
+              {/* Barra de Ações */}
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                {hasActiveFilters && (
+                  <ButtonTooltip text={TOOLTIPS.limpar}>
+                    <Button
+                      variant="ghost"
+                      onClick={handleClearFilters}
+                      disabled={isLoading}
+                      className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      <Eraser className="h-4 w-4 mr-2" />
+                      Limpar filtros
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
-                      onSelect={(date) => {
-                        setDataFim(date ? format(date, "yyyy-MM-dd") : "");
-                        setSearchTriggered(false);
-                      }}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Emitente</label>
-                <Input
-                  placeholder="Digite o CPF ou CNPJ"
-                  value={emitente}
-                  onChange={(e) => {
-                    setEmitente(e.target.value);
-                    setSearchTriggered(false);
-                  }}
-                  className="h-11"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">CPF/CNPJ Destinatário</label>
-                <Input
-                  placeholder="Digite o CPF ou CNPJ"
-                  value={destinatario}
-                  onChange={(e) => {
-                    setDestinatario(e.target.value);
-                    setSearchTriggered(false);
-                  }}
-                  className="h-11"
-                />
-              </div>
-              <div className="md:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Chave de Acesso</label>
-                <Input
-                  placeholder="Digite a chave de acesso (44 dígitos)"
-                  value={chaveAcesso}
-                  onChange={(e) => {
-                    setChaveAcesso(e.target.value);
-                  }}
-                  className="h-11 font-mono text-sm"
-                  maxLength={50}
-                />
-              </div>
-            </div>
-
-            {/* Barra de Ações */}
-            <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  onClick={handleClearFilters}
-                  disabled={isLoading}
-                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  <Eraser className="h-4 w-4 mr-2" />
-                  Limpar filtros
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={handleDownloadBatchXml}
-                disabled={
-                  downloadingBatch ||
-                  isLoading ||
-                  !selectedContribuinte ||
-                  !dataInicio ||
-                  (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
-                }
-              >
-                {downloadingBatch ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FolderDown className="h-4 w-4 mr-2" />
+                  </ButtonTooltip>
                 )}
-                Baixar XMLs
-              </Button>
-              <ExportDialog
-                data={tipoDocumento === "nfe" ? nfeRecords : []}
-                cteData={tipoDocumento === "cte" ? cteRecords : []}
-                tipoDocumento={tipoDocumento}
-                totalRecords={totalRecords}
-                dataInicio={dataInicio}
-                dataFim={dataFim}
-                contribuinteId={selectedContribuinte}
-                tipoMov={tipoMov}
-                emitente={emitente}
-                destinatario={destinatario}
-                disabled={
-                  isLoading ||
-                  !selectedContribuinte ||
-                  (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0)
-                }
-              />
-              <Button 
-                onClick={handleSearch} 
-                disabled={!selectedContribuinte || isLoading}
-                className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Search className="h-4 w-4 mr-2" />
-                )}
-                Buscar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <ButtonTooltip text={TOOLTIPS.baixarXmls}>
+                  <Button
+                    variant="outline"
+                    onClick={handleDownloadBatchXml}
+                    disabled={isBaixarXmlsDisabled}
+                  >
+                    {downloadingBatch ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <FolderDown className="h-4 w-4 mr-2" />
+                    )}
+                    Baixar XMLs
+                  </Button>
+                </ButtonTooltip>
+                <ButtonTooltip text={TOOLTIPS.exportarExcel}>
+                  <ExportDialog
+                    data={tipoDocumento === "nfe" ? nfeRecords : []}
+                    cteData={tipoDocumento === "cte" ? cteRecords : []}
+                    tipoDocumento={tipoDocumento}
+                    totalRecords={totalRecords}
+                    dataInicio={dataInicio}
+                    dataFim={dataFim}
+                    contribuinteId={selectedContribuinte}
+                    tipoMov={tipoMov}
+                    emitente={emitente}
+                    destinatario={destinatario}
+                    disabled={isExportDisabled}
+                  />
+                </ButtonTooltip>
+                <ButtonTooltip text={TOOLTIPS.buscar}>
+                  <Button
+                    onClick={handleSearch}
+                    disabled={isBuscarDisabled}
+                    className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                  >
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Search className="h-4 w-4 mr-2" />
+                    )}
+                    Buscar
+                  </Button>
+                </ButtonTooltip>
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Tabela */}
-        <Card className="w-full min-w-0 overflow-hidden">
-          <CardHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Documentos
-              </CardTitle>
-              <span className="text-sm text-muted-foreground">{totalRecords} registro(s) encontrado(s)</span>
-            </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            {!searchTriggered ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center gap-3">
-                  <Search className="h-12 w-12 text-muted-foreground/50" />
-                  <div>
-                    <p className="font-medium text-foreground">Pronto para buscar</p>
-                    <p className="text-sm text-muted-foreground">
-                      Selecione os filtros acima e clique em "Buscar" para visualizar os documentos fiscais
-                    </p>
+          {/* Tabela */}
+          <Card className="w-full min-w-0 overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Documentos
+                </CardTitle>
+                {totalRecords > 0 && (
+                  <Badge variant="secondary" className="text-xs font-medium">
+                    {totalRecords} registro(s)
+                  </Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              {!searchTriggered ? (
+                <div className="text-center py-16">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="rounded-full bg-muted/60 p-4">
+                      <Search className="h-10 w-10 text-muted-foreground/60" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Pronto para buscar</p>
+                      <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                        Preencha <strong>Cliente</strong>, <strong>Contribuinte</strong> e o <strong>período</strong>, depois clique em <strong>Buscar</strong>.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : !selectedContribuinte ? (
-              <div className="text-center py-12">
-                <div className="flex flex-col items-center gap-3">
-                  <FileText className="h-12 w-12 text-muted-foreground/50" />
-                  <div>
-                    <p className="font-medium text-foreground">Contribuinte não selecionado</p>
-                    <p className="text-sm text-muted-foreground">
-                      Selecione um contribuinte para buscar os documentos fiscais
-                    </p>
+              ) : !selectedContribuinte ? (
+                <div className="text-center py-16">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="rounded-full bg-muted/60 p-4">
+                      <FileText className="h-10 w-10 text-muted-foreground/60" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-semibold text-foreground">Contribuinte não selecionado</p>
+                      <p className="text-sm text-muted-foreground">
+                        Selecione um contribuinte para buscar os documentos fiscais.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-4">
-                <p className="text-destructive text-center max-w-md">{(error as Error).message}</p>
-                <Button variant="outline" onClick={() => refetch()}>
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Tentar novamente
-                </Button>
-              </div>
-            ) : (
-              <>
-                <div className="w-full overflow-x-auto">
-                  {tipoDocumento === "nfe" ? (
-                    <Table className="min-w-[950px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                          <TableHead className="whitespace-nowrap">Chave de Acesso</TableHead>
-                          <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
-                          <TableHead className="whitespace-nowrap">Número</TableHead>
-                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                          <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
-                          <TableHead className="whitespace-nowrap">Produtos</TableHead>
-                          <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isLoading ? (
-                          [...Array(5)].map((_, i) => (
-                            <TableRow key={`skeleton-nfe-${i}`}>
-                              <TableCell>
-                                <Skeleton className="h-5 w-28" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-full" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-36" />
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">
-                                <Skeleton className="h-5 w-10" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-16" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-20" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-24" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-16" />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Skeleton className="h-8 w-8 ml-auto" />
+              ) : error ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <p className="text-destructive text-center max-w-md">{(error as Error).message}</p>
+                  <Button variant="outline" onClick={() => refetch()}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="w-full overflow-x-auto">
+                    {tipoDocumento === "nfe" ? (
+                      <Table className="min-w-[950px]">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                            <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                            <TableHead className="whitespace-nowrap">Chave de Acesso</TableHead>
+                            <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
+                            <TableHead className="whitespace-nowrap">Número</TableHead>
+                            <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                            <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
+                            <TableHead className="whitespace-nowrap">Produtos</TableHead>
+                            <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoading ? (
+                            [...Array(5)].map((_, i) => (
+                              <TableRow key={`skeleton-nfe-${i}`}>
+                                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-36" /></TableCell>
+                                <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-10" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                              </TableRow>
+                            ))
+                          ) : nfeRecords.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={9} className="text-center py-12">
+                                <div className="flex flex-col items-center gap-3">
+                                  <FileX2 className="h-12 w-12 text-amber-400" />
+                                  <div>
+                                    <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Tente ajustar o período ou selecionar outro contribuinte
+                                    </p>
+                                  </div>
+                                </div>
                               </TableCell>
                             </TableRow>
-                          ))
-                        ) : nfeRecords.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={9} className="text-center py-12">
-                              <div className="flex flex-col items-center gap-3">
-                                <FileX2 className="h-12 w-12 text-amber-400" />
-                                <div>
-                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Tente ajustar o período ou selecionar outro contribuinte
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          nfeRecords.map((record) => (
-                            <TableRow key={record.chave_nfe}>
-                              <TableCell className="font-mono text-sm whitespace-nowrap">
-                                {formatCNPJ(record.emit.CNPJ)}
-                              </TableCell>
-                              <TableCell className="max-w-[200px]">
-                                <span className="truncate block" title={record.emit.xNome}>
-                                  {record.emit.xNome}
-                                </span>
-                              </TableCell>
-                              <TableCell className="max-w-[180px]">
-                                <TooltipProvider>
+                          ) : (
+                            nfeRecords.map((record) => (
+                              <TableRow key={record.chave_nfe}>
+                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                  {formatCNPJ(record.emit.CNPJ)}
+                                </TableCell>
+                                <TableCell className="max-w-[200px]">
+                                  <span className="truncate block" title={record.emit.xNome}>
+                                    {record.emit.xNome}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="max-w-[180px]">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="truncate block font-mono text-xs cursor-help">
@@ -1007,209 +1074,193 @@ const ConsultaXMLs = () => {
                                       <p className="font-mono text-xs break-all">{record.chave_nfe}</p>
                                     </TooltipContent>
                                   </Tooltip>
-                                </TooltipProvider>
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
-                              <TableCell className="font-mono">{record.nNF}</TableCell>
-                              <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
-                              <TableCell className="text-right font-medium whitespace-nowrap">
-                                {formatCurrency(record.vlrTotal)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline">{record.contItens} item(s)</Badge>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <TooltipProvider>
+                                </TableCell>
+                                <TableCell className="hidden lg:table-cell">{record.emit.UF}</TableCell>
+                                <TableCell className="font-mono">{record.nNF}</TableCell>
+                                <TableCell className="whitespace-nowrap">{formatDate(record.dhEmi)}</TableCell>
+                                <TableCell className="text-right font-medium whitespace-nowrap">
+                                  {formatCurrency(record.vlrTotal)}
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant="outline">{record.contItens} item(s)</Badge>
+                                </TableCell>
+                                <TableCell className="text-right">
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0"
-                                        disabled={downloadingKey === record.chave_nfe}
-                                        onClick={() => handleDownloadSingleXml(record.chave_nfe, "nfe")}
-                                      >
-                                        {downloadingKey === record.chave_nfe ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Download className="h-4 w-4" />
-                                        )}
-                                      </Button>
+                                      <span className="inline-flex">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                          disabled={downloadingKey === record.chave_nfe}
+                                          onClick={() => handleDownloadSingleXml(record.chave_nfe, "nfe")}
+                                        >
+                                          {downloadingKey === record.chave_nfe ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Download className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </span>
                                     </TooltipTrigger>
-                                    <TooltipContent>Baixar XML original</TooltipContent>
+                                    <TooltipContent>{TOOLTIPS.downloadLinha}</TooltipContent>
                                   </Tooltip>
-                                </TooltipProvider>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  ) : (
-                    <Table className="min-w-[1050px]">
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                          <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
-                          <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
-                          <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
-                          <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                          <TableHead className="whitespace-nowrap">Número</TableHead>
-                          <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                          <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
-                          <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {isLoading ? (
-                          [...Array(5)].map((_, i) => (
-                            <TableRow key={`skeleton-cte-${i}`}>
-                              <TableCell>
-                                <Skeleton className="h-5 w-28" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-full" />
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <Skeleton className="h-5 w-24" />
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <Skeleton className="h-5 w-24" />
-                              </TableCell>
-                              <TableCell className="hidden lg:table-cell">
-                                <Skeleton className="h-5 w-16" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-14" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-16" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-20" />
-                              </TableCell>
-                              <TableCell>
-                                <Skeleton className="h-5 w-24" />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Skeleton className="h-8 w-8 ml-auto" />
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        ) : cteRecords.length === 0 ? (
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    ) : (
+                      <Table className="min-w-[1050px]">
+                        <TableHeader>
                           <TableRow>
-                            <TableCell colSpan={10} className="text-center py-12">
-                              <div className="flex flex-col items-center gap-3">
-                                <FileX2 className="h-12 w-12 text-amber-400" />
-                                <div>
-                                  <p className="font-medium text-foreground">Nenhum documento encontrado</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    Tente ajustar o período ou selecionar outro contribuinte
-                                  </p>
-                                </div>
-                              </div>
-                            </TableCell>
+                            <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
+                            <TableHead className="whitespace-nowrap">Razão Social</TableHead>
+                            <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
+                            <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
+                            <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
+                            <TableHead className="whitespace-nowrap">Tipo</TableHead>
+                            <TableHead className="whitespace-nowrap">Número</TableHead>
+                            <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
+                            <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
+                            <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
                           </TableRow>
-                        ) : (
-                          cteRecords.map((record) => (
-                            <TableRow key={record.chave_cte}>
-                              <TableCell className="font-mono text-sm whitespace-nowrap">
-                                {formatCNPJ(record.emit.CNPJ || "")}
-                              </TableCell>
-                              <TableCell className="max-w-[200px]">
-                                <span className="truncate block" title={record.emit.xNome}>
-                                  {record.emit.xNome}
-                                </span>
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <span className="truncate block" title={record.xMunIni}>
-                                  {record.xMunIni}
-                                </span>
-                              </TableCell>
-                              <TableCell className="hidden xl:table-cell">
-                                <span className="truncate block" title={record.xMunFim}>
-                                  {record.xMunFim}
-                                </span>
-                              </TableCell>
-                              <TableCell className="font-mono hidden lg:table-cell">{record.cfop}</TableCell>
-                              <TableCell>{getTipoBadge("CTe")}</TableCell>
-                              <TableCell className="font-mono">{record.nCT}</TableCell>
-                              <TableCell className="whitespace-nowrap">{formatDate(record.dEmi)}</TableCell>
-                              <TableCell className="text-right font-medium whitespace-nowrap">
-                                {formatCurrency(record.vTPrest)}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0"
-                                        disabled={downloadingKey === record.chave_cte}
-                                        onClick={() => handleDownloadSingleXml(record.chave_cte, "cte")}
-                                      >
-                                        {downloadingKey === record.chave_cte ? (
-                                          <Loader2 className="h-4 w-4 animate-spin" />
-                                        ) : (
-                                          <Download className="h-4 w-4" />
-                                        )}
-                                      </Button>
-                                    </TooltipTrigger>
-                                    <TooltipContent>Baixar XML original</TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
+                        </TableHeader>
+                        <TableBody>
+                          {isLoading ? (
+                            [...Array(5)].map((_, i) => (
+                              <TableRow key={`skeleton-cte-${i}`}>
+                                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-full" /></TableCell>
+                                <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell className="hidden xl:table-cell"><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-14" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                              </TableRow>
+                            ))
+                          ) : cteRecords.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={10} className="text-center py-12">
+                                <div className="flex flex-col items-center gap-3">
+                                  <FileX2 className="h-12 w-12 text-amber-400" />
+                                  <div>
+                                    <p className="font-medium text-foreground">Nenhum documento encontrado</p>
+                                    <p className="text-sm text-muted-foreground">
+                                      Tente ajustar o período ou selecionar outro contribuinte
+                                    </p>
+                                  </div>
+                                </div>
                               </TableCell>
                             </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  )}
-                </div>
-
-                {/* Paginação */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between p-4 border-t">
-                    <span className="text-sm text-muted-foreground">
-                      Exibindo {tipoDocumento === "nfe" ? nfeRecords.length : cteRecords.length} de {totalRecords} arquivos • Página {currentPage} de {totalPages}
-                    </span>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1 || isLoading}
-                      >
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        ) : (
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                        )}
-                        Anterior
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages || isLoading}
-                      >
-                        Próximo
-                        {isLoading ? (
-                          <Loader2 className="h-4 w-4 ml-1 animate-spin" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 ml-1" />
-                        )}
-                      </Button>
-                    </div>
+                          ) : (
+                            cteRecords.map((record) => (
+                              <TableRow key={record.chave_cte}>
+                                <TableCell className="font-mono text-sm whitespace-nowrap">
+                                  {formatCNPJ(record.emit.CNPJ || "")}
+                                </TableCell>
+                                <TableCell className="max-w-[200px]">
+                                  <span className="truncate block" title={record.emit.xNome}>
+                                    {record.emit.xNome}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="hidden xl:table-cell">
+                                  <span className="truncate block" title={record.xMunIni}>
+                                    {record.xMunIni}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="hidden xl:table-cell">
+                                  <span className="truncate block" title={record.xMunFim}>
+                                    {record.xMunFim}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="font-mono hidden lg:table-cell">{record.cfop}</TableCell>
+                                <TableCell>{getTipoBadge("CTe")}</TableCell>
+                                <TableCell className="font-mono">{record.nCT}</TableCell>
+                                <TableCell className="whitespace-nowrap">{formatDate(record.dEmi)}</TableCell>
+                                <TableCell className="text-right font-medium whitespace-nowrap">
+                                  {formatCurrency(record.vTPrest)}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="inline-flex">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                          disabled={downloadingKey === record.chave_cte}
+                                          onClick={() => handleDownloadSingleXml(record.chave_cte, "cte")}
+                                        >
+                                          {downloadingKey === record.chave_cte ? (
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                          ) : (
+                                            <Download className="h-4 w-4" />
+                                          )}
+                                        </Button>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>{TOOLTIPS.downloadLinha}</TooltipContent>
+                                  </Tooltip>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
+                    )}
                   </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+
+                  {/* Paginação */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <span className="text-sm text-muted-foreground">
+                        Exibindo {tipoDocumento === "nfe" ? nfeRecords.length : cteRecords.length} de {totalRecords} arquivos • Página <span className="font-semibold text-foreground">{currentPage}</span> de {totalPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <ButtonTooltip text={TOOLTIPS.paginacao}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1 || isLoading}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                            ) : (
+                              <ChevronLeft className="h-4 w-4 mr-1" />
+                            )}
+                            Anterior
+                          </Button>
+                        </ButtonTooltip>
+                        <ButtonTooltip text={TOOLTIPS.paginacao}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages || isLoading}
+                          >
+                            Próximo
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 ml-1 animate-spin" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 ml-1" />
+                            )}
+                          </Button>
+                        </ButtonTooltip>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </TooltipProvider>
     </DevLayout>
   );
 };
