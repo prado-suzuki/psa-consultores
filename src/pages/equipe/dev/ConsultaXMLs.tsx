@@ -41,11 +41,22 @@ import { cn } from "@/lib/utils";
 import { API_BASE_URL, currentAmbiente } from "@/config/api";
 import { RequiredMark } from '@/components/ui/required-mark';
 
-// --- Tooltip helper ---
+// --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
       <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
       {text}
@@ -929,9 +940,10 @@ const ConsultaXMLs = () => {
                 </ButtonTooltip>
                 <ButtonTooltip text={TOOLTIPS.buscar}>
                   <Button
+                    variant="outline"
                     onClick={handleSearch}
                     disabled={isBuscarDisabled}
-                    className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                    className="hover:bg-primary hover:text-primary-foreground shadow-sm transition-colors"
                   >
                     {isLoading ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -955,7 +967,7 @@ const ConsultaXMLs = () => {
                 </CardTitle>
                 {totalRecords > 0 && (
                   <Badge variant="secondary" className="text-xs font-medium">
-                    {totalRecords} registro(s)
+                    {totalRecords} nota(s) encontrada(s)
                   </Badge>
                 )}
               </div>
@@ -1004,15 +1016,15 @@ const ConsultaXMLs = () => {
                       <Table className="min-w-[950px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                            <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                            <TableHead className="whitespace-nowrap">Chave de Acesso</TableHead>
-                            <TableHead className="whitespace-nowrap hidden lg:table-cell">UF</TableHead>
-                            <TableHead className="whitespace-nowrap">Número</TableHead>
-                            <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                            <TableHead className="whitespace-nowrap text-right">Valor</TableHead>
-                            <TableHead className="whitespace-nowrap">Produtos</TableHead>
-                            <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="CNPJ Emitente" text="CNPJ do emissor da nota fiscal." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Razão Social" text="Nome ou Razão Social do emissor." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Chave de Acesso" text="Chave única de 44 dígitos da NFe." /></TableHead>
+                            <TableHead className="whitespace-nowrap hidden lg:table-cell"><ColumnTooltip label="UF" text="Estado de origem da emissão." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Número" text="Número do documento fiscal." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Data Emissão" text="Data e hora de emissão da nota." /></TableHead>
+                            <TableHead className="whitespace-nowrap text-right"><ColumnTooltip label="Valor" text="Valor total da nota fiscal." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Produtos" text="Quantidade total de itens na nota." /></TableHead>
+                            <TableHead className="whitespace-nowrap text-right"><ColumnTooltip label="Ações" text="Download individual do XML." /></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1107,16 +1119,16 @@ const ConsultaXMLs = () => {
                       <Table className="min-w-[1050px]">
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="whitespace-nowrap">CNPJ Emitente</TableHead>
-                            <TableHead className="whitespace-nowrap">Razão Social</TableHead>
-                            <TableHead className="whitespace-nowrap hidden xl:table-cell">Origem</TableHead>
-                            <TableHead className="whitespace-nowrap hidden xl:table-cell">Destino</TableHead>
-                            <TableHead className="whitespace-nowrap hidden lg:table-cell">CFOP</TableHead>
-                            <TableHead className="whitespace-nowrap">Tipo</TableHead>
-                            <TableHead className="whitespace-nowrap">Número</TableHead>
-                            <TableHead className="whitespace-nowrap">Data Emissão</TableHead>
-                            <TableHead className="whitespace-nowrap text-right">Valor Prestação</TableHead>
-                            <TableHead className="whitespace-nowrap text-right">Ações</TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="CNPJ Emitente" text="CNPJ do emissor do conhecimento." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Razão Social" text="Nome ou Razão Social do emissor." /></TableHead>
+                            <TableHead className="whitespace-nowrap hidden xl:table-cell"><ColumnTooltip label="Origem" text="Município de início da prestação." /></TableHead>
+                            <TableHead className="whitespace-nowrap hidden xl:table-cell"><ColumnTooltip label="Destino" text="Município de término da prestação." /></TableHead>
+                            <TableHead className="whitespace-nowrap hidden lg:table-cell"><ColumnTooltip label="CFOP" text="Código Fiscal de Operações e Prestações." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Tipo" text="Tipo do documento fiscal." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Número" text="Número do documento (CTe)." /></TableHead>
+                            <TableHead className="whitespace-nowrap"><ColumnTooltip label="Data Emissão" text="Data de emissão do CTe." /></TableHead>
+                            <TableHead className="whitespace-nowrap text-right"><ColumnTooltip label="Valor Prestação" text="Valor total do serviço de transporte." /></TableHead>
+                            <TableHead className="whitespace-nowrap text-right"><ColumnTooltip label="Ações" text="Download individual do XML." /></TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -1211,7 +1223,7 @@ const ConsultaXMLs = () => {
                   {totalPages > 1 && (
                     <div className="flex items-center justify-between p-4 border-t">
                       <span className="text-sm text-muted-foreground">
-                        Exibindo {tipoDocumento === "nfe" ? nfeRecords.length : cteRecords.length} de {totalRecords} arquivos • Página <span className="font-semibold text-foreground">{currentPage}</span> de {totalPages}
+                        Exibindo {tipoDocumento === "nfe" ? nfeRecords.length : cteRecords.length} de {totalRecords} notas • Página <span className="font-semibold text-foreground">{currentPage}</span> de {totalPages}
                       </span>
                       <div className="flex gap-2">
                         <ButtonTooltip text={TOOLTIPS.paginacao}>
