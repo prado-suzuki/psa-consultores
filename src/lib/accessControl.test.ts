@@ -76,10 +76,7 @@ describe('checkAreaAccess', () => {
     expect(result).toBe(true);
   });
 
-  it('concede acesso via estrutura quando page_categories da área inclui a categoria', async () => {
-    // Bug original do PR #1: sublíder passava por esse caminho enquanto
-    // team_member sem estrutura ficava bloqueado. Aqui validamos que o
-    // caminho da estrutura funciona para QUALQUER role interna.
+  it('nega acesso mesmo com vínculo de estrutura (estrutura não concede acesso à área)', async () => {
     tableData = {
       page_permissions: [], // sem páginas para evitar o caminho 1
       user_page_access: [],
@@ -88,7 +85,7 @@ describe('checkAreaAccess', () => {
       estrutura_areas: [{ id: 'area-1', page_categories: ['tax', 'osg'] }],
     };
     const result = await checkAreaAccess('user-1', 'tax', false);
-    expect(result).toBe(true);
+    expect(result).toBe(false);
   });
 
   it('nega acesso quando usuário não tem entrada nem vínculo de estrutura', async () => {
