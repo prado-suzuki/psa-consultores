@@ -608,17 +608,9 @@ const ConsultaXMLs = () => {
           {/* Alerta de Instruções */}
           <Alert className="bg-blue-50/80 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">Como usar esta ferramenta</AlertTitle>
-            <AlertDescription className="text-sm text-slate-700 dark:text-slate-300 mt-1 space-y-1">
-              <p>
-                <strong>1.</strong> Preencha os filtros obrigatórios: <strong>Cliente</strong>, <strong>Contribuinte</strong>, <strong>Tipo de Documento</strong> e o <strong>período</strong> (Data Início e Data Fim).
-                Opcionalmente, refine por Tipo de Movimentação, CPF/CNPJ do Emitente ou Destinatário, ou busque diretamente pela Chave de Acesso (44 dígitos).
-              </p>
-              <p><strong>2.</strong> Clique em <strong>Buscar</strong> para consultar a base de documentos fiscais.</p>
-              <p><strong>3.</strong> Analise os resultados na tabela — cada linha representa um XML (NFe ou CTe) com dados de emitente, chave, valor e data.</p>
-              <p>
-                <strong>4.</strong> Use <strong>Exportar Excel</strong> para gerar uma planilha personalizada com todos os registros do filtro (não apenas a página visível), ou <strong>Baixar XMLs</strong> para obter os arquivos originais em lote (.zip).
-              </p>
+            <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">Visão Geral</AlertTitle>
+            <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+              A Consulta de XMLs centraliza a busca e extração de documentos fiscais (NFe e CTe) da base de dados. Utilize os parâmetros abaixo para localizar notas específicas ou mapear períodos inteiros, permitindo a auditoria rápida dos dados em tela, o download dos arquivos originais em lote (.zip) ou a geração de relatórios consolidados no Excel.
             </AlertDescription>
           </Alert>
 
