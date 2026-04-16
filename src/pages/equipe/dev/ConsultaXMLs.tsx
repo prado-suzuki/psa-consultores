@@ -631,6 +631,14 @@ const ConsultaXMLs = () => {
               <CardTitle className="text-lg flex items-center gap-2 text-primary">
                 <Filter className="h-5 w-5" />
                 <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">Filtros de Busca</span>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-4 w-4 ml-1.5 text-muted-foreground cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+                    Use os campos abaixo para filtrar a consulta das notas fiscais.
+                  </TooltipContent>
+                </Tooltip>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
