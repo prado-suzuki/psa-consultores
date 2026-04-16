@@ -1,66 +1,60 @@
 
 
-# Migração em batch: 43 SELECT policies → has_role_or_higher
+# Refatoração UX/UI — ConsultaXMLs.tsx
 
-## Contagem
+## 1. Tabela de Tooltips
 
-- **Grupo A**: 40 policies (nomes corrigidos conforme banco)
-- **Grupo B**: 3 policies parcialmente bloqueantes
-- **Total**: 43 DROP + CREATE numa única transaction
+Cada label de filtro receberá um ícone `<Info>` alinhado com `flex items-center gap-1.5`. Botões desabilitados serão envolvidos em `<span>` dentro do `TooltipTrigger` para contornar a limitação do Radix.
 
-## Nomes reais das policies (corrigidos vs lista do usuário)
+| Elemento | Texto do Tooltip |
+|---|---|
+| **Cliente** | "Selecione o grupo econômico. A lista de contribuintes será filtrada automaticamente conforme o cliente escolhido. Caso selecione 'Todos', todos os contribuintes cadastrados serão exibidos." |
+| **Contribuinte** | "Empresa ou pessoa física vinculada ao cliente selecionado (CNPJ/CPF). Apenas um contribuinte por consulta. Se houver apenas um cadastrado, a seleção será automática. Campo obrigatório para acionar a busca." |
+| **Tipo Doc.** | "Tipo de documento fiscal: NFe (Nota Fiscal Eletrônica) ou CTe (Conhecimento de Transporte Eletrônico). A tabela de resultados e as colunas de exportação se adaptam ao tipo selecionado." |
+| **Tipo Mov.** | "Filtra a direção da operação: Entrada (documentos recebidos pelo contribuinte) ou Saída (documentos emitidos). Selecione 'Todos' para exibir ambos." |
+| **Data Início** | "Data inicial do período de emissão dos documentos. Obrigatório. Define o limite inferior da consulta junto com a Data Fim." |
+| **Data Fim** | "Data final do período de emissão. Obrigatório. O intervalo entre Data Início e Data Fim determina o escopo completo da busca." |
+| **CPF/CNPJ Emitente** | "Filtra documentos por CPF ou CNPJ de quem emitiu o documento. Opcional. Aceita somente números — a formatação é removida automaticamente." |
+| **CPF/CNPJ Destinatário** | "Filtra documentos por CPF ou CNPJ do destinatário. Opcional. Aceita somente números." |
+| **Chave de Acesso** | "Chave numérica única de 44 dígitos que identifica o documento fiscal (NFe ou CTe). Opcional. Quando informada, a busca retorna apenas o documento correspondente." |
+| **Botão Buscar** | "Executa a consulta com os filtros aplicados. Requer ao menos um Contribuinte selecionado e o período definido." |
+| **Botão Limpar filtros** | "Redefine todos os filtros para os valores padrão e limpa os resultados da tabela, permitindo iniciar uma nova consulta." |
+| **Botão Baixar XMLs** | "Baixa em lote todos os arquivos XML do resultado atual (respeitando os filtros aplicados). O download será um arquivo .zip quando houver múltiplos documentos, ou .xml quando for apenas um." |
+| **Botão Exportar Excel** | "Abre o painel de exportação avançada. Permite selecionar colunas, salvar perfis de exportação e visualizar um preview antes de gerar a planilha. A exportação inclui todos os registros do filtro, não apenas a página atual." |
+| **Botão Download (linha)** | "Baixa o arquivo XML original deste documento específico." |
+| **Botão Anterior/Próximo** | "Navega entre as páginas de resultados. A tabela exibe 10 registros por página." |
 
-Diferenças encontradas entre os nomes informados e os nomes reais no banco:
+## 2. Novo Texto da Introdução (Banner)
 
-| # | Nome informado | Nome real no banco |
-|---|---|---|
-| 12 | Members can view their project... | Members can view their project fiscal_tasks |
-| 13 | Team members can view improvement_savings_details | Team members can view savings details |
-| 14 | Team members can view improvement_team_members | Team members can view improvement members |
-| 16 | Team members can view process_stages | Team members can view process stages |
-| 18 | Team members can view project_documents | Team members can view project documents |
-| 19 | Team members can view project_processes | Team members can view project processes |
-| 20 | Team members can view project_work_packages | Team members can view all work packages |
-| 24 | Team members can view sprint_backlog_items | Team members can view backlog items |
-| 25 | Team members can view sprint_deliverables | Team members can view deliverables |
-| 34 | Team members can view tool_area_access | Team members can view tool access |
-| 37 | Team members can view work_package_activities | Team members can view activities |
-| 38 | Team members can view files | Team members can view files ✓ |
-| 39 | Team members can view work_package_relations | Team members can view relations |
-| 40 | Team members can view work_package_watchers | Team members can view watchers |
+Substituir o `div` azul atual por um `Alert` com visual mais rico:
 
-## Padrões de USING encontrados (4 variantes)
+> **Como usar esta ferramenta**
+>
+> **1.** Preencha os filtros obrigatórios: **Cliente**, **Contribuinte**, **Tipo de Documento** e o **período** (Data Início e Data Fim).
+> Opcionalmente, refine por Tipo de Movimentação, CPF/CNPJ do Emitente ou Destinatário, ou busque diretamente pela Chave de Acesso (44 dígitos).
+>
+> **2.** Clique em **Buscar** para consultar a base de documentos fiscais.
+>
+> **3.** Analise os resultados na tabela — cada linha representa um XML (NFe ou CTe) com dados de emitente, chave, valor e data.
+>
+> **4.** Use **Exportar Excel** para gerar uma planilha personalizada com todos os registros do filtro (não apenas a página visível), ou **Baixar XMLs** para obter os arquivos originais em lote (.zip).
 
-1. `has_role(uid, 'team_member') OR has_role(uid, 'admin')` → substituir tudo por `has_role_or_higher(uid, 'team_member'::app_role)` (já cobre admin)
-2. `has_role(uid, 'team_member')` sozinho → substituir por `has_role_or_higher(uid, 'team_member'::app_role)`
-3. `EXISTS (SELECT 1 FROM user_roles WHERE user_id = uid AND role IN ('team_member','admin'))` → substituir por `has_role_or_higher(uid, 'team_member'::app_role)`
-4. Condições compostas com AND (fiscal_tasks, tickets, ticket_messages, ticket_attachments) → substituir apenas a parte do role check, manter o AND
+Implementação: usar o componente `Alert` existente com ícone `Info`, estilizado com `bg-blue-50/80 border-blue-200`.
 
-## Casos especiais preservados
+## 3. Melhorias Visuais
 
-- **fiscal_tasks** ("Members can view their project fiscal_tasks"): mantém `AND ((project_id IS NULL) OR is_project_member(...) OR (EXISTS (...is_area_member...)))`
-- **tickets** ("Team members can view assigned tickets"): mantém `AND (assigned_to = auth.uid())`
-- **ticket_attachments** / **ticket_messages**: mantém `AND is_ticket_assigned_to(ticket_id, auth.uid())`
-- **projects** ("Clients can view projects assigned to them"): mantém `EXISTS (SELECT 1 FROM client_visible_projects...)`, troca apenas os `has_role` por `has_role_or_higher`
-- **audit_logs**: mantém `AND (area = ANY (ARRAY['tax','osg']))`
+| Melhoria | Detalhe |
+|---|---|
+| **TooltipProvider único** | Envolver todo o componente em um único `<TooltipProvider delayDuration={300}>` em vez de múltiplos providers aninhados por célula. |
+| **Labels com Info icon** | Cada `<label>` vira `<label className="flex items-center gap-1.5 ...">Texto <Tooltip><TooltipTrigger><Info .../></TooltipTrigger><TooltipContent>...</TooltipContent></Tooltip></label>` |
+| **Disabled button wrapper** | Botões `Buscar`, `Limpar filtros`, `Baixar XMLs` e download por linha: quando `disabled`, envolver em `<span>` dentro do `TooltipTrigger` para garantir hover. |
+| **Empty state refinado** | No estado "Pronto para buscar", adicionar texto secundário mais descritivo: "Preencha Cliente, Contribuinte e período, depois clique em Buscar." |
+| **Contagem no header da tabela** | Mover o badge de contagem `{totalRecords} registro(s)` para dentro de um `Badge variant="secondary"` para destaque visual. |
+| **Paginação melhorada** | Adicionar indicador visual de página atual com `font-semibold` e `text-foreground` no texto "Página X de Y". |
 
-## Nota sobre fiscal_tasks
+## 4. Escopo Técnico
 
-A tabela `fiscal_tasks` tem 3 SELECT policies separadas: Admins, Leaders, Members. Só a de Members precisa mudar (para incluir sublider). As de admin e lider permanecem intactas.
-
-## SQL da migração
-
-Uma única migration com BEGIN/COMMIT contendo 43 DROP POLICY IF EXISTS + CREATE POLICY statements.
-
-## Verificação pós-migração
-
-```sql
-SELECT tablename, policyname, qual 
-FROM pg_policies 
-WHERE qual::text ILIKE '%has_role_or_higher%' 
-AND cmd = 'SELECT'
-ORDER BY tablename;
-```
-
-Resultado esperado: 44 policies (43 desta migração + 1 de page_permissions da migração anterior).
+- **Arquivo alterado**: `src/pages/equipe/dev/ConsultaXMLs.tsx` (único arquivo)
+- **Sem novos componentes**: tudo inline, usando imports já existentes (Tooltip, Alert, Info icon)
+- **Sem mudança de lógica**: apenas camada de apresentação e textos
 
