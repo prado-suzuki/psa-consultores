@@ -610,7 +610,7 @@ const ConsultaXMLs = () => {
             <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">Visão Geral</AlertTitle>
             <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
-              A Consulta de XMLs centraliza a busca e extração de documentos fiscais (NFe e CTe) da base de dados. Utilize os parâmetros abaixo para localizar notas específicas ou mapear períodos inteiros, permitindo a auditoria rápida dos dados em tela, o download dos arquivos originais em lote (.zip) ou a geração de relatórios consolidados no Excel.
+              A Consulta de XMLs centraliza a busca e o download de documentos fiscais (NFe e CTe) da base de dados. Utilize os filtros abaixo para consultar notas fiscais específicas ou analisar  períodos inteiros, permitindo a visualização rápida dos dados em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)
             </AlertDescription>
           </Alert>
 
