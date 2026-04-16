@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calculator, Building, ChevronRight } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
 import logo from '@/assets/logo-psa.png';
 
 interface AreaCard {
@@ -11,12 +13,14 @@ interface AreaCard {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   color: string;
+  category: string;
 }
 
 const ProjetosAreaSelector = () => {
   const navigate = useNavigate();
+  const { categories, isLoading, isAdmin } = useUserAccessibleCategories();
 
-  const areas: AreaCard[] = [
+  const allAreas: AreaCard[] = [
     {
       id: 'fiscal',
       label: 'Fiscal',
@@ -24,6 +28,7 @@ const ProjetosAreaSelector = () => {
       icon: Calculator,
       path: '/equipe/projetos/fiscal/dashboard',
       color: 'from-emerald-500 to-teal-500',
+      category: 'fiscal',
     },
     {
       id: 'fixos',
@@ -32,8 +37,15 @@ const ProjetosAreaSelector = () => {
       icon: Building,
       path: '/equipe/projetos/fixos/dashboard',
       color: 'from-blue-500 to-indigo-500',
+      category: 'fixos',
     },
   ];
+
+  const areas = isAdmin
+    ? allAreas
+    : allAreas.filter(area => categories?.includes(area.category));
+
+  const gridCols = areas.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : 'md:grid-cols-2';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
@@ -44,30 +56,38 @@ const ProjetosAreaSelector = () => {
           <p className="text-gray-400">Selecione o ambiente de trabalho</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
-          {areas.map((area) => (
-            <Card
-              key={area.id}
-              className="bg-gray-900/50 border-gray-800 backdrop-blur-lg cursor-pointer hover:border-gray-600 transition-all duration-300 group"
-              onClick={() => navigate(area.path)}
-            >
-              <CardHeader className="pb-2">
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${area.color} flex items-center justify-center mb-3`}>
-                  <area.icon className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-white flex items-center justify-between">
-                  {area.label}
-                  <ChevronRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-gray-400">
-                  {area.description}
-                </CardDescription>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            {[1, 2].map(i => (
+              <Skeleton key={i} className="h-40 rounded-xl bg-gray-800/50" />
+            ))}
+          </div>
+        ) : (
+          <div className={`grid gap-4 ${gridCols}`}>
+            {areas.map((area) => (
+              <Card
+                key={area.id}
+                className="bg-gray-900/50 border-gray-800 backdrop-blur-lg cursor-pointer hover:border-gray-600 transition-all duration-300 group"
+                onClick={() => navigate(area.path)}
+              >
+                <CardHeader className="pb-2">
+                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${area.color} flex items-center justify-center mb-3`}>
+                    <area.icon className="h-6 w-6 text-white" />
+                  </div>
+                  <CardTitle className="text-white flex items-center justify-between">
+                    {area.label}
+                    <ChevronRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-400">
+                    {area.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 text-center">
           <Button 
