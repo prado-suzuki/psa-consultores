@@ -1,39 +1,51 @@
 
 
-# Fix: Remove estrutura-based access bypass
+# Plano: Filtrar cards de sub-área por permissões reais do usuário
 
-## Problem
-Both `checkAreaAccess` (used at area selection/login) and `usePageAccess` (used by `PageAccessGate` on every page) have a fallback path:
+## Problema
+O `DigitalAreaSelector` mostra "Digital Rotina" e "Digital Dev" para todos os usuários internos, mesmo que só tenham acesso a uma das categorias. O `ProjetosAreaSelector` tem o mesmo problema com "Fiscal" e "Fixos".
 
+## Solução
+
+### Hook reutilizável: `useUserAccessibleCategories`
+Criar um hook que consulta `user_page_access` + `page_permissions` para retornar as categorias acessíveis do usuário logado. Padrão: `useQuery` + supabase (mesmo padrão do `usePageAccess`).
+
+```typescript
+// src/hooks/useUserAccessibleCategories.ts
+export function useUserAccessibleCategories() {
+  const { user, isAdmin } = useAuth();
+  return useQuery({
+    queryKey: ['user-accessible-categories', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_page_access')
+        .select('page_permission_id, page_permissions(category)')
+        .eq('user_id', user!.id);
+      return [...new Set(data?.map(d => d.page_permissions?.category).filter(Boolean))];
+    },
+    enabled: !!user && !isAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
+}
 ```
-user → estrutura_equipe_membros → estrutura_equipes → estrutura_areas.page_categories
-```
 
-If the user belongs to ANY team in an area, they automatically get access to ALL pages in that area — bypassing the explicit `user_page_access` check entirely.
+### Arquivo 1: `src/pages/equipe/DigitalAreaSelector.tsx`
+- Importar o hook + adicionar campo `category` a cada card (`'rotina'`, `'dev'`)
+- O card "Acessos" continua `adminOnly`
+- Filtrar: admin vê tudo; demais veem apenas cards cuja `category` está na lista retornada pelo hook
+- Mostrar skeleton/loading enquanto carrega
 
-## Fix
+### Arquivo 2: `src/pages/equipe/projetos/ProjetosAreaSelector.tsx`
+- Mesma lógica: adicionar `category` (`'fiscal'`, `'fixos'`) e filtrar pelos acessos do usuário
 
-### File 1: `src/lib/accessControl.ts`
-**Remove lines 49-76** (the entire "Acesso herdado via estrutura organizacional" block). The function will return `true` only if:
-- User is admin, OR
-- User has at least one `user_page_access` record for a page in the target area's categories
+### Comportamento
+- Admin → vê todos os cards (sem query)
+- Usuário com acesso apenas a `dev` → vê só "Digital Dev"
+- Se restar apenas 1 card, pode navegar direto (opcional, sem impacto crítico)
+- Loading state com skeleton enquanto a query resolve
 
-### File 2: `src/hooks/usePageAccess.ts`
-**Remove lines 46-75** (the "Check membership-based access via estrutura" block). The hook will return `true` only if:
-- User is admin, OR
-- Page is not registered in `page_permissions` (free access), OR
-- User has explicit `user_page_access` for that page, OR
-- Page category is `'geral'` and user is internal
-
-### What stays the same
-- Admin always has access
-- `'geral'` category pages remain open to all internal users
-- Unregistered pages remain free access
-- Cluster/estrutura membership continues to work for **data filtering** within areas (project lists, task assignment, etc.) — no changes needed there
-
-### Files changed
-- `src/lib/accessControl.ts` — remove estrutura fallback
-- `src/hooks/usePageAccess.ts` — remove estrutura fallback
-
-No database, RLS, or migration changes needed. The bug is purely in frontend access-check logic.
+### Arquivos alterados
+1. **Novo**: `src/hooks/useUserAccessibleCategories.ts`
+2. **Editar**: `src/pages/equipe/DigitalAreaSelector.tsx`
+3. **Editar**: `src/pages/equipe/projetos/ProjetosAreaSelector.tsx`
 
