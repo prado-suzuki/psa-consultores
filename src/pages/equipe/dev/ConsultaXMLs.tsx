@@ -47,7 +47,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
     <TooltipTrigger asChild>
       <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
     </TooltipTrigger>
-    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
       {text}
     </TooltipContent>
   </Tooltip>
@@ -58,7 +58,7 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
     <TooltipTrigger asChild>
       <span className="inline-flex">{children}</span>
     </TooltipTrigger>
-    <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
       {text}
     </TooltipContent>
   </Tooltip>
@@ -66,21 +66,21 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 
 // --- Tooltip texts ---
 const TOOLTIPS = {
-  cliente: "Selecione o grupo econômico. A lista de contribuintes será filtrada automaticamente conforme o cliente escolhido. Caso selecione 'Todos', todos os contribuintes cadastrados serão exibidos.",
-  contribuinte: "Empresa ou pessoa física vinculada ao cliente selecionado (CNPJ/CPF). Apenas um contribuinte por consulta. Se houver apenas um cadastrado, a seleção será automática. Campo obrigatório para acionar a busca.",
-  tipoDoc: "Tipo de documento fiscal: NFe (Nota Fiscal Eletrônica) ou CTe (Conhecimento de Transporte Eletrônico). A tabela de resultados e as colunas de exportação se adaptam ao tipo selecionado.",
-  tipoMov: "Filtra a direção da operação: Entrada (documentos recebidos pelo contribuinte) ou Saída (documentos emitidos). Selecione 'Todos' para exibir ambos.",
-  dataInicio: "Data inicial do período de emissão dos documentos. Obrigatório. Define o limite inferior da consulta junto com a Data Fim.",
-  dataFim: "Data final do período de emissão. Obrigatório. O intervalo entre Data Início e Data Fim determina o escopo completo da busca.",
-  emitente: "Filtra documentos por CPF ou CNPJ de quem emitiu o documento. Opcional. Aceita somente números — a formatação é removida automaticamente.",
-  destinatario: "Filtra documentos por CPF ou CNPJ do destinatário. Opcional. Aceita somente números.",
-  chaveAcesso: "Chave numérica única de 44 dígitos que identifica o documento fiscal (NFe ou CTe). Opcional. Quando informada, a busca retorna apenas o documento correspondente.",
-  buscar: "Executa a consulta com os filtros aplicados. Requer ao menos um Contribuinte selecionado e o período definido.",
-  limpar: "Redefine todos os filtros para os valores padrão e limpa os resultados da tabela, permitindo iniciar uma nova consulta.",
-  baixarXmls: "Baixa em lote todos os arquivos XML do resultado atual (respeitando os filtros aplicados). O download será um arquivo .zip quando houver múltiplos documentos, ou .xml quando for apenas um.",
-  exportarExcel: "Abre o painel de exportação avançada. Permite selecionar colunas, salvar perfis de exportação e visualizar um preview antes de gerar a planilha. A exportação inclui todos os registros do filtro, não apenas a página atual.",
-  downloadLinha: "Baixa o arquivo XML original deste documento específico.",
-  paginacao: "Navega entre as páginas de resultados. A tabela exibe 10 registros por página.",
+  cliente: "Filtra os dados por grupo econômico.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  tipoDoc: "Define se a busca trará notas NFe ou CTe.",
+  tipoMov: "Filtra o fluxo por Entradas ou Saídas.",
+  dataInicio: "Define o período de emissão. Obrigatório.",
+  dataFim: "Define o período de emissão. Obrigatório.",
+  emitente: "Filtra pelo documento exato do emissor (somente números).",
+  destinatario: "Filtra pelo documento exato do destinatário (somente números).",
+  chaveAcesso: "Busca exata pela chave de 44 dígitos.",
+  buscar: "Executa a consulta com os filtros aplicados.",
+  limpar: "Redefine a tela para iniciar uma nova busca.",
+  baixarXmls: "Download em lote (.zip) de todos os originais do período.",
+  exportarExcel: "Gera planilha com todos os resultados da busca (todas as páginas).",
+  downloadLinha: "Baixa o arquivo XML original desta nota.",
+  paginacao: "Navega entre as páginas de resultados.",
 } as const;
 
 const DEFAULT_DATA_INICIO = "2024-01-01";
