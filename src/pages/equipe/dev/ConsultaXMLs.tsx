@@ -951,7 +951,7 @@ const ConsultaXMLs = () => {
                   <ExportDialog
                     data={tipoDocumento === "nfe" ? nfeRecords : []}
                     cteData={tipoDocumento === "cte" ? cteRecords : []}
-                    tipoDocumento={tipoDocumento}
+                    tipoDocumento={(tipoDocumento || "nfe") as "nfe" | "cte" | "todos"}
                     totalRecords={totalRecords}
                     dataInicio={dataInicio}
                     dataFim={dataFim}
