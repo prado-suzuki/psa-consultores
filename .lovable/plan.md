@@ -1,69 +1,39 @@
 
 
-# Plano: Tornar campos obrigatórios consistentes e remover "Todos os clientes"
+# Fix: Remove estrutura-based access bypass
 
-## Mudanças no arquivo único `src/pages/equipe/dev/ConsultaXMLs.tsx`
+## Problem
+Both `checkAreaAccess` (used at area selection/login) and `usePageAccess` (used by `PageAccessGate` on every page) have a fallback path:
 
-### 1. Estado inicial — remover pré-seleções dos obrigatórios
-
-- Trocar `useState(DEFAULT_TIPO_DOCUMENTO)` por `useState<"nfe" | "cte" | "">("")` para Tipo Doc.
-- Trocar `useState(DEFAULT_DATA_INICIO)` e `useState(DEFAULT_DATA_FIM)` por `useState("")` em ambos.
-- `handleClearFilters` segue a mesma lógica: limpa Tipo Doc, Data Início e Data Fim para `""` (sem defaults).
-- Ajustar tipo de `tipoDocumento` na assinatura do `Select.onValueChange` e nas props passadas para `<ExportDialog>` (cast/guard quando `""`).
-
-### 2. Tooltips — marcar obrigatoriedade explícita
-
-Atualizar constante `TOOLTIPS`:
-- `cliente`: "Filtra os dados por grupo econômico. **Obrigatório.**"
-- `contribuinte`: já diz obrigatório — manter.
-- `tipoDoc`: "Define se a busca trará notas NFe ou CTe. **Obrigatório.**"
-- `dataInicio` / `dataFim`: já dizem obrigatório — manter.
-
-### 3. Asterisco visual (`<RequiredMark />`) em todos os obrigatórios
-
-Adicionar `<RequiredMark />` ao lado das labels:
-- **Tipo Doc.** (linha ~742)
-- **Data Início** (linha ~802)
-- **Data Fim** (linha ~835)
-
-(Cliente e Contribuinte já têm.)
-
-### 4. Placeholders de estado vazio
-
-- **Cliente** (linha ~677): trocar `"Todos os clientes"` por `"Selecione um cliente"`.
-- **Tipo Doc.** (linha ~754): adicionar `<SelectValue placeholder="Selecione o tipo do doc" />`.
-- **Data Início / Data Fim**: já mostram "Selecione" quando vazio — OK.
-
-### 5. Remover opção "Todos os clientes"
-
-- Excluir o `<SelectItem value="all">Todos os clientes</SelectItem>` (linha 683).
-- O Select de Cliente passa a carregar vazio mostrando o placeholder.
-
-### 6. Validação no `handleSearch`
-
-Bloquear busca e exibir `toast` com mensagem clara quando faltar qualquer obrigatório:
 ```
-if (!selectedCliente || !selectedContribuinte || !tipoDocumento || !dataInicio || !dataFim) {
-  toast({ title: "Campos obrigatórios", description: "Preencha Cliente, Contribuinte, Tipo Doc., Data Início e Data Fim.", variant: "destructive" });
-  return;
-}
+user → estrutura_equipe_membros → estrutura_equipes → estrutura_areas.page_categories
 ```
 
-### 7. Atualizar `isBuscarDisabled`, `isBaixarXmlsDisabled`, `isExportDisabled`
+If the user belongs to ANY team in an area, they automatically get access to ALL pages in that area — bypassing the explicit `user_page_access` check entirely.
 
-Incluir as novas condições obrigatórias:
-```
-const allRequiredFilled = selectedCliente && selectedContribuinte && tipoDocumento && dataInicio && dataFim;
-const isBuscarDisabled = !allRequiredFilled || isLoading;
-```
-E aplicar `allRequiredFilled` também nos botões de download/exportar (mantendo o check de records).
+## Fix
 
-### 8. `hasActiveFilters`
+### File 1: `src/lib/accessControl.ts`
+**Remove lines 49-76** (the entire "Acesso herdado via estrutura organizacional" block). The function will return `true` only if:
+- User is admin, OR
+- User has at least one `user_page_access` record for a page in the target area's categories
 
-Já considera campos vazios como inativos, então o botão "Limpar filtros" só aparecerá após o usuário tocar em algo — comportamento correto.
+### File 2: `src/hooks/usePageAccess.ts`
+**Remove lines 46-75** (the "Check membership-based access via estrutura" block). The hook will return `true` only if:
+- User is admin, OR
+- Page is not registered in `page_permissions` (free access), OR
+- User has explicit `user_page_access` for that page, OR
+- Page category is `'geral'` and user is internal
 
-## Escopo
+### What stays the same
+- Admin always has access
+- `'geral'` category pages remain open to all internal users
+- Unregistered pages remain free access
+- Cluster/estrutura membership continues to work for **data filtering** within areas (project lists, task assignment, etc.) — no changes needed there
 
-- **1 arquivo**: `src/pages/equipe/dev/ConsultaXMLs.tsx`
-- **Sem novos componentes**, sem mudança de schema, sem mudança em hooks.
+### Files changed
+- `src/lib/accessControl.ts` — remove estrutura fallback
+- `src/hooks/usePageAccess.ts` — remove estrutura fallback
+
+No database, RLS, or migration changes needed. The bug is purely in frontend access-check logic.
 
