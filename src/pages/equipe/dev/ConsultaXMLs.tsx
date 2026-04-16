@@ -77,9 +77,9 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 
 // --- Tooltip texts ---
 const TOOLTIPS = {
-  cliente: "Filtra os dados por grupo econômico.",
+  cliente: "Filtra os dados por grupo econômico. Obrigatório.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  tipoDoc: "Define se a busca trará notas NFe ou CTe.",
+  tipoDoc: "Define se a busca trará notas NFe ou CTe. Obrigatório.",
   tipoMov: "Filtra o fluxo por Entradas ou Saídas.",
   dataInicio: "Define o período de emissão. Obrigatório.",
   dataFim: "Define o período de emissão. Obrigatório.",
