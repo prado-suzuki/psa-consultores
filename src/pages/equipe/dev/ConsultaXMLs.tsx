@@ -77,7 +77,7 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 
 // --- Tooltip texts ---
 const TOOLTIPS = {
-  cliente: "Filtra os dados por grupo econômico. Obrigatório.",
+  cliente: "Filtra as notas por cliente ou grupo. Obrigatório.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   tipoDoc: "Define se a busca trará notas NFe ou CTe. Obrigatório.",
   tipoMov: "Filtra o fluxo por Entradas ou Saídas.",
@@ -626,16 +626,16 @@ const ConsultaXMLs = () => {
       <TooltipProvider delayDuration={300}>
         <div className="w-full min-w-0 max-w-full overflow-hidden space-y-6">
           {/* Alerta de Instruções */}
-          <Alert className="bg-blue-50/80 border-blue-200 dark:bg-blue-950/30 dark:border-blue-800">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <AlertTitle className="text-sm font-semibold text-blue-900 dark:text-blue-200">Visão Geral</AlertTitle>
+          <Alert className="bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
+            <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+            <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Visão Geral</AlertTitle>
             <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
               A Consulta de XMLs centraliza a busca e o download de documentos fiscais (NFe e CTe) da base de dados. Utilize os filtros abaixo para consultar notas fiscais específicas ou analisar  períodos inteiros, permitindo a visualização rápida dos dados em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx). Para acessar o manual de uso completo, clique{" "}
               <a 
                 href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
               >
                 aqui
               </a>.
