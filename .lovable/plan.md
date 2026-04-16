@@ -1,51 +1,100 @@
 
 
-# Plano: Filtrar cards de sub-área por permissões reais do usuário
+# Plano: Restringir visibilidade de projetos/tarefas para sublíder e team_member
 
-## Problema
-O `DigitalAreaSelector` mostra "Digital Rotina" e "Digital Dev" para todos os usuários internos, mesmo que só tenham acesso a uma das categorias. O `ProjetosAreaSelector` tem o mesmo problema com "Fiscal" e "Fixos".
+## Problema atual
 
-## Solução
+Duas políticas RLS usam `is_area_member()` como condição genérica, permitindo que **qualquer membro da área** (incluindo sublíder e team_member) veja **todos** os projetos e tarefas da área:
 
-### Hook reutilizável: `useUserAccessibleCategories`
-Criar um hook que consulta `user_page_access` + `page_permissions` para retornar as categorias acessíveis do usuário logado. Padrão: `useQuery` + supabase (mesmo padrão do `usePageAccess`).
+1. **`org_projects` → "Members can view their org_projects"**
+   ```
+   is_project_member(uid, id) OR is_area_member(uid, estrutura_area_id)
+   ```
+   → Sublíder na área vê TODOS os projetos, mesmo sem ser membro.
 
-```typescript
-// src/hooks/useUserAccessibleCategories.ts
-export function useUserAccessibleCategories() {
-  const { user, isAdmin } = useAuth();
-  return useQuery({
-    queryKey: ['user-accessible-categories', user?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('user_page_access')
-        .select('page_permission_id, page_permissions(category)')
-        .eq('user_id', user!.id);
-      return [...new Set(data?.map(d => d.page_permissions?.category).filter(Boolean))];
-    },
-    enabled: !!user && !isAdmin,
-    staleTime: 5 * 60 * 1000,
-  });
-}
+2. **`fiscal_tasks` → "Members can view their project fiscal_tasks"**
+   ```
+   project_id IS NULL OR is_project_member(uid, project_id) OR is_area_member(uid, ...)
+   ```
+   → Mesma herança: sublíder vê todas as tarefas da área.
+
+## Regra desejada
+
+| Role | org_projects | fiscal_tasks |
+|------|-------------|-------------|
+| Admin | Tudo | Tudo |
+| Líder | Tudo da sua área (`is_area_member`) | Tudo da sua área |
+| Sublíder | Só onde é membro (`is_project_member`) ou criador | Só de projetos onde é membro OU `assigned_to = uid` |
+| Team member | Só onde é membro ou criador | Só de projetos onde é membro OU `assigned_to = uid` |
+
+## Mudanças (1 migration SQL)
+
+### 1. `org_projects` — substituir policy "Members can view their org_projects"
+
+```sql
+DROP POLICY "Members can view their org_projects" ON public.org_projects;
+
+-- Líder: pode ver tudo da sua área
+CREATE POLICY "Leaders can view area org_projects"
+  ON public.org_projects FOR SELECT TO authenticated
+  USING (
+    has_role(auth.uid(), 'lider'::app_role)
+    AND estrutura_area_id IS NOT NULL
+    AND is_area_member(auth.uid(), estrutura_area_id)
+  );
+
+-- Sublíder/Team member: apenas membro do projeto ou criador
+CREATE POLICY "Members can view their org_projects"
+  ON public.org_projects FOR SELECT TO authenticated
+  USING (
+    is_project_member(auth.uid(), id)
+    OR created_by = auth.uid()
+  );
 ```
 
-### Arquivo 1: `src/pages/equipe/DigitalAreaSelector.tsx`
-- Importar o hook + adicionar campo `category` a cada card (`'rotina'`, `'dev'`)
-- O card "Acessos" continua `adminOnly`
-- Filtrar: admin vê tudo; demais veem apenas cards cuja `category` está na lista retornada pelo hook
-- Mostrar skeleton/loading enquanto carrega
+### 2. `fiscal_tasks` — substituir policy "Members can view their project fiscal_tasks"
 
-### Arquivo 2: `src/pages/equipe/projetos/ProjetosAreaSelector.tsx`
-- Mesma lógica: adicionar `category` (`'fiscal'`, `'fixos'`) e filtrar pelos acessos do usuário
+```sql
+DROP POLICY "Members can view their project fiscal_tasks" ON public.fiscal_tasks;
 
-### Comportamento
-- Admin → vê todos os cards (sem query)
-- Usuário com acesso apenas a `dev` → vê só "Digital Dev"
-- Se restar apenas 1 card, pode navegar direto (opcional, sem impacto crítico)
-- Loading state com skeleton enquanto a query resolve
+-- Líder: tarefas de projetos da sua área
+CREATE POLICY "Leaders can view area fiscal_tasks"
+  ON public.fiscal_tasks FOR SELECT TO authenticated
+  USING (
+    has_role(auth.uid(), 'lider'::app_role)
+    AND (
+      project_id IS NULL
+      OR EXISTS (
+        SELECT 1 FROM org_projects tp
+        WHERE tp.id = fiscal_tasks.project_id
+          AND tp.estrutura_area_id IS NOT NULL
+          AND is_area_member(auth.uid(), tp.estrutura_area_id)
+      )
+    )
+  );
 
-### Arquivos alterados
-1. **Novo**: `src/hooks/useUserAccessibleCategories.ts`
-2. **Editar**: `src/pages/equipe/DigitalAreaSelector.tsx`
-3. **Editar**: `src/pages/equipe/projetos/ProjetosAreaSelector.tsx`
+-- Sublíder/Team member: membro do projeto OU atribuído à tarefa
+CREATE POLICY "Members can view their fiscal_tasks"
+  ON public.fiscal_tasks FOR SELECT TO authenticated
+  USING (
+    has_role_or_higher(auth.uid(), 'team_member'::app_role)
+    AND (
+      project_id IS NULL
+      OR is_project_member(auth.uid(), project_id)
+      OR assigned_to = auth.uid()
+    )
+  );
+```
+
+### Tabelas não alteradas
+
+- **`projects`**, **`tasks`**, **`sprint_backlog_items`**: Pertencem ao módulo Digital Rotina e usam `has_role_or_higher('team_member')` — são genéricas por design (todos da equipe veem). Não precisam de restrição por projeto.
+
+## Impacto
+
+- Admin: sem mudança (policy própria já existe)
+- Líder: continua vendo tudo da sua área via `is_area_member`
+- Sublíder: perde visão global da área, passa a ver **apenas** projetos onde é membro + tarefas onde é membro do projeto ou atribuído
+- Team member: idem sublíder
+- Nenhuma alteração de código frontend necessária — a restrição é puramente via RLS
 
