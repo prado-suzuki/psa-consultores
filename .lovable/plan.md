@@ -1,100 +1,39 @@
 
 
-# Plano: Restringir visibilidade de projetos/tarefas para sublíder e team_member
+User reports: in TabC170, column filter dropdowns have vertical scroll disabled. Need to investigate the filter dropdown component.
+<lov-tool-use id="toolu_vrtx_01AEZKTcAAJCuhuJD82SjZmX" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/equipe/dev/correcoes-sped/TabC170.tsx\"}">
+</lov-tool-use>
 
-## Problema atual
+<lov-tool-use id="toolu_vrtx_01Ur6JUwLFUi8GSR4BHqxpNN" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/equipe/dev/correcoes-sped/TabC170.tsx\"}">
+</lov-tool-use>
 
-Duas políticas RLS usam `is_area_member()` como condição genérica, permitindo que **qualquer membro da área** (incluindo sublíder e team_member) veja **todos** os projetos e tarefas da área:
+<lov-tool-use id="toolu_vrtx_01MPTaK6FmeLos1LKLBAxmo4" name="code--view" integration-id="code" data="{\"file_path\": \"src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx\"}">
+</lov-tool-use>
+Found the issue. The `ScrollArea` uses `max-h-48` but Radix `ScrollArea` requires an explicit `height` (not max-height) on the Viewport, otherwise the viewport collapses around its content and the internal scrollbar never activates. With `max-h-48` + `h-full w-full` viewport, the height resolution fails and the list either overflows the popover or doesn't scroll.
 
-1. **`org_projects` → "Members can view their org_projects"**
-   ```
-   is_project_member(uid, id) OR is_area_member(uid, estrutura_area_id)
-   ```
-   → Sublíder na área vê TODOS os projetos, mesmo sem ser membro.
+<lov-plan>
 
-2. **`fiscal_tasks` → "Members can view their project fiscal_tasks"**
-   ```
-   project_id IS NULL OR is_project_member(uid, project_id) OR is_area_member(uid, ...)
-   ```
-   → Mesma herança: sublíder vê todas as tarefas da área.
+## Plano: Habilitar scroll vertical no filtro de coluna do C170
 
-## Regra desejada
+### Problema
+O `ColumnFilterDropdown` (compartilhado por TabC170 e outras) usa `<ScrollArea className="max-h-48">`. O Radix `ScrollArea` precisa de **altura explícita** no Root (não `max-height`), porque o Viewport interno é `h-full w-full` — com `max-h` o Viewport não calcula altura e a barra de rolagem nunca ativa, fazendo a lista parecer "travada" sem scroll.
 
-| Role | org_projects | fiscal_tasks |
-|------|-------------|-------------|
-| Admin | Tudo | Tudo |
-| Líder | Tudo da sua área (`is_area_member`) | Tudo da sua área |
-| Sublíder | Só onde é membro (`is_project_member`) ou criador | Só de projetos onde é membro OU `assigned_to = uid` |
-| Team member | Só onde é membro ou criador | Só de projetos onde é membro OU `assigned_to = uid` |
+### Correção
+Em `src/components/equipe/dev/pis-cofins/ColumnFilterDropdown.tsx`, linha 116:
 
-## Mudanças (1 migration SQL)
-
-### 1. `org_projects` — substituir policy "Members can view their org_projects"
-
-```sql
-DROP POLICY "Members can view their org_projects" ON public.org_projects;
-
--- Líder: pode ver tudo da sua área
-CREATE POLICY "Leaders can view area org_projects"
-  ON public.org_projects FOR SELECT TO authenticated
-  USING (
-    has_role(auth.uid(), 'lider'::app_role)
-    AND estrutura_area_id IS NOT NULL
-    AND is_area_member(auth.uid(), estrutura_area_id)
-  );
-
--- Sublíder/Team member: apenas membro do projeto ou criador
-CREATE POLICY "Members can view their org_projects"
-  ON public.org_projects FOR SELECT TO authenticated
-  USING (
-    is_project_member(auth.uid(), id)
-    OR created_by = auth.uid()
-  );
+Trocar:
+```tsx
+<ScrollArea className="max-h-48">
+```
+por:
+```tsx
+<ScrollArea className="h-48">
 ```
 
-### 2. `fiscal_tasks` — substituir policy "Members can view their project fiscal_tasks"
+Isso fixa a altura do Root em 12rem, o Viewport interno passa a ter altura definida e a `ScrollAreaScrollbar` aparece automaticamente quando a lista de valores únicos exceder essa altura.
 
-```sql
-DROP POLICY "Members can view their project fiscal_tasks" ON public.fiscal_tasks;
-
--- Líder: tarefas de projetos da sua área
-CREATE POLICY "Leaders can view area fiscal_tasks"
-  ON public.fiscal_tasks FOR SELECT TO authenticated
-  USING (
-    has_role(auth.uid(), 'lider'::app_role)
-    AND (
-      project_id IS NULL
-      OR EXISTS (
-        SELECT 1 FROM org_projects tp
-        WHERE tp.id = fiscal_tasks.project_id
-          AND tp.estrutura_area_id IS NOT NULL
-          AND is_area_member(auth.uid(), tp.estrutura_area_id)
-      )
-    )
-  );
-
--- Sublíder/Team member: membro do projeto OU atribuído à tarefa
-CREATE POLICY "Members can view their fiscal_tasks"
-  ON public.fiscal_tasks FOR SELECT TO authenticated
-  USING (
-    has_role_or_higher(auth.uid(), 'team_member'::app_role)
-    AND (
-      project_id IS NULL
-      OR is_project_member(auth.uid(), project_id)
-      OR assigned_to = auth.uid()
-    )
-  );
-```
-
-### Tabelas não alteradas
-
-- **`projects`**, **`tasks`**, **`sprint_backlog_items`**: Pertencem ao módulo Digital Rotina e usam `has_role_or_higher('team_member')` — são genéricas por design (todos da equipe veem). Não precisam de restrição por projeto.
-
-## Impacto
-
-- Admin: sem mudança (policy própria já existe)
-- Líder: continua vendo tudo da sua área via `is_area_member`
-- Sublíder: perde visão global da área, passa a ver **apenas** projetos onde é membro + tarefas onde é membro do projeto ou atribuído
-- Team member: idem sublíder
-- Nenhuma alteração de código frontend necessária — a restrição é puramente via RLS
+### Escopo
+- 1 arquivo, 1 linha alterada
+- Afeta todos os dropdowns de filtro de coluna que usam esse componente (C170, A170, F100, F120, F130, D100, ApuracaoDataTable, etc.) — todos passam a ter scroll vertical funcional, comportamento desejado.
+- Sem mudanças de schema, RLS ou hooks.
 
