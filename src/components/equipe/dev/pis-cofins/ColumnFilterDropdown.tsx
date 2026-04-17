@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { Filter, ArrowUpNarrowWide, ArrowDownNarrowWide } from "lucide-react";
+import { Filter, ArrowUpNarrowWide, ArrowDownNarrowWide, Search } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 
