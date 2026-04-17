@@ -113,7 +113,7 @@ export function ColumnFilterDropdown({
             <span className="text-muted-foreground">|</span>
             <button className="text-destructive hover:underline" onClick={clearAll}>Limpar</button>
           </div>
-          <ScrollArea className="max-h-48">
+          <ScrollArea className="h-48">
             <div className="space-y-1 pr-2">
               {sorted.map((v) => (
                 <label key={v} className="flex items-center gap-2 cursor-pointer text-sm py-0.5 hover:bg-muted/50 rounded px-1">
