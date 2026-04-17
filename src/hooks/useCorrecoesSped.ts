@@ -26,7 +26,7 @@ async function batchedIn<T>(
   inColumn: string,
   inValues: string[],
 ): Promise<T[]> {
-  const results: T[] = [];
+  const batchPromises: Promise<T[]>[] = [];
   for (let i = 0; i < inValues.length; i += SUPABASE_IN_BATCH_SIZE) {
     const batch = inValues.slice(i, i + SUPABASE_IN_BATCH_SIZE);
     let query = buildQuery().select(select) as any;
@@ -34,11 +34,15 @@ async function batchedIn<T>(
       query = query.eq(f.column, f.value);
     }
     query = query.in(inColumn, batch);
-    const { data, error } = await query;
-    if (error) throw error;
-    if (data) results.push(...(data as T[]));
+    batchPromises.push(
+      query.then(({ data, error }: { data: T[] | null; error: unknown }) => {
+        if (error) throw error;
+        return (data as T[]) ?? [];
+      }),
+    );
   }
-  return results;
+  const results = await Promise.all(batchPromises);
+  return results.flat();
 }
 
 function parseApiObject<T>(value: T | string | null | undefined): T | null {
@@ -328,14 +332,13 @@ export function useCorrecoesF100(params: UseCorrecoesF100Params) {
 
       const items = payload;
 
-      const uuids = items.map((i) => i.F100.uuid).filter(Boolean);
-      const correcoes = await batchedIn<{ registro_original_id: string | null; snapshot: unknown }>(
-        () => supabase.from('efd_correcoes'),
-        'registro_original_id, snapshot',
-        [{ column: 'registro_tipo', value: 'F100' }, { column: 'ativo', value: 'true' }],
-        'registro_original_id',
-        uuids,
-      );
+      const { data: correcoes, error: correcoesError } = await supabase
+        .from('efd_correcoes')
+        .select('registro_original_id, snapshot')
+        .eq('contribuinte_id', params.id_contribuinte)
+        .eq('registro_tipo', 'F100')
+        .eq('ativo', true);
+      if (correcoesError) throw correcoesError;
 
       const correcoesPorRegistro = new Map(
         correcoes
