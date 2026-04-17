@@ -113,8 +113,8 @@ export function ColumnFilterDropdown({
             <span className="text-muted-foreground">|</span>
             <button className="text-destructive hover:underline" onClick={clearAll}>Limpar</button>
           </div>
-          <ScrollArea className="h-48">
-            <div className="space-y-1 pr-2">
+          <ScrollArea className="h-48 w-full">
+            <div className="space-y-1 pr-2 min-w-max">
               {sorted.map((v) => (
                 <label key={v} className="flex items-center gap-2 cursor-pointer text-sm py-0.5 hover:bg-muted/50 rounded px-1">
                   <Checkbox
@@ -122,10 +122,11 @@ export function ColumnFilterDropdown({
                     onCheckedChange={() => toggleValue(v)}
                     className="h-3.5 w-3.5"
                   />
-                  <span className="truncate font-mono text-xs">{v || "(vazio)"}</span>
+                  <span className="font-mono text-xs whitespace-nowrap">{v || "(vazio)"}</span>
                 </label>
               ))}
             </div>
+            <ScrollBar orientation="horizontal" />
           </ScrollArea>
           <Button size="sm" className="w-full h-7 text-xs" onClick={confirm}>
             Confirmar
