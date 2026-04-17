@@ -26,6 +26,7 @@ export function ColumnFilterDropdown({
 }: ColumnFilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState("");
 
   const isActive =
     (activeSort?.key === columnKey) ||
@@ -36,10 +37,17 @@ export function ColumnFilterDropdown({
     [uniqueValues],
   );
 
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sorted;
+    return sorted.filter((v) => (v ?? "").toLowerCase().includes(q));
+  }, [sorted, search]);
+
   const handleOpen = (nextOpen: boolean) => {
     if (nextOpen) {
       setDraft(activeFilter ? new Set(activeFilter) : new Set(uniqueValues));
     }
+    setSearch("");
     setOpen(nextOpen);
   };
 
