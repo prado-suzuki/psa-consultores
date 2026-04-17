@@ -122,18 +122,31 @@ export function ColumnFilterDropdown({
             <span className="text-muted-foreground">|</span>
             <button className="text-destructive hover:underline" onClick={clearAll}>Limpar</button>
           </div>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar..."
+              className="h-7 pl-7 text-xs"
+            />
+          </div>
           <ScrollArea className="h-48 w-full">
             <div className="space-y-1 pr-2 min-w-max">
-              {sorted.map((v) => (
-                <label key={v} className="flex items-center gap-2 cursor-pointer text-sm py-0.5 hover:bg-muted/50 rounded px-1">
-                  <Checkbox
-                    checked={draft.has(v)}
-                    onCheckedChange={() => toggleValue(v)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <span className="font-mono text-xs whitespace-nowrap">{v || "(vazio)"}</span>
-                </label>
-              ))}
+              {filtered.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-2 px-1">Nenhum valor encontrado</p>
+              ) : (
+                filtered.map((v) => (
+                  <label key={v} className="flex items-center gap-2 cursor-pointer text-sm py-0.5 hover:bg-muted/50 rounded px-1">
+                    <Checkbox
+                      checked={draft.has(v)}
+                      onCheckedChange={() => toggleValue(v)}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="font-mono text-xs whitespace-nowrap">{v || "(vazio)"}</span>
+                  </label>
+                ))
+              )}
             </div>
             <ScrollBar orientation="horizontal" />
           </ScrollArea>
