@@ -401,6 +401,8 @@ const ProcessoDifal = () => {
     const missing: string[] = [];
     if (!selectedCliente) missing.push("Cliente");
     if (!selectedContribuinte) missing.push("Contribuinte");
+    if (!dataInicio) missing.push("Data Início");
+    if (!dataFim) missing.push("Data Fim");
     if (missing.length > 0) {
       toast({
         title: "Preenchimento obrigatório",
@@ -877,7 +879,7 @@ const ProcessoDifal = () => {
             {/* Data Início - Calendar + Popover */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Início <FieldTooltip text={TOOLTIPS.dataInicio} />
+                Data Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -907,7 +909,7 @@ const ProcessoDifal = () => {
             {/* Data Fim - Calendar + Popover */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim <FieldTooltip text={TOOLTIPS.dataFim} />
+                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>

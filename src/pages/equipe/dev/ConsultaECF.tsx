@@ -274,6 +274,8 @@ const ConsultaECF = () => {
     const missing: string[] = [];
     if (!selectedCliente) missing.push("Cliente");
     if (!selectedContribuinte) missing.push("Contribuinte");
+    if (!mesInicio) missing.push("Data de Início");
+    if (!mesFim) missing.push("Data Fim");
     if (missing.length > 0) {
       toast({
         title: "Preenchimento obrigatório",
@@ -398,11 +400,11 @@ const ConsultaECF = () => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <FieldTooltip text={TOOLTIPS.dataInicio} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} /></label>
               <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <FieldTooltip text={TOOLTIPS.dataFim} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} /></label>
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
           </div>
