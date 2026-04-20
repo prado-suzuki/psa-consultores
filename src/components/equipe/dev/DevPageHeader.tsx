@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { Fragment, ReactNode } from "react";
 import { Info, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -11,6 +11,25 @@ interface DevPageHeaderProps {
   sopLabel?: string;
   actions?: ReactNode;
 }
+
+/**
+ * Renderiza um texto convertendo `**trecho**` em <strong>, sem usar
+ * dangerouslySetInnerHTML. Cada nó recebe `key` para evitar warnings
+ * de iteração do React.
+ */
+const renderBoldSegments = (text: string): ReactNode[] => {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    const match = part.match(/^\*\*([^*]+)\*\*$/);
+    if (match) {
+      return (
+        <strong key={index} className="font-semibold text-foreground">
+          {match[1]}
+        </strong>
+      );
+    }
+    return <Fragment key={index}>{part}</Fragment>;
+  });
+};
 
 /**
  * Cabeçalho padronizado para páginas do módulo /equipe/dev.
@@ -54,7 +73,9 @@ export const DevPageHeader = ({
           )}
         </div>
         {subtitle && (
-          <p className="text-sm text-muted-foreground mt-1 max-w-3xl">{subtitle}</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
+            {renderBoldSegments(subtitle)}
+          </p>
         )}
       </div>
 
