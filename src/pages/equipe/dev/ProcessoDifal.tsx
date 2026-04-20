@@ -401,6 +401,8 @@ const ProcessoDifal = () => {
     const missing: string[] = [];
     if (!selectedCliente) missing.push("Cliente");
     if (!selectedContribuinte) missing.push("Contribuinte");
+    if (!dataInicio) missing.push("Data Início");
+    if (!dataFim) missing.push("Data Fim");
     if (missing.length > 0) {
       toast({
         title: "Preenchimento obrigatório",
