@@ -52,9 +52,8 @@ const IcmsSaidas = () => {
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Decisões locais — chave: groupKey (cProd|NCM|UF). Preservadas ao limpar filtros.
+  // Decisões locais — chave: groupKey. Preservadas ao limpar filtros.
   const [decisions, setDecisions] = useState<Map<string, { regraId: string; decididoEm: string }>>(new Map());
 
   const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
@@ -103,93 +102,7 @@ const IcmsSaidas = () => {
     }
   }, [contribuintes, selectedContribuinte]);
 
-  // Mock query do grid de não-classificados (T03.1 / T03.2)
-  const { data: mockItems, isLoading: isLoadingItems } = useQuery({
-    queryKey: ['icms-saidas-grouped', selectedContribuinte, dataInicio, dataFim],
-    queryFn: async () => {
-      await new Promise((r) => setTimeout(r, 200));
-      return ALL_MOCK_ITEMS;
-    },
-    enabled: searchTriggered && !!selectedContribuinte,
-    staleTime: Infinity,
-  });
-
-  // Itens agrupados (com UF na chave) e filtrados por UF + status (para T03.1)
-  const groupedItems = useMemo<IcmsGroupedItem[]>(() => {
-    if (!mockItems) return [];
-
-    const allGroups: IcmsGroupedItem[] = mockItems.map((item) => {
-      const groupKey = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-      const isDecided = decisions.has(groupKey);
-      return {
-        groupKey,
-        xProd: item.xProd,
-        cod_produto: item.cProd,
-        cod_ncm: item.NCM,
-        id_contribuinte: selectedContribuinte,
-        cfop: item.CFOP,
-        cst_icms: item.CST,
-        aliq_icms: item.aliq_prod,
-        pRedBC: item.pRedBC,
-        count: item.tot_itens,
-        totalValue: item.vlr_total,
-        nfesCount: item.tot_nfes,
-        status: isDecided ? ('validado' as const) : ('pendente' as const),
-        classificacao: null,
-        tipo_operacao: item.tipo_operacao,
-        uf_destino: item.UF_destino,
-      };
-    });
-
-    return allGroups.filter((g) => {
-      if (ufFiltro !== 'ALL' && g.uf_destino !== ufFiltro) return false;
-      if (statusFilter === 'validated' && g.status !== 'validado') return false;
-      if (statusFilter === 'pending' && g.status !== 'pendente') return false;
-      return true;
-    });
-  }, [mockItems, decisions, selectedContribuinte, ufFiltro, statusFilter]);
-
-  // Lista global (sem filtro de status) para T03.2 aplicar seu próprio filtro de CFOPs ST
-  const allGroupedItemsForSt = useMemo<IcmsGroupedItem[]>(() => {
-    if (!mockItems) return [];
-    return mockItems
-      .map((item) => {
-        const groupKey = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-        const isDecided = decisions.has(groupKey);
-        return {
-          groupKey,
-          xProd: item.xProd,
-          cod_produto: item.cProd,
-          cod_ncm: item.NCM,
-          id_contribuinte: selectedContribuinte,
-          cfop: item.CFOP,
-          cst_icms: item.CST,
-          aliq_icms: item.aliq_prod,
-          pRedBC: item.pRedBC,
-          count: item.tot_itens,
-          totalValue: item.vlr_total,
-          nfesCount: item.tot_nfes,
-          status: isDecided ? ('validado' as const) : ('pendente' as const),
-          classificacao: null,
-          tipo_operacao: item.tipo_operacao,
-          uf_destino: item.UF_destino,
-        } as IcmsGroupedItem;
-      })
-      .filter((g) => (ufFiltro === 'ALL' ? true : g.uf_destino === ufFiltro));
-  }, [mockItems, decisions, selectedContribuinte, ufFiltro]);
-
-  // Stats T03.1 (respeitam ufFiltro mas não statusFilter)
-  const stats = useMemo(() => {
-    if (!mockItems) return { total: 0, validados: 0, pendentes: 0 };
-    const filtered = ufFiltro === 'ALL' ? mockItems : mockItems.filter((i) => i.UF_destino === ufFiltro);
-    const total = filtered.length;
-    let validados = 0;
-    filtered.forEach((item) => {
-      const k = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-      if (decisions.has(k)) validados += 1;
-    });
-    return { total, validados, pendentes: total - validados };
-  }, [mockItems, ufFiltro, decisions]);
+  const isLoadingItems = false;
 
   const handleSearch = () => {
     if (!selectedContribuinte) {
@@ -201,7 +114,6 @@ const IcmsSaidas = () => {
       return;
     }
     setSearchTriggered(true);
-    setStatusFilter('all');
   };
 
   // Limpa filtros mas PRESERVA decisions (classificações da sessão)
@@ -212,14 +124,31 @@ const IcmsSaidas = () => {
     setDataInicio(defaultDates.inicio);
     setDataFim(defaultDates.fim);
     setSearchTriggered(false);
-    setStatusFilter('all');
   };
 
-  // Único no parent — repassado a T03.1 e T03.2 para o modal global
-  const handleGroupClick = (group: IcmsGroupedItem) => {
+  // Constrói DifalGroupedItem a partir de uma linha (T03.1 ou T03.2) e abre o modal
+  const handleLineClick = (linha: T031Linha | T032Linha) => {
+    const cstIcms = 'cst' in linha ? linha.cst : null;
+    const aliquota = linha.aliquota ?? 0;
+    const group: DifalGroupedItem = {
+      groupKey: `${linha.nf}|${linha.codProduto}|${linha.ncm}`,
+      xProd: linha.produto,
+      cod_produto: linha.codProduto,
+      cod_ncm: linha.ncm,
+      id_contribuinte: selectedContribuinte,
+      cfop: linha.cfop,
+      cst_icms: cstIcms,
+      aliq_icms: aliquota,
+      pRedBC: null,
+      count: 1,
+      totalValue: linha.valorMercadoria,
+      nfesCount: 1,
+      status: 'pendente',
+      classificacao: null,
+    };
     setSelectedGroup(group);
-    setSelectedTipoOperacao(group.tipo_operacao);
-    setSelectedUfModal(group.uf_destino);
+    setSelectedTipoOperacao(linha.descricao);
+    setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
     setModalOpen(true);
   };
 
