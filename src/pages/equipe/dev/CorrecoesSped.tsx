@@ -372,51 +372,14 @@ const CorrecoesSped = () => {
         {/* Tabs */}
         {hasQueried && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center gap-2 mb-2">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
-                <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
-                <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
-                <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
-                <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
-                <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
-              </TabsList>
-              {['c170', 'a170', 'd100', 'f100', 'f120', 'f130'].includes(activeTab) && (
-                <>
-                  <Button size="sm" onClick={() => enviarCorrecoes(activeTab.toUpperCase())} disabled={isSending} className="shrink-0">
-                    {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-                    {isSending ? 'Enviando...' : `Enviar Correções ${activeTab.toUpperCase()}`}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportar}
-                    disabled={isExporting || getIdArquivos().length === 0}
-                    className="shrink-0"
-                  >
-                    {isExporting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
-                    {isExporting ? 'Exportando...' : `Exportar correções`}
-                  </Button>
-                </>
-              )}
-              {/* TODO: remover — botão temporário de debug */}
-              <Button
-                size="sm"
-                variant="destructive"
-                className="shrink-0"
-                onClick={async () => {
-                  const { error } = await supabase.from('efd_correcoes').delete().gte('created_at', '1970-01-01');
-                  if (error) {
-                    toast.error(`Erro ao limpar: ${error.message}`);
-                  } else {
-                    toast.success('efd_correcoes limpa.');
-                  }
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Limpar efd_correcoes
-              </Button>
-            </div>
+            <TabsList className="grid w-full grid-cols-6 mb-2">
+              <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
+              <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
+              <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
+              <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
+              <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
+              <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
+            </TabsList>
 
             <TabsContent value="c170">
               <TabC170
