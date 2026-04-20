@@ -13,7 +13,7 @@ import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoT
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
-import type { IcmsGroupedItem } from '@/components/equipe/dev/icms-saidas/UnclassifiedGrid';
+import type { T031Linha, T032Linha } from '@/components/equipe/dev/icms-saidas/mocks';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
@@ -31,34 +31,6 @@ const UFS_BR = [
   'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
 ];
 
-// Mock — endpoints reais ainda não existem
-const ALL_MOCK_ITEMS = [
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6101', CST: '020', tot_itens: 148, tot_nfes: 42, vlr_total: 8912441.22,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'GO', tipo_operacao: 'Venda' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6109', CST: '040', tot_itens: 22, tot_nfes: 8, vlr_total: 2854221.31,
-    aliq_prod: 0, pRedBC: null, UF_destino: 'AM', tipo_operacao: 'Venda ZFM' },
-  { cProd: '2100', xProd: 'ALCOOL ETILICO HIDRATADO COMBUSTIVEL', NCM: '22072010',
-    CFOP: '6652', CST: '020', tot_itens: 521, tot_nfes: 178, vlr_total: 87238092.53,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'SP', tipo_operacao: 'Venda combustível' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '5401', CST: '060', tot_itens: 312, tot_nfes: 96, vlr_total: 14557450.80,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'MT', tipo_operacao: 'Venda com ST' },
-  { cProd: '2100', xProd: 'ALCOOL ETILICO HIDRATADO COMBUSTIVEL', NCM: '22072010',
-    CFOP: '5652', CST: '020', tot_itens: 164, tot_nfes: 58, vlr_total: 11013742.66,
-    aliq_prod: 17, pRedBC: null, UF_destino: 'MT', tipo_operacao: 'Venda combustível' },
-  { cProd: '3050', xProd: 'FARELO DE SOJA A GRANEL', NCM: '23040090',
-    CFOP: '6101', CST: '051', tot_itens: 89, tot_nfes: 31, vlr_total: 4251200.00,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'PR', tipo_operacao: 'Venda' },
-  { cProd: '3050', xProd: 'FARELO DE SOJA A GRANEL', NCM: '23040090',
-    CFOP: '6101', CST: '051', tot_itens: 42, tot_nfes: 15, vlr_total: 2105300.50,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'RS', tipo_operacao: 'Venda' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6101', CST: '020', tot_itens: 95, tot_nfes: 28, vlr_total: 5624100.00,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'SP', tipo_operacao: 'Venda' },
-] as const;
-
 interface ClienteRecord { id: string; nome: string }
 interface ContribuinteRecord { id: string; nome_razao_social: string; cpf_cnpj: string | null }
 
@@ -69,8 +41,6 @@ const getDefaultDates = () => {
     fim: format(endOfMonth(now), 'yyyy-MM-dd'),
   };
 };
-
-type StatusFilter = 'all' | 'validated' | 'pending';
 
 const IcmsSaidas = () => {
   const { toast } = useToast();
