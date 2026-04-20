@@ -164,8 +164,7 @@ export const UnclassifiedGrid = ({
                     <TableHead className="w-[100px]">NCM</TableHead>
                     <TableHead className="w-[80px]">CFOP</TableHead>
                     <TableHead className="w-[150px]">Tributação</TableHead>
-                    <TableHead className="w-[120px]">MVA/ST</TableHead>
-                    <TableHead className="w-[160px]">Tipo Operação</TableHead>
+                    <TableHead className="w-[160px]">Contexto</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
