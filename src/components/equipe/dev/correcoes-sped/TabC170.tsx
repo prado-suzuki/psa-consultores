@@ -19,6 +19,7 @@ import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/c
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import CorrecoesActionButtons from './CorrecoesActionButtons';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -126,7 +127,7 @@ function buildChangedFields(originalSnapshot: ItemEfd, nextSnapshot: ItemEfd): C
     });
 }
 
-interface TabC170Props {
+interface TabC170Props extends import('./CorrecoesActionButtons').CorrecoesActionsProps {
   data: C170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -150,6 +151,13 @@ export default function TabC170({
   periodo,
   onSelectItem,
   onSelectNcm,
+  contribuinteId,
+  onEnviar,
+  onExportar,
+  isSending,
+  isExporting,
+  pendingCount,
+  idArquivos,
 }: TabC170Props) {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
@@ -555,6 +563,16 @@ export default function TabC170({
                 {isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}
               </span>
               <div className="flex items-center gap-2">
+                <CorrecoesActionButtons
+                  registroTipo="C170"
+                  contribuinteId={contribuinteId}
+                  onEnviar={onEnviar}
+                  onExportar={onExportar}
+                  isSending={isSending}
+                  isExporting={isExporting}
+                  canExport={idArquivos.length > 0}
+                  pendingCount={pendingCount}
+                />
                 {isEditMode && (
                   <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar
