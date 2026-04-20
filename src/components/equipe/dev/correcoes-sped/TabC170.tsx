@@ -19,7 +19,7 @@ import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/c
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
-import CorrecoesActionButtons from './CorrecoesActionButtons';
+import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -127,7 +127,7 @@ function buildChangedFields(originalSnapshot: ItemEfd, nextSnapshot: ItemEfd): C
     });
 }
 
-interface TabC170Props extends import('./CorrecoesActionButtons').CorrecoesActionsProps {
+interface TabC170Props extends CorrecoesActionsProps {
   data: C170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;

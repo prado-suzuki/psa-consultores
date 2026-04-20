@@ -135,7 +135,7 @@ function buildChangedFields(originalSnapshot: A170Snapshot, nextSnapshot: A170Sn
     });
 }
 
-interface TabA170Props extends import('./CorrecoesActionButtons').CorrecoesActionsProps {
+interface TabA170Props extends CorrecoesActionsProps {
   data: A170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
