@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -135,7 +136,7 @@ function buildChangedFields(originalSnapshot: A170Snapshot, nextSnapshot: A170Sn
     });
 }
 
-interface TabA170Props {
+interface TabA170Props extends CorrecoesActionsProps {
   data: A170Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -157,6 +158,13 @@ export default function TabA170({
   empresaCnpj,
   periodo,
   onSelectNcm,
+  contribuinteId,
+  onEnviar,
+  onExportar,
+  isSending,
+  isExporting,
+  pendingCount,
+  idArquivos,
 }: TabA170Props) {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
@@ -537,6 +545,16 @@ export default function TabA170({
                 {isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}
               </span>
               <div className="flex items-center gap-2">
+                <CorrecoesActionButtons
+                  registroTipo="A170"
+                  contribuinteId={contribuinteId}
+                  onEnviar={onEnviar}
+                  onExportar={onExportar}
+                  isSending={isSending}
+                  isExporting={isExporting}
+                  canExport={idArquivos.length > 0}
+                  pendingCount={pendingCount}
+                />
                 <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">As correções feitas aqui são salvas no banco de dados. O registro original é preservado intacto.</TooltipContent></Tooltip>
                 {isEditMode && (
                   <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>

@@ -1,4 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -77,7 +78,7 @@ function buildChangedFields(original: RegF100, next: Record<string, unknown>): C
   });
 }
 
-interface TabF100Props {
+interface TabF100Props extends CorrecoesActionsProps {
   data: F100Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -85,14 +86,13 @@ interface TabF100Props {
   searchText: string;
   empresaCnpj: string | null;
   periodo: string | null;
-  contribuinteId: string;
   nat_bc_creds?: string[];
   cod_cta?: string;
   dt_ini?: string;
   dt_fin?: string;
 }
 
-export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_creds, cod_cta, dt_ini, dt_fin }: TabF100Props) {
+export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_creds, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF100Props) {
   const { user } = useAuth();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100', nat_bc_creds, cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
@@ -367,6 +367,16 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
         <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
           <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
           <div className="flex items-center gap-2">
+            <CorrecoesActionButtons
+              registroTipo="F100"
+              contribuinteId={contribuinteId}
+              onEnviar={onEnviar}
+              onExportar={onExportar}
+              isSending={isSending}
+              isExporting={isExporting}
+              canExport={idArquivos.length > 0}
+              pendingCount={pendingCount}
+            />
             <Button size="sm" variant="outline" onClick={consultarSimples} disabled={isConsultandoSimples || !contribuinteId}>
               {isConsultandoSimples ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Search className="h-3.5 w-3.5 mr-1" />}
               {isConsultandoSimples ? 'Consultando...' : 'Consultar Simples Nacional'}

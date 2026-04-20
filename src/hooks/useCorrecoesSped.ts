@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
@@ -537,8 +537,29 @@ export function useExportarCorrecoes() {
   return { exportar, isExporting };
 }
 
+export function usePendingCorrecoesCount(contribuinteId: string, registroTipo: string) {
+  return useQuery<number>({
+    queryKey: ['pending-correcoes', contribuinteId, registroTipo],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('efd_correcoes')
+        .select('id', { count: 'exact', head: true })
+        .eq('contribuinte_id', contribuinteId)
+        .eq('registro_tipo', registroTipo)
+        .eq('ativo', true)
+        .eq('sync_status', 'P');
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!contribuinteId && !!registroTipo,
+    refetchOnWindowFocus: true,
+    staleTime: 10_000,
+  });
+}
+
 export function useEnviarCorrecoes() {
   const { fetchWithAuth } = useApiAuth();
+  const queryClient = useQueryClient();
   const [isSending, setIsSending] = useState(false);
 
   const enviar = async (registroTipo?: string) => {
@@ -613,6 +634,7 @@ export function useEnviarCorrecoes() {
 
       if (updateError) throw updateError;
 
+      queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(`${pendentes.length} correção(ões) enviada(s) com sucesso.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro inesperado ao enviar correções.';

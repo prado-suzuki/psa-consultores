@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -108,7 +109,7 @@ function buildChangedFields(original: F130Reg, next: Record<string, unknown>): C
   });
 }
 
-interface TabF130Props {
+interface TabF130Props extends CorrecoesActionsProps {
   data: F130Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -118,7 +119,7 @@ interface TabF130Props {
   periodo: string | null;
 }
 
-export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo }: TabF130Props) {
+export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF130Props) {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F130Item[]>([]);
@@ -449,6 +450,16 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
             <div className="px-4 py-2.5 border-b bg-muted/50 flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground">{filtered.length} {filtered.length === 1 ? 'item' : 'itens'} encontrados{isEditMode && selection.selectedIds.size > 0 && ` · ${selection.selectedIds.size} selecionados`}</span>
               <div className="flex items-center gap-2">
+                <CorrecoesActionButtons
+                  registroTipo="F130"
+                  contribuinteId={contribuinteId}
+                  onEnviar={onEnviar}
+                  onExportar={onExportar}
+                  isSending={isSending}
+                  isExporting={isExporting}
+                  canExport={idArquivos.length > 0}
+                  pendingCount={pendingCount}
+                />
                 {isEditMode && (
                   <Button size="sm" variant="outline" onClick={handleCancelEditMode} disabled={isSaving}>
                     <X className="h-3.5 w-3.5 mr-1" />Cancelar

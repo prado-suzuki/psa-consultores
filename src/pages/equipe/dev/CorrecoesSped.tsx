@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Download } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Info, ChevronsUpDown } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,7 +39,7 @@ const NAT_BC_CRED_OPTIONS = [
 ] as const;
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
-import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes, useExportarCorrecoes } from '@/hooks/useCorrecoesSped';
+import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes, useExportarCorrecoes, usePendingCorrecoesCount } from '@/hooks/useCorrecoesSped';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { FlatItemEfd } from '@/types/correcoesSped';
@@ -98,6 +98,7 @@ const CorrecoesSped = () => {
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
   const { exportar: exportarCorrecoes, isExporting } = useExportarCorrecoes();
+  const { data: pendingCount = 0 } = usePendingCorrecoesCount(contribuinteId, activeTab.toUpperCase());
 
   const getIdArquivos = (): string[] => {
     let ids: string[] = [];
@@ -371,51 +372,20 @@ const CorrecoesSped = () => {
         {/* Tabs */}
         {hasQueried && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="flex items-center gap-2 mb-2">
-              <TabsList className="grid w-full grid-cols-6">
-                <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
-                <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
-                <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
-                <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
-                <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
-                <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
-              </TabsList>
-              {['c170', 'a170', 'd100', 'f100', 'f120', 'f130'].includes(activeTab) && (
-                <>
-                  <Button size="sm" onClick={() => enviarCorrecoes(activeTab.toUpperCase())} disabled={isSending} className="shrink-0">
-                    {isSending ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}
-                    {isSending ? 'Enviando...' : `Enviar Correções ${activeTab.toUpperCase()}`}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleExportar}
-                    disabled={isExporting || getIdArquivos().length === 0}
-                    className="shrink-0"
-                  >
-                    {isExporting ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
-                    {isExporting ? 'Exportando...' : `Exportar correções`}
-                  </Button>
-                </>
-              )}
-              {/* TODO: remover — botão temporário de debug */}
-              <Button
-                size="sm"
-                variant="destructive"
-                className="shrink-0"
-                onClick={async () => {
-                  const { error } = await supabase.from('efd_correcoes').delete().gte('created_at', '1970-01-01');
-                  if (error) {
-                    toast.error(`Erro ao limpar: ${error.message}`);
-                  } else {
-                    toast.success('efd_correcoes limpa.');
-                  }
-                }}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1" />
-                Limpar efd_correcoes
-              </Button>
-            </div>
+            <TabsList className="grid w-full grid-cols-6 mb-2">
+              <TabsTrigger value="c170" className="text-xs sm:text-sm">C170 (NFe/NFCe)</TabsTrigger>
+              <TabsTrigger value="a170" className="text-xs sm:text-sm">A170 (NFSe)</TabsTrigger>
+              <TabsTrigger value="d100" className="text-xs sm:text-sm">D100 (CTe)</TabsTrigger>
+              <TabsTrigger value="f100" className="text-xs sm:text-sm">F100 (Outros)</TabsTrigger>
+              <TabsTrigger value="f120" className="text-xs sm:text-sm">F120 (Deprec.)</TabsTrigger>
+              <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
+            </TabsList>
+
+            {(() => null)()}
+            {(() => {
+              // shared action props passed to every tab
+              return null;
+            })()}
 
             <TabsContent value="c170">
               <TabC170
@@ -429,6 +399,13 @@ const CorrecoesSped = () => {
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectItem={setSelectedItem}
                 onSelectNcm={setSelectedNcm}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('C170')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -443,6 +420,13 @@ const CorrecoesSped = () => {
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectNcm={setSelectedNcm}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('A170')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -459,6 +443,12 @@ const CorrecoesSped = () => {
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}
+                onEnviar={() => enviarCorrecoes('D100')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -476,6 +466,12 @@ const CorrecoesSped = () => {
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}
+                onEnviar={() => enviarCorrecoes('F100')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -488,6 +484,13 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('F120')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -500,6 +503,13 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('F130')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
           </Tabs>
