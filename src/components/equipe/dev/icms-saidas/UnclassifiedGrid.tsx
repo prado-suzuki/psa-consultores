@@ -214,7 +214,6 @@ export const UnclassifiedGrid = ({
                           )}
                         </div>
                       </TableCell>
-                      <TableCell><span className="text-slate-400">—</span></TableCell>
                       <TableCell><span className="text-sm text-slate-600">{group.tipo_operacao}</span></TableCell>
                     </TableRow>
                   ))}
