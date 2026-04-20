@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
@@ -332,6 +333,15 @@ const ConsultaECF = () => {
       title="Consulta ECF"
       subtitle="Consulta de Escrituração Contábil Fiscal"
     >
+      <div className="mb-6">
+        <DevPageHeader
+          title="Consulta ECF"
+          subtitle="A Consulta ECF centraliza a busca e o download das **Escriturações Contábeis Fiscais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
+          sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/"
+          sopLabel="Manual de Uso"
+        />
+      </div>
+
       {/* Card de Filtros */}
       <Card className="mb-6 shadow-sm">
         <CardHeader className="pb-4">
