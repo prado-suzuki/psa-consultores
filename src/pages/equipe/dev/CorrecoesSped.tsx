@@ -136,6 +136,19 @@ const CorrecoesSped = () => {
     activeQuery?.refetch();
   };
 
+  // Auto-consulta ao trocar de aba: se o usuário já consultou alguma vez,
+  // os filtros estão válidos e a aba atual ainda não tem dados em cache,
+  // dispara o refetch automaticamente para evitar a sensação de tela vazia.
+  useEffect(() => {
+    if (!hasQueried) return;
+    const f100Ok = activeTab !== 'f100' || natBcCreds.length > 0 || !!codCta;
+    if (!contribuinteId || !dtIni || !dtFin || !f100Ok) return;
+    if (!activeQuery) return;
+    if (activeQuery.data !== undefined || activeQuery.isFetching) return;
+    activeQuery.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, hasQueried, contribuinteId, dtIni, dtFin, natBcCreds, codCta]);
+
   const handleLimpar = () => {
     setClienteId('');
     setContribuinteId('');
