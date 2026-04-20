@@ -266,6 +266,8 @@ const ConsultaECD = () => {
     const missing: string[] = [];
     if (!selectedCliente) missing.push("Cliente");
     if (!selectedContribuinte) missing.push("Contribuinte");
+    if (!mesInicio) missing.push("Data de Início");
+    if (!mesFim) missing.push("Data Fim");
     if (missing.length > 0) {
       toast({
         title: "Preenchimento obrigatório",
