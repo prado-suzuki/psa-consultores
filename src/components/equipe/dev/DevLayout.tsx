@@ -88,10 +88,14 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const [pisCofinsOpen, setPisCofinsOpen] = useState(() =>
     pisCofinsSubItems.some((item) => location.pathname === item.path),
   );
+  const [apuracaoDifalOpen, setApuracaoDifalOpen] = useState(() =>
+    apuracaoDifalSubItems.some((item) => location.pathname === item.path),
+  );
 
   const isActive = (path: string) => location.pathname === path;
   const isSpedActive = spedSubItems.some((item) => location.pathname === item.path);
   const isPisCofinsActive = pisCofinsSubItems.some((item) => location.pathname === item.path);
+  const isApuracaoDifalActive = apuracaoDifalSubItems.some((item) => location.pathname === item.path);
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
@@ -188,6 +192,41 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
                   {pisCofinsSubItems.map((item) => (
+                    <Button
+                      key={item.path}
+                      variant="ghost"
+                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isActive(item.path)
+                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+                      }`}
+                      onClick={() => navigate(item.path)}
+                    >
+                      {item.label}
+                    </Button>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* Apuração do DIFAL - Collapsible */}
+              <Collapsible open={apuracaoDifalOpen} onOpenChange={setApuracaoDifalOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
+                      isApuracaoDifalActive
+                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+                        : "text-slate-700 hover:text-teal-600"
+                    }`}
+                  >
+                    <span className="flex-1 text-left">{DEV_NAV_LABELS.apuracaoDifal}</span>
+                    <ChevronDown
+                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${apuracaoDifalOpen ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
+                  {apuracaoDifalSubItems.map((item) => (
                     <Button
                       key={item.path}
                       variant="ghost"
