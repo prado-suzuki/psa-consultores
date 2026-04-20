@@ -23,6 +23,7 @@ import {
   Eraser,
   BarChart3,
   Download,
+  Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +33,26 @@ import { cn } from '@/lib/utils';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra as EFD Contribuições por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  dataInicio: "Define o período inicial da busca.",
+  dataFim: "Define o período final da busca.",
+} as const;
 
 const ConsultaEFD = () => {
   const { fetchWithAuth } = useApiAuth();
@@ -377,6 +398,7 @@ const ConsultaEFD = () => {
       subtitle="Consulta de EFD Contribuições"
       sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
     >
+      <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A Consulta de EFD Contribuições centraliza a busca e o download das **Escriturações Fiscais Digitais das Contribuições** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
         manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/"
@@ -396,8 +418,8 @@ const ConsultaEFD = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Cliente <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
               </label>
               <Select 
                 value={selectedCliente} 
@@ -422,8 +444,8 @@ const ConsultaEFD = () => {
 
             {/* Contribuinte */}
             <div className="md:col-span-5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Contribuinte <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
               </label>
               <Select 
                 value={selectedContribuinte} 
@@ -447,8 +469,8 @@ const ConsultaEFD = () => {
 
             {/* Data Início */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data de Início
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data de Início <FieldTooltip text={TOOLTIPS.dataInicio} />
               </label>
               <div className="relative">
                 <MonthYearPicker
@@ -462,8 +484,8 @@ const ConsultaEFD = () => {
 
             {/* Data Fim */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data Fim <FieldTooltip text={TOOLTIPS.dataFim} />
               </label>
               <div className="relative">
                 <MonthYearPicker
@@ -721,6 +743,7 @@ const ConsultaEFD = () => {
         blocosDisponiveis={blocosDisponiveis}
         cnpj={overview?.cnpj || ''}
       />
+      </TooltipProvider>
     </DevLayout>
   );
 };

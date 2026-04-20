@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Info,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +47,27 @@ import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra os processos de PERDCOMP por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  situacao: "Filtra por status do processo (múltipla seleção).",
+  exercicio: "Limita a listagem ao ano-calendário do crédito.",
+  numeroProcesso: "Busca direta pelo número do PER/DCOMP.",
+} as const;
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
@@ -800,6 +822,7 @@ export default function ControlePerdcomp() {
 
   return (
     <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/">
+      <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A ferramenta **Controle PERDCOMP** centraliza a busca e o gerenciamento dos Processos de Ressarcimento e Compensação da base de dados. Utilize os filtros abaixo para consultar processos específicos ou analisar exercícios inteiros, permitindo a visualização detalhada e atualização de status em tela, o cadastro de novas DCOMPs vinculadas e o registro de pagamentos efetivos de ressarcimentos."
         manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
@@ -816,7 +839,7 @@ export default function ControlePerdcomp() {
           <div className="grid grid-cols-12 gap-6">
             {/* Cliente - 3 colunas */}
             <div className="col-span-12 md:col-span-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente <RequiredMark /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
               <Select
                 value={clienteId}
                 onValueChange={(v) => {
@@ -839,7 +862,7 @@ export default function ControlePerdcomp() {
 
             {/* Contribuinte - 3 colunas */}
             <div className="col-span-12 md:col-span-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Contribuinte <RequiredMark /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
               <Select
                 value={contribuinteId}
                 onValueChange={setContribuinteId}
@@ -860,7 +883,7 @@ export default function ControlePerdcomp() {
 
             {/* Situação - 2 colunas */}
             <div className="col-span-6 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Situação</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Situação <FieldTooltip text={TOOLTIPS.situacao} /></label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="w-full justify-between h-10 font-normal">
@@ -924,7 +947,7 @@ export default function ControlePerdcomp() {
 
             {/* Exercício - 2 colunas */}
             <div className="col-span-6 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Exercício</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Exercício <FieldTooltip text={TOOLTIPS.exercicio} /></label>
               <Select
                 value={exercicioFilter || "__none__"}
                 onValueChange={(v) => setExercicioFilter(v === "__none__" ? "" : v)}
@@ -945,7 +968,7 @@ export default function ControlePerdcomp() {
 
             {/* Nº Processo - 2 colunas */}
             <div className="col-span-12 md:col-span-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Nº do Processo</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} /></label>
               <Input
                 className="h-11 bg-white dark:bg-slate-800"
                 placeholder="Digite o número..."
