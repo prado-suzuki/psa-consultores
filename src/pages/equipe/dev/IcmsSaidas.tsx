@@ -369,12 +369,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            groupedItems={groupedItems}
-            isLoading={isLoadingItems}
-            stats={stats}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            onGroupClick={handleGroupClick}
+            onLineClick={handleLineClick}
           />
         </TabsContent>
 
@@ -384,9 +379,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            allGroupedItems={allGroupedItemsForSt}
-            isLoading={isLoadingItems}
-            onGroupClick={handleGroupClick}
+            onLineClick={handleLineClick}
           />
         </TabsContent>
       </Tabs>
