@@ -4,15 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
-interface CorrecoesActionButtonsProps {
-  registroTipo: string;
+export interface CorrecoesActionsProps {
   contribuinteId: string;
   onEnviar: () => void;
   onExportar: () => void;
   isSending: boolean;
   isExporting: boolean;
-  canExport: boolean;
   pendingCount: number;
+  idArquivos: string[];
+}
+
+interface CorrecoesActionButtonsProps extends CorrecoesActionsProps {
+  registroTipo: string;
+  canExport: boolean;
 }
 
 const greenIdle =
