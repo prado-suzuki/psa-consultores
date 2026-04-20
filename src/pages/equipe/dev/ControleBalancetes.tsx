@@ -17,11 +17,30 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2 } from 'lucide-react';
+import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra os balancetes por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  periodo: "Define o período contábil da consulta.",
+} as const;
 
 interface Balancete {
   id: string;

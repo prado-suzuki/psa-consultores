@@ -29,6 +29,7 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Info,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -46,6 +47,27 @@ import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra os processos de PERDCOMP por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  situacao: "Filtra por status do processo (múltipla seleção).",
+  exercicio: "Limita a listagem ao ano-calendário do crédito.",
+  numeroProcesso: "Busca direta pelo número do PER/DCOMP.",
+} as const;
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat("pt-BR", {
