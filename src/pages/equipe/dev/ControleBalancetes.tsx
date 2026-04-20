@@ -200,6 +200,7 @@ const ControleBalancetes = () => {
       const missing: string[] = [];
       if (!clienteId) missing.push("Cliente");
       if (!contribuinteId) missing.push("Contribuinte");
+      if (!periodo) missing.push("Período");
       if (missing.length > 0) {
         toast({
           title: 'Preenchimento obrigatório',
@@ -349,7 +350,7 @@ const ControleBalancetes = () => {
 
             {/* Período */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Período</Label>
+              <Label className="text-sm font-medium text-slate-600">Período <RequiredMark /></Label>
               <MonthRangePicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
             </div>
           </div>
