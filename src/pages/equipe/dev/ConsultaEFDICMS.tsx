@@ -25,6 +25,7 @@ import {
   Eraser,
   BarChart3,
   Download,
+  Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +34,26 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra as EFD ICMS por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  dataInicio: "Define o período inicial da busca.",
+  dataFim: "Define o período final da busca.",
+} as const;
 
 const ConsultaEFDICMS = () => {
   // Hooks
@@ -537,8 +558,8 @@ const ConsultaEFDICMS = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Cliente <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
               </label>
               <Select 
                 value={selectedCliente} 
@@ -563,8 +584,8 @@ const ConsultaEFDICMS = () => {
 
             {/* Contribuinte */}
             <div className="md:col-span-5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Contribuinte <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
               </label>
               <Select 
                 value={selectedContribuinte} 
@@ -590,8 +611,8 @@ const ConsultaEFDICMS = () => {
 
             {/* Data Início */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data de Início
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data de Início <FieldTooltip text={TOOLTIPS.dataInicio} />
               </label>
               <div className="relative">
                 <MonthYearPicker
@@ -605,8 +626,8 @@ const ConsultaEFDICMS = () => {
 
             {/* Data Fim */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data Fim <FieldTooltip text={TOOLTIPS.dataFim} />
               </label>
               <div className="relative">
                 <MonthYearPicker
