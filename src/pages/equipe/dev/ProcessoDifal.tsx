@@ -1211,6 +1211,7 @@ const ProcessoDifal = () => {
         sessaoId={activeSessaoId}
         onDecisionSaved={handleDecisionSaved}
       />
+      </TooltipProvider>
     </DevLayout>
   );
 };
