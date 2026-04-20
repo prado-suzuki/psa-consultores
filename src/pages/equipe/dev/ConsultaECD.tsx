@@ -353,6 +353,7 @@ const ConsultaECD = () => {
       title="Consulta ECD"
       subtitle="Consulta de Escrituração Contábil Digital"
     >
+      <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A Consulta ECD centraliza a busca e o download das **Escriturações Contábeis Digitais** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
         manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/"
@@ -371,7 +372,7 @@ const ConsultaECD = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
               <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
                 <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -380,7 +381,7 @@ const ConsultaECD = () => {
               </Select>
             </div>
             <div className="md:col-span-5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
               <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
                 <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -389,11 +390,11 @@ const ConsultaECD = () => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <FieldTooltip text={TOOLTIPS.dataInicio} /></label>
               <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim</label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <FieldTooltip text={TOOLTIPS.dataFim} /></label>
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
           </div>
