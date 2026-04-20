@@ -242,8 +242,15 @@ const ConsultaECD = () => {
   };
 
   const handleSearch = () => {
-    if (!selectedContribuinte) {
-      toast({ title: "Selecione um contribuinte", description: "É necessário selecionar um contribuinte para buscar os arquivos.", variant: "destructive" });
+    const missing: string[] = [];
+    if (!selectedCliente) missing.push("Cliente");
+    if (!selectedContribuinte) missing.push("Contribuinte");
+    if (missing.length > 0) {
+      toast({
+        title: "Preenchimento obrigatório",
+        description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
+        variant: "destructive",
+      });
       return;
     }
     if (!cnpjContribuinte) {
@@ -352,7 +359,7 @@ const ConsultaECD = () => {
               </Select>
             </div>
             <div className="md:col-span-5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /></label>
               <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
                 <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">

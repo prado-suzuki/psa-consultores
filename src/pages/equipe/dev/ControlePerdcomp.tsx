@@ -239,7 +239,12 @@ export default function ControlePerdcomp() {
     if (processoFilter && (!clienteId || !contribuinteId)) {
       const filterDigits = processoFilter.replace(/\D/g, '');
       if (!filterDigits) {
-        toast.error("Selecione o cliente e contribuinte");
+        const missing: string[] = [];
+        if (!clienteId) missing.push("Cliente");
+        if (!contribuinteId) missing.push("Contribuinte");
+        toast.error("Preenchimento obrigatório", {
+          description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
+        });
         return;
       }
       setIsSearchingByProcess(true);
@@ -277,8 +282,13 @@ export default function ControlePerdcomp() {
       return;
     }
 
-    if (!clienteId || !contribuinteId) {
-      toast.error("Selecione o cliente e contribuinte");
+    const missing: string[] = [];
+    if (!clienteId) missing.push("Cliente");
+    if (!contribuinteId) missing.push("Contribuinte");
+    if (missing.length > 0) {
+      toast.error("Preenchimento obrigatório", {
+        description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
+      });
       return;
     }
     setSearched(true);
@@ -806,7 +816,7 @@ export default function ControlePerdcomp() {
           <div className="grid grid-cols-12 gap-6">
             {/* Cliente - 3 colunas */}
             <div className="col-span-12 md:col-span-3">
-              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente</label>
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5 block">Cliente <RequiredMark /></label>
               <Select
                 value={clienteId}
                 onValueChange={(v) => {
