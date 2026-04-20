@@ -108,7 +108,7 @@ function buildChangedFields(original: F130Reg, next: Record<string, unknown>): C
   });
 }
 
-interface TabF130Props {
+interface TabF130Props extends CorrecoesActionsProps {
   data: F130Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -118,7 +118,7 @@ interface TabF130Props {
   periodo: string | null;
 }
 
-export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo }: TabF130Props) {
+export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF130Props) {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F130Item[]>([]);

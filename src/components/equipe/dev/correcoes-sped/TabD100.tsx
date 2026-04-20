@@ -92,7 +92,7 @@ function buildChangedFields(original: D100Item, next: Record<string, unknown>): 
   });
 }
 
-interface TabD100Props {
+interface TabD100Props extends CorrecoesActionsProps {
   data: D100Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -100,13 +100,12 @@ interface TabD100Props {
   searchText: string;
   empresaCnpj: string | null;
   periodo: string | null;
-  contribuinteId: string;
   cod_cta?: string;
   dt_ini?: string;
   dt_fin?: string;
 }
 
-export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, cod_cta, dt_ini, dt_fin }: TabD100Props) {
+export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabD100Props) {
   const { user } = useAuth();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'D100', cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);

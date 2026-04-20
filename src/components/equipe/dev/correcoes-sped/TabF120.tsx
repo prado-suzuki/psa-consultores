@@ -107,7 +107,7 @@ function buildChangedFields(original: F120Reg, next: Record<string, unknown>): C
   });
 }
 
-interface TabF120Props {
+interface TabF120Props extends CorrecoesActionsProps {
   data: F120Item[] | undefined;
   isLoading: boolean;
   error: Error | null;
@@ -117,7 +117,7 @@ interface TabF120Props {
   periodo: string | null;
 }
 
-export default function TabF120({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo }: TabF120Props) {
+export default function TabF120({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF120Props) {
   const { user } = useAuth();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F120Item[]>([]);
