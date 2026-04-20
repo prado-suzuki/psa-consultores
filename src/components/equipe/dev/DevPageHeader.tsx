@@ -1,20 +1,17 @@
-import { Fragment, ReactNode } from "react";
-import { Info, BookOpen } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Fragment, type ReactNode } from "react";
+import { Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DevPageHeaderProps {
-  title: string;
-  subtitle?: string;
-  infoTooltip?: string;
-  sopUrl?: string;
-  sopLabel?: string;
-  actions?: ReactNode;
+  /** Texto descritivo principal. Suporta `**negrito**`. */
+  description: string;
+  /** URL do manual de uso desta ferramenta (abre em nova guia). */
+  manualUrl: string;
 }
 
 /**
- * Renderiza um texto convertendo `**trecho**` em <strong>, sem usar
- * dangerouslySetInnerHTML. Cada nó recebe `key` para evitar warnings
+ * Renderiza um texto convertendo `**trecho**` em `<strong>`, sem usar
+ * `dangerouslySetInnerHTML`. Cada nó recebe `key` para evitar warnings
  * de iteração do React.
  */
 const renderBoldSegments = (text: string): ReactNode[] => {
@@ -22,7 +19,7 @@ const renderBoldSegments = (text: string): ReactNode[] => {
     const match = part.match(/^\*\*([^*]+)\*\*$/);
     if (match) {
       return (
-        <strong key={index} className="font-semibold text-foreground">
+        <strong key={index} className="font-semibold">
           {match[1]}
         </strong>
       );
@@ -32,65 +29,38 @@ const renderBoldSegments = (text: string): ReactNode[] => {
 };
 
 /**
- * Cabeçalho padronizado para páginas do módulo /equipe/dev.
- * - Título + subtítulo (Visão Geral)
- * - Ícone Info opcional com Tooltip
- * - Botão SOP opcional
- * - Slot livre para ações adicionais (ex: Badge "Beta")
+ * Cabeçalho oficial "Visão Geral" do módulo /equipe/dev.
  *
- * Observação: NÃO envolve em <TooltipProvider> próprio — o DevLayout
- * (e o app raiz) já fornecem o provider global. Aninhar criaria
- * conflitos de portal/z-index.
+ * Renderiza um Alert verde-água padronizado com:
+ *  - Ícone Info + título "Visão Geral"
+ *  - Descrição (suporta `**negrito**`)
+ *  - Frase fixa anexada contiguamente ao final: "Para acessar o manual
+ *    de uso completo, clique aqui." — apenas "aqui" é hyperlink, abrindo
+ *    em nova guia para `manualUrl`.
+ *
+ * Aplica `mb-6` para preservar o respiro até o Card de Filtros logo abaixo.
  */
-export const DevPageHeader = ({
-  title,
-  subtitle,
-  infoTooltip,
-  sopUrl,
-  sopLabel = "SOP",
-  actions,
-}: DevPageHeaderProps) => {
+export const DevPageHeader = ({ description, manualUrl }: DevPageHeaderProps) => {
   return (
-    <div className="flex items-start justify-between gap-4 pb-4 border-b border-border">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-semibold text-foreground truncate">{title}</h1>
-          {infoTooltip && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label="Informações adicionais"
-                  className="inline-flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Info className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-xs">
-                {infoTooltip}
-              </TooltipContent>
-            </Tooltip>
-          )}
-        </div>
-        {subtitle && (
-          <p className="text-sm text-muted-foreground mt-1 max-w-3xl">
-            {renderBoldSegments(subtitle)}
-          </p>
-        )}
-      </div>
-
-      <div className="flex items-center gap-2 shrink-0">
-        {sopUrl && (
-          <Button variant="outline" size="sm" asChild>
-            <a href={sopUrl} target="_blank" rel="noopener noreferrer">
-              <BookOpen className="h-4 w-4 mr-1.5" />
-              {sopLabel}
-            </a>
-          </Button>
-        )}
-        {actions}
-      </div>
-    </div>
+    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
+      <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+      <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+        Visão Geral
+      </AlertTitle>
+      <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+        {renderBoldSegments(description)}
+        {" Para acessar o manual de uso completo, clique "}
+        <a
+          href={manualUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+        >
+          aqui
+        </a>
+        .
+      </AlertDescription>
+    </Alert>
   );
 };
 
