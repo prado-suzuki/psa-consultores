@@ -1024,6 +1024,7 @@ export default function ControlePerdcomp() {
         per={selectedPer}
         contribuinteId={contribuinteId}
       />
+      </TooltipProvider>
     </DevLayout>
   );
 }
