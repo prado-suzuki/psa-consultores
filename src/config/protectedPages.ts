@@ -287,6 +287,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  {
+    page_path: '/equipe/dev/apuracao-difal/icms-saidas',
+    page_name: 'ICMS das Saídas',
+    page_description: 'Classificação fiscal de produtos em saídas interestaduais (Beta)',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
 
   // =============================================
   // === TAX PAGES ===

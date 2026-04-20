@@ -60,6 +60,10 @@ const pisCofinsSubItems: NavItem[] = [
   { icon: FileText, label: DEV_NAV_LABELS.revisaoRegistrosEfd, path: "/equipe/dev/correcoes-sped" },
 ];
 
+const apuracaoDifalSubItems: NavItem[] = [
+  { icon: Calculator, label: DEV_NAV_LABELS.icmsSaidas, path: "/equipe/dev/apuracao-difal/icms-saidas" },
+];
+
 const navItemsAfterSped: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/processo-difal" },
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },

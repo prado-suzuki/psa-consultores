@@ -80,6 +80,7 @@ import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
 import AuditoriaCruzada from "./pages/equipe/dev/AuditoriaCruzada";
 import CorrecoesSped from "./pages/equipe/dev/CorrecoesSped";
 import ProcedimentosDev from "./pages/equipe/dev/ProcedimentosDev";
+import IcmsSaidas from "./pages/equipe/dev/IcmsSaidas";
 
 // Equipe > Fiscal / Tax
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
@@ -183,6 +184,7 @@ const App = () => (
               <Route path="/equipe/dev/cruzamento-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate></TeamRoute>} />
               <Route path="/equipe/dev/correcoes-sped" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate></TeamRoute>} />
               <Route path="/equipe/dev/procedimentos" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate></TeamRoute>} />
               <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
