@@ -1,57 +1,34 @@
 
 
-## Plano: Reposicionar botões e adicionar animações
+## Plano: Auto-consulta ao trocar de aba
 
-### 1. Mover botões para baixo (alinhados ao "Habilitar modo edição")
-Em `src/pages/equipe/dev/CorrecoesSped.tsx` (linhas 383–418), **remover** os 3 botões (`Enviar Correções`, `Exportar correções`, `Limpar efd_correcoes`) da linha do `TabsList` — deixando só as abas no topo, mais limpas.
+### Problema
+Hoje o `handleConsultar` (linha 133) só dispara `refetch` da `activeQuery` correspondente à aba atual. Ao trocar de aba, a nova query fica vazia e o usuário precisa clicar "Consultar" de novo — passa a impressão de bug.
 
-Os botões serão **renderizados dentro de cada Tab**, anexados ao toolbar interno do Card que já contém o botão `Habilitar modo edição` (linha 551 do `TabC170.tsx` e equivalentes em `TabA170/D100/F100/F120/F130`).
+### Solução
+Adicionar um `useEffect` em `src/pages/equipe/dev/CorrecoesSped.tsx` que dispara `activeQuery.refetch()` automaticamente quando:
+1. O usuário já fez ao menos uma consulta inicial (`hasQueried === true`) — assim não dispara antes de o usuário preencher os filtros pela primeira vez.
+2. Os filtros obrigatórios estão válidos (`canConsult === true`).
+3. A `activeQuery` ainda **não tem dados em cache** (`activeQuery.data === undefined`) — evita refetch desnecessário se o usuário voltar para uma aba já carregada.
+4. Não há fetch em andamento (`!activeQuery.isFetching`).
 
-**Como evitar duplicar 3 botões em 6 arquivos:** criar um pequeno componente compartilhado `CorrecoesActionButtons.tsx` em `src/components/equipe/dev/correcoes-sped/` que recebe via props: `registroTipo`, `contribuinteId`, `onEnviar`, `onExportar`, `isSending`, `isExporting`, `canExport`, `pendingCount`. Cada Tab renderiza esse componente dentro do `<div className="flex items-center gap-2">` (linha 557 do TabC170) **antes** dos botões de Cancelar/Habilitar edição.
-
-`CorrecoesSped.tsx` passa as props para cada Tab (handlers `enviarCorrecoes`, `handleExportar`, flags `isSending`, `isExporting`, e `idArquivos`).
-
-### 2. Animações de cor (hover/active)
-Estilo solicitado: fundo branco + fonte preta no estado idle; verde (ou vermelho para "Limpar") + fonte branca no hover/active.
-
-Aplicar via `className` Tailwind diretamente nos 3 botões (sem criar variant nova no `button.tsx` para manter escopo cirúrgico):
-
-- **Enviar / Exportar (verde):**
-  ```
-  bg-white text-black border border-input
-  hover:bg-emerald-600 hover:text-white hover:border-emerald-600
-  active:bg-emerald-700 active:text-white
-  transition-colors duration-200
-  ```
-- **Limpar efd_correcoes (vermelho):**
-  ```
-  bg-white text-black border border-input
-  hover:bg-red-600 hover:text-white hover:border-red-600
-  active:bg-red-700 active:text-white
-  transition-colors duration-200
-  ```
-
-Usar `variant="outline"` como base (mantém estrutura/sizing) e sobrescrever com as classes acima.
-
-### 3. Desabilitar "Enviar Correções" quando não há pendências
-**Viável** — a tabela `efd_correcoes` tem `sync_status` (`'P'` = pendente) e `ativo`. Adicionar novo hook no `useCorrecoesSped.ts`:
-
-```ts
-export function usePendingCorrecoesCount(contribuinteId: string, registroTipo: string)
+```tsx
+useEffect(() => {
+  if (!hasQueried || !canConsult) return;
+  if (activeQuery.data !== undefined || activeQuery.isFetching) return;
+  activeQuery.refetch();
+}, [activeTab, hasQueried, canConsult, activeQuery]);
 ```
-Retorna `useQuery` com `supabase.from('efd_correcoes').select('id', { count: 'exact', head: true }).eq('contribuinte_id', contribuinteId).eq('registro_tipo', registroTipo).eq('ativo', true).eq('sync_status', 'P')`. `enabled: !!contribuinteId && !!registroTipo`. `refetchOnWindowFocus: true` + `staleTime: 10_000`.
 
-No `CorrecoesSped.tsx`, chamar o hook com `contribuinteId` + `activeTab.toUpperCase()`. Passar `pendingCount` ao `CorrecoesActionButtons`. O botão `Enviar Correções` ganha `disabled={isSending || pendingCount === 0}` e `title="Nenhuma correção pendente"` quando contagem zero.
+### Comportamento resultante
+- 1ª vez: usuário preenche filtros + clica "Consultar" na aba C170 → carrega C170.
+- Troca para A170 (sem dados em cache) → consulta dispara automaticamente.
+- Volta para C170 → usa cache, não refaz consulta.
+- Troca de cliente/data e limpa estado → `hasQueried` permanece, mas como `canConsult` revalida e o cache do React Query é por `queryKey` (que inclui contribuinte/datas), novos params = novo fetch automático ao trocar de aba.
+- F100 com filtros próprios (nat_bc_creds/cod_cta): respeitado pelo `canConsult` que já exige `f100FiltersValid`.
 
-Após `enviarCorrecoes` concluir com sucesso, invalidar essa query (`queryClient.invalidateQueries({ queryKey: ['pending-correcoes', contribuinteId, registroTipo] })`) para o botão re-desabilitar imediatamente. Como o hook atual `useEnviarCorrecoes` não tem acesso ao `queryClient`, adicionar `useQueryClient()` lá dentro e invalidar pela `queryKey`.
-
-### Arquivos alterados
-- `src/pages/equipe/dev/CorrecoesSped.tsx` — remove os 3 botões da linha das tabs; passa props novas para cada `<Tab*>`.
-- `src/hooks/useCorrecoesSped.ts` — adiciona `usePendingCorrecoesCount`; invalida a query no fim de `useEnviarCorrecoes`.
-- `src/components/equipe/dev/correcoes-sped/CorrecoesActionButtons.tsx` — **novo** componente compartilhado.
-- `src/components/equipe/dev/correcoes-sped/TabC170.tsx`, `TabA170.tsx`, `TabD100.tsx`, `TabF100.tsx`, `TabF120.tsx`, `TabF130.tsx` — aceitam props `enviarCorrecoes`, `exportarCorrecoes`, `isSending`, `isExporting`, `pendingCount`, `idArquivos`; renderizam `<CorrecoesActionButtons />` antes do bloco de Cancelar/Habilitar edição.
-
-### Fora do escopo
-- Não toco no botão `Limpar` do filtro superior (linha 344) nem no `Consultar` (linha 347) — comportamento e estilo preservados.
-- Não mexo na lógica interna de edição/salvamento das tabs.
+### Escopo
+- 1 arquivo: `src/pages/equipe/dev/CorrecoesSped.tsx`
+- 1 `useEffect` adicionado próximo a `handleConsultar`
+- Sem mudanças em hooks, schema ou componentes filhos
 
