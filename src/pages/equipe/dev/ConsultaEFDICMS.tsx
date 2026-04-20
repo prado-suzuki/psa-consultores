@@ -630,7 +630,7 @@ const ConsultaEFDICMS = () => {
             {/* Data Fim */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim <FieldTooltip text={TOOLTIPS.dataFim} />
+                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} />
               </label>
               <div className="relative">
                 <MonthYearPicker
