@@ -19,6 +19,10 @@ export const DEV_NAV_LABELS = {
   analiseCruzada: "Análise Cruzada",
   revisaoRegistrosEfd: "Revisão de Registros EFD",
 
+  // Apuração do DIFAL group
+  apuracaoDifal: "Apuração do DIFAL",
+  icmsSaidas: "ICMS das Saídas",
+
   // After SPED
   difalInteligente: "DIFAL Inteligente",
   calculadoraIbsCbs: "Calculadora IBS/CBS",

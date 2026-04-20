@@ -80,6 +80,16 @@ const toolGroups: ToolGroup[] = [
     ],
   },
   {
+    label: DEV_NAV_LABELS.apuracaoDifal,
+    tools: [
+      {
+        name: DEV_NAV_LABELS.icmsSaidas,
+        description: 'Classificação fiscal de produtos em saídas interestaduais (Beta)',
+        path: '/equipe/dev/apuracao-difal/icms-saidas',
+      },
+    ],
+  },
+  {
     label: DEV_NAV_LABELS.difalInteligente,
     tools: [
       {
