@@ -381,6 +381,12 @@ const CorrecoesSped = () => {
               <TabsTrigger value="f130" className="text-xs sm:text-sm">F130 (Aquis.)</TabsTrigger>
             </TabsList>
 
+            {(() => null)()}
+            {(() => {
+              // shared action props passed to every tab
+              return null;
+            })()}
+
             <TabsContent value="c170">
               <TabC170
                 data={c170Query.data}
@@ -393,6 +399,13 @@ const CorrecoesSped = () => {
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectItem={setSelectedItem}
                 onSelectNcm={setSelectedNcm}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('C170')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -407,6 +420,13 @@ const CorrecoesSped = () => {
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 onSelectNcm={setSelectedNcm}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('A170')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -423,6 +443,12 @@ const CorrecoesSped = () => {
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}
+                onEnviar={() => enviarCorrecoes('D100')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -440,6 +466,12 @@ const CorrecoesSped = () => {
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}
+                onEnviar={() => enviarCorrecoes('F100')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -452,6 +484,13 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('F120')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
 
@@ -464,6 +503,13 @@ const CorrecoesSped = () => {
                 searchText={searchText}
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
+                contribuinteId={contribuinteId}
+                onEnviar={() => enviarCorrecoes('F130')}
+                onExportar={handleExportar}
+                isSending={isSending}
+                isExporting={isExporting}
+                pendingCount={pendingCount}
+                idArquivos={getIdArquivos()}
               />
             </TabsContent>
           </Tabs>
