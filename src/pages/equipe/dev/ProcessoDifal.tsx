@@ -52,7 +52,29 @@ import {
   Loader2,
   Filter,
   Eraser,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra os cálculos de DIFAL por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  dataInicio: "Define o período inicial da busca.",
+  dataFim: "Define o período final da busca.",
+} as const;
 
 // Nomes dos clientes permitidos para esta ferramenta (Barralcool e Coprodia)
 const CLIENTES_PERMITIDOS_NOMES = ["Barralcool", "COPRODIA"];
