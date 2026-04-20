@@ -743,6 +743,7 @@ const ConsultaEFD = () => {
         blocosDisponiveis={blocosDisponiveis}
         cnpj={overview?.cnpj || ''}
       />
+      </TooltipProvider>
     </DevLayout>
   );
 };
