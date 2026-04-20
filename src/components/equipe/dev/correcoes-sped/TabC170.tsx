@@ -237,7 +237,7 @@ export default function TabC170({
       );
     }
     return items;
-  }, [rows, ncmFilter, searchText]);
+  }, [rows, ncmFilter, searchText, regraFilteredNcms]);
 
   const cascadingUniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
@@ -613,7 +613,7 @@ export default function TabC170({
                               />
                             </div>
                           </div>
-                          <ScrollArea className="max-h-56">
+                          <ScrollArea className="h-56">
                             <div className="p-1">
                               <button
                                 className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors ${!regraFilterId ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
