@@ -13,7 +13,7 @@ import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoT
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
-import type { IcmsGroupedItem } from '@/components/equipe/dev/icms-saidas/UnclassifiedGrid';
+import type { T031Linha, T032Linha } from '@/components/equipe/dev/icms-saidas/mocks';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
@@ -31,34 +31,6 @@ const UFS_BR = [
   'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
 ];
 
-// Mock — endpoints reais ainda não existem
-const ALL_MOCK_ITEMS = [
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6101', CST: '020', tot_itens: 148, tot_nfes: 42, vlr_total: 8912441.22,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'GO', tipo_operacao: 'Venda' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6109', CST: '040', tot_itens: 22, tot_nfes: 8, vlr_total: 2854221.31,
-    aliq_prod: 0, pRedBC: null, UF_destino: 'AM', tipo_operacao: 'Venda ZFM' },
-  { cProd: '2100', xProd: 'ALCOOL ETILICO HIDRATADO COMBUSTIVEL', NCM: '22072010',
-    CFOP: '6652', CST: '020', tot_itens: 521, tot_nfes: 178, vlr_total: 87238092.53,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'SP', tipo_operacao: 'Venda combustível' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '5401', CST: '060', tot_itens: 312, tot_nfes: 96, vlr_total: 14557450.80,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'MT', tipo_operacao: 'Venda com ST' },
-  { cProd: '2100', xProd: 'ALCOOL ETILICO HIDRATADO COMBUSTIVEL', NCM: '22072010',
-    CFOP: '5652', CST: '020', tot_itens: 164, tot_nfes: 58, vlr_total: 11013742.66,
-    aliq_prod: 17, pRedBC: null, UF_destino: 'MT', tipo_operacao: 'Venda combustível' },
-  { cProd: '3050', xProd: 'FARELO DE SOJA A GRANEL', NCM: '23040090',
-    CFOP: '6101', CST: '051', tot_itens: 89, tot_nfes: 31, vlr_total: 4251200.00,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'PR', tipo_operacao: 'Venda' },
-  { cProd: '3050', xProd: 'FARELO DE SOJA A GRANEL', NCM: '23040090',
-    CFOP: '6101', CST: '051', tot_itens: 42, tot_nfes: 15, vlr_total: 2105300.50,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'RS', tipo_operacao: 'Venda' },
-  { cProd: '1001', xProd: 'ACUCAR CRISTAL ESP. DOCE DIA 10X2KG', NCM: '17019900',
-    CFOP: '6101', CST: '020', tot_itens: 95, tot_nfes: 28, vlr_total: 5624100.00,
-    aliq_prod: 12, pRedBC: null, UF_destino: 'SP', tipo_operacao: 'Venda' },
-] as const;
-
 interface ClienteRecord { id: string; nome: string }
 interface ContribuinteRecord { id: string; nome_razao_social: string; cpf_cnpj: string | null }
 
@@ -70,8 +42,6 @@ const getDefaultDates = () => {
   };
 };
 
-type StatusFilter = 'all' | 'validated' | 'pending';
-
 const IcmsSaidas = () => {
   const { toast } = useToast();
   const defaultDates = getDefaultDates();
@@ -82,9 +52,8 @@ const IcmsSaidas = () => {
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-  // Decisões locais — chave: groupKey (cProd|NCM|UF). Preservadas ao limpar filtros.
+  // Decisões locais — chave: groupKey. Preservadas ao limpar filtros.
   const [decisions, setDecisions] = useState<Map<string, { regraId: string; decididoEm: string }>>(new Map());
 
   const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
@@ -133,93 +102,7 @@ const IcmsSaidas = () => {
     }
   }, [contribuintes, selectedContribuinte]);
 
-  // Mock query do grid de não-classificados (T03.1 / T03.2)
-  const { data: mockItems, isLoading: isLoadingItems } = useQuery({
-    queryKey: ['icms-saidas-grouped', selectedContribuinte, dataInicio, dataFim],
-    queryFn: async () => {
-      await new Promise((r) => setTimeout(r, 200));
-      return ALL_MOCK_ITEMS;
-    },
-    enabled: searchTriggered && !!selectedContribuinte,
-    staleTime: Infinity,
-  });
-
-  // Itens agrupados (com UF na chave) e filtrados por UF + status (para T03.1)
-  const groupedItems = useMemo<IcmsGroupedItem[]>(() => {
-    if (!mockItems) return [];
-
-    const allGroups: IcmsGroupedItem[] = mockItems.map((item) => {
-      const groupKey = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-      const isDecided = decisions.has(groupKey);
-      return {
-        groupKey,
-        xProd: item.xProd,
-        cod_produto: item.cProd,
-        cod_ncm: item.NCM,
-        id_contribuinte: selectedContribuinte,
-        cfop: item.CFOP,
-        cst_icms: item.CST,
-        aliq_icms: item.aliq_prod,
-        pRedBC: item.pRedBC,
-        count: item.tot_itens,
-        totalValue: item.vlr_total,
-        nfesCount: item.tot_nfes,
-        status: isDecided ? ('validado' as const) : ('pendente' as const),
-        classificacao: null,
-        tipo_operacao: item.tipo_operacao,
-        uf_destino: item.UF_destino,
-      };
-    });
-
-    return allGroups.filter((g) => {
-      if (ufFiltro !== 'ALL' && g.uf_destino !== ufFiltro) return false;
-      if (statusFilter === 'validated' && g.status !== 'validado') return false;
-      if (statusFilter === 'pending' && g.status !== 'pendente') return false;
-      return true;
-    });
-  }, [mockItems, decisions, selectedContribuinte, ufFiltro, statusFilter]);
-
-  // Lista global (sem filtro de status) para T03.2 aplicar seu próprio filtro de CFOPs ST
-  const allGroupedItemsForSt = useMemo<IcmsGroupedItem[]>(() => {
-    if (!mockItems) return [];
-    return mockItems
-      .map((item) => {
-        const groupKey = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-        const isDecided = decisions.has(groupKey);
-        return {
-          groupKey,
-          xProd: item.xProd,
-          cod_produto: item.cProd,
-          cod_ncm: item.NCM,
-          id_contribuinte: selectedContribuinte,
-          cfop: item.CFOP,
-          cst_icms: item.CST,
-          aliq_icms: item.aliq_prod,
-          pRedBC: item.pRedBC,
-          count: item.tot_itens,
-          totalValue: item.vlr_total,
-          nfesCount: item.tot_nfes,
-          status: isDecided ? ('validado' as const) : ('pendente' as const),
-          classificacao: null,
-          tipo_operacao: item.tipo_operacao,
-          uf_destino: item.UF_destino,
-        } as IcmsGroupedItem;
-      })
-      .filter((g) => (ufFiltro === 'ALL' ? true : g.uf_destino === ufFiltro));
-  }, [mockItems, decisions, selectedContribuinte, ufFiltro]);
-
-  // Stats T03.1 (respeitam ufFiltro mas não statusFilter)
-  const stats = useMemo(() => {
-    if (!mockItems) return { total: 0, validados: 0, pendentes: 0 };
-    const filtered = ufFiltro === 'ALL' ? mockItems : mockItems.filter((i) => i.UF_destino === ufFiltro);
-    const total = filtered.length;
-    let validados = 0;
-    filtered.forEach((item) => {
-      const k = `${item.cProd}|${item.NCM}|${item.UF_destino}`;
-      if (decisions.has(k)) validados += 1;
-    });
-    return { total, validados, pendentes: total - validados };
-  }, [mockItems, ufFiltro, decisions]);
+  const isLoadingItems = false;
 
   const handleSearch = () => {
     if (!selectedContribuinte) {
@@ -231,7 +114,6 @@ const IcmsSaidas = () => {
       return;
     }
     setSearchTriggered(true);
-    setStatusFilter('all');
   };
 
   // Limpa filtros mas PRESERVA decisions (classificações da sessão)
@@ -242,14 +124,31 @@ const IcmsSaidas = () => {
     setDataInicio(defaultDates.inicio);
     setDataFim(defaultDates.fim);
     setSearchTriggered(false);
-    setStatusFilter('all');
   };
 
-  // Único no parent — repassado a T03.1 e T03.2 para o modal global
-  const handleGroupClick = (group: IcmsGroupedItem) => {
+  // Constrói DifalGroupedItem a partir de uma linha (T03.1 ou T03.2) e abre o modal
+  const handleLineClick = (linha: T031Linha | T032Linha) => {
+    const cstIcms = 'cst' in linha ? linha.cst : null;
+    const aliquota = linha.aliquota ?? 0;
+    const group: DifalGroupedItem = {
+      groupKey: `${linha.nf}|${linha.codProduto}|${linha.ncm}`,
+      xProd: linha.produto,
+      cod_produto: linha.codProduto,
+      cod_ncm: linha.ncm,
+      id_contribuinte: selectedContribuinte,
+      cfop: linha.cfop,
+      cst_icms: cstIcms,
+      aliq_icms: aliquota,
+      pRedBC: null,
+      count: 1,
+      totalValue: linha.valorMercadoria,
+      nfesCount: 1,
+      status: 'pendente',
+      classificacao: null,
+    };
     setSelectedGroup(group);
-    setSelectedTipoOperacao(group.tipo_operacao);
-    setSelectedUfModal(group.uf_destino);
+    setSelectedTipoOperacao(linha.descricao);
+    setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
     setModalOpen(true);
   };
 
@@ -470,12 +369,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            groupedItems={groupedItems}
-            isLoading={isLoadingItems}
-            stats={stats}
-            statusFilter={statusFilter}
-            onStatusFilterChange={setStatusFilter}
-            onGroupClick={handleGroupClick}
+            onLineClick={handleLineClick}
           />
         </TabsContent>
 
@@ -485,9 +379,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            allGroupedItems={allGroupedItemsForSt}
-            isLoading={isLoadingItems}
-            onGroupClick={handleGroupClick}
+            onLineClick={handleLineClick}
           />
         </TabsContent>
       </Tabs>
