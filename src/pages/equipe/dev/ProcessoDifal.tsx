@@ -800,6 +800,7 @@ const ProcessoDifal = () => {
 
   return (
     <DevLayout title="DIFAL Inteligente" subtitle="Auditoria e classificação fiscal de produtos" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/">
+      <TooltipProvider delayDuration={300}>
       <DevPageHeader
         description="A ferramenta **DIFAL Inteligente** centraliza a busca e a classificação tributária das operações de Diferencial de Alíquota da base de dados. Utilize os filtros abaixo para buscar os itens das notas fiscais por período, permitindo identificar pendências de NCM, definir regras tributárias individuais em tela, sincronizar os dados validados com o servidor e exportar os resultados consolidados em formato Excel (.xlsx)."
         manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/"
@@ -818,8 +819,8 @@ const ProcessoDifal = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
             {/* Cliente */}
             <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Cliente <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
               </label>
               <Select
                 value={selectedCliente}
@@ -847,8 +848,8 @@ const ProcessoDifal = () => {
 
             {/* Contribuinte - apenas nome */}
             <div className="md:col-span-5">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Contribuinte <RequiredMark />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
               </label>
               <Select
                 value={selectedContribuinte}
@@ -875,8 +876,8 @@ const ProcessoDifal = () => {
 
             {/* Data Início - Calendar + Popover */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Início
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data Início <FieldTooltip text={TOOLTIPS.dataInicio} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -905,8 +906,8 @@ const ProcessoDifal = () => {
 
             {/* Data Fim - Calendar + Popover */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                Data Fim <FieldTooltip text={TOOLTIPS.dataFim} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
