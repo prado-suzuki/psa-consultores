@@ -25,6 +25,7 @@ import {
   Eraser,
   BarChart3,
   Download,
+  Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -32,6 +33,26 @@ import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+// --- Tooltip texts ---
+const TOOLTIPS = {
+  cliente: "Filtra as ECD por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  dataInicio: "Define o período inicial da busca.",
+  dataFim: "Define o período final da busca.",
+} as const;
 
 // Mapeamento de COD_FIN para ECD
 const COD_FIN_MAP: Record<number, string> = {
