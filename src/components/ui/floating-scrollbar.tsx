@@ -39,6 +39,16 @@ export function FloatingScrollbar({ targetRef, alwaysVisible = false }: Floating
 
     const ro = new ResizeObserver(updateLayout);
     ro.observe(target);
+    // Also observe immediate children so we detect when inner content (e.g. a table)
+    // grows wider and causes horizontal overflow even though the target keeps its width.
+    Array.from(target.children).forEach((child) => ro.observe(child as Element));
+
+    // Re-observe children if they change (table re-renders, rows appear, etc.)
+    const mo = new MutationObserver(() => {
+      Array.from(target.children).forEach((child) => ro.observe(child as Element));
+      updateLayout();
+    });
+    mo.observe(target, { childList: true, subtree: false });
 
     // Also observe an intersection to detect when native scrollbar enters viewport
     const sentinel = document.createElement("div");
@@ -58,6 +68,7 @@ export function FloatingScrollbar({ targetRef, alwaysVisible = false }: Floating
 
     return () => {
       ro.disconnect();
+      mo.disconnect();
       io.disconnect();
       sentinel.remove();
       window.removeEventListener("scroll", updateLayout);

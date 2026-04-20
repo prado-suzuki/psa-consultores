@@ -13,7 +13,7 @@ interface UseCorrecoesSpedParams {
 }
 
 interface UseCorrecoesF100Params extends UseCorrecoesSpedParams {
-  nat_bc_cred?: string;
+  nat_bc_creds?: string[];
   cod_cta?: string;
 }
 
@@ -310,27 +310,40 @@ export function useCorrecoesD100(params: UseCorrecoesSpedParams) {
 
 export function useCorrecoesF100(params: UseCorrecoesF100Params) {
   const { fetchWithAuth } = useApiAuth();
+  const natBcCredsKey = (params.nat_bc_creds ?? []).slice().sort().join(',');
 
   return useQuery<F100Item[]>({
-    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin, params.nat_bc_cred, params.cod_cta],
+    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin, natBcCredsKey, params.cod_cta],
     queryFn: async () => {
-      const searchParams = new URLSearchParams({
-        id_contribuinte: params.id_contribuinte,
-        dt_ini: params.dt_ini,
-        dt_fin: params.dt_fin,
-      });
-      if (params.nat_bc_cred) searchParams.set('nat_bc_cred', params.nat_bc_cred);
-      if (params.cod_cta) searchParams.set('cod_cta', params.cod_cta);
-      const url = getApiUrl(`/api/v1/pis_cofins/revisao/transp_outros?${searchParams}`);
-      const response = await fetchWithAuth(url);
-      if (!response.ok) {
-        throw new Error(`Erro ao consultar correcoes-f100: ${response.status}`);
+      const buildUrl = (natBcCred?: string) => {
+        const sp = new URLSearchParams({
+          id_contribuinte: params.id_contribuinte,
+          dt_ini: params.dt_ini,
+          dt_fin: params.dt_fin,
+        });
+        if (natBcCred) sp.set('nat_bc_cred', natBcCred);
+        if (params.cod_cta) sp.set('cod_cta', params.cod_cta);
+        return getApiUrl(`/api/v1/pis_cofins/revisao/transp_outros?${sp}`);
+      };
+
+      const codes = params.nat_bc_creds ?? [];
+      const urls = codes.length > 0 ? codes.map((c) => buildUrl(c)) : [buildUrl()];
+      const responses = await Promise.all(urls.map((u) => fetchWithAuth(u)));
+      for (const r of responses) {
+        if (!r.ok) throw new Error(`Erro ao consultar correcoes-f100: ${r.status}`);
       }
+      const payloads = (await Promise.all(responses.map((r) => r.json()))) as F100Item[][];
+      const flat = payloads.flat();
+      if (flat.length === 0) return [];
 
-      const payload = (await response.json()) as F100Item[];
-      if (!payload || payload.length === 0) return [];
-
-      const items = payload;
+      const seen = new Set<string>();
+      const items = flat.filter((item) => {
+        const key = item.F100?.uuid;
+        if (!key) return true;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
 
       const { data: correcoes, error: correcoesError } = await supabase
         .from('efd_correcoes')

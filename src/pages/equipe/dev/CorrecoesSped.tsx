@@ -12,9 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Check, Download } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Download } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
 const NAT_BC_CRED_OPTIONS = [
@@ -64,7 +65,7 @@ const CorrecoesSped = () => {
   const [searchText, setSearchText] = useState('');
   const [hasQueried, setHasQueried] = useState(false);
   const [activeTab, setActiveTab] = useState('c170');
-  const [natBcCred, setNatBcCred] = useState('');
+  const [natBcCreds, setNatBcCreds] = useState<string[]>([]);
   const [codCta, setCodCta] = useState('');
   const [natBcCredOpen, setNatBcCredOpen] = useState(false);
 
@@ -89,7 +90,7 @@ const CorrecoesSped = () => {
   const d100Query = useCorrecoesD100(queryParams);
   const f100Query = useCorrecoesF100({
     ...queryParams,
-    nat_bc_cred: natBcCred || undefined,
+    nat_bc_creds: natBcCreds.length > 0 ? natBcCreds : undefined,
     cod_cta: codCta || undefined,
   });
   const f120Query = useCorrecoesF120(queryParams);
@@ -142,12 +143,12 @@ const CorrecoesSped = () => {
     setNcmFilter('all');
     setSearchText('');
     setHasQueried(false);
-    setNatBcCred('');
+    setNatBcCreds([]);
     setCodCta('');
     setNatBcCredOpen(false);
   };
 
-  const f100FiltersValid = !!natBcCred || !!codCta;
+  const f100FiltersValid = natBcCreds.length > 0 || !!codCta;
   const canConsult = !!contribuinteId && !!dtIni && !!dtFin && (activeTab !== 'f100' || f100FiltersValid);
 
   return (
@@ -238,9 +239,35 @@ const CorrecoesSped = () => {
                   <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-8 w-full justify-between text-sm font-normal">
-                        {natBcCred
-                          ? <span className="truncate"><span className="font-mono font-medium">{natBcCred}</span>{' – '}{NAT_BC_CRED_OPTIONS.find((o) => o.value === natBcCred)?.label ?? natBcCred}</span>
-                          : <span className="text-muted-foreground">Selecione ou digite...</span>}
+                        {natBcCreds.length === 0 && <span className="text-muted-foreground">Selecione ou digite...</span>}
+                        {natBcCreds.length === 1 && (
+                          <span className="truncate">
+                            <span className="font-mono font-medium">{natBcCreds[0]}</span>
+                            {' – '}
+                            {NAT_BC_CRED_OPTIONS.find((o) => o.value === natBcCreds[0])?.label ?? natBcCreds[0]}
+                          </span>
+                        )}
+                        {natBcCreds.length > 1 && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="truncate">
+                                <span className="font-medium">{natBcCreds.length} selecionados</span>
+                                <span className="ml-2 font-mono text-xs text-muted-foreground">{[...natBcCreds].sort().join(', ')}</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs text-xs">
+                              <div className="space-y-0.5">
+                                {[...natBcCreds].sort().map((code) => (
+                                  <div key={code}>
+                                    <span className="font-mono font-semibold">{code}</span>
+                                    {' – '}
+                                    {NAT_BC_CRED_OPTIONS.find((o) => o.value === code)?.label ?? code}
+                                  </div>
+                                ))}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -249,19 +276,43 @@ const CorrecoesSped = () => {
                         <CommandInput placeholder="Buscar por código ou descrição..." className="h-8 text-sm" />
                         <CommandList>
                           <CommandEmpty>Nenhuma opção encontrada.</CommandEmpty>
+                          {natBcCreds.length > 0 && (
+                            <>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="__limpar-selecao__"
+                                  onSelect={() => setNatBcCreds([])}
+                                  className="text-xs text-muted-foreground"
+                                >
+                                  <X className="mr-2 h-3.5 w-3.5 shrink-0" />
+                                  Limpar seleção ({natBcCreds.length})
+                                </CommandItem>
+                              </CommandGroup>
+                              <CommandSeparator />
+                            </>
+                          )}
                           <CommandGroup>
-                            {NAT_BC_CRED_OPTIONS.map((option) => (
-                              <CommandItem
-                                key={option.value}
-                                value={`${option.value} ${option.label}`}
-                                onSelect={() => { setNatBcCred(option.value); setNatBcCredOpen(false); }}
-                                className="text-xs"
-                              >
-                                <Check className={cn('mr-2 h-3.5 w-3.5 shrink-0', natBcCred === option.value ? 'opacity-100' : 'opacity-0')} />
-                                <span className="font-mono font-semibold mr-2 shrink-0">{option.value}</span>
-                                <span className="truncate text-muted-foreground">{option.label}</span>
-                              </CommandItem>
-                            ))}
+                            {NAT_BC_CRED_OPTIONS.map((option) => {
+                              const checked = natBcCreds.includes(option.value);
+                              return (
+                                <CommandItem
+                                  key={option.value}
+                                  value={`${option.value} ${option.label}`}
+                                  onSelect={() => {
+                                    setNatBcCreds((prev) =>
+                                      prev.includes(option.value)
+                                        ? prev.filter((v) => v !== option.value)
+                                        : [...prev, option.value],
+                                    );
+                                  }}
+                                  className="group text-xs"
+                                >
+                                  <Checkbox checked={checked} className="mr-2 h-3.5 w-3.5 shrink-0 pointer-events-none" />
+                                  <span className="font-mono font-semibold mr-2 shrink-0">{option.value}</span>
+                                  <span className="truncate text-muted-foreground group-data-[selected=true]:text-accent-foreground">{option.label}</span>
+                                </CommandItem>
+                              );
+                            })}
                           </CommandGroup>
                         </CommandList>
                       </Command>
@@ -421,7 +472,7 @@ const CorrecoesSped = () => {
                 empresaCnpj={contribuinteSelecionado?.cpf_cnpj ?? null}
                 periodo={dtIni && dtFin ? `${dtIni} a ${dtFin}` : null}
                 contribuinteId={contribuinteId}
-                nat_bc_cred={natBcCred || undefined}
+                nat_bc_creds={natBcCreds.length > 0 ? natBcCreds : undefined}
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}

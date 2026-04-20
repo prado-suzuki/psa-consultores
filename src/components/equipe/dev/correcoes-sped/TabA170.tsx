@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +14,26 @@ import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { A170Item, A170Snapshot, CampoAlteradoEfd } from '@/types/correcoesSped';
+
+const A170_FILTERABLE_KEYS: { key: string; label: string }[] = [
+  { key: 'NOME_0150', label: 'Prestador' },
+  { key: 'CPF_CNPJ_0150', label: 'CPF/CNPJ' },
+  { key: 'DESCR_DISPLAY', label: 'Descrição' },
+  { key: 'COD_CTA', label: 'Conta' },
+  { key: 'CST_PIS', label: 'CST PIS' },
+  { key: 'ALIQ_PIS', label: '% PIS' },
+  { key: 'CST_COFINS', label: 'CST COF' },
+  { key: 'ALIQ_COFINS', label: '% COF' },
+];
+
+const a170RowAccessor = (item: A170Item, key: string): string => {
+  if (key === 'DESCR_DISPLAY') return item.DESCR_COMPL || item.DESCR_ITEM_0200 || '';
+  const val = item[key as keyof A170Item];
+  if (val === null || val === undefined) return '';
+  return String(val);
+};
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -145,10 +164,27 @@ export default function TabA170({
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, A170Draft>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const selection = useRowSelection();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const locallyEditedIds = useRef<Set<string>>(new Set());
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      if (values === null) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return { ...prev, [key]: values };
+    });
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -168,7 +204,7 @@ export default function TabA170({
     }));
   }, [data, isEditMode]);
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     let items = rows;
     if (ncmFilter === 'with') items = items.filter((i) => !!i.COD_NCM);
     if (ncmFilter === 'without') items = items.filter((i) => !i.COD_NCM);
@@ -188,9 +224,42 @@ export default function TabA170({
     return items;
   }, [rows, ncmFilter, searchText]);
 
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of A170_FILTERABLE_KEYS) {
+      let subset = baseFiltered;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) subset = subset.filter((r) => allowed.has(a170RowAccessor(r, fk)));
+      }
+      result[key] = [...new Set(subset.map((r) => a170RowAccessor(r, key)))];
+    }
+    return result;
+  }, [baseFiltered, columnFilters]);
+
+  const filtered = useMemo(() => {
+    let items = baseFiltered;
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(a170RowAccessor(i, key)));
+    }
+    if (sortConfig) {
+      items = [...items].sort((a, b) => {
+        const av = a170RowAccessor(a, sortConfig.key);
+        const bv = a170RowAccessor(b, sortConfig.key);
+        const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+    return items;
+  }, [baseFiltered, columnFilters, sortConfig]);
+
   useEffect(() => {
     setPage(0);
-  }, [ncmFilter, searchText]);
+  }, [ncmFilter, searchText, columnFilters, sortConfig]);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setSortConfig(null);
+  }, [empresaCnpj, periodo]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -498,19 +567,19 @@ export default function TabA170({
                         />
                       </TableHead>
                     )}
-                    <TableHead className="text-[11px] min-w-[180px]">Prestador</TableHead>
-                    <TableHead className="text-[11px] min-w-[130px]">CPF/CNPJ</TableHead>
-                    <TableHead className="text-[11px] min-w-[240px]">Descrição</TableHead>
+                    <TableHead className="text-[11px] min-w-[180px]"><span className="flex items-center gap-1">Prestador<ColumnFilterDropdown columnKey="NOME_0150" uniqueValues={cascadingUniqueValues['NOME_0150'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['NOME_0150'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">CPF/CNPJ<ColumnFilterDropdown columnKey="CPF_CNPJ_0150" uniqueValues={cascadingUniqueValues['CPF_CNPJ_0150'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CPF_CNPJ_0150'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[240px]"><span className="flex items-center gap-1">Descrição<ColumnFilterDropdown columnKey="DESCR_DISPLAY" uniqueValues={cascadingUniqueValues['DESCR_DISPLAY'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DESCR_DISPLAY'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[120px]">Valor</TableHead>
 
-                    <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST PIS<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC PIS</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% PIS<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST COF<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">BC COF</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[80px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% COF<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">PIS Ret</TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px] bg-slate-50/60 dark:bg-slate-800/20">COFINS Ret</TableHead>

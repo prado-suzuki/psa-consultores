@@ -18,6 +18,7 @@ import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/corre
 import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 
 type NcmFilter = 'all' | 'with' | 'without';
 
@@ -180,6 +181,7 @@ export default function TabC170({
   }, []);
 
   const locallyEditedIds = useRef<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -203,6 +205,16 @@ export default function TabC170({
     if (!regraFilterId) return null;
     return new Set(regras.filter((r) => r.id === regraFilterId).map((r) => r.cod_ncm));
   }, [regraFilterId, regras]);
+
+  const loadedNcms = useMemo(
+    () => new Set(rows.map((r) => getNcm(r)).filter((n): n is string => !!n)),
+    [rows]
+  );
+
+  const regrasDisponiveis = useMemo(
+    () => regras.filter((r) => loadedNcms.has(r.cod_ncm)),
+    [regras, loadedNcms]
+  );
 
   const baseFiltered = useMemo(() => {
     let items = rows;
@@ -262,6 +274,12 @@ export default function TabC170({
   useEffect(() => {
     setPage(0);
   }, [ncmFilter, searchText, columnFilters, sortConfig, regraFilterId]);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setRegraFilterId(null);
+    setRegraSearch('');
+  }, [empresaCnpj, periodo]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -549,7 +567,7 @@ export default function TabC170({
               </div>
             </div>
             <div className="overflow-auto">
-              <Table>
+              <Table containerRef={scrollRef}>
                 <TableHeader>
                   <TableRow className="border-b-0">
                     {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
@@ -603,7 +621,7 @@ export default function TabC170({
                               >
                                 Todas as regras
                               </button>
-                              {regras
+                              {regrasDisponiveis
                                 .filter((r) => {
                                   const q = regraSearch.toLowerCase();
                                   if (!q) return true;
@@ -748,6 +766,7 @@ export default function TabC170({
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={scrollRef} />
             <div className="px-4 pb-3">
               <TablePagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
             </div>

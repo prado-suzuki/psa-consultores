@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +14,22 @@ import { useConsultaSimplesNacional } from '@/hooks/useConsultaSimplesNacional';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { F100Item, RegF100, CampoAlteradoEfd } from '@/types/correcoesSped';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+
+const F100_FILTERABLE_KEYS: { key: string; label: string }[] = [
+  { key: 'DT_OPER', label: 'Data' },
+  { key: 'NOME', label: 'Nome' },
+  { key: 'CPF_CNPJ', label: 'CPF/CNPJ' },
+  { key: 'TIPO_PESSOA', label: 'Tipo' },
+  { key: 'SIMPLES_LABEL', label: 'Simples' },
+  { key: 'CST_PIS', label: 'CST PIS' },
+  { key: 'ALIQ_PIS', label: '% PIS' },
+  { key: 'CST_COFINS', label: 'CST COF' },
+  { key: 'ALIQ_COFINS', label: '% COF' },
+  { key: 'COD_CTA', label: 'Conta' },
+];
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -71,22 +86,47 @@ interface TabF100Props {
   empresaCnpj: string | null;
   periodo: string | null;
   contribuinteId: string;
-  nat_bc_cred?: string;
+  nat_bc_creds?: string[];
   cod_cta?: string;
   dt_ini?: string;
   dt_fin?: string;
 }
 
-export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_cred, cod_cta, dt_ini, dt_fin }: TabF100Props) {
+export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_creds, cod_cta, dt_ini, dt_fin }: TabF100Props) {
   const { user } = useAuth();
-  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100', nat_bc_cred, cod_cta, dt_ini, dt_fin });
+  const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100', nat_bc_creds, cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
   const [editedRows, setEditedRows] = useState<Record<string, RegF100>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, F100Draft>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
   const selection = useRowSelection();
   const deferredSearchText = useDeferredValue(searchText);
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      if (values === null) { const next = { ...prev }; delete next[key]; return next; }
+      return { ...prev, [key]: values };
+    });
+  }, []);
+
+  const f100RowAccessor = (item: F100Item, key: string): string => {
+    if (key === 'NOME') return item['0150']?.NOME ?? '';
+    if (key === 'SIMPLES_LABEL') return SIMPLES_LABELS[item.SIMPLES ?? ''] ?? item.SIMPLES ?? '';
+    if (key === 'CPF_CNPJ') return item.CPF_CNPJ ?? '';
+    if (key === 'TIPO_PESSOA') return item.TIPO_PESSOA ?? '';
+    const f = editedRows[item.F100.uuid] ?? item.F100;
+    const v = f[key as keyof RegF100];
+    if (v === null || v === undefined) return '';
+    return String(v);
+  };
 
   useEffect(() => {
     if (!data) return;
@@ -109,7 +149,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
   const getDisplayedF100 = (item: F100Item) => editedRows[item.F100.uuid] ?? item.F100;
   const getOriginalSnapshot = (item: F100Item) => item._originalSnapshot ?? item.F100;
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     if (!deferredSearchText.trim()) {
       return indexedItems.map(({ item }) => item);
     }
@@ -119,7 +159,42 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
       .map(({ item }) => item);
   }, [deferredSearchText, indexedItems]);
 
-  useEffect(() => { setPage(0); }, [searchText]);
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of F100_FILTERABLE_KEYS) {
+      let subset = baseFiltered;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) subset = subset.filter((r) => allowed.has(f100RowAccessor(r, fk)));
+      }
+      result[key] = [...new Set(subset.map((r) => f100RowAccessor(r, key)))];
+    }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, editedRows]);
+
+  const filtered = useMemo(() => {
+    let items = baseFiltered;
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(f100RowAccessor(i, key)));
+    }
+    if (sortConfig) {
+      items = [...items].sort((a, b) => {
+        const av = f100RowAccessor(a, sortConfig.key);
+        const bv = f100RowAccessor(b, sortConfig.key);
+        const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+    return items;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, sortConfig, editedRows]);
+
+  useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setSortConfig(null);
+  }, [empresaCnpj, periodo]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.F100.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -316,7 +391,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
         ) : (
           <>
             <div className="overflow-auto">
-              <Table>
+              <Table containerRef={scrollRef}>
                 <TableHeader>
                   <TableRow className="border-b-0">
                     {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
@@ -333,19 +408,19 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                         />
                       </TableHead>
                     )}
-                    <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
-                    <TableHead className="text-[11px] min-w-[180px]">Nome</TableHead>
-                    <TableHead className="text-[11px] min-w-[120px]">CPF/CNPJ</TableHead>
-                    <TableHead className="text-[11px] min-w-[60px]">Tipo</TableHead>
-                    <TableHead className="text-[11px] min-w-[80px]">Simples</TableHead>
+                    <TableHead className="text-[11px] min-w-[80px]"><span className="flex items-center gap-1">Data<ColumnFilterDropdown columnKey="DT_OPER" uniqueValues={cascadingUniqueValues['DT_OPER'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DT_OPER'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[180px]"><span className="flex items-center gap-1">Nome<ColumnFilterDropdown columnKey="NOME" uniqueValues={cascadingUniqueValues['NOME'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['NOME'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[120px]"><span className="flex items-center gap-1">CPF/CNPJ<ColumnFilterDropdown columnKey="CPF_CNPJ" uniqueValues={cascadingUniqueValues['CPF_CNPJ'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CPF_CNPJ'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[60px]"><span className="flex items-center gap-1">Tipo<ColumnFilterDropdown columnKey="TIPO_PESSOA" uniqueValues={cascadingUniqueValues['TIPO_PESSOA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['TIPO_PESSOA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[80px]"><span className="flex items-center gap-1">Simples<ColumnFilterDropdown columnKey="SIMPLES_LABEL" uniqueValues={cascadingUniqueValues['SIMPLES_LABEL'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['SIMPLES_LABEL'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">Valor</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST PIS<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% PIS<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST COF<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% COF<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
+                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                      <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -385,6 +460,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={scrollRef} />
             <div className="px-4 pb-3">
               <TablePagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
             </div>

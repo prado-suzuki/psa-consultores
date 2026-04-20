@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,7 +14,28 @@ import { useConsultaSimplesNacional } from '@/hooks/useConsultaSimplesNacional';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { D100Item, CampoAlteradoEfd } from '@/types/correcoesSped';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+
+const D100_FILTERABLE_KEYS: { key: string; label: string }[] = [
+  { key: 'DT_DOC', label: 'Data' },
+  { key: 'CHV_CTE', label: 'CHV CTe' },
+  { key: 'CNPJ_EFD', label: 'CNPJ' },
+  { key: 'SIMPLES_LABEL', label: 'Simples' },
+  { key: 'CST_PIS', label: 'CST PIS' },
+  { key: 'ALIQ_PIS', label: '% PIS' },
+  { key: 'CST_COFINS', label: 'CST COF' },
+  { key: 'ALIQ_COFINS', label: '% COF' },
+  { key: 'COD_CTA', label: 'Conta' },
+];
+
+const d100RowAccessor = (item: D100Item, key: string): string => {
+  if (key === 'SIMPLES_LABEL') return SIMPLES_LABELS[item.SIMPLES ?? ''] ?? item.SIMPLES ?? '';
+  const val = item[key as keyof D100Item];
+  if (val === null || val === undefined) return '';
+  return String(val);
+};
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -93,8 +114,22 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, D100Draft>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const selection = useRowSelection();
   const locallyEditedIds = useRef<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      if (values === null) { const next = { ...prev }; delete next[key]; return next; }
+      return { ...prev, [key]: values };
+    });
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -109,7 +144,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
     }));
   }, [data, isEditMode]);
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     let items = rows;
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
@@ -120,7 +155,40 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
     return items;
   }, [rows, searchText]);
 
-  useEffect(() => { setPage(0); }, [searchText]);
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of D100_FILTERABLE_KEYS) {
+      let subset = baseFiltered;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) subset = subset.filter((r) => allowed.has(d100RowAccessor(r, fk)));
+      }
+      result[key] = [...new Set(subset.map((r) => d100RowAccessor(r, key)))];
+    }
+    return result;
+  }, [baseFiltered, columnFilters]);
+
+  const filtered = useMemo(() => {
+    let items = baseFiltered;
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(d100RowAccessor(i, key)));
+    }
+    if (sortConfig) {
+      items = [...items].sort((a, b) => {
+        const av = d100RowAccessor(a, sortConfig.key);
+        const bv = d100RowAccessor(b, sortConfig.key);
+        const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+    return items;
+  }, [baseFiltered, columnFilters, sortConfig]);
+
+  useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setSortConfig(null);
+  }, [empresaCnpj, periodo]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
@@ -336,7 +404,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
         ) : (
           <>
             <div className="overflow-auto">
-              <Table>
+              <Table containerRef={scrollRef}>
                 <TableHeader>
                   <TableRow className="border-b-0">
                     {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
@@ -353,18 +421,18 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                         />
                       </TableHead>
                     )}
-                    <TableHead className="text-[11px] min-w-[80px]">Data</TableHead>
-                    <TableHead className="text-[11px] min-w-[140px]">CHV CTe</TableHead>
-                    <TableHead className="text-[11px] min-w-[130px]">CNPJ</TableHead>
-                    <TableHead className="text-[11px] min-w-[70px]"><span className="flex items-center gap-1">Simples<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica se o participante da operação é optante pelo Simples Nacional.</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[80px]"><span className="flex items-center gap-1">Data<ColumnFilterDropdown columnKey="DT_DOC" uniqueValues={cascadingUniqueValues['DT_DOC'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DT_DOC'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[140px]"><span className="flex items-center gap-1">CHV CTe<ColumnFilterDropdown columnKey="CHV_CTE" uniqueValues={cascadingUniqueValues['CHV_CTE'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CHV_CTE'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[130px]"><span className="flex items-center gap-1">CNPJ<ColumnFilterDropdown columnKey="CNPJ_EFD" uniqueValues={cascadingUniqueValues['CNPJ_EFD'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CNPJ_EFD'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[70px]"><span className="flex items-center gap-1">Simples<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Indica se o participante da operação é optante pelo Simples Nacional.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="SIMPLES_LABEL" uniqueValues={cascadingUniqueValues['SIMPLES_LABEL'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['SIMPLES_LABEL'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]"><span className="flex items-center gap-1 justify-end">Valor Doc<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Valor total do documento fiscal de transporte.</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST PIS<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% PIS<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST COF<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% COF<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
+                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                      <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -402,6 +470,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={scrollRef} />
             <div className="px-4 pb-3">
               <TablePagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
             </div>

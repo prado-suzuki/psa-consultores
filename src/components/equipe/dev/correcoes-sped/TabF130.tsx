@@ -1,19 +1,45 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { AlertCircle, Check, Info, Loader2, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronsUpDown, Info, Loader2, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
+import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import type { F130Item, F130Reg, CampoAlteradoEfd } from '@/types/correcoesSped';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import { cn } from '@/lib/utils';
+
+const F130_FILTERABLE_KEYS: { key: string; label: string }[] = [
+  { key: 'DESC_IDENT_BEM_IMOB', label: 'Bem Imobilizado' },
+  { key: 'DESC_IND_UTIL_BEM_IMOB', label: 'Utilização' },
+  { key: 'DESC_NAT_BC_CRED', label: 'Nat. Créd.' },
+  { key: 'MES_OPER_AQUIS', label: 'Mês Aquis.' },
+  { key: 'CST_PIS', label: 'CST PIS' },
+  { key: 'ALIQ_PIS', label: '% PIS' },
+  { key: 'CST_COFINS', label: 'CST COF' },
+  { key: 'ALIQ_COFINS', label: '% COF' },
+  { key: 'COD_CTA', label: 'Conta' },
+];
+
+const f130RowAccessor = (item: F130Item, key: string): string => {
+  if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
+  if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
+  if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
+  const v = item.F130[key as keyof F130Reg];
+  if (v === null || v === undefined) return '';
+  return String(v);
+};
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -21,16 +47,20 @@ const formatCurrency = (v: number | null | undefined) =>
 const safeFixed = (v: number | null | undefined, d = 2) =>
   (v ?? 0).toFixed(d);
 
-type EditableF130Field = 'VL_OPER_AQUIS' | 'CST_PIS' | 'ALIQ_PIS' | 'VL_PIS' | 'CST_COFINS' | 'ALIQ_COFINS' | 'VL_COFINS' | 'COD_CTA';
+type EditableF130Field = 'IDENT_BEM_IMOB' | 'IND_UTIL_BEM_IMOB' | 'NAT_BC_CRED' | 'VL_OPER_AQUIS' | 'CST_PIS' | 'ALIQ_PIS' | 'VL_PIS' | 'CST_COFINS' | 'ALIQ_COFINS' | 'VL_COFINS' | 'COD_CTA';
 type F130Draft = Record<EditableF130Field, string>;
 
-const editableFields: EditableF130Field[] = ['VL_OPER_AQUIS', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS', 'COD_CTA'];
+const editableFields: EditableF130Field[] = ['IDENT_BEM_IMOB', 'IND_UTIL_BEM_IMOB', 'NAT_BC_CRED', 'VL_OPER_AQUIS', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS', 'COD_CTA'];
 const numericFields = new Set<EditableF130Field>(['VL_OPER_AQUIS', 'CST_PIS', 'ALIQ_PIS', 'VL_PIS', 'CST_COFINS', 'ALIQ_COFINS', 'VL_COFINS']);
+const codeFields = new Set<EditableF130Field>(['IDENT_BEM_IMOB', 'IND_UTIL_BEM_IMOB', 'NAT_BC_CRED']);
 const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 text-xs';
 
 function toDraft(item: F130Item): F130Draft {
   const f = item.F130;
   return {
+    IDENT_BEM_IMOB: f.IDENT_BEM_IMOB ?? '',
+    IND_UTIL_BEM_IMOB: f.IND_UTIL_BEM_IMOB ?? '',
+    NAT_BC_CRED: f.NAT_BC_CRED ?? '',
     VL_OPER_AQUIS: f.VL_OPER_AQUIS != null ? Number(f.VL_OPER_AQUIS).toFixed(2).replace('.', ',') : '0,00',
     CST_PIS: f.CST_PIS != null ? String(f.CST_PIS) : '',
     ALIQ_PIS: f.ALIQ_PIS != null ? Number(f.ALIQ_PIS).toFixed(2).replace('.', ',') : '0,00',
@@ -40,6 +70,26 @@ function toDraft(item: F130Item): F130Draft {
     VL_COFINS: f.VL_COFINS != null ? Number(f.VL_COFINS).toFixed(2).replace('.', ',') : '0,00',
     COD_CTA: f.COD_CTA ?? '',
   };
+}
+
+type CodeField130 = 'IDENT_BEM_IMOB' | 'IND_UTIL_BEM_IMOB' | 'NAT_BC_CRED';
+const DESC_KEY_BY_CODE_FIELD: Record<CodeField130, 'DESC_IDENT_BEM_IMOB' | 'DESC_IND_UTIL_BEM_IMOB' | 'DESC_NAT_BC_CRED'> = {
+  IDENT_BEM_IMOB: 'DESC_IDENT_BEM_IMOB',
+  IND_UTIL_BEM_IMOB: 'DESC_IND_UTIL_BEM_IMOB',
+  NAT_BC_CRED: 'DESC_NAT_BC_CRED',
+};
+
+function buildCodeOptions(rows: F130Item[], codeField: CodeField130): { code: string; description: string }[] {
+  const descKey = DESC_KEY_BY_CODE_FIELD[codeField];
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    const code = row.F130[codeField];
+    if (code === null || code === undefined || code === '') continue;
+    if (!map.has(code)) map.set(code, row[descKey] ?? '');
+  }
+  return Array.from(map.entries())
+    .map(([code, description]) => ({ code, description }))
+    .sort((a, b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true }));
 }
 
 function serializeValue(value: unknown): string | null {
@@ -75,8 +125,22 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, F130Draft>>({});
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
   const selection = useRowSelection();
   const locallyEditedIds = useRef<Set<string>>(new Set());
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
+    setSortConfig({ key, direction });
+  }, []);
+
+  const handleFilter = useCallback((key: string, values: Set<string> | null) => {
+    setColumnFilters((prev) => {
+      if (values === null) { const next = { ...prev }; delete next[key]; return next; }
+      return { ...prev, [key]: values };
+    });
+  }, []);
 
   useEffect(() => {
     if (!data) return;
@@ -91,7 +155,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     }));
   }, [data, isEditMode]);
 
-  const filtered = useMemo(() => {
+  const baseFiltered = useMemo(() => {
     let items = rows;
     if (searchText.trim()) {
       const s = searchText.toLowerCase();
@@ -104,11 +168,53 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     return items;
   }, [rows, searchText]);
 
-  useEffect(() => { setPage(0); }, [searchText]);
+  const cascadingUniqueValues = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    for (const { key } of F130_FILTERABLE_KEYS) {
+      let subset = baseFiltered;
+      for (const [fk, allowed] of Object.entries(columnFilters)) {
+        if (fk !== key) subset = subset.filter((r) => allowed.has(f130RowAccessor(r, fk)));
+      }
+      result[key] = [...new Set(subset.map((r) => f130RowAccessor(r, key)))];
+    }
+    return result;
+  }, [baseFiltered, columnFilters]);
+
+  const filtered = useMemo(() => {
+    let items = baseFiltered;
+    for (const [key, allowed] of Object.entries(columnFilters)) {
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(f130RowAccessor(i, key)));
+    }
+    if (sortConfig) {
+      items = [...items].sort((a, b) => {
+        const av = f130RowAccessor(a, sortConfig.key);
+        const bv = f130RowAccessor(b, sortConfig.key);
+        const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
+        return sortConfig.direction === 'asc' ? cmp : -cmp;
+      });
+    }
+    return items;
+  }, [baseFiltered, columnFilters, sortConfig]);
+
+  useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
+
+  useEffect(() => {
+    setColumnFilters({});
+    setSortConfig(null);
+  }, [empresaCnpj, periodo]);
 
   const filteredIds = useMemo(() => filtered.map((i) => i.F130.uuid), [filtered]);
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+  const identBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IDENT_BEM_IMOB'), [rows]);
+  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IND_UTIL_BEM_IMOB'), [rows]);
+  const natBcCredOptions = useMemo(() => buildCodeOptions(rows, 'NAT_BC_CRED'), [rows]);
+  const optionsByField: Record<CodeField130, { code: string; description: string }[]> = {
+    IDENT_BEM_IMOB: identBemImobOptions,
+    IND_UTIL_BEM_IMOB: indUtilBemImobOptions,
+    NAT_BC_CRED: natBcCredOptions,
+  };
 
   const handleEnableEditMode = () => {
     setDrafts(Object.fromEntries(rows.map((row) => [row.F130.uuid, toDraft(row)])));
@@ -136,6 +242,11 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
         const parsed = Number(raw.replace(',', '.'));
         if (Number.isNaN(parsed)) { toast.error(`Valor inválido para ${field}.`); return; }
         nextSnapshot[field] = parsed;
+        continue;
+      }
+      if (codeFields.has(field)) {
+        if (!raw) { toast.error(`Selecione um código para ${field}.`); return; }
+        nextSnapshot[field] = raw;
         continue;
       }
       nextSnapshot[field] = raw;
@@ -224,6 +335,76 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     finally { setIsSaving(false); }
   };
 
+  const renderCodeCell = (item: F130Item, field: CodeField130) => {
+    const draft = drafts[item.F130.uuid];
+    const options = optionsByField[field];
+    const descKey = DESC_KEY_BY_CODE_FIELD[field];
+    const descFallback = item[descKey] ?? '';
+
+    const currentCode = isEditMode && draft ? draft[field] : item.F130[field];
+    const origCode = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
+    const isChanged = !Object.is(item.F130[field], origCode);
+    const selectedOption = options.find((o) => o.code === currentCode);
+    const displayDescription = selectedOption?.description ?? descFallback;
+    const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
+
+    if (!isEditMode || !draft) {
+      return <span className={`text-xs ${amberClass}`}>{displayDescription || '—'}</span>;
+    }
+
+    return (
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className={cn(
+              'flex w-full items-center justify-between gap-1 rounded border border-input bg-background px-2 py-1 text-left text-xs hover:bg-muted',
+              amberClass,
+            )}
+          >
+            <span className="truncate">
+              {currentCode ? (
+                <>
+                  <span className="font-mono font-semibold mr-1">{currentCode}</span>
+                  <span className="text-muted-foreground">{displayDescription || '—'}</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground italic">Selecionar...</span>
+              )}
+            </span>
+            <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-50" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[360px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar por código ou descrição..." className="h-8 text-xs" />
+            <CommandList>
+              <CommandEmpty>
+                {options.length === 0
+                  ? 'Nenhum código carregado no período.'
+                  : 'Nenhuma opção encontrada.'}
+              </CommandEmpty>
+              <CommandGroup>
+                {options.map((option) => (
+                  <CommandItem
+                    key={option.code}
+                    value={`${option.code} ${option.description}`}
+                    onSelect={() => handleDraftChange(item.F130.uuid, field, option.code)}
+                    className="group text-xs"
+                  >
+                    <Check className={cn('mr-2 h-3.5 w-3.5 shrink-0', currentCode === option.code ? 'opacity-100' : 'opacity-0')} />
+                    <span className="font-mono font-semibold mr-2 shrink-0">{option.code}</span>
+                    <span className="truncate text-muted-foreground group-data-[selected=true]:text-accent-foreground">{option.description || '—'}</span>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
   const renderEditableCell = (
     item: F130Item, field: EditableF130Field, className: string,
     options?: { isCurrency?: boolean; isPercentage?: boolean },
@@ -280,7 +461,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
               </div>
             </div>
             <div className="overflow-auto">
-              <Table>
+              <Table containerRef={scrollRef}>
                 <TableHeader>
                   <TableRow className="border-b-0">
                     {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
@@ -299,18 +480,18 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
                         />
                       </TableHead>
                     )}
-                    <TableHead className="text-[11px] min-w-[200px] whitespace-normal break-words">Bem Imobilizado</TableHead>
-                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words">Utilização</TableHead>
-                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words">Nat. Créd.</TableHead>
-                    <TableHead className="text-[11px] min-w-[90px]">Mês Aquis.</TableHead>
+                    <TableHead className="text-[11px] min-w-[200px] whitespace-normal break-words"><span className="flex items-center gap-1">Bem Imobilizado<ColumnFilterDropdown columnKey="DESC_IDENT_BEM_IMOB" uniqueValues={cascadingUniqueValues['DESC_IDENT_BEM_IMOB'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DESC_IDENT_BEM_IMOB'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words"><span className="flex items-center gap-1">Utilização<ColumnFilterDropdown columnKey="DESC_IND_UTIL_BEM_IMOB" uniqueValues={cascadingUniqueValues['DESC_IND_UTIL_BEM_IMOB'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DESC_IND_UTIL_BEM_IMOB'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[140px] whitespace-normal break-words"><span className="flex items-center gap-1">Nat. Créd.<ColumnFilterDropdown columnKey="DESC_NAT_BC_CRED" uniqueValues={cascadingUniqueValues['DESC_NAT_BC_CRED'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['DESC_NAT_BC_CRED'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[90px]"><span className="flex items-center gap-1">Mês Aquis.<ColumnFilterDropdown columnKey="MES_OPER_AQUIS" uniqueValues={cascadingUniqueValues['MES_OPER_AQUIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['MES_OPER_AQUIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[120px]">VL Aquisição</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">CST PIS</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% PIS</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST PIS<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% PIS<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL PIS</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20">CST COF</TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20">% COF</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">CST COF<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">% COF<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                     <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">VL COF</TableHead>
-                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20">Conta</TableHead>
+                    <TableHead className="text-[11px] min-w-[120px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
                      <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -324,9 +505,9 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
                             <Checkbox checked={selection.selectedIds.has(item.F130.uuid)} onCheckedChange={() => selection.toggle(item.F130.uuid)} />
                           </TableCell>
                         )}
-                        <TableCell className="text-xs py-1.5 max-w-[200px] whitespace-normal break-words leading-5">{item.DESC_IDENT_BEM_IMOB}</TableCell>
-                        <TableCell className="text-xs py-1.5 max-w-[140px] whitespace-normal break-words leading-5">{item.DESC_IND_UTIL_BEM_IMOB}</TableCell>
-                        <TableCell className="text-xs py-1.5 max-w-[220px] whitespace-normal break-words leading-5">{item.DESC_NAT_BC_CRED}</TableCell>
+                        <TableCell className="text-xs py-1.5 max-w-[200px] whitespace-normal break-words leading-5">{renderCodeCell(item, 'IDENT_BEM_IMOB')}</TableCell>
+                        <TableCell className="text-xs py-1.5 max-w-[140px] whitespace-normal break-words leading-5">{renderCodeCell(item, 'IND_UTIL_BEM_IMOB')}</TableCell>
+                        <TableCell className="text-xs py-1.5 max-w-[220px] whitespace-normal break-words leading-5">{renderCodeCell(item, 'NAT_BC_CRED')}</TableCell>
                         <TableCell className="text-xs py-1.5 font-mono">{item.F130.MES_OPER_AQUIS}</TableCell>
                         <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums">{renderEditableCell(item, 'VL_OPER_AQUIS', 'h-8 text-xs text-right font-mono', { isCurrency: true })}</TableCell>
                         <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">{renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}</TableCell>
@@ -348,6 +529,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={scrollRef} />
             <div className="px-4 pb-3">
               <TablePagination currentPage={page} totalPages={totalPages} totalItems={filtered.length} onPageChange={setPage} />
             </div>
