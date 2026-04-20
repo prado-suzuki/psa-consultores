@@ -515,14 +515,10 @@ const ConsultaEFDICMS = () => {
       title="Consulta EFD ICMS" 
       subtitle="Consulta de EFD ICMS/IPI"
     >
-      <div className="mb-6">
-        <DevPageHeader
-          title="Consulta de EFD ICMS"
-          subtitle="A Consulta de EFD ICMS centraliza a busca e o download das **Escriturações Fiscais Digitais do ICMS e IPI** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
-          sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/"
-          sopLabel="Manual de Uso"
-        />
-      </div>
+      <DevPageHeader
+        description="A Consulta de EFD ICMS centraliza a busca e o download das **Escriturações Fiscais Digitais do ICMS e IPI** da base de dados. Utilize os filtros abaixo para consultar arquivos específicos ou analisar períodos inteiros, permitindo a análise detalhada de blocos e registros diretamente em tela, o download dos arquivos originais em lote (.zip) ou a exportação em formato Excel (.xlsx)."
+        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/"
+      />
 
       {/* Card de Filtros de Busca */}
       <Card className="mb-6 shadow-sm">
