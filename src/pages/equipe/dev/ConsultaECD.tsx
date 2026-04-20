@@ -540,6 +540,7 @@ const ConsultaECD = () => {
       {arquivoParaExportar && (
         <EFDExportDialog arquivo={arquivoParaExportar} blocosDisponiveis={blocosDisponiveis} tipo="ecd" profileType="efd_ecd" externalOpen={exportDialogOpen} onExternalOpenChange={setExportDialogOpen} hideTrigger />
       )}
+      </TooltipProvider>
     </DevLayout>
   );
 };
