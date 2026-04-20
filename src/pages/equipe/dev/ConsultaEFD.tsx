@@ -221,10 +221,13 @@ const ConsultaEFD = () => {
 
   // Handler para buscar arquivos
   const handleSearch = () => {
-    if (!selectedContribuinte) {
+    const missing: string[] = [];
+    if (!selectedCliente) missing.push("Cliente");
+    if (!selectedContribuinte) missing.push("Contribuinte");
+    if (missing.length > 0) {
       toast({
-        title: "Selecione um contribuinte",
-        description: "É necessário selecionar um contribuinte para buscar os arquivos.",
+        title: "Preenchimento obrigatório",
+        description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
         variant: "destructive",
       });
       return;
@@ -420,7 +423,7 @@ const ConsultaEFD = () => {
             {/* Contribuinte */}
             <div className="md:col-span-5">
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Contribuinte
+                Contribuinte <RequiredMark />
               </label>
               <Select 
                 value={selectedContribuinte} 

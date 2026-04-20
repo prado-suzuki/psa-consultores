@@ -177,6 +177,19 @@ const ControleBalancetes = () => {
 
   const handleSearch = useCallback(async (overrideContribuinteId?: string) => {
     const idToUse = overrideContribuinteId || contribuinteId;
+    if (!overrideContribuinteId) {
+      const missing: string[] = [];
+      if (!clienteId) missing.push("Cliente");
+      if (!contribuinteId) missing.push("Contribuinte");
+      if (missing.length > 0) {
+        toast({
+          title: 'Preenchimento obrigatório',
+          description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
     if (!idToUse) {
       toast({ title: 'Selecione um contribuinte', description: 'O contribuinte é obrigatório para buscar balancetes.', variant: 'destructive' });
       return;
@@ -302,7 +315,7 @@ const ControleBalancetes = () => {
 
             {/* Contribuinte */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Contribuinte</Label>
+              <Label className="text-sm font-medium text-slate-600">Contribuinte <RequiredMark /></Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId}>
                 <SelectTrigger className="h-11 rounded-lg border-slate-200">
                   <SelectValue placeholder="Selecione o contribuinte" />
