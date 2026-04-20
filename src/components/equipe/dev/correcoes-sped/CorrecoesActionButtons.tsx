@@ -14,7 +14,7 @@ export interface CorrecoesActionsProps {
   idArquivos: string[];
 }
 
-interface CorrecoesActionButtonsProps extends CorrecoesActionsProps {
+interface CorrecoesActionButtonsProps extends Omit<CorrecoesActionsProps, 'idArquivos'> {
   registroTipo: string;
   canExport: boolean;
 }
