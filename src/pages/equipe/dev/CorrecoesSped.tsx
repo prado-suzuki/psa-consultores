@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Send, Loader2, Trash2, Info, ChevronsUpDown, Download } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Info, ChevronsUpDown } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,7 +39,7 @@ const NAT_BC_CRED_OPTIONS = [
 ] as const;
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { NcmRegrasModal } from '@/components/equipe/dev/pis-cofins/NcmRegrasModal';
-import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes, useExportarCorrecoes } from '@/hooks/useCorrecoesSped';
+import { useCorrecoesC170, useCorrecoesA170, useCorrecoesD100, useCorrecoesF100, useCorrecoesF120, useCorrecoesF130, useEnviarCorrecoes, useExportarCorrecoes, usePendingCorrecoesCount } from '@/hooks/useCorrecoesSped';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { FlatItemEfd } from '@/types/correcoesSped';
@@ -98,6 +98,7 @@ const CorrecoesSped = () => {
 
   const { enviar: enviarCorrecoes, isSending } = useEnviarCorrecoes();
   const { exportar: exportarCorrecoes, isExporting } = useExportarCorrecoes();
+  const { data: pendingCount = 0 } = usePendingCorrecoesCount(contribuinteId, activeTab.toUpperCase());
 
   const getIdArquivos = (): string[] => {
     let ids: string[] = [];
