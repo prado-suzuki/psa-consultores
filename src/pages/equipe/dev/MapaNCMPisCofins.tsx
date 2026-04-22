@@ -232,204 +232,219 @@ const MapaNCMPisCofins = () => {
 
   return (
     <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM e segmento do negócio">
-      <DevPageHeader
-        description="O **Mapa NCM** centraliza as **regras fiscais de PIS/COFINS** por NCM e segmento de negócio. Use os filtros abaixo para localizar regras específicas, criar novas regras, editar tratamentos tributários (CST, base legal, permissão de crédito) e manter a base atualizada para uso nos cálculos de apuração e correções SPED."
-        manualUrl="#"
-      />
+      <TooltipProvider delayDuration={200}>
+        <DevPageHeader
+          description="O **Mapa NCM** centraliza as **regras fiscais de PIS/COFINS** por NCM e segmento de negócio. Use os filtros abaixo para localizar regras específicas, criar novas regras, editar tratamentos tributários (CST, base legal, permissão de crédito) e manter a base atualizada para uso nos cálculos de apuração e correções SPED."
+          manualUrl="#"
+        />
 
-      {/* Filters Card */}
-      <Card className="mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg text-primary">
-            <Filter className="h-5 w-5 text-teal-600" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Buscar */}
-            <div className="col-span-12 md:col-span-6">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Buscar
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="NCM, descrição CST, base legal ou setor..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="pl-9 h-11 bg-white dark:bg-slate-800"
-                />
+        {/* Filters Card */}
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg text-primary">
+              <Filter className="h-5 w-5 text-teal-600" />
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-12 gap-6">
+              {/* Buscar */}
+              <div className="col-span-12 md:col-span-6">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Buscar
+                  <FieldTooltip text={TOOLTIPS.buscar} />
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="NCM, descrição CST, base legal ou setor..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-9 h-11 bg-white dark:bg-slate-800"
+                  />
+                </div>
+              </div>
+
+              {/* Setor */}
+              <div className="col-span-12 md:col-span-3">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Setor
+                  <FieldTooltip text={TOOLTIPS.setor} />
+                </label>
+                <Select value={setorFilter} onValueChange={setSetorFilter}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="all">Todos</SelectItem>
+                    {setores.map(s => (
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Permite Crédito */}
+              <div className="col-span-12 md:col-span-3">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Permite Crédito
+                  <FieldTooltip text={TOOLTIPS.credito} />
+                </label>
+                <Select value={creditFilter} onValueChange={(v) => setCreditFilter(v as 'all' | 'S' | 'N')}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Todos" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white z-50">
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="S">Sim</SelectItem>
+                    <SelectItem value="N">Não</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            {/* Setor */}
-            <div className="col-span-12 md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Setor
-              </label>
-              <Select value={setorFilter} onValueChange={setSetorFilter}>
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="bg-white z-50">
-                  <SelectItem value="all">Todos</SelectItem>
-                  {setores.map(s => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <Separator />
+
+            <div className="flex items-center justify-end gap-2">
+              {hasActiveFilters && (
+                <ButtonTooltip text={TOOLTIPS.limpar}>
+                  <Button variant="ghost" onClick={handleClearFilters} className="text-slate-600">
+                    <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
+                  </Button>
+                </ButtonTooltip>
+              )}
+              <ButtonTooltip text={TOOLTIPS.novaRegra}>
+                <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
+                  <Plus className="h-4 w-4 mr-2" /> Nova Regra
+                </Button>
+              </ButtonTooltip>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Permite Crédito */}
-            <div className="col-span-12 md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Permite Crédito
-              </label>
-              <Select value={creditFilter} onValueChange={(v) => setCreditFilter(v as 'all' | 'S' | 'N')}>
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="bg-white z-50">
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="S">Sim</SelectItem>
-                  <SelectItem value="N">Não</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {/* Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
+                    <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <ColumnTooltip label="Setor" text={TOOLTIPS.colSetor} />
+                    <ColumnFilterDropdown columnKey="setor" uniqueValues={uniqueValues.setor ?? []} activeSort={sortConfig} activeFilter={columnFilters.setor ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <ColumnTooltip label="CST PIS/COFINS" text={TOOLTIPS.colCst} />
+                    <ColumnFilterDropdown columnKey="cst" uniqueValues={uniqueValues.cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <ColumnTooltip label="Descrição CST" text={TOOLTIPS.colDescCst} />
+                    <ColumnFilterDropdown columnKey="desc_cst" uniqueValues={uniqueValues.desc_cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.desc_cst ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                    <ColumnTooltip label="Base Legal" text={TOOLTIPS.colBaseLegal} />
+                    <ColumnFilterDropdown columnKey="base_legal" uniqueValues={uniqueValues.base_legal ?? []} activeSort={sortConfig} activeFilter={columnFilters.base_legal ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">
+                    <ColumnTooltip label="Crédito" text={TOOLTIPS.colCredito} />
+                    <ColumnFilterDropdown columnKey="credito" uniqueValues={uniqueValues.credito ?? []} activeSort={sortConfig} activeFilter={columnFilters.credito ?? null} onSort={handleSort} onFilter={handleFilter} />
+                  </TableHead>
+                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">
+                    <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                    </TableCell>
+                  </TableRow>
+                ) : filtered.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                      <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
+                    </TableCell>
+                  </TableRow>
+                ) : paged.map(regra => (
+                  <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
+                    <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
+                    <TableCell className="text-xs text-slate-600">
+                      {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
+                    <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
+                    <TableCell className="text-xs text-slate-600 max-w-[350px]">
+                      <span className="line-clamp-2">{regra.base_legal || '—'}</span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {regra.permite_credito === 'S' ? (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <ButtonTooltip text={TOOLTIPS.visualizar}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openView(regra); }}>
+                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                          </Button>
+                        </ButtonTooltip>
+                        <ButtonTooltip text={TOOLTIPS.excluir}>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteId(regra.id); }}>
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </ButtonTooltip>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
-
-          <Separator />
-
-          <div className="flex items-center justify-end gap-2">
-            {hasActiveFilters && (
-              <Button variant="ghost" onClick={handleClearFilters} className="text-slate-600">
-                <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
-              </Button>
-            )}
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
-              <Plus className="h-4 w-4 mr-2" /> Nova Regra
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  NCM
-                  <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  Setor
-                  <ColumnFilterDropdown columnKey="setor" uniqueValues={uniqueValues.setor ?? []} activeSort={sortConfig} activeFilter={columnFilters.setor ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  CST PIS/COFINS
-                  <ColumnFilterDropdown columnKey="cst" uniqueValues={uniqueValues.cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.cst ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  Descrição CST
-                  <ColumnFilterDropdown columnKey="desc_cst" uniqueValues={uniqueValues.desc_cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.desc_cst ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
-                  Base Legal
-                  <ColumnFilterDropdown columnKey="base_legal" uniqueValues={uniqueValues.base_legal ?? []} activeSort={sortConfig} activeFilter={columnFilters.base_legal ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">
-                  Crédito
-                  <ColumnFilterDropdown columnKey="credito" uniqueValues={uniqueValues.credito ?? []} activeSort={sortConfig} activeFilter={columnFilters.credito ?? null} onSort={handleSort} onFilter={handleFilter} />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
-                     <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
-                  </TableCell>
-                </TableRow>
-              ) : filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
-                    <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
-                    <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
-                  </TableCell>
-                </TableRow>
-              ) : paged.map(regra => (
-                <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
-                  <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
-                  <TableCell className="text-xs text-slate-600">
-                    {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
-                  </TableCell>
-                  <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
-                  <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
-                  <TableCell className="text-xs text-slate-600 max-w-[350px]">
-                    <span className="line-clamp-2">{regra.base_legal || '—'}</span>
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {regra.permite_credito === 'S' ? (
-                      <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
-                    ) : (
-                      <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openView(regra); }}>
-                        <Eye className="h-3.5 w-3.5 text-slate-500" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={(e) => { e.stopPropagation(); setDeleteId(regra.id); }}>
-                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            onPageChange={setCurrentPage}
+          />
         </div>
-        <TablePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={filtered.length}
-          onPageChange={setCurrentPage}
+
+        {/* Detail/Edit Modal */}
+        <RegraFormSheet
+          open={modalMode !== null}
+          onOpenChange={o => { if (!o) { setModalMode(null); setSelectedRegra(null); } }}
+          regra={selectedRegra}
+          mode={modalMode ?? 'view'}
+          onModeChange={setModalMode}
+          onSubmit={handleSubmit}
+          isSubmitting={createRegra.isPending || updateRegra.isPending}
+          setores={setores}
+          setorMap={setorMap}
         />
-      </div>
 
-      {/* Detail/Edit Modal */}
-      <RegraFormSheet
-        open={modalMode !== null}
-        onOpenChange={o => { if (!o) { setModalMode(null); setSelectedRegra(null); } }}
-        regra={selectedRegra}
-        mode={modalMode ?? 'view'}
-        onModeChange={setModalMode}
-        onSubmit={handleSubmit}
-        isSubmitting={createRegra.isPending || updateRegra.isPending}
-        setores={setores}
-        setorMap={setorMap}
-      />
-
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir regra</AlertDialogTitle>
-            <AlertDialogDescription>Tem certeza que deseja excluir esta regra? Esta ação não pode ser desfeita.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Delete Confirmation */}
+        <AlertDialog open={!!deleteId} onOpenChange={o => { if (!o) setDeleteId(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir regra</AlertDialogTitle>
+              <AlertDialogDescription>Tem certeza que deseja excluir esta regra? Esta ação não pode ser desfeita.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </TooltipProvider>
     </DevLayout>
   );
 };
