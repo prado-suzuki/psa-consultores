@@ -37,7 +37,7 @@ const colorPresets = [
 ];
 
 // ─── Data hooks ─────────────────────────────────────────────────────────
-function useProfiles(role: 'admin' | 'client' | 'lider' | 'team_member') {
+function useProfiles(role: 'admin' | 'client' | 'lider' | 'sublider' | 'team_member') {
   return useQuery({
     queryKey: ['profiles-by-role', role],
     queryFn: async () => {
@@ -87,8 +87,9 @@ export default function EstruturaManager() {
   const mutations = useEstruturaMutations();
 
   const { data: liderProfiles = [] } = useProfiles('lider');
+  const { data: subliderProfiles = [] } = useProfiles('sublider');
   const { data: memberProfiles = [] } = useProfiles('team_member');
-  const allProfiles = [...liderProfiles, ...memberProfiles].filter(
+  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles].filter(
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
