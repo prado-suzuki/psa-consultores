@@ -15,17 +15,34 @@ export function useClienteClusters(userId: string | undefined) {
   return useQuery({
     queryKey: ['cliente-clusters', userId],
     queryFn: async () => {
-      // 1. Get cliente_id from representante
-      const { data: repData } = await supabase
+      // 1. Get all id_cliente from representante for this user
+      const { data: repRows } = await supabase
         .from('representante' as any)
         .select('id_cliente')
         .eq('user_id', userId!)
+        .eq('excluido', false);
+
+      const candidateIds = ((repRows || []) as any[])
+        .map((r) => r.id_cliente)
+        .filter(Boolean);
+
+      if (candidateIds.length === 0) {
+        return { clusters: [] as ClienteCluster[], clienteId: null };
+      }
+
+      // 2. Resolve to a single cliente in current ambiente
+      const { data: clienteRow } = await supabase
+        .from('cliente')
+        .select('id')
+        .in('id', candidateIds)
+        .eq('ambiente', currentAmbiente)
         .eq('excluido', false)
+        .limit(1)
         .maybeSingle();
 
-      if (!repData) return { clusters: [] as ClienteCluster[], clienteId: null };
+      if (!clienteRow) return { clusters: [] as ClienteCluster[], clienteId: null };
 
-      const clienteId = (repData as any).id_cliente as string;
+      const clienteId = (clienteRow as any).id as string;
 
       // 2. Get cluster IDs for this client
       const { data: clusterLinks } = await supabase
