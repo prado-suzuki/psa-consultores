@@ -1,100 +1,56 @@
 
 
-## Plano: Tooltips em TODAS as colunas/cabeçalhos das tabelas — Apuração PIS/COFINS
+## Plano: Corrigir corte dos tooltips nos cabeçalhos das tabelas
 
-Aplicar o padrão exato do `MapaNCMPisCofins.tsx` (`<ColumnTooltip label="..." text="..." />` com sublinhado pontilhado) em **todos os cabeçalhos** das tabelas da página, **sem quebrar os filtros de coluna nem a expansão de anos**, mantendo todos os tooltips de seção (`SectionTitle` / `titleTooltip`) já implementados.
+### Diagnóstico
 
-### Estratégia: estender 2 componentes compartilhados de forma backward-compatible
+O componente `ColumnTooltip` usa o `TooltipContent` de `@/components/ui/tooltip`, que **não envolve o conteúdo em `TooltipPrimitive.Portal`**. Sem o Portal, o tooltip é renderizado inline dentro do `<th>`, e fica preso ao stacking/overflow context da tabela (`overflow-x-auto` no container e `sticky` nas colunas vizinhas), sendo cortado pelas próximas colunas.
 
-Para evitar reescrever cada `<TableHead>` (e quebrar `ColumnFilterDropdown` / botões de expandir ano que vivem dentro deles), vamos passar um **mapa opcional** `columnTooltips` para os headers compartilhados, que renderizam o `ColumnTooltip` automaticamente nas labels.
+A imagem confirma: o card do tooltip da coluna "Conta" aparece truncado pela coluna "Descrição" à direita.
 
-#### 1. `DynamicTableHeader.tsx` — adicionar prop opcional
+### Solução: portalar o `TooltipContent`
 
-Nova prop `columnTooltips?: Record<string, string>` (chaves: `<stickyLabel>` para colunas fixas, id do ano/mês para colunas dinâmicas, `"__total__"` para a coluna Total).
+Editar `src/components/equipe/dev/pis-cofins/ColumnTooltip.tsx` para envolver o `TooltipContent` em `TooltipPrimitive.Portal`, garantindo que o card do tooltip seja anexado ao `<body>` e flutue acima de qualquer container com `overflow` ou `z-index` concorrente.
 
-- Se a prop estiver presente E houver tooltip para aquela chave, envolver a label com `ColumnTooltip` (mesmo helper do MapaNCM, copiado para dentro do arquivo ou movido para `pis-cofins/columnTooltipUtils.tsx`).
-- Se ausente, renderiza o texto simples atual → **zero impacto em outros usos**.
-- Filtros (`renderHeaderExtra`) e botões de expandir/colapsar ano permanecem renderizados ao lado, intactos.
+```tsx
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-#### 2. `ApuracaoDataTable.tsx` — adicionar prop opcional
-
-Nova prop `columnTooltips?: Record<string, string>` repassada ao `DynamicTableHeader`. Para as colunas sticky internas (CST, Conta, Descrição, Bloco), aplicar `ColumnTooltip` na própria renderização.
-
-#### 3. `BalanceteTreeTable.tsx` — mesmo padrão
-
-Adicionar `columnTooltips?: Record<string, string>` opcional e aplicar `ColumnTooltip` nas colunas fixas (Conta, Descrição, Tipo, valores mensais usam o mesmo header).
-
-### Tooltips a aplicar (catálogo completo)
-
-Centralizar em `COLUMN_TOOLTIPS` no `ApuracaoPisCofins.tsx`:
-
-```ts
-const COLUMN_TOOLTIPS = {
-  // Colunas fixas (sticky) das tabelas grandes (Resumo, Débitos, Créditos, etc.)
-  CST: "Código de Situação Tributária do PIS/COFINS aplicado ao item.",
-  Conta: "Código contábil da conta (do EFD ou Balancete) que originou o valor.",
-  "Descrição": "Descrição contábil da conta ou do item da apuração.",
-  Bloco: "Bloco do EFD Contribuições onde o registro foi extraído (A170, C170, F100 etc.).",
-  // Coluna Total (final de cada tabela com colunas mensais)
-  __total__: "Soma de todos os meses exibidos no período consultado.",
-  // Coluna de ano colapsado (chave = id do ano, ex.: "2024")
-  __year__: "Total do ano. Clique no '+' para expandir e ver os meses.",
-  // Coluna de mês expandido (chave = "YYYY-MM")
-  __month__: "Valor da competência (mês/ano) selecionada.",
-
-  // Tabelas inline — colunas sticky de uma única descrição
-  "Rateio das receitas": "Categoria de receita usada no cálculo do percentual de rateio.",
-
-  // BalanceteTreeTable — colunas fixas extras
-  Tipo: "Tipo da conta no balancete (Devedora 'D' ou Credora 'C').",
-} as const;
+export const ColumnTooltip = ({ label, text }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipPrimitive.Portal>
+      <TooltipContent
+        side="top"
+        sideOffset={6}
+        collisionPadding={12}
+        className="font-normal normal-case tracking-normal text-xs text-center max-w-[260px] z-[100]"
+      >
+        {text}
+      </TooltipContent>
+    </TooltipPrimitive.Portal>
+  </Tooltip>
+);
 ```
 
-E para os cabeçalhos dinâmicos, gerar o mapa em runtime na própria página:
+Ajustes adicionais aplicados:
 
-```ts
-const buildColumnTooltips = (columnsData) => {
-  const map: Record<string,string> = {
-    CST: COLUMN_TOOLTIPS.CST,
-    Conta: COLUMN_TOOLTIPS.Conta,
-    "Descrição": COLUMN_TOOLTIPS["Descrição"],
-    Bloco: COLUMN_TOOLTIPS.Bloco,
-    "Rateio das receitas": COLUMN_TOOLTIPS["Rateio das receitas"],
-    Tipo: COLUMN_TOOLTIPS.Tipo,
-    __total__: COLUMN_TOOLTIPS.__total__,
-  };
-  // anos
-  columnsData.yearsMap.forEach((months, year) => {
-    map[year] = COLUMN_TOOLTIPS.__year__;
-    months.forEach(m => { map[m] = COLUMN_TOOLTIPS.__month__; });
-  });
-  return map;
-};
-```
+- **`TooltipPrimitive.Portal`** → renderiza o card no `<body>`, escapando do `overflow-x-auto` da tabela e dos `sticky`/`z-40` das colunas vizinhas.
+- **`collisionPadding={12}`** → mantém o card dentro do viewport quando o trigger está perto da borda.
+- **`sideOffset={6}`** → pequeno respiro entre o cabeçalho e o card.
+- **`z-[100]`** → fica acima do `<thead sticky z-30>` e dos `<th sticky z-40>` da própria tabela.
 
-Passar `columnTooltips={buildColumnTooltips(columnsData)}` em **todos** os `<ApuracaoDataTable />`, `<DynamicTableHeader />` (das tabelas inline) e `<BalanceteTreeTable />`.
+### Por que isso resolve sem efeitos colaterais
 
-### Por que isso NÃO quebra os filtros
-
-- `ColumnTooltip` envolve apenas o **texto da label** (`<span>` com `<TooltipTrigger>`), não substitui o `<TableHead>`.
-- `ColumnFilterDropdown` é renderizado lado a lado via `renderHeaderExtra` (já existente) e continua funcionando exatamente como hoje no `ApuracaoDataTable`.
-- Botões `+`/`-` de expandir ano permanecem dentro da `<div className="flex items-center justify-end gap-2">` no `DynamicTableHeader`, apenas a label "2024" passa a ter sublinhado pontilhado + tooltip.
-- A prop é opcional → outras páginas que consomem esses componentes (ConsultaEFD, IcmsSaidas etc.) continuam funcionando sem mudança.
-
-### O que NÃO muda
-
-- Tooltips de filtros (`FieldTooltip` em Cliente, Contribuinte, Datas, Período Fechado) — já implementados, mantidos.
-- Tooltip de "Tipo de análise" (Cliente/Prado) — mantido como está.
-- `SectionTitle` e `titleTooltip` em todas as seções — mantidos.
-- Visão Geral (Alert teal) — mantida.
-- Lógica de cálculo, queries, filtros, ordenação, expansão de anos — intactas.
+- O Portal é o padrão recomendado pelo Radix justamente para tooltips dentro de containers com overflow/scroll — é exatamente o caso aqui.
+- Não muda nenhuma API: `ColumnTooltip` e `renderColumnLabel` continuam com a mesma assinatura, então `DynamicTableHeader`, `ApuracaoDataTable` e `BalanceteTreeTable` não precisam de alteração.
+- Funciona em qualquer página que já consome o helper (Apuração PIS/COFINS, e potencialmente outras que venham a usá-lo).
 
 ### Arquivos alterados
 
-1. `src/components/equipe/dev/pis-cofins/DynamicTableHeader.tsx` — adicionar prop opcional `columnTooltips` + helper `ColumnTooltip` interno.
-2. `src/components/equipe/dev/pis-cofins/ApuracaoDataTable.tsx` — adicionar prop opcional `columnTooltips` (repassa ao header + aplica nas sticky internas).
-3. `src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx` — adicionar prop opcional `columnTooltips` e aplicar nas colunas fixas.
-4. `src/pages/equipe/dev/ApuracaoPisCofins.tsx` — definir `COLUMN_TOOLTIPS`, função `buildColumnTooltips` e passar a prop em todos os `<ApuracaoDataTable />`, `<BalanceteTreeTable />` e `<DynamicTableHeader />` inline.
+- `src/components/equipe/dev/pis-cofins/ColumnTooltip.tsx` — único arquivo.
 
-Sem mudanças de banco, hooks, rotas ou lógica de filtros/ordenação.
+Sem mudanças de banco, hooks, rotas ou de qualquer componente compartilhado.
 
