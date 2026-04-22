@@ -118,16 +118,30 @@ export function useCreateTicketCliente() {
 
   return useMutation({
     mutationFn: async (params: CreateTicketClienteParams) => {
-      // Resolve cliente_id from representante
+      // Resolve cliente_id from representante (filtered by current ambiente)
       let clienteId: string | null = null;
-      const { data: repData } = await supabase
+      const { data: repRows } = await supabase
         .from('representante' as any)
         .select('id_cliente')
         .eq('user_id', params.userId)
-        .maybeSingle();
+        .eq('excluido', false);
 
-      if (repData) {
-        clienteId = (repData as any).id_cliente;
+      const candidateIds = ((repRows || []) as any[])
+        .map((r) => r.id_cliente)
+        .filter(Boolean);
+
+      if (candidateIds.length > 0) {
+        const { data: clienteRow } = await supabase
+          .from('cliente')
+          .select('id')
+          .in('id', candidateIds)
+          .eq('ambiente', currentAmbiente)
+          .eq('excluido', false)
+          .limit(1)
+          .maybeSingle();
+        if (clienteRow) {
+          clienteId = (clienteRow as any).id;
+        }
       }
 
       const insertPayload: any = {

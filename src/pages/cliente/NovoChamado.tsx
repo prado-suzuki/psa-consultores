@@ -110,10 +110,11 @@ export default function NovoChamado() {
       });
 
       navigate('/cliente/chamados');
-    } catch {
+    } catch (error: any) {
+      console.error('Erro ao criar chamado:', error);
       toast({
         title: 'Erro ao criar chamado',
-        description: 'Tente novamente mais tarde.',
+        description: error?.message || 'Tente novamente mais tarde.',
         variant: 'destructive',
       });
     }
