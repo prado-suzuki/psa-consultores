@@ -130,7 +130,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!error && data) {
         const roles = data.map(r => r.role);
         setIsAdmin(roles.includes('admin'));
-        setIsTeamMember(roles.includes('team_member'));
+        // isTeamMember é transitivo: admin/lider/sublider também são membros internos.
+        setIsTeamMember(
+          roles.includes('team_member') ||
+          roles.includes('sublider') ||
+          roles.includes('lider') ||
+          roles.includes('admin')
+        );
         setIsLider(roles.includes('lider'));
         setIsSublider(roles.includes('sublider'));
         return;
