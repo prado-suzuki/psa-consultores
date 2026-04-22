@@ -780,60 +780,36 @@ const ConsultaEFDICMS = () => {
                 )}
                 
                 {/* Exportar Excel */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExportSelecionados}
-                        disabled={selectedArquivos.size === 0}
-                        className="gap-2"
-                      >
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Exportar excel
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {selectedArquivos.size === 0 
-                          ? "Selecione arquivos para exportar" 
-                          : `Exportar ${selectedArquivos.size} arquivo(s) para Excel`
-                        }
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ButtonTooltip text={TOOLTIPS.exportarLote}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportSelecionados}
+                    disabled={selectedArquivos.size === 0}
+                    className="gap-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Exportar excel
+                  </Button>
+                </ButtonTooltip>
 
                 {/* Baixar txt */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDownloadSelecionados}
-                        disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
-                        className="gap-2"
-                      >
-                        {(downloadingTxt !== null || downloadingAll) ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                        Baixar txt
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {selectedArquivos.size === 0 
-                          ? "Selecione arquivos para baixar" 
-                          : `Baixar ${selectedArquivos.size} arquivo(s) TXT`
-                        }
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ButtonTooltip text={TOOLTIPS.baixarLote}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadSelecionados}
+                    disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
+                    className="gap-2"
+                  >
+                    {(downloadingTxt !== null || downloadingAll) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    Baixar txt
+                  </Button>
+                </ButtonTooltip>
               </div>
             </div>
           </div>
