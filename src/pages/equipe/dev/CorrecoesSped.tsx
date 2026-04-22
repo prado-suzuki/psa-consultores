@@ -19,6 +19,7 @@ import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Info, Chevro
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
+import { RequiredMark } from '@/components/ui/required-mark';
 import { cn } from '@/lib/utils';
 
 const NAT_BC_CRED_OPTIONS = [
@@ -181,8 +182,9 @@ const CorrecoesSped = () => {
           <CardContent className="p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">
-                  <FieldTooltip text={SPED_TOOLTIPS.cliente}>Cliente</FieldTooltip>
+                <Label className="text-xs flex items-center gap-1">
+                  Cliente <RequiredMark />
+                  <FieldTooltip text={SPED_TOOLTIPS.cliente} />
                 </Label>
                 <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
                   <SelectTrigger className="h-8 text-sm">
@@ -196,8 +198,9 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">
-                  <FieldTooltip text={SPED_TOOLTIPS.contribuinte}>Contribuinte</FieldTooltip>
+                <Label className="text-xs flex items-center gap-1">
+                  Contribuinte <RequiredMark />
+                  <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
                 </Label>
                 <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
                   <SelectTrigger className="h-8 text-sm">
@@ -211,8 +214,9 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">
-                  <FieldTooltip text={SPED_TOOLTIPS.dataInicio}>Data Início</FieldTooltip>
+                <Label className="text-xs flex items-center gap-1">
+                  Data Início <RequiredMark />
+                  <FieldTooltip text={SPED_TOOLTIPS.dataInicio} />
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -227,8 +231,9 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">
-                  <FieldTooltip text={SPED_TOOLTIPS.dataFim}>Data Fim</FieldTooltip>
+                <Label className="text-xs flex items-center gap-1">
+                  Data Fim <RequiredMark />
+                  <FieldTooltip text={SPED_TOOLTIPS.dataFim} />
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -243,10 +248,10 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div className="space-y-1">
-                <span className="flex items-center gap-1">
-                  <Label className="text-xs">NCM</Label>
-                  <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Filtra os itens da tabela cruzando a informação com o NCM vinculado ao produto no Registro 0200 do SPED.</TooltipContent></Tooltip>
-                </span>
+                <Label className="text-xs flex items-center gap-1">
+                  NCM
+                  <FieldTooltip text={SPED_TOOLTIPS.ncm} />
+                </Label>
                 <Select value={ncmFilter} onValueChange={(v) => setNcmFilter(v as NcmFilter)}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue />
