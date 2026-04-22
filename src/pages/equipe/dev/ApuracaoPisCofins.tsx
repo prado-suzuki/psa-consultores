@@ -664,6 +664,7 @@ const ApuracaoPisCofins = () => {
                       />
                       <ApuracaoDataTable
                         title={`Base da Apuração - ${tipoApuracao === "EFD" ? "EFD Contribuições" : "Balancete"}`}
+                        titleTooltip={SECTION_TOOLTIPS.baseApuracao}
                         data={filteredResumoData}
                         showCst
                         showBloco
