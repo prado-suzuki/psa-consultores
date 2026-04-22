@@ -68,12 +68,42 @@ const FieldTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ColumnTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+        {children}
+      </span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="max-w-[220px] font-normal normal-case tracking-normal text-xs text-center">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>{children}</TooltipTrigger>
+    <TooltipContent side="top" className="max-w-[220px] font-normal normal-case tracking-normal text-xs text-center">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
 // --- Tooltip texts ---
 const TOOLTIPS = {
   cliente: "Filtra os cálculos de DIFAL por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
+  colStatus: "Status atual da classificação tributária do item.",
+  colProduto: "Descrição do produto e código interno na nota fiscal.",
+  colNcm: "Nomenclatura Comum do Mercosul (NCM) do produto.",
+  colCfop: "Código Fiscal de Operações e Prestações (CFOP).",
+  colTributacao: "Situação Tributária (CST), Alíquota e Redução de Base de Cálculo originais.",
+  colMvaSt: "Regra de DIFAL/ST validada, incluindo alíquota e redução aplicáveis.",
+  salvarAlteracoes: "Sincroniza as decisões validadas na sessão com o banco de dados principal.",
+  exportarExcel: "Gera a planilha com todos os NCMs classificados no período.",
 } as const;
 
 // Nomes dos clientes permitidos para esta ferramenta (Barralcool e Coprodia)
@@ -1031,31 +1061,32 @@ const ProcessoDifal = () => {
           )}
 
           {/* Botão Salvar alterações */}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleSaveChanges}
-            disabled={pendingDecisionsCount === 0 || isSaving}
-            className="gap-2 bg-teal-600 hover:bg-teal-700"
-          >
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar alterações
-          </Button>
+          <ButtonTooltip text={TOOLTIPS.salvarAlteracoes}>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleSaveChanges}
+              disabled={pendingDecisionsCount === 0 || isSaving}
+              className="gap-2 bg-teal-600 hover:bg-teal-700"
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar alterações
+            </Button>
+          </ButtonTooltip>
 
           {/* Botão Exportar Excel */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExportExcel}
-            disabled={isExporting || pendingDecisionsCount > 0}
-            className="gap-2"
-            title={
-              pendingDecisionsCount > 0 ? "Salve as alterações antes de exportar" : "Exportar classificações para Excel"
-            }
-          >
-            {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {exportStatus === 'starting' ? "Iniciando..." : exportStatus === 'processing' ? "Processando..." : "Exportar Excel"}
-          </Button>
+          <ButtonTooltip text={TOOLTIPS.exportarExcel}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              disabled={isExporting || pendingDecisionsCount > 0}
+              className="gap-2"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+              {exportStatus === 'starting' ? "Iniciando..." : exportStatus === 'processing' ? "Processando..." : "Exportar Excel"}
+            </Button>
+          </ButtonTooltip>
         </div>
       )}
 
@@ -1090,12 +1121,12 @@ const ProcessoDifal = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
-                      <TableHead className="w-[100px]">Status</TableHead>
-                      <TableHead>Produto</TableHead>
-                      <TableHead className="w-[100px]">NCM</TableHead>
-                      <TableHead className="w-[80px]">CFOP</TableHead>
-                      <TableHead className="w-[150px]">Tributação</TableHead>
-                      <TableHead className="w-[120px]">MVA/ST</TableHead>
+                      <TableHead className="w-[100px]"><ColumnTooltip text={TOOLTIPS.colStatus}>Status</ColumnTooltip></TableHead>
+                      <TableHead><ColumnTooltip text={TOOLTIPS.colProduto}>Produto</ColumnTooltip></TableHead>
+                      <TableHead className="w-[100px]"><ColumnTooltip text={TOOLTIPS.colNcm}>NCM</ColumnTooltip></TableHead>
+                      <TableHead className="w-[80px]"><ColumnTooltip text={TOOLTIPS.colCfop}>CFOP</ColumnTooltip></TableHead>
+                      <TableHead className="w-[150px]"><ColumnTooltip text={TOOLTIPS.colTributacao}>Tributação</ColumnTooltip></TableHead>
+                      <TableHead className="w-[120px]"><ColumnTooltip text={TOOLTIPS.colMvaSt}>MVA/ST</ColumnTooltip></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
