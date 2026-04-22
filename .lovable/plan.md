@@ -1,10 +1,10 @@
 
 
-## Plano: Tooltips na tabela e ações do `ConsultaEFDICMS.tsx`
+## Plano: Tooltips na tabela e ações do `ConsultaECF.tsx`
 
-Arquivo único alterado: `src/pages/equipe/dev/ConsultaEFDICMS.tsx`. Filtros de busca (já tooltipados com `FieldTooltip`) **não serão tocados**.
+Arquivo único: `src/pages/equipe/dev/ConsultaECF.tsx`. Filtros (já com `FieldTooltip`) **não serão tocados**.
 
-### 1. Novos helpers (logo abaixo do `FieldTooltip`, ~linha 48)
+### 1. Novos helpers (logo após `FieldTooltip`, ~linha 47)
 
 ```tsx
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
@@ -30,66 +30,63 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 );
 ```
 
-### 2. Expansão da constante `TOOLTIPS` (preservando chaves atuais)
+### 2. Expansão de `TOOLTIPS` (linhas 50–55, preservar chaves atuais)
 
 ```tsx
 const TOOLTIPS = {
-  cliente: "Filtra as EFD ICMS por cliente ou grupo.",
+  cliente: "Filtra as ECF por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
   // novos
-  colArquivo: "Nome e ID do arquivo EFD ICMS processado.",
+  colArquivo: "Nome e ID do arquivo ECF processado.",
   colPeriodo: "Mês inicial e final da escrituração.",
   colTipo: "Status do arquivo (Original ou Retificadora).",
-  colIcms: "Total de ICMS a recolher apurado no período.",
-  colIcmsSt: "Total de ICMS ST a recolher apurado no período.",
+  colSituacao: "Indicador de situação especial (Fusão, Cisão, etc.).",
   colAcoes: "Opções de download, exportação Excel e análise em tela.",
   exportarLote: "Exportar arquivo(s) selecionado(s) para Excel.",
   baixarLote: "Download individual ou em lote (ZIP) dos arquivos selecionados.",
-  baixarTxt: "Download do arquivo EFD ICMS original (.txt).",
+  baixarTxt: "Download do arquivo ECF original (.txt).",
   analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
 } as const;
 ```
 
-### 3. Cabeçalho da tabela (`<thead>`, linhas 843–871)
+### 3. Cabeçalho da tabela (`<thead>`, linhas 482–491)
 
-Substituir o conteúdo textual de cada `<th>` por `<ColumnTooltip label="…" text={TOOLTIPS.col…} />`. As classes de cada `<th>` (padding, alinhamento, `text-right`/`text-center`, `w-56`) e a coluna do Checkbox (linha 845–851) permanecem intactas.
+Trocar o conteúdo textual de cada `<th>` por `<ColumnTooltip label="…" text={TOOLTIPS.col…} />`. Classes do `<th>` preservadas. Coluna do Checkbox (linha 484) intacta.
 
 | Coluna | Chave |
 |---|---|
 | Arquivo | `colArquivo` |
 | Período | `colPeriodo` |
 | Tipo | `colTipo` |
-| ICMS | `colIcms` |
-| ICMS ST | `colIcmsSt` |
+| Situação Especial | `colSituacao` |
 | Ações | `colAcoes` |
 
-### 4. Botões globais do header da tabela (linhas 750–804)
+### 4. Botões globais do header da tabela (linhas 440–460)
 
-- Remover ambos os blocos `<TooltipProvider>` aninhados (linhas 751–774 e 777–804) — provider global na linha 544 já cobre.
-- Envolver o `<Button>` "Exportar excel" em `<ButtonTooltip text={TOOLTIPS.exportarLote}>…</ButtonTooltip>`.
-- Envolver o `<Button>` "Baixar txt" em `<ButtonTooltip text={TOOLTIPS.baixarLote}>…</ButtonTooltip>`.
-- Comentários `{/* Exportar Excel */}` e `{/* Baixar txt */}` preservados.
-- Badge contadora (linhas 744–748) inalterada.
+- Remover ambos os `<TooltipProvider>` aninhados (linhas 440–449 e 450–460) — provider global na linha 366 já cobre.
+- Envolver `<Button>` "Exportar excel" em `<ButtonTooltip text={TOOLTIPS.exportarLote}>…</ButtonTooltip>`.
+- Envolver `<Button>` "Baixar txt" em `<ButtonTooltip text={TOOLTIPS.baixarLote}>…</ButtonTooltip>`.
+- Badge contadora (linha 439) inalterada.
 
-### 5. Botões de ação na linha (linhas 922–963)
+### 5. Botões de ação na linha (linhas 516–533)
 
-- Remover o `<TooltipProvider>` interno (linhas 923 e 962).
-- A `<div className="flex items-center justify-center gap-2">` permanece como wrapper.
-- Botão de download TXT: remover o `<Tooltip>/<TooltipTrigger asChild>/<TooltipContent>` (linhas 926–945) e envolver o `<Button>` em `<ButtonTooltip text={TOOLTIPS.baixarTxt}>…</ButtonTooltip>`.
-- `<EFDExportDialog>` (linhas 947–951) **não recebe tooltip** — componente próprio, fora do escopo.
-- Botão "Analisar" (linhas 953–960): envolver em `<ButtonTooltip text={TOOLTIPS.analisar}>…</ButtonTooltip>`.
+- Remover o `<TooltipProvider>` interno (linhas 517 e 532).
+- Manter a `<div className="flex items-center justify-center gap-2">` como wrapper.
+- Botão de download TXT: remover o `<Tooltip>/<TooltipTrigger asChild>/<TooltipContent>` (linhas 519–526) e envolver o `<Button>` em `<ButtonTooltip text={TOOLTIPS.baixarTxt}>…</ButtonTooltip>`.
+- `<EFDExportDialog>` (linha 527) **inalterado**.
+- Botão "Analisar" (linhas 528–530): envolver em `<ButtonTooltip text={TOOLTIPS.analisar}>…</ButtonTooltip>`.
 
 ### 6. Inalterado
 
-- `FieldTooltip` e tooltips dos filtros de busca.
-- `<TooltipProvider delayDuration={300}>` global na linha 544 (continua envolvendo toda a página).
-- Lógica de queries, handlers, formatadores, estados e seleção múltipla.
-- Imports (`Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger` já importados).
-- `EFDExportDialog`, `EFDAnalysisModal`, Badge contadora.
+- `FieldTooltip` e tooltips dos filtros.
+- `<TooltipProvider delayDuration={300}>` global na linha 366.
+- Lógica de queries, handlers, formatadores, estados, seleção.
+- Imports (`Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger` já presentes).
+- `EFDExportDialog`, `EFDAnalysisModal`, `SIT_ESP_MAP`.
 
 ### Resultado
 
-Cabeçalhos com sublinhado pontilhado revelando descrição ao hover; botões "Exportar excel", "Baixar txt", download TXT por linha e "Analisar" com dica curta padronizada (220 px, centralizada, normal-case); JSX sem strings hardcoded e sem `TooltipProvider` aninhados.
+Cabeçalhos com sublinhado pontilhado e dica ao hover; botões "Exportar excel", "Baixar txt", download TXT por linha e "Analisar" com tooltip padronizado (220 px, centralizado, normal-case); JSX sem strings hardcoded e sem `TooltipProvider` aninhados.
 
