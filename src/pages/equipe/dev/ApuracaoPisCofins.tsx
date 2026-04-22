@@ -695,6 +695,7 @@ const ApuracaoPisCofins = () => {
                         efdContas={efdContasSet}
                         onToggleExtra={handleToggleExtra}
                         onRemoveExtra={handleRemoveExtra}
+                        columnTooltips={columnTooltips}
                       />
                     </div>
                   ) : (
