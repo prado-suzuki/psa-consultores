@@ -169,21 +169,31 @@ Cada módulo possui layout dedicado com sidebar/nav próprio:
 | Componente | Regra |
 |---|---|
 | `ProtectedRoute` | Qualquer usuário autenticado |
-| `AdminRoute` | Role `admin` |
-| `TeamRoute` | Qualquer "Internal User": `team_member`, `admin`, `lider` ou `sublider` |
-| `PageAccessGate` | Verificação granular via `user_page_access` + categoria de área |
-| `GestaoAccessGate` | Admin ou permissão explícita de gestão |
-| `DesempenhoAccessGate` | Admin, líder ou sublíder para módulo de desempenho |
+| `AdminRoute` | Apenas role `admin` (única exceção arquitetural — checagem direta de papel) |
+| `PageAccessGate` | Verificação granular via `usePageAccess` (consulta `user_page_access`) |
+| `GestaoAccessGate` | Wrapper de login para módulo `/gestao/*` que delega visibilidade ao `usePageAccess` |
+| `DesempenhoAccessGate` | Wrapper para `/equipe/board/desempenho` que delega visibilidade ao `usePageAccess` |
+
+> **`TeamRoute` foi removido**. A visibilidade de rotas internas agora é resolvida 100% por `user_page_access` (com bypass apenas para `isAdmin` ou rotas não cadastradas em `page_permissions`).
 
 ### 4.2 Registro de páginas protegidas
 
 Arquivo: `src/config/protectedPages.ts`
 
-**Toda nova rota protegida DEVE ser registrada neste array.** Sem registro, a rota não aparece no controle de permissões.
+**Toda nova rota protegida DEVE ser registrada neste array.** Sem registro, a rota é tratada como pública para usuários autenticados (fail-open). Migration de sync idempotente espelha o array em `page_permissions` no deploy.
 
 Categorias disponíveis: `dev`, `rotina`, `gestao`, `geral`, `fiscal`, `fixos`, `osg`, `projetos`, `board`, `tax`.
 
 Campos por registro: `page_path`, `page_name`, `page_description`, `category`, `requires_admin`, `requires_team_member`.
+
+### 4.3 Visibilidade vs Operação
+
+A arquitetura separa rigorosamente dois conceitos de autorização:
+
+- **Visibilidade (rota)** — controla o que o usuário **vê e acessa**. Resolução exclusiva via `user_page_access` + hook `usePageAccess`. Únicos bypasses: (1) `isAdmin = true`; (2) rota não cadastrada em `page_permissions`. **Não há mais bypass por categoria `geral`** — a partir desta migração, `team_member`/`lider`/`sublider` precisam de entrada explícita em `user_page_access` para enxergar cada rota interna (backfill SQL cobriu os usuários existentes; novos provisionamentos devem garantir o registro).
+- **Operação (ação)** — controla o que o usuário **pode fazer** dentro de uma página visível. Aplicada via RLS no banco e checagens de papel pontuais (`isAdmin`, `isLider`, `isSublider`) em componentes/hooks específicos para condicionar botões, mutações e seletores. Exemplos: `GestaoClientes`, `DetalheFerramenta`, `ProcedimentosDev`, `DesempenhoMetas`, `useTicketMutations`.
+
+> `isTeamMember` no `AuthContext` é **transitivo**: retorna `true` para `team_member`, `sublider`, `lider` e `admin`. `isLider` e `isSublider` permanecem com checagem exata do papel.
 
 ---
 
