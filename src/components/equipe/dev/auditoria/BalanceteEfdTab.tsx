@@ -173,7 +173,9 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[180px]">
-            <Label className="text-xs">Conta Contábil</Label>
+            <Label className="text-xs">
+              <FieldTooltip text={AUDITORIA_TOOLTIPS.contaContabil}>Conta Contábil</FieldTooltip>
+            </Label>
             <Popover open={popoverOpen} onOpenChange={() => {}}>
               <PopoverTrigger asChild>
                 <div className="relative">
@@ -225,7 +227,9 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
           </div>
           <div className="flex items-center gap-2 pb-0.5">
             <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
-            <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">Período Fechado</Label>
+            <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">
+              <FieldTooltip text={AUDITORIA_TOOLTIPS.periodoFechado}>Período Fechado</FieldTooltip>
+            </Label>
           </div>
           <div className="flex gap-1 pb-0.5">
             <Button variant="outline" size="sm" onClick={() => treeRef.current?.expandAll()} className="gap-1 text-xs">
