@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-import { TeamRoute } from "@/components/auth/TeamRoute";
+
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGate";
