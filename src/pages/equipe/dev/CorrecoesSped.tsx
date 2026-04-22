@@ -267,10 +267,10 @@ const CorrecoesSped = () => {
             {activeTab === 'f100' && (
               <div className="mt-3 pt-3 border-t border-dashed grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <span className="flex items-center gap-1">
-                    <Label className="text-xs">Nat. Base de Crédito</Label>
-                    <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código NAT_BC_CRED do registro F100 (Tab. 4.3.7). Obrigatório se Cód. Conta não for informado.</TooltipContent></Tooltip>
-                  </span>
+                  <Label className="text-xs flex items-center gap-1">
+                    Nat. Base de Crédito <RequiredMark />
+                    <FieldTooltip text={SPED_TOOLTIPS.natBcCredF100} />
+                  </Label>
                   <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-8 w-full justify-between text-sm font-normal">
@@ -355,10 +355,10 @@ const CorrecoesSped = () => {
                   </Popover>
                 </div>
                 <div className="space-y-1">
-                  <span className="flex items-center gap-1">
-                    <Label className="text-xs">Código da Conta</Label>
-                    <Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">COD_CTA do registro F100. Ex: 31010201. Obrigatório se Nat. Base de Crédito não for informado.</TooltipContent></Tooltip>
-                  </span>
+                  <Label className="text-xs flex items-center gap-1">
+                    Código da Conta <RequiredMark />
+                    <FieldTooltip text={SPED_TOOLTIPS.codCtaF100} />
+                  </Label>
                   <Input
                     placeholder="Ex: 31010201"
                     value={codCta}
@@ -369,12 +369,15 @@ const CorrecoesSped = () => {
               </div>
             )}
             <div className="flex flex-col sm:flex-row justify-between gap-2 mt-3">
-              <Input
-                placeholder="Buscar por descrição, chave ou NCM..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                className="h-8 text-sm max-w-sm"
-              />
+              <div className="flex items-center gap-1.5 max-w-sm w-full">
+                <Input
+                  placeholder="Buscar por descrição, chave ou NCM..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  className="h-8 text-sm"
+                />
+                <FieldTooltip text={SPED_TOOLTIPS.buscar} />
+              </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleLimpar}>
                   <X className="h-3.5 w-3.5 mr-1" />Limpar
