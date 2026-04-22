@@ -16,6 +16,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
+import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
 import type { D100Item, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 
