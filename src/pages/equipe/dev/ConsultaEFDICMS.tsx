@@ -47,12 +47,44 @@ const FieldTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
 // --- Tooltip texts ---
 const TOOLTIPS = {
   cliente: "Filtra as EFD ICMS por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
+  colArquivo: "Nome e ID do arquivo EFD ICMS processado.",
+  colPeriodo: "Mês inicial e final da escrituração.",
+  colTipo: "Status do arquivo (Original ou Retificadora).",
+  colIcms: "Total de ICMS a recolher apurado no período.",
+  colIcmsSt: "Total de ICMS ST a recolher apurado no período.",
+  colAcoes: "Opções de download, exportação Excel e análise em tela.",
+  exportarLote: "Exportar arquivo(s) selecionado(s) para Excel.",
+  baixarLote: "Download individual ou em lote (ZIP) dos arquivos selecionados.",
+  baixarTxt: "Download do arquivo EFD ICMS original (.txt).",
+  analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
 } as const;
 
 const ConsultaEFDICMS = () => {
@@ -748,60 +780,36 @@ const ConsultaEFDICMS = () => {
                 )}
                 
                 {/* Exportar Excel */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleExportSelecionados}
-                        disabled={selectedArquivos.size === 0}
-                        className="gap-2"
-                      >
-                        <FileSpreadsheet className="h-4 w-4" />
-                        Exportar excel
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {selectedArquivos.size === 0 
-                          ? "Selecione arquivos para exportar" 
-                          : `Exportar ${selectedArquivos.size} arquivo(s) para Excel`
-                        }
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ButtonTooltip text={TOOLTIPS.exportarLote}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExportSelecionados}
+                    disabled={selectedArquivos.size === 0}
+                    className="gap-2"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Exportar excel
+                  </Button>
+                </ButtonTooltip>
 
                 {/* Baixar txt */}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handleDownloadSelecionados}
-                        disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
-                        className="gap-2"
-                      >
-                        {(downloadingTxt !== null || downloadingAll) ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Download className="h-4 w-4" />
-                        )}
-                        Baixar txt
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>
-                        {selectedArquivos.size === 0 
-                          ? "Selecione arquivos para baixar" 
-                          : `Baixar ${selectedArquivos.size} arquivo(s) TXT`
-                        }
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ButtonTooltip text={TOOLTIPS.baixarLote}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadSelecionados}
+                    disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0}
+                    className="gap-2"
+                  >
+                    {(downloadingTxt !== null || downloadingAll) ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    Baixar txt
+                  </Button>
+                </ButtonTooltip>
               </div>
             </div>
           </div>
@@ -850,22 +858,22 @@ const ConsultaEFDICMS = () => {
                       />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Arquivo
+                      <ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Período
+                      <ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Tipo
+                      <ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      ICMS
+                      <ColumnTooltip label="ICMS" text={TOOLTIPS.colIcms} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      ICMS ST
+                      <ColumnTooltip label="ICMS ST" text={TOOLTIPS.colIcmsSt} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">
-                      Ações
+                      <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
                     </th>
                   </tr>
                 </thead>
@@ -920,37 +928,32 @@ const ConsultaEFDICMS = () => {
                         {formatCurrency(arquivo.icms_st_a_recolher)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-2">
-                            {/* Download TXT */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDownloadTxt(arquivo)}
-                                  disabled={downloadingTxt === arquivo.ID_ARQUIVO}
-                                >
-                                  {downloadingTxt === arquivo.ID_ARQUIVO ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <FileText className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Baixar arquivo TXT original</p>
-                              </TooltipContent>
-                            </Tooltip>
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Download TXT */}
+                          <ButtonTooltip text={TOOLTIPS.baixarTxt}>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDownloadTxt(arquivo)}
+                              disabled={downloadingTxt === arquivo.ID_ARQUIVO}
+                            >
+                              {downloadingTxt === arquivo.ID_ARQUIVO ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </ButtonTooltip>
 
-                            <EFDExportDialog
-                              arquivo={arquivo}
-                              blocosDisponiveis={blocosDisponiveis}
-                              tipo="icms"
-                            />
-                            
-                            <Button 
+                          <EFDExportDialog
+                            arquivo={arquivo}
+                            blocosDisponiveis={blocosDisponiveis}
+                            tipo="icms"
+                          />
+
+                          <ButtonTooltip text={TOOLTIPS.analisar}>
+                            <Button
                               size="sm"
                               onClick={() => handleAnalisar(arquivo)}
                               className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
@@ -958,8 +961,8 @@ const ConsultaEFDICMS = () => {
                               <BarChart3 className="h-4 w-4 mr-1" />
                               Analisar
                             </Button>
-                          </div>
-                        </TooltipProvider>
+                          </ButtonTooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
