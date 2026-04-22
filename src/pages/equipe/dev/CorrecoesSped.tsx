@@ -170,13 +170,20 @@ const CorrecoesSped = () => {
 
   return (
     <DevLayout title="Correções no SPED" subtitle="Revisão de notas e itens EFD vs XML para correções no SPED Contribuições.">
-      <div className="space-y-4">
+      <TooltipProvider delayDuration={300}>
+        <DevPageHeader
+          description="A ferramenta **Correções no SPED** permite revisar e ajustar os registros do SPED Contribuições (**C170**, **A170**, **D100**, **F100**, **F120**, **F130**) cruzando dados da escrituração com XMLs originais. Use os filtros para selecionar contribuinte e período, navegue pelas abas e edite as linhas com divergências para gerar correções rastreáveis."
+          hideManualLink
+        />
+        <div className="space-y-4">
         {/* Filters */}
         <Card className="bg-muted/50 border-dashed">
           <CardContent className="p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1">
-                <Label className="text-xs">Cliente</Label>
+                <Label className="text-xs">
+                  <FieldTooltip text={SPED_TOOLTIPS.cliente}>Cliente</FieldTooltip>
+                </Label>
                 <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder="Selecione..." />
@@ -189,7 +196,9 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Contribuinte</Label>
+                <Label className="text-xs">
+                  <FieldTooltip text={SPED_TOOLTIPS.contribuinte}>Contribuinte</FieldTooltip>
+                </Label>
                 <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
                   <SelectTrigger className="h-8 text-sm">
                     <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
@@ -202,7 +211,9 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data Início</Label>
+                <Label className="text-xs">
+                  <FieldTooltip text={SPED_TOOLTIPS.dataInicio}>Data Início</FieldTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtIni && "text-muted-foreground")}>
@@ -216,7 +227,9 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">Data Fim</Label>
+                <Label className="text-xs">
+                  <FieldTooltip text={SPED_TOOLTIPS.dataFim}>Data Fim</FieldTooltip>
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtFin && "text-muted-foreground")}>
