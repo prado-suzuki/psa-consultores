@@ -559,20 +559,27 @@ const ApuracaoPisCofins = () => {
         {/* Row 2: Datas, switch, botões */}
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Início</label>
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+              Data Início
+              <FieldTooltip text={TOOLTIPS.dataInicio} />
+            </label>
             <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Fim</label>
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+              Data Fim
+              <FieldTooltip text={TOOLTIPS.dataFim} />
+            </label>
             <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
           </div>
 
           {tipoApuracao === "BALANCETE" && (
             <div className="flex items-center gap-2 pb-1">
               <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
-              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground">
+              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">
                 Período Fechado
+                <FieldTooltip text={TOOLTIPS.periodoFechado} />
               </Label>
             </div>
           )}
