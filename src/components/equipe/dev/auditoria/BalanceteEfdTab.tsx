@@ -10,6 +10,7 @@ import { Search, AlertCircle, ChevronsUpDown, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import { BalanceteTreeTable } from '@/components/equipe/dev/pis-cofins/BalanceteTreeTable';
+import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
 import type { BalanceteEfdPeriodo } from '@/types/auditoriaCruzada';
 import type { ContaNode } from '@/types/pisCofins';
 
