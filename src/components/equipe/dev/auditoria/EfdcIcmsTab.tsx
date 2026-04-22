@@ -183,15 +183,25 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead rowSpan={2} className="text-xs align-bottom">Dt. Ini</TableHead>
-                    <TableHead rowSpan={2} className="text-xs align-bottom border-r">Chave NFe</TableHead>
-                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD ICMS</TableHead>
-                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">EFD Contribuições</TableHead>
-                    <TableHead colSpan={2} className="text-xs text-center bg-muted/30">XML</TableHead>
+                    <TableHead rowSpan={2} className="text-xs align-bottom">
+                      {renderColumnLabel("Dt. Ini", "Data inicial do período da escrituração.")}
+                    </TableHead>
+                    <TableHead rowSpan={2} className="text-xs align-bottom border-r">
+                      {renderColumnLabel("Chave NFe", "Chave de acesso da NFe (44 dígitos).")}
+                    </TableHead>
+                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">
+                      {renderColumnLabel("EFD ICMS", "Dados extraídos da EFD ICMS/IPI.")}
+                    </TableHead>
+                    <TableHead colSpan={3} className="text-xs text-center border-r bg-muted/30">
+                      {renderColumnLabel("EFD Contribuições", "Dados extraídos da EFD Contribuições.")}
+                    </TableHead>
+                    <TableHead colSpan={2} className="text-xs text-center bg-muted/30">
+                      {renderColumnLabel("XML", "Dados extraídos do XML original da NFe.")}
+                    </TableHead>
                   </TableRow>
                   <TableRow>
                     <TableHead className="text-xs">
-                      CFOP
+                      {renderColumnLabel("CFOP", "Código Fiscal de Operações e Prestações.")}
                       <ColumnFilterDropdown
                         columnKey="cfop_icms"
                         uniqueValues={uniqueValues.cfop_icms ?? []}
@@ -202,7 +212,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                       />
                     </TableHead>
                     <TableHead className="text-xs">
-                      Conta Contábil
+                      {renderColumnLabel("Conta Contábil", "Conta contábil vinculada ao item.")}
                       <ColumnFilterDropdown
                         columnKey="cta_icms"
                         uniqueValues={uniqueValues.cta_icms ?? []}
@@ -212,9 +222,11 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                         onFilter={handleFilter}
                       />
                     </TableHead>
-                    <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
+                    <TableHead className="text-xs text-right border-r">
+                      {renderColumnLabel("Valor Doc", "Valor total do documento fiscal.")}
+                    </TableHead>
                     <TableHead className="text-xs">
-                      CFOP
+                      {renderColumnLabel("CFOP", "Código Fiscal de Operações e Prestações.")}
                       <ColumnFilterDropdown
                         columnKey="cfop_contrib"
                         uniqueValues={uniqueValues.cfop_contrib ?? []}
@@ -225,7 +237,7 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                       />
                     </TableHead>
                     <TableHead className="text-xs">
-                      Conta Contábil
+                      {renderColumnLabel("Conta Contábil", "Conta contábil vinculada ao item.")}
                       <ColumnFilterDropdown
                         columnKey="cta_contrib"
                         uniqueValues={uniqueValues.cta_contrib ?? []}
@@ -235,9 +247,15 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
                         onFilter={handleFilter}
                       />
                     </TableHead>
-                    <TableHead className="text-xs text-right border-r">Valor Doc</TableHead>
-                    <TableHead className="text-xs">CFOP</TableHead>
-                    <TableHead className="text-xs text-right">Valor Doc</TableHead>
+                    <TableHead className="text-xs text-right border-r">
+                      {renderColumnLabel("Valor Doc", "Valor total do documento fiscal.")}
+                    </TableHead>
+                    <TableHead className="text-xs">
+                      {renderColumnLabel("CFOP", "Código Fiscal de Operações e Prestações.")}
+                    </TableHead>
+                    <TableHead className="text-xs text-right">
+                      {renderColumnLabel("Valor Doc", "Valor total do documento fiscal.")}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
