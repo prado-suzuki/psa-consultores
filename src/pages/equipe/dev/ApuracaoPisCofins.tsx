@@ -501,8 +501,9 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Contribuinte <RequiredMark />
+              <FieldTooltip text={TOOLTIPS.contribuinte} />
             </label>
             {loadingContribuintes && selectedCliente ? (
               <Skeleton className="h-10 w-full" />
