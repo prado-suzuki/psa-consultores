@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
+import { renderColumnLabel } from "./ColumnTooltip";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
 
@@ -175,6 +176,7 @@ interface BalanceteTreeTableProps {
   efdContas?: Set<string>;
   onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
   onRemoveExtra?: (codCta: string) => void;
+  columnTooltips?: Record<string, string>;
 }
 
 const STICKY_COLS: StickyColumnConfig[] = [
@@ -195,7 +197,7 @@ type DisplayColumn = {
 };
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
-  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra, columnTooltips }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
@@ -508,7 +510,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                   rowSpan={headerRowsCount}
                 >
                   <span className="inline-flex items-center">
-                    {col.label}
+                    {renderColumnLabel(col.label, columnTooltips?.[col.label])}
                     {renderHeaderExtra(col.label)}
                   </span>
                 </TableCell>
@@ -524,7 +526,7 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                     className={cn("text-center border-b border-r bg-primary/10 !font-bold uppercase text-xs text-muted-foreground", HEADER_HIGHLIGHT)}
                   >
                     <div className="flex items-center justify-center gap-2">
-                      {year}
+                      {renderColumnLabel(year, columnTooltips?.[year])}
                       <Button
                         variant="ghost"
                         size="icon"
@@ -550,17 +552,18 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                       colSpan={2}
                       className={cn("text-center border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}
                     >
-                      {month.split('-').reverse().join('/')}
+                      {renderColumnLabel(month.split('-').reverse().join('/'), columnTooltips?.[month])}
                     </TableCell>
                   ));
                 }
 
+                const saldoLabel = periodoFechado ? "Saldo Atual" : "Saldo Per.";
                 return [
                   <TableCell key={`${year}-vlr`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-muted", HEADER_HIGHLIGHT)}>
-                    Vlr. EFD
+                    {renderColumnLabel("Vlr. EFD", columnTooltips?.["__vlr_efd__"])}
                   </TableCell>,
                   <TableCell key={`${year}-saldo`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-muted", HEADER_HIGHLIGHT)}>
-                    {periodoFechado ? "Saldo Atual" : "Saldo Per."}
+                    {renderColumnLabel(saldoLabel, columnTooltips?.["__saldo__"])}
                   </TableCell>,
                 ];
               })}
@@ -573,10 +576,10 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                   const sortedMonths = [...months].sort((a, b) => a.localeCompare(b));
                   return sortedMonths.flatMap((month) => [
                     <TableCell key={`${month}-vlr_efd`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}>
-                      Vlr. EFD
+                      {renderColumnLabel("Vlr. EFD", columnTooltips?.["__vlr_efd__"])}
                     </TableCell>,
                     <TableCell key={`${month}-saldo`} className={cn("text-right border-r !font-bold uppercase text-xs text-muted-foreground bg-primary/5", MONTH_HIGHLIGHT)}>
-                      {periodoFechado ? "Saldo Atual" : "Saldo Per."}
+                      {renderColumnLabel(periodoFechado ? "Saldo Atual" : "Saldo Per.", columnTooltips?.["__saldo__"])}
                     </TableCell>,
                   ]);
                 })}

@@ -63,6 +63,44 @@ const SECTION_TOOLTIPS = {
     "Operações de saída que não geram débito direto, mas compõem a análise (ex.: transferências, devoluções).",
 } as const;
 
+/* ── Column tooltips (table headers) ── */
+const COLUMN_TOOLTIPS = {
+  CST: "Código de Situação Tributária do PIS/COFINS aplicado ao item.",
+  Conta: "Código contábil da conta (do EFD ou Balancete) que originou o valor.",
+  Descricao: "Descrição contábil da conta ou do item da apuração.",
+  Bloco: "Bloco do EFD Contribuições onde o registro foi extraído (A170, C170, F100 etc.).",
+  Total: "Soma de todos os meses exibidos no período consultado.",
+  Year: "Total do ano. Clique no '+' para expandir e ver os meses.",
+  Month: "Valor da competência (mês/ano) selecionada.",
+  RateioReceitas: "Categoria de receita usada no cálculo do percentual de rateio.",
+  Tipo: "Tipo da conta no balancete (Devedora 'D' ou Credora 'C').",
+  VlrEfd: "Valor extraído do EFD Contribuições para a conta no período.",
+  Saldo: "Saldo contábil da conta — Atual (período fechado) ou Periódico (movimentação do mês).",
+} as const;
+
+const buildColumnTooltips = (
+  columnsData: { yearsMap: Map<string, string[]> },
+): Record<string, string> => {
+  const map: Record<string, string> = {
+    CST: COLUMN_TOOLTIPS.CST,
+    Conta: COLUMN_TOOLTIPS.Conta,
+    "Descrição": COLUMN_TOOLTIPS.Descricao,
+    Bloco: COLUMN_TOOLTIPS.Bloco,
+    "Rateio das receitas": COLUMN_TOOLTIPS.RateioReceitas,
+    Tipo: COLUMN_TOOLTIPS.Tipo,
+    __total__: COLUMN_TOOLTIPS.Total,
+    __vlr_efd__: COLUMN_TOOLTIPS.VlrEfd,
+    __saldo__: COLUMN_TOOLTIPS.Saldo,
+  };
+  columnsData.yearsMap.forEach((months, year) => {
+    map[year] = COLUMN_TOOLTIPS.Year;
+    months.forEach((m) => {
+      map[m] = COLUMN_TOOLTIPS.Month;
+    });
+  });
+  return map;
+};
+
 const FieldTooltip = ({ text }: { text: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
@@ -377,11 +415,15 @@ const ApuracaoPisCofins = () => {
     });
   }, []);
 
+  // Tooltips for column headers — added dynamically based on the active period
+  const columnTooltips = useMemo(() => buildColumnTooltips(columnsData), [columnsData]);
+
   // Shared table props for data tables
   const dataTableProps = {
     columnsData,
     expandedYears,
     toggleYear,
+    columnTooltips,
   };
 
   // ── Conta filter options & filtered data for Resumo tab ──
@@ -445,6 +487,7 @@ const ApuracaoPisCofins = () => {
     hasExpandedYear,
     headerRowsCount,
     toggleYear,
+    columnTooltips,
   };
 
   const inlineStyledHeaderProps = {
@@ -652,6 +695,7 @@ const ApuracaoPisCofins = () => {
                         efdContas={efdContasSet}
                         onToggleExtra={handleToggleExtra}
                         onRemoveExtra={handleRemoveExtra}
+                        columnTooltips={columnTooltips}
                       />
                     </div>
                   ) : (
