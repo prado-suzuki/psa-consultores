@@ -12,11 +12,63 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2, Filter, Eraser } from 'lucide-react';
+import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2, Filter, Eraser, Info } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+
+// --- Tooltip helpers ---
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const TOOLTIPS = {
+  buscar: "Busca livre por NCM, descrição CST, base legal ou setor.",
+  setor: "Filtra as regras pelo segmento de negócio (setor do contribuinte).",
+  credito: "Filtra regras pelo direito a crédito de PIS/COFINS (Sim/Não).",
+  limpar: "Redefine todos os filtros aplicados.",
+  novaRegra: "Cria uma nova regra fiscal de PIS/COFINS para um NCM.",
+  colNcm: "Código NCM (Nomenclatura Comum do Mercosul) ao qual a regra se aplica.",
+  colSetor: "Segmento de negócio para o qual a regra é válida.",
+  colCst: "Código de Situação Tributária aplicado às operações de PIS/COFINS.",
+  colDescCst: "Descrição textual do CST e do tratamento tributário aplicado.",
+  colBaseLegal: "Fundamentação normativa (lei, IN, ADI) que sustenta o tratamento.",
+  colCredito: "Indica se a operação permite apropriação de crédito de PIS/COFINS.",
+  colAcoes: "Visualizar, editar ou excluir a regra.",
+  visualizar: "Visualizar regra.",
+  excluir: "Excluir regra.",
+} as const;
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 type ModalMode = 'view' | 'edit' | 'create' | null;
