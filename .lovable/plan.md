@@ -1,57 +1,63 @@
 
-## Plano: padronização de tooltips em `ProcessoDifal.tsx`
 
-Aplicar o padrão de tooltips na tabela de resultados e nos botões "Salvar alterações" / "Exportar Excel", sem tocar nos tooltips já existentes nos filtros.
+## Plano: Correção das policies SELECT respeitando hierarquia
 
-### 1. Helpers de tooltip (logo abaixo de `FieldTooltip`, ~linha 69)
+### Princípio
+Toda policy SELECT nova deve usar `public.has_role_or_higher(auth.uid(), 'team_member'::app_role)` — esta função SQL **já implementa a hierarquia** (admin ⊇ lider ⊇ sublider ⊇ team_member). Não usar `has_role(..., 'admin') OR has_role(..., 'team_member')` (redundante e errado conceitualmente).
 
-Adicionar dois novos componentes reutilizando `Tooltip` / `TooltipTrigger` / `TooltipContent` já importados:
+### Migration única — adicionar SELECT nas tabelas órfãs
 
-- **`ColumnTooltip`** — recebe `text` e `children`. Renderiza `TooltipTrigger asChild` com classes `cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400` em torno de um `<span>` que envolve o `children` (o título da coluna). `TooltipContent` com classes `max-w-[220px] font-normal normal-case tracking-normal text-xs text-center`.
-- **`ButtonTooltip`** — recebe `text` e `children`. Envolve `children` (o `<Button>`) em `TooltipTrigger asChild`. `TooltipContent` com as mesmas classes acima.
-
-Nenhum `TooltipProvider` adicional — o global da app já cobre.
-
-### 2. Expansão do dicionário `TOOLTIPS` (linhas 72-77)
-
-Preservar as 4 chaves atuais (`cliente`, `contribuinte`, `dataInicio`, `dataFim`) e adicionar:
-
-```ts
-colStatus: "Status atual da classificação tributária do item.",
-colProduto: "Descrição do produto e código interno na nota fiscal.",
-colNcm: "Nomenclatura Comum do Mercosul (NCM) do produto.",
-colCfop: "Código Fiscal de Operações e Prestações (CFOP).",
-colTributacao: "Situação Tributária (CST), Alíquota e Redução de Base de Cálculo originais.",
-colMvaSt: "Regra de DIFAL/ST validada, incluindo alíquota e redução aplicáveis.",
-salvarAlteracoes: "Sincroniza as decisões validadas na sessão com o banco de dados principal.",
-exportarExcel: "Gera a planilha com todos os NCMs classificados no período.",
+Padrão base para tabelas internas:
+```sql
+USING (public.has_role_or_higher(auth.uid(), 'team_member'::app_role))
 ```
 
-### 3. Cabeçalho da tabela (linhas 1093-1098)
+Padrão para tabelas com vínculo de cliente/atribuído:
+```sql
+USING (
+  public.has_role_or_higher(auth.uid(), 'team_member'::app_role)
+  OR <condição extra de vínculo>
+)
+```
 
-Substituir o texto puro de cada `TableHead` por `<ColumnTooltip text={TOOLTIPS.colXxx}>Texto</ColumnTooltip>`, mantendo as classes `w-[...]` originais nas tags `<TableHead>`. Mapeamento:
+### Policies a criar / substituir
 
-| Coluna | Chave |
-|---|---|
-| Status | `colStatus` |
-| Produto | `colProduto` |
-| NCM | `colNcm` |
-| CFOP | `colCfop` |
-| Tributação | `colTributacao` |
-| MVA/ST | `colMvaSt` |
+**Chamados** (admin/lider/sublider/team_member veem tudo; cliente vê os seus; assignee vê o seu):
+- `tickets` → SELECT: `has_role_or_higher('team_member')` OR `auth.uid() = user_id` OR `is_ticket_assigned_to(id, auth.uid())`
+- `ticket_messages` → SELECT: `has_role_or_higher('team_member')` OR EXISTS(ticket pai com vínculo)
+- `ticket_attachments` → SELECT: idem `ticket_messages`
 
-### 4. Botões de ação (linhas 1034-1058)
+**Projetos / tarefas** (todos os internos veem tudo):
+- `org_projects` → SELECT: `has_role_or_higher('team_member')`
+- `fiscal_tasks` → SELECT: `has_role_or_higher('team_member')`
+- `projects` → DROP policies redundantes atuais; CREATE única SELECT: `has_role_or_higher('team_member')` OR cliente vinculado via `client_visible_projects`
 
-- Envolver o `<Button>` "Salvar alterações" com `<ButtonTooltip text={TOOLTIPS.salvarAlteracoes}>…</ButtonTooltip>`.
-- Envolver o `<Button>` "Exportar Excel" com `<ButtonTooltip text={TOOLTIPS.exportarExcel}>…</ButtonTooltip>` e **remover** a prop `title={…}` nativa (linhas 1052-1054).
+**Auditoria e perfis** (resolve "Desconhecido"):
+- `audit_logs` → DROP policy atual restrita a tax/osg; CREATE SELECT: `has_role_or_higher('team_member')` (todas as áreas)
+- `profiles` → CREATE SELECT interna: `has_role_or_higher('team_member')` (mantém policy admin existente; clientes continuam usando `profiles_safe` / RPC `get_profiles_with_email`)
 
-### O que NÃO muda
+**Módulo Board / Desempenho** (internos):
+- `analises_semestrais`, `atualizacoes_meta`, `ciclos_avaliacao`, `feedbacks`, `itens_acao_1a1`, `kpis_meta`, `metas`, `relatorios_gerados`, `reunioes_1a1`, `performance_preferencias` → SELECT: `has_role_or_higher('team_member')`
 
-- Tooltips dos filtros do topo (cliente, contribuinte, datas) e qualquer outro `FieldTooltip` existente.
-- Lógica funcional de busca, salvamento, exportação, classes de largura das colunas, estados `disabled`.
-- Imports — `Tooltip*` já importados na linha 57.
-- Nenhum `TooltipProvider` adicional.
+**Demais órfãs**:
+- `contatos` → SELECT: `has_role_or_higher('sublider')` (gestão)
+- `documents` → SELECT: `has_role_or_higher('team_member')`
+- `efd_correcoes` → SELECT: `has_role_or_higher('team_member')`
+- `gestao_area_password` → SELECT: `has_role(auth.uid(), 'admin')` (sensível, restrito)
 
-### Arquivo alterado (1)
+### Garantia
 
-- `src/pages/equipe/dev/ProcessoDifal.tsx`
+Após esta migration, **admin, lider e sublider terão SELECT em tudo que team_member tem** automaticamente, via `has_role_or_higher`. Nenhuma policy futura deve usar o padrão `'admin' OR 'team_member'` — sempre `has_role_or_higher(..., 'team_member')`.
+
+### Atualização do plano
+
+Atualizar `.lovable/plan.md` (REORGANIZACAO_RLS) acrescentando regra explícita:
+> **Toda policy SELECT/UPDATE/DELETE/INSERT deve usar `has_role_or_higher(_role)` em vez de combinar roles com OR. A função já garante a hierarquia admin → lider → sublider → team_member.**
+
+### Arquivos
+
+- 1 nova migration em `supabase/migrations/` (~22 policies SELECT, 2 substituições em `audit_logs` e `projects`).
+- `.lovable/plan.md` atualizado com a regra de hierarquia.
+
+Sem alterações no frontend.
+
