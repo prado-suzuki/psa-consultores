@@ -1,88 +1,119 @@
 
 
-## Plano: Adicionar Tooltips ao Mapa NCM
+## Plano: Visão Geral + Tooltips em Apuração PIS/COFINS
 
-Aplicar em `src/pages/equipe/dev/MapaNCMPisCofins.tsx` o mesmo padrão de tooltips usado em `ConsultaXMLs.tsx` (helpers `FieldTooltip`, `ColumnTooltip`, `ButtonTooltip` + objeto `TOOLTIPS`).
+Aplicar em `src/pages/equipe/dev/ApuracaoPisCofins.tsx` o mesmo padrão de `ControlePerdcomp.tsx`, **sem alterar componentes compartilhados** (`ApuracaoDataTable`, `DynamicTableHeader`, `BalanceteTreeTable`) — assim os filtros de coluna no cabeçalho permanecem intactos.
 
-### 1. Imports a adicionar
+### 1. Visão Geral (`DevPageHeader` adaptado)
+
+`DevPageHeader` hoje força a frase "Para acessar o manual… clique aqui". Como esta ferramenta ainda não tem manual, **não usar** o componente. No lugar, replicar inline o mesmo `Alert` verde-água usado por ele, **sem** o trecho do link:
 
 ```tsx
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Info } from 'lucide-react';
+<Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
+  <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+  <AlertTitle className="text-sm font-semibold ...">Visão Geral</AlertTitle>
+  <AlertDescription className="text-sm leading-relaxed ... mt-1">
+    A <strong>Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e
+    rateios do contribuinte a partir do <strong>EFD Contribuições</strong> (modo Cliente)
+    ou do <strong>Balancete</strong> importado (modo Prado), permitindo conferir a
+    base de cálculo, o resultado do período e o saldo apurado mês a mês.
+  </AlertDescription>
+</Alert>
 ```
 
-### 2. Helpers de tooltip (no topo do arquivo)
+Logo abaixo do `<DevLayout>`, antes do bloco de filtros. Imports: `Alert, AlertDescription, AlertTitle` de `@/components/ui/alert`.
 
-Replicar os 3 componentes utilitários já consagrados:
+### 2. Helper `FieldTooltip` (mesmo padrão do PERDCOMP)
 
-- **`FieldTooltip`** — ícone `Info` ao lado de labels de filtros.
-- **`ColumnTooltip`** — texto sublinhado pontilhado nos cabeçalhos de tabela.
-- **`ButtonTooltip`** — wrapper para botões de ação.
+Adicionar no topo do arquivo:
 
-### 3. Objeto `TOOLTIPS` centralizado
+```tsx
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+```
+
+Envolver todo o retorno do componente em `<TooltipProvider delayDuration={200}>` (ainda não está envolvido — hoje os `Tooltip` inline funcionam por sorte porque o `DevLayout` provavelmente provê um Provider; padronizar explicitamente).
+
+### 3. Tooltips dos filtros principais
+
+Objeto centralizado:
 
 ```ts
 const TOOLTIPS = {
-  // Filtros
-  buscar: "Busca livre por NCM, descrição CST, base legal ou setor.",
-  setor: "Filtra as regras pelo segmento de negócio (setor do contribuinte).",
-  credito: "Filtra regras pelo direito a crédito de PIS/COFINS (Sim/Não).",
-
-  // Ações
-  limpar: "Redefine todos os filtros aplicados.",
-  novaRegra: "Cria uma nova regra fiscal de PIS/COFINS para um NCM.",
-
-  // Colunas da tabela
-  colNcm: "Código NCM (Nomenclatura Comum do Mercosul) ao qual a regra se aplica.",
-  colSetor: "Segmento de negócio para o qual a regra é válida.",
-  colCst: "Código de Situação Tributária aplicado às operações de PIS/COFINS.",
-  colDescCst: "Descrição textual do CST e do tratamento tributário aplicado.",
-  colBaseLegal: "Fundamentação normativa (lei, IN, ADI) que sustenta o tratamento.",
-  colCredito: "Indica se a operação permite apropriação de crédito de PIS/COFINS.",
-  colAcoes: "Visualizar, editar ou excluir a regra.",
+  cliente: "Cliente/grupo cujo contribuinte será apurado.",
+  contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
+  // tipoAnalise: JÁ EXISTE inline — manter como está, NÃO sobrescrever
+  dataInicio: "Mês/ano inicial do período de apuração.",
+  dataFim: "Mês/ano final do período (≥ Data Início).",
+  periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
+  filtroConta: "Restringe a visualização a uma ou mais contas contábeis específicas.",
 } as const;
 ```
 
-### 4. Aplicar nos labels dos filtros
+Aplicar `<FieldTooltip text={TOOLTIPS.x} />` ao lado dos labels de:
+- **Cliente** → `cliente`
+- **Contribuinte** → `contribuinte`
+- **Tipo de análise** → **MANTER o tooltip atual** (já é detalhado, com Cliente/Prado), não substituir
+- **Data Início** → `dataInicio`
+- **Data Fim** → `dataFim`
+- **Período Fechado** (label do switch) → `periodoFechado`
 
-Adicionar `<FieldTooltip text={TOOLTIPS.x} />` ao lado de cada label no card de filtros:
+### 4. Tooltips nos cabeçalhos das tabelas principais
 
-- Label **Buscar** → `TOOLTIPS.buscar`
-- Label **Setor** → `TOOLTIPS.setor`
-- Label **Permite Crédito** → `TOOLTIPS.credito`
+`ApuracaoDataTable` já aceita `titleTooltip` — usar essa prop existente (renderiza ícone `Info` ao lado do título da seção, sem mexer no `<thead>` da tabela, **preservando os filtros de coluna**).
 
-### 5. Aplicar nos botões de ação
+Tooltips já existentes — **manter sem alteração**:
+- "Débitos" → CST 01 a 10 ✓
+- "Isenções e Exclusões" → CST 04 a 09 ✓
+- "Créditos" → CST 50 a 66 ✓
+- "Operações não geradoras de Crédito" → CST 70 a 99 ✓
 
-Envolver com `ButtonTooltip`:
+Adicionar `titleTooltip` nas seções que ainda não têm:
+- **Base da Apuração - EFD Contribuições / Balancete** → "Itens-base utilizados como ponto de partida da apuração: receitas (CST 01–09) e/ou contas do balancete vinculadas, antes de aplicar débitos e créditos."
+- **Outras Saídas** → "Operações de saída que não geram débito direto, mas compõem a análise (ex.: transferências, devoluções)."
 
-- **Limpar Filtros** → `TOOLTIPS.limpar`
-- **Nova Regra** → `TOOLTIPS.novaRegra`
-- Botões da coluna Ações da tabela (**Visualizar** / **Excluir**) → tooltips curtos diretos ("Visualizar regra", "Excluir regra").
-
-### 6. Aplicar nos cabeçalhos da tabela
-
-Substituir o texto plano de cada `<TableHead>` por `<ColumnTooltip label="..." text={TOOLTIPS.x} />`, mantendo o `ColumnFilterDropdown` ao lado:
+Para as **tabelas inline** (`InlineTableWrapper` + `DynamicTableHeader` direto), o título é renderizado como `<h2>` próprio na página. Adicionar o ícone `Info` ao lado do `<h2>` usando o mesmo padrão visual do `ApuracaoDataTable`:
 
 ```tsx
-<TableHead>
-  <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
-  <ColumnFilterDropdown ... />
-</TableHead>
+<h2 className="text-lg font-bold uppercase mb-4 text-primary flex items-center gap-1.5">
+  Base de Cálculo Após Isenções/Exclusões
+  <Tooltip><TooltipTrigger asChild>
+    <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+  </TooltipTrigger><TooltipContent side="right" className="max-w-xs text-sm font-normal normal-case">
+    {SECTION_TOOLTIPS.baseAposIsencoes}
+  </TooltipContent></Tooltip>
+</h2>
 ```
 
-Aplicar para: **NCM**, **Setor**, **CST PIS/COFINS**, **Descrição CST**, **Base Legal**, **Crédito**, **Ações**.
+Textos para as seções inline (objeto `SECTION_TOOLTIPS`):
+- **Base de Cálculo Após Isenções/Exclusões** → "Receita bruta líquida das isenções e exclusões — base efetiva sobre a qual incidem PIS e COFINS."
+- **Débitos do Mês** → "Valor do débito de PIS/COFINS calculado sobre a base, separado por alíquota cheia e alíquota reduzida."
+- **Base de Cálculo do Crédito** → "Soma das aquisições e custos que dão direito a crédito de PIS/COFINS no período."
+- **Crédito do Mês** → "Crédito apropriado mês a mês para PIS e COFINS, com destaque para alíquota reduzida quando aplicável."
+- **Apuração** (resultado / saldo) → "Resultado líquido (Débito - Crédito) e evolução do saldo de PIS e COFINS no período."
+- **Rateio das Receitas** → "Distribuição percentual das receitas tributadas, não tributadas e exportação para fins de proporcionalidade do crédito."
+- **Rateio do Crédito** → "Aplicação do percentual de rateio sobre o crédito apurado, ajustando o valor efetivamente apropriável."
 
-### 7. Wrapper `<TooltipProvider>`
+(Os títulos exatos serão mapeados 1:1 ao percorrer os blocos das tabs Débitos, Créditos, Apuração e Rateio.)
 
-Envolver todo o conteúdo retornado pelo componente em `<TooltipProvider delayDuration={200}>` (logo dentro do `<DevLayout>`), seguindo o mesmo padrão de `ConsultaXMLs.tsx`.
+### 5. O que NÃO alterar
 
-### Resultado
-
-A ferramenta passa a oferecer ajuda contextual consistente com as demais (Consulta XMLs, Controle PERDCOMP): ícones `Info` nos filtros, cabeçalhos sublinhados pontilhado nas colunas e tooltips em todos os botões de ação.
+- `ApuracaoDataTable.tsx`, `DynamicTableHeader.tsx`, `BalanceteTreeTable.tsx`, `MultiSelectContas.tsx` — ficam intocados.
+- Filtros de coluna (sort/filter dropdowns) no `<thead>` — preservados, pois trabalhamos só no `<h2>` da seção (fora da tabela).
+- Tooltip atual de "Tipo de análise" e os 4 `titleTooltip` já existentes (Débitos, Isenções, Créditos, Operações não geradoras).
+- Sem link "clique aqui" na Visão Geral (ferramenta ainda sem manual).
 
 ### Arquivos alterados
 
-- `src/pages/equipe/dev/MapaNCMPisCofins.tsx` (único arquivo)
+- `src/pages/equipe/dev/ApuracaoPisCofins.tsx` (único arquivo)
 
-Sem mudanças de banco, hooks ou rotas.
+Sem mudanças de banco, hooks, rotas ou componentes compartilhados.
 
