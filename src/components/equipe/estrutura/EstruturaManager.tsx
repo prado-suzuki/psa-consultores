@@ -37,7 +37,7 @@ const colorPresets = [
 ];
 
 // ─── Data hooks ─────────────────────────────────────────────────────────
-function useProfiles(role: 'admin' | 'client' | 'lider' | 'team_member') {
+function useProfiles(role: 'admin' | 'client' | 'lider' | 'sublider' | 'team_member') {
   return useQuery({
     queryKey: ['profiles-by-role', role],
     queryFn: async () => {
