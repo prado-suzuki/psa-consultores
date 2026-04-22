@@ -109,6 +109,32 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
       .filter(p => p.contas.length > 0);
   }, [periodos, debouncedSearch]);
 
+  // Build column tooltips map (static + dynamic months/years)
+  const columnTooltips = useMemo(() => {
+    const map: Record<string, string> = {
+      Conta: "Código contábil da conta no plano de contas do cliente.",
+      "Descrição": "Descrição da conta contábil.",
+      __total__: "Soma de todos os meses exibidos no período consultado.",
+      __year__: "Total do ano. Clique no '+' para expandir e ver os meses.",
+      __month__: "Valor total do mês.",
+      __vlr_efd__: "Valor extraído da EFD Contribuições para a conta no período.",
+      __saldo__: periodoFechado
+        ? "Saldo atual acumulado da conta até o fim do período."
+        : "Saldo do período (movimentação) da conta.",
+    };
+    const years = new Set<string>();
+    for (const p of periodos) {
+      const ym = p.dt_ini.substring(0, 7); // YYYY-MM
+      const y = p.dt_ini.substring(0, 4);
+      map[ym] = "Valor total do mês.";
+      years.add(y);
+    }
+    for (const y of years) {
+      map[y] = "Total do ano. Clique no '+' para expandir e ver os meses.";
+    }
+    return map;
+  }, [periodos, periodoFechado]);
+
   if (!hasQueried) {
     return (
       <Card>
