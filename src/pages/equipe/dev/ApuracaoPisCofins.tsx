@@ -742,7 +742,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Débitos do Mês</h2>
+                    <SectionTitle title="Débitos do Mês" tooltip={SECTION_TOOLTIPS.debitosMes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -854,7 +854,7 @@ const ApuracaoPisCofins = () => {
                   />
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>
+                    <SectionTitle title="Base de Cálculo do Crédito" tooltip={SECTION_TOOLTIPS.baseCredito} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -888,7 +888,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Crédito do Mês</h2>
+                    <SectionTitle title="Crédito do Mês" tooltip={SECTION_TOOLTIPS.creditoMes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -982,7 +982,7 @@ const ApuracaoPisCofins = () => {
               {activeTab === "apuracao" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
+                    <SectionTitle title="Apuração do Débito de PIS" tooltip={SECTION_TOOLTIPS.apuracaoPis} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -1070,7 +1070,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
+                    <SectionTitle title="Apuração do Débito de COFINS" tooltip={SECTION_TOOLTIPS.apuracaoCofins} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -1172,7 +1172,7 @@ const ApuracaoPisCofins = () => {
               {activeTab === "rateio" && tipoApuracao === "EFD" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio</h2>
+                    <SectionTitle title="Rateio" tooltip={SECTION_TOOLTIPS.rateio} />
                     <InlineTableWrapper>
                       <DynamicTableHeader stickyConfig={RATEIO_STICKY} {...inlineStyledHeaderProps} />
                       <TableBody>
@@ -1350,6 +1350,7 @@ const ApuracaoPisCofins = () => {
           )}
         </>
       )}
+      </TooltipProvider>
     </DevLayout>
   );
 };
