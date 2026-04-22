@@ -5,17 +5,18 @@ import DevLayout from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { FieldTooltip, SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Info, ChevronsUpDown } from 'lucide-react';
+import { Search, X, AlertCircle, FileSearch, Package, CalendarIcon, Info, ChevronsUpDown, Filter } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from '@/components/ui/command';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -178,16 +179,22 @@ const CorrecoesSped = () => {
         />
         <div className="space-y-4">
         {/* Filters */}
-        <Card className="bg-muted/50 border-dashed">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
+        <Card className="mb-6">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center gap-2 text-lg text-primary">
+              <Filter className="h-5 w-5 text-teal-600" />
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Cliente <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.cliente} />
-                </Label>
+                </label>
                 <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -197,13 +204,13 @@ const CorrecoesSped = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Contribuinte <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
-                </Label>
+                </label>
                 <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,15 +220,15 @@ const CorrecoesSped = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Data Início <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.dataInicio} />
-                </Label>
+                </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtIni && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dtIni && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtIni ? format(new Date(dtIni + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
                   </PopoverTrigger>
@@ -230,15 +237,15 @@ const CorrecoesSped = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Data Fim <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.dataFim} />
-                </Label>
+                </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dtFin && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                    <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dtFin && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtFin ? format(new Date(dtFin + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
                   </PopoverTrigger>
@@ -247,13 +254,13 @@ const CorrecoesSped = () => {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs flex items-center gap-1">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   NCM
                   <FieldTooltip text={SPED_TOOLTIPS.ncm} />
-                </Label>
+                </label>
                 <Select value={ncmFilter} onValueChange={(v) => setNcmFilter(v as NcmFilter)}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,15 +272,15 @@ const CorrecoesSped = () => {
               </div>
             </div>
             {activeTab === 'f100' && (
-              <div className="mt-3 pt-3 border-t border-dashed grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Nat. Base de Crédito <RequiredMark />
                     <FieldTooltip text={SPED_TOOLTIPS.natBcCredF100} />
-                  </Label>
+                  </label>
                   <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-8 w-full justify-between text-sm font-normal">
+                      <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-11 w-full justify-between text-sm font-normal bg-white dark:bg-slate-800">
                         {natBcCreds.length === 0 && <span className="text-muted-foreground">Selecione ou digite...</span>}
                         {natBcCreds.length === 1 && (
                           <span className="truncate">
@@ -354,39 +361,49 @@ const CorrecoesSped = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+                <div>
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Código da Conta <RequiredMark />
                     <FieldTooltip text={SPED_TOOLTIPS.codCtaF100} />
-                  </Label>
+                  </label>
                   <Input
                     placeholder="Ex: 31010201"
                     value={codCta}
                     onChange={(e) => setCodCta(e.target.value)}
-                    className="h-8 text-sm font-mono"
+                    className="h-11 text-sm font-mono bg-white dark:bg-slate-800"
                   />
                 </div>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row justify-between gap-2 mt-3">
-              <div className="flex items-center gap-1.5 max-w-sm w-full">
-                <Input
-                  placeholder="Buscar por descrição, chave ou NCM..."
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  className="h-8 text-sm"
-                />
-                <FieldTooltip text={SPED_TOOLTIPS.buscar} />
+            <div className="grid grid-cols-12 gap-6">
+              <div className="col-span-12 md:col-span-6">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  Buscar
+                  <FieldTooltip text={SPED_TOOLTIPS.buscar} />
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Buscar por descrição, chave ou NCM..."
+                    value={searchText}
+                    onChange={(e) => setSearchText(e.target.value)}
+                    className="pl-9 h-11 bg-white dark:bg-slate-800"
+                  />
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleLimpar}>
-                  <X className="h-3.5 w-3.5 mr-1" />Limpar
-                </Button>
-                <Button size="sm" onClick={handleConsultar} disabled={!canConsult || anyFetching} title={activeTab === 'f100' && !f100FiltersValid ? 'Informe Nat. Base de Crédito ou Cód. Conta para consultar F100' : undefined}>
-                  <Search className="h-3.5 w-3.5 mr-1" />
-                  {anyFetching ? 'Consultando...' : 'Consultar'}
-                </Button>
-              </div>
+            </div>
+
+            <Separator />
+
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" onClick={handleLimpar}>
+                <X className="h-4 w-4 mr-2" />
+                Limpar
+              </Button>
+              <Button onClick={handleConsultar} disabled={!canConsult || anyFetching} title={activeTab === 'f100' && !f100FiltersValid ? 'Informe Nat. Base de Crédito ou Cód. Conta para consultar F100' : undefined}>
+                <Search className="h-4 w-4 mr-2" />
+                {anyFetching ? 'Consultando...' : 'Consultar'}
+              </Button>
             </div>
           </CardContent>
         </Card>

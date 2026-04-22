@@ -7,8 +7,9 @@ import { ApuracaoDataTable } from "@/components/equipe/dev/pis-cofins/ApuracaoDa
 import { BalanceteTreeTable } from "@/components/equipe/dev/pis-cofins/BalanceteTreeTable";
 import { DynamicTableHeader } from "@/components/equipe/dev/pis-cofins/DynamicTableHeader";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MonthYearPicker, monthYearToDateString } from "@/components/ui/month-year-picker";
 import { RequiredMark } from "@/components/ui/required-mark";
@@ -16,7 +17,7 @@ import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Search, Loader2, Eraser, AlertCircle, Info } from "lucide-react";
+import { Search, Loader2, Eraser, AlertCircle, Info, Filter } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
@@ -517,122 +518,134 @@ const ApuracaoPisCofins = () => {
         </AlertDescription>
       </Alert>
       {/* Filters */}
-      <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
-        {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Cliente <RequiredMark />
-              <FieldTooltip text={TOOLTIPS.cliente} />
-            </label>
-            {loadingClientes ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select value={selectedCliente} onValueChange={(v) => setSelectedCliente(v)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Contribuinte <RequiredMark />
-              <FieldTooltip text={TOOLTIPS.contribuinte} />
-            </label>
-            {loadingContribuintes && selectedCliente ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={selectedContribuinte}
-                onValueChange={(v) => {
-                  setSelectedContribuinte(v);
-                  setSearchTriggered(false);
-                }}
-                disabled={!selectedCliente}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome_razao_social}
-                      {c.cpf_cnpj && <span className="ml-2 text-muted-foreground text-xs">{c.cpf_cnpj}</span>}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Tipo de análise
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground/70" />
-                </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs text-xs">
-                  <p><strong>Cliente:</strong> Utiliza os registros do EFD Contribuições como base da análise.</p>
-                  <p><strong>Prado:</strong> Utiliza o balancete importado como base da análise.</p>
-                </TooltipContent>
-              </Tooltip>
-            </label>
-            <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="EFD">Cliente</SelectItem>
-                <SelectItem value="BALANCETE">Prado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Row 2: Datas, switch, botões */}
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Data Início <RequiredMark />
-              <FieldTooltip text={TOOLTIPS.dataInicio} />
-            </label>
-            <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Data Fim <RequiredMark />
-              <FieldTooltip text={TOOLTIPS.dataFim} />
-            </label>
-            <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
-          </div>
-
-          {tipoApuracao === "BALANCETE" && (
-            <div className="flex items-center gap-2 pb-1">
-              <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
-              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">
-                Período Fechado
-                <FieldTooltip text={TOOLTIPS.periodoFechado} />
-              </Label>
+      <Card className="mb-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg text-primary">
+            <Filter className="h-5 w-5 text-teal-600" />
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Cliente */}
+            <div className="col-span-12 md:col-span-4">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Cliente <RequiredMark />
+                <FieldTooltip text={TOOLTIPS.cliente} />
+              </label>
+              {loadingClientes ? (
+                <Skeleton className="h-11 w-full" />
+              ) : (
+                <Select value={selectedCliente} onValueChange={(v) => setSelectedCliente(v)}>
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
-          )}
 
-          <div className="ml-auto flex gap-2">
-            <Button variant="outline" size="default" onClick={handleClear} className="gap-1.5">
+            {/* Contribuinte */}
+            <div className="col-span-12 md:col-span-4">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Contribuinte <RequiredMark />
+                <FieldTooltip text={TOOLTIPS.contribuinte} />
+              </label>
+              {loadingContribuintes && selectedCliente ? (
+                <Skeleton className="h-11 w-full" />
+              ) : (
+                <Select
+                  value={selectedContribuinte}
+                  onValueChange={(v) => {
+                    setSelectedContribuinte(v);
+                    setSearchTriggered(false);
+                  }}
+                  disabled={!selectedCliente}
+                >
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Selecione o contribuinte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contribuintes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.nome_razao_social}
+                        {c.cpf_cnpj && <span className="ml-2 text-muted-foreground text-xs">{c.cpf_cnpj}</span>}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+
+            {/* Tipo de análise */}
+            <div className="col-span-12 md:col-span-4">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Tipo de análise
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground flex-shrink-0" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs text-xs">
+                    <p><strong>Cliente:</strong> Utiliza os registros do EFD Contribuições como base da análise.</p>
+                    <p><strong>Prado:</strong> Utiliza o balancete importado como base da análise.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </label>
+              <Select value={tipoApuracao} onValueChange={(v) => setTipoApuracao(v as "EFD" | "BALANCETE")}>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="EFD">Cliente</SelectItem>
+                  <SelectItem value="BALANCETE">Prado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Data Início */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Data Início <RequiredMark />
+                <FieldTooltip text={TOOLTIPS.dataInicio} />
+              </label>
+              <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
+            </div>
+
+            {/* Data Fim */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Data Fim <RequiredMark />
+                <FieldTooltip text={TOOLTIPS.dataFim} />
+              </label>
+              <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
+            </div>
+
+            {tipoApuracao === "BALANCETE" && (
+              <div className="col-span-12 md:col-span-6 flex items-end pb-2">
+                <div className="flex items-center gap-2">
+                  <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
+                  <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">
+                    Período Fechado
+                    <FieldTooltip text={TOOLTIPS.periodoFechado} />
+                  </Label>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-end gap-2">
+            <Button variant="outline" onClick={handleClear} className="gap-1.5">
               <Eraser className="h-4 w-4" /> Limpar
             </Button>
             <Button
-              size="default"
               onClick={handleSearch}
               disabled={isLoading}
               className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground"
@@ -641,8 +654,8 @@ const ApuracaoPisCofins = () => {
               Consultar
             </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
       {/* Results */}
       {searchTriggered && (

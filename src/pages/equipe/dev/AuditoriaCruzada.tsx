@@ -3,15 +3,16 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { Search, X, CalendarIcon } from 'lucide-react';
+import { Search, X, CalendarIcon, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
 import { useBalanceteEfd } from '@/hooks/useBalanceteEfd';
@@ -71,16 +72,22 @@ const AuditoriaCruzadaContent = () => {
       <TooltipProvider delayDuration={300}>
         <DevPageHeader description={PAGE_DESCRIPTION} hideManualLink />
         <div className="space-y-4">
-          <Card className="bg-muted/50 border-dashed">
-            <CardContent className="p-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+          <Card className="mb-6">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-2 text-lg text-primary">
+                <Filter className="h-5 w-5 text-teal-600" />
+                <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-12 gap-6">
+                <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Cliente <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente} />
-                  </Label>
+                  </label>
                   <Select value={clienteId} onValueChange={setClienteId}>
-                    <SelectTrigger className="h-8 text-sm">
+                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -90,13 +97,13 @@ const AuditoriaCruzadaContent = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+                <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Contribuinte <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte} />
-                  </Label>
+                  </label>
                   <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                    <SelectTrigger className="h-8 text-sm">
+                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
                       <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -106,15 +113,15 @@ const AuditoriaCruzadaContent = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+                <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Data Início <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.dataInicio} />
-                  </Label>
+                  </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dataInicio && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
                         {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>
                     </PopoverTrigger>
@@ -123,15 +130,15 @@ const AuditoriaCruzadaContent = () => {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <div className="space-y-1">
-                  <Label className="text-xs flex items-center gap-1">
+                <div className="col-span-12 md:col-span-6 lg:col-span-3">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Data Fim <RequiredMark />
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.dataFim} />
-                  </Label>
+                  </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dataFim && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
                         {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>
                     </PopoverTrigger>
@@ -141,13 +148,16 @@ const AuditoriaCruzadaContent = () => {
                   </Popover>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-3">
-                <Button variant="outline" size="sm" onClick={handleLimpar}>
-                  <X className="h-3.5 w-3.5 mr-1" />
+
+              <Separator />
+
+              <div className="flex items-center justify-end gap-2">
+                <Button variant="outline" onClick={handleLimpar}>
+                  <X className="h-4 w-4 mr-2" />
                   Limpar
                 </Button>
-                <Button size="sm" onClick={handleConsultar}>
-                  <Search className="h-3.5 w-3.5 mr-1" />
+                <Button onClick={handleConsultar}>
+                  <Search className="h-4 w-4 mr-2" />
                   Consultar
                 </Button>
               </div>
