@@ -596,8 +596,6 @@ export default function TabC170({
                     <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">{renderColumnLabel('Impostos', SPED_TOOLTIPS.impostos)}</TableHead>
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
-                    <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
-                  </TableRow>
                   <TableRow>
                     {isEditMode && (
                       <TableHead className="w-[40px] min-w-[40px] text-center">
