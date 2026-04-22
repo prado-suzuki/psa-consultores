@@ -47,12 +47,44 @@ const FieldTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
 // --- Tooltip texts ---
 const TOOLTIPS = {
   cliente: "Filtra as EFD ICMS por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
+  colArquivo: "Nome e ID do arquivo EFD ICMS processado.",
+  colPeriodo: "Mês inicial e final da escrituração.",
+  colTipo: "Status do arquivo (Original ou Retificadora).",
+  colIcms: "Total de ICMS a recolher apurado no período.",
+  colIcmsSt: "Total de ICMS ST a recolher apurado no período.",
+  colAcoes: "Opções de download, exportação Excel e análise em tela.",
+  exportarLote: "Exportar arquivo(s) selecionado(s) para Excel.",
+  baixarLote: "Download individual ou em lote (ZIP) dos arquivos selecionados.",
+  baixarTxt: "Download do arquivo EFD ICMS original (.txt).",
+  analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
 } as const;
 
 const ConsultaEFDICMS = () => {
