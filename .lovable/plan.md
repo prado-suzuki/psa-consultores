@@ -1,119 +1,100 @@
 
 
-## Plano: Visão Geral + Tooltips em Apuração PIS/COFINS
+## Plano: Tooltips em TODAS as colunas/cabeçalhos das tabelas — Apuração PIS/COFINS
 
-Aplicar em `src/pages/equipe/dev/ApuracaoPisCofins.tsx` o mesmo padrão de `ControlePerdcomp.tsx`, **sem alterar componentes compartilhados** (`ApuracaoDataTable`, `DynamicTableHeader`, `BalanceteTreeTable`) — assim os filtros de coluna no cabeçalho permanecem intactos.
+Aplicar o padrão exato do `MapaNCMPisCofins.tsx` (`<ColumnTooltip label="..." text="..." />` com sublinhado pontilhado) em **todos os cabeçalhos** das tabelas da página, **sem quebrar os filtros de coluna nem a expansão de anos**, mantendo todos os tooltips de seção (`SectionTitle` / `titleTooltip`) já implementados.
 
-### 1. Visão Geral (`DevPageHeader` adaptado)
+### Estratégia: estender 2 componentes compartilhados de forma backward-compatible
 
-`DevPageHeader` hoje força a frase "Para acessar o manual… clique aqui". Como esta ferramenta ainda não tem manual, **não usar** o componente. No lugar, replicar inline o mesmo `Alert` verde-água usado por ele, **sem** o trecho do link:
+Para evitar reescrever cada `<TableHead>` (e quebrar `ColumnFilterDropdown` / botões de expandir ano que vivem dentro deles), vamos passar um **mapa opcional** `columnTooltips` para os headers compartilhados, que renderizam o `ColumnTooltip` automaticamente nas labels.
 
-```tsx
-<Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
-  <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
-  <AlertTitle className="text-sm font-semibold ...">Visão Geral</AlertTitle>
-  <AlertDescription className="text-sm leading-relaxed ... mt-1">
-    A <strong>Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e
-    rateios do contribuinte a partir do <strong>EFD Contribuições</strong> (modo Cliente)
-    ou do <strong>Balancete</strong> importado (modo Prado), permitindo conferir a
-    base de cálculo, o resultado do período e o saldo apurado mês a mês.
-  </AlertDescription>
-</Alert>
-```
+#### 1. `DynamicTableHeader.tsx` — adicionar prop opcional
 
-Logo abaixo do `<DevLayout>`, antes do bloco de filtros. Imports: `Alert, AlertDescription, AlertTitle` de `@/components/ui/alert`.
+Nova prop `columnTooltips?: Record<string, string>` (chaves: `<stickyLabel>` para colunas fixas, id do ano/mês para colunas dinâmicas, `"__total__"` para a coluna Total).
 
-### 2. Helper `FieldTooltip` (mesmo padrão do PERDCOMP)
+- Se a prop estiver presente E houver tooltip para aquela chave, envolver a label com `ColumnTooltip` (mesmo helper do MapaNCM, copiado para dentro do arquivo ou movido para `pis-cofins/columnTooltipUtils.tsx`).
+- Se ausente, renderiza o texto simples atual → **zero impacto em outros usos**.
+- Filtros (`renderHeaderExtra`) e botões de expandir/colapsar ano permanecem renderizados ao lado, intactos.
 
-Adicionar no topo do arquivo:
+#### 2. `ApuracaoDataTable.tsx` — adicionar prop opcional
 
-```tsx
-const FieldTooltip = ({ text }: { text: string }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
-    </TooltipTrigger>
-    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
-      {text}
-    </TooltipContent>
-  </Tooltip>
-);
-```
+Nova prop `columnTooltips?: Record<string, string>` repassada ao `DynamicTableHeader`. Para as colunas sticky internas (CST, Conta, Descrição, Bloco), aplicar `ColumnTooltip` na própria renderização.
 
-Envolver todo o retorno do componente em `<TooltipProvider delayDuration={200}>` (ainda não está envolvido — hoje os `Tooltip` inline funcionam por sorte porque o `DevLayout` provavelmente provê um Provider; padronizar explicitamente).
+#### 3. `BalanceteTreeTable.tsx` — mesmo padrão
 
-### 3. Tooltips dos filtros principais
+Adicionar `columnTooltips?: Record<string, string>` opcional e aplicar `ColumnTooltip` nas colunas fixas (Conta, Descrição, Tipo, valores mensais usam o mesmo header).
 
-Objeto centralizado:
+### Tooltips a aplicar (catálogo completo)
+
+Centralizar em `COLUMN_TOOLTIPS` no `ApuracaoPisCofins.tsx`:
 
 ```ts
-const TOOLTIPS = {
-  cliente: "Cliente/grupo cujo contribuinte será apurado.",
-  contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
-  // tipoAnalise: JÁ EXISTE inline — manter como está, NÃO sobrescrever
-  dataInicio: "Mês/ano inicial do período de apuração.",
-  dataFim: "Mês/ano final do período (≥ Data Início).",
-  periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
-  filtroConta: "Restringe a visualização a uma ou mais contas contábeis específicas.",
+const COLUMN_TOOLTIPS = {
+  // Colunas fixas (sticky) das tabelas grandes (Resumo, Débitos, Créditos, etc.)
+  CST: "Código de Situação Tributária do PIS/COFINS aplicado ao item.",
+  Conta: "Código contábil da conta (do EFD ou Balancete) que originou o valor.",
+  "Descrição": "Descrição contábil da conta ou do item da apuração.",
+  Bloco: "Bloco do EFD Contribuições onde o registro foi extraído (A170, C170, F100 etc.).",
+  // Coluna Total (final de cada tabela com colunas mensais)
+  __total__: "Soma de todos os meses exibidos no período consultado.",
+  // Coluna de ano colapsado (chave = id do ano, ex.: "2024")
+  __year__: "Total do ano. Clique no '+' para expandir e ver os meses.",
+  // Coluna de mês expandido (chave = "YYYY-MM")
+  __month__: "Valor da competência (mês/ano) selecionada.",
+
+  // Tabelas inline — colunas sticky de uma única descrição
+  "Rateio das receitas": "Categoria de receita usada no cálculo do percentual de rateio.",
+
+  // BalanceteTreeTable — colunas fixas extras
+  Tipo: "Tipo da conta no balancete (Devedora 'D' ou Credora 'C').",
 } as const;
 ```
 
-Aplicar `<FieldTooltip text={TOOLTIPS.x} />` ao lado dos labels de:
-- **Cliente** → `cliente`
-- **Contribuinte** → `contribuinte`
-- **Tipo de análise** → **MANTER o tooltip atual** (já é detalhado, com Cliente/Prado), não substituir
-- **Data Início** → `dataInicio`
-- **Data Fim** → `dataFim`
-- **Período Fechado** (label do switch) → `periodoFechado`
+E para os cabeçalhos dinâmicos, gerar o mapa em runtime na própria página:
 
-### 4. Tooltips nos cabeçalhos das tabelas principais
-
-`ApuracaoDataTable` já aceita `titleTooltip` — usar essa prop existente (renderiza ícone `Info` ao lado do título da seção, sem mexer no `<thead>` da tabela, **preservando os filtros de coluna**).
-
-Tooltips já existentes — **manter sem alteração**:
-- "Débitos" → CST 01 a 10 ✓
-- "Isenções e Exclusões" → CST 04 a 09 ✓
-- "Créditos" → CST 50 a 66 ✓
-- "Operações não geradoras de Crédito" → CST 70 a 99 ✓
-
-Adicionar `titleTooltip` nas seções que ainda não têm:
-- **Base da Apuração - EFD Contribuições / Balancete** → "Itens-base utilizados como ponto de partida da apuração: receitas (CST 01–09) e/ou contas do balancete vinculadas, antes de aplicar débitos e créditos."
-- **Outras Saídas** → "Operações de saída que não geram débito direto, mas compõem a análise (ex.: transferências, devoluções)."
-
-Para as **tabelas inline** (`InlineTableWrapper` + `DynamicTableHeader` direto), o título é renderizado como `<h2>` próprio na página. Adicionar o ícone `Info` ao lado do `<h2>` usando o mesmo padrão visual do `ApuracaoDataTable`:
-
-```tsx
-<h2 className="text-lg font-bold uppercase mb-4 text-primary flex items-center gap-1.5">
-  Base de Cálculo Após Isenções/Exclusões
-  <Tooltip><TooltipTrigger asChild>
-    <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
-  </TooltipTrigger><TooltipContent side="right" className="max-w-xs text-sm font-normal normal-case">
-    {SECTION_TOOLTIPS.baseAposIsencoes}
-  </TooltipContent></Tooltip>
-</h2>
+```ts
+const buildColumnTooltips = (columnsData) => {
+  const map: Record<string,string> = {
+    CST: COLUMN_TOOLTIPS.CST,
+    Conta: COLUMN_TOOLTIPS.Conta,
+    "Descrição": COLUMN_TOOLTIPS["Descrição"],
+    Bloco: COLUMN_TOOLTIPS.Bloco,
+    "Rateio das receitas": COLUMN_TOOLTIPS["Rateio das receitas"],
+    Tipo: COLUMN_TOOLTIPS.Tipo,
+    __total__: COLUMN_TOOLTIPS.__total__,
+  };
+  // anos
+  columnsData.yearsMap.forEach((months, year) => {
+    map[year] = COLUMN_TOOLTIPS.__year__;
+    months.forEach(m => { map[m] = COLUMN_TOOLTIPS.__month__; });
+  });
+  return map;
+};
 ```
 
-Textos para as seções inline (objeto `SECTION_TOOLTIPS`):
-- **Base de Cálculo Após Isenções/Exclusões** → "Receita bruta líquida das isenções e exclusões — base efetiva sobre a qual incidem PIS e COFINS."
-- **Débitos do Mês** → "Valor do débito de PIS/COFINS calculado sobre a base, separado por alíquota cheia e alíquota reduzida."
-- **Base de Cálculo do Crédito** → "Soma das aquisições e custos que dão direito a crédito de PIS/COFINS no período."
-- **Crédito do Mês** → "Crédito apropriado mês a mês para PIS e COFINS, com destaque para alíquota reduzida quando aplicável."
-- **Apuração** (resultado / saldo) → "Resultado líquido (Débito - Crédito) e evolução do saldo de PIS e COFINS no período."
-- **Rateio das Receitas** → "Distribuição percentual das receitas tributadas, não tributadas e exportação para fins de proporcionalidade do crédito."
-- **Rateio do Crédito** → "Aplicação do percentual de rateio sobre o crédito apurado, ajustando o valor efetivamente apropriável."
+Passar `columnTooltips={buildColumnTooltips(columnsData)}` em **todos** os `<ApuracaoDataTable />`, `<DynamicTableHeader />` (das tabelas inline) e `<BalanceteTreeTable />`.
 
-(Os títulos exatos serão mapeados 1:1 ao percorrer os blocos das tabs Débitos, Créditos, Apuração e Rateio.)
+### Por que isso NÃO quebra os filtros
 
-### 5. O que NÃO alterar
+- `ColumnTooltip` envolve apenas o **texto da label** (`<span>` com `<TooltipTrigger>`), não substitui o `<TableHead>`.
+- `ColumnFilterDropdown` é renderizado lado a lado via `renderHeaderExtra` (já existente) e continua funcionando exatamente como hoje no `ApuracaoDataTable`.
+- Botões `+`/`-` de expandir ano permanecem dentro da `<div className="flex items-center justify-end gap-2">` no `DynamicTableHeader`, apenas a label "2024" passa a ter sublinhado pontilhado + tooltip.
+- A prop é opcional → outras páginas que consomem esses componentes (ConsultaEFD, IcmsSaidas etc.) continuam funcionando sem mudança.
 
-- `ApuracaoDataTable.tsx`, `DynamicTableHeader.tsx`, `BalanceteTreeTable.tsx`, `MultiSelectContas.tsx` — ficam intocados.
-- Filtros de coluna (sort/filter dropdowns) no `<thead>` — preservados, pois trabalhamos só no `<h2>` da seção (fora da tabela).
-- Tooltip atual de "Tipo de análise" e os 4 `titleTooltip` já existentes (Débitos, Isenções, Créditos, Operações não geradoras).
-- Sem link "clique aqui" na Visão Geral (ferramenta ainda sem manual).
+### O que NÃO muda
+
+- Tooltips de filtros (`FieldTooltip` em Cliente, Contribuinte, Datas, Período Fechado) — já implementados, mantidos.
+- Tooltip de "Tipo de análise" (Cliente/Prado) — mantido como está.
+- `SectionTitle` e `titleTooltip` em todas as seções — mantidos.
+- Visão Geral (Alert teal) — mantida.
+- Lógica de cálculo, queries, filtros, ordenação, expansão de anos — intactas.
 
 ### Arquivos alterados
 
-- `src/pages/equipe/dev/ApuracaoPisCofins.tsx` (único arquivo)
+1. `src/components/equipe/dev/pis-cofins/DynamicTableHeader.tsx` — adicionar prop opcional `columnTooltips` + helper `ColumnTooltip` interno.
+2. `src/components/equipe/dev/pis-cofins/ApuracaoDataTable.tsx` — adicionar prop opcional `columnTooltips` (repassa ao header + aplica nas sticky internas).
+3. `src/components/equipe/dev/pis-cofins/BalanceteTreeTable.tsx` — adicionar prop opcional `columnTooltips` e aplicar nas colunas fixas.
+4. `src/pages/equipe/dev/ApuracaoPisCofins.tsx` — definir `COLUMN_TOOLTIPS`, função `buildColumnTooltips` e passar a prop em todos os `<ApuracaoDataTable />`, `<BalanceteTreeTable />` e `<DynamicTableHeader />` inline.
 
-Sem mudanças de banco, hooks, rotas ou componentes compartilhados.
+Sem mudanças de banco, hooks, rotas ou lógica de filtros/ordenação.
 
