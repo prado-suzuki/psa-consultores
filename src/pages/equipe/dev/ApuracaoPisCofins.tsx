@@ -71,7 +71,7 @@ const COLUMN_TOOLTIPS = {
   Bloco: "Bloco do EFD Contribuições onde o registro foi extraído (A170, C170, F100 etc.).",
   Total: "Soma de todos os meses exibidos no período consultado.",
   Year: "Total do ano. Clique no '+' para expandir e ver os meses.",
-  Month: "Valor da competência (mês/ano) selecionada.",
+  Month: "Valor total do mês.",
   RateioReceitas: "Categoria de receita usada no cálculo do percentual de rateio.",
   Tipo: "Tipo da conta no balancete (Devedora 'D' ou Credora 'C').",
   VlrEfd: "Valor extraído do EFD Contribuições para a conta no período.",
