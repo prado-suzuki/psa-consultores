@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { usePageAccess } from '@/hooks/usePageAccess';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -52,13 +53,19 @@ const buildDesempenhoSubItems = (pendingDecisions: number) => [
   { icon: Users2, label: '1:1s', path: '/equipe/board/desempenho/1a1' },
 ];
 
-const buildNavItems = (isAdmin: boolean, isLider: boolean, pendingDecisions: number): NavItem[] => [
+const buildNavItems = (
+  canPerformance: boolean,
+  canDesempenho: boolean,
+  pendingDecisions: number,
+): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
-  ...((isAdmin || isLider) ? [
+  ...(canPerformance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
-    { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true },
-    { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) },
+    { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
+  ] : []),
+  ...(canDesempenho ? [
+    { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) } as NavItem,
   ] : []),
 ];
 
@@ -84,6 +91,8 @@ const getBreadcrumb = (pathname: string) => {
 
 export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardLayoutProps) => {
   const { user, isAdmin, isLider } = useAuth();
+  const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
+  const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -107,7 +116,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
         .eq('status', 'ativa');
       return count ?? 0;
     },
-    enabled: isAdmin || isLider,
+    enabled: canDesempenho === true,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -139,7 +148,8 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
     staleTime: 5 * 60 * 1000,
   });
 
-  const navItems = buildNavItems(isAdmin, isLider, pendingDecisions);
+  const navItems = buildNavItems(canPerformance === true, canDesempenho === true, pendingDecisions);
+  const showGerencial = canPerformance === true || canDesempenho === true;
   const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
   const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
   const breadcrumb = getBreadcrumb(location.pathname);
@@ -224,7 +234,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
         </div>
 
         {/* GERENCIAL group */}
-        {(isAdmin || isLider) && (
+        {showGerencial && (
           <div className="mb-5">
             {!collapsed && (
               <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
