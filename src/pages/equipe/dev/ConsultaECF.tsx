@@ -535,22 +535,19 @@ const ConsultaECF = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDownloadTxt(arquivo)} disabled={downloadingTxt === arquivo.ID_ARQUIVO}>
-                                  {downloadingTxt === arquivo.ID_ARQUIVO ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Baixar arquivo TXT original</p></TooltipContent>
-                            </Tooltip>
-                            <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecf" />
+                        <div className="flex items-center justify-center gap-2">
+                          <ButtonTooltip text={TOOLTIPS.baixarTxt}>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDownloadTxt(arquivo)} disabled={downloadingTxt === arquivo.ID_ARQUIVO}>
+                              {downloadingTxt === arquivo.ID_ARQUIVO ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                            </Button>
+                          </ButtonTooltip>
+                          <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecf" />
+                          <ButtonTooltip text={TOOLTIPS.analisar}>
                             <Button size="sm" onClick={() => handleAnalisar(arquivo)} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
                               <BarChart3 className="h-4 w-4 mr-1" />Analisar
                             </Button>
-                          </div>
-                        </TooltipProvider>
+                          </ButtonTooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
