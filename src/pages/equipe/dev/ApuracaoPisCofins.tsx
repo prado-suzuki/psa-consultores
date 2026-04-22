@@ -37,8 +37,8 @@ const formatCurrency = (value: number) =>
 const TOOLTIPS = {
   cliente: "Cliente/grupo cujo contribuinte será apurado.",
   contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
-  dataInicio: "Mês/ano inicial do período de apuração.",
-  dataFim: "Mês/ano final do período (≥ Data Início).",
+  dataInicio: "Mês/ano inicial do período de apuração. Obrigatório.",
+  dataFim: "Mês/ano final do período (≥ Data Início). Obrigatório.",
   periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
 } as const;
 
@@ -603,7 +603,7 @@ const ApuracaoPisCofins = () => {
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Data Início
+              Data Início <RequiredMark />
               <FieldTooltip text={TOOLTIPS.dataInicio} />
             </label>
             <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
@@ -611,7 +611,7 @@ const ApuracaoPisCofins = () => {
 
           <div className="space-y-1.5">
             <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
-              Data Fim
+              Data Fim <RequiredMark />
               <FieldTooltip text={TOOLTIPS.dataFim} />
             </label>
             <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />

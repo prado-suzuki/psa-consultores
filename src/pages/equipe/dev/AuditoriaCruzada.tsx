@@ -22,6 +22,7 @@ import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
 import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+import { RequiredMark } from '@/components/ui/required-mark';
 
 const PAGE_DESCRIPTION =
   "A ferramenta **Análise Cruzada** realiza a reconciliação fiscal cruzando dados de **Balancete x EFD Contribuições**, **EFD ICMS x EFD Contribuições x XML de NFe** e **XMLs de CT-e por lote**. Use os filtros para selecionar cliente, contribuinte e período, e navegue pelas abas para identificar divergências entre as fontes.";
@@ -74,8 +75,9 @@ const AuditoriaCruzadaContent = () => {
             <CardContent className="p-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-xs">
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente}>Cliente</FieldTooltip>
+                  <Label className="text-xs flex items-center gap-1">
+                    Cliente <RequiredMark />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente} />
                   </Label>
                   <Select value={clienteId} onValueChange={setClienteId}>
                     <SelectTrigger className="h-8 text-sm">
@@ -89,8 +91,9 @@ const AuditoriaCruzadaContent = () => {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte}>Contribuinte</FieldTooltip>
+                  <Label className="text-xs flex items-center gap-1">
+                    Contribuinte <RequiredMark />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte} />
                   </Label>
                   <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
                     <SelectTrigger className="h-8 text-sm">
@@ -104,8 +107,9 @@ const AuditoriaCruzadaContent = () => {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataInicio}>Data Início</FieldTooltip>
+                  <Label className="text-xs flex items-center gap-1">
+                    Data Início <RequiredMark />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataInicio} />
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -120,8 +124,9 @@ const AuditoriaCruzadaContent = () => {
                   </Popover>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataFim}>Data Fim</FieldTooltip>
+                  <Label className="text-xs flex items-center gap-1">
+                    Data Fim <RequiredMark />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataFim} />
                   </Label>
                   <Popover>
                     <PopoverTrigger asChild>
