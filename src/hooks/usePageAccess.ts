@@ -4,19 +4,21 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Hook to check if the current user has access to a specific page.
- * Returns true if:
- * - User is admin (always has access)
- * - Page is not registered in page_permissions (free access)
- * - User has explicit access in user_page_access table
- * - NEW: Page category is 'geral' and user is team_member
- * - NEW: User belongs to a team whose area's page_categories includes the page's category
+ *
+ * Visibilidade por rota — separada da operação (RLS):
+ * - Admin sempre tem acesso.
+ * - Página não cadastrada em `page_permissions` → acesso livre (rota pública).
+ * - Caso contrário, exige registro explícito em `user_page_access`.
+ *
+ * Não há mais bypass por categoria/papel: para conceder visibilidade,
+ * crie a entrada em `user_page_access` (manualmente ou via fluxo de
+ * provisionamento de membros).
  */
 export function usePageAccess(pagePath: string) {
-  const { user, isAdmin, isTeamMember, isLider, isSublider, loading: authLoading } = useAuth();
-  const isInternalUser = isTeamMember || isLider || isSublider;
+  const { user, isAdmin, loading: authLoading } = useAuth();
 
   const { data: hasAccess, isLoading } = useQuery({
-    queryKey: ['page-access', user?.id, pagePath, isAdmin, isInternalUser],
+    queryKey: ['page-access', user?.id, pagePath, isAdmin],
     queryFn: async () => {
       if (!user) return false;
       if (isAdmin) return true;
@@ -24,7 +26,7 @@ export function usePageAccess(pagePath: string) {
       // Check if page exists in permissions table
       const { data: page } = await supabase
         .from('page_permissions')
-        .select('id, category')
+        .select('id')
         .eq('page_path', pagePath)
         .maybeSingle();
 
@@ -38,13 +40,7 @@ export function usePageAccess(pagePath: string) {
         .eq('page_permission_id', page.id)
         .maybeSingle();
 
-      if (access) return true;
-
-      // NEW: Category 'geral' → any team_member gets access
-      if (page.category === 'geral' && isInternalUser) return true;
-
-
-      return false;
+      return !!access;
     },
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000,

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, RefreshCw, Code2, ChevronRight, ShieldCheck } from 'lucide-react';
@@ -14,7 +15,6 @@ interface AreaCard {
   icon: React.ComponentType<{ className?: string }>;
   path: string;
   color: string;
-  adminOnly?: boolean;
   category?: string;
 }
 
@@ -22,6 +22,7 @@ const DigitalAreaSelector = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const { categories, isLoading } = useUserAccessibleCategories();
+  const { hasAccess: canAccessAcessos, isLoading: acessosLoading } = usePageAccess('/equipe/acessos');
 
   const allAreas: AreaCard[] = [
     {
@@ -49,12 +50,12 @@ const DigitalAreaSelector = () => {
       icon: ShieldCheck,
       path: '/equipe/acessos',
       color: 'from-amber-500 to-orange-500',
-      adminOnly: true,
+      category: '__acessos__',
     },
   ];
 
   const areas = allAreas.filter(area => {
-    if (area.adminOnly) return isAdmin;
+    if (area.category === '__acessos__') return canAccessAcessos;
     if (isAdmin) return true;
     if (!area.category) return true;
     return categories?.includes(area.category);

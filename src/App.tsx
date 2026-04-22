@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
-import { TeamRoute } from "@/components/auth/TeamRoute";
+
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
 import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGate";
@@ -147,44 +147,44 @@ const App = () => (
 
               {/* Equipe Routes */}
               <Route path="/equipe" element={<EquipeAuth />} />
-              <Route path="/equipe/chamados" element={<TeamRoute><PageAccessGate pagePath="/equipe/chamados"><EquipeChamados /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/chamados/:id" element={<TeamRoute><PageAccessGate pagePath="/equipe/chamados"><EquipeDetalhesChamado /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/dashboard"><EquipeDashboard /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/relatorios" element={<TeamRoute><PageAccessGate pagePath="/equipe/relatorios"><EquipeRelatorios /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/kanban" element={<TeamRoute><PageAccessGate pagePath="/equipe/kanban"><EquipeKanban /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/sprints" element={<TeamRoute><PageAccessGate pagePath="/equipe/sprints"><EquipeSprints /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/sprints/:id" element={<TeamRoute><PageAccessGate pagePath="/equipe/sprints"><EquipeSprintDetalhes /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/daily" element={<TeamRoute><PageAccessGate pagePath="/equipe/daily"><EquipeDaily /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/rotinas" element={<TeamRoute><PageAccessGate pagePath="/equipe/rotinas"><EquipeRotinas /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tarefas"><EquipeTarefas /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/tarefas/nova" element={<TeamRoute><PageAccessGate pagePath="/equipe/tarefas/nova"><EquipeNovaTarefa /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/chamados" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeChamados /></PageAccessGate>} />
+              <Route path="/equipe/chamados/:id" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeDetalhesChamado /></PageAccessGate>} />
+              <Route path="/equipe/dashboard" element={<PageAccessGate pagePath="/equipe/dashboard"><EquipeDashboard /></PageAccessGate>} />
+              <Route path="/equipe/relatorios" element={<PageAccessGate pagePath="/equipe/relatorios"><EquipeRelatorios /></PageAccessGate>} />
+              <Route path="/equipe/kanban" element={<PageAccessGate pagePath="/equipe/kanban"><EquipeKanban /></PageAccessGate>} />
+              <Route path="/equipe/sprints" element={<PageAccessGate pagePath="/equipe/sprints"><EquipeSprints /></PageAccessGate>} />
+              <Route path="/equipe/sprints/:id" element={<PageAccessGate pagePath="/equipe/sprints"><EquipeSprintDetalhes /></PageAccessGate>} />
+              <Route path="/equipe/daily" element={<PageAccessGate pagePath="/equipe/daily"><EquipeDaily /></PageAccessGate>} />
+              <Route path="/equipe/rotinas" element={<PageAccessGate pagePath="/equipe/rotinas"><EquipeRotinas /></PageAccessGate>} />
+              <Route path="/equipe/tarefas" element={<PageAccessGate pagePath="/equipe/tarefas"><EquipeTarefas /></PageAccessGate>} />
+              <Route path="/equipe/tarefas/nova" element={<PageAccessGate pagePath="/equipe/tarefas/nova"><EquipeNovaTarefa /></PageAccessGate>} />
 
-              <Route path="/equipe/processos" element={<TeamRoute><PageAccessGate pagePath="/equipe/processos"><EquipeProcessos /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/projetos" element={<TeamRoute><PageAccessGate pagePath="/equipe/projetos"><EquipeProjetos /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/biblioteca" element={<TeamRoute><PageAccessGate pagePath="/equipe/biblioteca"><EquipeBiblioteca /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/backlog" element={<TeamRoute><PageAccessGate pagePath="/equipe/backlog"><EquipeBacklog /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/digital" element={<TeamRoute><DigitalAreaSelector /></TeamRoute>} />
-              <Route path="/equipe/dev" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev"><DevDashboard /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/nova-ferramenta" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/ferramenta/:id" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/consulta-xmls" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/consulta-efd" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/consulta-efd-icms" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/consulta-ecd" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/consulta-ecf" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/gerenciar-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/processo-difal" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/processo-difal"><ProcessoDifal /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/controle-perdcomp" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/controle-balancetes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/processos" element={<PageAccessGate pagePath="/equipe/processos"><EquipeProcessos /></PageAccessGate>} />
+              <Route path="/equipe/projetos" element={<PageAccessGate pagePath="/equipe/projetos"><EquipeProjetos /></PageAccessGate>} />
+              <Route path="/equipe/biblioteca" element={<PageAccessGate pagePath="/equipe/biblioteca"><EquipeBiblioteca /></PageAccessGate>} />
+              <Route path="/equipe/backlog" element={<PageAccessGate pagePath="/equipe/backlog"><EquipeBacklog /></PageAccessGate>} />
+              <Route path="/equipe/digital" element={<ProtectedRoute><DigitalAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/dev" element={<PageAccessGate pagePath="/equipe/dev"><DevDashboard /></PageAccessGate>} />
+              <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
+              <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-xmls" element={<PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-efd" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-ecd" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-ecf" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate>} />
+              <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate>} />
+              <Route path="/equipe/dev/processo-difal" element={<PageAccessGate pagePath="/equipe/dev/processo-difal"><ProcessoDifal /></PageAccessGate>} />
+              <Route path="/equipe/dev/controle-perdcomp" element={<PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate>} />
+              <Route path="/equipe/dev/controle-balancetes" element={<PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate>} />
               {/* Redirect legacy route */}
-              <Route path="/equipe/dev/gestao-clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/calculadora-ibs-cbs" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/apuracao-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/mapa-ncm-pis-cofins" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/cruzamento-dados" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/correcoes-sped" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/procedimentos" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<TeamRoute><PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/dev/gestao-clientes" element={<PageAccessGate pagePath="/equipe/dev/gestao-clientes"><GestaoClientes /></PageAccessGate>} />
+              <Route path="/equipe/dev/calculadora-ibs-cbs" element={<PageAccessGate pagePath="/equipe/dev/calculadora-ibs-cbs"><CalculadoraIbsCbs /></PageAccessGate>} />
+              <Route path="/equipe/dev/apuracao-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/apuracao-pis-cofins"><ApuracaoPisCofins /></PageAccessGate>} />
+              <Route path="/equipe/dev/mapa-ncm-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/mapa-ncm-pis-cofins"><MapaNCMPisCofins /></PageAccessGate>} />
+              <Route path="/equipe/dev/cruzamento-dados" element={<PageAccessGate pagePath="/equipe/dev/cruzamento-dados"><AuditoriaCruzada /></PageAccessGate>} />
+              <Route path="/equipe/dev/correcoes-sped" element={<PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate>} />
+              <Route path="/equipe/dev/procedimentos" element={<PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate>} />
+              <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
               <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
@@ -195,32 +195,32 @@ const App = () => (
               <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
 
               {/* Tax (Fiscal) Routes */}
-              <Route path="/equipe/tax/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/tax/projetos/clientes" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/tax/projetos/cadastro" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/tax/projetos/tarefas" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/tax/dashboard" element={<PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate>} />
 
               {/* Tax Auditoria */}
-              <Route path="/equipe/tax/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/tax/auditoria" element={<PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate>} />
 
               {/* OSG Routes */}
-              <Route path="/equipe/osg/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate></TeamRoute>} />
-              <Route path="/equipe/osg/auditoria" element={<TeamRoute><PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
+              <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 
               {/* Board Routes */}
-              <Route path="/equipe/board/dashboard" element={<TeamRoute><PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate></TeamRoute>} />
+              <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
-              <Route path="/equipe/board/performance" element={<TeamRoute><DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho" element={<TeamRoute><DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/ciclos" element={<TeamRoute><DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/metas" element={<TeamRoute><DesempenhoAccessGate><DesempenhoMetas /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/feedbacks" element={<TeamRoute><DesempenhoAccessGate><DesempenhoFeedbacks /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/1a1" element={<TeamRoute><DesempenhoAccessGate><DesempenhoReunioes1a1 /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/evolucao" element={<TeamRoute><DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/decisoes" element={<TeamRoute><DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/relatorios" element={<TeamRoute><DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate></TeamRoute>} />
-              <Route path="/equipe/board/desempenho/minha-evolucao" element={<TeamRoute><MinhaEvolucao /></TeamRoute>} />
+              <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho" element={<DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/ciclos" element={<DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/metas" element={<DesempenhoAccessGate><DesempenhoMetas /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/feedbacks" element={<DesempenhoAccessGate><DesempenhoFeedbacks /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/1a1" element={<DesempenhoAccessGate><DesempenhoReunioes1a1 /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/evolucao" element={<DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/decisoes" element={<DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/relatorios" element={<DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate>} />
+              <Route path="/equipe/board/desempenho/minha-evolucao" element={<ProtectedRoute><MinhaEvolucao /></ProtectedRoute>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

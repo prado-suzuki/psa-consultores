@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,39 +18,14 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const { signIn, user, isAdmin, mustChangePassword, loading: authLoading } = useAuth();
+  const { signIn, user, mustChangePassword, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Query to check if user has access to gestao area
-  const { data: hasAccess, isLoading: accessLoading } = useQuery({
-    queryKey: ['gestao-access', user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      
-      // Admins always have access
-      if (isAdmin) return true;
-      
-      // Check if user has specific access in user_page_access for any gestao page
-      const { data: gestaoPages } = await supabase
-        .from('page_permissions')
-        .select('id')
-        .eq('category', 'gestao');
-      
-      if (!gestaoPages || gestaoPages.length === 0) return false;
-      
-      const gestaoPageIds = gestaoPages.map(p => p.id);
-      
-      const { data: access } = await supabase
-        .from('user_page_access')
-        .select('id')
-        .eq('user_id', user.id)
-        .in('page_permission_id', gestaoPageIds)
-        .limit(1);
-      
-      return access && access.length > 0;
-    },
-    enabled: !!user && !authLoading,
-  });
+  // Visibilidade resolvida via usePageAccess (categoria gestao já cadastrada
+  // em page_permissions; admin libera via isAdmin no próprio hook).
+  const { hasAccess, isLoading: accessLoading } = usePageAccess(location.pathname);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

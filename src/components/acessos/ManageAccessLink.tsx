@@ -1,21 +1,15 @@
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { usePageAccess } from '@/hooks/usePageAccess';
 import { ShieldCheck, ArrowRight } from 'lucide-react';
 
 /**
  * Banner-atalho para a página completa de gerenciamento de acessos
- * (/equipe/acessos). Aparece apenas para administradores nas páginas
- * de visualização (/administracao/acessos, /gestao/acessos), sinalizando
- * onde criar/editar/excluir usuários e atribuir páginas.
- *
- * As 3 rotas de acessos continuam existindo por compatibilidade com
- * bookmarks e menus; este banner apenas direciona o usuário ao destino
- * correto quando a ação desejada vai além de visualização.
+ * (/equipe/acessos). Aparece apenas para quem tem visibilidade da rota.
  */
 export const ManageAccessLink = () => {
-  const { isAdmin } = useAuth();
+  const { hasAccess } = usePageAccess('/equipe/acessos');
 
-  if (!isAdmin) return null;
+  if (!hasAccess) return null;
 
   return (
     <Link
