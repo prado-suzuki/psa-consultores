@@ -100,27 +100,15 @@ const EquipeAuth = () => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user) {
-          // Verificar roles do usuário
+          // Verifica papel admin apenas para liberar bypass de checkAreaAccess.
+          // A barreira real de visibilidade é feita por checkAreaAccess (abaixo)
+          // e pelos guards de rota (PageAccessGate).
           const { data: roles } = await supabase
             .from('user_roles')
             .select('role')
             .eq('user_id', session.user.id);
 
           const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
-          const userIsTeamMember = roles?.some(r => r.role === 'team_member') || false;
-          const userIsLider = roles?.some(r => r.role === 'lider') || false;
-          const userIsSublider = roles?.some(r => r.role === 'sublider') || false;
-
-          // Verificar se é qualquer tipo de usuário interno (admin, team_member, lider ou sublider).
-          // Uma única role é suficiente — não exigir dupla-tag (team_member + sublider).
-          if (!userIsAdmin && !userIsTeamMember && !userIsLider && !userIsSublider) {
-            toast.error('Acesso restrito a membros da equipe', {
-              position: 'bottom-right',
-              duration: 3000,
-            });
-            setIsLoading(false);
-            return;
-          }
 
           // Verificar acesso à área selecionada
           const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
