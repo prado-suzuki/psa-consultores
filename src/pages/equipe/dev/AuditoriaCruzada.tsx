@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import DevLayout from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Search, X, CalendarIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesList, useContribuintesByCliente } from '@/hooks/useDevClients';
@@ -19,6 +21,10 @@ import { AuditoriaProvider, useAuditoriaStore } from '@/contexts/AuditoriaContex
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
+import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+
+const PAGE_DESCRIPTION =
+  "A ferramenta **Análise Cruzada** realiza a reconciliação fiscal cruzando dados de **Balancete x EFD Contribuições**, **EFD ICMS x EFD Contribuições x XML de NFe** e **XMLs de CT-e por lote**. Use os filtros para selecionar cliente, contribuinte e período, e navegue pelas abas para identificar divergências entre as fontes.";
 
 const AuditoriaCruzadaContent = () => {
   const {
@@ -61,110 +67,121 @@ const AuditoriaCruzadaContent = () => {
 
   return (
     <DevLayout title="Análise Cruzada" subtitle="Auditoria cruzada de arquivos e balancete contra a EFD Contribuições.">
-      <div className="space-y-4">
-        <Card className="bg-muted/50 border-dashed">
-          <CardContent className="p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Cliente</Label>
-                <Select value={clienteId} onValueChange={setClienteId}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder="Selecione..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      <TooltipProvider delayDuration={300}>
+        <DevPageHeader description={PAGE_DESCRIPTION} hideManualLink />
+        <div className="space-y-4">
+          <Card className="bg-muted/50 border-dashed">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente}>Cliente</FieldTooltip>
+                  </Label>
+                  <Select value={clienteId} onValueChange={setClienteId}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clientes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte}>Contribuinte</FieldTooltip>
+                  </Label>
+                  <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
+                    <SelectTrigger className="h-8 text-sm">
+                      <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contribuintes.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataInicio}>Data Início</FieldTooltip>
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar selected={dataInicio ?? undefined} onSelect={(d) => setDataInicio(d ?? null)} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataFim}>Data Fim</FieldTooltip>
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Contribuinte</Label>
-                <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                  <SelectTrigger className="h-8 text-sm">
-                    <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {contribuintes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex justify-end gap-2 mt-3">
+                <Button variant="outline" size="sm" onClick={handleLimpar}>
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Limpar
+                </Button>
+                <Button size="sm" onClick={handleConsultar}>
+                  <Search className="h-3.5 w-3.5 mr-1" />
+                  Consultar
+                </Button>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data Início</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dataInicio ?? undefined} onSelect={(d) => setDataInicio(d ?? null)} />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Data Fim</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-8 text-sm w-full justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-3">
-              <Button variant="outline" size="sm" onClick={handleLimpar}>
-                <X className="h-3.5 w-3.5 mr-1" />
-                Limpar
-              </Button>
-              <Button size="sm" onClick={handleConsultar}>
-                <Search className="h-3.5 w-3.5 mr-1" />
-                Consultar
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Tabs defaultValue="balancete-efd" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">Balancete</TabsTrigger>
-            <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS | XML NFe</TabsTrigger>
-            <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs de CTE por Lote</TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="balancete-efd" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="balancete-efd" className="text-xs sm:text-sm">Balancete</TabsTrigger>
+              <TabsTrigger value="efd-icms" className="text-xs sm:text-sm">EFD ICMS | XML NFe</TabsTrigger>
+              <TabsTrigger value="efd-xml" className="text-xs sm:text-sm">XMLs de CTE por Lote</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="balancete-efd">
-            <BalanceteEfdTab
-              periodos={balanceteQuery.data?.periodos}
-              isLoading={balanceteQuery.isLoading}
-              error={balanceteQuery.error as Error | null}
-            />
-          </TabsContent>
+            <TabsContent value="balancete-efd">
+              <BalanceteEfdTab
+                periodos={balanceteQuery.data?.periodos}
+                isLoading={balanceteQuery.isLoading}
+                error={balanceteQuery.error as Error | null}
+              />
+            </TabsContent>
 
-          <TabsContent value="efd-icms">
-            <EfdcIcmsTab
-              notas={efdcIcmsQuery.data?.NOTAS}
-              isLoading={efdcIcmsQuery.isLoading}
-              error={efdcIcmsQuery.error as Error | null}
-            />
-          </TabsContent>
+            <TabsContent value="efd-icms">
+              <EfdcIcmsTab
+                notas={efdcIcmsQuery.data?.NOTAS}
+                isLoading={efdcIcmsQuery.isLoading}
+                error={efdcIcmsQuery.error as Error | null}
+              />
+            </TabsContent>
 
-          <TabsContent value="efd-xml">
-            <EfdcXmlTab
-              lotes={efdcXmlQuery.data}
-              isLoading={efdcXmlQuery.isLoading}
-              error={efdcXmlQuery.error as Error | null}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
+            <TabsContent value="efd-xml">
+              <EfdcXmlTab
+                lotes={efdcXmlQuery.data}
+                isLoading={efdcXmlQuery.isLoading}
+                error={efdcXmlQuery.error as Error | null}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </TooltipProvider>
     </DevLayout>
   );
 };
