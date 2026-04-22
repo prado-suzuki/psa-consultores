@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
+import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
+import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
 import { parseDate } from '@/lib/dateUtils';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
@@ -182,7 +184,9 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
         <CardContent className="p-4 space-y-3">
           <div className="flex flex-wrap items-end gap-3">
             <div className="space-y-1 flex-1 min-w-[220px]">
-              <Label className="text-xs">CFOP / Intervalo</Label>
+              <Label className="text-xs">
+                <FieldTooltip text={AUDITORIA_TOOLTIPS.cfopIntervalo}>CFOP / Intervalo</FieldTooltip>
+              </Label>
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                 <Input
@@ -203,10 +207,14 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Data Início</TableHead>
-                      <TableHead className="text-xs">Data Lote</TableHead>
                       <TableHead className="text-xs">
-                        Emitente
+                        {renderColumnLabel("Data Início", "Data inicial do período do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Data Lote", "Data de emissão/processamento do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Emitente", "Razão social do emitente do lote de CT-es.")}
                         <ColumnFilterDropdown
                           columnKey="emitente"
                           uniqueValues={uniqueValues.emitente ?? []}
@@ -217,7 +225,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                         />
                       </TableHead>
                       <TableHead className="text-xs">
-                        CFOP
+                        {renderColumnLabel("CFOP", "Código Fiscal de Operações e Prestações.")}
                         <ColumnFilterDropdown
                           columnKey="cfop"
                           uniqueValues={uniqueValues.cfop ?? []}
@@ -227,12 +235,24 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                           onFilter={handleFilter}
                         />
                       </TableHead>
-                      <TableHead className="text-xs">Série</TableHead>
-                      <TableHead className="text-xs">Cód. Sit.</TableHead>
-                      <TableHead className="text-xs">Intervalo</TableHead>
-                      <TableHead className="text-xs text-right">Valor Lote</TableHead>
-                      <TableHead className="text-xs text-right">Soma CT-es</TableHead>
-                      <TableHead className="text-xs text-right">Diferença</TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Série", "Série dos documentos do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Cód. Sit.", "Código de situação dos documentos.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Intervalo", "Intervalo de numeração dos CT-es do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Valor Lote", "Valor total declarado do lote na EFD.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Soma CT-es", "Somatório dos valores dos CT-es individuais.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Diferença", "Diferença entre Valor Lote e Soma CT-es. Vermelho indica divergência > R$ 0,05.")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -319,9 +339,15 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Chave CT-e</TableHead>
-                      <TableHead className="text-xs">Número</TableHead>
-                      <TableHead className="text-xs text-right">Valor</TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Chave CT-e", "Chave de acesso do CT-e (44 dígitos).")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Número", "Número do CT-e.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Valor", "Valor do CT-e.")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

@@ -10,6 +10,7 @@ import { Search, AlertCircle, ChevronsUpDown, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
 import { BalanceteTreeTable } from '@/components/equipe/dev/pis-cofins/BalanceteTreeTable';
+import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
 import type { BalanceteEfdPeriodo } from '@/types/auditoriaCruzada';
 import type { ContaNode } from '@/types/pisCofins';
 
@@ -108,6 +109,32 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
       .filter(p => p.contas.length > 0);
   }, [periodos, debouncedSearch]);
 
+  // Build column tooltips map (static + dynamic months/years)
+  const columnTooltips = useMemo(() => {
+    const map: Record<string, string> = {
+      Conta: "Código contábil da conta no plano de contas do cliente.",
+      "Descrição": "Descrição da conta contábil.",
+      __total__: "Soma de todos os meses exibidos no período consultado.",
+      __year__: "Total do ano. Clique no '+' para expandir e ver os meses.",
+      __month__: "Valor total do mês.",
+      __vlr_efd__: "Valor extraído da EFD Contribuições para a conta no período.",
+      __saldo__: periodoFechado
+        ? "Saldo atual acumulado da conta até o fim do período."
+        : "Saldo do período (movimentação) da conta.",
+    };
+    const years = new Set<string>();
+    for (const p of periodos) {
+      const ym = p.dt_ini.substring(0, 7); // YYYY-MM
+      const y = p.dt_ini.substring(0, 4);
+      map[ym] = "Valor total do mês.";
+      years.add(y);
+    }
+    for (const y of years) {
+      map[y] = "Total do ano. Clique no '+' para expandir e ver os meses.";
+    }
+    return map;
+  }, [periodos, periodoFechado]);
+
   if (!hasQueried) {
     return (
       <Card>
@@ -146,7 +173,9 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[180px]">
-            <Label className="text-xs">Conta Contábil</Label>
+            <Label className="text-xs">
+              <FieldTooltip text={AUDITORIA_TOOLTIPS.contaContabil}>Conta Contábil</FieldTooltip>
+            </Label>
             <Popover open={popoverOpen} onOpenChange={() => {}}>
               <PopoverTrigger asChild>
                 <div className="relative">
@@ -198,7 +227,9 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
           </div>
           <div className="flex items-center gap-2 pb-0.5">
             <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
-            <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">Período Fechado</Label>
+            <Label htmlFor="periodo-fechado" className="text-xs cursor-pointer whitespace-nowrap">
+              <FieldTooltip text={AUDITORIA_TOOLTIPS.periodoFechado}>Período Fechado</FieldTooltip>
+            </Label>
           </div>
           <div className="flex gap-1 pb-0.5">
             <Button variant="outline" size="sm" onClick={() => treeRef.current?.expandAll()} className="gap-1 text-xs">
@@ -215,6 +246,7 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
           contasTree={filteredPeriodos}
           periodoFechado={periodoFechado}
           hideTitle
+          columnTooltips={columnTooltips}
         />
       </CardContent>
     </Card>
