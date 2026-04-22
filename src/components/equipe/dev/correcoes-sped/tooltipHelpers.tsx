@@ -1,51 +1,48 @@
-import { ReactNode } from "react";
-import { HelpCircle } from "lucide-react";
+import { Info } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 /**
- * FieldTooltip — wrapper que renderiza um label de filtro com ícone
- * de ajuda ao lado, exibindo um tooltip (portalizado) na hover.
+ * FieldTooltip — ícone de informação (`<Info>`) ao lado de um label que,
+ * ao hover, exibe o texto explicativo (portalizado, com `z-[100]`).
  *
- * Mesmo padrão usado em `auditoria/tooltipHelpers.tsx` /
- * `ApuracaoPisCofins.tsx`.
+ * Mesmo padrão visual de `ConsultaXMLs.tsx` / `ApuracaoPisCofins.tsx`.
+ * Uso: `<Label>Cliente <RequiredMark /> <FieldTooltip text="..." /></Label>`.
  */
-export const FieldTooltip = ({ children, text }: { children: ReactNode; text: string }) => (
-  <span className="inline-flex items-center gap-1">
-    {children}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          type="button"
-          className="text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Ajuda"
-        >
-          <HelpCircle className="h-3 w-3" />
-        </button>
-      </TooltipTrigger>
-      <TooltipPrimitive.Portal>
-        <TooltipContent
-          side="top"
-          sideOffset={6}
-          collisionPadding={12}
-          className="font-normal normal-case tracking-normal text-xs text-center max-w-[260px] z-[100]"
-        >
-          {text}
-        </TooltipContent>
-      </TooltipPrimitive.Portal>
-    </Tooltip>
-  </span>
+export const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipPrimitive.Portal>
+      <TooltipContent
+        side="top"
+        sideOffset={6}
+        collisionPadding={12}
+        className="font-normal normal-case tracking-normal text-xs text-center max-w-[260px] z-[100]"
+      >
+        {text}
+      </TooltipContent>
+    </TooltipPrimitive.Portal>
+  </Tooltip>
 );
 
 /** Tooltips reutilizados pelos filtros principais e colunas das abas. */
 export const SPED_TOOLTIPS = {
-  // Filtros principais
-  cliente: "Cliente cuja base SPED será revisada.",
+  // Filtros principais (obrigatórios)
+  cliente: "Cliente cuja base SPED será revisada. Obrigatório.",
   contribuinte:
-    "CNPJ/contribuinte específico do cliente. Quando há apenas um, é selecionado automaticamente.",
-  dataInicio: "Data inicial do período da escrituração a ser consultada.",
-  dataFim: "Data final do período da escrituração a ser consultada.",
+    "CNPJ/contribuinte específico do cliente. Quando há apenas um, é selecionado automaticamente. Obrigatório.",
+  dataInicio: "Data inicial do período da escrituração a ser consultada. Obrigatório.",
+  dataFim: "Data final do período da escrituração a ser consultada. Obrigatório.",
+  // Filtros opcionais
+  ncm: "Filtra os itens da tabela cruzando a informação com o NCM vinculado ao produto no Registro 0200 do SPED.",
   buscar: "Busca textual livre por descrição do item, chave do documento ou NCM.",
+  // Filtros condicionais da aba F100
+  natBcCredF100:
+    "Código NAT_BC_CRED do registro F100 (Tab. 4.3.7). Obrigatório informar este campo OU Cód. Conta para consultar F100.",
+  codCtaF100:
+    "COD_CTA do registro F100. Ex: 31010201. Obrigatório informar este campo OU Nat. Base de Crédito para consultar F100.",
   // Cabeçalhos de grupo
   dadosEfd: "Dados extraídos da EFD Contribuições (escrituração original).",
   impostos: "Apuração de PIS/COFINS para o registro: CST, base de cálculo, alíquota e valor.",
