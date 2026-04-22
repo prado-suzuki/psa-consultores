@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
+import { renderColumnLabel } from "./ColumnTooltip";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
 
@@ -175,6 +176,7 @@ interface BalanceteTreeTableProps {
   efdContas?: Set<string>;
   onToggleExtra?: (codCta: string, desc: string, tipo: "D" | "C") => void;
   onRemoveExtra?: (codCta: string) => void;
+  columnTooltips?: Record<string, string>;
 }
 
 const STICKY_COLS: StickyColumnConfig[] = [
