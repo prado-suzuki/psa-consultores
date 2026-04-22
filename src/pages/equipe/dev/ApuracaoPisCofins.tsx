@@ -415,11 +415,15 @@ const ApuracaoPisCofins = () => {
     });
   }, []);
 
+  // Tooltips for column headers — added dynamically based on the active period
+  const columnTooltips = useMemo(() => buildColumnTooltips(columnsData), [columnsData]);
+
   // Shared table props for data tables
   const dataTableProps = {
     columnsData,
     expandedYears,
     toggleYear,
+    columnTooltips,
   };
 
   // ── Conta filter options & filtered data for Resumo tab ──
@@ -483,6 +487,7 @@ const ApuracaoPisCofins = () => {
     hasExpandedYear,
     headerRowsCount,
     toggleYear,
+    columnTooltips,
   };
 
   const inlineStyledHeaderProps = {
