@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 
 export const useClientFormOptions = () => {
   const { data: userRoles = [] } = useQuery({
-    queryKey: ["user-roles-lider"],
+    queryKey: ["user-roles-lider-sublider"],
     queryFn: async () => {
-      const { data } = await supabase.from("user_roles").select("user_id, role").eq("role", "lider");
+      const { data } = await supabase.from("user_roles").select("user_id, role").in("role", ["lider", "sublider"]);
       return data || [];
     },
   });
