@@ -339,9 +339,15 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Chave CT-e</TableHead>
-                      <TableHead className="text-xs">Número</TableHead>
-                      <TableHead className="text-xs text-right">Valor</TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Chave CT-e", "Chave de acesso do CT-e (44 dígitos).")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Número", "Número do CT-e.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Valor", "Valor do CT-e.")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
