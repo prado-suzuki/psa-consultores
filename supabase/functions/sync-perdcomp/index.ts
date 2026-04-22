@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
     }
 
     const userRoles = roles?.map(r => r.role) || []
-    const hasPermission = userRoles.includes('team_member') || userRoles.includes('admin')
+    const hasPermission = userRoles.some(r => ['admin', 'lider', 'sublider', 'team_member'].includes(r))
 
     if (!hasPermission) {
       console.error('[sync-perdcomp] Usuário sem permissão:', userId)
