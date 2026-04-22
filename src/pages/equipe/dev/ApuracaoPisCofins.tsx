@@ -460,13 +460,27 @@ const ApuracaoPisCofins = () => {
 
   return (
     <DevLayout title="Apuração PIS/COFINS" subtitle="Apuração de tributos do cliente com base nos documentos fornecidos">
+      <TooltipProvider delayDuration={200}>
+      <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
+        <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+        <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          Visão Geral
+        </AlertTitle>
+        <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+          A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e
+          rateios do contribuinte a partir do <strong className="font-semibold">EFD Contribuições</strong> (modo Cliente)
+          ou do <strong className="font-semibold">Balancete</strong> importado (modo Prado), permitindo conferir a
+          base de cálculo, o resultado do período e o saldo apurado mês a mês.
+        </AlertDescription>
+      </Alert>
       {/* Filters */}
       <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
         {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Cliente <RequiredMark />
+              <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             {loadingClientes ? (
               <Skeleton className="h-10 w-full" />
