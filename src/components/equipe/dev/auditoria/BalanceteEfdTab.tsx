@@ -246,6 +246,7 @@ const BalanceteEfdTab = ({ periodos = [], isLoading, error }: BalanceteEfdTabPro
           contasTree={filteredPeriodos}
           periodoFechado={periodoFechado}
           hideTitle
+          columnTooltips={columnTooltips}
         />
       </CardContent>
     </Card>
