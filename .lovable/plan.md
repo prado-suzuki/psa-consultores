@@ -1,78 +1,92 @@
 
 
-## Diagnóstico: cliente `alessandro.tavares@paiolmt.com.br` não consegue abrir chamado
+## Plano: Tooltips na tabela e ações do `ConsultaEFD.tsx`
 
-### Causa raiz (combinação de 2 problemas)
+Arquivo único alterado: `src/pages/equipe/dev/ConsultaEFD.tsx`. Filtros de busca (zona já tooltipada com `FieldTooltip`) **não serão tocados**.
 
-**Problema 1 — Duplicidade na tabela `representante` quebra `.maybeSingle()`**
+### 1. Novos helpers (logo abaixo do `FieldTooltip`, ~linha 47)
 
-Existem **dois registros** de `representante` para o mesmo `user_id` deste usuário:
+Cópia idêntica ao padrão de `ConsultaXMLs.tsx`:
 
-| id_representante | id_cliente | cliente nome | ambiente |
-|---|---|---|---|
-| `f53b7462…` | `581c809f…` | Paiol Comercial Agricola | **dev** |
-| `6cfedcc9…` | `18cbce75…` | Paiol Comercial Agricola | **prod** |
+```tsx
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
 
-Tanto `useClienteClusters` quanto `useCreateTicketCliente` resolvem o `id_cliente` com:
-```ts
-supabase.from('representante').select('id_cliente').eq('user_id', userId).maybeSingle()
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
 ```
-`.maybeSingle()` **lança erro** quando retorna >1 linha (PGRST116 / "multiple rows returned"). Resultado: `useCreateTicketCliente.mutationFn` falha em produção neste usuário, o `toast` "Erro ao criar chamado" dispara e nenhum ticket é gravado (zero tickets registrados para `user_id=13582228…` confirmado em DB).
 
-**Problema 2 — RLS de `representante` e `cliente_clusters` não cobre o papel `client`**
+### 2. Expansão da constante `TOOLTIPS` (preservando chaves atuais)
 
-Mesmo se a duplicidade fosse resolvida, as políticas atuais bloqueiam usuários com role `client`:
-
-- `representante` → SELECT só permite `admin/lider/sublider/team_member`.
-- `cliente_clusters` → SELECT só permite `admin/lider/sublider/team_member`.
-
-Para um cliente, ambas as queries retornam vazio silenciosamente (RLS denega sem erro). Hoje isso só não trava porque o cliente Paiol tem 1 cluster e o select de cluster não é obrigatório no submit; mas o `cliente_id` jamais seria resolvido — chamados ficariam órfãos (sem `cliente_id` nem `cluster_id`), quebrando notificação/roteamento.
-
-### Plano de correção
-
-**1. Limpeza de dados — remover duplicidade do representante (produção)**
-
-A duplicidade é fruto de o sistema usar uma única instância de banco para `prod` e `dev` (memo `architecture/environment-isolation-strategy`). O mesmo usuário foi vinculado em representantes de dois clientes (mesma empresa) em ambientes diferentes. A query de `useClienteClusters` e `useCreateTicketCliente` **não filtra por `ambiente`**, então casa as duas linhas.
-
-Correção em código (segura e definitiva): adicionar filtro de ambiente nas duas queries:
-
-- `src/hooks/useClienteClusters.ts` — `representante` SELECT: adicionar `.eq('ambiente', currentAmbiente)` se a coluna `ambiente` existir nessa tabela; caso não exista, filtrar via JOIN com `cliente.ambiente=currentAmbiente` (resolver `id_cliente` apenas dentro do ambiente vigente). 
-- `src/hooks/useCreateTicket.ts` (`useCreateTicketCliente`) — mesma alteração.
-
-Verificar se `representante` possui coluna `ambiente`. Se não tiver, substituir o `.maybeSingle()` por: buscar todos os `id_cliente` de `representante` por `user_id`, e em seguida selecionar em `cliente` filtrando por `id IN (...)` + `ambiente = currentAmbiente` + `excluido = false`. Pegar o `cliente.id` resultante.
-
-Adicionalmente, trocar `.maybeSingle()` por `.limit(1).maybeSingle()` após o filtro, para que futuras duplicidades nunca mais quebrem o fluxo do cliente.
-
-**2. RLS — permitir que `client` leia o que precisa**
-
-Migration adicionando políticas restritas:
-
-- `public.representante` — SELECT: permitir quando `auth.uid() = user_id` (cliente lê apenas a própria linha de representante).
-- `public.cliente_clusters` — SELECT: permitir quando `cliente_id IN (SELECT id_cliente FROM representante WHERE user_id = auth.uid())` (cliente lê apenas vínculos do seu próprio cliente).
-- `public.estrutura_clusters` já permite `Authenticated users can read clusters` (`true`) — sem mudança.
-
-Sem isso, o seletor de empresa do `NovoChamado` nunca aparecerá e `cluster_id` nunca será resolvido para clientes com 2+ empresas vinculadas.
-
-**3. Tratamento de erro no formulário (defensivo)**
-
-Em `src/pages/cliente/NovoChamado.tsx`, o `catch` atual mostra apenas mensagem genérica. Adicionar `console.error(error)` e exibir `error.message` no toast, para que falhas futuras sejam diagnosticáveis no console do cliente.
-
-**4. Backfill (opcional, recomendado)**
-
-Para os tickets antigos do usuário (zero hoje, então não há retrabalho aqui), nada a fazer. Mas convém auditar outros usuários `client` com `>1` linha em `representante`:
-```sql
-SELECT user_id, COUNT(*) FROM representante WHERE user_id IS NOT NULL GROUP BY user_id HAVING COUNT(*) > 1;
+```tsx
+const TOOLTIPS = {
+  cliente: "Filtra as EFD Contribuições por cliente ou grupo.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  dataInicio: "Define o período inicial da busca.",
+  dataFim: "Define o período final da busca.",
+  // novos
+  colArquivo: "Nome e ID do arquivo SPED processado.",
+  colPeriodo: "Mês inicial e final da escrituração.",
+  colTipo: "Status do arquivo (Original ou Retificadora).",
+  colCreditoPis: "Total de créditos de PIS apurados no período.",
+  colCreditoCofins: "Total de créditos de COFINS apurados no período.",
+  colAcoes: "Opções de download, exportação Excel e análise em tela.",
+  baixarTodos: "Download em lote (.zip) de todos os arquivos SPED listados.",
+  baixarTxt: "Download do arquivo SPED original (.txt).",
+  analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
+} as const;
 ```
-Resultado direcionará se é necessário script de saneamento.
 
-### Arquivos a alterar
+### 3. Cabeçalho da tabela (`<thead>`, linhas 615–636)
 
-- `src/hooks/useClienteClusters.ts` — filtro por ambiente + tolerar duplicatas.
-- `src/hooks/useCreateTicket.ts` — mesma alteração no `useCreateTicketCliente`.
-- `src/pages/cliente/NovoChamado.tsx` — log de erro + toast com mensagem real.
-- Nova migration SQL — políticas SELECT em `representante` e `cliente_clusters` para o próprio cliente.
+Substituir o conteúdo de cada `<th>` por `<ColumnTooltip label="…" text={TOOLTIPS.col…} />`. Classes do `<th>` (padding, alinhamento, largura, `text-right`/`text-center`) preservadas integralmente.
 
-### Resultado esperado
+| Coluna | Chave |
+|---|---|
+| Arquivo | `colArquivo` |
+| Período | `colPeriodo` |
+| Tipo | `colTipo` |
+| Crédito PIS | `colCreditoPis` |
+| Crédito COFINS | `colCreditoCofins` |
+| Ações | `colAcoes` |
 
-Após as alterações: o usuário `alessandro.tavares@paiolmt.com.br` consegue abrir chamados em produção; o `cliente_id` é corretamente resolvido (`18cbce75…` Paiol Comercial Agricola — prod); o `cluster_id` é populado quando aplicável; a duplicidade de `representante` deixa de quebrar o fluxo; novos clientes com múltiplas empresas verão o seletor de empresa funcionando.
+### 4. Botão "Baixar Todos" (linhas 555–578)
+
+- Remover o `<TooltipProvider>` e o `<Tooltip>/<TooltipTrigger>/<TooltipContent>` redundantes (provider global já está ativo).
+- Envolver o `<Button>` em `<ButtonTooltip text={TOOLTIPS.baixarTodos}>…</ButtonTooltip>`.
+
+### 5. Botões de ação na linha (linhas 680–719)
+
+- Remover o `<TooltipProvider>` interno (linhas 681 e 718).
+- Botão de download TXT: remover o `<Tooltip>/<TooltipTrigger asChild>/<TooltipContent>` atual e envolver o `<Button>` em `<ButtonTooltip text={TOOLTIPS.baixarTxt}>…</ButtonTooltip>`.
+- Botão "Analisar": envolver em `<ButtonTooltip text={TOOLTIPS.analisar}>…</ButtonTooltip>`.
+- O `<EFDExportDialog>` (linhas 704–707) **não recebe tooltip** (componente próprio, fora do escopo solicitado).
+- A `<div className="flex items-center justify-center gap-2">` permanece como wrapper das três ações.
+
+### 6. Inalterado
+
+- `FieldTooltip` e tooltips dos filtros de busca.
+- `<TooltipProvider delayDuration={300}>` global na linha 403 (continua envolvendo toda a página).
+- Lógica de queries, handlers, formatadores e estados.
+- Imports — `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger` já estão importados.
+
+### Resultado
+
+Cabeçalhos com sublinhado pontilhado revelando descrição ao passar o cursor; botões "Baixar Todos", download TXT e "Analisar" com dica curta padronizada (220 px, centralizada, normal-case); JSX sem strings hardcoded e sem `TooltipProvider` aninhados.
 
