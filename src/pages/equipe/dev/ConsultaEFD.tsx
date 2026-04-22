@@ -639,22 +639,22 @@ const ConsultaEFD = () => {
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Arquivo
+                      <ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Período
+                      <ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Tipo
+                      <ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      Crédito PIS
+                      <ColumnTooltip label="Crédito PIS" text={TOOLTIPS.colCreditoPis} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      Crédito COFINS
+                      <ColumnTooltip label="Crédito COFINS" text={TOOLTIPS.colCreditoCofins} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">
-                      Ações
+                      <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
                     </th>
                   </tr>
                 </thead>
