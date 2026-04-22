@@ -50,6 +50,9 @@ export function useGrantPageAccess() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
       toast.success('Acesso concedido');
     },
     onError: () => {
@@ -76,6 +79,9 @@ export function useRevokePageAccess() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
       toast.success('Acesso revogado');
     },
     onError: () => {
@@ -158,6 +164,9 @@ export function useSyncUserAreaAccess() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
     },
   });
 }

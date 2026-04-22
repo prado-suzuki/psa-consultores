@@ -78,6 +78,16 @@ const DigitalAreaSelector = () => {
               <Skeleton key={i} className="h-40 rounded-xl bg-gray-800/50" />
             ))}
           </div>
+        ) : areas.length === 0 ? (
+          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-white">Nenhuma área disponível</CardTitle>
+              <CardDescription className="text-gray-400">
+                Você ainda não possui acesso a nenhum ambiente da Área Digital.
+                Solicite a um administrador a liberação dos acessos necessários.
+              </CardDescription>
+            </CardHeader>
+          </Card>
         ) : (
           <div className={`grid gap-4 ${gridCols}`}>
             {areas.map((area) => (
