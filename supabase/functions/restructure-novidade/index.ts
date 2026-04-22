@@ -41,7 +41,7 @@ serve(async (req) => {
       .select('role')
       .eq('user_id', user.id);
 
-    const isAuthorized = roles?.some(r => r.role === 'admin' || r.role === 'team_member');
+    const isAuthorized = roles?.some(r => ['admin', 'lider', 'sublider', 'team_member'].includes(r.role));
     if (!isAuthorized) {
       return new Response(
         JSON.stringify({ error: 'Permissão negada' }),
