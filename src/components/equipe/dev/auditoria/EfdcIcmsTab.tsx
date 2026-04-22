@@ -160,7 +160,9 @@ const EfdcIcmsTab = ({ notas = [], isLoading, error }: EfdcIcmsTabProps) => {
       <CardContent className="p-4 space-y-3">
         <div className="flex flex-wrap items-end gap-3">
           <div className="space-y-1 flex-1 min-w-[220px]">
-            <Label className="text-xs">Chave NFe</Label>
+            <Label className="text-xs">
+              <FieldTooltip text={AUDITORIA_TOOLTIPS.chaveNfe}>Chave NFe</FieldTooltip>
+            </Label>
             <div className="relative">
               <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
