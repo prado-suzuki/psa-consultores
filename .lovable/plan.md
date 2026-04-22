@@ -1,56 +1,84 @@
 
 
-## Plano: Adicionar Visão Geral e Card de Filtros padronizados em Mapa NCM
+## Plano: Adicionar Tooltips ao Mapa NCM
 
-Aplicar em `src/pages/equipe/dev/MapaNCMPisCofins.tsx` o mesmo padrão visual de `ConsultaXMLs.tsx` e `ControlePerdcomp.tsx`.
+Aplicar em `src/pages/equipe/dev/MapaNCMPisCofins.tsx` o mesmo padrão de tooltips usado em `ConsultaXMLs.tsx` (helpers `FieldTooltip`, `ColumnTooltip`, `ButtonTooltip` + objeto `TOOLTIPS`).
 
-### 1. Adicionar `DevPageHeader` (Visão Geral)
-
-Logo abaixo do `<DevLayout>`, antes dos filtros:
+### 1. Imports a adicionar
 
 ```tsx
-<DevPageHeader
-  description="O **Mapa NCM** centraliza as **regras fiscais de PIS/COFINS** por NCM e segmento de negócio. Use os filtros abaixo para localizar regras específicas, criar novas regras, editar tratamentos tributários (CST, base legal, permissão de crédito) e manter a base atualizada para uso nos cálculos de apuração e correções SPED."
-  manualUrl="#"
-/>
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Info } from 'lucide-react';
 ```
 
-(URL do manual fica como placeholder `#` até existir documentação — mesmo padrão usado nas outras ferramentas quando ainda não há link real.)
+### 2. Helpers de tooltip (no topo do arquivo)
 
-### 2. Substituir a barra de filtros atual por Card padronizado
+Replicar os 3 componentes utilitários já consagrados:
 
-Hoje a página usa um `<div className="bg-slate-50 rounded-xl p-4 mb-6 ...">`. Trocar por `Card` com `CardHeader` (título "FILTROS DE BUSCA" com ícone `Filter` teal) + `CardContent` contendo:
+- **`FieldTooltip`** — ícone `Info` ao lado de labels de filtros.
+- **`ColumnTooltip`** — texto sublinhado pontilhado nos cabeçalhos de tabela.
+- **`ButtonTooltip`** — wrapper para botões de ação.
 
-- **Linha 1 (grid)**:
-  - **Buscar** (`Search` input) — busca livre por NCM, descrição CST, base legal ou setor.
-  - **Setor** (`Select`) — filtro dropdown por segmento (lista de `setores`), opção "Todos".
-  - **Permite Crédito** (`Select`) — Todos / Sim / Não (substitui o `Switch` atual, alinhando com padrão de Selects das demais ferramentas).
-
-- **Divider** (`<Separator />`) e linha de ações alinhadas à direita:
-  - Botão **Limpar Filtros** (`Eraser`, ghost) — visível quando há filtros ativos.
-  - Botão **Nova Regra** (`Plus`, teal) — mantém ação existente.
-
-### 3. Estado e lógica
-
-- Adicionar `setorFilter: string` e `creditFilter: 'all'|'S'|'N'` substituindo o `creditOnly` boolean.
-- Atualizar `useMemo filtered` e `uniqueValues` para considerar `setorFilter` e `creditFilter`.
-- Adicionar `hasActiveFilters` e `handleClearFilters` (reseta search, setor, crédito, página).
-
-### 4. Imports a adicionar
+### 3. Objeto `TOOLTIPS` centralizado
 
 ```ts
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
-import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
-import { Filter, Eraser } from 'lucide-react';
+const TOOLTIPS = {
+  // Filtros
+  buscar: "Busca livre por NCM, descrição CST, base legal ou setor.",
+  setor: "Filtra as regras pelo segmento de negócio (setor do contribuinte).",
+  credito: "Filtra regras pelo direito a crédito de PIS/COFINS (Sim/Não).",
+
+  // Ações
+  limpar: "Redefine todos os filtros aplicados.",
+  novaRegra: "Cria uma nova regra fiscal de PIS/COFINS para um NCM.",
+
+  // Colunas da tabela
+  colNcm: "Código NCM (Nomenclatura Comum do Mercosul) ao qual a regra se aplica.",
+  colSetor: "Segmento de negócio para o qual a regra é válida.",
+  colCst: "Código de Situação Tributária aplicado às operações de PIS/COFINS.",
+  colDescCst: "Descrição textual do CST e do tratamento tributário aplicado.",
+  colBaseLegal: "Fundamentação normativa (lei, IN, ADI) que sustenta o tratamento.",
+  colCredito: "Indica se a operação permite apropriação de crédito de PIS/COFINS.",
+  colAcoes: "Visualizar, editar ou excluir a regra.",
+} as const;
 ```
 
-Remover import do `Switch` (não mais usado).
+### 4. Aplicar nos labels dos filtros
 
-### 5. Resultado
+Adicionar `<FieldTooltip text={TOOLTIPS.x} />` ao lado de cada label no card de filtros:
 
-A página passa a ter o mesmo cabeçalho (alert verde "Visão Geral" + link "aqui") e o mesmo card "FILTROS DE BUSCA" das demais ferramentas do módulo Dev, mantendo todas as funcionalidades existentes (CRUD, paginação, filtros de coluna em cascata, modal de regra).
+- Label **Buscar** → `TOOLTIPS.buscar`
+- Label **Setor** → `TOOLTIPS.setor`
+- Label **Permite Crédito** → `TOOLTIPS.credito`
+
+### 5. Aplicar nos botões de ação
+
+Envolver com `ButtonTooltip`:
+
+- **Limpar Filtros** → `TOOLTIPS.limpar`
+- **Nova Regra** → `TOOLTIPS.novaRegra`
+- Botões da coluna Ações da tabela (**Visualizar** / **Excluir**) → tooltips curtos diretos ("Visualizar regra", "Excluir regra").
+
+### 6. Aplicar nos cabeçalhos da tabela
+
+Substituir o texto plano de cada `<TableHead>` por `<ColumnTooltip label="..." text={TOOLTIPS.x} />`, mantendo o `ColumnFilterDropdown` ao lado:
+
+```tsx
+<TableHead>
+  <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
+  <ColumnFilterDropdown ... />
+</TableHead>
+```
+
+Aplicar para: **NCM**, **Setor**, **CST PIS/COFINS**, **Descrição CST**, **Base Legal**, **Crédito**, **Ações**.
+
+### 7. Wrapper `<TooltipProvider>`
+
+Envolver todo o conteúdo retornado pelo componente em `<TooltipProvider delayDuration={200}>` (logo dentro do `<DevLayout>`), seguindo o mesmo padrão de `ConsultaXMLs.tsx`.
+
+### Resultado
+
+A ferramenta passa a oferecer ajuda contextual consistente com as demais (Consulta XMLs, Controle PERDCOMP): ícones `Info` nos filtros, cabeçalhos sublinhados pontilhado nas colunas e tooltips em todos os botões de ação.
 
 ### Arquivos alterados
 
