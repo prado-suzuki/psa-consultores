@@ -584,29 +584,22 @@ const ConsultaEFD = () => {
             </div>
             
             {/* Lado Direito - Baixar Todos */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={downloadingAll ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleDownloadAll}
-                    disabled={arquivosFiltrados.length === 0}
-                    className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
-                  >
-                    {downloadingAll ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    <span className={downloadingAll ? "text-white" : ""}>Baixar Todos</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download de todos os arquivos TXT (ZIP)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ButtonTooltip text={TOOLTIPS.baixarTodos}>
+              <Button
+                variant={downloadingAll ? "default" : "outline"}
+                size="sm"
+                onClick={handleDownloadAll}
+                disabled={arquivosFiltrados.length === 0}
+                className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
+              >
+                {downloadingAll ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                <span className={downloadingAll ? "text-white" : ""}>Baixar Todos</span>
+              </Button>
+            </ButtonTooltip>
           </div>
         )}
 
