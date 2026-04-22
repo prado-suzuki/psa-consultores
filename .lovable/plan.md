@@ -1,121 +1,137 @@
 
 
-## Plano: Visão Geral + Tooltips em Auditoria Cruzada
+## Plano: Visão Geral + Tooltips em Correções no SPED
 
-Aplicar em `src/pages/equipe/dev/AuditoriaCruzada.tsx` e nas três abas (`BalanceteEfdTab`, `EfdcIcmsTab`, `EfdcXmlTab`) o mesmo padrão já usado em `ApuracaoPisCofins.tsx` / `ControlePerdcomp.tsx` — reaproveitando `DevPageHeader`, `FieldTooltip` e o helper compartilhado `ColumnTooltip` (que já é portalizado, garantindo que o card não seja cortado por colunas vizinhas).
+Aplicar em `src/pages/equipe/dev/CorrecoesSped.tsx` e nas seis abas (`TabC170`, `TabA170`, `TabD100`, `TabF100`, `TabF120`, `TabF130`) o mesmo padrão já consolidado em `ApuracaoPisCofins.tsx` e `AuditoriaCruzada.tsx`, reutilizando os helpers compartilhados.
 
-### 1. Visão Geral (`AuditoriaCruzada.tsx`)
+### 1. Visão Geral (sem link de manual)
 
-- Adicionar `<DevPageHeader description="..." />` logo dentro do `<DevLayout>` (acima do Card de filtros).
-- **Sem o trecho "Para acessar o manual..."** → estender `DevPageHeader` com nova prop opcional `hideManualLink?: boolean` (default `false`) que, quando `true`, omite a frase e o link `aqui`. Isto preserva todos os outros usos.
-- Texto da descrição:
-  > "A ferramenta **Análise Cruzada** realiza a reconciliação fiscal cruzando dados de **Balancete x EFD Contribuições**, **EFD ICMS x EFD Contribuições x XML de NFe** e **XMLs de CT-e por lote**. Use os filtros para selecionar cliente, contribuinte e período, e navegue pelas abas para identificar divergências entre as fontes."
-- Envolver o conteúdo em `<TooltipProvider delayDuration={300}>`.
+Adicionar `<DevPageHeader description={...} hideManualLink />` logo dentro do `<DevLayout>`, acima do Card de filtros, e envolver o conteúdo em `<TooltipProvider delayDuration={300}>`.
 
-### 2. `DevPageHeader` — extensão backward-compatible
+Texto:
+> "A ferramenta **Correções no SPED** permite revisar e ajustar os registros do SPED Contribuições (**C170**, **A170**, **D100**, **F100**, **F120**, **F130**) cruzando dados da escrituração com XMLs originais. Use os filtros para selecionar contribuinte e período, navegue pelas abas e edite as linhas com divergências para gerar correções rastreáveis."
 
-Adicionar prop `hideManualLink?: boolean`. Quando `true`, não renderiza o sufixo `" Para acessar o manual..."`. Demais páginas seguem inalteradas.
+A prop `hideManualLink` já existe no `DevPageHeader` (foi adicionada na implementação anterior).
 
-### 3. Tooltips dos filtros principais (página `AuditoriaCruzada.tsx`)
+### 2. Helpers compartilhados — novo arquivo
 
-Adicionar `FieldTooltip` (helper local, idêntico ao de `ApuracaoPisCofins.tsx`) em cada label do Card de filtros:
+Criar `src/components/equipe/dev/correcoes-sped/tooltipHelpers.tsx` com:
 
-```ts
-const TOOLTIPS = {
-  cliente: "Cliente cuja base fiscal será analisada.",
-  contribuinte: "CNPJ/contribuinte específico do cliente. Quando há apenas um, é selecionado automaticamente.",
-  dataInicio: "Data inicial do período a ser cruzado entre as fontes (Balancete, EFD, XML).",
-  dataFim: "Data final do período a ser cruzado entre as fontes (Balancete, EFD, XML).",
-};
-```
+- **`FieldTooltip`** — mesmo padrão de `auditoria/tooltipHelpers.tsx` (ícone `HelpCircle` + `TooltipPrimitive.Portal` + `z-[100]` + `collisionPadding={12}`). Renderiza ao lado do label.
+- **`SPED_TOOLTIPS`** — dicionário com tooltips de filtros principais e colunas das abas (ver §4 e §5).
 
-Aplicar nos quatro labels existentes (Cliente, Contribuinte, Data Início, Data Fim).
+Esse helper segue exatamente o padrão portalizado já validado, evitando que o card seja cortado por colunas vizinhas/sticky/`overflow-auto`.
 
-### 4. Tooltips dos filtros internos das abas
+### 3. Reutilizar `ColumnTooltip`
 
-Em cada aba, adicionar `FieldTooltip` (mesmo helper local, importado de um pequeno utilitário compartilhado novo: `src/components/equipe/dev/auditoria/tooltipHelpers.tsx` para evitar duplicação) ao lado dos labels:
+Usar `renderColumnLabel(label, text)` de `src/components/equipe/dev/pis-cofins/ColumnTooltip.tsx` (já portalizado) para envolver **apenas o texto** do label dentro de cada `<TableHead>`. Os `<ColumnFilterDropdown>` continuam ao lado, intactos — não há refatoração de filtros.
 
-- **BalanceteEfdTab**: "Conta Contábil" → `"Filtra a árvore de contas pelo código ou descrição."`; "Período Fechado" → `"Quando ativo, mostra apenas o saldo do último mês acumulado."`.
-- **EfdcIcmsTab**: "Chave NFe" → `"Filtra os documentos pela chave de acesso da NFe (44 dígitos)."`.
-- **EfdcXmlTab**: "CFOP / Intervalo" → `"Filtra os lotes pelo CFOP ou pelo intervalo de numeração informado."`.
+### 4. Tooltips dos filtros principais (`CorrecoesSped.tsx`)
 
-### 5. Tooltips em TODAS as colunas das tabelas principais (3 abas)
+Adicionar `FieldTooltip` ao lado de cada `<Label>` no Card de filtros:
 
-Reutilizar o helper compartilhado `renderColumnLabel(label, text)` de `src/components/equipe/dev/pis-cofins/ColumnTooltip.tsx` — já portalizado (`TooltipPrimitive.Portal`, `z-[100]`, `collisionPadding={12}`), portanto **não corta** o card e **não interfere** nos `ColumnFilterDropdown` (que continuam ao lado do label).
+| Filtro | Tooltip |
+|---|---|
+| Cliente | "Cliente cuja base SPED será revisada." |
+| Contribuinte | "CNPJ/contribuinte específico do cliente. Quando há apenas um, é selecionado automaticamente." |
+| Data Início | "Data inicial do período da escrituração a ser consultada." |
+| Data Fim | "Data final do período da escrituração a ser consultada." |
+| NCM | **mantido** (tooltip atual já existe no Info icon) — apenas trocar o `Info` solto pelo `FieldTooltip` para padronizar. |
+| Nat. Base de Crédito (F100) | **mantido** (tooltip atual preservado). |
+| Código da Conta (F100) | **mantido** (tooltip atual preservado). |
+| Buscar por descrição… | "Busca textual livre por descrição do item, chave do documento ou NCM." |
 
-#### 5.1 `BalanceteEfdTab` → `BalanceteTreeTable`
+Os tooltips existentes nos campos **NCM**, **Nat. Base de Crédito** e **Código da Conta** são preservados (apenas substituindo `<Info>` solto pelo `FieldTooltip` quando fizer sentido para uniformizar o ícone — caso contrário, mantém-se exatamente como está).
 
-Já aceita `columnTooltips?: Record<string, string>`. Passar mapa:
+### 5. Tooltips em TODAS as colunas das tabelas (6 abas)
 
-```ts
-{
-  Conta: "Código contábil da conta no plano de contas do cliente.",
-  "Descrição": "Descrição da conta contábil.",
-  __total__: "Soma de todos os meses exibidos no período consultado.",
-  __year__: "Total do ano. Clique no '+' para expandir e ver os meses.",
-  __month__: "Valor total do mês.",
-  // gerar também as chaves YYYY-MM e YYYY a partir de `periodos`
-}
-```
+Em cada `<TableHead>`, substituir o texto do label por `renderColumnLabel(label, tooltip)`. Os `<ColumnFilterDropdown>` permanecem como irmãos no mesmo `<span>`, **sem alterar nada da lógica de filtros/ordenação**.
 
-A geração dos meses/anos é feita inline na aba (mesmo padrão de `buildColumnTooltips` em `ApuracaoPisCofins.tsx`).
+#### 5.1 Cabeçalhos de grupo (todas as abas)
 
-#### 5.2 `EfdcIcmsTab` — tabela inline
+| Grupo | Tooltip |
+|---|---|
+| "Dados EFD" | "Dados extraídos da EFD Contribuições (escrituração original)." |
+| "Dados XML" (C170) | **mantido** — tooltip já existe. |
+| "Impostos" | "Apuração de PIS/COFINS para o registro: CST, base de cálculo, alíquota e valor." |
 
-Substituir cada label de `<TableHead>` por `renderColumnLabel(label, tooltip)` (mantendo `ColumnFilterDropdown` ao lado, pois ele renderiza após a label):
+#### 5.2 `TabC170` (NFe/NFCe)
 
 | Coluna | Tooltip |
 |---|---|
-| Dt. Ini | "Data inicial do período da escrituração." |
-| Chave NFe | "Chave de acesso da NFe (44 dígitos)." |
-| EFD ICMS (cabeçalho de grupo) | "Dados extraídos da EFD ICMS/IPI." |
-| EFD Contribuições (grupo) | "Dados extraídos da EFD Contribuições." |
-| XML (grupo) | "Dados extraídos do XML original da NFe." |
-| CFOP (×3) | "Código Fiscal de Operações e Prestações." |
-| Conta Contábil (×2) | "Conta contábil vinculada ao item." |
-| Valor Doc (×3) | "Valor total do documento fiscal." |
+| Descrição (EFD) | "Descrição do item conforme registro C170 ou Registro 0200 quando ausente." |
+| NCM (0200) | **mantido**. |
+| Valor | "Valor unitário do item (VL_ITEM) no SPED." |
+| Descrição (XML) | **mantido**. |
+| NCM (XML) | **mantido**. |
+| CST PIS / CST COF | "Código de Situação Tributária para PIS/COFINS." |
+| % PIS / % COF | "Alíquota aplicada de PIS/COFINS." |
+| VL PIS / VL COF | "Valor do tributo apurado." |
+| Conta | "Código da conta analítica contábil (Registro 0500)." |
 
-#### 5.3 `EfdcXmlTab` — tabela inline e modal
-
-Tabela principal:
-
-| Coluna | Tooltip |
-|---|---|
-| Data Início | "Data inicial do período do lote." |
-| Data Lote | "Data de emissão/processamento do lote." |
-| Emitente | "Razão social do emitente do lote de CT-es." |
-| CFOP | "Código Fiscal de Operações e Prestações." |
-| Série | "Série dos documentos do lote." |
-| Cód. Sit. | "Código de situação dos documentos." |
-| Intervalo | "Intervalo de numeração dos CT-es do lote." |
-| Valor Lote | "Valor total declarado do lote na EFD." |
-| Soma CT-es | "Somatório dos valores dos CT-es individuais." |
-| Diferença | "Diferença entre Valor Lote e Soma CT-es. Vermelho indica divergência > R$ 0,05." |
-
-Modal (CT-es):
+#### 5.3 `TabA170` (NFSe)
 
 | Coluna | Tooltip |
 |---|---|
-| Chave CT-e | "Chave de acesso do CT-e (44 dígitos)." |
-| Número | "Número do CT-e." |
-| Valor | "Valor do CT-e." |
+| Prestador | "Razão social do prestador (Registro 0150)." |
+| CPF/CNPJ | "Documento do prestador (Registro 0150)." |
+| Descrição | "Descrição do serviço (DESCR_COMPL ou Registro 0200)." |
+| Valor | "Valor do serviço (VL_ITEM)." |
+| Conta | **mantido**. |
+| BC PIS / BC COF | "Base de cálculo do PIS/COFINS." |
+| CHV NFSe | "Chave de acesso da NFSe quando disponível." |
+| (CST/% /VL — mesmos textos da §5.2) |  |
+
+#### 5.4 `TabD100` (CTe)
+
+| Coluna | Tooltip |
+|---|---|
+| Data | "Data de emissão do documento (DT_DOC)." |
+| CHV CTe | "Chave de acesso do CT-e (44 dígitos)." |
+| CNPJ | "CNPJ do participante da operação." |
+| Simples | **mantido**. |
+| Valor Doc | **mantido**. |
+| (CST/% /VL — §5.2) |  |
+
+#### 5.5 `TabF100` (Outros)
+
+| Coluna | Tooltip |
+|---|---|
+| Data | "Data da operação (DT_OPER)." |
+| Nome | "Nome do participante." |
+| CPF/CNPJ | "Documento do participante." |
+| Tipo | "Tipo de pessoa (PF/PJ)." |
+| Simples | "Indica se o participante é optante pelo Simples Nacional." |
+| Valor | "Valor da operação (VL_OPER)." |
+| (CST/% /VL — §5.2) |  |
+
+#### 5.6 `TabF120` (Depreciação) e `TabF130` (Aquisição)
+
+Aplicar o mesmo padrão a todos os `<TableHead>` existentes (Data, Identificador do bem, Valor da depreciação/aquisição, Conta, NAT_BC_CRED, CST/% /VL). Tooltips específicos:
+
+- F120 → "Encargos de depreciação/amortização do ativo imobilizado (Bloco F – Registro F120)."
+- F130 → "Crédito sobre aquisição de ativo imobilizado (Bloco F – Registro F130)."
+- NAT_BC_CRED (F100/F120/F130) → "Natureza da Base de Crédito conforme Tabela 4.3.7 da EFD Contribuições."
 
 ### Cuidados aplicados
 
-- **Filtros de coluna preservados**: `renderColumnLabel` envolve apenas o texto da label; o `<ColumnFilterDropdown>` continua sendo renderizado como irmão dentro do mesmo `<TableHead>`, exatamente como hoje.
-- **Card do tooltip não corta**: `ColumnTooltip` já usa `TooltipPrimitive.Portal` + `z-[100]` (correção feita anteriormente), funcionando dentro de `overflow-auto`.
-- **Texto natural nos meses**: usa `"Valor total do mês."` (mesmo padrão já adotado), evitando frase estranha "(mês/ano) selecionada".
-- **Tooltips existentes preservados**: nenhum tooltip atual é removido; apenas adições.
-- **Visão Geral sem manual**: nova prop `hideManualLink` no `DevPageHeader` mantém compatibilidade com as demais páginas.
+- **Filtros de coluna preservados**: `renderColumnLabel` envolve apenas o texto; `<ColumnFilterDropdown>` permanece como irmão dentro do mesmo `<span>` do `<TableHead>` — nenhum handler `onSort`/`onFilter` é tocado.
+- **Card do tooltip não corta**: `ColumnTooltip` e `FieldTooltip` usam `TooltipPrimitive.Portal` + `z-[100]` + `collisionPadding={12}`, funcionando dentro do `overflow-auto` de cada tabela.
+- **Texto natural**: tooltips diretos e curtos (ex.: "Valor do tributo apurado."), sem frases ambíguas como "(mês/ano) selecionada".
+- **Tooltips existentes preservados**: nenhum tooltip atual é removido. Os `<Info>` inline já presentes (NCM, Dados XML, Simples, Valor Doc, Itens XML do modal, etc.) ficam exatamente como estão; apenas adicionamos onde falta.
+- **Visão Geral sem manual**: usa a prop `hideManualLink` já existente.
+- **Sem refatorar estado**: o `CorrecoesSped` mantém seu state inline (não migra para Context) — fora do escopo desta tarefa de tooltips.
 
 ### Arquivos alterados
 
-1. `src/components/equipe/dev/DevPageHeader.tsx` — adicionar prop `hideManualLink?: boolean`.
-2. `src/pages/equipe/dev/AuditoriaCruzada.tsx` — `TooltipProvider` + `DevPageHeader` (sem manual) + `FieldTooltip` nos 4 filtros.
-3. `src/components/equipe/dev/auditoria/tooltipHelpers.tsx` — **novo** arquivo com `FieldTooltip` e tabela `AUDITORIA_TOOLTIPS` reaproveitada pelas três abas.
-4. `src/components/equipe/dev/auditoria/BalanceteEfdTab.tsx` — `FieldTooltip` nos labels + `columnTooltips` passado ao `BalanceteTreeTable` (incluindo geração dinâmica de meses/anos).
-5. `src/components/equipe/dev/auditoria/EfdcIcmsTab.tsx` — `FieldTooltip` no filtro + `renderColumnLabel` em todos os `<TableHead>` da tabela.
-6. `src/components/equipe/dev/auditoria/EfdcXmlTab.tsx` — `FieldTooltip` no filtro + `renderColumnLabel` na tabela principal e na do modal.
+1. `src/pages/equipe/dev/CorrecoesSped.tsx` — `TooltipProvider` + `DevPageHeader` (sem manual) + `FieldTooltip` nos labels dos filtros principais.
+2. `src/components/equipe/dev/correcoes-sped/tooltipHelpers.tsx` — **novo** arquivo com `FieldTooltip` e `SPED_TOOLTIPS`.
+3. `src/components/equipe/dev/correcoes-sped/TabC170.tsx` — `renderColumnLabel` em todos os `<TableHead>` da tabela.
+4. `src/components/equipe/dev/correcoes-sped/TabA170.tsx` — idem.
+5. `src/components/equipe/dev/correcoes-sped/TabD100.tsx` — idem.
+6. `src/components/equipe/dev/correcoes-sped/TabF100.tsx` — idem.
+7. `src/components/equipe/dev/correcoes-sped/TabF120.tsx` — idem.
+8. `src/components/equipe/dev/correcoes-sped/TabF130.tsx` — idem.
 
-Sem mudanças de banco, hooks, rotas ou de qualquer outro componente compartilhado.
+Sem mudanças de banco, hooks, rotas, lógica de filtros ou de qualquer outro componente compartilhado.
 
