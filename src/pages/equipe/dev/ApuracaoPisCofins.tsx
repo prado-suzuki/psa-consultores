@@ -699,6 +699,7 @@ const ApuracaoPisCofins = () => {
                    {tables.outrasSaidasData.length > 0 && (
                      <ApuracaoDataTable
                        title="Outras Saídas"
+                       titleTooltip={SECTION_TOOLTIPS.outrasSaidas}
                        data={tables.outrasSaidasData}
                        showTotals
                        highlightHeaderFooter
