@@ -928,37 +928,32 @@ const ConsultaEFDICMS = () => {
                         {formatCurrency(arquivo.icms_st_a_recolher)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-2">
-                            {/* Download TXT */}
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleDownloadTxt(arquivo)}
-                                  disabled={downloadingTxt === arquivo.ID_ARQUIVO}
-                                >
-                                  {downloadingTxt === arquivo.ID_ARQUIVO ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <FileText className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Baixar arquivo TXT original</p>
-                              </TooltipContent>
-                            </Tooltip>
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Download TXT */}
+                          <ButtonTooltip text={TOOLTIPS.baixarTxt}>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleDownloadTxt(arquivo)}
+                              disabled={downloadingTxt === arquivo.ID_ARQUIVO}
+                            >
+                              {downloadingTxt === arquivo.ID_ARQUIVO ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <FileText className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </ButtonTooltip>
 
-                            <EFDExportDialog
-                              arquivo={arquivo}
-                              blocosDisponiveis={blocosDisponiveis}
-                              tipo="icms"
-                            />
-                            
-                            <Button 
+                          <EFDExportDialog
+                            arquivo={arquivo}
+                            blocosDisponiveis={blocosDisponiveis}
+                            tipo="icms"
+                          />
+
+                          <ButtonTooltip text={TOOLTIPS.analisar}>
+                            <Button
                               size="sm"
                               onClick={() => handleAnalisar(arquivo)}
                               className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
@@ -966,8 +961,8 @@ const ConsultaEFDICMS = () => {
                               <BarChart3 className="h-4 w-4 mr-1" />
                               Analisar
                             </Button>
-                          </div>
-                        </TooltipProvider>
+                          </ButtonTooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
