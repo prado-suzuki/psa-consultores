@@ -708,9 +708,7 @@ const ApuracaoPisCofins = () => {
                    )}
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">
-                      Base de Cálculo Após Isenções/Exclusões
-                    </h2>
+                    <SectionTitle title="Base de Cálculo Após Isenções/Exclusões" tooltip={SECTION_TOOLTIPS.baseAposIsencoes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
