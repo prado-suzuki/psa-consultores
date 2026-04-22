@@ -1,15 +1,18 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
 import { RegraFormSheet } from '@/components/equipe/dev/pis-cofins/RegraFormSheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2 } from 'lucide-react';
+import { Search, Plus, FileSpreadsheet, Eye, Trash2, Loader2, Filter, Eraser } from 'lucide-react';
 import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { useToast } from '@/hooks/use-toast';
@@ -40,7 +43,8 @@ const MapaNCMPisCofins = () => {
   [setores]);
 
   const [search, setSearch] = useState('');
-  const [creditOnly, setCreditOnly] = useState(false);
+  const [setorFilter, setSetorFilter] = useState<string>('all');
+  const [creditFilter, setCreditFilter] = useState<'all' | 'S' | 'N'>('all');
   const [selectedRegra, setSelectedRegra] = useState<RegraNCMRow | null>(null);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -58,9 +62,19 @@ const MapaNCMPisCofins = () => {
 
   const colKeys: ColKey[] = ['ncm', 'setor', 'cst', 'desc_cst', 'base_legal', 'credito'];
 
+  const hasActiveFilters = search.trim() !== '' || setorFilter !== 'all' || creditFilter !== 'all';
+
+  const handleClearFilters = () => {
+    setSearch('');
+    setSetorFilter('all');
+    setCreditFilter('all');
+    setCurrentPage(0);
+  };
+
   const filtered = useMemo(() => {
     let list = regras;
-    if (creditOnly) list = list.filter(r => r.permite_credito === 'S');
+    if (creditFilter !== 'all') list = list.filter(r => r.permite_credito === creditFilter);
+    if (setorFilter !== 'all') list = list.filter(r => r.id_segmento === setorFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
       list = list.filter(r => {
@@ -90,14 +104,15 @@ const MapaNCMPisCofins = () => {
       });
     }
     return list;
-  }, [regras, search, creditOnly, setorMap, columnFilters, sortConfig]);
+  }, [regras, search, setorFilter, creditFilter, setorMap, columnFilters, sortConfig]);
 
   // Unique values per column (cascade-aware)
   const uniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
     for (const targetKey of colKeys) {
       let subset = regras;
-      if (creditOnly) subset = subset.filter(r => r.permite_credito === 'S');
+      if (creditFilter !== 'all') subset = subset.filter(r => r.permite_credito === creditFilter);
+      if (setorFilter !== 'all') subset = subset.filter(r => r.id_segmento === setorFilter);
       if (search.trim()) {
         const q = search.toLowerCase();
         subset = subset.filter(r => {
@@ -119,7 +134,7 @@ const MapaNCMPisCofins = () => {
       result[targetKey] = [...new Set(subset.map(r => extractColValue(r, targetKey, setorMap)))];
     }
     return result;
-  }, [regras, search, creditOnly, setorMap, columnFilters]);
+  }, [regras, search, setorFilter, creditFilter, setorMap, columnFilters]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE);
@@ -165,25 +180,89 @@ const MapaNCMPisCofins = () => {
 
   return (
     <DevLayout title="Mapa NCM" subtitle="Regras fiscais PIS/COFINS por NCM e segmento do negócio">
-      {/* Filters */}
-      <div className="bg-slate-50 rounded-xl p-4 mb-6 flex flex-wrap items-center gap-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar por NCM ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9 bg-white"
-          />
-        </div>
-        <div className="flex items-center gap-2">
-          <Switch checked={creditOnly} onCheckedChange={setCreditOnly} />
-          <span className="text-sm text-slate-600">Apenas com crédito</span>
-        </div>
-        <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
-          <Plus className="h-4 w-4 mr-2" /> Nova Regra
-        </Button>
-      </div>
+      <DevPageHeader
+        description="O **Mapa NCM** centraliza as **regras fiscais de PIS/COFINS** por NCM e segmento de negócio. Use os filtros abaixo para localizar regras específicas, criar novas regras, editar tratamentos tributários (CST, base legal, permissão de crédito) e manter a base atualizada para uso nos cálculos de apuração e correções SPED."
+        manualUrl="#"
+      />
+
+      {/* Filters Card */}
+      <Card className="mb-6">
+        <CardHeader className="pb-4">
+          <CardTitle className="flex items-center gap-2 text-lg text-primary">
+            <Filter className="h-5 w-5 text-teal-600" />
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-12 gap-6">
+            {/* Buscar */}
+            <div className="col-span-12 md:col-span-6">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Buscar
+              </label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="NCM, descrição CST, base legal ou setor..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="pl-9 h-11 bg-white dark:bg-slate-800"
+                />
+              </div>
+            </div>
+
+            {/* Setor */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Setor
+              </label>
+              <Select value={setorFilter} onValueChange={setSetorFilter}>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">Todos</SelectItem>
+                  {setores.map(s => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Permite Crédito */}
+            <div className="col-span-12 md:col-span-3">
+              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                Permite Crédito
+              </label>
+              <Select value={creditFilter} onValueChange={(v) => setCreditFilter(v as 'all' | 'S' | 'N')}>
+                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50">
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="S">Sim</SelectItem>
+                  <SelectItem value="N">Não</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-end gap-2">
+            {hasActiveFilters && (
+              <Button variant="ghost" onClick={handleClearFilters} className="text-slate-600">
+                <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
+              </Button>
+            )}
+            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
+              <Plus className="h-4 w-4 mr-2" /> Nova Regra
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Table */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
