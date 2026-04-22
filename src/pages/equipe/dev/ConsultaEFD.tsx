@@ -46,12 +46,43 @@ const FieldTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
 // --- Tooltip texts ---
 const TOOLTIPS = {
   cliente: "Filtra as EFD Contribuições por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
+  colArquivo: "Nome e ID do arquivo SPED processado.",
+  colPeriodo: "Mês inicial e final da escrituração.",
+  colTipo: "Status do arquivo (Original ou Retificadora).",
+  colCreditoPis: "Total de créditos de PIS apurados no período.",
+  colCreditoCofins: "Total de créditos de COFINS apurados no período.",
+  colAcoes: "Opções de download, exportação Excel e análise em tela.",
+  baixarTodos: "Download em lote (.zip) de todos os arquivos SPED listados.",
+  baixarTxt: "Download do arquivo SPED original (.txt).",
+  analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
 } as const;
 
 const ConsultaEFD = () => {
@@ -553,29 +584,22 @@ const ConsultaEFD = () => {
             </div>
             
             {/* Lado Direito - Baixar Todos */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant={downloadingAll ? "default" : "outline"}
-                    size="sm"
-                    onClick={handleDownloadAll}
-                    disabled={arquivosFiltrados.length === 0}
-                    className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
-                  >
-                    {downloadingAll ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
-                    ) : (
-                      <Download className="h-4 w-4 mr-2" />
-                    )}
-                    <span className={downloadingAll ? "text-white" : ""}>Baixar Todos</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Download de todos os arquivos TXT (ZIP)</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+            <ButtonTooltip text={TOOLTIPS.baixarTodos}>
+              <Button
+                variant={downloadingAll ? "default" : "outline"}
+                size="sm"
+                onClick={handleDownloadAll}
+                disabled={arquivosFiltrados.length === 0}
+                className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
+              >
+                {downloadingAll ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                <span className={downloadingAll ? "text-white" : ""}>Baixar Todos</span>
+              </Button>
+            </ButtonTooltip>
           </div>
         )}
 
@@ -615,22 +639,22 @@ const ConsultaEFD = () => {
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Arquivo
+                      <ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Período
+                      <ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                      Tipo
+                      <ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      Crédito PIS
+                      <ColumnTooltip label="Crédito PIS" text={TOOLTIPS.colCreditoPis} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-right">
-                      Crédito COFINS
+                      <ColumnTooltip label="Crédito COFINS" text={TOOLTIPS.colCreditoCofins} />
                     </th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">
-                      Ações
+                      <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
                     </th>
                   </tr>
                 </thead>
@@ -678,35 +702,30 @@ const ConsultaEFD = () => {
                         {formatCurrency(arquivo.credito_cofins)}
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-                                  onClick={() => handleDownloadTxt(arquivo)}
-                                  disabled={downloadingTxt === arquivo.ID_ARQUIVO}
-                                >
-                                  {downloadingTxt === arquivo.ID_ARQUIVO ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Download className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Baixar Original (TXT)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            
-                            <EFDExportDialog
-                              arquivo={arquivo}
-                              blocosDisponiveis={blocosDisponiveis}
-                            />
-                            
-                            <Button 
+                        <div className="flex items-center justify-center gap-2">
+                          <ButtonTooltip text={TOOLTIPS.baixarTxt}>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                              onClick={() => handleDownloadTxt(arquivo)}
+                              disabled={downloadingTxt === arquivo.ID_ARQUIVO}
+                            >
+                              {downloadingTxt === arquivo.ID_ARQUIVO ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </ButtonTooltip>
+
+                          <EFDExportDialog
+                            arquivo={arquivo}
+                            blocosDisponiveis={blocosDisponiveis}
+                          />
+
+                          <ButtonTooltip text={TOOLTIPS.analisar}>
+                            <Button
                               size="sm"
                               onClick={() => handleAnalisar(arquivo)}
                               className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
@@ -714,8 +733,8 @@ const ConsultaEFD = () => {
                               <BarChart3 className="h-4 w-4 mr-1" />
                               Analisar
                             </Button>
-                          </div>
-                        </TooltipProvider>
+                          </ButtonTooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
