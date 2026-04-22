@@ -197,7 +197,7 @@ type DisplayColumn = {
 };
 
 export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, BalanceteTreeTableProps>(
-  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra }, ref) {
+  function BalanceteTreeTable({ contasTree, periodoFechado = false, hideTitle = false, sectionTitle = "Resumo Hierárquico", extraContas, efdContas, onToggleExtra, onRemoveExtra, columnTooltips }, ref) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set());
     const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
