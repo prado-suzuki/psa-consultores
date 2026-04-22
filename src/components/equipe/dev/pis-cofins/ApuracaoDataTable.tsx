@@ -40,6 +40,7 @@ interface ApuracaoDataTableProps {
   showTotals?: boolean;
   emptyMessage?: string;
   highlightHeaderFooter?: boolean;
+  columnTooltips?: Record<string, string>;
 }
 
 const HEADER_FOOTER_HIGHLIGHT_CLASS = "bg-[#14B8A6] text-white border-[#14B8A6]";
@@ -61,6 +62,7 @@ export function ApuracaoDataTable({
   showTotals = false,
   emptyMessage = "Nenhum dado encontrado para o período.",
   highlightHeaderFooter = false,
+  columnTooltips,
 }: ApuracaoDataTableProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -256,6 +258,7 @@ export function ApuracaoDataTable({
             totalHeaderClassName={highlightClass}
             headerButtonClassName={highlightHeaderFooter ? HEADER_FOOTER_BUTTON_CLASS : undefined}
             renderHeaderExtra={renderHeaderExtra}
+            columnTooltips={columnTooltips}
           />
           <TableBody>
             {processedData.length > 0 ? (
