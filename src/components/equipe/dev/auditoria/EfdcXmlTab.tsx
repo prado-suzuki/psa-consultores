@@ -207,10 +207,14 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-xs">Data Início</TableHead>
-                      <TableHead className="text-xs">Data Lote</TableHead>
                       <TableHead className="text-xs">
-                        Emitente
+                        {renderColumnLabel("Data Início", "Data inicial do período do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Data Lote", "Data de emissão/processamento do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Emitente", "Razão social do emitente do lote de CT-es.")}
                         <ColumnFilterDropdown
                           columnKey="emitente"
                           uniqueValues={uniqueValues.emitente ?? []}
@@ -221,7 +225,7 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                         />
                       </TableHead>
                       <TableHead className="text-xs">
-                        CFOP
+                        {renderColumnLabel("CFOP", "Código Fiscal de Operações e Prestações.")}
                         <ColumnFilterDropdown
                           columnKey="cfop"
                           uniqueValues={uniqueValues.cfop ?? []}
@@ -231,12 +235,24 @@ const EfdcXmlTab = ({ lotes = [], isLoading, error }: EfdcXmlTabProps) => {
                           onFilter={handleFilter}
                         />
                       </TableHead>
-                      <TableHead className="text-xs">Série</TableHead>
-                      <TableHead className="text-xs">Cód. Sit.</TableHead>
-                      <TableHead className="text-xs">Intervalo</TableHead>
-                      <TableHead className="text-xs text-right">Valor Lote</TableHead>
-                      <TableHead className="text-xs text-right">Soma CT-es</TableHead>
-                      <TableHead className="text-xs text-right">Diferença</TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Série", "Série dos documentos do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Cód. Sit.", "Código de situação dos documentos.")}
+                      </TableHead>
+                      <TableHead className="text-xs">
+                        {renderColumnLabel("Intervalo", "Intervalo de numeração dos CT-es do lote.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Valor Lote", "Valor total declarado do lote na EFD.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Soma CT-es", "Somatório dos valores dos CT-es individuais.")}
+                      </TableHead>
+                      <TableHead className="text-xs text-right">
+                        {renderColumnLabel("Diferença", "Diferença entre Valor Lote e Soma CT-es. Vermelho indica divergência > R$ 0,05.")}
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
