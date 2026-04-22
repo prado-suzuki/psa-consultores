@@ -33,6 +33,61 @@ import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
+/* ── Tooltips ── */
+const TOOLTIPS = {
+  cliente: "Cliente/grupo cujo contribuinte será apurado.",
+  contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
+  dataInicio: "Mês/ano inicial do período de apuração.",
+  dataFim: "Mês/ano final do período (≥ Data Início).",
+  periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
+} as const;
+
+const SECTION_TOOLTIPS = {
+  baseAposIsencoes:
+    "Receita bruta líquida das isenções e exclusões — base efetiva sobre a qual incidem PIS e COFINS.",
+  debitosMes:
+    "Valor do débito de PIS/COFINS calculado sobre a base, separado por alíquota cheia e alíquota reduzida.",
+  baseCredito:
+    "Soma das aquisições e custos que dão direito a crédito de PIS/COFINS no período.",
+  creditoMes:
+    "Crédito apropriado mês a mês para PIS e COFINS, com destaque para alíquota reduzida quando aplicável.",
+  apuracaoPis:
+    "Resultado líquido (Débito - Crédito) e evolução do saldo de PIS no período.",
+  apuracaoCofins:
+    "Resultado líquido (Débito - Crédito) e evolução do saldo de COFINS no período.",
+  rateio:
+    "Distribuição percentual das receitas (tributadas, não tributadas, exportação) e aplicação dos percentuais sobre o crédito apurado.",
+  baseApuracao:
+    "Itens-base utilizados como ponto de partida da apuração: receitas (CST 01–09) e/ou contas do balancete vinculadas, antes de aplicar débitos e créditos.",
+  outrasSaidas:
+    "Operações de saída que não geram débito direto, mas compõem a análise (ex.: transferências, devoluções).",
+} as const;
+
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const SectionTitle = ({ title, tooltip }: { title: string; tooltip: string }) => (
+  <h2 className="text-lg font-bold uppercase mb-4 text-primary flex items-center gap-1.5">
+    {title}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+      </TooltipTrigger>
+      <TooltipContent side="right" className="max-w-xs text-sm font-normal normal-case">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  </h2>
+);
+
 const INLINE_HEADER_HIGHLIGHT_CLASS = "bg-[#14B8A6] text-white border-[#0B7A70]";
 const INLINE_MONTH_HEADER_HIGHLIGHT_CLASS = "bg-[#3fd8c7] text-white border-[#0B7A70]";
 const INLINE_HEADER_BUTTON_CLASS = "text-white hover:bg-white/10 hover:text-white";
