@@ -17,7 +17,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Search, Loader2, Eraser, AlertCircle, Info } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { currentAmbiente } from "@/config/api";
@@ -31,6 +32,61 @@ import { FloatingScrollbar } from "@/components/ui/floating-scrollbar";
 /* ── Formatters ── */
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+/* ── Tooltips ── */
+const TOOLTIPS = {
+  cliente: "Cliente/grupo cujo contribuinte será apurado.",
+  contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
+  dataInicio: "Mês/ano inicial do período de apuração.",
+  dataFim: "Mês/ano final do período (≥ Data Início).",
+  periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
+} as const;
+
+const SECTION_TOOLTIPS = {
+  baseAposIsencoes:
+    "Receita bruta líquida das isenções e exclusões — base efetiva sobre a qual incidem PIS e COFINS.",
+  debitosMes:
+    "Valor do débito de PIS/COFINS calculado sobre a base, separado por alíquota cheia e alíquota reduzida.",
+  baseCredito:
+    "Soma das aquisições e custos que dão direito a crédito de PIS/COFINS no período.",
+  creditoMes:
+    "Crédito apropriado mês a mês para PIS e COFINS, com destaque para alíquota reduzida quando aplicável.",
+  apuracaoPis:
+    "Resultado líquido (Débito - Crédito) e evolução do saldo de PIS no período.",
+  apuracaoCofins:
+    "Resultado líquido (Débito - Crédito) e evolução do saldo de COFINS no período.",
+  rateio:
+    "Distribuição percentual das receitas (tributadas, não tributadas, exportação) e aplicação dos percentuais sobre o crédito apurado.",
+  baseApuracao:
+    "Itens-base utilizados como ponto de partida da apuração: receitas (CST 01–09) e/ou contas do balancete vinculadas, antes de aplicar débitos e créditos.",
+  outrasSaidas:
+    "Operações de saída que não geram débito direto, mas compõem a análise (ex.: transferências, devoluções).",
+} as const;
+
+const FieldTooltip = ({ text }: { text: string }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const SectionTitle = ({ title, tooltip }: { title: string; tooltip: string }) => (
+  <h2 className="text-lg font-bold uppercase mb-4 text-primary flex items-center gap-1.5">
+    {title}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Info className="h-4 w-4 text-muted-foreground cursor-help shrink-0" />
+      </TooltipTrigger>
+      <TooltipContent side="right" className="max-w-xs text-sm font-normal normal-case">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
+  </h2>
+);
 
 const INLINE_HEADER_HIGHLIGHT_CLASS = "bg-[#14B8A6] text-white border-[#0B7A70]";
 const INLINE_MONTH_HEADER_HIGHLIGHT_CLASS = "bg-[#3fd8c7] text-white border-[#0B7A70]";
@@ -404,13 +460,27 @@ const ApuracaoPisCofins = () => {
 
   return (
     <DevLayout title="Apuração PIS/COFINS" subtitle="Apuração de tributos do cliente com base nos documentos fornecidos">
+      <TooltipProvider delayDuration={200}>
+      <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
+        <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+        <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+          Visão Geral
+        </AlertTitle>
+        <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+          A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e
+          rateios do contribuinte a partir do <strong className="font-semibold">EFD Contribuições</strong> (modo Cliente)
+          ou do <strong className="font-semibold">Balancete</strong> importado (modo Prado), permitindo conferir a
+          base de cálculo, o resultado do período e o saldo apurado mês a mês.
+        </AlertDescription>
+      </Alert>
       {/* Filters */}
       <div className="bg-muted/50 rounded-xl p-5 mb-6 space-y-4">
         {/* Row 1: Cliente, Contribuinte, Tipo de documento */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Cliente <RequiredMark />
+              <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             {loadingClientes ? (
               <Skeleton className="h-10 w-full" />
@@ -431,8 +501,9 @@ const ApuracaoPisCofins = () => {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
               Contribuinte <RequiredMark />
+              <FieldTooltip text={TOOLTIPS.contribuinte} />
             </label>
             {loadingContribuintes && selectedCliente ? (
               <Skeleton className="h-10 w-full" />
@@ -488,20 +559,27 @@ const ApuracaoPisCofins = () => {
         {/* Row 2: Datas, switch, botões */}
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Início</label>
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+              Data Início
+              <FieldTooltip text={TOOLTIPS.dataInicio} />
+            </label>
             <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Data Fim</label>
+            <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold flex items-center gap-1">
+              Data Fim
+              <FieldTooltip text={TOOLTIPS.dataFim} />
+            </label>
             <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
           </div>
 
           {tipoApuracao === "BALANCETE" && (
             <div className="flex items-center gap-2 pb-1">
               <Switch id="periodo-fechado" checked={periodoFechado} onCheckedChange={setPeriodoFechado} />
-              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground">
+              <Label htmlFor="periodo-fechado" className="text-sm text-muted-foreground flex items-center gap-1">
                 Período Fechado
+                <FieldTooltip text={TOOLTIPS.periodoFechado} />
               </Label>
             </div>
           )}
@@ -586,6 +664,7 @@ const ApuracaoPisCofins = () => {
                       />
                       <ApuracaoDataTable
                         title={`Base da Apuração - ${tipoApuracao === "EFD" ? "EFD Contribuições" : "Balancete"}`}
+                        titleTooltip={SECTION_TOOLTIPS.baseApuracao}
                         data={filteredResumoData}
                         showCst
                         showBloco
@@ -620,6 +699,7 @@ const ApuracaoPisCofins = () => {
                    {tables.outrasSaidasData.length > 0 && (
                      <ApuracaoDataTable
                        title="Outras Saídas"
+                       titleTooltip={SECTION_TOOLTIPS.outrasSaidas}
                        data={tables.outrasSaidasData}
                        showTotals
                        highlightHeaderFooter
@@ -628,9 +708,7 @@ const ApuracaoPisCofins = () => {
                    )}
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">
-                      Base de Cálculo Após Isenções/Exclusões
-                    </h2>
+                    <SectionTitle title="Base de Cálculo Após Isenções/Exclusões" tooltip={SECTION_TOOLTIPS.baseAposIsencoes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -664,7 +742,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Débitos do Mês</h2>
+                    <SectionTitle title="Débitos do Mês" tooltip={SECTION_TOOLTIPS.debitosMes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -776,7 +854,7 @@ const ApuracaoPisCofins = () => {
                   />
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Base de Cálculo do Crédito</h2>
+                    <SectionTitle title="Base de Cálculo do Crédito" tooltip={SECTION_TOOLTIPS.baseCredito} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -810,7 +888,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Crédito do Mês</h2>
+                    <SectionTitle title="Crédito do Mês" tooltip={SECTION_TOOLTIPS.creditoMes} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -904,7 +982,7 @@ const ApuracaoPisCofins = () => {
               {activeTab === "apuracao" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de PIS</h2>
+                    <SectionTitle title="Apuração do Débito de PIS" tooltip={SECTION_TOOLTIPS.apuracaoPis} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -992,7 +1070,7 @@ const ApuracaoPisCofins = () => {
                   </section>
 
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Apuração do Débito de COFINS</h2>
+                    <SectionTitle title="Apuração do Débito de COFINS" tooltip={SECTION_TOOLTIPS.apuracaoCofins} />
                     <InlineTableWrapper>
                       <DynamicTableHeader
                         stickyConfig={SINGLE_STICKY}
@@ -1094,7 +1172,7 @@ const ApuracaoPisCofins = () => {
               {activeTab === "rateio" && tipoApuracao === "EFD" && (
                 <div className="space-y-8 animate-in fade-in duration-300">
                   <section>
-                    <h2 className="text-lg font-bold uppercase mb-4 text-primary">Rateio</h2>
+                    <SectionTitle title="Rateio" tooltip={SECTION_TOOLTIPS.rateio} />
                     <InlineTableWrapper>
                       <DynamicTableHeader stickyConfig={RATEIO_STICKY} {...inlineStyledHeaderProps} />
                       <TableBody>
@@ -1272,6 +1350,7 @@ const ApuracaoPisCofins = () => {
           )}
         </>
       )}
+      </TooltipProvider>
     </DevLayout>
   );
 };
