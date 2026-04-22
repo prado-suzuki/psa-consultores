@@ -185,7 +185,7 @@ const App = () => (
               <Route path="/equipe/dev/correcoes-sped" element={<PageAccessGate pagePath="/equipe/dev/correcoes-sped"><CorrecoesSped /></PageAccessGate>} />
               <Route path="/equipe/dev/procedimentos" element={<PageAccessGate pagePath="/equipe/dev/procedimentos"><ProcedimentosDev /></PageAccessGate>} />
               <Route path="/equipe/dev/apuracao-difal/icms-saidas" element={<PageAccessGate pagePath="/equipe/dev/apuracao-difal/icms-saidas"><IcmsSaidas /></PageAccessGate>} />
-              <Route path="/equipe/acessos" element={<AdminRoute><EquipeControleAcessos /></AdminRoute>} />
+              <Route path="/equipe/acessos" element={<PageAccessGate pagePath="/equipe/acessos"><EquipeControleAcessos /></PageAccessGate>} />
 
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
               <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
