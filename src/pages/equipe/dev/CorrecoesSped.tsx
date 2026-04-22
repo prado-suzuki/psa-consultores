@@ -543,7 +543,8 @@ const CorrecoesSped = () => {
             </TabsContent>
           </Tabs>
         )}
-      </div>
+        </div>
+      </TooltipProvider>
 
       {/* XML Detail Modal (C170) */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
