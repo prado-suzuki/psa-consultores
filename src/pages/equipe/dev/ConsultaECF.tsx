@@ -46,12 +46,43 @@ const FieldTooltip = ({ text }: { text: string }) => (
   </Tooltip>
 );
 
+const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
+  <Tooltip>
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+      {label}
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
+const ButtonTooltip = ({ text, children }: { text: string; children: React.ReactNode }) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <span className="inline-flex">{children}</span>
+    </TooltipTrigger>
+    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
+      {text}
+    </TooltipContent>
+  </Tooltip>
+);
+
 // --- Tooltip texts ---
 const TOOLTIPS = {
   cliente: "Filtra as ECF por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   dataInicio: "Define o período inicial da busca.",
   dataFim: "Define o período final da busca.",
+  colArquivo: "Nome e ID do arquivo ECF processado.",
+  colPeriodo: "Mês inicial e final da escrituração.",
+  colTipo: "Status do arquivo (Original ou Retificadora).",
+  colSituacao: "Indicador de situação especial (Fusão, Cisão, etc.).",
+  colAcoes: "Opções de download, exportação Excel e análise em tela.",
+  exportarLote: "Exportar arquivo(s) selecionado(s) para Excel.",
+  baixarLote: "Download individual ou em lote (ZIP) dos arquivos selecionados.",
+  baixarTxt: "Download do arquivo ECF original (.txt).",
+  analisar: "Abre a análise detalhada dos blocos e registros do arquivo em tela.",
 } as const;
 
 // Mapeamento de IND_SIT_ESP para ECF
@@ -437,27 +468,17 @@ const ConsultaECF = () => {
               </div>
               <div className="flex items-center gap-2">
                 {selectedArquivos.size > 0 && <Badge variant="secondary" className="text-xs">{selectedArquivos.size} selecionado(s)</Badge>}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={handleExportSelecionados} disabled={selectedArquivos.size === 0} className="gap-2">
-                        <FileSpreadsheet className="h-4 w-4" />Exportar excel
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>{selectedArquivos.size === 0 ? "Selecione arquivos para exportar" : `Exportar ${selectedArquivos.size} arquivo(s) para Excel`}</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={handleDownloadSelecionados} disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0} className="gap-2">
-                        {(downloadingTxt !== null || downloadingAll) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        Baixar txt
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent><p>{selectedArquivos.size === 0 ? "Selecione arquivos para baixar" : `Baixar ${selectedArquivos.size} arquivo(s) TXT`}</p></TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <ButtonTooltip text={TOOLTIPS.exportarLote}>
+                  <Button variant="outline" size="sm" onClick={handleExportSelecionados} disabled={selectedArquivos.size === 0} className="gap-2">
+                    <FileSpreadsheet className="h-4 w-4" />Exportar excel
+                  </Button>
+                </ButtonTooltip>
+                <ButtonTooltip text={TOOLTIPS.baixarLote}>
+                  <Button variant="outline" size="sm" onClick={handleDownloadSelecionados} disabled={downloadingTxt !== null || downloadingAll || selectedArquivos.size === 0} className="gap-2">
+                    {(downloadingTxt !== null || downloadingAll) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                    Baixar txt
+                  </Button>
+                </ButtonTooltip>
               </div>
             </div>
           </div>
@@ -482,11 +503,11 @@ const ConsultaECF = () => {
                 <thead>
                   <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
                     <th className="px-4 py-4 w-12"><Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Arquivo</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Período</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Tipo</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">Situação Especial</th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56">Ações</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Situação Especial" text={TOOLTIPS.colSituacao} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
@@ -514,22 +535,19 @@ const ConsultaECF = () => {
                         </Badge>
                       </td>
                       <td className="px-6 py-4 text-center">
-                        <TooltipProvider>
-                          <div className="flex items-center justify-center gap-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDownloadTxt(arquivo)} disabled={downloadingTxt === arquivo.ID_ARQUIVO}>
-                                  {downloadingTxt === arquivo.ID_ARQUIVO ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent><p>Baixar arquivo TXT original</p></TooltipContent>
-                            </Tooltip>
-                            <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecf" />
+                        <div className="flex items-center justify-center gap-2">
+                          <ButtonTooltip text={TOOLTIPS.baixarTxt}>
+                            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleDownloadTxt(arquivo)} disabled={downloadingTxt === arquivo.ID_ARQUIVO}>
+                              {downloadingTxt === arquivo.ID_ARQUIVO ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                            </Button>
+                          </ButtonTooltip>
+                          <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecf" />
+                          <ButtonTooltip text={TOOLTIPS.analisar}>
                             <Button size="sm" onClick={() => handleAnalisar(arquivo)} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
                               <BarChart3 className="h-4 w-4 mr-1" />Analisar
                             </Button>
-                          </div>
-                        </TooltipProvider>
+                          </ButtonTooltip>
+                        </div>
                       </td>
                     </tr>
                   ))}
