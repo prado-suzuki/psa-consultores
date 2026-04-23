@@ -320,7 +320,7 @@ export const TaskModal = ({
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliente</FormLabel>
+                    <FormLabel>Cliente <RequiredMark /></FormLabel>
                     <Select 
                       onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
                       value={field.value || '_none'}
