@@ -11,7 +11,12 @@ import {
   type PagePermission,
 } from '@/hooks/usePagePermissions';
 import { useSyncProtectedPages } from '@/hooks/useSyncProtectedPages';
-import { getCategoryColor, getCategoryLabel } from './pageCategoryStyles';
+import {
+  getDisplayPath,
+  getGroupColor,
+  getGroupKey,
+  getGroupLabel,
+} from './pageCategoryStyles';
 
 const INITIAL_VISIBLE_PAGES = 5;
 
@@ -44,15 +49,21 @@ export const PagesTab = () => {
     setExpandedCategories(updated);
   };
 
-  const groupedPages = useMemo(
-    () =>
-      (pages ?? []).reduce<Record<string, PagePermission[]>>((acc, page) => {
-        if (!acc[page.category]) acc[page.category] = [];
-        acc[page.category].push(page);
-        return acc;
-      }, {}),
-    [pages]
-  );
+  const groupedPages = useMemo(() => {
+    const grouped = (pages ?? []).reduce<Record<string, PagePermission[]>>((acc, page) => {
+      const key = getGroupKey(page.category);
+      (acc[key] ??= []).push(page);
+      return acc;
+    }, {});
+    for (const key of Object.keys(grouped)) {
+      grouped[key].sort((a, b) =>
+        getDisplayPath(a.category, a.page_path).localeCompare(
+          getDisplayPath(b.category, b.page_path)
+        )
+      );
+    }
+    return grouped;
+  }, [pages]);
 
   return (
     <div className="space-y-4">
@@ -94,22 +105,22 @@ export const PagesTab = () => {
           <RefreshCw className="h-6 w-6 animate-spin text-teal-600" />
         </div>
       ) : (
-        Object.entries(groupedPages).map(([category, categoryPages]) => {
-          const isExpanded = expandedCategories[category] ?? false;
+        Object.entries(groupedPages).map(([group, groupPages]) => {
+          const isExpanded = expandedCategories[group] ?? false;
           const visiblePages = isExpanded
-            ? categoryPages
-            : categoryPages.slice(0, INITIAL_VISIBLE_PAGES);
-          const hasMore = categoryPages.length > INITIAL_VISIBLE_PAGES;
-          const remainingCount = categoryPages.length - INITIAL_VISIBLE_PAGES;
+            ? groupPages
+            : groupPages.slice(0, INITIAL_VISIBLE_PAGES);
+          const hasMore = groupPages.length > INITIAL_VISIBLE_PAGES;
+          const remainingCount = groupPages.length - INITIAL_VISIBLE_PAGES;
 
           return (
-            <Card key={category} className="bg-white border-slate-200/60 shadow-sm">
+            <Card key={group} className="bg-white border-slate-200/60 shadow-sm">
               <CardHeader className="pb-3">
                 <div className="flex items-center gap-2">
-                  <Badge className={getCategoryColor(category)}>
-                    {getCategoryLabel(category)}
+                  <Badge className={getGroupColor(group)}>
+                    {getGroupLabel(group)}
                   </Badge>
-                  <span className="text-xs text-slate-500">{categoryPages.length} páginas</span>
+                  <span className="text-xs text-slate-500">{groupPages.length} páginas</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -134,7 +145,7 @@ export const PagesTab = () => {
                           </div>
                         </TableCell>
                         <TableCell className="text-slate-600 font-mono text-xs">
-                          {page.page_path}
+                          {getDisplayPath(page.category, page.page_path)}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
@@ -175,7 +186,7 @@ export const PagesTab = () => {
                       variant="ghost"
                       size="sm"
                       className="w-full text-slate-600 hover:text-teal-600 hover:bg-slate-50"
-                      onClick={() => toggleCategoryExpansion(category)}
+                      onClick={() => toggleCategoryExpansion(group)}
                     >
                       {isExpanded ? (
                         <>
