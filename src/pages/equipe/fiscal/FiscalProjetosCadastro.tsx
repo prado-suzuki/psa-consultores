@@ -447,8 +447,24 @@ const FiscalProjetosCadastro = () => {
   };
 
   const handleSubmit = () => {
+    if (!formData.external_client_id) {
+      toast.error('Selecione o Cliente');
+      return;
+    }
+    if (selectedOsId && selectedOsProdutos.length >= 1 && !selectedProdutoId) {
+      toast.error('Selecione o Produto Contratado');
+      return;
+    }
     if (!formData.name.trim()) {
       toast.error('Nome é obrigatório');
+      return;
+    }
+    if (!formData.estrutura_area_id) {
+      toast.error('Selecione a Área');
+      return;
+    }
+    if (!formData.status) {
+      toast.error('Selecione o Status');
       return;
     }
     if (formData.leader_ids.length === 0) {
@@ -457,6 +473,10 @@ const FiscalProjetosCadastro = () => {
     }
     if (!formData.responsible_id) {
       toast.error('Selecione o Responsável Executor');
+      return;
+    }
+    if (formData.member_ids.length === 0) {
+      toast.error('Selecione ao menos um Membro do Projeto');
       return;
     }
     if (!formData.start_date) {
@@ -469,6 +489,10 @@ const FiscalProjetosCadastro = () => {
     }
     if (formData.start_date > formData.end_date) {
       toast.error('Data de Término deve ser posterior à Data de Início');
+      return;
+    }
+    if (!formData.description.trim()) {
+      toast.error('Descrição do Projeto é obrigatória');
       return;
     }
     if (editingProject) {
