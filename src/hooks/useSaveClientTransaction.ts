@@ -270,7 +270,50 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // --- Persistir representantes (update ou insert) ---
-      const buildPartFields = (p: DraftRepresentante) => ({
+      // Para cada representante com email válido sem user_id, cria/vincula
+      // automaticamente um auth user via edge function `upsert-representante-user`
+      // (sempre concede role `client`). Falha não bloqueia o save.
+      const splitName = (full: string): { first_name: string; last_name: string | null } => {
+        const trimmed = (full || '').trim();
+        if (!trimmed) return { first_name: '', last_name: null };
+        const idx = trimmed.indexOf(' ');
+        if (idx === -1) return { first_name: trimmed, last_name: null };
+        const first = trimmed.substring(0, idx);
+        const rest = trimmed.substring(idx + 1).trim();
+        return { first_name: first, last_name: rest || null };
+      };
+
+      const ensureRepresentanteUser = async (
+        p: DraftRepresentante,
+        existingUserId?: string | null,
+      ): Promise<string | null> => {
+        const email = (p.email || '').trim();
+        if (!email) return existingUserId ?? null;
+        if (existingUserId) return existingUserId;
+        const { first_name, last_name } = splitName(p.nome);
+        if (!first_name) return null;
+        try {
+          const { data, error } = await supabase.functions.invoke('upsert-representante-user', {
+            body: { email, first_name, last_name },
+          });
+          if (error) {
+            console.warn('[representante user] invoke error:', error);
+            toast.warning(`Não foi possível criar usuário para ${email}`);
+            return null;
+          }
+          if (data?.error) {
+            console.warn('[representante user] response error:', data.error);
+            toast.warning(`Não foi possível criar usuário para ${email}: ${data.error}`);
+            return null;
+          }
+          return (data?.user_id as string) || null;
+        } catch (err) {
+          console.error('[representante user] unexpected:', err);
+          return null;
+        }
+      };
+
+      const buildPartFields = (p: DraftRepresentante, userId: string | null) => ({
         id_cliente: clienteId,
         nome: p.nome,
         cargo: p.cargo || null,
@@ -279,15 +322,26 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         tipo_representante: p.tipo_representante || null,
         observacoes: p.observacoes || null,
         acesso_chamados: p.acesso_chamados ?? false,
+        user_id: userId,
       });
 
       for (const p of participants) {
         const pIdField = "id_representante";
         if (p._dbId) {
-          const { error } = await (supabase.from(representanteTable) as any).update(buildPartFields(p)).eq(pIdField, p._dbId);
+          // Fetch current user_id to avoid overwriting existing link
+          const { data: current } = await (supabase.from(representanteTable) as any)
+            .select('user_id')
+            .eq(pIdField, p._dbId)
+            .maybeSingle();
+          const currentUserId = (current as any)?.user_id ?? null;
+          const linkedUserId = await ensureRepresentanteUser(p, currentUserId);
+          const { error } = await (supabase.from(representanteTable) as any)
+            .update(buildPartFields(p, linkedUserId))
+            .eq(pIdField, p._dbId);
           if (error) throw error;
         } else {
-          const { error } = await (supabase.from(representanteTable) as any).insert(buildPartFields(p));
+          const linkedUserId = await ensureRepresentanteUser(p, null);
+          const { error } = await (supabase.from(representanteTable) as any).insert(buildPartFields(p, linkedUserId));
           if (error) throw error;
         }
       }
