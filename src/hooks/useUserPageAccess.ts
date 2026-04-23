@@ -91,6 +91,64 @@ export function useRevokePageAccess() {
 }
 
 /**
+ * Aplica concessões e revogações em lote para um único usuário em uma só transação.
+ *
+ * Usado pela árvore hierárquica de permissões para propagar o clique em um nó
+ * (concede/revoga vários page_permission_ids de uma vez) sem disparar N toasts.
+ */
+export function useBulkUpdatePageAccess() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      userId,
+      grantIds,
+      revokeIds,
+    }: {
+      userId: string;
+      grantIds: string[];
+      revokeIds: string[];
+    }) => {
+      if (revokeIds.length > 0) {
+        const { error } = await supabase
+          .from('user_page_access')
+          .delete()
+          .eq('user_id', userId)
+          .in('page_permission_id', revokeIds);
+        if (error) throw error;
+      }
+
+      if (grantIds.length > 0) {
+        const { error } = await supabase.from('user_page_access').upsert(
+          grantIds.map((pageId) => ({
+            user_id: userId,
+            page_permission_id: pageId,
+            granted_by: user?.id,
+          })),
+          { onConflict: 'user_id,page_permission_id', ignoreDuplicates: true }
+        );
+        if (error) throw error;
+      }
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['user-accessible-categories'] });
+      queryClient.invalidateQueries({ queryKey: ['can-assign-tickets'] });
+      const granted = variables.grantIds.length;
+      const revoked = variables.revokeIds.length;
+      if (granted > 0 && revoked === 0) toast.success(granted === 1 ? 'Acesso concedido' : `${granted} acessos concedidos`);
+      else if (revoked > 0 && granted === 0) toast.success(revoked === 1 ? 'Acesso revogado' : `${revoked} acessos revogados`);
+      else toast.success('Acessos atualizados');
+    },
+    onError: () => {
+      toast.error('Erro ao atualizar acessos');
+    },
+  });
+}
+
+/**
  * Sincroniza o conjunto de acessos de um usuário com base nas áreas selecionadas.
  *
  * Comportamento:

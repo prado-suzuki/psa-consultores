@@ -83,7 +83,7 @@ export interface ItemEfd {
 
 export interface ItemEfdEntry {
   c170: ItemEfd;
-  "0200": Item0200 | null;
+  '0200': Item0200 | null;
   nfe_itens: NfeItem[];
 }
 
@@ -166,15 +166,25 @@ export interface A170Item extends A170Snapshot {
   _originalSnapshot: A170Snapshot;
 }
 
+export interface A100RetencaoSnapshot {
+  VL_PIS_RET?: number | null;
+  VL_COFINS_RET?: number | null;
+  vl_pis_ret?: number | null;
+  vl_cofins_ret?: number | null;
+  pis_ret?: number | null;
+  cofins_ret?: number | null;
+}
+
 export interface A170ResponseEntry {
   ID_CONTRIBUINTE?: string;
   CHV_NFSE: string | null;
   DT_DOC: string;
   descricao_conta?: string | null;
   DESCRICAO_CONTA?: string | null;
+  A100?: A100RetencaoSnapshot | string | null;
   A170: A170Snapshot | string;
-  "0200": Item0200 | string | null;
-  "0150"?: Reg0150 | string | null;
+  '0200': Item0200 | string | null;
+  '0150'?: Reg0150 | string | null;
   pis_ret?: number | null;
   cofins_ret?: number | null;
 }

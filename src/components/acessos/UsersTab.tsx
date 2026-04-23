@@ -1,20 +1,16 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Pencil, Trash2, Users, Plus } from 'lucide-react';
+import { RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
-import { usePagePermissions, type PagePermission } from '@/hooks/usePagePermissions';
-import {
-  useUserPageAccess,
-  useGrantPageAccess,
-  useRevokePageAccess,
-} from '@/hooks/useUserPageAccess';
+import { usePagePermissions } from '@/hooks/usePagePermissions';
+import { useUserPageAccess } from '@/hooks/useUserPageAccess';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
-import { getCategoryColor, getCategoryLabel } from './pageCategoryStyles';
+import { PermissionsTree } from './PermissionsTree';
 import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
 
 /**
@@ -36,23 +32,8 @@ export const UsersTab = () => {
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { data: pages } = usePagePermissions();
   const { data: userAccess } = useUserPageAccess();
-  const grantAccess = useGrantPageAccess();
-  const revokeAccess = useRevokePageAccess();
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
-
-  const groupedPages = useMemo(
-    () =>
-      (pages ?? []).reduce<Record<string, PagePermission[]>>((acc, page) => {
-        if (!acc[page.category]) acc[page.category] = [];
-        acc[page.category].push(page);
-        return acc;
-      }, {}),
-    [pages]
-  );
-
-  const hasAccess = (userId: string, pageId: string): boolean =>
-    userAccess?.some((a) => a.user_id === userId && a.page_permission_id === pageId) ?? false;
 
   return (
     <div className="space-y-4">
@@ -155,75 +136,12 @@ export const UsersTab = () => {
           </CardHeader>
           <CardContent className="max-h-[600px] overflow-y-auto">
             {selectedUserId && selectedUser ? (
-              <div className="space-y-4">
-                {Object.entries(groupedPages).map(([category, categoryPages]) => (
-                  <div key={category} className="space-y-2">
-                    <Badge className={getCategoryColor(category)}>
-                      {getCategoryLabel(category)}
-                    </Badge>
-                    <div className="space-y-1">
-                      {categoryPages.map((page) => {
-                        const userHasAccess = hasAccess(selectedUserId, page.id);
-                        const userIsAdmin = selectedUser.roles.includes('admin');
-                        const requiresAdminOnly = page.requires_admin && !userIsAdmin;
-                        return (
-                          <div
-                            key={page.id}
-                            className={`flex items-center justify-between p-2 rounded-lg ${
-                              requiresAdminOnly ? 'bg-slate-100 opacity-60' : 'bg-slate-50'
-                            }`}
-                          >
-                            <div>
-                              <p className="text-sm text-slate-900">{page.page_name}</p>
-                              <p className="text-xs text-slate-500">{page.page_path}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {requiresAdminOnly ? (
-                                <span
-                                  className="text-xs text-slate-400 italic"
-                                  title="Requer permissão de administrador"
-                                >
-                                  Requer admin
-                                </span>
-                              ) : userHasAccess ? (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() =>
-                                    revokeAccess.mutate({
-                                      userId: selectedUserId,
-                                      pageId: page.id,
-                                    })
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4 mr-1" />
-                                  Revogar
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-teal-600 hover:text-teal-700 hover:bg-teal-50"
-                                  onClick={() =>
-                                    grantAccess.mutate({
-                                      userId: selectedUserId,
-                                      pageId: page.id,
-                                    })
-                                  }
-                                >
-                                  <Plus className="h-4 w-4 mr-1" />
-                                  Conceder
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PermissionsTree
+                userId={selectedUserId}
+                userIsAdmin={selectedUser.roles.includes('admin')}
+                pages={pages ?? []}
+                userAccess={userAccess ?? []}
+              />
             ) : (
               <div className="text-center py-8 text-slate-500">
                 <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
