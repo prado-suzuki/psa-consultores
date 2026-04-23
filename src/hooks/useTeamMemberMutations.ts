@@ -13,7 +13,7 @@ export interface CreateTeamMemberInput {
   first_name: string;
   last_name: string;
   email: string;
-  password: string;
+  password?: string;
   roles: string[];
   areas: string[];
 }
@@ -98,7 +98,7 @@ export function useCreateTeamMember() {
           },
           credentials: {
             email: input.email,
-            temporary_password: input.password,
+            temporary_password: 'trocarsenha',
           },
           platform: {
             login_url: 'https://psa-consultores.lovable.app/auth',

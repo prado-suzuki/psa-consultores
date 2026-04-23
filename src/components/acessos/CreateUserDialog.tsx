@@ -12,17 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { UserPlus, Eye, EyeOff, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
+import { UserPlus, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { AREA_CATEGORIES_MAP } from '@/config/areaCategories';
 import { useCreateTeamMember, type CreateTeamMemberInput } from '@/hooks/useTeamMemberMutations';
 import { ROLE_OPTIONS } from './roleOptions';
 
-const EMPTY_FORM: CreateTeamMemberInput = {
+const FIXED_PASSWORD = 'trocarsenha';
+
+const EMPTY_FORM: Omit<CreateTeamMemberInput, 'password'> = {
   first_name: '',
   last_name: '',
   email: '',
-  password: '',
   roles: [],
   areas: [],
 };
@@ -34,12 +35,11 @@ const copyToClipboard = (text: string) => {
 
 /**
  * Dialog de criação de novo usuário da equipe.
- * Gerencia seu próprio state (form + senha visível + credenciais pós-criação).
+ * Senha fixa 'trocarsenha' — usuário troca no primeiro acesso.
  */
 export const CreateUserDialog = () => {
   const [open, setOpen] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [form, setForm] = useState<CreateTeamMemberInput>(EMPTY_FORM);
+  const [form, setForm] = useState<Omit<CreateTeamMemberInput, 'password'>>(EMPTY_FORM);
   const [createdCredentials, setCreatedCredentials] = useState<{
     email: string;
     password: string;
@@ -51,18 +51,17 @@ export const CreateUserDialog = () => {
     setOpen(false);
     setCreatedCredentials(null);
     setForm(EMPTY_FORM);
-    setShowPassword(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.first_name || !form.last_name || !form.email || !form.password) {
-      toast.error('Preencha todos os campos obrigatórios');
+    if (!form.first_name || !form.email) {
+      toast.error('Preencha nome e email');
       return;
     }
     try {
-      await createUser.mutateAsync(form);
-      setCreatedCredentials({ email: form.email, password: form.password });
+      await createUser.mutateAsync({ ...form, password: FIXED_PASSWORD });
+      setCreatedCredentials({ email: form.email, password: FIXED_PASSWORD });
     } catch {
       /* toast já emitido pelo hook */
     }
@@ -164,7 +163,7 @@ export const CreateUserDialog = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name" className="text-slate-700">Sobrenome *</Label>
+                  <Label htmlFor="last_name" className="text-slate-700">Sobrenome</Label>
                   <Input
                     id="last_name"
                     value={form.last_name}
@@ -184,26 +183,6 @@ export const CreateUserDialog = () => {
                   className="bg-white border-slate-200 text-slate-900"
                   placeholder="email@exemplo.com"
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-slate-700">Senha *</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    className="bg-white border-slate-200 text-slate-900 pr-10"
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-teal-600"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
               </div>
 
               <div className="space-y-3">
