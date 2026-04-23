@@ -54,17 +54,17 @@ import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
-  description: z.string().optional(),
+  description: z.string().min(1, 'Descrição é obrigatória'),
   status: z.enum(['backlog', 'waiting_client', 'todo', 'in_progress', 'review', 'done']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
-  assigned_to: z.string().optional(),
+  assigned_to: z.string().min(1, 'Responsável é obrigatório'),
   assigned_to_name: z.string().optional(),
-  start_date: z.date().optional(),
-  due_date: z.date().optional(),
+  start_date: z.date({ required_error: 'Data de Início é obrigatória' }),
+  due_date: z.date({ required_error: 'Data de Vencimento é obrigatória' }),
   parent_task_id: z.string().optional(),
   project_id: z.string().min(1, 'Projeto é obrigatório'),
-  client_id: z.string().optional(),
-  contribuinte_id: z.string().optional(),
+  client_id: z.string().min(1, 'Cliente é obrigatório'),
+  contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
 });
 
@@ -320,7 +320,7 @@ export const TaskModal = ({
                 name="client_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Cliente</FormLabel>
+                    <FormLabel>Cliente <RequiredMark /></FormLabel>
                     <Select 
                       onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)} 
                       value={field.value || '_none'}
@@ -374,7 +374,7 @@ export const TaskModal = ({
                 name="contribuinte_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Contribuinte</FormLabel>
+                    <FormLabel>Contribuinte <RequiredMark /></FormLabel>
                     <Select
                       onValueChange={(v) => field.onChange(v === '_none' ? undefined : v)}
                       value={field.value || '_none'}
@@ -424,7 +424,7 @@ export const TaskModal = ({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descrição</FormLabel>
+                    <FormLabel>Descrição <RequiredMark /></FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Descreva a tarefa..." 
@@ -528,7 +528,7 @@ export const TaskModal = ({
                 name="assigned_to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Responsável</FormLabel>
+                    <FormLabel>Responsável <RequiredMark /></FormLabel>
                     <Select 
                       onValueChange={handleAssigneeChange} 
                       value={field.value || '_none'}
@@ -580,7 +580,7 @@ export const TaskModal = ({
                   name="start_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Data de Início</FormLabel>
+                      <FormLabel>Data de Início <RequiredMark /></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
@@ -617,7 +617,7 @@ export const TaskModal = ({
                   name="due_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Data de Vencimento</FormLabel>
+                      <FormLabel>Data de Vencimento <RequiredMark /></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
