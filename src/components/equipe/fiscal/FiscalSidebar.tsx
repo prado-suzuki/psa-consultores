@@ -198,10 +198,10 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
   };
 
   return (
-    <div 
+    <div
       className={cn(
         "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
-        isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64"
+        isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64 overflow-y-auto"
       )}
     >
       {/* Header with collapse button */}
@@ -226,12 +226,12 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       </div>
 
       {/* Menu */}
-      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+      <nav className="p-3 space-y-1">
         {menuItems.map(renderMenuItem)}
       </nav>
 
       {/* Footer with actions */}
-      <div className="p-3 border-t border-slate-200 space-y-2">
+      <div className="mt-auto p-3 border-t border-slate-200 space-y-2">
         <Button 
           variant="ghost" 
           size="sm"

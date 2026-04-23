@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Users, FileText, AlertCircle, LogOut } from 'lucide-react';
+import { Users, FileText, AlertCircle, LogOut, ArrowLeft } from 'lucide-react';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -44,16 +44,22 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
-      <header className="bg-background border-b border-border">
+      <header className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Painel Administrativo</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao site
+            </Button>
+            <Button variant="ghost" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 

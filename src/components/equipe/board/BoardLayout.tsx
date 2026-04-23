@@ -21,6 +21,7 @@ import {
   CheckCircle,
   FileText,
   User,
+  LogOut,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -90,7 +91,12 @@ const getBreadcrumb = (pathname: string) => {
 };
 
 export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardLayoutProps) => {
-  const { user, isAdmin, isLider } = useAuth();
+  const { user, isAdmin, isLider, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
   const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
   const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
   const navigate = useNavigate();
@@ -325,7 +331,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
       </ScrollArea>
 
       {/* Footer */}
-      <div className="px-3 pb-[14px] pt-[14px]" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+      <div className="px-3 pb-[14px] pt-[14px] space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
         <button
           onClick={() => navigate('/equipe/')}
           className="w-full flex items-center gap-2 rounded-lg text-[12.5px] transition-all duration-150 px-[10px] py-[7px]"
@@ -335,6 +341,17 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
         >
           <ArrowLeft className="h-[14px] w-[14px]" />
           {!collapsed && <span>Voltar ao Portal</span>}
+        </button>
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-2 rounded-lg text-[12.5px] transition-all duration-150 px-[10px] py-[7px]"
+          style={{ color: 'var(--board-sb-txt)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239,68,68,.12)'; (e.currentTarget as HTMLElement).style.color = '#FCA5A5'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--board-sb-txt)'; }}
+          title={collapsed ? 'Sair' : undefined}
+        >
+          <LogOut className="h-[14px] w-[14px]" />
+          {!collapsed && <span>Sair</span>}
         </button>
       </div>
     </div>

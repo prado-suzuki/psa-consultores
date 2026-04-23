@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare } from 'lucide-react';
+import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare, ArrowLeft } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardFilters } from '@/components/cliente/DashboardFilters';
@@ -198,16 +198,22 @@ export default function ClienteDashboard() {
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
       {/* Header */}
-      <header className="bg-background border-b border-border">
+      <header className="sticky top-0 z-20 bg-background border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Área do Cliente</h1>
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
-          <Button variant="ghost" onClick={handleSignOut}>
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate('/')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao site
+            </Button>
+            <Button variant="ghost" onClick={handleSignOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
 

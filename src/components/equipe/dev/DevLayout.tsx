@@ -101,7 +101,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} relative bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-hidden`}
+        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden`}
       >
         {/* Sidebar content — only rendered when expanded */}
         {!collapsed && (
@@ -122,7 +122,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               </Button>
             </div>
             {/* Navigation */}
-            <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+            <nav className="p-4 space-y-1">
               {navItems.map((item) => (
                 <Button
                   key={item.path}
@@ -260,7 +260,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             </nav>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-slate-200/60 space-y-2">
+            <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
               <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
                 <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
                   <User className="h-4 w-4 text-teal-600" />

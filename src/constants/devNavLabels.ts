@@ -1,7 +1,7 @@
 /** Single source of truth for Dev sidebar + dashboard card labels */
 export const DEV_NAV_LABELS = {
   // Top-level
-  inicio: "Início",
+  inicio: "Painel de aplicações",
   novaFerramenta: "Nova ferramenta",
   consultaXmls: "Consulta de XMLs",
 

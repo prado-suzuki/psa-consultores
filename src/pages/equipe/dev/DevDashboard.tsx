@@ -1,10 +1,18 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Search,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import {
   ArrowRight,
   ExternalLink,
   BookOpen,
@@ -21,6 +29,7 @@ import {
   Percent,
   FileStack,
   Scale,
+  X,
   type LucideIcon,
 } from 'lucide-react';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
@@ -174,27 +183,23 @@ const toolGroups: ToolGroup[] = [
 
 const DevDashboard = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
+  const [selectedToolPath, setSelectedToolPath] = useState<string>('');
 
   const filteredGroups = useMemo(() => {
-    const q = search.toLowerCase();
+    if (!selectedToolPath) return toolGroups;
     return toolGroups
       .map((group) => ({
         ...group,
-        tools: group.tools.filter(
-          (t) =>
-            t.name.toLowerCase().includes(q) ||
-            t.description.toLowerCase().includes(q),
-        ),
+        tools: group.tools.filter((t) => t.path === selectedToolPath),
       }))
       .filter((group) => group.tools.length > 0);
-  }, [search]);
+  }, [selectedToolPath]);
 
   const totalFiltered = filteredGroups.reduce((sum, g) => sum + g.tools.length, 0);
 
   return (
     <DevLayout
-      title="Início"
+      title="Painel de aplicações"
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
@@ -205,36 +210,42 @@ const DevDashboard = () => {
           </Badge>
         </div>
 
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Buscar ferramenta ou descrição..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9 text-sm bg-white shadow-sm"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
+            <SelectTrigger className="w-full sm:w-96 h-9 text-sm bg-white shadow-sm">
+              <SelectValue placeholder="Selecione uma ferramenta..." />
+            </SelectTrigger>
+            <SelectContent>
+              {toolGroups.map((group) => (
+                <SelectGroup key={group.label}>
+                  <SelectLabel className="text-[11px] uppercase tracking-wider text-slate-500">
+                    {group.label}
+                  </SelectLabel>
+                  {group.tools.map((tool) => (
+                    <SelectItem key={tool.path} value={tool.path}>
+                      {tool.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedToolPath && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedToolPath('')}
+              className="h-9 text-xs text-slate-600 hover:text-teal-700"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Limpar
+            </Button>
+          )}
         </div>
       </div>
 
-      {filteredGroups.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
-          <div className="mx-auto w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
-            <Search className="h-6 w-6 text-slate-400" />
-          </div>
-          <h3 className="text-sm font-medium text-slate-900">Nenhuma ferramenta encontrada</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Não encontramos resultados para "{search}"
-          </p>
-          <button
-            onClick={() => setSearch('')}
-            className="mt-4 text-sm text-teal-600 font-medium hover:text-teal-700"
-          >
-            Limpar busca
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {filteredGroups.map((group) => (
+      <div className="space-y-10">
+        {filteredGroups.map((group) => (
             <section key={group.label}>
               <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
                 <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
@@ -298,8 +309,7 @@ const DevDashboard = () => {
               </div>
             </section>
           ))}
-        </div>
-      )}
+      </div>
     </DevLayout>
   );
 };
