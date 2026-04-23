@@ -424,7 +424,7 @@ export const TaskModal = ({
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Descrição</FormLabel>
+                    <FormLabel>Descrição <RequiredMark /></FormLabel>
                     <FormControl>
                       <Textarea 
                         placeholder="Descreva a tarefa..." 
