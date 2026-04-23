@@ -1037,7 +1037,7 @@ const FiscalProjetosCadastro = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label>Status</Label>
+                    <Label>Status <span className="text-destructive">*</span></Label>
                     <Select
                       value={formData.status}
                       onValueChange={(value) => setFormData({ ...formData, status: value })}
