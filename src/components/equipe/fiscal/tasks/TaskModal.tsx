@@ -528,7 +528,7 @@ export const TaskModal = ({
                 name="assigned_to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Responsável</FormLabel>
+                    <FormLabel>Responsável <RequiredMark /></FormLabel>
                     <Select 
                       onValueChange={handleAssigneeChange} 
                       value={field.value || '_none'}
