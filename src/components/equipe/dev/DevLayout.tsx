@@ -295,7 +295,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         {/* Header */}
         <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
@@ -342,7 +342,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         <PendingTicketsAlert navigateTo="/equipe/chamados" />
 
         {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           <div className="p-6 w-full min-w-0">{children}</div>
         </div>
       </main>

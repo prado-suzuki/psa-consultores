@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import { 
@@ -186,11 +185,11 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         <PendingTicketsAlert navigateTo="/gestao/chamados" />
 
         {/* Scrollable Content Area */}
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <div className="p-6">
             {children}
           </div>
-        </ScrollArea>
+        </div>
       </main>
     </div>
   );
