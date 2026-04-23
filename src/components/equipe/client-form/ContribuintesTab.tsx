@@ -16,6 +16,7 @@ import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
 import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
+import { useAuth } from "@/contexts/AuthContext";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -42,6 +43,7 @@ export default function ContribuintesTab({
   cnpjLookup, cepLookup,
   isReadOnly,
 }: ContribuintesTabProps) {
+  const { isAdmin } = useAuth();
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
@@ -172,23 +174,34 @@ export default function ContribuintesTab({
                             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditEntity(ent)}>
                               <Pencil size={12} /> Editar
                             </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                                  <Trash2 size={12} /> Remover
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
-                                  <AlertDialogDescription>Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setEntities(entities.filter((x) => x._id !== ent._id)); setExpandedEntityId(null); }}>Remover</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
+                            {isAdmin ? (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
+                                    <Trash2 size={12} /> Remover
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
+                                    <AlertDialogDescription>Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setEntities(entities.filter((x) => x._id !== ent._id)); setExpandedEntityId(null); }}>Remover</AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            ) : (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5 text-xs text-destructive hover:text-destructive"
+                                onClick={() => toast.warning("Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação")}
+                              >
+                                <Trash2 size={12} /> Remover
+                              </Button>
+                            )}
                           </>
                         )}
                       </div>

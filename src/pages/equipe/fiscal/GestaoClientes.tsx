@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 import {
   useClientesLista,
@@ -368,6 +369,10 @@ const GestaoClientes = () => {
                               className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                               onClick={(e) => {
                                 e.stopPropagation();
+                                if (!isAdmin) {
+                                  toast.warning("Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação");
+                                  return;
+                                }
                                 setDeletingCliente({ id: row.id, nome: row.nome || "Sem nome" });
                               }}
                             >
