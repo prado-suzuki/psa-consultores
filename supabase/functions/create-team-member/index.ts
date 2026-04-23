@@ -4,12 +4,14 @@ import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 interface CreateTeamMemberRequest {
   email: string;
-  password: string;
+  password?: string;
   first_name: string;
-  last_name: string;
+  last_name?: string | null;
   is_admin?: boolean;
   roles?: string[];
 }
+
+const FIXED_PASSWORD = 'trocarsenha';
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -73,7 +75,10 @@ Deno.serve(async (req) => {
     // Parse request body
     const { email, password, first_name, last_name, is_admin, roles: requestedRoles }: CreateTeamMemberRequest = await req.json();
 
-    console.log('Creating team member:', { email, first_name, last_name, requestedRoles, is_admin });
+    const effectivePassword = password && password.length > 0 ? password : FIXED_PASSWORD;
+    const effectiveLastName = last_name && last_name.trim() !== '' ? last_name : '';
+
+    console.log('Creating team member:', { email, first_name, last_name: effectiveLastName, requestedRoles, is_admin });
 
     // Create admin client for user creation
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -81,11 +86,11 @@ Deno.serve(async (req) => {
     // Create user with admin API
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
-      password,
+      password: effectivePassword,
       email_confirm: true,
       user_metadata: {
         first_name,
-        last_name,
+        last_name: effectiveLastName,
         must_change_password: true
       }
     });
@@ -117,8 +122,9 @@ Deno.serve(async (req) => {
 
     // Determine which roles to assign
     let rolesToAssign: string[] = [];
-    
-    if (requestedRoles && Array.isArray(requestedRoles) && requestedRoles.length > 0) {
+
+    if (requestedRoles && Array.isArray(requestedRoles)) {
+      // Respect explicit array even if empty
       rolesToAssign = requestedRoles;
     } else {
       // Backward compatibility: default to team_member + admin if is_admin

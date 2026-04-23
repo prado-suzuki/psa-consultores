@@ -3,6 +3,9 @@ project_id = "zwoainzzqhudmmknuycq"
 [functions.create-team-member]
 verify_jwt = false
 
+[functions.upsert-representante-user]
+verify_jwt = false
+
 [functions.get-user-last-access]
 verify_jwt = false
 
