@@ -1166,7 +1166,7 @@ const FiscalProjetosCadastro = () => {
 
                 <div>
                   <div className="flex items-center justify-between">
-                    <Label>Membros do Projeto</Label>
+                    <Label>Membros do Projeto <span className="text-destructive">*</span></Label>
                     {estruturaAreaId && areaMemberIds.length > 0 && (
                       <Button
                         type="button"
