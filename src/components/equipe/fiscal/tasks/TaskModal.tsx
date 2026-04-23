@@ -580,7 +580,7 @@ export const TaskModal = ({
                   name="start_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Data de Início</FormLabel>
+                      <FormLabel>Data de Início <RequiredMark /></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
