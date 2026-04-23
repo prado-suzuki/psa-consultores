@@ -54,17 +54,17 @@ import { useEstruturaArea } from '@/hooks/useEstruturaArea';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
-  description: z.string().optional(),
+  description: z.string().min(1, 'Descrição é obrigatória'),
   status: z.enum(['backlog', 'waiting_client', 'todo', 'in_progress', 'review', 'done']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
-  assigned_to: z.string().optional(),
+  assigned_to: z.string().min(1, 'Responsável é obrigatório'),
   assigned_to_name: z.string().optional(),
-  start_date: z.date().optional(),
-  due_date: z.date().optional(),
+  start_date: z.date({ required_error: 'Data de Início é obrigatória' }),
+  due_date: z.date({ required_error: 'Data de Vencimento é obrigatória' }),
   parent_task_id: z.string().optional(),
   project_id: z.string().min(1, 'Projeto é obrigatório'),
-  client_id: z.string().optional(),
-  contribuinte_id: z.string().optional(),
+  client_id: z.string().min(1, 'Cliente é obrigatório'),
+  contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
 });
 
