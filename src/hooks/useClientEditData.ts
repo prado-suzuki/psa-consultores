@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
+import { formatCpfCnpj } from '@/components/equipe/client-form/constants';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
@@ -86,7 +87,7 @@ export const useClientEditData = (
               _id: Date.now() + Math.random(),
               _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: c.cpf_cnpj || "",
+              cpf_cnpj: formatCpfCnpj(c.cpf_cnpj || "", c.tipo_pessoa || "PJ"),
               nome_razao_social: c.nome_razao_social || "",
               nome_fantasia: (c as any).nome_fantasia || "",
               situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),

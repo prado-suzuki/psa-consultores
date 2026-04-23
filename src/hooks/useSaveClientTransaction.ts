@@ -209,7 +209,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const buildContribFields = (e: DraftEntity) => ({
         cliente_id: clienteId,
         tipo_pessoa: e.tipo_pessoa,
-        cpf_cnpj: e.cpf_cnpj || null,
+        cpf_cnpj: (e.cpf_cnpj || "").replace(/\D/g, "") || null,
         nome_razao_social: e.nome_razao_social,
         inscricao_estadual: e.inscricao_estadual || null,
         cod_cnae: e.cod_cnae || null,

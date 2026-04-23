@@ -1,14 +1,27 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Search,
   ArrowRight,
   ExternalLink,
+  BookOpen,
+  Receipt,
+  FileText,
+  BookText,
+  Map,
+  Calculator,
+  GitCompare,
+  Wrench,
+  Truck,
+  Sparkles,
+  FileCode2,
+  Percent,
+  FileStack,
+  Scale,
+  type LucideIcon,
 } from 'lucide-react';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
 
@@ -16,6 +29,7 @@ interface ToolEntry {
   name: string;
   description: string;
   path: string;
+  icon: LucideIcon;
   sopUrl?: string;
 }
 
@@ -26,30 +40,46 @@ interface ToolGroup {
 
 const toolGroups: ToolGroup[] = [
   {
+    label: DEV_NAV_LABELS.consultaXmls,
+    tools: [
+      {
+        name: DEV_NAV_LABELS.consultaXmls,
+        description: 'Busque e visualize documentos fiscais eletrônicos',
+        path: '/equipe/dev/consulta-xmls',
+        icon: FileCode2,
+        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
+      },
+    ],
+  },
+  {
     label: DEV_NAV_LABELS.consultaSped,
     tools: [
       {
         name: DEV_NAV_LABELS.efdContribuicoes,
         description: 'Consulta e análise de escrituração fiscal digital',
         path: '/equipe/dev/consulta-efd',
+        icon: Receipt,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-contribuicoes/',
       },
       {
         name: DEV_NAV_LABELS.efdIcms + '/IPI',
         description: 'Consulta de EFD ICMS/IPI por contribuinte',
         path: '/equipe/dev/consulta-efd-icms',
+        icon: FileText,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/efd-icms/',
       },
       {
         name: DEV_NAV_LABELS.ecd,
         description: 'Consulta de Escrituração Contábil Digital',
         path: '/equipe/dev/consulta-ecd',
+        icon: BookOpen,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECD/',
       },
       {
         name: DEV_NAV_LABELS.ecf,
         description: 'Consulta de Escrituração Contábil Fiscal',
         path: '/equipe/dev/consulta-ecf',
+        icon: BookText,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/ECF/',
       },
     ],
@@ -61,21 +91,25 @@ const toolGroups: ToolGroup[] = [
         name: DEV_NAV_LABELS.mapaNCMs,
         description: 'Regras de crédito por NCM para PIS e COFINS',
         path: '/equipe/dev/mapa-ncm-pis-cofins',
+        icon: Map,
       },
       {
         name: DEV_NAV_LABELS.apuracaoTributaria,
         description: 'Cálculo de apuração do cliente',
         path: '/equipe/dev/apuracao-pis-cofins',
+        icon: Calculator,
       },
       {
         name: DEV_NAV_LABELS.analiseCruzada,
         description: 'Cruzamento de dados fiscais e contábeis',
         path: '/equipe/dev/cruzamento-dados',
+        icon: GitCompare,
       },
       {
         name: DEV_NAV_LABELS.revisaoRegistrosEfd,
         description: 'Revisão e correção de registros SPED',
         path: '/equipe/dev/correcoes-sped',
+        icon: Wrench,
       },
     ],
   },
@@ -86,6 +120,7 @@ const toolGroups: ToolGroup[] = [
         name: DEV_NAV_LABELS.icmsSaidas,
         description: 'Classificação fiscal de produtos em saídas interestaduais (Beta)',
         path: '/equipe/dev/apuracao-difal/icms-saidas',
+        icon: Truck,
       },
     ],
   },
@@ -96,34 +131,42 @@ const toolGroups: ToolGroup[] = [
         name: DEV_NAV_LABELS.difalInteligente,
         description: 'Auditoria automatizada de DIFAL por NCM',
         path: '/equipe/dev/processo-difal',
+        icon: Sparkles,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/difal-inteligente/',
       },
     ],
   },
   {
-    label: 'Outros',
+    label: DEV_NAV_LABELS.calculadoraIbsCbs,
     tools: [
-      {
-        name: DEV_NAV_LABELS.consultaXmls,
-        description: 'Busque e visualize documentos fiscais eletrônicos',
-        path: '/equipe/dev/consulta-xmls',
-        sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/',
-      },
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
         description: 'Simulador de cálculo da reforma tributária',
         path: '/equipe/dev/calculadora-ibs-cbs',
+        icon: Percent,
       },
+    ],
+  },
+  {
+    label: DEV_NAV_LABELS.controlePerdcomp,
+    tools: [
       {
-        name: 'Controle PER/DCOMP',
+        name: DEV_NAV_LABELS.controlePerdcomp,
         description: 'Gestão de pedidos de restituição e compensação',
         path: '/equipe/dev/controle-perdcomp',
+        icon: FileStack,
         sopUrl: 'https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp',
       },
+    ],
+  },
+  {
+    label: DEV_NAV_LABELS.controleBalancetes,
+    tools: [
       {
-        name: 'Controle de Balancetes',
+        name: DEV_NAV_LABELS.controleBalancetes,
         description: 'Upload e gestão de balancetes contábeis',
         path: '/equipe/dev/controle-balancetes',
+        icon: Scale,
       },
     ],
   },
@@ -138,7 +181,11 @@ const DevDashboard = () => {
     return toolGroups
       .map((group) => ({
         ...group,
-        tools: group.tools.filter((t) => t.name.toLowerCase().includes(q)),
+        tools: group.tools.filter(
+          (t) =>
+            t.name.toLowerCase().includes(q) ||
+            t.description.toLowerCase().includes(q),
+        ),
       }))
       .filter((group) => group.tools.length > 0);
   }, [search]);
@@ -150,79 +197,106 @@ const DevDashboard = () => {
       title="Início"
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
-      <div className="mb-3 flex items-center gap-2">
-        <h2 className="text-base font-semibold text-slate-700">Ferramentas</h2>
-        <Badge variant="secondary" className="text-[11px]">
-          {totalFiltered}
-        </Badge>
-      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-slate-800">Ferramentas</h2>
+          <Badge variant="secondary" className="text-[11px]">
+            {totalFiltered}
+          </Badge>
+        </div>
 
-      <div className="relative mb-5">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          placeholder="Buscar ferramenta pelo nome..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 h-8 text-sm"
-        />
+        <div className="relative w-full sm:w-96">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+          <Input
+            placeholder="Buscar ferramenta ou descrição..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm bg-white shadow-sm"
+          />
+        </div>
       </div>
 
       {filteredGroups.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Search className="h-10 w-10 mx-auto mb-3 opacity-40" />
-          <p>Nenhuma ferramenta encontrada para "{search}"</p>
+        <div className="text-center py-16 bg-white rounded-xl border border-dashed border-slate-300">
+          <div className="mx-auto w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mb-3">
+            <Search className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="text-sm font-medium text-slate-900">Nenhuma ferramenta encontrada</h3>
+          <p className="text-sm text-slate-500 mt-1">
+            Não encontramos resultados para "{search}"
+          </p>
+          <button
+            onClick={() => setSearch('')}
+            className="mt-4 text-sm text-teal-600 font-medium hover:text-teal-700"
+          >
+            Limpar busca
+          </button>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-10">
           {filteredGroups.map((group) => (
-            <Card key={group.label} className="shadow-sm">
-              <CardHeader className="p-4 pb-2">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-semibold text-slate-700">
-                    {group.label}
-                  </CardTitle>
-                  <Badge variant="outline" className="text-[10px]">
-                    {group.tools.length}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {group.tools.map((tool) => (
-                    <Card
+            <section key={group.label}>
+              <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
+                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  {group.label}
+                </h3>
+                <Badge variant="outline" className="text-[10px]">
+                  {group.tools.length}
+                </Badge>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                {group.tools.map((tool) => {
+                  const Icon = tool.icon;
+                  return (
+                    <div
                       key={tool.path}
-                      className="flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow"
+                      className="group relative flex flex-col sm:flex-row sm:items-center gap-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200 p-4 sm:p-5"
                     >
-                      <CardHeader className="p-3 pb-1">
-                        <CardTitle className="text-sm text-slate-700">{tool.name}</CardTitle>
-                        <p className="text-[11px] text-slate-500 mt-0.5">{tool.description}</p>
-                      </CardHeader>
-                      <CardContent className="p-3 pt-0 flex items-center gap-2 flex-wrap">
-                        <Button
-                          size="sm"
-                          onClick={() => navigate(tool.path)}
-                          className="gap-1 h-7 text-xs px-2"
-                        >
-                          Acessar
-                          <ArrowRight className="h-3 w-3" />
-                        </Button>
+                      <button
+                        onClick={() => navigate(tool.path)}
+                        className="flex flex-1 items-start gap-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg"
+                      >
+                        <div className="p-2 bg-teal-50 text-teal-600 rounded-lg group-hover:bg-teal-100 transition-colors shrink-0">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
+                            {tool.name}
+                          </h4>
+                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                            {tool.description}
+                          </p>
+                        </div>
+                      </button>
+
+                      <div className="flex items-center gap-4 shrink-0 sm:ml-auto">
                         {tool.sopUrl && (
                           <a
                             href={tool.sopUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-teal-600 hover:text-teal-700 hover:underline text-[11px] font-medium inline-flex items-center gap-1"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-teal-700 underline decoration-dotted decoration-slate-300 hover:decoration-teal-500 underline-offset-4 transition-colors z-10"
                           >
-                            SOP
-                            <ExternalLink className="h-2.5 w-2.5" />
+                            <BookOpen className="h-3.5 w-3.5" />
+                            Acessar manual
+                            <ExternalLink className="h-3 w-3" />
                           </a>
                         )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                        <button
+                          onClick={() => navigate(tool.path)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-teal-600 text-white text-xs font-semibold shadow-sm hover:bg-teal-700 hover:shadow transition-all"
+                        >
+                          Abrir ferramenta
+                          <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-0.5 transition-transform" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
           ))}
         </div>
       )}
