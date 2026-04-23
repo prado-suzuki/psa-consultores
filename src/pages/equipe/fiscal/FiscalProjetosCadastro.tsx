@@ -1266,7 +1266,7 @@ const FiscalProjetosCadastro = () => {
               <div className="space-y-4">
                 <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Detalhes</h3>
                 <div>
-                  <Label>Descrição do Projeto</Label>
+                  <Label>Descrição do Projeto <span className="text-destructive">*</span></Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
