@@ -617,7 +617,7 @@ export const TaskModal = ({
                   name="due_date"
                   render={({ field }) => (
                     <FormItem className="flex flex-col">
-                      <FormLabel>Data de Vencimento</FormLabel>
+                      <FormLabel>Data de Vencimento <RequiredMark /></FormLabel>
                       <Popover>
                         <PopoverTrigger asChild>
                           <FormControl>
