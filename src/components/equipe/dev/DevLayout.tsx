@@ -101,7 +101,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden`}
+        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
       >
         {/* Sidebar content — only rendered when expanded */}
         {!collapsed && (
@@ -181,7 +181,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
                       isPisCofinsActive
                         ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-700 hover:text-teal-600"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                   >
                     <span className="flex-1 text-left">{DEV_NAV_LABELS.levantamentoPisCofins}</span>
@@ -216,7 +216,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
                       isApuracaoDifalActive
                         ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-700 hover:text-teal-600"
+                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                   >
                     <span className="flex-1 text-left">{DEV_NAV_LABELS.apuracaoDifal}</span>
