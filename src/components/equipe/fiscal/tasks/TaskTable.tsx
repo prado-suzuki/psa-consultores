@@ -98,6 +98,13 @@ const statusLabels = Object.fromEntries(
      return (
        <>
          <TableRow key={task.id} className={cn(isSubtask && "bg-muted/30")}>
+           <TableCell>
+             {task.client?.nome ? (
+               <span className="text-sm">{task.client.nome}</span>
+             ) : (
+               <span className="text-muted-foreground">-</span>
+             )}
+           </TableCell>
            <TableCell className={cn("font-medium", isSubtask && "pl-10")}>
              <div className="flex items-center gap-2">
                {hasSubtasks && (
@@ -238,6 +245,7 @@ const statusLabels = Object.fromEntries(
        <Table>
          <TableHeader>
            <TableRow>
+             <TableHead className="w-[180px]">Cliente</TableHead>
              <TableHead className="w-[300px]">Título</TableHead>
              <TableHead className="w-[140px]">Status</TableHead>
              <TableHead className="w-[120px]">Prioridade</TableHead>
@@ -250,7 +258,7 @@ const statusLabels = Object.fromEntries(
          <TableBody>
            {parentTasks.length === 0 ? (
              <TableRow>
-               <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+               <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                  Nenhuma tarefa encontrada
                </TableCell>
              </TableRow>

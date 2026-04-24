@@ -30,9 +30,13 @@ import {
   FileStack,
   Scale,
   X,
+  LayoutGrid,
+  Cpu,
+  Rocket,
   type LucideIcon,
 } from 'lucide-react';
 import { DEV_NAV_LABELS } from '@/constants/devNavLabels';
+import { KpiHero, HatchedBar, HeroBanner, type HatchedBarSegment } from '@/components/dashboard/momentum';
 
 interface ToolEntry {
   name: string;
@@ -195,120 +199,196 @@ const DevDashboard = () => {
       .filter((group) => group.tools.length > 0);
   }, [selectedToolPath]);
 
+  const totalTools = useMemo(() => toolGroups.reduce((s, g) => s + g.tools.length, 0), []);
+  const totalCategories = toolGroups.length;
+  const totalWithSop = useMemo(
+    () => toolGroups.reduce((s, g) => s + g.tools.filter(t => t.sopUrl).length, 0),
+    []
+  );
   const totalFiltered = filteredGroups.reduce((sum, g) => sum + g.tools.length, 0);
+
+  // Distribuição por categoria (hatched bar)
+  const categorySegments: HatchedBarSegment[] = useMemo(
+    () => toolGroups.map((g, i) => ({
+      label: g.label,
+      value: g.tools.length,
+      hatched: i % 2 === 1,
+    })),
+    []
+  );
+
+  const sopCoverage = totalTools > 0 ? Math.round((totalWithSop / totalTools) * 100) : 0;
 
   return (
     <DevLayout
       title="Painel de aplicações"
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-slate-800">Ferramentas</h2>
-          <Badge variant="secondary" className="text-[11px]">
-            {totalFiltered}
-          </Badge>
+      <div className="space-y-6">
+        {/* LINHA 1 — KPIs Hero */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <KpiHero
+            label="Ferramentas Ativas"
+            value={totalTools}
+            icon={<Cpu className="h-3.5 w-3.5" />}
+            variation={{ value: totalTools, label: 'aplicações disponíveis' }}
+          />
+          <KpiHero
+            label="Categorias"
+            value={totalCategories}
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            variation={{ value: totalCategories, label: 'grupos funcionais' }}
+          />
+          <KpiHero
+            label="Cobertura de Manuais"
+            value={`${sopCoverage}%`}
+            icon={<BookOpen className="h-3.5 w-3.5" />}
+            variation={{ value: sopCoverage, label: `${totalWithSop} de ${totalTools} com SOP` }}
+          />
+          <KpiHero
+            label="Próximas Releases"
+            value="3"
+            icon={<Rocket className="h-3.5 w-3.5" />}
+            variant="solid"
+            variation={{ value: 1, label: 'em desenvolvimento' }}
+          />
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
-            <SelectTrigger className="w-full sm:w-96 h-9 text-sm bg-white shadow-sm">
-              <SelectValue placeholder="Selecione uma ferramenta..." />
-            </SelectTrigger>
-            <SelectContent>
-              {toolGroups.map((group) => (
-                <SelectGroup key={group.label}>
-                  <SelectLabel className="text-[11px] uppercase tracking-wider text-slate-500">
-                    {group.label}
-                  </SelectLabel>
-                  {group.tools.map((tool) => (
-                    <SelectItem key={tool.path} value={tool.path}>
-                      {tool.name}
-                    </SelectItem>
+        {/* LINHA 2 — Banner Hero + Distribuição por categoria */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <HeroBanner
+            className="lg:col-span-2"
+            eyebrow="PSA Digital"
+            title="Maximize a produtividade do time fiscal"
+            description="Substitua planilhas e processos manuais por ferramentas automatizadas. Cada aplicação foi desenhada para acelerar consultas, apurações e cruzamentos de dados — com manuais integrados."
+            ctaLabel="Solicitar nova ferramenta"
+            onCta={() => navigate('/equipe/dev/nova-ferramenta')}
+            icon={<Sparkles className="h-6 w-6 text-white" />}
+          />
+
+          <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <LayoutGrid className="h-4 w-4 text-teal-600" />
+              <h3 className="text-sm font-semibold text-slate-900">Distribuição por Categoria</h3>
+            </div>
+            <HatchedBar segments={categorySegments} height={48} />
+          </div>
+        </div>
+
+        {/* LINHA 3 — Filtro + lista de ferramentas */}
+        <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-slate-900">Catálogo de Ferramentas</h2>
+              <Badge variant="secondary" className="text-[11px]">
+                {totalFiltered} {totalFiltered === 1 ? 'item' : 'itens'}
+              </Badge>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
+                <SelectTrigger className="w-full sm:w-80 h-9 text-sm bg-white shadow-sm">
+                  <SelectValue placeholder="Filtrar por ferramenta..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {toolGroups.map((group) => (
+                    <SelectGroup key={group.label}>
+                      <SelectLabel className="text-[11px] uppercase tracking-wider text-slate-500">
+                        {group.label}
+                      </SelectLabel>
+                      {group.tools.map((tool) => (
+                        <SelectItem key={tool.path} value={tool.path}>
+                          {tool.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
                   ))}
-                </SelectGroup>
-              ))}
-            </SelectContent>
-          </Select>
-          {selectedToolPath && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelectedToolPath('')}
-              className="h-9 text-xs text-slate-600 hover:text-teal-700"
-            >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Limpar
-            </Button>
-          )}
-        </div>
-      </div>
+                </SelectContent>
+              </Select>
+              {selectedToolPath && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedToolPath('')}
+                  className="h-9 text-xs text-slate-600 hover:text-teal-700"
+                >
+                  <X className="h-3.5 w-3.5 mr-1" />
+                  Limpar
+                </Button>
+              )}
+            </div>
+          </div>
 
-      <div className="space-y-10">
-        {filteredGroups.map((group) => (
-            <section key={group.label}>
-              <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
-                <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
-                  {group.label}
-                </h3>
-                <Badge variant="outline" className="text-[10px]">
-                  {group.tools.length}
-                </Badge>
-              </div>
+          <div className="space-y-8">
+            {filteredGroups.map((group) => (
+              <section key={group.label}>
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                    {group.label}
+                  </h3>
+                  <span className="h-px flex-1 bg-slate-200" />
+                  <Badge variant="outline" className="text-[10px]">
+                    {group.tools.length}
+                  </Badge>
+                </div>
 
-              <div className="flex flex-col gap-3">
-                {group.tools.map((tool) => {
-                  const Icon = tool.icon;
-                  return (
-                    <div
-                      key={tool.path}
-                      className="group relative flex flex-col sm:flex-row sm:items-center gap-4 bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md hover:border-teal-300 transition-all duration-200 p-4 sm:p-5"
-                    >
-                      <button
-                        onClick={() => navigate(tool.path)}
-                        className="flex flex-1 items-start gap-4 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg"
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {group.tools.map((tool) => {
+                    const Icon = tool.icon;
+                    return (
+                      <article
+                        key={tool.path}
+                        className="group relative flex flex-col bg-slate-50/60 hover:bg-white rounded-xl border border-slate-200/70 hover:border-teal-300 hover:shadow-md transition-all duration-200 p-4"
                       >
-                        <div className="p-2 bg-teal-50 text-teal-600 rounded-lg group-hover:bg-teal-100 transition-colors shrink-0">
-                          <Icon className="h-5 w-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-sm font-semibold text-slate-900 group-hover:text-teal-700 transition-colors">
-                            {tool.name}
-                          </h4>
-                          <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                            {tool.description}
-                          </p>
-                        </div>
-                      </button>
-
-                      <div className="flex items-center gap-4 shrink-0 sm:ml-auto">
-                        {tool.sopUrl && (
-                          <a
-                            href={tool.sopUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-teal-700 underline decoration-dotted decoration-slate-300 hover:decoration-teal-500 underline-offset-4 transition-colors z-10"
-                          >
-                            <BookOpen className="h-3.5 w-3.5" />
-                            Acessar manual
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
                         <button
                           onClick={() => navigate(tool.path)}
-                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md bg-teal-600 text-white text-xs font-semibold shadow-sm hover:bg-teal-700 hover:shadow transition-all"
+                          className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2 rounded-lg flex items-start gap-3 mb-4"
                         >
-                          Abrir ferramenta
-                          <ArrowRight className="h-3.5 w-3.5 transform group-hover:translate-x-0.5 transition-transform" />
+                          <div className="h-10 w-10 rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-100 transition-colors flex items-center justify-center flex-shrink-0">
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-semibold text-slate-900 group-hover:text-teal-700 transition-colors leading-tight">
+                              {tool.name}
+                            </h4>
+                            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-2">
+                              {tool.description}
+                            </p>
+                          </div>
                         </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </section>
-          ))}
+
+                        <div className="mt-auto pt-3 border-t border-slate-200/70 flex items-center justify-between gap-2">
+                          {tool.sopUrl ? (
+                            <a
+                              href={tool.sopUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-teal-700"
+                            >
+                              <BookOpen className="h-3 w-3" />
+                              Manual
+                              <ExternalLink className="h-2.5 w-2.5" />
+                            </a>
+                          ) : (
+                            <span className="text-[11px] text-slate-400 italic">Sem manual</span>
+                          )}
+                          <button
+                            onClick={() => navigate(tool.path)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-md bg-teal-600 text-white text-[11px] font-semibold shadow-sm hover:bg-teal-700 transition-all"
+                          >
+                            Abrir
+                            <ArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
+          </div>
+        </div>
       </div>
     </DevLayout>
   );
