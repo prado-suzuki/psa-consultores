@@ -387,9 +387,13 @@ export default function EquipeSprintDetalhes() {
     try {
       setSaving(true);
 
-      // Reorder siblings if task_code changed and deliverable has parent
-      if (editingDeliverable.parent_id && editForm.task_code && editForm.task_code !== (editingDeliverable.task_code || '')) {
-        await reorderSiblings(editingDeliverable.parent_id, editForm.task_code, editingDeliverable.id);
+      // Reorder siblings if task_code changed and (new) parent exists
+      const newParentId = editForm.parent_id || null;
+      if (newParentId && editForm.task_code && (
+        newParentId !== editingDeliverable.parent_id ||
+        editForm.task_code !== (editingDeliverable.task_code || '')
+      )) {
+        await reorderSiblings(newParentId, editForm.task_code, editingDeliverable.id);
       }
       
       const updates = {
@@ -403,6 +407,7 @@ export default function EquipeSprintDetalhes() {
         completed_at: editForm.status === 'completed' ? new Date().toISOString() : null,
         project_id: editForm.project_id || null,
         process_id: editForm.process_id || null,
+        parent_id: newParentId,
         task_code: editForm.task_code || null
       };
 
