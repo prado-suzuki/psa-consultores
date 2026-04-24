@@ -2067,14 +2067,6 @@ export default function EquipeSprintDetalhes() {
         <DialogContent className="max-w-lg">
           <DialogHeader>
            <DialogTitle>Editar Entregável</DialogTitle>
-            {editingDeliverable?.parent_id && (() => {
-              const parent = deliverables.find(d => d.id === editingDeliverable.parent_id);
-              return parent ? (
-                <p className="text-sm text-muted-foreground mt-1">
-                  Subtarefa de: <span className="font-medium text-foreground">{parent.task_code ? `${parent.task_code} — ` : ''}{parent.title}</span>
-                </p>
-              ) : null;
-            })()}
           </DialogHeader>
           
           <div className="space-y-4 py-4">
@@ -2099,7 +2091,40 @@ export default function EquipeSprintDetalhes() {
               />
             </div>
 
-            {editingDeliverable?.parent_id && (
+            <div className="space-y-2">
+              <Label htmlFor="edit-parent">Tarefa Pai (opcional)</Label>
+              <Select
+                value={editForm.parent_id || "none"}
+                onValueChange={(value) => {
+                  const newParentId = value === "none" ? "" : value;
+                  const suggested = newParentId ? suggestNextTaskCode(newParentId) : '';
+                  const parentTask = deliverables.find(d => d.id === newParentId);
+                  setEditForm(prev => ({
+                    ...prev,
+                    parent_id: newParentId,
+                    task_code: newParentId ? suggested : '',
+                    project_id: parentTask?.project_id && !prev.project_id ? parentTask.project_id : prev.project_id,
+                    process_id: parentTask?.process_id && !prev.process_id ? parentTask.process_id : prev.process_id,
+                  }));
+                }}
+              >
+                <SelectTrigger id="edit-parent">
+                  <SelectValue placeholder="Nenhuma (tarefa principal)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhuma (tarefa principal)</SelectItem>
+                  {parentTaskOptions
+                    .filter(p => p.id !== editingDeliverable?.id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.task_code && `${p.task_code} - `}{p.title}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {editForm.parent_id && (
               <div className="space-y-2">
                 <Label htmlFor="edit-task-code">ID / Ordem</Label>
                 <Input
@@ -2111,6 +2136,7 @@ export default function EquipeSprintDetalhes() {
                 <p className="text-xs text-muted-foreground">Alterar reordena automaticamente as demais subtarefas</p>
               </div>
             )}
+
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
