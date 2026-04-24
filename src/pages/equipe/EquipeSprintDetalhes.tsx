@@ -312,6 +312,7 @@ export default function EquipeSprintDetalhes() {
       due_date: deliverable.due_date,
       estimated_hours: deliverable.estimated_hours?.toString() || '',
       status: deliverable.status || 'pending',
+      parent_id: deliverable.parent_id || '',
       project_id: deliverable.project_id || '',
       process_id: deliverable.process_id || '',
       task_code: deliverable.task_code || ''
