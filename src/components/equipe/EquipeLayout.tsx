@@ -5,11 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
-import { 
-  LayoutDashboard, 
-  Kanban, 
-  Calendar, 
-  MessageSquare, 
+import {
+  LayoutDashboard,
+  Kanban,
+  Calendar,
+  MessageSquare,
   LogOut,
   FolderKanban,
   ChevronLeft,
@@ -24,7 +24,8 @@ import {
   Settings,
    User,
    FileBarChart,
-   RefreshCw
+   RefreshCw,
+   Sparkles
 } from 'lucide-react';
 
 interface EquipeLayoutProps {
@@ -43,11 +44,19 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/equipe/dashboard' },
+  {
+    icon: LayoutDashboard,
+    label: 'Dashboards',
+    path: '/equipe/dashboard',
+    children: [
+      { icon: LayoutDashboard, label: 'Visão Geral', path: '/equipe/dashboard' },
+      { icon: Sparkles, label: 'Análise Inteligente', path: '/equipe/dashboards/analise-inteligente' },
+    ],
+  },
    { icon: FileBarChart, label: 'Relatórios', path: '/equipe/relatorios' },
-  { 
-    icon: FolderKanban, 
-    label: 'Projetos', 
+  {
+    icon: FolderKanban,
+    label: 'Projetos',
     path: '/equipe/projetos',
     children: [
       { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
@@ -66,7 +75,10 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  const [projectsOpen, setProjectsOpen] = useState(true);
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
+    '/equipe/projetos': true,
+    '/equipe/dashboard': true,
+  });
 
   const handleSignOut = async () => {
     await signOut();
@@ -117,8 +129,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                 item.children ? (
                   <Collapsible
                     key={item.path}
-                    open={projectsOpen}
-                    onOpenChange={setProjectsOpen}
+                    open={openGroups[item.path] ?? true}
+                    onOpenChange={(open) => setOpenGroups(prev => ({ ...prev, [item.path]: open }))}
                   >
                     <div className="flex items-center gap-1">
                       <Button
@@ -139,7 +151,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           size="icon"
                           className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
                         >
-                          <ChevronDown className={`h-4 w-4 transition-transform ${projectsOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${(openGroups[item.path] ?? true) ? 'rotate-180' : ''}`} />
                         </Button>
                       </CollapsibleTrigger>
                     </div>

@@ -46,6 +46,7 @@ import EquipeAuth from "./pages/equipe/EquipeAuth";
 import EquipeChamados from "./pages/equipe/EquipeChamados";
 import EquipeDetalhesChamado from "./pages/equipe/EquipeDetalhesChamado";
 import EquipeDashboard from "./pages/equipe/EquipeDashboard";
+import AnaliseInteligente from "./pages/equipe/dashboards/AnaliseInteligente";
 import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
 import EquipeSprints from "./pages/equipe/EquipeSprints";
@@ -150,6 +151,7 @@ const App = () => (
               <Route path="/equipe/chamados" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeChamados /></PageAccessGate>} />
               <Route path="/equipe/chamados/:id" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeDetalhesChamado /></PageAccessGate>} />
               <Route path="/equipe/dashboard" element={<PageAccessGate pagePath="/equipe/dashboard"><EquipeDashboard /></PageAccessGate>} />
+              <Route path="/equipe/dashboards/analise-inteligente" element={<PageAccessGate pagePath="/equipe/dashboard"><AnaliseInteligente /></PageAccessGate>} />
               <Route path="/equipe/relatorios" element={<PageAccessGate pagePath="/equipe/relatorios"><EquipeRelatorios /></PageAccessGate>} />
               <Route path="/equipe/kanban" element={<PageAccessGate pagePath="/equipe/kanban"><EquipeKanban /></PageAccessGate>} />
               <Route path="/equipe/sprints" element={<PageAccessGate pagePath="/equipe/sprints"><EquipeSprints /></PageAccessGate>} />
