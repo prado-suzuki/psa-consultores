@@ -130,6 +130,7 @@ export default function EquipeSprintDetalhes() {
     due_date: '',
     estimated_hours: '',
     status: 'pending',
+    parent_id: '',
     project_id: '',
     process_id: '',
     task_code: ''
