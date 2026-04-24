@@ -180,7 +180,7 @@ function ProdutoContratadoBlock({
                   className="h-7 w-28"
                   placeholder="Horas"
                 />
-                <span className="text-xs text-muted-foreground shrink-0">hrs contratadas</span>
+                <span className="text-xs text-muted-foreground shrink-0">hrs contratadas /mês</span>
               </div>
             ))}
           </div>
