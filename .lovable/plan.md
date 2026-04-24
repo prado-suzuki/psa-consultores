@@ -1,80 +1,61 @@
+## Contexto
 
+A tarefa em questão é a tarefa de **sprint** (entregável), editada em `src/pages/equipe/EquipeSprintDetalhes.tsx` — não em `EquipeRotinas.tsx` (que trata de rotinas recorrentes, sem hierarquia pai/filho).
 
-## Plano: Tornar todos os campos obrigatórios no Novo Projeto
+Nesse arquivo existem **dois `<Dialog>` separados e inline** no mesmo componente:
 
-Em `/equipe/tax/projetos/cadastro` (arquivo `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx`), padronizar **todos os campos** do modal "Novo Projeto" como obrigatórios — tanto visualmente (`*` no label) quanto na validação do `handleSubmit`.
+- **Criar** (linha ~2279): contém o Select **"Tarefa Pai (opcional)"** (linha 2308).
+- **Editar** (linha ~2059): **não** contém o Select de Tarefa Pai. Só mostra um texto estático "Subtarefa de: …" (linha 2063) quando o entregável já tem `parent_id`, sem permitir alterar/definir.
 
-### Campos hoje vs. depois
+Ou seja: **não é um componente compartilhado** — são dois blocos JSX duplicados. O `editForm` no state já tem o campo `parent_id` (linha 150), mas ele nunca é renderizado nem enviado no `update`.
 
-| Campo | Hoje | Depois |
-|---|---|---|
-| Cliente | label sem `*`, sem validação | `*` + validação |
-| Produto Contratado (quando OS tem produtos) | label `*` mas sem validação | `*` + validação obrigatória quando visível |
-| Nome do Projeto | OK | mantido |
-| Área | label `*` mas sem validação | `*` + validação |
-| Status | label sem `*`, sem validação | `*` + validação (default `active`, mas exigido não-vazio) |
-| Data de Início | OK | mantido |
-| Data de Término | OK | mantido |
-| Líder Geral | OK | mantido |
-| Responsável Executor | OK | mantido |
-| Membros do Projeto | opcional | **obrigatório** (≥ 1 membro) — `*` + validação |
-| Descrição do Projeto | opcional | **obrigatório** — `*` + validação |
+## Decisão sobre unificação
 
-> **Serviço** e **OS Vinculadas** continuam como derivados/opcionais — **OS Vinculadas** é informativo (auto-seleção), e **Serviço** depende de existir produto+serviço cadastrado, então não vira obrigatório (ficaria impossível de salvar quando o catálogo não tem mapeamento). Confirmo isso na entrega.
+Unificar criar+editar em um único componente `<TaskFormDialog>` é viável, porém:
 
-### Alterações no JSX (labels)
+- Os dois modais já divergem em vários detalhes (texto do header, botão de excluir só na edição, regras de reordenação ligeiramente diferentes, payload de insert vs update).
+- O arquivo tem 2634 linhas e o refactor completo seria grande e arriscado.
+- A correção do bug em si (campo ausente na edição) é pontual.
 
-Adicionar `<span className="text-destructive">*</span>` (padrão já usado nas datas) ou simplesmente ` *` ao final dos labels:
+**Proposta:** corrigir o bug agora com edição mínima, sem refactor estrutural. Unificação fica como melhoria futura, fora deste escopo.
 
-- `Cliente` → `Cliente *`
-- `Status` → `Status *`
-- `Membros do Projeto` → `Membros do Projeto *`
-- `Descrição do Projeto` → `Descrição do Projeto *`
+## Correção
 
-(Os demais já têm `*`.)
+### 1. Adicionar Select "Tarefa Pai" no modal de edição
 
-### Alterações no `handleSubmit` (validações)
+No `Dialog` de edição (linha 2059), substituir o bloco estático "Subtarefa de: …" (linhas 2063-2070) por um Select equivalente ao do modal de criação, posicionado logo após o campo Descrição (antes do bloco condicional do `task_code`, linha 2095).
 
-Adicionar, **antes** das validações já existentes:
+Comportamento ao mudar o pai:
+- Se mudar para um pai diferente, sugerir novo `task_code` via `suggestNextTaskCode(newParentId)`.
+- Se mudar para "Nenhuma", limpar `task_code`.
+- Herdar `project_id`/`process_id` do novo pai apenas se estes campos estiverem vazios no `editForm` (preservar escolha manual já feita pelo usuário).
+- **Excluir o próprio entregável e seus descendentes** das opções de pai, para evitar ciclos. Filtrar `parentTaskOptions` removendo `editingDeliverable.id` e qualquer task cujo ancestral seja `editingDeliverable.id`.
 
-```ts
-if (!formData.external_client_id) {
-  toast.error('Selecione o Cliente');
-  return;
-}
-if (!formData.estrutura_area_id) {
-  toast.error('Selecione a Área');
-  return;
-}
-if (!formData.status) {
-  toast.error('Selecione o Status');
-  return;
-}
-// Quando há OS com produtos disponíveis, exigir produto
-if (selectedOsId && selectedOsProdutos.length >= 1 && !selectedProdutoId) {
-  toast.error('Selecione o Produto Contratado');
-  return;
-}
-if (formData.member_ids.length === 0) {
-  toast.error('Selecione ao menos um Membro do Projeto');
-  return;
-}
-if (!formData.description.trim()) {
-  toast.error('Descrição do Projeto é obrigatória');
-  return;
-}
-```
+### 2. Persistir `parent_id` no update
 
-### Cuidados
+Em `handleSaveEdit` (linha ~395), incluir `parent_id: editForm.parent_id || null` no objeto `updates`.
 
-- **Edição preservada**: as validações se aplicam tanto a criação quanto a edição (mesmo `handleSubmit`). Projetos antigos sem descrição/membros só poderão ser salvos após preenchimento.
-- **Membros — UX**: quando a Área ainda não foi selecionada, o seletor de membros está desabilitado. A validação só dispara no submit, então o fluxo natural continua funcionando (Cliente → Área → Membros).
-- **Status**: já tem default `'active'`, então nunca deveria estar vazio, mas a validação garante consistência.
-- **Produto Contratado**: validação condicional — só obriga quando o seletor está visível (há OS selecionada com produtos).
+### 3. Ajustar reordenação de irmãos
 
-### Arquivo alterado
+A condição atual (linha 391) usa `editingDeliverable.parent_id` (valor antigo). Trocar para `editForm.parent_id` para reordenar no novo pai quando houver mudança de hierarquia.
 
-- `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` — labels (linhas ~870, ~1040, ~1169, ~1269) + `handleSubmit` (linha 449).
+### 4. Mostrar campo `task_code` quando há pai
 
-Sem mudanças em hooks, banco, rotas ou outros componentes.
+A condição da linha 2095 (`editingDeliverable?.parent_id`) deve passar a olhar `editForm.parent_id` para que o campo "ID / Ordem" apareça quando o usuário acabou de promover a tarefa a subtarefa.
 
+### 5. Manter (ou remover) o texto "Subtarefa de:"
+
+Remover, pois o Select já comunica a relação. Reduz duplicação visual.
+
+## Resumo das mudanças (1 arquivo)
+
+`src/pages/equipe/EquipeSprintDetalhes.tsx`:
+- Trocar bloco estático (linhas 2063-2070) por `<Select>` de Tarefa Pai com lógica análoga ao modal de criação, filtrando descendentes e o próprio item.
+- Trocar guard da linha 2095 de `editingDeliverable?.parent_id` para `editForm.parent_id`.
+- Em `handleSaveEdit`: usar `editForm.parent_id` na reordenação e adicionar `parent_id` ao payload de `update`.
+
+## Fora de escopo
+
+- Refactor para unificar os dois modais em um componente compartilhado.
+- Mudanças em `EquipeRotinas.tsx` (rotinas não têm conceito de tarefa pai).
+- Validação adicional contra ciclos profundos via banco (cobertura via filtro de descendentes no UI é suficiente para esta correção).
