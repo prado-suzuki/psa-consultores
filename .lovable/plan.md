@@ -1,61 +1,59 @@
-## Contexto
+## Diagnóstico
 
-A tarefa em questão é a tarefa de **sprint** (entregável), editada em `src/pages/equipe/EquipeSprintDetalhes.tsx` — não em `EquipeRotinas.tsx` (que trata de rotinas recorrentes, sem hierarquia pai/filho).
+Investiguei o fluxo de login do cliente e encontrei **um bug de roteamento + uma causa operacional** que explica os relatos.
 
-Nesse arquivo existem **dois `<Dialog>` separados e inline** no mesmo componente:
+### O que está OK (não é o problema)
 
-- **Criar** (linha ~2279): contém o Select **"Tarefa Pai (opcional)"** (linha 2308).
-- **Editar** (linha ~2059): **não** contém o Select de Tarefa Pai. Só mostra um texto estático "Subtarefa de: …" (linha 2063) quando o entregável já tem `parent_id`, sem permitir alterar/definir.
+- `ProtectedRoute` (usado em `/cliente`, `/cliente/chamados`, etc.) só exige usuário logado. **Não bloqueia por role nem por `acesso_chamados`** — qualquer usuário autenticado entra.
+- Os 12 representantes que já têm `user_id` vinculado **possuem a role `client`** corretamente em `user_roles` (verificado no banco). A role é concedida pelo trigger `handle_new_user` em todo signup e também explicitamente pela edge function `upsert-representante-user`.
+- A área `/cliente` (ClienteDashboard) não tem gate adicional.
 
-Ou seja: **não é um componente compartilhado** — são dois blocos JSX duplicados. O `editForm` no state já tem o campo `parent_id` (linha 150), mas ele nunca é renderizado nem enviado no `update`.
+### Causa #1 — Bug no Header (desktop)
 
-## Decisão sobre unificação
+No `src/components/Header.tsx` (linha 99–104), o botão **"Área do Cliente" do desktop aponta para `/ajuda`**, não para `/auth`:
 
-Unificar criar+editar em um único componente `<TaskFormDialog>` é viável, porém:
+```tsx
+<Link to="/ajuda" className="...">Área do Cliente</Link>
+```
 
-- Os dois modais já divergem em vários detalhes (texto do header, botão de excluir só na edição, regras de reordenação ligeiramente diferentes, payload de insert vs update).
-- O arquivo tem 2634 linhas e o refactor completo seria grande e arriscado.
-- A correção do bug em si (campo ausente na edição) é pontual.
+No menu mobile (linha 156–162) o link está correto (`/auth`).
 
-**Proposta:** corrigir o bug agora com edição mínima, sem refactor estrutural. Unificação fica como melhoria futura, fora deste escopo.
+A página `/ajuda` *também* tem um formulário de login e redireciona para `/cliente` ao autenticar, então funcionalmente "funciona" — mas:
+- O cliente vê uma página de FAQ com formulário no meio, não a tela de login esperada.
+- Quem chega pelo footer/mobile vê uma tela; quem chega pelo header desktop vê outra. Inconsistência reforça percepção de "não consigo entrar".
+- A página `/ajuda` **não trata `must_change_password`** no `useEffect` de redirect (só `/auth` e `EquipeAuth` tratam). Para representantes recém-criados pelo backfill, isso ainda funciona porque o `ProtectedRoute` em `/cliente` redireciona para `/primeiro-acesso`, então não é bloqueante — mas vale unificar.
 
-## Correção
+### Causa #2 — Operacional (provavelmente o real motivo dos relatos)
 
-### 1. Adicionar Select "Tarefa Pai" no modal de edição
+Dos 49 representantes ativos, apenas **12 têm `user_id`** (auth user criado). Os representantes vinculados foram provisionados com **senha fixa `'trocarsenha'`** e flag `must_change_password=true`. Se eles não foram comunicados dessa senha inicial, vão tentar logar com qualquer senha e receber "Email ou senha incorretos" — interpretando como "não consigo entrar na área de chamados".
 
-No `Dialog` de edição (linha 2059), substituir o bloco estático "Subtarefa de: …" (linhas 2063-2070) por um Select equivalente ao do modal de criação, posicionado logo após o campo Descrição (antes do bloco condicional do `task_code`, linha 2095).
+Os 37 representantes restantes **não têm auth user** ainda (provavelmente sem email cadastrado, ou cadastrados antes do mecanismo de upsert). Esses simplesmente não conseguem logar de forma alguma.
 
-Comportamento ao mudar o pai:
-- Se mudar para um pai diferente, sugerir novo `task_code` via `suggestNextTaskCode(newParentId)`.
-- Se mudar para "Nenhuma", limpar `task_code`.
-- Herdar `project_id`/`process_id` do novo pai apenas se estes campos estiverem vazios no `editForm` (preservar escolha manual já feita pelo usuário).
-- **Excluir o próprio entregável e seus descendentes** das opções de pai, para evitar ciclos. Filtrar `parentTaskOptions` removendo `editingDeliverable.id` e qualquer task cujo ancestral seja `editingDeliverable.id`.
+## Plano de correção
 
-### 2. Persistir `parent_id` no update
+### 1. Corrigir link do Header (bug de roteamento)
 
-Em `handleSaveEdit` (linha ~395), incluir `parent_id: editForm.parent_id || null` no objeto `updates`.
+**Arquivo**: `src/components/Header.tsx`
 
-### 3. Ajustar reordenação de irmãos
+- Linha 100: trocar `to="/ajuda"` por `to="/auth"` no botão "Área do Cliente" do desktop, alinhando com o mobile.
+- Resultado: ambos os caminhos levam à tela de login dedicada, consistente com o restante do sistema.
 
-A condição atual (linha 391) usa `editingDeliverable.parent_id` (valor antigo). Trocar para `editForm.parent_id` para reordenar no novo pai quando houver mudança de hierarquia.
+### 2. Tratar `must_change_password` em `/ajuda`
 
-### 4. Mostrar campo `task_code` quando há pai
+**Arquivo**: `src/pages/Ajuda.tsx` (linhas 59–63)
 
-A condição da linha 2095 (`editingDeliverable?.parent_id`) deve passar a olhar `editForm.parent_id` para que o campo "ID / Ordem" apareça quando o usuário acabou de promover a tarefa a subtarefa.
+- No `useEffect` de redirect pós-login, antes de `navigate("/cliente")`, checar `user.user_metadata?.must_change_password === true` e redirecionar para `/primeiro-acesso`.
+- Mesmo comportamento já presente em `/auth` e `EquipeAuth`. Garante que clientes que entrarem pela `/ajuda` (caso o link continue sendo divulgado em algum lugar) sigam o fluxo de troca de senha sem ficarem em loop visual.
 
-### 5. Manter (ou remover) o texto "Subtarefa de:"
+### 3. Diagnóstico para o time operacional (não-código)
 
-Remover, pois o Select já comunica a relação. Reduz duplicação visual.
+Após a correção, fornecer a lista dos representantes que precisam de ação:
 
-## Resumo das mudanças (1 arquivo)
-
-`src/pages/equipe/EquipeSprintDetalhes.tsx`:
-- Trocar bloco estático (linhas 2063-2070) por `<Select>` de Tarefa Pai com lógica análoga ao modal de criação, filtrando descendentes e o próprio item.
-- Trocar guard da linha 2095 de `editingDeliverable?.parent_id` para `editForm.parent_id`.
-- Em `handleSaveEdit`: usar `editForm.parent_id` na reordenação e adicionar `parent_id` ao payload de `update`.
+- **12 com auth user**: confirmar com cada um se receberam a senha inicial `trocarsenha`. Posso gerar uma listagem com `email`, `nome`, `acesso_chamados` e `last_sign_in_at` (via consulta assistida) para o time enviar comunicação.
+- **37 sem auth user**: revisar se têm email cadastrado e marcar `acesso_chamados=true` para disparar o provisionamento via `upsert-representante-user` no próximo save do cliente. Posso listar quais representantes estão nesse estado.
 
 ## Fora de escopo
 
-- Refactor para unificar os dois modais em um componente compartilhado.
-- Mudanças em `EquipeRotinas.tsx` (rotinas não têm conceito de tarefa pai).
-- Validação adicional contra ciclos profundos via banco (cobertura via filtro de descendentes no UI é suficiente para esta correção).
+- Unificar `/ajuda` e `/auth` em uma única tela (refactor maior; não bloqueia o problema atual).
+- Mudar a regra de provisionamento automático (já foi decidido na conversa anterior: role `client` independente de `acesso_chamados`).
+- Email automático de boas-vindas com a senha inicial (decidido como fora de escopo no plano anterior).

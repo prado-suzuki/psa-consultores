@@ -58,6 +58,10 @@ const Ajuda = () => {
 
   useEffect(() => {
     if (!loading && user) {
+      if (user.user_metadata?.must_change_password === true) {
+        navigate("/primeiro-acesso", { replace: true });
+        return;
+      }
       navigate("/cliente");
     }
   }, [user, loading, navigate]);
