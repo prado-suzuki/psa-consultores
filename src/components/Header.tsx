@@ -97,7 +97,7 @@ export const Header = () => {
             </TooltipProvider>
 
             <Link
-              to="/ajuda"
+              to="/auth"
               className="px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors duration-200"
             >
               Área do Cliente
