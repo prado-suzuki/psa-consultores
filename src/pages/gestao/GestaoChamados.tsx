@@ -630,17 +630,20 @@ export default function GestaoChamados() {
                         </Select>
                         {ticket.deadline && (() => {
                           const deadlineDate = parseDate(ticket.deadline);
+                          const isClosed = ticket.status === 'fechado' || ticket.status === 'resolvido';
                           const isPast = isPastBrazil(deadlineDate);
                           const isToday = isTodayBrazil(deadlineDate);
                           const isTomorrow = isTomorrowBrazil(deadlineDate);
-                          const colorClass = isPast
-                            ? 'text-red-600 font-semibold'
-                            : (isToday || isTomorrow)
-                              ? 'text-amber-600 font-medium'
-                              : 'text-green-600';
+                          const colorClass = isClosed
+                            ? 'text-slate-500'
+                            : isPast
+                              ? 'text-red-600 font-semibold'
+                              : (isToday || isTomorrow)
+                                ? 'text-amber-600 font-medium'
+                                : 'text-green-600';
                           return (
                             <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
-                              {isPast && <AlertTriangle className="h-3 w-3" />}
+                              {!isClosed && isPast && <AlertTriangle className="h-3 w-3" />}
                               {format(deadlineDate, "dd/MM/yyyy (EEE)", { locale: ptBR })}
                             </div>
                           );
