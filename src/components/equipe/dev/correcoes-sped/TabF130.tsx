@@ -61,9 +61,9 @@ const inlineInputClass = 'h-auto min-h-0 rounded-none border-0 bg-transparent p-
 function toDraft(item: F130Item): F130Draft {
   const f = item.F130;
   return {
-    IDENT_BEM_IMOB: f.IDENT_BEM_IMOB ?? '',
-    IND_UTIL_BEM_IMOB: f.IND_UTIL_BEM_IMOB ?? '',
-    NAT_BC_CRED: f.NAT_BC_CRED ?? '',
+    IDENT_BEM_IMOB: f.IDENT_BEM_IMOB != null ? String(f.IDENT_BEM_IMOB) : '',
+    IND_UTIL_BEM_IMOB: f.IND_UTIL_BEM_IMOB != null ? String(f.IND_UTIL_BEM_IMOB) : '',
+    NAT_BC_CRED: f.NAT_BC_CRED != null ? String(f.NAT_BC_CRED) : '',
     VL_OPER_AQUIS: f.VL_OPER_AQUIS != null ? Number(f.VL_OPER_AQUIS).toFixed(2).replace('.', ',') : '0,00',
     CST_PIS: f.CST_PIS != null ? String(f.CST_PIS) : '',
     ALIQ_PIS: f.ALIQ_PIS != null ? Number(f.ALIQ_PIS).toFixed(2).replace('.', ',') : '0,00',
@@ -71,7 +71,7 @@ function toDraft(item: F130Item): F130Draft {
     CST_COFINS: f.CST_COFINS != null ? String(f.CST_COFINS) : '',
     ALIQ_COFINS: f.ALIQ_COFINS != null ? Number(f.ALIQ_COFINS).toFixed(2).replace('.', ',') : '0,00',
     VL_COFINS: f.VL_COFINS != null ? Number(f.VL_COFINS).toFixed(2).replace('.', ',') : '0,00',
-    COD_CTA: f.COD_CTA ?? '',
+    COD_CTA: f.COD_CTA != null ? String(f.COD_CTA) : '',
   };
 }
 
