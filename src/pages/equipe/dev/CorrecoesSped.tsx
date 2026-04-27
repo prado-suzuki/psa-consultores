@@ -520,6 +520,7 @@ const CorrecoesSped = () => {
                 cod_cta={codCta || undefined}
                 dt_ini={dtIni || undefined}
                 dt_fin={dtFin || undefined}
+                f100FiltersValid={f100FiltersValid}
                 onEnviar={() => enviarCorrecoes('F100')}
                 onExportar={handleExportar}
                 isSending={isSending}

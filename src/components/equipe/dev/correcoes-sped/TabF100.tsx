@@ -92,9 +92,10 @@ interface TabF100Props extends CorrecoesActionsProps {
   cod_cta?: string;
   dt_ini?: string;
   dt_fin?: string;
+  f100FiltersValid: boolean;
 }
 
-export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_creds, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF100Props) {
+export default function TabF100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, nat_bc_creds, cod_cta, dt_ini, dt_fin, f100FiltersValid, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF100Props) {
   const { user } = useAuth();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'F100', nat_bc_creds, cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
@@ -359,6 +360,27 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
     return input;
   };
 
+  if (!f100FiltersValid) {
+    return (
+      <Card className="border-dashed border-amber-300 bg-amber-50/50 dark:border-amber-900/60 dark:bg-amber-950/20">
+        <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
+          <AlertCircle className="h-12 w-12 text-amber-500 dark:text-amber-400" />
+          <div className="space-y-2 max-w-md">
+            <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+              Filtros obrigatórios para a aba F100
+            </h3>
+            <p className="text-sm text-amber-800/80 dark:text-amber-200/80">
+              Esta aba possui filtros exclusivos. Para consultar os registros, preencha pelo menos um dos campos abaixo no painel de filtros e clique em <strong>Consultar</strong>:
+            </p>
+            <ul className="text-sm text-amber-900 dark:text-amber-200 space-y-1 pt-1">
+              <li>• <strong>Nat. Base de Crédito</strong></li>
+              <li>• <strong>Código da Conta</strong></li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   if (isLoading) return <Card><CardContent className="p-8 flex justify-center"><div className="animate-pulse text-sm text-muted-foreground">Carregando dados F100...</div></CardContent></Card>;
   if (error) return <Card className="border-destructive/50 bg-destructive/5"><CardContent className="p-4 flex items-center gap-2 text-sm text-destructive"><AlertCircle className="h-4 w-4 shrink-0" />{error.message}</CardContent></Card>;
   if (!hasQueried || !data) return null;
