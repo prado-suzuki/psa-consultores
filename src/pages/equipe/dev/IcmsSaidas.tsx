@@ -13,7 +13,7 @@ import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoT
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
-import type { T031Linha, T032Linha } from '@/components/equipe/dev/icms-saidas/mocks';
+import type { T032Linha } from '@/components/equipe/dev/icms-saidas/mocks';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
@@ -126,10 +126,8 @@ const IcmsSaidas = () => {
     setSearchTriggered(false);
   };
 
-  // Constrói DifalGroupedItem a partir de uma linha (T03.1 ou T03.2) e abre o modal
-  const handleLineClick = (linha: T031Linha | T032Linha) => {
-    const cstIcms = 'cst' in linha ? linha.cst : null;
-    const aliquota = linha.aliquota ?? 0;
+  // T03.2 (mock) — constrói DifalGroupedItem a partir da linha mock
+  const handleT032LineClick = (linha: T032Linha) => {
     const group: DifalGroupedItem = {
       groupKey: `${linha.nf}|${linha.codProduto}|${linha.ncm}`,
       xProd: linha.produto,
@@ -137,8 +135,8 @@ const IcmsSaidas = () => {
       cod_ncm: linha.ncm,
       id_contribuinte: selectedContribuinte,
       cfop: linha.cfop,
-      cst_icms: cstIcms,
-      aliq_icms: aliquota,
+      cst_icms: linha.cst,
+      aliq_icms: linha.aliquota ?? 0,
       pRedBC: null,
       count: 1,
       totalValue: linha.valorMercadoria,
@@ -148,6 +146,14 @@ const IcmsSaidas = () => {
     };
     setSelectedGroup(group);
     setSelectedTipoOperacao(linha.descricao);
+    setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
+    setModalOpen(true);
+  };
+
+  // T03.1 (endpoints reais) — recebe DifalGroupedItem já adaptado pelo FamiliaSaidaTab
+  const handleT031AuditClick = (group: DifalGroupedItem, tipoOperacao: string) => {
+    setSelectedGroup(group);
+    setSelectedTipoOperacao(tipoOperacao);
     setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
     setModalOpen(true);
   };
@@ -369,7 +375,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            onLineClick={handleLineClick}
+            onAuditClick={handleT031AuditClick}
           />
         </TabsContent>
 
@@ -379,7 +385,7 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            onLineClick={handleLineClick}
+            onLineClick={handleT032LineClick}
           />
         </TabsContent>
       </Tabs>

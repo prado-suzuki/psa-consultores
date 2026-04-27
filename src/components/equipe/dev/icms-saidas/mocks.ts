@@ -22,62 +22,6 @@ export const T02_MOCK = [
   { cfop: '6949', descricao: 'Outras saídas não especificadas',          vlItemEfd: 6076424.93,  bcEfd: 1179.87,      icmsEfd: 82.59,      vlItemCliente: 6076255.93,  diferenca: 169.00 },
 ];
 
-// ============ T03.1 ============
-
-export interface T031Linha {
-  familia: string | null;
-  competencia: string;
-  nf: string;
-  data: string;
-  cfop: string;
-  ncm: string;
-  codProduto: string;
-  descricao: string;
-  produto: string;
-  valorMercadoria: number;
-  incidencia: string;
-  bc: number | null;
-  aliquota: number | null;
-  icmsNormal: number | null;
-  percBeneficio: number | null;
-  valorCredito: number | null;
-  icmsRecolher: number | null;
-  fundes: number | null;
-  funded: number | null;
-}
-
-export const T03_1_RESUMO_MOCK = [
-  { competencia: "Janeiro/2025",   icmsNormal: 2027207.60, icmsRecolher: 444146.16, fundes: 94983.69,  funded: 15830.61 },
-  { competencia: "Fevereiro/2025", icmsNormal: 1622984.19, icmsRecolher: 366688.27, fundes: 75377.76,  funded: 12562.96 },
-  { competencia: "Março/2025",     icmsNormal: 2184337.13, icmsRecolher: 483605.44, fundes: 102043.90, funded: 17007.32 },
-  { competencia: "Abril/2025",     icmsNormal: 2704658.21, icmsRecolher: 590264.25, fundes: 126863.64, funded: 21143.94 },
-  { competencia: "Maio/2025",      icmsNormal: 2776692.01, icmsRecolher: 615600.76, fundes: 129665.47, funded: 21610.91 },
-  { competencia: "Junho/2025",     icmsNormal: 3241571.66, icmsRecolher: 705950.88, fundes: 152137.25, funded: 25356.21 },
-];
-
-export const T03_1_LINHAS_MOCK: T031Linha[] = [
-  { familia: "Açúcar",               competencia: "Janeiro",   nf: "237419", data: "02/01/2025", cfop: "5401", ncm: "17019900", codProduto: "1001", descricao: "VENDA DE PROD ESTAB COM ST",      produto: "ACUCAR CRISTAL ESP. DOCE DIA 10X2KG",       valorMercadoria: 54920.39,   incidencia: "Sim", bc: 54920.39,   aliquota: 12, icmsNormal: 6590.45,   percBeneficio: 75,    valorCredito: 4942.84,   icmsRecolher: 1647.61,  fundes: 296.57,   funded: 49.43 },
-  { familia: "Açúcar",               competencia: "Janeiro",   nf: "237446", data: "03/01/2025", cfop: "5101", ncm: "17019900", codProduto: "1005", descricao: "VENDA DE PROD ESTAB ACUCAR",      produto: "ACUCAR CRISTAL SUP. DOCE DIA BIG BAG - KG", valorMercadoria: 151900.00,  incidencia: "Sim", bc: 151900.00,  aliquota: 12, icmsNormal: 18228.00,  percBeneficio: 75,    valorCredito: 13671.00,  icmsRecolher: 4557.00,  fundes: 820.26,   funded: 136.71 },
-  { familia: "Açúcar",               competencia: "Janeiro",   nf: "237450", data: "03/01/2025", cfop: "6101", ncm: "17019900", codProduto: "1008", descricao: "Venda Produção Estabelecimento", produto: "ACUCAR CRISTAL ESPECIAL BEG KG",            valorMercadoria: 98640.00,   incidencia: "Sim", bc: 98640.00,   aliquota: 12, icmsNormal: 11836.80,  percBeneficio: 80,    valorCredito: 9469.44,   icmsRecolher: 2367.36,  fundes: 568.17,   funded: 94.70 },
-  { familia: "Etanol Interno",       competencia: "Janeiro",   nf: "300112", data: "05/01/2025", cfop: "5656", ncm: "22072010", codProduto: "2100", descricao: "Venda combustível interno",      produto: "ETANOL HIDRATADO COMBUSTIVEL",              valorMercadoria: 487620.00,  incidencia: "Sim", bc: 243810.00,  aliquota: 17, icmsNormal: 41447.70,  percBeneficio: 0,     valorCredito: 0,         icmsRecolher: 41447.70, fundes: 0,        funded: 0 },
-  { familia: "Etanol Interno",       competencia: "Janeiro",   nf: "300118", data: "07/01/2025", cfop: "5656", ncm: "22072010", codProduto: "2100", descricao: "Venda combustível interno",      produto: "ETANOL HIDRATADO COMBUSTIVEL",              valorMercadoria: 512300.00,  incidencia: "Sim", bc: 256150.00,  aliquota: 17, icmsNormal: 43545.50,  percBeneficio: 0,     valorCredito: 0,         icmsRecolher: 43545.50, fundes: 0,        funded: 0 },
-  { familia: "Etanol Interestadual", competencia: "Janeiro",   nf: "400223", data: "08/01/2025", cfop: "6652", ncm: "22072010", codProduto: "2100", descricao: "Venda combustível interestadual",produto: "ETANOL HIDRATADO COMBUSTIVEL",              valorMercadoria: 1247800.00, incidencia: "Sim", bc: 1247800.00, aliquota: 12, icmsNormal: 149736.00, percBeneficio: 73.33, valorCredito: 109780.00, icmsRecolher: 39956.00, fundes: 1497.36,  funded: 1497.36 },
-  { familia: "Etanol Interestadual", competencia: "Janeiro",   nf: "400241", data: "12/01/2025", cfop: "6652", ncm: "22072010", codProduto: "2101", descricao: "Venda combustível interestadual",produto: "ETANOL ANIDRO COMBUSTIVEL",                 valorMercadoria: 892450.00,  incidencia: "Sim", bc: 892450.00,  aliquota: 12, icmsNormal: 107094.00, percBeneficio: 73.33, valorCredito: 78500.00,  icmsRecolher: 28594.00, fundes: 1070.94,  funded: 1070.94 },
-  { familia: "Biodiesel",            competencia: "Janeiro",   nf: "500014", data: "15/01/2025", cfop: "6101", ncm: "38260000", codProduto: "3800", descricao: "Venda biodiesel interestadual",  produto: "BIODIESEL B100",                            valorMercadoria: 245000.00,  incidencia: "Sim", bc: 245000.00,  aliquota: 12, icmsNormal: 29400.00,  percBeneficio: 75,    valorCredito: 22050.00,  icmsRecolher: 7350.00,  fundes: 1470.00,  funded: 245.00 },
-  { familia: null,                   competencia: "Janeiro",   nf: "237471", data: "06/01/2025", cfop: "5949", ncm: "23032000", codProduto: "9100", descricao: "SAIDA CONSUMO PROPRIO",          produto: "BAGACO DE CANA",                            valorMercadoria: 2185.21,    incidencia: "Sim", bc: null, aliquota: null, icmsNormal: null, percBeneficio: null, valorCredito: null, icmsRecolher: null, fundes: null, funded: null },
-  { familia: null,                   competencia: "Janeiro",   nf: "237482", data: "09/01/2025", cfop: "5949", ncm: "21021090", codProduto: "9200", descricao: "SAIDA CONSUMO PROPRIO",          produto: "LEVEDURA SECA",                             valorMercadoria: 8420.00,    incidencia: "Sim", bc: null, aliquota: null, icmsNormal: null, percBeneficio: null, valorCredito: null, icmsRecolher: null, fundes: null, funded: null },
-  { familia: "Açúcar",               competencia: "Fevereiro", nf: "238102", data: "04/02/2025", cfop: "5401", ncm: "17019900", codProduto: "1001", descricao: "VENDA DE PROD ESTAB COM ST",     produto: "ACUCAR CRISTAL ESP. DOCE DIA 10X2KG",       valorMercadoria: 76432.10,   incidencia: "Sim", bc: 76432.10,   aliquota: 12, icmsNormal: 9171.85,   percBeneficio: 75,    valorCredito: 6878.89,   icmsRecolher: 2292.96,  fundes: 412.73,   funded: 68.79 },
-  { familia: "Açúcar",               competencia: "Fevereiro", nf: "238145", data: "11/02/2025", cfop: "6101", ncm: "17019900", codProduto: "1008", descricao: "Venda Produção Estabelecimento", produto: "ACUCAR CRISTAL ESPECIAL BEG KG",            valorMercadoria: 162800.00,  incidencia: "Sim", bc: 162800.00,  aliquota: 12, icmsNormal: 19536.00,  percBeneficio: 80,    valorCredito: 15628.80,  icmsRecolher: 3907.20,  fundes: 937.73,   funded: 156.29 },
-  { familia: "Etanol Interno",       competencia: "Fevereiro", nf: "300205", data: "06/02/2025", cfop: "5656", ncm: "22072010", codProduto: "2100", descricao: "Venda combustível interno",      produto: "ETANOL HIDRATADO COMBUSTIVEL",              valorMercadoria: 445200.00,  incidencia: "Sim", bc: 222600.00,  aliquota: 17, icmsNormal: 37842.00,  percBeneficio: 0,     valorCredito: 0,         icmsRecolher: 37842.00, fundes: 0,        funded: 0 },
-  { familia: "Etanol Interestadual", competencia: "Fevereiro", nf: "400389", data: "18/02/2025", cfop: "6652", ncm: "22072010", codProduto: "2100", descricao: "Venda combustível interestadual",produto: "ETANOL HIDRATADO COMBUSTIVEL",              valorMercadoria: 1580200.00, incidencia: "Sim", bc: 1580200.00, aliquota: 12, icmsNormal: 189624.00, percBeneficio: 73.33, valorCredito: 139000.00, icmsRecolher: 50624.00, fundes: 1896.24,  funded: 1896.24 },
-  { familia: null,                   competencia: "Fevereiro", nf: "238201", data: "20/02/2025", cfop: "5949", ncm: "23099090", codProduto: "9300", descricao: "SAIDA CONSUMO PROPRIO",          produto: "BORRA DE DESTILACAO",                       valorMercadoria: 3150.00,    incidencia: "Sim", bc: null, aliquota: null, icmsNormal: null, percBeneficio: null, valorCredito: null, icmsRecolher: null, fundes: null, funded: null },
-  { familia: "Açúcar",               competencia: "Março",     nf: "238789", data: "10/03/2025", cfop: "5401", ncm: "17019900", codProduto: "1012", descricao: "VENDA DE PROD ESTAB COM ST",     produto: "ACUCAR CRISTAL ESP. DOCE DIA 30X1KG",       valorMercadoria: 89120.00,   incidencia: "Sim", bc: 89120.00,   aliquota: 12, icmsNormal: 10694.40,  percBeneficio: 75,    valorCredito: 8020.80,   icmsRecolher: 2673.60,  fundes: 481.25,   funded: 80.21 },
-  { familia: "Açúcar",               competencia: "Março",     nf: "238812", data: "15/03/2025", cfop: "6101", ncm: "17019900", codProduto: "1015", descricao: "Venda Produção Estabelecimento", produto: "ACUCAR CRISTAL ESP. DOCE DIA 50KG",         valorMercadoria: 145768.00,  incidencia: "Sim", bc: 145768.00,  aliquota: 12, icmsNormal: 17492.16,  percBeneficio: 80,    valorCredito: 13993.73,  icmsRecolher: 3498.43,  fundes: 839.62,   funded: 139.94 },
-  { familia: "Etanol Interestadual", competencia: "Março",     nf: "400521", data: "22/03/2025", cfop: "6652", ncm: "22072010", codProduto: "2101", descricao: "Venda combustível interestadual",produto: "ETANOL ANIDRO COMBUSTIVEL",                 valorMercadoria: 1124000.00, incidencia: "Sim", bc: 1124000.00, aliquota: 12, icmsNormal: 134880.00, percBeneficio: 73.33, valorCredito: 98930.00,  icmsRecolher: 35950.00, fundes: 1348.80,  funded: 1348.80 },
-  { familia: "Biodiesel",            competencia: "Abril",     nf: "500089", data: "08/04/2025", cfop: "6101", ncm: "38260000", codProduto: "3800", descricao: "Venda biodiesel interestadual",  produto: "BIODIESEL B100",                            valorMercadoria: 312500.00,  incidencia: "Sim", bc: 312500.00,  aliquota: 12, icmsNormal: 37500.00,  percBeneficio: 75,    valorCredito: 28125.00,  icmsRecolher: 9375.00,  fundes: 1875.00,  funded: 312.50 },
-  { familia: null,                   competencia: "Abril",     nf: "239445", data: "12/04/2025", cfop: "5949", ncm: "23099090", codProduto: "9400", descricao: "SAIDA CONSUMO PROPRIO",          produto: "TORTA DE FILTRO",                           valorMercadoria: 5820.00,    incidencia: "Sim", bc: null, aliquota: null, icmsNormal: null, percBeneficio: null, valorCredito: null, icmsRecolher: null, fundes: null, funded: null },
-];
-
 // ============ T03.2 ============
 
 export interface T032Linha {
