@@ -58,7 +58,7 @@ export const useRepresentantesSemUsuario = (
 
       const rows = (data ?? []) as unknown as RawRow[];
       return rows
-        .filter((r) => r.cliente && r.email && r.email.includes('@'))
+        .filter((r) => r.cliente && isValidEmail(r.email))
         .map<RepresentantePendente>((r) => ({
           id_representante: r.id_representante,
           nome: r.nome,
