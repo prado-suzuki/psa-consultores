@@ -1,4 +1,5 @@
 // Tradução UPPER_SNAKE → rótulo em PT-BR baseado nos cabeçalhos da planilha WP_ICMS_SAIDAS.xlsb (T03.1)
+// e nas views BigQuery VW_ANL_*. Os nomes aqui já são CANÔNICOS (após canonicalKey).
 
 const COMMON_LABELS: Record<string, string> = {
   ID_CONTRIBUINTE: 'Contribuinte',
@@ -8,7 +9,7 @@ const COMMON_LABELS: Record<string, string> = {
   NUM_DOC: 'Nº Documento',
   CFOP: 'CFOP',
   CST_ICMS: 'CST',
-  DESCRICAO_CFOP: 'Descrição',
+  DESCRICAO_CFOP: 'Descrição CFOP',
   DESCRICAO_PRODUTO: 'Produto',
   VALOR_MERCADORIA: 'Valor Mercadoria',
   VL_MERCADORIA: 'Valor Mercadoria',
@@ -19,6 +20,7 @@ const COMMON_LABELS: Record<string, string> = {
   BENEFICIO: '% Benefício',
   VALOR_CREDITO: 'Valor Crédito',
   ICMS_RECOLHER: 'ICMS a Recolher',
+  CHECK_: 'Check',
   // Fundos
   FUNDES: 'FUNDES',
   FUNDED: 'FUNDED',
@@ -42,6 +44,12 @@ const COMMON_LABELS: Record<string, string> = {
   VALOR_ICMS: 'Valor ICMS',
   CREDITO_OUTORGADO: 'Crédito Outorgado (73,33% / 0,21/L)',
   ICMS_DEVIDO: 'ICMS Devido',
+  // Biodiesel
+  EFD_C190_NF: 'NF (EFD C190)',
+  ADREM: 'Alíquota Específica (R$/L)',
+  ICMS_17: 'ICMS 17%',
+  // Sucata
+  CLASSIF: 'Classificação',
 };
 
 export function labelFor(key: string): string {

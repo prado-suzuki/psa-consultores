@@ -1,6 +1,6 @@
 // Detecta colunas de "Check/Diferença" e retorna classe de cor tricolor.
 
-const CHECK_KEY_RE = /(_CHECK$|^CHECK$|^DIF$|EFD.*CHECK|E116.*CHECK|_DIF$)/i;
+const CHECK_KEY_RE = /(_CHECK$|^CHECK_?$|^DIF$|EFD.*CHECK|E116.*CHECK|_DIF$)/i;
 
 const VERDE = 0.005; // < 0.5% — divergência insignificante
 const AMARELO = 0.02; // < 2% — atenção

@@ -15,6 +15,47 @@ export interface SaidaIcmsResponse {
   totalizadores_mensal: Record<string, unknown>[];
 }
 
+// Aliases de campos da view BigQuery → nome canônico usado pelo frontend.
+// O backend pode mudar os nomes ao longo do tempo; mantemos aqui os sinônimos
+// conhecidos para que labels, formatCell e checkColor não precisem saber dessa
+// variação.
+const FIELD_ALIASES: Record<string, string> = {
+  // Documento / produto
+  NOTA_FISCAL: 'NUM_NOTA',
+  NUM_NF: 'NUM_NOTA',
+  PRODUTO: 'DESCRICAO_PRODUTO',
+  // CST / quantidades
+  CST: 'CST_ICMS',
+  QNT_BC_LITROS: 'QUANTIDADE',
+  // Base de cálculo
+  BC: 'BASE_CALCULO_ICMS',
+  BC_CALCULO: 'BASE_CALCULO_ICMS',
+  // Valor da mercadoria (etanol interestadual usa "valor"; biodiesel não devolve)
+  VALOR: 'VALOR_MERCADORIA',
+  // EFD C190 (residuos_producao usa C190_*; biodiesel/sucata usam EFD_C190_*)
+  C190_BC: 'BC_ICMS_C190',
+  C190_VL_ICMS: 'VL_ICMS_C190',
+  EFD_C190_BC: 'BC_ICMS_C190',
+  EFD_C190_ICMS: 'VL_ICMS_C190',
+};
+
+function canonicalKey(rawKey: string): string {
+  const upper = rawKey.toUpperCase();
+  return FIELD_ALIASES[upper] ?? upper;
+}
+
+function normalizeRow(row: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    const canon = canonicalKey(key);
+    // Não sobrescreve se já existe valor não-nulo (evita um alias derrubar o canônico).
+    if (out[canon] === undefined || out[canon] === null || out[canon] === '') {
+      out[canon] = value;
+    }
+  }
+  return out;
+}
+
 interface UseSaidaIcmsParams {
   id_contribuinte: string;
   data_nota_ini?: string;
@@ -63,14 +104,16 @@ export function useSaidaIcms(familia: FamiliaSaida, params: UseSaidaIcmsParams) 
       const json = await response.json();
 
       // Normaliza: residuos_producao/sucata devolvem array; demais devolvem { data, totalizadores_mensal }
-      if (Array.isArray(json)) {
-        return { data: json, totalizadores_mensal: [] };
-      }
+      const rawData: Record<string, unknown>[] = Array.isArray(json)
+        ? json
+        : Array.isArray(json?.data) ? json.data : [];
+      const rawTotals: Record<string, unknown>[] = Array.isArray(json?.totalizadores_mensal)
+        ? json.totalizadores_mensal
+        : [];
+
       return {
-        data: Array.isArray(json?.data) ? json.data : [],
-        totalizadores_mensal: Array.isArray(json?.totalizadores_mensal)
-          ? json.totalizadores_mensal
-          : [],
+        data: rawData.map(normalizeRow),
+        totalizadores_mensal: rawTotals.map(normalizeRow),
       };
     },
     enabled: (params.enabled ?? true) && !!params.id_contribuinte,
