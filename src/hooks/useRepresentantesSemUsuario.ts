@@ -13,6 +13,22 @@ export interface RepresentantePendente {
   cliente_ativo: boolean | null;
 }
 
+/**
+ * Valida se um email é "real" o suficiente para ser usado em criação de usuário
+ * e disparo de webhook. Bloqueia placeholders comuns como `xxxx@xxxx.xxx.xx`,
+ * `teste@teste`, `email@email`, etc.
+ */
+const isValidEmail = (raw: string | null | undefined): raw is string => {
+  if (!raw) return false;
+  const email = raw.trim().toLowerCase();
+  // Estrutura mínima: local@dominio.tld (TLD com 2+ chars)
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i.test(email)) return false;
+  // Sequências claramente placeholder
+  if (/x{3,}/i.test(email)) return false;
+  if (/(placeholder|teste@teste|exemplo@exemplo|email@email|dominio\.com)/i.test(email)) return false;
+  return true;
+};
+
 interface RawRow {
   id_representante: string;
   nome: string;
@@ -58,7 +74,7 @@ export const useRepresentantesSemUsuario = (
 
       const rows = (data ?? []) as unknown as RawRow[];
       return rows
-        .filter((r) => r.cliente && r.email && r.email.includes('@'))
+        .filter((r) => r.cliente && isValidEmail(r.email))
         .map<RepresentantePendente>((r) => ({
           id_representante: r.id_representante,
           nome: r.nome,
