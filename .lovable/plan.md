@@ -1,89 +1,77 @@
-## Diagnóstico
 
-A causa **não é** RLS, código de rota ou alteração no `PageAccessGate` / `usePageAccess`. O fluxo de visibilidade é:
+## Diagnóstico do "12 vs 22"
 
-> Página cadastrada em `page_permissions` exige registro explícito em `user_page_access`. Sem registro → "Acesso Negado".
+Não há bug. O hook `useRepresentantesSemUsuario` filtra por `currentAmbiente`, que é detectado via hostname:
 
-O **padrão** de provisionamento (`useSyncUserAreaAccess` em `src/hooks/useUserPageAccess.ts`) já é correto: marcar a área "Tax" no form concede em bloco **todas as páginas** com `category = 'tax'`. Confirmação no banco: para 11 usuários, os grants das 3 páginas Tax originais foram inseridos no mesmo segundo.
+- Preview (`id-preview--*.lovable.app`) → `ambiente = 'dev'` → **12 representantes pendentes** ✅
+- Produção (`psaconsultores.com.br`) → `ambiente = 'prod'` → **22 representantes pendentes** ✅
 
-O dashboard (`/equipe/tax/dashboard`) só foi cadastrado em `page_permissions` em **19/02/2026**. Os 10 afetados (Anderson, Hercio, Geizi, João, Maria, Mayara, Monica, Diego, Gabriel, Marcely) já existiam antes disso ou tiveram seus acessos editados em momento que essa página ficou de fora — por isso eles têm `auditoria`, `cadastro`, `tarefas`, `clientes` mas **não** `dashboard`. Nenhuma RLS ou código quebrou; é apenas drift histórico de dados em `user_page_access`.
+Os 22 que listei na consulta SQL anterior estavam todos em `ambiente='prod'`. Quando você publicar/abrir em produção, o modal mostrará os 22. No preview ele mostra (corretamente) apenas os 12 de dev.
 
-## Correção (duas frentes)
+## Auditoria do email placeholder (Rafael Castro)
 
-### 1) Backfill dos 10 usuários — via migration (é o padrão)
+- **Representante:** Rafael Castro (`52e1b819-45d5-4b0e-97e9-6a4b25c82afc`)
+- **Cliente:** Álvaro De Oliveira Castro
+- **Email atual:** `xxxxxxx@xxxxx.xxx.xx`
+- **Criado em:** 09/04/2026 18:42:09
+- **Autor identificado:** **Monica Matunaga** (`monica.matunaga@psaconsultores.com.br`)
+  - Não há log direto na tabela `audit_logs` para o representante (criação de representante via NewClientModal não estava sendo logada na época), mas o cliente associado foi criado pela Monica 2 segundos depois (18:42:11), no mesmo fluxo do NewClientModal — autoria por correlação temporal e funcional.
 
-A migration faz exatamente o que `useSyncUserAreaAccess` já faria se você reabrisse cada usuário e clicasse "Salvar": insere em `user_page_access` o `page_permission_id` do Tax Dashboard para todo `user_id` que já tenha acesso a **qualquer outra** página da `category = 'tax'` e ainda não tenha o registro do dashboard. `ON CONFLICT DO NOTHING` garante idempotência. Isso **não é gambiarra** — é a mesma operação que o hook do form executa (`INSERT INTO user_page_access (user_id, page_permission_id, granted_by)`). A migration apenas executa em lote o que o hook faria 10 vezes manualmente.
+## Mudanças propostas
 
+### 1. Endurecer o filtro do hook `useRepresentantesSemUsuario`
+
+Hoje aceita qualquer email com `@`. Ajustar para excluir emails claramente inválidos/placeholder, garantindo que após a limpeza o Rafael Castro (e futuros casos) não apareçam mesmo se houver `@`:
+
+- Rejeitar emails sem `.` após o `@`
+- Rejeitar emails contendo sequências `xxxx`, `xxxxx`, `placeholder`, `teste@teste`, etc.
+- Rejeitar emails cujo domínio não tenha TLD válido (regex simples `/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i`)
+- Adicionar normalização (trim + lowercase) já existente
+
+A filtragem fina é feita client-side após o fetch (Postgres não suporta regex tão facilmente via PostgREST; mantemos `LIKE '%@%'` no servidor + validação robusta no client).
+
+### 2. Migration: limpar o email placeholder
+
+Atualizar o representante Rafael Castro para `email = NULL`. Com isso, ele deixa de satisfazer o filtro `.not('email', 'is', null)` e não aparece mais no modal — independente do hook.
+
+Nenhum outro campo é alterado. Soft-delete não é aplicado (o representante continua válido, apenas sem email).
+
+### 3. Registrar no audit_logs a limpeza
+
+Criar uma entrada manual em `audit_logs` documentando:
+- Ação: `updated`
+- Campo alterado: `email` (de `xxxxxxx@xxxxx.xxx.xx` → `NULL`)
+- `details`: justificativa + autor original identificado (Monica Matunaga) + autor da limpeza (sistema/migration)
+
+### 4. Verificação de outros placeholders
+
+A migration faz uma busca preventiva por outros emails com padrão claramente placeholder (`xxxx@`, `@xxxx`, sem TLD) **somente para reportar via NOTICE no log da migration** — não altera nenhum outro registro automaticamente, para não causar efeitos colaterais.
+
+## Detalhes técnicos
+
+**Arquivo afetado (código):**
+- `src/hooks/useRepresentantesSemUsuario.ts` — adicionar função `isValidEmail()` e filtrar no `.map`/`.filter` final
+
+**Migration SQL (resumo):**
 ```sql
-INSERT INTO public.user_page_access (user_id, page_permission_id, granted_by)
-SELECT DISTINCT upa.user_id,
-       (SELECT id FROM public.page_permissions WHERE page_path = '/equipe/tax/dashboard'),
-       NULL  -- backfill automático, sem actor humano
-FROM public.user_page_access upa
-JOIN public.page_permissions pp ON pp.id = upa.page_permission_id
-WHERE pp.category = 'tax'
-  AND upa.user_id NOT IN (
-    SELECT user_id FROM public.user_page_access
-    WHERE page_permission_id = (SELECT id FROM public.page_permissions WHERE page_path = '/equipe/tax/dashboard')
-  )
-ON CONFLICT (user_id, page_permission_id) DO NOTHING;
+-- 1. Auditar a mudança
+INSERT INTO audit_logs (area, entity_type, entity_id, entity_name, action, performed_by, changed_fields, details)
+VALUES ('client-management', 'representante', '52e1b819-...', 'Rafael Castro', 'updated', NULL,
+        '{"email":{"old":"xxxxxxx@xxxxx.xxx.xx","new":null}}'::jsonb,
+        '{"reason":"Limpeza de email placeholder","original_author":"monica.matunaga@psaconsultores.com.br","cleaned_by":"migration"}'::jsonb);
+
+-- 2. Limpar
+UPDATE representante SET email = NULL, updated_at = now()
+WHERE id_representante = '52e1b819-45d5-4b0e-97e9-6a4b25c82afc'
+  AND email = 'xxxxxxx@xxxxx.xxx.xx';
+
+-- 3. NOTICE com outros placeholders (somente log)
+DO $$ ... RAISE NOTICE ... $$;
 ```
 
-Validação pós-execução: `users_with_access` para `/equipe/tax/dashboard` passa de 11 → 21, alinhando com as outras páginas Tax.
+## Resultado esperado
 
-### 2) Prevenir o problema no futuro — trigger automático
-
-Para garantir que **qualquer nova página** cadastrada numa categoria de área seja automaticamente provisionada para todos os usuários que já têm acesso àquela área (sem depender de re-edição manual de cada usuário), criar um trigger `AFTER INSERT ON page_permissions`:
-
-```sql
-CREATE OR REPLACE FUNCTION public.auto_grant_new_page_to_area_users()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  -- Para cada usuário que já tem acesso a outra página da MESMA categoria,
-  -- conceder acesso à página recém-criada.
-  INSERT INTO public.user_page_access (user_id, page_permission_id, granted_by)
-  SELECT DISTINCT upa.user_id, NEW.id, NULL
-  FROM public.user_page_access upa
-  JOIN public.page_permissions pp ON pp.id = upa.page_permission_id
-  WHERE pp.category = NEW.category
-    AND pp.id <> NEW.id
-  ON CONFLICT (user_id, page_permission_id) DO NOTHING;
-  RETURN NEW;
-END;
-$$;
-
-CREATE TRIGGER trg_auto_grant_new_page
-AFTER INSERT ON public.page_permissions
-FOR EACH ROW
-EXECUTE FUNCTION public.auto_grant_new_page_to_area_users();
-```
-
-Isso elimina o risco de drift sempre que uma nova página for adicionada a uma categoria (`tax`, `osg`, `board`, `dev`, `rotina`, `gestao`).
-
-**Pré-requisito**: garantir índice único em `user_page_access (user_id, page_permission_id)` para o `ON CONFLICT` funcionar. Vou verificar e, se faltar, incluir na migration:
-
-```sql
-CREATE UNIQUE INDEX IF NOT EXISTS user_page_access_user_page_uniq
-ON public.user_page_access (user_id, page_permission_id);
-```
-
-## Sobre o "endpoint" / código
-
-**Nenhuma alteração de código necessária.** O `PageAccessGate`, `usePageAccess`, `useSyncUserAreaAccess` e `EditUserDialog` já estão corretos e seguem o padrão. A correção é 100% de **dados + trigger preventivo** via migration.
-
-## Passos
-
-1. Criar migration única contendo:
-   - Índice único em `user_page_access (user_id, page_permission_id)` (idempotente).
-   - INSERT de backfill do Tax Dashboard para os 10 usuários.
-   - Função + trigger `auto_grant_new_page_to_area_users`.
-
-2. Pedir aos usuários que recarreguem (ou aguardem ~5 min — `staleTime` do React Query).
-
-3. Validar contagens em `user_page_access` por página Tax (esperado: todas com 21 ou ≥20).
-
-Sem mudanças em arquivos `.ts`/`.tsx`.
+- Modal continua mostrando 12 em dev e passará a mostrar 21 em prod (22 menos o Rafael Castro).
+- Rafael Castro permanece cadastrado como representante, apenas sem email.
+- Histórico da limpeza fica registrado em `audit_logs` com referência ao autor original.
+- Hook fica resiliente a futuros placeholders mesmo se o banco tiver lixo.
