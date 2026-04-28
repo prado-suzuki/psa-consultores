@@ -277,15 +277,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // Cria/vincula auth user via edge function `upsert-representante-user`
       // SOMENTE quando `acesso_chamados === true`. A edge function dispara o
       // webhook N8n de boas-vindas apenas quando o usuário é recém-criado.
-      const splitName = (full: string): { first_name: string; last_name: string | null } => {
-        const trimmed = (full || '').trim();
-        if (!trimmed) return { first_name: '', last_name: null };
-        const idx = trimmed.indexOf(' ');
-        if (idx === -1) return { first_name: trimmed, last_name: null };
-        const first = trimmed.substring(0, idx);
-        const rest = trimmed.substring(idx + 1).trim();
-        return { first_name: first, last_name: rest || null };
-      };
+      // splitName foi movido para `@/lib/nameUtils`.
 
       const adminName =
         authUser?.user_metadata?.first_name && authUser?.user_metadata?.last_name
