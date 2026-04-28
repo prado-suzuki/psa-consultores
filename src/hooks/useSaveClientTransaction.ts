@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
@@ -10,6 +11,10 @@ import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
 const representanteTable = 'representante';
+
+// Mesmo webhook usado em useTeamMemberMutations.ts (criação manual de team member).
+const N8N_WELCOME_WEBHOOK =
+  'https://psadigital.app.n8n.cloud/webhook/8dd8b7e4-2843-4ab6-bf97-7a3941548153';
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
@@ -76,6 +81,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   } = params;
 
   const { logAction } = useAuditLog();
+  const { user: authUser } = useAuth();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
 
@@ -270,9 +276,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // --- Persistir representantes (update ou insert) ---
-      // Para cada representante com email válido sem user_id, cria/vincula
-      // automaticamente um auth user via edge function `upsert-representante-user`
-      // (sempre concede role `client`). Falha não bloqueia o save.
+      // Cria/vincula auth user via edge function `upsert-representante-user`
+      // SOMENTE quando `acesso_chamados === true`. A edge function dispara o
+      // webhook N8n de boas-vindas apenas quando o usuário é recém-criado.
       const splitName = (full: string): { first_name: string; last_name: string | null } => {
         const trimmed = (full || '').trim();
         if (!trimmed) return { first_name: '', last_name: null };
@@ -283,10 +289,18 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         return { first_name: first, last_name: rest || null };
       };
 
+      const adminName =
+        authUser?.user_metadata?.first_name && authUser?.user_metadata?.last_name
+          ? `${authUser.user_metadata.first_name} ${authUser.user_metadata.last_name}`
+          : authUser?.email || 'Admin';
+
       const ensureRepresentanteUser = async (
         p: DraftRepresentante,
         existingUserId?: string | null,
       ): Promise<string | null> => {
+        // Gate: o backend só verifica/provê usuário se o acesso a chamados estiver habilitado.
+        if (!p.acesso_chamados) return existingUserId ?? null;
+
         const email = (p.email || '').trim();
         if (!email) return existingUserId ?? null;
         if (existingUserId) return existingUserId;
@@ -306,6 +320,38 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             toast.warning(`Não foi possível criar usuário para ${email}: ${data.error}`);
             return null;
           }
+
+          // Webhook de boas-vindas — só dispara para usuários recém-criados (mesmo
+          // padrão fire-and-forget de useTeamMemberMutations.ts).
+          if (data?.created === true) {
+            fetch(N8N_WELCOME_WEBHOOK, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                event_type: 'user_created',
+                user_data: {
+                  first_name,
+                  last_name: last_name ?? '',
+                  email,
+                  roles: ['client'],
+                  areas: [],
+                },
+                credentials: {
+                  email,
+                  temporary_password: 'trocarsenha',
+                },
+                platform: {
+                  login_url: 'https://psa-consultores.lovable.app/auth',
+                  name: 'PSA Consultores',
+                },
+                created_by: adminName,
+                created_at: new Date().toISOString(),
+              }),
+            }).catch((err) =>
+              console.error('[representante user] Webhook boas-vindas falhou:', err)
+            );
+          }
+
           return (data?.user_id as string) || null;
         } catch (err) {
           console.error('[representante user] unexpected:', err);
@@ -624,7 +670,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     } finally {
       setSaving(false);
     }
-  }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot]);
+  }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
 
   const handleSave = useCallback(() => {
     const pendingTabs = getDraftPendingTabs();

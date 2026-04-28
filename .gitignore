@@ -28,3 +28,4 @@ dist-ssr
 
 # Claude Code instructions (local only, não commitar)
 CLAUDE.md
+.claude/

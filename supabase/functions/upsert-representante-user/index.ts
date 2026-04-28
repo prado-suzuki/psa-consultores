@@ -140,6 +140,10 @@ Deno.serve(async (req) => {
       }
     }
 
+    // O webhook N8n de boas-vindas é disparado pelo frontend (fire-and-forget),
+    // seguindo o mesmo padrão da criação manual de team member em
+    // `src/hooks/useTeamMemberMutations.ts`. O frontend usa o flag `created`
+    // retornado abaixo para decidir se envia a notificação.
     return new Response(
       JSON.stringify({ user_id: userId, created }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

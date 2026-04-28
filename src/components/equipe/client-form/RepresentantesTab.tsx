@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RequiredMark } from "@/components/ui/required-mark";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -14,9 +15,13 @@ import {
 import { Pencil, Trash2, ChevronDown, Check, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 import { TIPO_REPRESENTANTE_OPTIONS, formatPhone } from "./constants";
 import type { DraftRepresentante } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
+
+const DISABLE_TOOLTIP =
+  "Você não tem permissão para desabilitar acesso ao chamados, fale com a equipe Digital para realizar essa operação";
 
 export interface RepresentantesTabProps {
   participants: DraftRepresentante[];
@@ -31,9 +36,27 @@ export default function RepresentantesTab({
   draftRepresentante, setDraftRepresentante,
   isReadOnly,
 }: RepresentantesTabProps) {
+  const { isAdmin } = useAuth();
   const [expandedParticipantId, setExpandedParticipantId] = useState<number | null>(null);
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
   const [editingParticipantData, setEditingParticipantData] = useState<Partial<DraftRepresentante> | null>(null);
+
+  // Captura o estado original (do banco) de `acesso_chamados` por _dbId.
+  // Usado para travar o toggle quando o registro JÁ TINHA acesso habilitado e o usuário não é admin.
+  const originalAcessoByDbId = useRef<Map<string, boolean>>(new Map());
+  useEffect(() => {
+    for (const p of participants) {
+      if (p._dbId && !originalAcessoByDbId.current.has(p._dbId)) {
+        originalAcessoByDbId.current.set(p._dbId, !!p.acesso_chamados);
+      }
+    }
+  }, [participants]);
+
+  const isAcessoLockedFor = (p: Pick<DraftRepresentante, '_dbId'>): boolean => {
+    if (isAdmin) return false;
+    if (!p._dbId) return false;
+    return originalAcessoByDbId.current.get(p._dbId) === true;
+  };
 
   const startEditParticipant = (p: DraftRepresentante) => {
     setEditingParticipantId(p._id);
@@ -192,8 +215,34 @@ export default function RepresentantesTab({
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Acesso Chamados</Label>
                           <div className="flex-1">
                             <div className="flex items-center gap-2 h-8">
-                              <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={(c) => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
-                              <span className="text-sm">{ep.acesso_chamados ? "Ativado" : "Desativado"}</span>
+                              {isAcessoLockedFor(part) ? (
+                                <TooltipProvider delayDuration={150}>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span
+                                        className="inline-flex items-center gap-2 opacity-50 cursor-not-allowed select-none"
+                                        aria-disabled
+                                      >
+                                        <Switch
+                                          checked={ep.acesso_chamados ?? false}
+                                          disabled
+                                          tabIndex={-1}
+                                          className="pointer-events-none"
+                                        />
+                                        <span className="text-sm">{ep.acesso_chamados ? "Ativado" : "Desativado"}</span>
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="right" className="max-w-xs">
+                                      {DISABLE_TOOLTIP}
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </TooltipProvider>
+                              ) : (
+                                <>
+                                  <Switch checked={ep.acesso_chamados ?? false} onCheckedChange={(c) => setEditingParticipantData({ ...ep, acesso_chamados: c })} />
+                                  <span className="text-sm">{ep.acesso_chamados ? "Ativado" : "Desativado"}</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
