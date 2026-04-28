@@ -7,14 +7,12 @@ import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
+import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
+import { splitName } from '@/lib/nameUtils';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
 const representanteTable = 'representante';
-
-// Mesmo webhook usado em useTeamMemberMutations.ts (criação manual de team member).
-const N8N_WELCOME_WEBHOOK =
-  'https://psadigital.app.n8n.cloud/webhook/8dd8b7e4-2843-4ab6-bf97-7a3941548153';
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
@@ -279,15 +277,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // Cria/vincula auth user via edge function `upsert-representante-user`
       // SOMENTE quando `acesso_chamados === true`. A edge function dispara o
       // webhook N8n de boas-vindas apenas quando o usuário é recém-criado.
-      const splitName = (full: string): { first_name: string; last_name: string | null } => {
-        const trimmed = (full || '').trim();
-        if (!trimmed) return { first_name: '', last_name: null };
-        const idx = trimmed.indexOf(' ');
-        if (idx === -1) return { first_name: trimmed, last_name: null };
-        const first = trimmed.substring(0, idx);
-        const rest = trimmed.substring(idx + 1).trim();
-        return { first_name: first, last_name: rest || null };
-      };
+      // splitName foi movido para `@/lib/nameUtils`.
 
       const adminName =
         authUser?.user_metadata?.first_name && authUser?.user_metadata?.last_name

@@ -35,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
+import { CargaChamados } from '@/components/equipe/dev/carga-chamados/CargaChamados';
 
 type TableType = 'cliente' | 'contribuinte';
 type AmbienteValue = 'prod' | 'dev';
@@ -238,6 +239,8 @@ const GerenciarDados = () => {
       subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
     >
       <div className="space-y-6 max-w-3xl">
+        <CargaChamados />
+
         {/* Aviso */}
         <Alert>
           <Info className="h-4 w-4" />
