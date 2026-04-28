@@ -5,9 +5,7 @@ import { toast } from 'sonner';
 import { AREA_CATEGORIES_MAP, ALL_AREA_CATEGORIES } from '@/config/areaCategories';
 import { useSyncUserAreaAccess } from './useUserPageAccess';
 import type { AppRole } from './useUsersWithRoles';
-
-const N8N_WELCOME_WEBHOOK =
-  'https://psadigital.app.n8n.cloud/webhook/8dd8b7e4-2843-4ab6-bf97-7a3941548153';
+import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 
 export interface CreateTeamMemberInput {
   first_name: string;
