@@ -239,6 +239,8 @@ const GerenciarDados = () => {
       subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
     >
       <div className="space-y-6 max-w-3xl">
+        <CargaChamados />
+
         {/* Aviso */}
         <Alert>
           <Info className="h-4 w-4" />
