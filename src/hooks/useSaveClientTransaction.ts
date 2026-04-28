@@ -7,14 +7,12 @@ import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
+import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
+import { splitName } from '@/lib/nameUtils';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
 const representanteTable = 'representante';
-
-// Mesmo webhook usado em useTeamMemberMutations.ts (criação manual de team member).
-const N8N_WELCOME_WEBHOOK =
-  'https://psadigital.app.n8n.cloud/webhook/8dd8b7e4-2843-4ab6-bf97-7a3941548153';
 
 // Helper para sincronizar com DW
 const syncCadastrosToDW = (payload: any) => {
