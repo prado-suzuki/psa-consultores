@@ -35,6 +35,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
+import { CargaChamados } from '@/components/equipe/dev/carga-chamados/CargaChamados';
 
 type TableType = 'cliente' | 'contribuinte';
 type AmbienteValue = 'prod' | 'dev';
