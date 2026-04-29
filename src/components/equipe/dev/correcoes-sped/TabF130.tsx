@@ -86,9 +86,10 @@ function buildCodeOptions(rows: F130Item[], codeField: CodeField130): { code: st
   const descKey = DESC_KEY_BY_CODE_FIELD[codeField];
   const map = new Map<string, string>();
   for (const row of rows) {
-    const code = row.F130[codeField];
-    if (code === null || code === undefined || code === '') continue;
-    if (!map.has(code)) map.set(code, row[descKey] ?? '');
+    const rawCode = row.F130[codeField];
+    if (rawCode === null || rawCode === undefined || rawCode === '') continue;
+    const code = String(rawCode);
+    if (!map.has(code)) map.set(code, String(row[descKey] ?? ''));
   }
   return Array.from(map.entries())
     .map(([code, description]) => ({ code, description }))
