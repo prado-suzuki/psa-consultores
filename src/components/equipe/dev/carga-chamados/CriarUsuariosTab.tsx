@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import {
   useRepresentantesSemUsuario,
   type StatusClienteFiltro,
+  type TipoClienteFiltro,
 } from '@/hooks/useRepresentantesSemUsuario';
 import {
   useCriarUsuariosRepresentantes,
