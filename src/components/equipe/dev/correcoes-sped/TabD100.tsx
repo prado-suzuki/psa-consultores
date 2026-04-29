@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -110,6 +111,7 @@ interface TabD100Props extends CorrecoesActionsProps {
 
 export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabD100Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'D100', cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<D100Item[]>([]);
@@ -320,6 +322,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
 
       setRows(nextRows);
       handleCancelEditMode();
+      await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do D100 salva.' : `${savedCount} correções do D100 salvas.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao salvar correções.');
