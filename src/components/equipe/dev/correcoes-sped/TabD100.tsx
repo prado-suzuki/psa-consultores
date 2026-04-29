@@ -322,6 +322,7 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
 
       setRows(nextRows);
       handleCancelEditMode();
+      await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do D100 salva.' : `${savedCount} correções do D100 salvas.`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Erro ao salvar correções.');
