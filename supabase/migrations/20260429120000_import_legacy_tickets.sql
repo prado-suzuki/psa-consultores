@@ -34,7 +34,7 @@ O código de receita para recolhimento de ICMS via apuração;
 O código de receita aplicável ao recolhimento do DIFAL.
 
 [ANEXO]: Mapeamento-de-Obrigacao_Acessorias_Estadual_Atualizado-em-04.2025.xlsx (82K)
-[ANEXO]: Mapeamento-de-Tributacao_ICMS_DIFAL_Atualizado-em-06.2025.xlsx (68K)', NULL, 'resolvido', 'resolvido', 'media', '2026-03-24 14:47:00+00', '2026-03-24 14:47:00+00'),
+[ANEXO]: Mapeamento-de-Tributacao_ICMS_DIFAL_Atualizado-em-06.2025.xlsx (68K)', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-24 14:47:00+00', '2026-03-24 14:47:00+00'),
   ('7c10737b-f710-4fbe-970f-a8f51ad4d66d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Notificação SEFAZ-SP – Orientação sobre NF-e não escriturada e crédito indevido de ICMS (CT-e)', '[ Contabilidade Tecnomyl | 23/03/2026 às 17:18 ]
 Boa tarde, tudo bem?
 Recebemos uma notificação fiscal da SEFAZ-SP, referente ao CNPJ 05.280.269/0004-35 e IE 513.154.432.110, a qual foi baixada em 09/12/2025, e hoje a filial está ativa com a IE 298.576.760.115, com o seguinte teor:
@@ -139,7 +139,7 @@ Sobre a nota fiscal de devolução não escriturada, a Tecnomyl recebeu a mercad
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 24/03/2026 às 08:15 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-03-23 20:18:00+00', '2026-03-31 21:21:51+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-23 20:18:00+00', '2026-03-31 21:21:51+00'),
   ('0b8900c1-0859-4e55-bc39-0e27015c74be'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'PARCELAMENTO DIFAL COMPRA IMOBILIZADO', '[ Marcela Rech | 23/03/2026 às 15:50 ]
 Boa tarde, foi feito compra de caminhão para compor o ativo imobilizado do Estado do Paraná e vamos fazer o parcelamento em 10x do diferencial de alíquota, Estamos com dúvida do cálculo, temos a informação que aplicamos a redução de 70,59 % na base de cálculo, que totalizando dá um percentual de 6,446%, essas informações estão corretas? Em anexo documentação para análise OBS: nas compras anteriores usávamos um porcentual de 5%.
 
@@ -180,7 +180,7 @@ DIFAL-NF-185181.xlsx
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 24/03/2026 às 08:16 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-03-23 18:50:00+00', '2026-03-24 14:53:22+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-23 18:50:00+00', '2026-03-24 14:53:22+00'),
   ('1184701e-ad79-4802-9adc-aced3cccbf25'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Avaliação de impactos fiscais e operacionais-PARCERIA TECNOMYL X INSTITUTO TRIANGULO MINEIRO', '[ Contabilidade Tecnomyl | 23/03/2026 às 13:57 ]
 Prezados, boa tarde,
 Estamos avaliando a possibilidade de estabelecer uma parceria entre a TECNOMYL e o Instituto Federal do Triângulo Mineiro (IFTM), localizado em Uberaba-MG.
@@ -234,7 +234,7 @@ Algum retorno sobre este questionamento?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/03/2026 às 14:13 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2026-03-23 16:57:00+00', '2026-03-31 15:27:16+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-23 16:57:00+00', '2026-03-31 15:27:16+00'),
   ('4e322258-d098-4a13-863b-c4fd887c8369'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'CARTA RENÚNICA EMITIDA PELA TRADING', '[ Alined Deon | 18/03/2026 às 16:13 ]
 Boa tarde! Em nossos contratos de venda com a Trading COFCO, foi emitida nota com valor fiscal maio que o físico entregue. No entanto a Trading anuncia que não emite devolução simbólica para PJ comércio apenas para produtor PF e PJ. Para Paiol PJ comerciante emite uma carta renúncia, a mesa esta anexo com a legislação que eles apresentam. nesse sentindo, precisamos entender: 1 ) Esta amparado pela legislação a carta renúncia? 2) A Paiol precisa aceitar outro documento senão a devolução simbólica para corrigir a parte fiscal ? 3) Se for necessário aceitar, a Paiol precisa realizar a entrada própria com item de ajuste para ajustar e ainda recolher o ICMS como interrupção do Diferimento? Por fim, precisamos entender o procedimento nesse sentido.
 
@@ -266,7 +266,7 @@ Diego Correia de Melo.
 [ Alined Deon | 18/03/2026 às 16:40 ]
 A fim de registro, nosso entendimento é que Não é possível acatar a carta de renúncia para fins fiscais, pois não houve retorno físico da mercadoria.
 Para regularização fiscal da operação, é necessário procedimento formal conforme legislação (devolução com NF simbólica, dentro do prazo estabelecido).
-A carta pode ser considerada apenas para fins contratuais/financeiros.', NULL, 'resolvido', 'resolvido', 'media', '2026-03-18 19:13:00+00', '2026-03-20 18:15:57+00'),
+A carta pode ser considerada apenas para fins contratuais/financeiros.', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-18 19:13:00+00', '2026-03-20 18:15:57+00'),
   ('b7e903a3-05df-4fb8-afe2-4f4ed385c8fb'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'SPED ICMS IPI', '[ Marcela Rech | 17/03/2026 às 12:20 ]
 Bom dia, seria referente PVA SPED ICMS IPI de SP, aonde no bloco 111 e bloco 110 e bloco 116, está constando erro, poderia informa qual procedimento correto a seguir, vou está enviando arquivo no e-mail para conferência.
 
@@ -295,7 +295,7 @@ Em qual e-mail foi encaminhado o arquivo do EFD ICMS/IPI?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 17/03/2026 às 14:25 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-03-17 15:20:00+00', '2026-03-19 10:56:44+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-17 15:20:00+00', '2026-03-19 10:56:44+00'),
   ('7efeec0d-4ebc-4d82-9b40-6dc8f6df3293'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Crédito de PIS/COFINS e ICMS em CT-e com múltiplos documentos referenciados', '[ Contabilidade Tecnomyl | 12/03/2026 às 15:39 ]
 Boa tarde, tudo bem?
 Gostaríamos de esclarecer um ponto referente ao processo de escrituração de CT-e e à apropriação de créditos de PIS, COFINS e ICMS.
@@ -336,7 +336,7 @@ Gabriel Gama
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/03/2026 às 08:21 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'media', '2026-03-12 18:39:00+00', '2026-03-30 14:58:28+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-12 18:39:00+00', '2026-03-30 14:58:28+00'),
   ('dba2a80c-cc4b-40a3-8c35-9757040f9c19'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Contabilização de cotas de investimentos FIDC', '[ Contabilidade Tecnomyl | 10/03/2026 às 15:51 ]
 Boa tarde,
 A Tecnomyl adquiriu cotas mezanino de um Fundo de Investimento em Direitos Creditórios (FIDC). A dúvida é quanto ao tratamento contábil dessa aquisição, especificamente se as cotas devem ser classificadas como investimentos ou como aplicações financeiras de longo prazo.
@@ -374,7 +374,7 @@ Poderiam priorizar este chamado, por gentileza??
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 11/03/2026 às 07:38 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2026-03-10 18:51:00+00', '2026-03-13 15:25:42+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-10 18:51:00+00', '2026-03-13 15:25:42+00'),
   ('4b064ae6-7bb2-4c64-80d3-7a5f25106135'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de apoio para formular Defesa de notificação SEFAZ/MT – FETHAB – URGENTE', '[ Alined Deon | 9/03/2026 às 14:43 ]
 Prezados, bom dia. Recebemos notificação da SEFAZ/MT referente a suposto não recolhimento de FETHAB em operações de aquisição de soja de produtor rural e solicitamos apoio da consultoria para análise e elaboração da defesa.
 Contexto da operação
@@ -418,7 +418,7 @@ Notificacao-no-75793-1908-68-2026.zip
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/03/2026 às 14:45 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-03-09 17:43:00+00', '2026-03-10 20:59:35+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-09 17:43:00+00', '2026-03-10 20:59:35+00'),
   ('16d920de-249b-46c0-8f92-7d7635c79906'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de apoio para formular Defesa de notificação SEFAZ/MT – FETHAB – URGENTE', '[ Alined Deon | 5/03/2026 às 10:04 ]
 Prezados, bom dia. Recebemos notificação da SEFAZ/MT referente a suposto não recolhimento de FETHAB em operações de aquisição de soja de produtor rural e solicitamos apoio da consultoria para análise e elaboração da defesa.
 Contexto da operação
@@ -473,7 +473,7 @@ LJ41-Livro-Regristro-de-Entradas-02.2026.pdf
 [ Alined Deon | 5/03/2026 às 10:53 ]
 Consulta Genérica conforme solicitado.
 
-LJ41-Consulta-Generica-IE-140333371.pdf', NULL, 'resolvido', 'resolvido', 'media', '2026-03-05 13:04:00+00', '2026-03-06 15:32:57+00'),
+LJ41-Consulta-Generica-IE-140333371.pdf', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-05 13:04:00+00', '2026-03-06 15:32:57+00'),
   ('ebaefe2e-7cdf-4f8f-a078-b690829d354e'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Consulta fiscal – compra e revenda de equipamento agrícola', '[ Alined Deon | 5/03/2026 às 08:23 ]
 Prezados, bom dia.
 Solicitamos análise sobre a viabilidade fiscal da operação abaixo, a ser realizada pela empresa CNPJ 58.864.055/0001-20, tributada pelo Lucro Real e com atividade principal de revenda de insumos agrícolas.
@@ -543,7 +543,7 @@ At.te, Maria Lizot.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 5/03/2026 às 11:49 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2026-03-05 11:23:00+00', '2026-03-10 18:08:08+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-05 11:23:00+00', '2026-03-10 18:08:08+00'),
   ('f4ee4075-1ecb-483e-b77b-f5cdf863e297'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Saldo credor de ICMS – IE baixada (Filial 04 – CNPJ 05.280.269/0004-35)', '[ Contabilidade Tecnomyl | 4/03/2026 às 17:51 ]
 Boa tarde, tudo bem?
 Temos a filial 04 – CNPJ 05.280.269/0004-35, atualmente estabelecida em Embu das Artes/SP. Anteriormente, a filial estava localizada em Paulínia/SP e, em razão da alteração de endereço, houve mudança de Inscrição Estadual.
@@ -611,7 +611,7 @@ Consultas-Tributarias.zip
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Contabilidade Tecnomyl | 6/03/2026 às 14:41 ]
-Também temos dúvidas quanto ao estoque, como devemos proceder? Tínhamos estoque na antiga IE e agora estamos com a nova, como devemos proceder, temos que enviar EFD fiscal parcial? Como informar no bloco H os estoques?', NULL, 'resolvido', 'resolvido', 'media', '2026-03-04 20:51:00+00', '2026-03-11 20:47:22+00'),
+Também temos dúvidas quanto ao estoque, como devemos proceder? Tínhamos estoque na antiga IE e agora estamos com a nova, como devemos proceder, temos que enviar EFD fiscal parcial? Como informar no bloco H os estoques?', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-04 20:51:00+00', '2026-03-11 20:47:22+00'),
   ('cfabd6eb-7b77-45f9-94b7-581817f2f7ea'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Inclusão/Exclusão de CNAE no Cartão CNPJ da Matriz', '[ Contabilidade Tecnomyl | 3/03/2026 às 17:12 ]
 Prezados, Até este momento o cartão CNPJ da matriz contempla todas as atividades desenvolvidas pelas filiais. Como por exemplo a filial 0014-07 tem o CNAE 71.20-1-00 - Testes e análises técnicas, para desenvolver sua atividade de laboratório, e apenas por este motivo incluímos também  no CNPJ da matriz. A cada novo CNAE a ser incluído em uma filial também é incluído no CNPJ da matriz. Pergunta-se: 1- É necessário que o CNPJ da matriz contemple todas os CNAE desenvolvidos pelas filiais? 2- É possível deixar o CNPJ da matriz apenas com atividade administrativa e financeira? 3 - Caso sim no item 2, verificar quanto a atividade de vendas de defensivos e fertilizantes se existe algum impacto em órgão fiscalizador. Desde já agradeço e estou à disposição!
 
@@ -631,7 +631,7 @@ Estudo_Tecnomyl_CNAE_16.03.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 4/03/2026 às 10:35 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2026-03-03 20:12:00+00', '2026-03-16 18:31:19+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2026-03-03 20:12:00+00', '2026-03-16 18:31:19+00'),
   ('8d54d3d1-b8fa-489f-9455-2342a26ff6ca'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de tabela de CST x Operação com respectivos cBenef', '[ Contabilidade Tecnomyl | 26/02/2026 às 15:25 ]
 Boa tarde, tudo bem? Conforme solicitado no chamado (#2864), por gentileza. 4 – cBenef Poderiam, por gentileza, elaborar uma planilha nos moldes da já disponibilizada para o Estado de São Paulo, contemplando todos os estados onde possuímos filiais e que exigem a informação do cBenef na NF-e?
 
@@ -653,7 +653,7 @@ Mapeamento-de-Tabela-CST-x-cBenef.xlsx
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 26/02/2026 às 15:45 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Contabilidade Tecnomyl', 'resolvido', 'resolvido', 'media', '2026-02-26 18:25:00+00', '2026-02-26 18:25:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Contabilidade Tecnomyl', 'resolvido', 'resolvido', 'normal', '2026-02-26 18:25:00+00', '2026-02-26 18:25:00+00'),
   ('be016515-5e2c-4b23-b05a-29b25fa55869'::uuid, '13582228-226d-47be-8172-5f930842e20c'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'CONTRATO CONTA CORRENTE – SOLICITAÇÃO DE ORIENTAÇÃO PARA REGULARIZAÇÃO', '[ Alessandro Tavares | 23/02/2026 às 11:17 ]
 Bom dia. Prezados, Solicito orientação jurídica e análise técnica quanto à regularização das movimentações financeiras realizadas entre as unidades do Grupo Paiol. Atualmente, cada unidade opera com, no mínimo, dois CNPJs distintos, estruturados conforme o planejamento societário e segmentação das operações de mercadorias. Em determinadas situações, o faturamento é realizado por um CNPJ e o respectivo pagamento é efetuado pelo cliente em outro CNPJ da mesma unidade, o que gera saldos intercompany (valores a pagar e a receber entre empresas do grupo). Como prática interna, realizamos mensalmente a conciliação e compensação desses saldos, priorizando a amortização contábil e evitando a circulação financeira efetiva entre as empresas. Quando há possibilidade de transferência de recursos, não há cobrança de juros, motivo pelo qual não há retenção de IRRF. Da mesma forma, não há recolhimento de IOF, considerando o entendimento de que se tratam de operações entre empresas integrantes do mesmo grupo econômico. Diante disso, considerando recente decisão favorável do CARF que afastou a incidência de IOF em operações entre empresas do mesmo grupo, solicitamos:
 Análise quanto à adequação do procedimento atualmente adotado;
@@ -711,7 +711,7 @@ Estudo_Paiol_IOF_Operacoes-Intercompany.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/02/2026 às 11:54 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Alessandro Tavares', 'resolvido', 'resolvido', 'media', '2026-02-23 14:17:00+00', '2026-02-23 14:17:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Alessandro Tavares', 'resolvido', 'resolvido', 'normal', '2026-02-23 14:17:00+00', '2026-02-23 14:17:00+00'),
   ('e3fa856d-f482-44e2-bd27-208cdf746e7d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Informações Obrigatórias na EFD-REINF', '[ Contabilidade Tecnomyl | 20/02/2026 às 16:30 ]
 Boa tarde,
 Precisamos saber se os Documentos de Arrecadação (DARFs), cujos códigos sejam 0422, 0473 e 0481, devem ser informados na EFD-Reinf.
@@ -757,7 +757,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/02/2026 às 08:35 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2026-02-20 19:30:00+00', '2026-02-20 19:30:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-20 19:30:00+00', '2026-02-20 19:30:00+00'),
   ('79075e38-912d-403b-98bc-149caf078433'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de tabela de CST x Operação com respectivos cBenef – SP', '[ Contabilidade Tecnomyl | 20/02/2026 às 15:10 ]
 Boa tarde, tudo bem? Estamos realizando a parametrização do sistema quanto à obrigatoriedade do preenchimento do código de benefício fiscal (cBenef) para o Estado de São Paulo, com vigência a partir de abril/2026. A exigência foi oficializada por meio do Decreto nº 69.981, de 18 de outubro de 2025, e da Portaria SRE nº 70, de 21 de outubro de 2025, observando ainda as diretrizes da Nota Técnica NF-e 01/2019 – Versão 1.70, que dispõe sobre a utilização do código de benefício fiscal nos documentos fiscais eletrônicos. Nos termos do §15 do artigo 212-O do RICMS/SP, o preenchimento do cBenef é obrigatório nas operações ou prestações amparadas por:
 Isenção;
@@ -848,7 +848,7 @@ Mapeamento-de-Tabela-CST-x-cBenef.xlsx
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/02/2026 às 08:36 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-20 18:10:00+00', '2026-02-20 18:10:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-20 18:10:00+00', '2026-02-20 18:10:00+00'),
   ('4c2e12be-5a5a-45f4-85b3-749fa4228fbe'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Orientação técnica – Estorno de CT-e após entrega das obrigações acessórias', '[ Contabilidade Tecnomyl | 20/02/2026 às 14:49 ]
 Boa tarde, tudo bem?
 Precisamos de orientação técnica quanto ao seguinte cenário:
@@ -896,7 +896,7 @@ Poderia nos informar em quais estados acontecem esses casos com mais frequência
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/02/2026 às 08:36 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-20 17:49:00+00', '2026-02-20 17:49:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-20 17:49:00+00', '2026-02-20 17:49:00+00'),
   ('f6368055-e660-4618-803b-630619fa8c2a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Dúvidas sobre Declaração DIRBI a partir de Janeiro/2026', '[ Contabilidade Tecnomyl | 19/02/2026 às 14:49 ]
 Prezados(as), Em razão das atualizações aplicáveis à DIRBI a partir dos períodos de apuração iniciados em janeiro de 2026, solicitamos esclarecimentos sobre o correto enquadramento e forma de declaração dos seguintes itens do Anexo Único da IN RFB nº 2.198/2024 e alterações posteriores. Item 64 – Corretivo de Solo O benefício refere-se a corretivos de solo de origem mineral classificados no Capítulo 25 da NCM. Dúvida: O enquadramento é restrito exclusivamente a corretivos de solo, ou qualquer produto do Capítulo 25 pode ser considerado para fins de declaração na DIRBI? Item 66 – Inoculantes Agrícolas (NCM 3002.90.99) O benefício menciona inoculantes agrícolas produzidos a partir de bactérias fixadoras de nitrogênio, classificados no NCM 3002.90.99. Dúvida: Apenas produtos exatamente classificados nesse NCM devem ser declarados, ou existe margem para enquadramento de itens correlatos? Item 160 – Programa Empresa Cidadã O incentivo permite a dedução, no IRPJ, dos valores pagos nos dias de prorrogação da licença-maternidade e paternidade. Dúvidas: A base declarada deve considerar apenas a remuneração correspondente aos dias prorrogados? Encargos incidentes sobre essa remuneração devem ser incluídos? A DIRBI exige detalhamento por empregado ou apenas o total consolidado do período? Item 154 – Operações de Hedge O benefício aplica alíquota zero às receitas financeiras de operações de cobertura destinadas à proteção de riscos inerentes às atividades da empresa. Dúvidas: A DIRBI deve informar apenas receitas financeiras positivas (ganhos) ou perdas também precisam ser incluídas? A apuração deve ser realizada contrato a contrato ou é permitida consolidação por tipo de operação? Há documentação mínima que deve ser mantida para comprovar o enquadramento da operação como hedge?
 
@@ -981,7 +981,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 19/02/2026 às 15:14 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2026-02-19 17:49:00+00', '2026-02-19 17:49:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-19 17:49:00+00', '2026-02-19 17:49:00+00'),
   ('6e252536-2b54-404c-ac44-62045a78666d'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Consulta sobre enquadramento de PIS e COFINS – NCM 2827.20.90 e 2827.20.10', '[ Alined Deon | 19/02/2026 às 12:28 ]
 Prezados, bom dia.
 Poderiam, por gentileza, validar o enquadramento tributário de PIS e COFINS para o produto classificado no NCM 2827.20.90 e 2827.20.10?
@@ -1020,7 +1020,7 @@ Gabriel Gama
 [ Alined Deon | 19/02/2026 às 14:50 ]
 Gostaria de acrescentar que o fornecedor informa tratar-se de uma cadeia com aplicação de alíquota zero, desde a importação até a venda interna desse NCM.
 Há algum entendimento, solução de consulta ou previsão legal que estenda o benefício aplicado na importação para as operações subsequentes, especialmente para o NCM em questão?
-Além disso, quais seriam os riscos para a PAIOL caso adotemos o mesmo entendimento e sigamos essa cadeia com aplicação de alíquota zero?', NULL, 'resolvido', 'resolvido', 'media', '2026-02-19 15:28:00+00', '2026-02-19 15:28:00+00'),
+Além disso, quais seriam os riscos para a PAIOL caso adotemos o mesmo entendimento e sigamos essa cadeia com aplicação de alíquota zero?', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-19 15:28:00+00', '2026-02-19 15:28:00+00'),
   ('7f35585c-ea8c-4c20-bb5c-e2807958804c'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DESCONTOS DE QUALIDADE', '[ Alined Deon | 16/02/2026 às 09:46 ]
 Prezados, bom dia!
 A Solução de Consulta nº 033/2026 – UDCR/UNERC, de 22/01/2026, esclarece que os descontos de qualidade (ex.: excesso de umidade ou impurezas em grãos) podem ser formalizados mediante emissão de Nota Fiscal de Devolução (ou Devolução Simbólica) no Estado de Mato Grosso, com fundamento no art. 10-B do Decreto nº 1.261/2000. Nesses casos, orienta-se a utilização do CFOP 5.949 (outra saída não especificada), com referência à NF-e de origem, para ajuste de peso/valor.
@@ -1108,7 +1108,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/02/2026 às 11:01 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-16 12:46:00+00', '2026-02-16 12:46:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-16 12:46:00+00', '2026-02-16 12:46:00+00'),
   ('796bd752-8785-4747-9488-ddd08ce09acb'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de Estudo – Abertura de CNPJ no Estado do Pará (Novo Progresso)', '[ Alined Deon | 11/02/2026 às 15:33 ]
 Solicitamos a realização de um estudo fiscal e tributário para avaliar a viabilidade de abertura de um CNPJ no município de Novo Progresso/PA, com foco na redução da carga de ICMS e na estrutura operacional da operação.
 A proposta inicial é a abertura de um CNPJ sem loja física, apenas com escritório de apoio comercial, considerando os seguintes cenários:
@@ -1304,7 +1304,7 @@ Essa venda direto da sementeira para o Pará será por operação por conta e or
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 11/02/2026 às 15:49 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-11 18:33:00+00', '2026-02-11 18:33:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-11 18:33:00+00', '2026-02-11 18:33:00+00'),
   ('8c2b2b89-6ec0-4d9e-ae30-b42482ea54a7'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Regime Especial – SP', '[ Contabilidade Tecnomyl | 11/02/2026 às 13:50 ]
 Prezados,
 Recebemos uma notificação do Estado de São Paulo solicitando a apresentação de documentos e informações acerca da eventual utilização de regime especial de apuração.
@@ -1375,7 +1375,7 @@ Poderia no mandar a notificação? E há algum documento cadastral da SEFAZ/SP q
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 11/02/2026 às 13:52 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2026-02-11 16:50:00+00', '2026-02-11 16:50:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2026-02-11 16:50:00+00', '2026-02-11 16:50:00+00'),
   ('20612e94-815e-4adc-96d2-f70d9538ddc6'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Dúvida sobre Classificação de NFSe – Composição de Custo de Imobilizado', '[ Marcela Rech | 9/02/2026 às 17:24 ]
 Boa tarde,
 Recebemos a NFSe em anexo referente a uma prestação de serviço de frete destinada à composição do custo de aquisição de ativo imobilizado. Contudo, verificamos que a empresa Rota Oeste emitiu a nota fiscal com o código 14.01, que corresponde a serviços de lubrificação, limpeza, lustração, revisão, carga e recarga, conserto, restauração, blindagem, manutenção e conservação de máquinas, veículos, aparelhos, equipamentos, motores, elevadores ou quaisquer outros objetos (exceto peças e partes empregadas, sujeitas ao ICMS).
@@ -1400,7 +1400,7 @@ Assim, se houver documentação complementar que comprove que o serviço foi efe
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 10/02/2026 às 08:19 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2026-02-09 20:24:00+00', '2026-02-09 20:24:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-09 20:24:00+00', '2026-02-09 20:24:00+00'),
   ('0c89b62a-c6fa-40a6-a179-e650a8f380e7'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, 'dbe10aeb-48a8-4ee7-9df6-24f1668c53ac'::uuid, 'Impactos da LC 224/2025 nos tributos incidentes sobre a PAIOL', '[ Alined Deon | 9/02/2026 às 16:51 ]
 Prezados,
 Solicitamos manifestação técnica objetiva sobre os impactos da Lei Complementar nº 224/2025 na tributação das operações da PAIOL, enquanto revenda de insumos agrícolas.
@@ -1487,7 +1487,7 @@ O FUNRURAL foi abrangido pela LC, quais impactos na compra de graõs?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 10/02/2026 às 08:20 ]
-[SISTEMA]: Representante atribuído ➔ Washington Lima', NULL, 'resolvido', 'resolvido', 'media', '2026-02-09 19:51:00+00', '2026-02-09 19:51:00+00'),
+[SISTEMA]: Representante atribuído ➔ Washington Lima', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-09 19:51:00+00', '2026-02-09 19:51:00+00'),
   ('7870e794-9ece-414c-bb91-c115f439c167'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Arresto de grãos e momento do recolhimento de FUNRURAL/SENAR e FETHAB', '[ Alined Deon | 7/02/2026 às 10:53 ]
 Prezados, bom dia! Na PAIOL, ocorreram situações de arresto judicial de grãos (soja e milho), nas quais, diante da ausência da nota fiscal de venda emitida pelo produtor, realizamos a entrada própria da mercadoria por meio de NF-e com CFOP 1.949 (ou 1.949/2.949 – outras entradas não especificadas). Em alguns casos, já houve decisão judicial favorável permitindo a comercialização dos grãos; em outros, a decisão autoriza a venda, porém com determinação de depósito do valor em juízo. Diante desse cenário, surgem dúvidas quanto ao correto enquadramento tributário e ao momento do recolhimento dos tributos incidentes.
 Momento do fato gerador e recolhimento do FUNRURAL e SENAR
@@ -1567,7 +1567,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/02/2026 às 09:49 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-07 13:53:00+00', '2026-02-07 13:53:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-07 13:53:00+00', '2026-02-07 13:53:00+00'),
   ('2bb44498-c52e-4ce3-b57c-f3fe16e60c09'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Análise tributária – ICMS na industrialização por encomenda (CFOP 5.124 / 6.124)', '[ Contabilidade Tecnomyl | 3/02/2026 às 18:52 ]
 Solicitamos orientação para análise da tributação do ICMS aplicável à industrialização por encomenda, quanto ao tratamento do valor do serviço industrial destacado nos CFOP 5.124 / 6.124, considerando operações interestaduais e aplicação de benefícios fiscais vinculados ao produto. Aplicação do benefício fiscal É correto o entendimento de que o benefício fiscal (redução de base de cálculo) aplicável ao produto pode alcançar também o valor do serviço de industrialização destacado no retorno (CFOP 5.124 / 6.124)? Ou o valor do serviço deve, necessariamente, seguir tributação própria integral, desvinculada do tratamento tributário do produto? Direito ao crédito do ICMS pelo encomendante Caso o industrializador destaque o ICMS integralmente sobre o serviço (ex.: 7% sem redução), o encomendante pode:
 se creditar integralmente do ICMS destacado na nota de retorno da industrialização? ou
@@ -1660,7 +1660,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 4/02/2026 às 07:44 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-02-03 21:52:00+00', '2026-02-03 21:52:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-03 21:52:00+00', '2026-02-03 21:52:00+00'),
   ('79aebeb1-8316-4f2e-8626-87ec5fb8b4ca'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Orientação técnica – NF-e 11477 não circulada com impedimento de cancelamento extemporâneo', '[ Contabilidade Tecnomyl | 2/02/2026 às 18:11 ]
 Prezados,
 Solicitamos orientação técnica referente a uma divergência identificada em NF-e de transferência entre filiais.
@@ -1699,7 +1699,7 @@ CONSULTA-TRIBUTARIA-27259-2023-de-07-de-marco-de-2023.pdf
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Contabilidade Tecnomyl | 2/02/2026 às 18:12 ]
-segue xml.', NULL, 'resolvido', 'resolvido', 'media', '2026-02-02 21:11:00+00', '2026-02-02 21:11:00+00'),
+segue xml.', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-02 21:11:00+00', '2026-02-02 21:11:00+00'),
   ('c968a64c-6550-4a63-9576-df5b75e27b8f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Orientação fiscal – Inconsistências DF07 | NF-e nº 24543 | SEFAZ/PR', '[ Contabilidade Tecnomyl | 2/02/2026 às 17:52 ]
 Solicitamos, por gentileza, orientação técnica para regularização de inconsistência fiscal apontada pela SEFAZ/PR, referente a NF-e emitida no Estado do Paraná, conforme detalhamento abaixo.
 Em 03/10/2024, foi emitida a NF-e nº 24543 com valor incorreto. À época, o sistema não gerou chave de acesso nem apresentou vínculo visível com a SEFAZ, o que nos levou a entender que o documento não havia sido autorizado. Diante disso, foi emitida posteriormente outra NF-e n° 24544 com o valor correto, a qual foi considerada válida para a operação.
@@ -1764,7 +1764,7 @@ Poderia nos mandar a notificação.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 3/02/2026 às 07:40 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2026-02-02 20:52:00+00', '2026-02-02 20:52:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2026-02-02 20:52:00+00', '2026-02-02 20:52:00+00'),
   ('1e98e84c-cb5a-49a4-81b3-2ff87a9725a6'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'NOTA FISCAL COM RETENÇÃO DE IMPOSTOS FEDERAIS – PAGBEM', '[ Marcela Rech | 2/02/2026 às 16:09 ]
 Boa tarde, Gostaria de solicitar um esclarecimento quanto ao procedimento fiscal a ser adotado em relação às Notas Fiscais de Prestação de Serviços emitidas em nome da Transoeste Logística x PAGBEM, identificadas recentemente após habilitação de acesso ao Portal Nacional da NFS-e (Gov.br), das quais não possuíamos ciência até então.
 Verificamos divergência quanto ao destaque do IRRF e à não dedução do valor no líquido da nota, fomos informados pela PAGBEM que o recolhimento dos tributos vem sendo realizado por sua parte. Ademais, identificamos inconsistências na própria emissão das notas fiscais, o que pode impactar diretamente nossa escrituração contábil e fiscal.
@@ -1789,7 +1789,7 @@ At.te, Maria Lizot.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 2/02/2026 às 16:13 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2026-02-02 19:09:00+00', '2026-02-02 19:09:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2026-02-02 19:09:00+00', '2026-02-02 19:09:00+00'),
   ('f43f2cec-b45d-4203-b8d5-9b91e41f61fa'::uuid, '0f347b7a-76ac-4a02-b8fc-72f7c80536ae'::uuid, '18cbce75-df5a-486b-8e25-d4939995b955'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'TRIBUTAÇÃO IBS/CBS – VENDA GRÃOS 2027', '[ Alined Deon | 2/02/2026 às 09:32 ]
 Prezados, Estamos em fase de fechamento dos contratos de venda de grãos (soja e milho) para o exercício de 2027 e, diante da implementação da Reforma Tributária, precisamos esclarecer como se dará, na prática, a tributação dessas operações. Conforme previsto nos arts. 128 e 137 da LC nº 214/2025, o fornecimento de produtos in natura, como soja e milho, conta com redução de 60% da carga do IBS e da CBS. Considerando que a alíquota de referência estimada para 2027 está entre 26,5% e 28% (soma de IBS e CBS), precisamos entender de forma objetiva:
 Como essa redução de 60% será aplicada na prática às operações de venda de grãos in natura (soja e milho)?
@@ -1817,7 +1817,7 @@ Estudo_PAIOL_Tributacao-IBS-e-CBS_Venda-de-Graos.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 2/02/2026 às 09:54 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2026-02-02 12:32:00+00', '2026-02-02 12:32:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2026-02-02 12:32:00+00', '2026-02-02 12:32:00+00'),
   ('27e34806-4386-4c22-8a6b-d52fd6fa5858'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Orientação Contábil – ajuste de lançamento referente a contrato de confissão de dívida.', '[ Contabilidade Tecnomyl | 30/01/2026 às 08:11 ]
 Prezados,
 Espero que estejam bem.
@@ -1894,7 +1894,7 @@ Geizi Andrade
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 30/01/2026 às 09:46 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2026-01-30 11:11:00+00', '2026-01-30 11:11:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2026-01-30 11:11:00+00', '2026-01-30 11:11:00+00'),
   ('936e229e-2ac7-446d-b83a-01542addf52a'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CREDITO DE PIS/COFINS EXTEMPORANEO', '[ Marcela Rech | 26/01/2026 às 17:37 ]
 Boa tarde!
 Estou realizando a reapuração de créditos extemporâneos de PIS/COFINS, referentes aos exercícios de 2021, 2022, 2023 e 2024, com reconhecimento no 4º trimestre de 2025.
@@ -1918,7 +1918,7 @@ Sigo á disposição.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 27/01/2026 às 08:42 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2026-01-26 20:37:00+00', '2026-01-26 20:37:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2026-01-26 20:37:00+00', '2026-01-26 20:37:00+00'),
   ('510ce122-53ac-46f8-a8df-84e9371f3977'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'IMPORTAÇÃO AMOSTRAS', '[ Contabilidade Tecnomyl | 26/01/2026 às 12:16 ]
 Prezados,
 Na importação , nossa dúvida refere-se às amostras. Importamos juntamente com a carga ou somente a amostra, com e sem valor comercial, destinada à realização de testes laboratoriais de qualidade (para liberação da comercialização) e à confecção de laudo técnico.
@@ -1973,7 +1973,7 @@ At.te,
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 26/01/2026 às 16:35 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2026-01-26 15:16:00+00', '2026-01-26 15:16:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2026-01-26 15:16:00+00', '2026-01-26 15:16:00+00'),
   ('970db807-a848-43a8-a729-f6c0c3411c9f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Atualização de Mapa Tributário – Tecnomyl', '[ Contabilidade Tecnomyl | 26/01/2026 às 08:52 ]
 Olá, bom dia! Tudo bem?
 Por gentileza, solicitamos a atualização do mapa tributário da Tecnomyl, considerando todos os estados em que possuímos filiais, incluindo o estado do Piauí.
@@ -2048,7 +2048,7 @@ NCMs.xlsx
 [SISTEMA]: Chamado reaberto.
 
 [ Contabilidade Tecnomyl | 26/01/2026 às 09:59 ]
-[SISTEMA]: Chamado fechado.', NULL, 'resolvido', 'resolvido', 'media', '2026-01-26 11:52:00+00', '2026-01-26 11:52:00+00'),
+[SISTEMA]: Chamado fechado.', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-26 11:52:00+00', '2026-01-26 11:52:00+00'),
   ('27dc8b0d-a14a-487c-a125-ca9a250b12e3'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 4º Trimestre de 2025.', '[ Luis Fernando | 19/01/2026 às 11:49 ]
 Bom dia, pessoal! Segue material para revisão apuração PIS/COFINS 4º Trimestre 2025. Desde já, fico a disposição Att, Luis Fernando G.da Silva 94 99161 1506
 
@@ -2058,7 +2058,7 @@ Bom dia, pessoal! Segue material para revisão apuração PIS/COFINS 4º Trimest
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 19/01/2026 às 12:08 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2026-01-19 14:49:00+00', '2026-01-19 14:49:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2026-01-19 14:49:00+00', '2026-01-19 14:49:00+00'),
   ('62d30c2d-4af4-4798-a4fe-76bbb6e797d5'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Prazo para exportação temporária', '[ Contabilidade Tecnomyl | 13/01/2026 às 16:20 ]
 Boa tarde, tudo bem?
 Estamos com dúvidas em relação ao prazo máximo de permanência de mercadorias no exterior quando enviadas sob o regime de exportação temporária para reprocesso/retrabalho.
@@ -2090,7 +2090,7 @@ Diego Correia de Melo.
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Ricardo Migueis | 14/01/2026 às 08:09 ]
-[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'media', '2026-01-13 19:20:00+00', '2026-01-13 19:20:00+00'),
+[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-13 19:20:00+00', '2026-01-13 19:20:00+00'),
   ('6fd4ad6f-6bfc-494e-bfa9-c23ffe92b3dd'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Devolução de importação', '[ Contabilidade Tecnomyl | 13/01/2026 às 09:13 ]
 Bom dia, tudo bem? Estamos com dúvidas em relação ao procedimento de devolução de mercadorias importadas, especialmente considerando o cenário de transição e a incidência do IBS/CBS.
 Gostaríamos de confirmar, nesses casos, qual valor deve ser considerado na emissão da nota fiscal de devolução: se o valor constante na invoice ou o valor da nota fiscal de nacionalização?
@@ -2177,7 +2177,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 10:02 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-01-13 12:13:00+00', '2026-01-13 12:13:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-13 12:13:00+00', '2026-01-13 12:13:00+00'),
   ('2dc0d42c-5f73-4879-82a6-d9de8be8fb71'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Suframa e Projeto Roraima Lei nº 215/1998 – 2026', '[ Contabilidade Tecnomyl | 13/01/2026 às 09:03 ]
 Bom dia, tudo bem? Estamos com dúvidas sobre como ficará a tratativa dos incentivos vinculados à SUFRAMA e ao Projeto Integrado de Exploração Agropecuária e Agroindustrial de Roraima, instituído pela Lei nº 215/1998, a partir de 2026, considerando a incidência do IBS/CBS.
 Poderiam, por gentileza, nos orientar sobre:
@@ -2203,7 +2203,7 @@ At.te, Maria Edurda.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 10:00 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2026-01-13 12:03:00+00', '2026-01-13 12:03:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-13 12:03:00+00', '2026-01-13 12:03:00+00'),
   ('d83a8d18-8194-4f97-8485-d99a11897348'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Difal 2026', '[ Contabilidade Tecnomyl | 13/01/2026 às 08:44 ]
 Bom dia, tudo bem? Estamos com dúvidas sobre a tratativa do DIFAL a partir de 2026, considerando a entrada em vigor do IBS/CBS.
 Gostaríamos de confirmar como ficará a obrigação de recolhimento do DIFAL nas seguintes situações:
@@ -2276,7 +2276,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 09:58 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-01-13 11:44:00+00', '2026-01-13 11:44:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-13 11:44:00+00', '2026-01-13 11:44:00+00'),
   ('23af4dcd-b0ed-4baa-9d5a-b8f2911a0688'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Devoluções 2025 IBS/CBS', '[ Contabilidade Tecnomyl | 13/01/2026 às 08:33 ]
 Bom dia, tudo bem? Estamos com dúvidas em relação ao tratamento tributário das devoluções que iremos receber de 2025, referentes a operações realizadas antes da incidência do IBS/CBS.
 Em nossas pesquisas preliminares, identificamos que, nesses casos, o enquadramento mais adequado seria a utilização do cClassTrib 410031, com CST 410.
@@ -2301,7 +2301,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 10:01 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2026-01-13 11:33:00+00', '2026-01-13 11:33:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2026-01-13 11:33:00+00', '2026-01-13 11:33:00+00'),
   ('c638b615-5cc7-4d09-8727-0ac707de4c73'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Patrocinio Desportivo', '[ Contabilidade Tecnomyl | 8/01/2026 às 14:23 ]
 Prezados, boa tarde
 A empresa realizará um patrocínio desportivo com pagamento de valor fixo mensal, no qual haverá exposição da marca da empresa nas camisas do time patrocinado.
@@ -2352,7 +2352,7 @@ Geizi Andrade
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 09:57 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'IRPJ/CSLL', 'resolvido', 'resolvido', 'media', '2026-01-08 17:23:00+00', '2026-01-08 17:23:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'IRPJ/CSLL', 'resolvido', 'resolvido', 'normal', '2026-01-08 17:23:00+00', '2026-01-08 17:23:00+00'),
   ('5f3c2468-28d2-44b8-8ea4-907ba66ab9f9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Reembolso de Despesas – Vexpense', '[ Contabilidade Tecnomyl | 8/01/2026 às 14:03 ]
 Prezados, boa tarde,
 Solicitamos, por gentileza, orientação tributária quanto a contratação de representantes comerciais.
@@ -2421,7 +2421,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 13/01/2026 às 10:04 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Outros', 'resolvido', 'resolvido', 'media', '2026-01-08 17:03:00+00', '2026-01-08 17:03:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Outros', 'resolvido', 'resolvido', 'normal', '2026-01-08 17:03:00+00', '2026-01-08 17:03:00+00'),
   ('bbd50b33-1a30-44a5-af46-7b00447a1254'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Diferimento ICMS de produtos ART. 22-A expirado em 31/12/2025', '[ Contabilidade Tecnomyl | 7/01/2026 às 15:05 ]
 Prezados, Conforme imagem anexado, foi expirado em 31/12/2025 o item: 6 - DIFERIMENTO ICMS PRODUTOS ARROLADOS ART.22-A ANEXO VII RICMS/2014, DECRETO 1297/2022. Por gentileza, verificar se há alguma atualização, prorrogação ou novo decreto para continuarmos com este benefício do diferimento. Desde já agradeço e estou à disposição!
 
@@ -2444,7 +2444,7 @@ Diego Correia de Melo..
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/01/2026 às 15:07 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2026-01-07 18:05:00+00', '2026-01-07 18:05:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2026-01-07 18:05:00+00', '2026-01-07 18:05:00+00'),
   ('4117f5f2-9375-49b2-bb98-08105f0b301d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Atualização – Procedimento para emissão de Notas Fiscais', '[ Luis Fernando | 6/01/2026 às 17:25 ]
 Boa tarde pessoal, Segue manual de procedimentos para emissão de notas fiscais para atualização, Solicito a inclusão de operações de venda de bovinos interno e interestadual,  e atualização contemple os termos da nova Reforma tributária. Desde já fico a disposição para maiores esclarecimentos. Att, Luis Fernando G. da Silva 94 99161 1506
 
@@ -2488,7 +2488,7 @@ Poderia nos passar o NCM utilizado na operações de vendas dos bovinos?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/01/2026 às 11:12 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2026-01-06 20:25:00+00', '2026-01-06 20:25:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2026-01-06 20:25:00+00', '2026-01-06 20:25:00+00'),
   ('a46af737-ad3d-47ee-9a55-333528dcf6cf'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'NOTA FISCAL DE VENDA – FÁBRICA', '[ Marcela Rech | 6/01/2026 às 10:23 ]
 Bom dia, Estamos com a seguinte questão. Recebemos a Nota fiscal de Numero 64829 em 22/09/2025 com natureza SUBST. PECAS EM GARANTIA. A peça em questão é um MOTOR COMPACTO no valor de 65.001,41, o mesmo apresentou problema e foi feito a substituição da peça. Agora a Rodobens esta nos solicitando uma nota fiscal de venda com CFOP 5.551 alegando que precisam da nota fiscal para envio da peça a fábrica. Nossa duvida é, é correto a solicitação dessa nota fiscal de venda? Nota fiscal e e-mail em anexo.
 
@@ -2513,7 +2513,7 @@ At.te, Maria Eduarda.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/01/2026 às 11:06 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Outros', 'resolvido', 'resolvido', 'media', '2026-01-06 13:23:00+00', '2026-01-06 13:23:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Outros', 'resolvido', 'resolvido', 'normal', '2026-01-06 13:23:00+00', '2026-01-06 13:23:00+00'),
   ('85ba4dc7-976b-4b3b-8521-76e7ba6db04c'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Questionamento para validação – IBS/CBS (LC 214/2025)', '[ Marcela Rech | 26/12/2025 às 18:19 ]
 Estamos revisando o enquadramento de CT-e de transporte subcontratado, à luz da LC nº 214/2025. Nosso entendimento é:
 Frete nacional (subcontratado): CST IBS/CBS 000 – Tributação integral;
@@ -2527,7 +2527,7 @@ Prezadas, conforme já alinhado previamente será apresentado o relatório de ap
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/01/2026 às 11:07 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Outros', 'resolvido', 'resolvido', 'media', '2025-12-26 21:19:00+00', '2025-12-26 21:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-12-26 21:19:00+00', '2025-12-26 21:19:00+00'),
   ('12cd8cad-b0d5-4b23-80f7-88837afb483b'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'REVISÃO APURAÇÃO PIS/COFINS 3º TRIMESTRE', '[ Marcela Rech | 19/12/2025 às 16:29 ]
 Boa tarde,
 Conforme alinhado via telefone, Marcela e Washington, seguem em anexo os PDFs dos CTEs para verificação, a fim de identificar o motivo pelo qual não foram considerados no processo de revisão.
@@ -2559,7 +2559,7 @@ At.te, Maria Eduarda.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/01/2026 às 11:07 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2025-12-19 19:29:00+00', '2025-12-19 19:29:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2025-12-19 19:29:00+00', '2025-12-19 19:29:00+00'),
   ('ea3a1718-a824-415f-afd4-b7676a94ae04'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'REFORMA TRIBUTÁRIA – ALUGUEL DE IMÓVEIS – 2026', '[ Marcela Rech | 15/12/2025 às 16:20 ]
 Boa tarde! Poderia nos passar informativo sobre as novas regras para o ano de 2026 sobre alugueis de imóveis com a Reforma tributária?! Nos PJ alugando imóveis para pessoa física, o que irá mudar? será preciso fazer algum tipo de cadastro? emissão de notas fiscais de serviço, mesmo com contrato?! Anexo, cartão CNPJ.
 
@@ -2669,7 +2669,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/12/2025 às 07:56 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2025-12-15 19:20:00+00', '2025-12-15 19:20:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2025-12-15 19:20:00+00', '2025-12-15 19:20:00+00'),
   ('33f9eb0e-db22-4772-9960-f8ec36a0923c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'RETENÇÃO DE ISS COM ALÍQUOTA DE 3,31 %', '[ Contabilidade Tecnomyl | 15/12/2025 às 15:20 ]
 Boa tarde, tudo bem? Recebemos essa nota fiscal do prestador com alíquota de iss de 3,31%, no entanto, não temos conhecimento dessa porcentagem de alíquota, questionamos o prestador sobre o embasamento legal e nos deram esse retorno: "Em relação ao questionamento sobre a retenção de ISS referente ao serviço enquadrado no item 07.05 da LC nº 116/2003, prestado no município de Foz do Iguaçu/PR, esclarecemos que a alíquota de 3,31% informada para fins de retenção decorre do enquadramento da prestadora no regime do Simples Nacional. Conforme dispõe a legislação, as empresas optantes pelo Simples Nacional não possuem alíquota fixa de ISS, sendo esta variável de acordo com a faixa de faturamento acumulado dos últimos 12 meses, nos termos dos Anexos III, IV ou V da Lei Complementar nº 123/2006, conforme a atividade exercida. Dessa forma, quando houver retenção do ISS na fonte, o tomador deverá aplicar a alíquota efetiva do ISS apurada no Simples Nacional, informada pela prestadora, conforme previsão legal. Base legal: Lei Complementar nº 123/2006, art. 21, §§ 4º, 4º-A e 4º-B Resolução CGSN nº 140/2018, arts. 25, 26 e 27 Lei Complementar nº 116/2003, art. 3º (local da incidência do ISS) Assim, a alíquota de 3,31% corresponde à alíquota efetiva do ISS, calculada com base no faturamento da empresa prestadora, estando em conformidade com a legislação vigente. Através desse embasamento que mandaram gostaríamos de saber se essa podemos seguir com o lançamento da nota com essa porcentagem de alíquota, se isso está correto mesmo? Obrigada e aguardamos o retorno.
 
@@ -2728,7 +2728,7 @@ VII – o valor retido, devidamente recolhido, será definitivo, não sendo obje
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/12/2025 às 07:56 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-12-15 18:20:00+00', '2025-12-15 18:20:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-12-15 18:20:00+00', '2025-12-15 18:20:00+00'),
   ('bf71dfd4-8757-442b-953b-d942cade4897'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'PIS/COFINS – FRETES SUBCONTRATADOS', '[ Marcela Rech | 15/12/2025 às 10:18 ]
 Bom dia! Estamos emitindo CTE de subcontratação na qual estão sendo utilizadas a frase - nas informações adicionais: SAIDA C SUSPENS DA CONTRIB P O PIS PASEP E DA COFINS NA FORM DA IN 5952005 E ADE N38 DE 06092012 PUBLIC DOU 14092012 DISP LEG PARAG 6 A DO ART40 LEI N108652004 ART17 DA LEI N11033 2004 INC II DO ART3 DA LEI N108332003 ART49 DA IN RFB N13002012 porém os fretes não seriam suspensos - e não temos como fazer carta correção pois os fretes foram emitidos desde o mês 07/2025 e também nosso sistema (transoeste e emissor Sebrae)  não faz carta correção de CTE. Nesse caso, refazer a apuração e retificar EFD CONTRIBUIÇÕES seria viável? mesmo os fretes estando com a informação de suspensão? Como mês 07/2025 ja foi feito apuração de trimestre, como seguir com as alterações?
 
@@ -2745,7 +2745,7 @@ Nesse contexto, a ausência de carta de correção de CT-e não inviabiliza o aj
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 15/12/2025 às 10:58 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'media', '2025-12-15 13:18:00+00', '2025-12-15 13:18:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'normal', '2025-12-15 13:18:00+00', '2025-12-15 13:18:00+00'),
   ('3563a6e6-db37-4734-850e-b3eb3ee4d22b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Consulta sobre tratamento contábil aluguel de estação experimental para P&D', '[ Contabilidade Tecnomyl | 11/12/2025 às 14:29 ]
 Prezados(as),
 Boa tarde. Em 2024, firmamos um contrato de comodato (com informações da matriz) para utilização de uma estação experimental localizada em Uberlândia/MG, destinada exclusivamente à realização de pesquisas experimentais para desenvolvimento de novas formulações e produtos da Tecnomyl. Durante esse período, foi criada uma filial no mesmo endereço, e na renovação do contrato houve emissão de NFSe (em anexo). Nossa dúvida é quanto ao tratamento contábil e fiscal do valor mensal do aluguel dessa estação:
@@ -2772,7 +2772,7 @@ At.te, Maria Eduarda Lizot.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 11/12/2025 às 14:38 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-12-11 17:29:00+00', '2025-12-11 17:29:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-12-11 17:29:00+00', '2025-12-11 17:29:00+00'),
   ('f4acbd1b-ae9f-4abf-8040-9f5ef3546aea'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DIFERIMENTO ICMS PRODUTOS ARROLADOS ART.22-AANEXO VII RICMS/2014, DECRETO 1297/2022.', '[ Contabilidade Tecnomyl | 9/12/2025 às 09:28 ]
 Prezados, Quanto ao DIFERIMENTO ICMS PRODUTOS ARROLADOS ART.22-AANEXO VII RICMS/2014, DECRETO 1297/2022, conforme o decreto "§ 8º O diferimento de que trata este artigo vigorará até 31 de dezembro de 2025." Pergunta-se: Existe um dispositivo que podemos utilizar para renovação ou nova opção para este tipo de diferimento?
 
@@ -2800,7 +2800,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/12/2025 às 09:32 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-12-09 12:28:00+00', '2025-12-09 12:28:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-12-09 12:28:00+00', '2025-12-09 12:28:00+00'),
   ('e99b9a1d-9301-47a5-abf8-c083d817ba23'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'obrigatoriedade NF-e', '[ Contabilidade Tecnomyl | 8/12/2025 às 15:41 ]
 Olá, tudo bem?   Estamos montando um procedimento de envio e gostaríamos de saber se os tipos de materiais listados abaixo devem ser enviados apenas via transportadora (obrigatório Nota fiscal) ou podem transitar apenas via correios   todos os itens sao enviados apenas via matriz no PR para todos os estados.   Correspondencias Cartoes Corporativos Equipamentos de T.i (notebook, monitor, Itens de Marketing Windbanner Revista boné Chapéu Placa de campo Camisetas / mochilas Folders
 
@@ -2824,7 +2824,7 @@ Diego Correia de Melo.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/12/2025 às 08:20 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-12-08 18:41:00+00', '2025-12-08 18:41:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-12-08 18:41:00+00', '2025-12-08 18:41:00+00'),
   ('486cf7f0-db31-4928-8f82-460476c1ef37'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Venda balcão', '[ Contabilidade Tecnomyl | 5/12/2025 às 15:15 ]
 Olá, boa tarde! Tudo bem?
 Gostaríamos de solicitar orientação referente à operação de venda balcão.
@@ -2885,7 +2885,7 @@ Poderia nos passar algumas três chances de acessos de nf-e de exemplos para ana
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/12/2025 às 08:19 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-12-05 18:15:00+00', '2025-12-05 18:15:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-12-05 18:15:00+00', '2025-12-05 18:15:00+00'),
   ('a33a5d67-0249-498d-89bf-fd9ccd33de73'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Mapa tributário Atualização Grãos', '[ Contabilidade Tecnomyl | 25/11/2025 às 08:31 ]
 Olá, tudo bem?   Podem por gentileza atualizar esse mapa tributário com os dados mais recentes e considerando também esses NCMS adicionais:
 1005.10.00
@@ -2987,7 +2987,7 @@ Poderia informar qual produto está vinculado ao NCM informado?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 25/11/2025 às 09:03 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-11-25 11:31:00+00', '2025-11-25 11:31:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-11-25 11:31:00+00', '2025-11-25 11:31:00+00'),
   ('bad2b014-04c9-40ed-9616-47b5e3fb1c82'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Retenções Federais – agenciamento maritimo', '[ Contabilidade Tecnomyl | 24/11/2025 às 16:53 ]
 Boa tarde, Estamos com uma dúvida referente às retenções de IRRF e Contribuições Sociais aplicáveis ao serviço de agenciamento de cargas marítimas. De acordo com a legislação vigente, entendemos que somente as atividades de despachante aduaneiro estariam sujeitas às retenções. Dessa forma, a intermediação entre armador e agente não se enquadraria nas hipóteses de retenção previstas. Nossa interpretação está correta? IRRF INAPLICABILIDADE DA RETENÇÃO - O serviço de agenciamento marítimo, por não constituir representação comercial, mediação de negócios ou atividade profissional, não se sujeita à retenção na fonte de imposto de renda, por não se enquadrar nas hipóteses previstas no artigo 718 do RIR/2018. Contrib Sociais INAPLICABILIDADE DA RETENÇÃO - Os serviços de intermediação e congêneres não se sujeitam à retenção na fonte das contribuições sociais (IN SRF n° 459/2004, artigo 1°). Não haverá retenção na fonte das Contribuições Sociais se não houver a prestação de quaisquer dos serviços listados no artigo 30 da Lei n° 10.833/2003, nem dos listados no artigo 714, § 1° do RIR/2018. Somente os serviços de despachante aduaneiro estão sujeitos às retenções das contribuições sociais. Para ilustrar, estamos encaminhando três cobranças de prestadores distintos. No caso do Prestador 1, houve retenção, porém, entendemos que tal retenção foi realizada de forma inadequada. Aguardamos retorno.
 
@@ -3047,7 +3047,7 @@ Geizi Andrade
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 25/11/2025 às 08:29 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-11-24 19:53:00+00', '2025-11-24 19:53:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-24 19:53:00+00', '2025-11-24 19:53:00+00'),
   ('4f77f88d-3a7e-41a8-90e6-de1da7ccb40f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'REINF – Sócios Residentes no Exterior', '[ Contabilidade Tecnomyl | 18/11/2025 às 17:36 ]
 No momento em que fomos declarar as informações na EFD-Reinf, relativas aos JCP pagos aos sócios residentes no exterior, houve falha na validação dos eventos, pois é necessário vincular um número de documento, que, nesse caso, corresponde ao NIF.
 Atualmente, os sócios residem no Paraguai e, portanto, o documento a ser informado é o RUC. Entretanto, ainda restam algumas dúvidas:
@@ -3083,7 +3083,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 19/11/2025 às 09:34 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-11-18 20:36:00+00', '2025-11-18 20:36:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-18 20:36:00+00', '2025-11-18 20:36:00+00'),
   ('b8a830c8-0add-46a8-bbaf-7e1b837705f9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Consulta sobre contabilização e tributação de indenização securitária por perda de mercadoria para revenda', '[ Contabilidade Tecnomyl | 14/11/2025 às 08:44 ]
 Prezados(as), Solicito orientação sobre o tratamento contábil e tributário no seguinte cenário:
 Aquisição da mercadoria:
@@ -3161,7 +3161,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 14/11/2025 às 10:27 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-11-14 11:44:00+00', '2025-11-14 11:44:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-11-14 11:44:00+00', '2025-11-14 11:44:00+00'),
   ('b1aae836-fd25-4f6e-b41e-62eb0f6ec340'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Contabilização Leasing', '[ Contabilidade Tecnomyl | 14/11/2025 às 08:38 ]
 Bom dia, Gostaríamos de uma orientação quanto a contabilização do leasing, em moeda dólar e real, obedecendo as regras IFRS/CPC. Atenciosamente,
 
@@ -3251,7 +3251,7 @@ Leasing-Contabilizacao-Tecnomyl.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 14/11/2025 às 10:27 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2025-11-14 11:38:00+00', '2025-11-14 11:38:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-14 11:38:00+00', '2025-11-14 11:38:00+00'),
   ('cf2d3a98-14ac-4e1c-9bf9-3bb84505ef87'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Contabilização aluguel IFRS', '[ Contabilidade Tecnomyl | 14/11/2025 às 08:36 ]
 Bom dia, Gostaríamos de uma orientação quanto a contabilização dos pagamentos de aluguel, obedecendo as regras da IFRS e CPC. Atenciosamente,
 
@@ -3291,7 +3291,7 @@ Bom dia, para uma melhor resposta, gostaria de saber qual o tipo de bem que est�
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 14/11/2025 às 10:26 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'media', '2025-11-14 11:36:00+00', '2025-11-14 11:36:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-14 11:36:00+00', '2025-11-14 11:36:00+00'),
   ('5c39c8f5-38b6-4945-86a1-cb0355a03876'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Dúvida sobre contabilização e tributação de indenização securitária (pis/cofins)', '[ Contabilidade Tecnomyl | 14/11/2025 às 08:19 ]
 Prezados, Estamos com a seguinte situação e gostaríamos de orientação:
 A empresa possui um veículo registrado no ativo imobilizado.
@@ -3358,7 +3358,7 @@ Decisão Nº 2140074 – SP (2024/0152033-2) – Superior Tributal de Justiça
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 14/11/2025 às 10:25 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-11-14 11:19:00+00', '2025-11-14 11:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-11-14 11:19:00+00', '2025-11-14 11:19:00+00'),
   ('2c420c52-ac92-4aaf-91f5-602195da9bac'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Informação IRRF Juros Sobre Capital Próprio EFD-REINF', '[ Contabilidade Tecnomyl | 12/11/2025 às 11:06 ]
 Fizemos a apuração dos Juros Sobre Capital Próprio, dos sócios da empresa. Entendemos que precisamos prestar informações por meio da EFD-REINF, entretanto, restam algumas dúvidas quanto a forma de fazê-las:
 Os valores pagos relativos a sócios residentes no exterior, deverão ser informados em qual registro?
@@ -3403,7 +3403,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 12/11/2025 às 16:58 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-11-12 14:06:00+00', '2025-11-12 14:06:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-12 14:06:00+00', '2025-11-12 14:06:00+00'),
   ('186540ca-3e46-4ea9-b8c2-d1400fb479a3'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Dúvida sobre crédito de impostos compra para exportação', '[ Contabilidade Tecnomyl | 10/11/2025 às 09:25 ]
 Bom dia,
 Gostaríamos de solicitar uma orientação em relação a uma operação específica.
@@ -3464,7 +3464,7 @@ Sobre a questão do ICMS em qual estado seria essa operação?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 10/11/2025 às 14:56 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-11-10 12:25:00+00', '2025-11-10 12:25:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-11-10 12:25:00+00', '2025-11-10 12:25:00+00'),
   ('d78657c2-93e2-4eef-b067-cc9bc4eb791a'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 3º Trimestre de 2025.', '[ Luis Fernando | 31/10/2025 às 16:34 ]
 Boa tarde pessoal! Segue material para revisão apuração PIS/COFINS 3º Trimestre 2025. Desde já, fico a disposição Att, Luis Fernando G.da Silva 94 99161 1506
 
@@ -3486,7 +3486,7 @@ Cataratas_Revisao_PIS_Cofins_2o-e-3oT.2025_15.12.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 10/11/2025 às 14:56 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-10-31 19:34:00+00', '2025-10-31 19:34:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-10-31 19:34:00+00', '2025-10-31 19:34:00+00'),
   ('513b5583-289f-428d-864a-53472f6ee2c6'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Dúvida depreciação contábil diária X mensal', '[ Contabilidade Tecnomyl | 30/10/2025 às 14:42 ]
 Prezados, boa tarde. Gostaríamos de esclarecer uma dúvida relacionada à mudança de sistema ERP e seus possíveis impactos contábeis e tributários. Entre 2019 e 2023, utilizávamos o ERP Siagri, que realizava o controle patrimonial e a depreciação contábil de forma diária. Em 2024, migramos para o SAP Business One, e durante a parametrização, a depreciação passou a ser calculada de forma mensal. Notamos que essa mudança impacta o cálculo proporcional da depreciação de bens adquiridos ao longo do mês. Por exemplo, ao adquirir um bem em 15/10/2025, o SAP B1 considera a depreciação como se o bem estivesse disponível desde 01/10/2025, depreciando o valor integral do mês, sem considerar a proporcionalidade dos dias efetivos de uso. Diante disso, gostaríamos de entender:
 Quais impactos contábeis e tributários essa mudança pode gerar para a Tecnomyl?
@@ -3575,7 +3575,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 30/10/2025 às 14:57 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-10-30 17:42:00+00', '2025-10-30 17:42:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-10-30 17:42:00+00', '2025-10-30 17:42:00+00'),
   ('37d3e7fd-dfc5-4430-9926-83b12f5bb8e2'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'dbe10aeb-48a8-4ee7-9df6-24f1668c53ac'::uuid, 'Devolução de capital e holding não imobiliária', '[ Marcela Rech | 29/10/2025 às 18:40 ]
 Temos uma empresa em nome dos sócios (holding patrimonial).
 A holding adquiriu um imóvel em seu nome, com pagamento realizado via conta bancária da pessoa jurídica — inclusive o ITBI — e o bem está registrado no ativo imobilizado.
@@ -3597,7 +3597,7 @@ Em suma, nosso entendimento, tendo o pleno conhecimento do formato da operação
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 30/10/2025 às 07:56 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-29 21:40:00+00', '2025-10-29 21:40:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-29 21:40:00+00', '2025-10-29 21:40:00+00'),
   ('2baa0334-eaec-4b54-bb23-e5054bce59a1'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Impacto fiscal para colaborador em emissão de NF-e de entrada com CPF', '[ Contabilidade Tecnomyl | 28/10/2025 às 11:40 ]
 Prezados, Gostaria de esclarecer uma dúvida relacionada à emissão de uma nota fiscal de entrada para fins de registro de ativo imobilizado na Tecnomyl Brasil. Adquirimos um equipamento que será utilizado nas operações da empresa, e esse equipamento será operado por um colaborador (pessoa física). Para registrar o bem no imobilizado e iniciar sua depreciação contábil, emitimos uma NF-e de entrada utilizando o CPF do colaborador como remetente. Diante disso, minha dúvida é: Quais são os impactos fiscais e obrigações para esse colaborador pessoa física em relação à declaração do Imposto de Renda, considerando que foi emitida uma nota fiscal de entrada em seu CPF, mesmo sem que ele tenha recebido qualquer valor financeiro pela operação? Nos preocupa especialmente:
 Se essa operação pode ser interpretada como um rendimento tributável para o colaborador;
@@ -3665,7 +3665,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 28/10/2025 às 12:31 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-10-28 14:40:00+00', '2025-10-28 14:40:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-10-28 14:40:00+00', '2025-10-28 14:40:00+00'),
   ('594eb786-e631-404b-8bb5-fffebddda94f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'CRÉDITO DE PIS/COFINS DE CTES DE REMESSA/RETORNO INDUSTRIALIZAÇÃO', '[ Contabilidade Tecnomyl | 23/10/2025 às 08:52 ]
 Bom dia, tudo bem? Gostaria de solicitar orientação sobre uma operação da Tecnomyl. Importamos uma matéria-prima que não será revendida diretamente pela Tecnomyl. Essa matéria-prima será enviada a um terceiro para passar por um processo de industrialização e, após o retorno como produto acabado, será comercializada. A dúvida é em relação ao aproveitamento de crédito de PIS/COFINS nos CT-es que acompanham:
 A remessa da matéria-prima para o industrializador; e
@@ -3688,7 +3688,7 @@ Não. No inciso V do § 2° do artigo 176, existe a previsão de que serviços d
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/10/2025 às 09:07 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'media', '2025-10-23 11:52:00+00', '2025-10-23 11:52:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', NULL, 'resolvido', 'resolvido', 'normal', '2025-10-23 11:52:00+00', '2025-10-23 11:52:00+00'),
   ('aa98ba83-07eb-4492-b16b-139a6b433950'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Show Rural – Tributos e Emissão de Nota Fiscal', '[ Contabilidade Tecnomyl | 23/10/2025 às 08:01 ]
 Bom dia, Todo ano a Tecnomyl participa de um evento chamado Show Rural e nos foi solicitado um parecer especialmente quanto à incidência de tributos e à obrigatoriedade de emissão de Nota Fiscal, recebemos o informativo que não emitem NF por se tratar de uma locação de espaço. No entanto, o contrato envolve outros aspectos além da locação, e, principalmente considerando o valor elevado envolvido, gostaríamos de uma orientação sobre o anexo e se faz sentido o que estão argumentando.
 
@@ -3739,7 +3739,7 @@ Não estamos conseguindo abrir os anexos, dá mensagem de acesso negado.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 23/10/2025 às 08:13 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'media', '2025-10-23 11:01:00+00', '2025-10-23 11:01:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-10-23 11:01:00+00', '2025-10-23 11:01:00+00'),
   ('d6fe53b0-55a1-4ae2-a093-c3d999ead145'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'IRRF Sobre Aluguel', '[ Contabilidade Tecnomyl | 22/10/2025 às 16:37 ]
 Firmamos um contrato de locação de imóvel, em julho deste ano, cujo o locador é pessoa física. Os valores pagos até o momento, foram em torno de R$ 7.000,00, entretanto, não foram destacadas as retenções de IRRF. Neste caso:
 A retenção deverá de fato ocorrer?
@@ -3770,7 +3770,7 @@ Quaisquer dúvidas, estamos à disposição!
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 22/10/2025 às 17:00 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-22 19:37:00+00', '2025-10-22 19:37:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-22 19:37:00+00', '2025-10-22 19:37:00+00'),
   ('d88836d5-6bda-4227-8756-c951e8562464'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'IR retido s/ aplicação financeira', '[ Contabilidade Tecnomyl | 22/10/2025 às 15:46 ]
 A Tecnomyl é tributada pelo Lucro Real e realiza a apuração pelo regime de estimativa mensal. Em setembro, apuramos lucro fiscal e gostaria de confirmar se é possível utilizar o saldo de IR retido sobre aplicações financeiras para abater o valor da guia de IRPJ referente a essa competência, ou se essa dedução somente poderá ser efetuada no encerramento de dezembro. A Instrução Normativa RFB nº 1.585/2015 (IN RFB 1.585/2015) dispõe que:“Art. 70. O imposto sobre a renda retido na fonte sobre os rendimentos de aplicações financeiras de renda fixa e de renda variável ou pago sobre os ganhos líquidos mensais será: I — deduzido do devido no encerramento de cada período de apuração ou na data da extinção, no caso de pessoa jurídica tributada com base no lucro real, presumido ou arbitrado; II — definitivo, no caso de pessoa física e de pessoa jurídica optante pela inscrição no Simples Nacional ou isenta.” Atualmente, há um saldo de IR retido sobre aplicações financeiras, referente ao período de 2022 a 2024, no valor de R$ 4.855.122,13, conforme informado nas respectivas ECF. De janeiro a setembro temos um saldo de R$ 3.139.234,63. Atenciosamente,
 
@@ -3792,7 +3792,7 @@ At.te, Mônica Matunaga.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 22/10/2025 às 16:01 ]
-[SISTEMA]: Representante atribuído ➔ Monica Matunaga', 'IRPJ/CSLL', 'resolvido', 'resolvido', 'media', '2025-10-22 18:46:00+00', '2025-10-22 18:46:00+00'),
+[SISTEMA]: Representante atribuído ➔ Monica Matunaga', 'IRPJ/CSLL', 'resolvido', 'resolvido', 'normal', '2025-10-22 18:46:00+00', '2025-10-22 18:46:00+00'),
   ('6bbb2883-5749-4300-b3a3-3c42b59e7f63'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Esclarecimento sobre vida útil contábil x fiscal – Veículo NCM 8704.31.90', '[ Contabilidade Tecnomyl | 20/10/2025 às 10:45 ]
 Prezados, Adquirimos recentemente um veículo classificado no NCM 8704.31.90, cuja descrição na Tabela de Depreciação da Receita Federal indica uma vida útil fiscal de 4 anos (25% a.a.), por se tratar de veículo automotor para transporte de mercadorias. Contudo, na prática, o veículo é utilizado pela empresa como veículo leve/utilitário, sem uso intensivo ou em condições severas. Por esse motivo, a área contábil considerou uma vida útil contábil de 5 anos (20% a.a.) Diante disso, gostaríamos de confirmar:
 É aceitável, do ponto de vista fiscal e contábil, manter uma vida útil contábil diferente da fiscal?
@@ -3827,7 +3827,7 @@ Quaisquer dúvidas, estamos à disposição!
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 20/10/2025 às 14:47 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-20 13:45:00+00', '2025-10-20 13:45:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-20 13:45:00+00', '2025-10-20 13:45:00+00'),
   ('d31eb74b-f95c-4695-b159-c701bf237c1f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Dúvida sobre capitalização de gastos subsequentes em ativo intangível', '[ Contabilidade Tecnomyl | 16/10/2025 às 08:35 ]
 Gostaria de esclarecer uma dúvida relacionada à contabilização de gastos subsequentes em ativo intangível. Temos um ativo intangível que foi inicialmente reconhecido e ativado após o registro formal do documento que o originou. A partir desse momento, iniciamos o processo de amortização conforme previsto nas normas contábeis. Contudo, após o início da amortização, continuamos realizando investimentos diretamente relacionados ao ativo, com o objetivo de aprimorar suas funcionalidades e ampliar os benefícios econômicos futuros. Diante disso, gostaria de confirmar: É permitido adicionar novos valores ao ativo intangível já reconhecido e em processo de amortização? Caso positivo, solicito o respaldo técnico e legal para essa operação, com base no Pronunciamento Técnico CPC 04 (R1) ou em outras normas aplicáveis. Especificamente, gostaria de entender:
 Quais critérios devem ser atendidos para que os gastos subsequentes possam ser capitalizados?
@@ -3896,7 +3896,7 @@ Estudo_Capitalizacao-de-Gastos-Subsequentes.docx
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/10/2025 às 09:22 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-16 11:35:00+00', '2025-10-16 11:35:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-16 11:35:00+00', '2025-10-16 11:35:00+00'),
   ('5559af2f-3015-4f71-9918-2e9cc4588fb0'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'CRÉDITO DE ICMS CTES DE REMESSA/RETORNO INDUSTRIALIZAÇÃO', '[ Contabilidade Tecnomyl | 15/10/2025 às 18:20 ]
 Boa tarde, tudo bem? Gostaria de solicitar orientação sobre uma operação da Tecnomyl. Importamos uma matéria-prima que não será revendida diretamente pela Tecnomyl. Essa matéria-prima será enviada a um terceiro para passar por um processo de industrialização e, após o retorno como produto acabado, será comercializada.
 A dúvida é em relação ao aproveitamento de crédito de ICMS nos CT-es que acompanham:
@@ -4018,7 +4018,7 @@ Poderia especificar se é para todos os estados que a Tecnomyl tem filial ou se 
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Ricardo Migueis | 16/10/2025 às 09:23 ]
-[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'media', '2025-10-15 21:20:00+00', '2025-10-15 21:20:00+00'),
+[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'normal', '2025-10-15 21:20:00+00', '2025-10-15 21:20:00+00'),
   ('8febe355-bbe9-42a6-8527-7c7541d931e8'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'NOTA TÉCNICA 2025.001 DA ANTT – MDFe', '[ Marcela Rech | 13/10/2025 às 13:49 ]
 Boa tarde, Com base na Nota Técnica 2025.001 da ANTT, gostaria de confirmar se as novas exigências relacionadas à emissão do MDF-e também serão aplicáveis aos casos de transporte de carga própria.
 
@@ -4039,7 +4039,7 @@ e outra duvida, a atualização será apenas no XML ou no PDF também?
 [SISTEMA]: Representante atribuído ➔ Maria Lizot
 
 [ Ricardo Migueis | 13/10/2025 às 14:05 ]
-[SISTEMA]: Status alterado para ➔ Em Progresso', 'Outros', 'resolvido', 'resolvido', 'media', '2025-10-13 16:49:00+00', '2025-10-13 16:49:00+00'),
+[SISTEMA]: Status alterado para ➔ Em Progresso', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-10-13 16:49:00+00', '2025-10-13 16:49:00+00'),
   ('6180ef64-7691-45be-9abb-eb7bb18343aa'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Prazo para exportação – operação com fim específico de exportação (CFOP 5.501)', '[ Contabilidade Tecnomyl | 9/10/2025 às 15:28 ]
 Boa tarde, tudo bem?
 Recebemos, em 29/08/2025, uma mercadoria com CFOP 5.501 – Remessa com fim específico de exportação, e essa mercadoria será exportada para o Paraguai.
@@ -4115,7 +4115,7 @@ Essa operação refere-se a qual estado?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/10/2025 às 16:29 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-10-09 18:28:00+00', '2025-10-09 18:28:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-10-09 18:28:00+00', '2025-10-09 18:28:00+00'),
   ('40864935-e93d-4672-84e4-8b408b1ab2bd'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Dúvida sobre ponto de corte da nova tributação de lucros – PL 1087/2025', '[ Marcela Rech | 9/10/2025 às 10:37 ]
 Bom dia! Considerando que o PL 1087/2025 já se encontra em tramitação no Plenário do Senado Federal, gostaria de confirmar o seguinte entendimento com base no texto aprovado pela Câmara:
 De acordo com o projeto, o ponto de corte da nova tributação sobre lucros e dividendos seria a data da deliberação que aprova a distribuição, e não o pagamento em si.
@@ -4156,7 +4156,7 @@ Em relação ao lançamento contábil, orientamos registrar o valor diretamente 
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/10/2025 às 10:54 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-09 13:37:00+00', '2025-10-09 13:37:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-09 13:37:00+00', '2025-10-09 13:37:00+00'),
   ('5af3bec0-2819-4a01-be38-05945f1fe717'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'INCIDÊNCIA DE INSS MEI', '[ Contabilidade Tecnomyl | 9/10/2025 às 10:16 ]
 Bom dia, Por gentileza, poderiam nos confirmar se a nota em anexo, incide inss, sendo que o prestador e MEI e o serviço prestado foi de carpintaria.
 
@@ -4185,7 +4185,7 @@ Geizi Andrade.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 9/10/2025 às 10:31 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Outros', 'resolvido', 'resolvido', 'media', '2025-10-09 13:16:00+00', '2025-10-09 13:16:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-10-09 13:16:00+00', '2025-10-09 13:16:00+00'),
   ('7d67228b-acba-47af-9275-56ca1b8dd921'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Dúvida sobre operação de fracionamento e remessa de amostras', '[ Contabilidade Tecnomyl | 8/10/2025 às 14:27 ]
 Prezados, Solicitamos orientação quanto a uma operação que realizamos recentemente e gostaríamos de confirmar se o procedimento está correto do ponto de vista fiscal e contábil. Emitimos uma nota fiscal de transferência de duas bombonas de produto comercial (defensivos NCM 3808.69.90 - 3808.92.93) de 10 litros cada, transferidas da filial de Itu/SP (CNPJ 05.280.269/0016-79) para a filial de Curitiba/PR (CNPJ 05.280.269/0014-07), cujo CNAE da filial 14 é 71.20-1-00 – Testes e análises técnicas. Após o recebimento na filial 14, realizamos o fracionamento dos produtos: as duas bombonas de 10 litros foram transformadas em quatro frascos de 5 litros cada, processo feito internamente nessa unidade. Na sequência, emitimos notas de remessa de amostra com CFOP 5.949, destinadas a testes em campo dentro do Estado do Paraná. Diante disso, gostaríamos de esclarecer:
 Podemos realizar essa operação da forma como foi feita?
@@ -4233,7 +4233,7 @@ Essa diretriz está prevista na Norma Brasileira de Contabilidade ITG 2000 (R1),
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 8/10/2025 às 14:39 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-10-08 17:27:00+00', '2025-10-08 17:27:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-10-08 17:27:00+00', '2025-10-08 17:27:00+00'),
   ('ac3d9788-c2dd-480b-8b54-59848129c7c4'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Estudo Tributário sobre compra interestadual de óleo diesel para consumo da produção rural.', '[ Luis Fernando | 8/10/2025 às 08:54 ]
 Necessitamos do estudo tributário sobre a operação de compra de fora do estado de óleo diesel para uso nas operações agrícolas. Incidência dos impostos: ICMS, ICMS DIFERENCIAL, PIS, COFINS e Outros. Solicito agilidade na resposta, pois a operação já esta em transito. Att, Luis Fenando G. da Silva 94 99161 1506
 
@@ -4266,7 +4266,7 @@ Por favor passar detalhamento de onde será utilizado esse óleo diesel e se que
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 8/10/2025 às 09:14 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-10-08 11:54:00+00', '2025-10-08 11:54:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-10-08 11:54:00+00', '2025-10-08 11:54:00+00'),
   ('c364ccb2-69ab-4c2b-99b4-1658a6fa687a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Operações com Soja – MT', '[ Contabilidade Tecnomyl | 7/10/2025 às 18:18 ]
 Olá, tudo bem? Estamos iniciando operações de venda de soja pela unidade do Mato Grosso (MT) e gostaríamos de confirmar sobre enquadramentos fiscais e a necessidade de regime especial conforme os cenários abaixo: Cenários de operação: Compra MT → Venda MT (operações internas) Compra MT → Venda fora do Estado (operações interestaduais) Compra MT → Venda Trading Interna (operações de exportação indireta) Venda MT → Exportação direta (EX) Venda MT → Trading Dentro do estado Com base no CNPJ 05.280.269/0015-98 o CNAE da unidade MT (documento em anexo), solicitamos validação se o CNAE atual contempla todos os cenários acima ou se há necessidade de inclusão de nova atividade econômica. Além disso, o fornecedor nos informou sobre a obrigatoriedade do TARE – Termo de Acordo de Regime Especial, e gostaríamos de confirmar: Essa obrigatoriedade realmente se aplica à Tecnomyl nesses cenários? O TARE é exigido para todas as operações com soja ou apenas em casos específicos (ex: exportação direta, diferimento, ou operações com trading)? Há alguma penalidade ou risco caso realizemos operações sem o TARE, caso seja exigido?
 
@@ -4306,7 +4306,7 @@ Dessa forma, se a remetente da mercadoria não tiver o regime especial estabelec
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 8/10/2025 às 07:33 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-10-07 21:18:00+00', '2025-10-07 21:18:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-10-07 21:18:00+00', '2025-10-07 21:18:00+00'),
   ('fcf398d2-9084-4a0f-9bbb-8756bf1a433a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Prazo Transmissão NF-e', '[ Contabilidade Tecnomyl | 7/10/2025 às 09:22 ]
 Olá, tudo bem?
 Precisamos verificar qual impacto fiscal de uma situação recorrente no processo de emissão de NF-e. Em alguns casos, é feita a pré-nota em um dia (por exemplo, 07/09/2025) e a transmissão para a SEFAZ ocorre somente no dia seguinte (08/09/2025).
@@ -4509,7 +4509,7 @@ Feitas essas considerações, o descumprimento das disposições regulamentares 
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 7/10/2025 às 10:00 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-10-07 12:22:00+00', '2025-10-07 12:22:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-10-07 12:22:00+00', '2025-10-07 12:22:00+00'),
   ('89028246-1f13-4ffd-b112-a573cc70011b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Inclusão de novo CNAE', '[ Contabilidade Tecnomyl | 1/10/2025 às 14:48 ]
 Prezados, Ao incluir o CNAE: 6619-3/99 Outras atividades auxiliares dos serviços financeiros não especificadas anteriormente. no CNPJ. Pergunta-se: A empresa é obrigada a um Regime de Tributação específico, se sim, qual? A empresa precisa entregar alguma obrigação acessória específica, como por exemplo de sistema financeiro? Se sim, qual? Desde já agradeço e estou à disposição!
 
@@ -4545,7 +4545,7 @@ Além dessas, em razão da publicação da IN RFB n° 2.278/2025, as instituiç�
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 1/10/2025 às 14:51 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-10-01 17:48:00+00', '2025-10-01 17:48:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-10-01 17:48:00+00', '2025-10-01 17:48:00+00'),
   ('e60a5f4c-9aa2-4f84-803c-657d6f59e384'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 2º Trimestre de 2025..', '[ Luis Fernando | 30/09/2025 às 16:45 ]
 Prezados, Segue arquivos EFD Contribuições e apuração PIS/COFINS para revisão referente ao 2º trimestre 2025. Att, Luis F.G. da Silva 94 991611506
 
@@ -4571,7 +4571,7 @@ Gabriel Gama
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 30/09/2025 às 16:58 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-09-30 19:45:00+00', '2025-09-30 19:45:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-09-30 19:45:00+00', '2025-09-30 19:45:00+00'),
   ('90975129-0f55-490a-be45-6134239389c9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Devoluções sem destaque de ICMS (PR)', '[ Contabilidade Tecnomyl | 29/09/2025 às 16:03 ]
 Olá, Tivemos três devoluções recentes (maio/2025 e setembro/2025) relacionadas à troca de produto/qualidade: NF 86755 – ICMS R$ 6.251,39 (2% efetivo em 2023) NF 86765 – ICMS R$ 7.199,25 (3% efetivo em 2024) NF 88545 – ICMS R$ 9.628,00 (4% efetivo em 2025) As notas de devolução de venda e de bonificação foram emitidas sem destaque de ICMS pela Agrícola Sudoeste. O cliente fundamenta a operação no Decreto 7.871/2017 – Anexo VIII, Art. 44; (ICMS diferido/PR). Da nossa parte, entendemos que: O Convênio ICMS 26/2021, incorporado ao RICMS/PR – Anexo VI, posição 16-A, prevê alíquotas efetivas progressivas (1% em 2022 até 4% em 2025), substituindo o diferimento para os fertilizantes. precisamos dessa analise para formalizar com o cliente sobre o nosso posicionamento da obrigatoriedade do destaque de ICMS nas notas. link para acesso das notas fiscais: Agricola
 
@@ -4592,7 +4592,7 @@ Art. 447. Na operação de devolução, total ou parcial, de mercadoria ou bem, 
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 29/09/2025 às 17:04 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-09-29 19:03:00+00', '2025-09-29 19:03:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-09-29 19:03:00+00', '2025-09-29 19:03:00+00'),
   ('b7d458d6-fc62-476a-9bed-2dcafcd654f9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa para depósito fechado ou armazém geral – CFOP 6.905', '[ Contabilidade Tecnomyl | 10/09/2025 às 16:07 ]
 Olá,
 Por gentileza, gostaríamos de esclarecer uma dúvida:
@@ -4695,7 +4695,7 @@ Para melhor direcionamento da resposta da dúvida, esse questionamento será em 
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 11/09/2025 às 07:38 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-09-10 19:07:00+00', '2025-09-10 19:07:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-09-10 19:07:00+00', '2025-09-10 19:07:00+00'),
   ('98d5bd4e-86bd-4541-8818-02d9af138425'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Dúvida sobre entrega da EFD-Reinf – Contrato de Assessoria Financeira com Instituição Bancária', '[ Contabilidade Tecnomyl | 3/09/2025 às 16:51 ]
 Prezados, Estamos em busca de orientação quanto à correta entrega da EFD-Reinf referente a um contrato firmado com o Banco Bradesco para prestação de serviço de assessoria financeira, descrito no contrato como “Serviço de Assessoria Financeira (‘Operação’)”. Conforme sabemos, instituições financeiras não são obrigadas a emitir NFS-e, e de fato, neste caso, não houve emissão de nota fiscal. No entanto, o contrato firmado entre as partes traz de forma detalhada os valores envolvidos, Conforme imagem: Diante disso, gostaríamos de saber:
 Como devemos proceder para informar esse pagamento na EFD-Reinf, considerando que não há NFS-e, mas há contrato com detalhamento dos tributos?
@@ -4732,7 +4732,7 @@ Geizi Andrade.
 [SISTEMA]: Representante atribuído ➔ Geizi Andrade
 
 [ Ricardo Migueis | 3/09/2025 às 17:17 ]
-[SISTEMA]: Status alterado para ➔ Em Progresso', 'Outros', 'resolvido', 'resolvido', 'media', '2025-09-03 19:51:00+00', '2025-09-03 19:51:00+00'),
+[SISTEMA]: Status alterado para ➔ Em Progresso', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-09-03 19:51:00+00', '2025-09-03 19:51:00+00'),
   ('9f4bc051-7899-4397-ae69-9ab76e745d38'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de informações fiscais – Cancelamento de NF-e e Retificação da EFD', '[ Contabilidade Tecnomyl | 28/08/2025 às 11:38 ]
 Olá, bom dia!
 Estamos levantando algumas informações fiscais e precisamos do apoio de vocês para os estados: PR, GO, MT, SP, RS, BA, MG, MS, TO, RO, MA e PA.
@@ -4762,7 +4762,7 @@ Mapeamento-de-Cancelamento-NFe-e-Retificacao-EFD-ICMS-IPI_Atualizado-em-09.2025k
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 28/08/2025 às 12:25 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-08-28 14:38:00+00', '2025-08-28 14:38:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-08-28 14:38:00+00', '2025-08-28 14:38:00+00'),
   ('01903e8a-0b33-433a-9fc4-e81dae478aff'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Consulta – Retenções em serviços contratados via Ticketilog', '[ Contabilidade Tecnomyl | 22/08/2025 às 17:55 ]
 Boa tarde,
 A Tecnomyl possui contrato com a Ticketilog para intermediação de serviços de manutenção de veículos. Na prática, a Ticketilog contrata em nome da Tecnomyl, realiza o pagamento aos prestadores e depois é reembolsada, mas as notas fiscais vêm em nome da Tecnomyl.
@@ -4793,7 +4793,7 @@ Atenciosamente,
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 25/08/2025 às 08:22 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Outros', 'resolvido', 'resolvido', 'media', '2025-08-22 20:55:00+00', '2025-08-22 20:55:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-08-22 20:55:00+00', '2025-08-22 20:55:00+00'),
   ('e9fa23c5-0649-4600-9835-9256800fc2ba'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'ICMS ST – MT X MT', '[ Marcela Rech | 22/08/2025 às 08:34 ]
 Bom dia! Nós como como consumidor final lucro real, compramos mercadorias para uso e consumo. Recebemos uma nota fiscal interna MT X MT onde houve o destaque de ICMS ST na nota fiscal com base na PORTARIA 195/2019 - ART. 2º A. É correto haver o destaque de ICMS ST mesmo a mercadoria sendo interna? Nota fiscal em anexo.
 
@@ -4814,7 +4814,7 @@ At,te Maria Eduarda Lizot.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 22/08/2025 às 08:49 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-08-22 11:34:00+00', '2025-08-22 11:34:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-08-22 11:34:00+00', '2025-08-22 11:34:00+00'),
   ('8125ab72-e9d6-4a75-b0ed-245daffc8244'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'ADICIONAL DE INSALUBRIDADE', '[ Simone Cavalcante | 21/08/2025 às 17:10 ]
 Boa tarde, tudo bem ? Estamos com algumas duvidas, atualmente os colaboradores que manuseiam os defensivos agrícolas são registrados como Serviços Gerais (CBO 622020) e temos outras pessoas nessa função que não trabalham com os agroquímicos, realizam outras atividades em geral. De acordo com as medições e grau de risco levantados pela engenharia de segurança do trabalho conforme LTCAT com a utilização dos EPIS de maneira correta e pelo tempo de exposição não qualifica atividade insalubre. e assim sempre seguimos. Porem muitos colaboradores questionam o recebimento do adicional, pois ja trabalharam em outras empresa que recebiam e etc... Pensando em pacificar esse assunto nos veio a seguinte ideia. Contratar essas pessoas como serviços gerais como já fazemos, para quem for trabalhar com os agroquímicos pagar o adicional, reduzindo assim as reclamações. Com isso vem as duvidas, se a pessoa não se adaptar a atividade depois de um tempo, podemos retirar o adicional e ela voltar a realizar atividades em geral que não seja trabalhar com os defensivos ? teria um prazo para isso ? se a pessoa já esta nesta atividade a 8 meses ou 1 anos eu posso retirar ? se ela precisar dela na função posteriormente posso adicionar novamente ? gostaríamos de um apoio nesta questão.
 
@@ -4840,7 +4840,7 @@ Atenciosamente,
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 22/08/2025 às 07:59 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2025-08-21 20:10:00+00', '2025-08-21 20:10:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-08-21 20:10:00+00', '2025-08-21 20:10:00+00'),
   ('a1dcde37-0edd-424a-bcfc-a0bd0ebbb036'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Importação e Analise laboratorial entre Filiais', '[ Contabilidade Tecnomyl | 13/08/2025 às 16:26 ]
 Olá, tudo bem?
 Estamos planejando a importação de aproximadamente 50 amostras pela Matriz – PR, com destinação para análise laboratorial na Filial 14 – Curitiba/PR.
@@ -4889,7 +4889,7 @@ Essas amostras serão tratadas como uso/consumo da empresa?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 14/08/2025 às 09:10 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-08-13 19:26:00+00', '2025-08-13 19:26:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-08-13 19:26:00+00', '2025-08-13 19:26:00+00'),
   ('0c8a6bea-3690-40b6-aa26-4f323759a5e5'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Estudo tributário sobre venda Interestadual de Milho, destinado a indústria de Etanol.', '[ Luis Fernando | 6/08/2025 às 15:08 ]
 Boa tarde, Solicito estudo tributário para venda interestadual de milho, a principio para indústria de etanol. Segue CNPJ do Cliente: 29.316.596/0008-91 - INPASA AGROINDUSTRIAL S/A. Em consulta não encontramos nada relacionado a indústria de etanol, encontrei redução de 30% s/BC no Anexo III, Art. 9º inciso II. Poderia verificar e responder um parecer? Att, Luis F.G da Silva.
 
@@ -4908,7 +4908,7 @@ Permanecemos à disposição para quaisquer esclarecimentos.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 6/08/2025 às 15:40 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-08-06 18:08:00+00', '2025-08-06 18:08:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-08-06 18:08:00+00', '2025-08-06 18:08:00+00'),
   ('f6076244-dbd8-41aa-bc13-c29ee9055be6'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Solicitação de Esclarecimento sobre Obrigatoriedade da Entrega da DAPI – Filial MG', '[ Marcela Rech | 5/08/2025 às 17:34 ]
 Boa tarde.
 Gostaria de confirmar se a nossa filial localizada no estado de Minas Gerais está obrigada a entregar a declaração DAPI mensalmente.
@@ -4945,7 +4945,7 @@ Passo-a-Passo-Adesao-Voluntaria-Desobrigar-DAPIe4reM6y41754661243.pdf
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 6/08/2025 às 07:35 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'media', '2025-08-05 20:34:00+00', '2025-08-05 20:34:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-08-05 20:34:00+00', '2025-08-05 20:34:00+00'),
   ('39e46d12-11be-4295-bcc5-5adc2a200914'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Operação Venda com entrega em armazém', '[ Contabilidade Tecnomyl | 5/08/2025 às 11:40 ]
 Olá,
 Gostaríamos de esclarecer algumas operações que estamos realizando no seguinte formato:
@@ -5222,7 +5222,7 @@ Ressalta-se, ainda, que não identificamos qualquer menção expressa nessa legi
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 5/08/2025 às 13:43 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-08-05 14:40:00+00', '2025-08-05 14:40:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-08-05 14:40:00+00', '2025-08-05 14:40:00+00'),
   ('8b3b174e-f2d5-41aa-a504-3210ae527352'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'INCIDENCIA DE INSS 20% CONTRATACAO MEI', '[ Contabilidade Tecnomyl | 5/08/2025 às 08:45 ]
 Bom dia, Gostaríamos de verificar a incidência de INSS na contratação desse serviço de MEI.
 
@@ -5242,7 +5242,7 @@ Atenciosamente,
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 5/08/2025 às 09:09 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2025-08-05 11:45:00+00', '2025-08-05 11:45:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-08-05 11:45:00+00', '2025-08-05 11:45:00+00'),
   ('2b5a25b7-80d0-4a95-9a03-9523fda1ee53'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Dúvida sobre obrigatoriedade de escrituração da série nas NFS-e', '[ Contabilidade Tecnomyl | 4/08/2025 às 08:29 ]
 Prezados,
 Estamos com uma dúvida operacional relacionada à integração das Notas Fiscais de Serviço Eletrônicas (NFS-e) em nossa ferramenta de automação fiscal.
@@ -5312,7 +5312,7 @@ Poderia nos enviar alguns exemplos dessa situação para uma melhor analise?
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 4/08/2025 às 08:32 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-08-04 11:29:00+00', '2025-08-04 11:29:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-08-04 11:29:00+00', '2025-08-04 11:29:00+00'),
   ('992f200c-116c-4c26-9140-8f847fe72056'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Mapeamento – Manifestação do Destinatário por UF', '[ Contabilidade Tecnomyl | 31/07/2025 às 16:07 ]
 Boa tarde,
 Solicitamos apoio para mapeamento atualizado sobre a obrigatoriedade e os prazos da Manifestação do Destinatário na NF-e (modelo 55), considerando os estados onde a Tecnomyl possui filiais.
@@ -5344,7 +5344,7 @@ Mapeamento-de-Manifestacao_Destinatario_Por-UF_Atualizado-em-08.2025a0LE7Wue1754
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Ricardo Migueis | 31/07/2025 às 16:21 ]
-[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'media', '2025-07-31 19:07:00+00', '2025-07-31 19:07:00+00'),
+[SISTEMA]: Status alterado para ➔ Em Progresso', NULL, 'resolvido', 'resolvido', 'normal', '2025-07-31 19:07:00+00', '2025-07-31 19:07:00+00'),
   ('dcc9c6ba-308c-49e4-b759-aa7ff1515c92'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'DIFERENCIAL DE ALIQUOTA', '[ Marcela Rech | 29/07/2025 às 16:34 ]
 Boa tarde,
 Poderiam, por gentileza, informar se esta nota fiscal possui algum benefício que implique na redução da base de cálculo do diferencial de alíquota? Caso afirmativo, o valor do frete deve ser incluído nessa base?
@@ -5368,7 +5368,7 @@ Importante destacar que, para os produtos em questão, não se aplica benefício
 No que tange às operações com mercadorias sujeitas ao regime da substituição tributária, cabe esclarecer que, quando houver protocolo ou convênio firmado entre as unidades federadas envolvidas, a responsabilidade pelo recolhimento do imposto é atribuída ao remetente. Contudo, considerando que, a princípio, não houve o recolhimento do imposto pelo remetente na origem, a responsabilidade pelo pagamento do diferencial de alíquotas recai sobre a empresa destinatária da operação, Transoeste, nos termos da legislação vigente.
 Diante disso, recomenda-se um acompanhamento mais detalhado das notas fiscais interestaduais recebidas, especialmente daquelas cujas mercadorias estão sujeitas à substituição tributária, a fim de assegurar que o recolhimento do DIFAL seja feito corretamente pelo remetente, quando for o responsável, evitando assim ônus indevido ao destinatário.
 Sigo á disposição para dúvidas adicionais.
-At.te', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-07-29 19:34:00+00', '2025-07-29 19:34:00+00'),
+At.te', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-07-29 19:34:00+00', '2025-07-29 19:34:00+00'),
   ('b763aec1-6165-4a85-a469-39a0cd68bf3d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'SERVIÇOS PROFISSIONAIS', '[ Contabilidade Tecnomyl | 22/07/2025 às 18:16 ]
 Olá, Por favor, eu preciso de uma lista com todos os códigos de serviços da LC 116/2003 que são classificados como serviços profissionais (sei que normalmente, esses serviços tem registro de conselho de classe). Por favor, encaminhar definição de serviço profissional e base legal.
 
@@ -5378,7 +5378,7 @@ Segue anexa a resposta à dúvida.
 Quaisquer dúvidas, estamos à disposição!
 Cordialmente,
 
-Tecnomyl_Servicos-Profissionais1FKncHLR1753723489.docx', NULL, 'resolvido', 'resolvido', 'media', '2025-07-22 21:16:00+00', '2025-07-22 21:16:00+00'),
+Tecnomyl_Servicos-Profissionais1FKncHLR1753723489.docx', NULL, 'resolvido', 'resolvido', 'normal', '2025-07-22 21:16:00+00', '2025-07-22 21:16:00+00'),
   ('7e18e565-c9b1-4d1e-8bed-109cdc9fd299'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'FILIAL MG', '[ Marcela Rech | 21/07/2025 às 11:57 ]
 Bom dia! Abrimos uma filial no estado de MG Poderiam nos informar quais obrigações fiscais devemos entregar e os prazos de entrega das mesmas?
 
@@ -5388,7 +5388,7 @@ Além das obrigações do SPED ICMS/IPI e da EFD Contribuições, o contribuinte
 Quando se tratar de contribuinte enquadrado no regime normal de apuração do ICMS – Débito/Crédito, seja empresa ou produtor rural;
 Para prestadores de serviço de transporte, exceto o aéreo, conforme inciso III, alínea “c”, o vencimento da DAPI será no dia 9.
 A obrigatoriedade da entrega da DAPI 1 está prevista no artigo 138, inciso I, e no § 2º do artigo 141, da Parte 1, do Anexo V do RICMS/MG.
-Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-07-21 14:57:00+00', '2025-07-21 14:57:00+00'),
+Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-07-21 14:57:00+00', '2025-07-21 14:57:00+00'),
   ('44b46174-731f-49e8-8954-b1ce527d7899'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CREDITO DE ICMS – ATIVO IMOBILIZADO – ESTADO SÃO PAULO', '[ Marcela Rech | 15/07/2025 às 17:25 ]
 Adquirimos bens do ativo imobilizado no mês 06, pela filial localizada em São Paulo. Como não houve nenhuma saída tributada no mês, entendemos que não será possível aproveitar o crédito de ICMS nesse momento. Diante disso, gostaríamos de confirmar alguns pontos:
 É necessário iniciar o controle do bem no CIAP já no mês da aquisição, mesmo sem a apropriação do crédito?
@@ -5439,7 +5439,7 @@ Campos-SPED-FiscalOYiw9ZPE1752781011.png
 arquivo SPED enviado via e-mail, não esta indo por aqui.
 
 [ Marcela Rech | 15/07/2025 às 17:53 ]
-Segue arquivo SPED ICMS/IPI', NULL, 'resolvido', 'resolvido', 'media', '2025-07-15 20:25:00+00', '2025-07-15 20:25:00+00'),
+Segue arquivo SPED ICMS/IPI', NULL, 'resolvido', 'resolvido', 'normal', '2025-07-15 20:25:00+00', '2025-07-15 20:25:00+00'),
   ('71428e06-eb8a-40b4-83a0-2d95f4bf8dbf'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'REEMBOLSO SEGURO', '[ Marcela Rech | 30/06/2025 às 09:51 ]
 Bom dia! Tivemos um reembolso de seguro ref. a sinistro de bomba de combustível. A seguradora nos reembolsou um valor x porém precisamos comprar novas bombas de combustível com o valor reembolsado. Como devo fazer o lançamento? seria como despesa? Ou por ser reembolso devo fazer algum lançamento especifico. Obs: o lançamento do reembolso fizemos como INDENIZAÇÃO DE SEGURO EXEMPLO: D - MANUTENÇÃO E INSTALAÇÕES C- FORNECEDOR D- FORNECEDOR C - BANCO
 
@@ -5468,7 +5468,7 @@ Pagamento do fornecedor:
 D – Fornecedor
 C – Banco
 Quaisquer dúvidas, estou à disposição!
-Cordialmente,', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-06-30 12:51:00+00', '2025-06-30 12:51:00+00'),
+Cordialmente,', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-06-30 12:51:00+00', '2025-06-30 12:51:00+00'),
   ('7bab3f20-eff3-45e7-aa06-797042781192'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'DIFERENCIAL DE ALIQUOTA', '[ Marcela Rech | 25/06/2025 às 10:13 ]
 Bom dia Gostaria de saber qual o vencimento do diferencial de alíquota, apuração mensal, do Estado de São Paulo?
 
@@ -5500,7 +5500,7 @@ Sigo á disposição.
 [ Maria Lizot | 25/06/2025 às 14:44 ]
 Olá Marcela, boa tarde!
 A data de vencimento do diferencial de alíquota no Estado de São Paulo está atrelada ao Código do Prazo de Recolhimento, que, por sua vez, depende do CNAE principal da empresa. Para darmos andamento à análise, solicitamos, por gentileza, o envio do CNPJ da filial para que possamos verificar a situação específica.
-Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-06-25 13:13:00+00', '2025-06-25 13:13:00+00'),
+Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-06-25 13:13:00+00', '2025-06-25 13:13:00+00'),
   ('fd9a81c6-7e91-4952-9de1-fe44de2e0ffc'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'TERMO DE PARENTESCO', '[ Simone Cavalcante | 18/06/2025 às 14:57 ]
 Prezados,
 Diante de uma situação recente envolvendo o falecimento de um colaborador, onde diversos irmãos ingressaram com ações judiciais contra a empresa solicitando indenização por danos morais pela perda de um ente querido, estamos buscando formas de prevenir esse tipo de exposição e resguardar a empresa em futuras ocorrências semelhantes.
@@ -5521,7 +5521,7 @@ Todavia, é necessário salientar que o termo não possui força jurídica para 
 Mas, em que pese o termo não impedir uma possível judicialização por terceiros não citados no termo, o documento poderá mitigar os riscos e em caso de algum processo judicial reforçar a defesa da empresa.
 Por fim, recomenda-se incluir no termo que o preenchimento deste é voluntário e servirá exclusivamente para fins de comunicação em emergências, internação, falecimento ou demais acontecimentos com o colaborador que necessite de contato com os familiares. E ainda, reforçar que a empresa se compromete em tratar os dados conforme a Lei Geral de Proteção de Dados (Lei 13.709/2018).
 Desde já, coloco-me à disposição para quaisquer esclarecimentos adicionais.
-À disposição,', 'Outros', 'resolvido', 'resolvido', 'media', '2025-06-18 17:57:00+00', '2025-06-18 17:57:00+00'),
+À disposição,', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-06-18 17:57:00+00', '2025-06-18 17:57:00+00'),
   ('4344f5be-4abf-4673-bc42-877057a1941c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Ficha de item – SPED FISCAL', '[ Contabilidade Tecnomyl | 16/06/2025 às 14:23 ]
 Olá, Qual é a penalidade aplicável no Estado de São Paulo quando o SPED Fiscal é entregue com o custo do item alterado devido a lançamentos manuais de entrada e baixa de mercadorias sem nota fiscal? Esses lançamentos impactaram o custo informado, mesmo com o Bloco H devidamente preenchido. Essa prática pode gerar autuação?
 
@@ -5548,7 +5548,7 @@ Sim, o Bloco H foi impactado, pois os custos informados no inventário refletira
 Boa tarde,
 Tudo bem?
 Somente para podemos efetuar uma melhor análise da situação, apesar de ter sido efetuado os ajustes manuais no estoque das mercadorias.
-O Bloco H foi devidamente preenchido corretamente, sem ter influência desses ajustes? Ou alguma informação desses ajustes foram levadas para o EFD ICMS/IPI?', NULL, 'resolvido', 'resolvido', 'media', '2025-06-16 17:23:00+00', '2025-06-16 17:23:00+00'),
+O Bloco H foi devidamente preenchido corretamente, sem ter influência desses ajustes? Ou alguma informação desses ajustes foram levadas para o EFD ICMS/IPI?', NULL, 'resolvido', 'resolvido', 'normal', '2025-06-16 17:23:00+00', '2025-06-16 17:23:00+00'),
   ('a4338336-58d8-438d-be2a-f7f5ca650541'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Esclarecimento sobre créditos de PIS/COFINS – Combustível (Decreto 10.638/2021)', '[ Marcela Rech | 16/06/2025 às 08:55 ]
 Bom dia,
 Gostaríamos de confirmar o entendimento da Prado sobre a utilização de créditos de PIS/COFINS nas seguintes situações:
@@ -5566,7 +5566,7 @@ Entendemos que não é possível a apropriação de créditos de PIS e Cofins so
 Ainda que o combustível seja imprescindível para a atividade-fim da empresa, a sistemática da não cumulatividade prevista nas Leis nº 10.637/2002 e 10.833/2003 não garante, por si só, o direito ao crédito em operações com alíquota zero, uma vez que nesses casos a legislação veda expressamente o crédito, salvo exceções específicas legalmente previstas.
 A Lei Complementar nº 192/2022, trouxe regras sobre créditos presumidos, porém apenas para períodos posteriores e em situações específicas. Ela não tem efeito retroativo nem amplia, de forma genérica, o direito ao crédito de PIS e Cofins sobre aquisições com alíquota zero anteriores à sua vigência.
 Dessa forma, diante da ausência de fundamento legal específico que autorize o crédito de PIS e Cofins sobre o diesel adquirido com alíquota zero no período de março e abril de 2021, não recomendamos a apropriação desses créditos.
-Sigo á disposição para dúvidas adicionais.', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-06-16 11:55:00+00', '2025-06-16 11:55:00+00'),
+Sigo á disposição para dúvidas adicionais.', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-06-16 11:55:00+00', '2025-06-16 11:55:00+00'),
   ('e8cecf29-ff80-49b2-845f-86427f6a2dd2'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Esclarecimento sobre aproveitamento de crédito de PIS/COFINS', '[ Marcela Rech | 16/06/2025 às 08:33 ]
 Bom dia,
 Poderiam, por gentileza, nos informar qual o entendimento da Prado em relação ao aproveitamento de crédito de PIS/COFINS nas seguintes contas/despesas?
@@ -5595,7 +5595,7 @@ Manutenção de máquinas, equipamentos e instalações: Materiais e ferramentas
 Base Legal: Jurisprudência do CARF (Acórdão nº 3301-008.898, de 23/09/2020)
 Serviços tomados – Licenças AET:  É possível o aproveitamento de créditos de PIS e Cofins sobre os valores gastos com a obtenção de Autorizações Especiais de Trânsito (AET), quando estas forem exigidas por normas reguladoras específicas para o exercício da atividade de transporte rodoviário de cargas.
 Base legal: Solução de Consulta nº 153/2021
-Sigo á disposição para dúvidas adicionais.', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-06-16 11:33:00+00', '2025-06-16 11:33:00+00'),
+Sigo á disposição para dúvidas adicionais.', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-06-16 11:33:00+00', '2025-06-16 11:33:00+00'),
   ('8390f0bc-887a-448a-b1f3-0d5407b7256e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Classificação Contábil de Despesa com “Handling Vazio” – Orientação com base nos CPCs', '[ Contabilidade Tecnomyl | 5/06/2025 às 08:07 ]
 Prezados,
 Solicitamos análise técnica e orientação quanto ao adequado tratamento contábil, com base nos Pronunciamentos Contábeis emitidos pelo CPC, para a seguinte situação operacional:
@@ -5610,7 +5610,7 @@ Recomenda-se que os valores correspondentes sejam registrados em uma conta de de
 Embora não exista um pronunciamento contábil específico que trate exclusivamente dessa situação, o tratamento contábil deve seguir os princípios estabelecidos nos pronunciamentos técnicos vigentes. O CPC 26 orienta que as despesas devem ser classificadas e apresentadas conforme sua natureza, de forma a refletir a realidade operacional da entidade. Assim, os custos relacionados à gestão e movimentação de contêineres, como o “handling vazio”, devem ser registrados como despesas operacionais logísticas.
 Essa orientação também é reforçada pelo item 16 do CPC 16 – Estoques, que traz exemplos de itens que não devem ser incluídos no custo dos estoques e que devem ser reconhecidos como despesa no período em que ocorrem. Entre esses itens estão os gastos com armazenamento, salvo quando forem necessários entre fases do processo produtivo.
 Portanto, o registro desses valores como despesa operacional logística está de acordo com os princípios contábeis vigentes e proporciona maior clareza e controle gerencial sobre os custos acessoriamente vinculados à atividade da empresa.
-Sigo á disposição.', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-06-05 11:07:00+00', '2025-06-05 11:07:00+00'),
+Sigo á disposição.', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-06-05 11:07:00+00', '2025-06-05 11:07:00+00'),
   ('5753abd0-8f6a-4cf8-9ddb-93fc2d64ff98'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'PORTARIA nº 3.665/2023', '[ Simone Cavalcante | 4/06/2025 às 17:00 ]
 Boa tarde, Tomamos ciência que a portaria traz modificações na maneiro em que empresas e colaboradores atuam em relação a domingos e feriados, a principio cita apenas comercio em geral. Gostaríamos de saber se a empresa Agropecuaria Cataratas precisa se adequar de alguma maneira a essas mudanças. o detalhe é que não compensamos horas extras 100%, todas são pagas, so temos compensação de horas extras 50% e temos um acordo individual com cada colaborador. a empresa tambem não esta vinculada a nenhum sindicato de trabalhados no momento.   em anexo o acordo individual que utilizamos.
 
@@ -5650,7 +5650,7 @@ CONCLUSÃO:
 Diante do exposto, recomenda-se que a empresa adote as medidas necessárias para se adequar às exigências da Portaria nº 3.665/2023, especialmente quanto à necessidade de autorização por convenção ou acordo coletivo de trabalho para a realização de atividades em domingos e feriados.
 Por fim, qualquer que seja a conduta adotada pela empresa solicitante, não constitui fato impeditivo de eventual ajuizamento de demanda pelo colaborador, caso constatadas violações aos direitos trabalhistas oriundos do presente parecer e/ou inerentes ao contrato de trabalho.
 Atenciosamente,
-Claudionor Lima.', NULL, 'resolvido', 'resolvido', 'media', '2025-06-04 20:00:00+00', '2025-06-04 20:00:00+00'),
+Claudionor Lima.', NULL, 'resolvido', 'resolvido', 'normal', '2025-06-04 20:00:00+00', '2025-06-04 20:00:00+00'),
   ('36aea6dc-fefb-47f0-a463-f545f1ea3563'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Solicitação de Análise – Obrigatoriedade do GTIN conforme NT 2021.003 v.1.40', '[ Contabilidade Tecnomyl | 4/06/2025 às 15:32 ]
 Com base na Nota Técnica 2021.003 – Versão 1.40 (fevereiro/2025), que trata das regras de obrigatoriedade do GTIN nas emissões de NF-e, solicitamos a análise e o esclarecimento sobre a necessidade de atualização cadastral e adequação dos produtos comercializados pela Tecnomyl. Pedimos a gentileza de considerar as seguintes naturezas de origem dos produtos:
 Produtos adquiridos no mercado nacional (compra para revenda);
@@ -5668,7 +5668,7 @@ Ante o exposto, na hipótese de a Tecnomyl efetuar operações com produtos que 
 2) Produtos industrializados por encomenda em nome da Tecnomyl (terceirização da produção) – Deve ser informado na nota fiscal conforme cadastro no GS1 Brasil e há obrigatoriedade de validação; e
 3) Produtos importados diretamente pela Tecnomyl – Deve ser informado na nota fiscal conforme documento de entrada, porém, não há obrigatoriedade de validação.
 Quaisquer dúvidas, estou à disposição!
-At.te, Mônica Matunaga.', NULL, 'resolvido', 'resolvido', 'media', '2025-06-04 18:32:00+00', '2025-06-04 18:32:00+00'),
+At.te, Mônica Matunaga.', NULL, 'resolvido', 'resolvido', 'normal', '2025-06-04 18:32:00+00', '2025-06-04 18:32:00+00'),
   ('53994892-8674-4214-9beb-748e9111f53d'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'COMPENSAÇÃO DE ICMS', '[ Marcela Rech | 3/06/2025 às 15:04 ]
 Bom dia! Abrimos um e-process na sefaz solicitando reembolso do valor de ICMS pago ref. a uma prestação de serviço de frete na qual o CTE foi cancelado. A SEFAZ MT nos retornou com o parecer em anexo. Porém notamos somente agora que havia esse parecer, com data de 2024. Minha duvida é: Posso compensar na EFD esse crédito de ICMS com débito de ICMS Diferencial de Alíquota? O e-process precisa estar com STATUS FINALIZADO? Pela resposta ter vindo em Março de 2024, posso compensar agora em 2025?
 
@@ -5689,7 +5689,7 @@ PARECER-0832_2024_TRANSOESTE-LOGISTICA-LTDA_51184623_2023_RI_SAC-2kv6Ncb5F174904
 [ Maria Lizot | 3/06/2025 às 16:22 ]
 Marcela, boa tarde. Tudo bem?
 O parecer não veio em anexo, poderia tentar nos encaminhar novamente por gentileza?
-Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-06-03 18:04:00+00', '2025-06-03 18:04:00+00'),
+Sigo á disposição.', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-06-03 18:04:00+00', '2025-06-03 18:04:00+00'),
   ('dc2b1b5c-4449-4dea-9dec-5cf458b93dfe'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 1º Trimestre de 2025.', '[ Luis Fernando | 3/06/2025 às 10:53 ]
 Bom dia pessoal, Segue anexo informações para conferencia da apuração do PIS/COFINS referente ao 1º trimestre de 2025. Att, Luis F.G.da Silva
 
@@ -5702,7 +5702,7 @@ Eventuais dúvidas, estou a disposição.
 Atenciosamente,
 Gabriel Gama
 
-Cataratas_Revisao_PIS_CofinsPyHSfKj91754595073.pdf', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-06-03 13:53:00+00', '2025-06-03 13:53:00+00'),
+Cataratas_Revisao_PIS_CofinsPyHSfKj91754595073.pdf', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-06-03 13:53:00+00', '2025-06-03 13:53:00+00'),
   ('0defd9b8-6987-4217-bca2-82fc97e0ba3e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DIFAL EFD-ICMS/IPI', '[ Contabilidade Tecnomyl | 2/06/2025 às 18:24 ]
 Olá, Gostaríamos de solicitar apoio referente ao recolhimento de difal (quando somos o consumidor final), como devemos informar esse valor do difal no EFD-ICMS/IPI? Qual o código da apuração E111/registro 197 devemos informar (Ex. GO40000029, MT70000002, PR000081...)? Qual o código de recolhimento caso seja separado da apuração E116? Quais as datas de vencimento do Difal? Qual o tipo de cálculo de Difal (base dupla/base simples)? Fazer análise para os estados PR, SP, MT, MS, PA, RO, MA, TO, RS, MG, GO e BA. Nos informar os dispositivos legais para apuração, por favor.
 
@@ -5715,7 +5715,7 @@ Em caso de dúvidas estamos à disposição.
 Atenciosamente,
 Diego Correia de Melo.
 
-Mapeamento-de-Tributacao_ICMS_DIFAL_Atualizado-em-06.20259bG1SbBb1749157631.xlsx', NULL, 'resolvido', 'resolvido', 'media', '2025-06-02 21:24:00+00', '2025-06-02 21:24:00+00'),
+Mapeamento-de-Tributacao_ICMS_DIFAL_Atualizado-em-06.20259bG1SbBb1749157631.xlsx', NULL, 'resolvido', 'resolvido', 'normal', '2025-06-02 21:24:00+00', '2025-06-02 21:24:00+00'),
   ('af83c3c0-16bd-42fb-9da8-5fddc667cd85'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'INCIDENCIA DE INSS 20% CONTRATACAO MEI', '[ Contabilidade Tecnomyl | 29/05/2025 às 15:02 ]
 BOA TARDE, Contratamos o serviço de um MEI, com o código de serviço 17.05 FORNECIMENTO DE MAO DE OBRA Na discriminação do serviço está como: PRESTAÇÃO DE SERVIÇO DE LIMPEZA E HIGIENIZAÇÃO DE AMBIENTES, INCLUINDO VARRIÇÃO, LAVAGEM DE PISO.... (documento em anexo) Para este caso deve ser recolhido o valor de INSS de 20% no E-social?
 
@@ -5726,7 +5726,7 @@ Boa tarde, Prezados
 A Receita Federal do Brasil (RFB) tem mantido seu posicionamento sobre a obrigatoriedade de empresas recolherem a Contribuição Previdenciária Patronal (CPP) ao contratarem Microempreendedores Individuais (MEIs) para determinados serviços.
 Inicialmente, em 2016, através da Solução de Consulta Cosit nº 108, a RFB já havia deixado claro que empresas que contratam MEIs para serviços como hidráulica, eletricidade, pintura, alvenaria, carpintaria e manutenção ou reparo de veículos devem fazer o recolhimento da CPP. Esse entendimento foi ratificado e normatizado mais recentemente pela Instrução Normativa nº 2.110/2022, consolidando a posição da Receita Federal sobre o tema.
 Se tratando de serviço de Limpeza e higienização, conforme a descrição do serviço na NF em anexo, no nosso entendimento não se enquadra nos tipos de serviços descritos pela Instrução normativa discutida, desta forma, entendemos que não cabe o recolhimento patronal nesse serviço.
-Atenciosamente,', 'Outros', 'resolvido', 'resolvido', 'media', '2025-05-29 18:02:00+00', '2025-05-29 18:02:00+00'),
+Atenciosamente,', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-05-29 18:02:00+00', '2025-05-29 18:02:00+00'),
   ('fb75ce6a-1600-4dc4-9fd9-e3a7bad787d9'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CREDITO DE ICMS – ESTADO DE SP', '[ Marcela Rech | 28/05/2025 às 15:40 ]
 Boa tarde! Estamos realizando a compra de veículos no estado de SP para o cnpj da nossa filial também de SP. Podemos nos creditar do ICMS destacado em nota fiscal? Temos que realizar algum credenciamento para utilizar o crédito? Nota fiscal em anexo.
 
@@ -5821,7 +5821,7 @@ Ao registro contábil do bem no ativo imobilizado;
 Ao controle do crédito por meio do CIAP – Controle de Crédito de ICMS do Ativo Permanente;
 À escrituração do crédito mensalmente no Livro de Apuração do ICMS, bem como na EFD ICMS/IPI, especialmente no Bloco G.
 Portanto, desde que a empresa esteja no regime normal de apuração do ICMS e o bem seja utilizado na atividade operacional da transportadora, o crédito destacado na nota fiscal é legítimo e pode ser apropriado nos moldes previstos na legislação vigente.
-Sigo á disposição para dúvidas adicionais.', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-05-28 18:40:00+00', '2025-05-28 18:40:00+00'),
+Sigo á disposição para dúvidas adicionais.', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-05-28 18:40:00+00', '2025-05-28 18:40:00+00'),
   ('90ec9243-16d9-4480-81c6-004b2d8b6e8c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Classificação contábil de despesas relacionadas ao projeto FINEP – ativo intangível em andamento x despesa', '[ Contabilidade Tecnomyl | 28/05/2025 às 08:21 ]
 Prezados, Estamos estruturando o controle contábil de um novo projeto denominado FINEP, com vigência estimada de três anos, que abrange atividades de pesquisa e desenvolvimento (P&D) nas áreas de Registros, Químicos e Biológicos. No momento, os gastos iniciais referem-se, principalmente, à contratação de consultorias especializadas, cuja finalidade está diretamente relacionada ao desenvolvimento de produtos ainda em fase regulatória ou em prospecção. Importante destacar que nenhum dos produtos listados teve sua comercialização iniciada até o momento, sendo que sua viabilidade técnica e econômica está em análise. Tais produtos constam em nossa planilha de acompanhamento do FINEP por estarem sob investigação e desenvolvimento, mas ainda não foram formalizados como projetos definitivos no sistema o que será feito oportunamente, conforme sua evolução. A estruturação contábil que adotamos até aqui consistir no seguinte:
 Alocação dessas despesas ao ativo intangível em andamento, possibilitando o lançamento das notas fiscais de consultoria.
@@ -5837,7 +5837,7 @@ Bom dia!
 Segue anexo estudo relativo à capitalização das despesas relacionadas ao projeto FINEP.
 Cordialmente,
 
-Tecnomyl_-Capitalizacao-das-despesas-relacionadas-ao-projeto-FINEPm3lkgAj61748527248.pdf', NULL, 'resolvido', 'resolvido', 'media', '2025-05-28 11:21:00+00', '2025-05-28 11:21:00+00'),
+Tecnomyl_-Capitalizacao-das-despesas-relacionadas-ao-projeto-FINEPm3lkgAj61748527248.pdf', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-28 11:21:00+00', '2025-05-28 11:21:00+00'),
   ('20711d33-995f-49f5-8c93-1a11894fc10d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Remessa de materiais de uso e consumo', '[ Contabilidade Tecnomyl | 27/05/2025 às 12:41 ]
 Bom dia, tudo bem? Temos dúvidas sobre o tratamento fiscal na emissão de notas fiscais para remessa de materiais de uso e consumo (como cadernos, canetas, uniformes e fones) enviados a colaboradores, considerando que esses itens serão utilizados para exercício da função fora do estabelecimento. Considerar que as notas fiscais são emitidas diretamente ao colaborador - pessoa física e pode retornar considerando o desligamento antes do fim do estágio probatório. Passado esse prazo, mais não retornarão para a Tecnomyl. Além disso, realizamos tanto operações internas quanto interestaduais, com saídas principalmente da matriz no Paraná. Como deve ser tratado o ICMS nessas remessas? Também gostaríamos de orientação sobre a correta contabilização dessas operações. Quais seriam os lançamentos contábeis adequados? Por gentileza, nos retornar o embasamento legal aplicável a essas operações. Agradecemos desde já pelo suporte.
 
@@ -5883,7 +5883,7 @@ Pela distribuição:
 ·         C – Material para Brinde – Estoque (Ativo Circulante)
 Pela devolução
 ·         D – Materiais de uso e consumo (Ativo Circulante)
-·         C – Brindes (Conta de resultado)', NULL, 'resolvido', 'resolvido', 'media', '2025-05-27 15:41:00+00', '2025-05-27 15:41:00+00'),
+·         C – Brindes (Conta de resultado)', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-27 15:41:00+00', '2025-05-27 15:41:00+00'),
   ('76ebcf43-5001-4776-bdbc-643690697da9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'CREDITO DE ICMS – DEVOLUÇÃO DE BONIFICAÇÃO CFOP X.949', '[ Contabilidade Tecnomyl | 26/05/2025 às 17:02 ]
 A operação de devolução de bonificação concedida pode ser realizada com base na NBC TG 16 – Estoques, considerando que se trata de operação diretamente relacionada à movimentação de mercadorias.
 Diante disso, solicitamos esclarecimento quanto à possibilidade de aproveitamento de crédito de ICMS na devolução de mercadorias recebidas como bonificação, especialmente quando a operação é documentada por meio de NFes com os CFOPs x.949.
@@ -5936,7 +5936,7 @@ Importante destacar que, uma vez que a legislação não prevê o estorno do dé
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 27/05/2025 às 08:12 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-05-26 20:02:00+00', '2025-05-26 20:02:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-05-26 20:02:00+00', '2025-05-26 20:02:00+00'),
   ('db9c4d46-0bec-4138-8890-85df20be9096'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Credito de pis e cofins referente a imobilizado', '[ Contabilidade Tecnomyl | 26/05/2025 às 11:47 ]
 Bom dia. Preciso de um esclarecimento sobre as formas de apropriação de credito de pis/COFINS, sobre máquinas e equipamentos. O art. 179 IN 2.122/2022 traz que pode ser feito com base em encargos de depreciação e amortização, porem no art 184  trás a alternativa de ser feito mês a mês sobre o valor de compra. Já na no art 4 º da lei 12546/2011 traz que pode ser feito a apropriação deste credito de forma imediata, com base no valor da nota. Fica a critério da empresa decidir sobre a melhor forma de conduzir ?
 
@@ -5959,7 +5959,7 @@ Portanto, cabe à empresa avaliar e decidir qual regime de apropriação é mais
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 26/05/2025 às 12:48 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-05-26 14:47:00+00', '2025-05-26 14:47:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-05-26 14:47:00+00', '2025-05-26 14:47:00+00'),
   ('16935773-aafd-412b-aaf9-cb4a51afd7ed'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Dúvida sobre obrigatoriedade de registro no Livro Modelo 6', '[ Contabilidade Tecnomyl | 20/05/2025 às 10:32 ]
 Olá,
 Durante os meses de março e abril, enviamos os arquivos da EFD – Fiscal com algumas inconsistências, devido à implantação de um novo sistema, que ainda está em processo de parametrização.
@@ -5984,7 +5984,7 @@ Artigo 220 – O livro Registro de Utilização de Documentos Fiscais e Termos d
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 20/05/2025 às 10:51 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-05-20 13:32:00+00', '2025-05-20 13:32:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-20 13:32:00+00', '2025-05-20 13:32:00+00'),
   ('6e11dfef-4b09-4145-a74a-86b97bc60e68'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Contabilização – Revalidação de Produtos (Portaria 1136/2024)', '[ Contabilidade Tecnomyl | 20/05/2025 às 10:24 ]
 Olá,
 Solicitamos o apoio para análise de uma operação referente à revalidação de produtos, conforme previsto na Portaria 1136/2024. A norma permite a ampliação do prazo de validade dos produtos, desde que sejam atendidos os critérios estabelecidos.
@@ -6075,7 +6075,7 @@ Conforme dispõe o art. 311 do Regulamento do Imposto de Renda (RIR/2018), são 
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 20/05/2025 às 10:51 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-05-20 13:24:00+00', '2025-05-20 13:24:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-20 13:24:00+00', '2025-05-20 13:24:00+00'),
   ('adae2aaf-18d6-4945-bf14-76935c8452a9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa – Feiras, Eventos e Dias de Campo.', '[ Contabilidade Tecnomyl | 16/05/2025 às 12:09 ]
 Bom dia, tudo bem? Temos dúvidas sobre o tratamento fiscal na emissão de notas fiscais para remessa de materiais destinados a feiras, eventos e dias de campo, normalmente enviamos quantidades significativas. Considerar opções onde os itens retornem ou não após a utilização.
 Materiais para brindes (comprados para uso e consumo – que não comercializamos. Ex: Bonés, chapéus etc.).
@@ -6121,7 +6121,7 @@ IV – números de inscrição, estadual e no CNPJ ou CPF.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 20/05/2025 às 10:50 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-05-16 15:09:00+00', '2025-05-16 15:09:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-16 15:09:00+00', '2025-05-16 15:09:00+00'),
   ('4edcc931-f94d-4cdf-98d2-fa68a9410a51'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Baixa de ativos imobilizados', '[ Contabilidade Tecnomyl | 15/05/2025 às 17:44 ]
 Solicitamos orientações quanto aos procedimentos a serem adotados na baixa de ativos imobilizados pela empresa. Especificamente, gostaríamos de esclarecer os seguintes pontos:
 Emissão de NF-e: em quais situações é obrigatória a emissão de nota fiscal e qual o procedimento correto;
@@ -6227,7 +6227,7 @@ CPC 27 – Ativo Imobilizado
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/05/2025 às 08:56 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'media', '2025-05-15 20:44:00+00', '2025-05-15 20:44:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-15 20:44:00+00', '2025-05-15 20:44:00+00'),
   ('5b23eea1-5bfb-4f1d-bf1a-b737865e4ea2'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Doações de ativos imobilizados', '[ Contabilidade Tecnomyl | 15/05/2025 às 17:43 ]
 Solicitamos orientações quanto aos procedimentos a serem adotados nas doações de ativos imobilizados realizadas pela empresa. Especificamente, gostaríamos de esclarecer os seguintes pontos:
 Emissão de NF-e: como deve ser feita a emissão da nota fiscal nas operações de doação de bens do ativo imobilizado;
@@ -6286,7 +6286,7 @@ Regulamento do ICMS-PR, artigo 3º, inciso XIV e IN RFB nº 1.700/2017.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/05/2025 às 08:56 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'media', '2025-05-15 20:43:00+00', '2025-05-15 20:43:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-15 20:43:00+00', '2025-05-15 20:43:00+00'),
   ('603594dd-b764-4c25-8d6d-8cdb843c0dd1'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Vendas de ativos imobilizados', '[ Contabilidade Tecnomyl | 15/05/2025 às 17:41 ]
 Solicitamos orientações quanto aos procedimentos a serem adotados nas vendas de ativos imobilizados realizadas pela empresa. Especificamente, gostaríamos de esclarecer os seguintes pontos:
 Emissão de NF-e: como deve ser feita a emissão da nota fiscal na venda de bens do ativo imobilizado;
@@ -6396,7 +6396,7 @@ Lei 10.833, art. 1º, inciso II; IN RFB 1.700/2017, art. 200; Regulamento do ICM
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/05/2025 às 08:55 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'media', '2025-05-15 20:41:00+00', '2025-05-15 20:41:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-15 20:41:00+00', '2025-05-15 20:41:00+00'),
   ('5858b4ff-3996-455b-8781-22d569712370'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Transferências de ativo imobilizado', '[ Contabilidade Tecnomyl | 15/05/2025 às 17:39 ]
 Solicitamos orientações quanto às transferências de ativos imobilizados (como celulares e computadores) entre filiais da empresa. Especificamente, gostaríamos de esclarecer os seguintes pontos:
 Emissão de NF-e: qual o procedimento correto para emissão da nota fiscal nessas transferências;
@@ -6454,7 +6454,7 @@ Regulamento do ICMS/PR, art. 3º, inciso XV; art. 7º, § 11, inciso I.
 [SISTEMA]: Status alterado para ➔ Em Progresso
 
 [ Ricardo Migueis | 16/05/2025 às 08:55 ]
-[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'media', '2025-05-15 20:39:00+00', '2025-05-15 20:39:00+00'),
+[SISTEMA]: Representante atribuído ➔ Matheus Lopes', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-15 20:39:00+00', '2025-05-15 20:39:00+00'),
   ('5606d11b-5b56-47c3-8044-20202bcc108b'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CONTRATO PRESTAÇÃO DE SERVIÇO DE TRANSPORTE', '[ Marcela Rech | 14/05/2025 às 18:18 ]
 Boa tarde! Estamos fechando um contrato onde tem como objeto o transporte rodoviário de cargas, em caráter de exclusividade de frota, realizado pela TRANSOESTE (MT)  para a CONTRATANTE (TRANSPORTADORA - SP), também vincula-se ao contrato 20 Carretas e 20 Cavalos Mecânicos. A CONTRATANTE exige a emissão de nota fiscal de serviço. Porém gostaria de saber qual a tratativa fiscal ou a forma mais vantajosa na questão dos impostos para emissão de NF, visto que NFSE tem a tributação de ISS que no caso seria TRIBUTAÇÃO FORA ( SP) ou se seria mais vantajoso a emissão de CTE. Contrato em anexo.
 
@@ -6481,7 +6481,7 @@ Para esse tipo de operação seria mais viável fazer um contrato de exclusivida
 Para o contrato de exclusividade seria NFSE ou CTE?
 E na locação?
 Qual operação é mais vantajosa?
-Seria mesmo necessário emissão de nota fiscal?', 'Outros', 'resolvido', 'resolvido', 'media', '2025-05-14 21:18:00+00', '2025-05-14 21:18:00+00'),
+Seria mesmo necessário emissão de nota fiscal?', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-05-14 21:18:00+00', '2025-05-14 21:18:00+00'),
   ('4aae3752-e33a-4283-bb90-a6ba673495d9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Assunto: Esclarecimento Contábil sobre Devolução de Bonificação – CFOP X.949', '[ Contabilidade Tecnomyl | 14/05/2025 às 14:53 ]
 Boa tarde,
 Atualmente realizamos algumas operações de bonificação nas quais o cliente recebe a mercadoria, caracterizando circulação física, com a utilização do CFOP X.910. Após determinado período, e por motivos acordados com a área comercial, ocorre a devolução dessa bonificação, gerando nova circulação da mercadoria, desta vez com o CFOP X.949. Voltando a propriedade para a Tecnomyl.
@@ -6566,7 +6566,7 @@ Poderia confirmar se essa contabilização da saída está correta?
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 14/05/2025 às 16:08 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-05-14 17:53:00+00', '2025-05-14 17:53:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-14 17:53:00+00', '2025-05-14 17:53:00+00'),
   ('7fa4401a-7979-41c8-b77d-ce1f9c4b3d4b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Dúvida sobre tratamento contábil – Repaletização e custos associados (pallets e embalagens)', '[ Contabilidade Tecnomyl | 9/05/2025 às 17:18 ]
 Necessitamos realizar a repaletização de um determinado produto, pois os pallets onde os mesmos estavam armazenados sofreram danos. Diante disso, foi necessário substituir os pallets para garantir a integridade do produto.
 Além disso, verificamos que algumas unidades do produto também sofreram danos nas embalagens originais. Para viabilizar o processo de repaletização, remetemos o produto via NF de industrialização para que fosse realizada a troca das embalagens danificadas (caixas de papelão), além da substituição dos pallets.
@@ -6634,7 +6634,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 12/05/2025 às 08:15 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'media', '2025-05-09 20:18:00+00', '2025-05-09 20:18:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', NULL, 'resolvido', 'resolvido', 'normal', '2025-05-09 20:18:00+00', '2025-05-09 20:18:00+00'),
   ('6fd97ef6-27f0-4490-8832-4b424f5037ce'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa e retorno de análise laboratorial', '[ Contabilidade Tecnomyl | 28/04/2025 às 14:23 ]
 Boa tarde, tudo bem?
 Gostaríamos de esclarecer como proceder na emissão e tributação das notas fiscais para remessa e retorno de envio para análise laboratorial.
@@ -6660,7 +6660,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 28/04/2025 às 14:26 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-28 17:23:00+00', '2025-04-28 17:23:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-28 17:23:00+00', '2025-04-28 17:23:00+00'),
   ('7833518f-bef9-49d8-9dcb-acbf456175e8'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [PA]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:23 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Pará (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6702,7 +6702,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:32 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:23:00+00', '2025-04-22 19:23:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:23:00+00', '2025-04-22 19:23:00+00'),
   ('7016fb0f-ff48-4b4d-9bf5-bfb58a45ac0a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [MA]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:23 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Maranhão (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6730,7 +6730,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:32 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:23:00+00', '2025-04-22 19:23:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:23:00+00', '2025-04-22 19:23:00+00'),
   ('14ed5459-9b75-48cb-9247-d2d2c1f4ece2'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [RO]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:22 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado de Rondônia (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6758,7 +6758,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:32 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:22:00+00', '2025-04-22 19:22:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:22:00+00', '2025-04-22 19:22:00+00'),
   ('d6be957b-67bb-49e7-9072-f209a3940494'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [TO]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:21 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado de Tocantins (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6786,7 +6786,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:31 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:21:00+00', '2025-04-22 19:21:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:21:00+00', '2025-04-22 19:21:00+00'),
   ('0ba2a3e8-a49d-4791-ab45-72d9aa4d422a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [MS]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:21 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Mato Grosso do Sul (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6814,7 +6814,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:31 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:21:00+00', '2025-04-22 19:21:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:21:00+00', '2025-04-22 19:21:00+00'),
   ('b458010b-1595-4fa9-9a9b-f2eac25e4262'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [MG]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:20 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado de Minas Gerais (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6842,7 +6842,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:31 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:20:00+00', '2025-04-22 19:20:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:20:00+00', '2025-04-22 19:20:00+00'),
   ('bf34946f-2227-4b80-9ca7-82008a586b78'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [BA]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:19 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado da Bahia (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6870,7 +6870,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:30 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:19:00+00', '2025-04-22 19:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:19:00+00', '2025-04-22 19:19:00+00'),
   ('9a45259c-7d1e-4a75-8e6b-c99db4422efb'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [RS]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:18 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Rio Grande do Sul (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6898,7 +6898,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:30 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:18:00+00', '2025-04-22 19:18:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:18:00+00', '2025-04-22 19:18:00+00'),
   ('9fd640c5-b962-4fa1-adbe-430024741007'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [SP]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:18 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado de São Paulo (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6926,7 +6926,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:30 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:18:00+00', '2025-04-22 19:18:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:18:00+00', '2025-04-22 19:18:00+00'),
   ('3dcbb4ba-d752-4ddc-a2aa-90354caa0ac6'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [MT]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:16 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Mato Grosso (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6954,7 +6954,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:29 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:16:00+00', '2025-04-22 19:16:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:16:00+00', '2025-04-22 19:16:00+00'),
   ('89e3bb54-9faa-4155-a55f-11ff8a1103d5'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [GO]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:15 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado de Goiás (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -6982,7 +6982,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:29 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:15:00+00', '2025-04-22 19:15:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:15:00+00', '2025-04-22 19:15:00+00'),
   ('934620cc-adc9-4ec6-b9df-2b97058436c2'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Obrigação Acessória [PR]', '[ Contabilidade Tecnomyl | 22/04/2025 às 16:14 ]
 Boa tarde,
 Solicito, por favor, a indicação de quais são as obrigações acessórias estaduais exigidas pelo estado do Paraná (como GIA, EFD Fiscal, DIEF, entre outras) e incluir:
@@ -7010,7 +7010,7 @@ Apenas complementando a solicitação, todos os chamados abertos para mapeamento
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:29 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 19:14:00+00', '2025-04-22 19:14:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 19:14:00+00', '2025-04-22 19:14:00+00'),
   ('e9f3f436-b3b3-44b8-b7f7-11c613bc6cc1'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa de Bonificação [Retorno]', '[ Contabilidade Tecnomyl | 22/04/2025 às 15:56 ]
 Boa tarde, Gostaríamos de solicitar orientação quanto ao correto tratamento fiscal para o retorno de uma remessa de bonificação. Informações do caso:
 Documento emitido pela filial localizada no estado de Goiás, em 17/04/2025;
@@ -7084,7 +7084,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 22/04/2025 às 16:28 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-04-22 18:56:00+00', '2025-04-22 18:56:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-04-22 18:56:00+00', '2025-04-22 18:56:00+00'),
   ('a0a79654-9d56-4892-b172-d8aa23495771'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'VENDA ENTREGA FUTURA', '[ Marcela Rech | 16/04/2025 às 12:21 ]
 Bom dia! Estamos comprando combustível (óleo diesel) e Arla em grande quantidade onde o fornecedor emiti nota fiscal VENDA ENTREGA FUTURA CFOP 5922 sendo que essa mercadoria só irá sair do estabelecimento do fornecedor aos poucos. Os veículos irão abastecendo aos poucos conforme demanda. Fornecedor alegou que conforme for sendo feita as abastecidas será gerado cupom fiscal. Como vamos fazer a escrituração dessa nota fiscal? e o cupom não é um documento hábil para escrituração, deve ser solicitado nota fiscal de remessa, visto que a primeira nota fiscal é uma entrega futura? ou por não haver transito da mercadoria não é necessário a emissão da nota fiscal de remessa? nesse caso reconhecemos a despesa somente com a nota CFOP 5922? Notas fiscais em anexo.
 
@@ -7107,7 +7107,7 @@ O chamado foi fechado.
 [SISTEMA]: Representante atribuído ➔ Maria Lizot
 
 [ Ricardo Migueis | 16/04/2025 às 14:37 ]
-Estado do chamado mudou para «Em Progresso»', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-04-16 15:21:00+00', '2025-04-16 15:21:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-04-16 15:21:00+00', '2025-04-16 15:21:00+00'),
   ('c49d3ab9-c43f-46d9-ad59-69cfe89c0364'::uuid, '61469b6c-a702-49ec-b8e7-542eb43f117e'::uuid, '2f13d6a3-2fb0-4a63-bd5f-be983a52e2d2'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CONTABILIZAÇÃO DE TRANSFERENCIA DE ESTOQUE', '[ Célio Barreto | 8/04/2025 às 12:31 ]
 Olá, viemos por meio deste solicitar orientação quanto a contabilização de transferência de estoque de produto de revenda entre filiais. Operação nova envolvendo as filiais Fribon Aviation PVA x Fribon Aviation Querência. Quais contas devemos criar para contabilizar esta operação tanto saída quanto entrada. Desde já agradecemos a atenção envolvendo a conta de estoque contábil.
 
@@ -7138,7 +7138,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 9/04/2025 às 07:57 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-04-08 15:31:00+00', '2025-04-08 15:31:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-04-08 15:31:00+00', '2025-04-08 15:31:00+00'),
   ('b4db6354-4e1e-4af3-a122-482cb398bcd6'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'EFD CONTRIBUIÇÃO – NCM COM SUSPENSÃO DA CONTRIBUIÇÃO PIS/COFINS', '[ Marcela Rech | 27/03/2025 às 09:34 ]
 Bom dia Estamos fazendo a entrega da EFD CONTRIBUIÇÃO e deu um aviso sobre estarmos tomando crédito de uma nota fiscal com NCM com suspensão da Contribuição Social(CST 09). Neste caso devemos retirar essa nota fiscal da EFD e deixar essa nota sem crédito? Em anexo documentos para análise.
 
@@ -7244,7 +7244,7 @@ Neste caso, entendemos que nesta situação o produto não gerará crédito para
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 27/03/2025 às 09:44 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-03-27 12:34:00+00', '2025-03-27 12:34:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-03-27 12:34:00+00', '2025-03-27 12:34:00+00'),
   ('99ee9623-4114-4fd1-8358-fab30d16ccf4'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Orientação sobre contabilização – Operações de comodato', '[ Contabilidade Tecnomyl | 26/03/2025 às 17:32 ]
 Boa tarde, tudo bem? Gostaríamos de receber orientação sobre a contabilização das operações de comodato, considerando os seguintes cenários:
 Remessa e retorno em comodato – Tecnomyl na posição de comodante.
@@ -7301,7 +7301,7 @@ Geizi Andrade.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 27/03/2025 às 07:51 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-03-26 20:32:00+00', '2025-03-26 20:32:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-26 20:32:00+00', '2025-03-26 20:32:00+00'),
   ('f4cf5e0b-05bc-42df-b98e-0bde0f5325c2'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa de materiais de uso e consumo', '[ Contabilidade Tecnomyl | 26/03/2025 às 16:21 ]
 Boa tarde, tudo bem? Temos dúvidas sobre o tratamento fiscal na emissão de notas fiscais para remessa de materiais de uso e consumo (como cadernos, canetas e fones) enviados a colaboradores, considerando que esses itens não retornam à empresa. Além disso, realizamos tanto operações internas quanto interestaduais, com saídas principalmente da matriz no Paraná. Como deve ser tratado o ICMS nessas remessas? Também gostaríamos de orientação sobre a correta contabilização dessas operações. Quais seriam os lançamentos contábeis adequados? Por gentileza, nos retornar o embasamento legal aplicável a essas operações. Agradecemos desde já pelo suporte.
 
@@ -7334,7 +7334,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/03/2025 às 16:29 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-03-26 19:21:00+00', '2025-03-26 19:21:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-26 19:21:00+00', '2025-03-26 19:21:00+00'),
   ('2e78c27a-fa41-4c2a-8a88-c3331671d361'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa e retorno de bens do ativo imobilizado', '[ Contabilidade Tecnomyl | 26/03/2025 às 16:19 ]
 Boa tarde, tudo bem?
 Gostaríamos de esclarecer como proceder na emissão e tributação das notas fiscais para remessa e retorno de bens do ativo imobilizado (como celulares e computadores), enviados a colaboradores.
@@ -7378,7 +7378,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/03/2025 às 16:28 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-03-26 19:19:00+00', '2025-03-26 19:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-26 19:19:00+00', '2025-03-26 19:19:00+00'),
   ('87e67771-6bab-4e7d-bfad-d2909adfa2ca'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'INSS – EMPRESAS DO MEI', '[ Contabilidade Tecnomyl | 26/03/2025 às 10:02 ]
 POR FAVOR ME PASSAR O RESPALDO LEGAL QUE DETERMINE QUANDO DEVO RECOLHER 20% DE INSS QUANDO O PRESTADOR DO SERVIÇO FOR MEI. (PRINCIPAIS CODIGO DE SERVIÇO COM ESSA INCIDÊNCIA)
 
@@ -7400,7 +7400,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/03/2025 às 10:29 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2025-03-26 13:02:00+00', '2025-03-26 13:02:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-03-26 13:02:00+00', '2025-03-26 13:02:00+00'),
   ('87b953c2-7cab-4c78-8fda-5f7dba95c44a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Codigo de Serviços com retenções.', '[ Contabilidade Tecnomyl | 26/03/2025 às 10:01 ]
 Bom dia, Gostaria de uma lista de serviços que incide os impostos retidos IR, Pis, Cofins, Csll e INSS.
 
@@ -7488,7 +7488,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/03/2025 às 10:30 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2025-03-26 13:01:00+00', '2025-03-26 13:01:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-03-26 13:01:00+00', '2025-03-26 13:01:00+00'),
   ('54981b32-4e45-42a9-8d6e-6fdfe4aac14d'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Abertura de um CNPJ filial em Santa Catarina', '[ Marcela Rech | 25/03/2025 às 15:04 ]
 É viável a abertura de um CNPJ filial em Santa Catarina com a finalidade de aquisição de imobilizado, especificamente carretas (NCM 8716.39.00) em Caxias do Sul - RS e cavalos (NCM 8701.21.00) em Curitiba - PR, visando a economia no pagamento do DIFAL em comparação à compra diretamente pelo nosso CNPJ em Mato Grosso?
 
@@ -7515,7 +7515,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/03/2025 às 10:30 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-03-25 18:04:00+00', '2025-03-25 18:04:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-03-25 18:04:00+00', '2025-03-25 18:04:00+00'),
   ('a2d14e70-c57d-47c1-9898-4580e5f16b08'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CARREGAMENTO DE DIESEL – S10 ADITIVADO GRID', '[ Marcela Rech | 20/03/2025 às 11:45 ]
 Bom dia! Vamos fazer carregamento de DIESEL S10 ADITIVADO GRID e estamos com receio do mesmo possuir algum impeditivo ou limitação legal, sabemos que o S500 é proibido por questão legal ambiental. No caso do S10 teria o mesmo impeditivo?
 
@@ -7539,7 +7539,7 @@ Estado do chamado mudou para «Em Progresso»
 [SISTEMA]: Representante atribuído ➔ Maria Lizot
 
 [ Marcela Rech | 20/03/2025 às 11:50 ]
-retifico que não é carregamento e sim abastecimento.', NULL, 'resolvido', 'resolvido', 'media', '2025-03-20 14:45:00+00', '2025-03-20 14:45:00+00'),
+retifico que não é carregamento e sim abastecimento.', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-20 14:45:00+00', '2025-03-20 14:45:00+00'),
   ('099b9183-84f5-4053-af14-f6a6004c6401'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'NOTAS FISCAIS DE SERVIÇO – VISTORIA', '[ Marcela Rech | 18/03/2025 às 12:19 ]
 Bom dia! Estamos com a seguinte situação... Nas vendas de imobilizado, emitimos notas fiscais aos compradores porém para transferência do veiculo o Detran exige que o mesmo passe por vistoria, segundo as empresas que realizam o serviço de vistoria precisa vincular o documento do veiculo no sistema do Detran sendo tudo automatizado e sem interferência humana. Segue base legal passada por eles: As emissões de notas fiscais de serviços prestados por empresas credenciadas junto ao Detran-MT, são realizadas de forma automática e sem interferência humana. Essas notas são emitidas pelo sistema integrado junto ao Departamento Estadual de Trânsito em nome da pessoa ou empresa proprietária do veículo, e nós não temos nenhum controle sobre essas emissões. Essa determinação pode ser conferida pela Portaria Estadual nº 754 anexo I de 23 de Dezembro de 2022, que diz o seguinte: " s) Emitir a nota fiscal automaticamente conforme os dados do proprietário recebido e conforme ao pagamento identificado, sem intervenção humana, seguindo os padrões definidos pela Secretaria de Fazenda; t) Enviar o arquivo xml da NFe de venda ao interessado do veículo via SMS e e-mail conforme recebido na autorização, bem como disponibilizar o XML para consulta do DETRAN/MT." https://www.anpevi.org.br/PortariasHTML/MT_754_anexo1.html  Notamos que as empresas de vistoria emitem notas fiscais de serviço onde o tomador fica sendo a transoeste, mesmo a mesma não tendo mais nenhum vinculo com o veiculo. Já que foi feito nota fiscal e intenção de venda. Preciso de um respaldo para que possamos negar a emissão dessas notas fiscais para a empresa TRANSOESTE, pois conforme a própria lei diz as notas fiscais devem ser emitidas conforme os dados do proprietário recebido e conforme ao pagamento identificado. Ou seja não somos mais o proprietário do veiculo e não solicitamos o serviço não sendo o pagador. Segundo informações coletadas o pagador normalmente é o despachante que esta intermediando a operação. Caso estejam segurados pela lei, e de fato esse serviço ter vinculo com a empresa como podemos escriturar essa nota fiscal, visto que o pagamento e autorização para emissão da nota fiscal não foi feito por nos TRANSOESTE. Anexo documentos que comprovam a venda e a nota fiscal que a vistoria emite.
 
@@ -7583,7 +7583,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 18/03/2025 às 15:51 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-03-18 15:19:00+00', '2025-03-18 15:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-03-18 15:19:00+00', '2025-03-18 15:19:00+00'),
   ('b43c374f-8c05-43c3-9ed5-50e74c1ceac6'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'OBRIGATORIEDADE BLOCO K – SPED FISCAL', '[ Contabilidade Tecnomyl | 14/03/2025 às 12:50 ]
 Atualmente, a Tecnomyl está obrigada a transmitir o Bloco K no SPED Fiscal? Se sim, poderiam informar qual é o dispositivo legal que exige essa obrigatoriedade e quais são os critérios utilizados pelo Estado para determinar quais empresas devem cumprir essa exigência?
 
@@ -7629,7 +7629,7 @@ Para melhor análise, iremos precisar que nos informe CNPJ e CNAE Principal por 
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 14/03/2025 às 15:52 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-03-14 15:50:00+00', '2025-03-14 15:50:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-14 15:50:00+00', '2025-03-14 15:50:00+00'),
   ('86ca7120-6806-46e0-9745-45f660bac8d9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Circulação de mercadoria durante exoneração', '[ Contabilidade Tecnomyl | 13/03/2025 às 10:10 ]
 Olá!   Precisamos saber se existe algum embasamento no regulamento de ICMS que possibilita a circulação de mercadoria do porto para a unidade destino durante a exoneração de do imposto, não sendo necessário a finalização dos trâmites para movimentar os produtos. Unidades de importação - SP, PR, RS, MT e GO
 
@@ -7673,7 +7673,7 @@ O chamado foi fechado.
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Ricardo Migueis | 13/03/2025 às 14:32 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-03-13 13:10:00+00', '2025-03-13 13:10:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-03-13 13:10:00+00', '2025-03-13 13:10:00+00'),
   ('10433129-1d90-4a47-97b6-c43117290510'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Estudo Tributário sobre Venda de Peças de Maquinas.', '[ Luis Fernando | 11/03/2025 às 10:43 ]
 Bom dia pessoal. Com a venda de alguns ativo imobilizados (Maquinas PA Carregadeiras e Retro Escavadeiras) ha também a necessidade de vendar peças que estão em estoque, relacionados a essas mesmas maquinas vendidas. Segue levantamento de peças que teremos que vender, solicito orientação a tributação sobre essa venda, (ICMS, PIS e COFINS). Fico no aguardo. Luis F.G.da Silva 94 99161 1506.
 
@@ -7726,7 +7726,7 @@ Para uma melhor análise da tributação de ICMS, PIS e COFINS, informar NCM dos
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/03/2025 às 11:13 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-03-11 13:43:00+00', '2025-03-11 13:43:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-11 13:43:00+00', '2025-03-11 13:43:00+00'),
   ('dc8c9409-c494-453d-80d0-3bb35c5397cf'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Histórico Código do Produto', '[ Adriano Siqueira | 10/03/2025 às 09:19 ]
 Bom dia, Prezados! Existe alguma regra  que obrigue  que produtos que tenham formulação ( Adubos e Fertilizantes), traga essa informação na descrição do produto? Essa informação é obrigatória ? Atenciosamente,
 
@@ -7752,7 +7752,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 10/03/2025 às 09:34 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-03-10 12:19:00+00', '2025-03-10 12:19:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-03-10 12:19:00+00', '2025-03-10 12:19:00+00'),
   ('cacd64b7-2abd-4e00-b611-0e966422c8f6'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Mapa tributário Novos NCM’s', '[ Contabilidade Tecnomyl | 28/02/2025 às 09:00 ]
 Bom dia, tudo bem? Por gentileza, poderia atualizar nosso mapeamento tributário de ICMS/Pis/Cofins para os NCM''s listados abaixo para 2025 para os estados : PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA. NCM 3105.90.90 (já consultamos outras vezes) NCM 3103.90.90 (Novo NCM) NCM Enxofre 2503.00.10 (Novo NCM) NCM Ulexita 2528.00.00 (Novo NCM) OBS: **** Esses produtos serão importados da Bolivia e Oriente médio ****. Operações: Importação, Venda interna e Interestadual. Enviar Excel igual aos anteriores.
 
@@ -7798,7 +7798,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 28/02/2025 às 09:24 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-02-28 12:00:00+00', '2025-02-28 12:00:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-02-28 12:00:00+00', '2025-02-28 12:00:00+00'),
   ('cf697cdd-9a0f-4710-8e4e-b4517de7c07f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Operação venda Suframa', '[ Contabilidade Tecnomyl | 27/02/2025 às 09:56 ]
 Olá!   Precisamos da confirmação na operação de venda suframa o ICMS que deve ser concedido como desconto em nota fiscal é o referente a carga tributária do item como por exemplo insumos agropecuários convênio 100/97 com 4,8% de alíquota efetiva ou da alíquota da operação interestadual 12%
 
@@ -7901,7 +7901,7 @@ Inicialmente para podemos efetuar uma análise detalhada, precisamos da base leg
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 27/02/2025 às 10:15 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-02-27 12:56:00+00', '2025-02-27 12:56:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-02-27 12:56:00+00', '2025-02-27 12:56:00+00'),
   ('80eb8df3-39cb-4f21-9f7e-b9ddf6c17b04'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Tag Entrega e Fluxo venda com local diferente do Destinatário', '[ Contabilidade Tecnomyl | 21/02/2025 às 09:16 ]
 Olá! Precisamos validar novamente o fluxo de operações de venda em casos em que a entrega ocorre em um endereço diferente do registrado na Inscrição Estadual ou no CNPJ do cliente. A divergência entre o endereço de entrega e o cadastrado no CNPJ ou na Inscrição Estadual pode gerar algum tipo de impedimento ou penalização? Mesmo que sendo mencionado na Tag xml endereço de entrega <entrega>. Além disso, frequentemente o cliente 1 solicita entrega em um local diferente ou vende para um terceiro e solicita que a mercadoria seja enviada diretamente para ele. No sistema antigo, utilizávamos a tag da NT 2018.005 para informar o endereço de entrega, porém, nesse campo, eram mencionados o CNPJ e a IE do armazém. Essa prática ainda é permitida? Anexei um PDF de teste para referência, onde os dados do destinatário permanecem os mesmos, mas a rua e a cidade estão diferentes do que consta no Sintegra/CNPJ. Aguardamos a orientação sobre a correta utilização da tag de entrega conforme a NT 2018.005 bem como a orientação sobre a forma correta das emissões em que o local de entrega não condiz com o cadastro do destinatário.
 
@@ -8148,7 +8148,7 @@ PR	GO	MT	SP	RS	BA	MG	MS	TO	RO	MA	PA
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 21/02/2025 às 09:19 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'media', '2025-02-21 12:16:00+00', '2025-02-21 12:16:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-02-21 12:16:00+00', '2025-02-21 12:16:00+00'),
   ('b0b8955a-1b42-4c3c-abe2-afd4ff1497cf'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Carta de Correção', '[ Contabilidade Tecnomyl | 21/02/2025 às 09:08 ]
 Olá, Gostaríamos de obter orientações sobre a emissão da carta de correção para o item 2. Temos casos em que o endereço de entrega do cliente diverge do cadastrado, ou, no momento da entrega, é solicitada a emissão da carta de correção para um endereço diferente do parceiro. Esse novo endereço pode ser, por exemplo, uma fazenda próxima na qual o cliente possui vínculo societário ou um galpão de terceiros. Diante desse cenário, a emissão da carta de correção para esse tipo de alteração é permitida? Poderiam, por gentileza, esclarecer quais correções são permitidas e quais não podem ser realizadas, com alguns exemplos? Agradecemos desde já pela orientação.   Texto Sefaz: O emitente poderá sanar erros em campos específicos da NF-e por meio de Carta de Correção Eletrônica - CC-e, devidamente autorizada mediante transmissão à Secretaria da Fazenda ou de Carta de Correção, em papel, desde que o erro não esteja relacionado com: 1 - as variáveis que determinam o valor do imposto tais como: base de cálculo, alíquota, diferença de preço, quantidade, valor da operação (para estes casos deverá ser utilizada NF-e Complementar); 2 - a correção de dados cadastrais que implique mudança do remetente ou do destinatário; 3 - a data de emissão da NF-e ou a data de saída da mercadoria
 
@@ -8330,7 +8330,7 @@ d) nas Notas Técnicas da NF-e, disponíveis no “site” http://nfe.fazenda.go
 Diante do exposto, a indicação prevista no Instrução Normativa DRP n° 045/98, Título I, Capítulo XI, Seção 20.0, subitem 20.1.1, alínea “a” diz que é vedada: a correção de dados cadastrais que implique mudança do emitente, tomador, remetente ou do destinatário, sendo assim, o cenário apresentado não pode ser realizado, uma vez, que não é permitido utilizar carta de correção na mudança de destinatário.
 Lembrando a que a entrega em local diverso do destinatário da mercadoria somente poderá ser feito, se a operação estiver prevista no regulamento de ICMS.
 Bahia – BA:
-Conforme análise ef', 'Outros', 'resolvido', 'resolvido', 'media', '2025-02-21 12:08:00+00', '2025-02-21 12:08:00+00'),
+Conforme análise ef', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-02-21 12:08:00+00', '2025-02-21 12:08:00+00'),
   ('9f1c5aeb-f4d7-4f07-af82-9f85d0eccc76'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'BAIXA DE IMOBILIZADO POR ROUBO/FURTO', '[ Marcela Rech | 17/02/2025 às 13:39 ]
 Bom dia! O veiculo placa RRL3A22 foi furtado em 09/11/2024, na página do DETRAN e da SEFAZ já consta a situação do mesmo como furtado, até o momento esse veículo não foi localizado. Porém o veiculo havia seguro, fizemos a intenção de venda para a seguradora PORTO SEGURO em 22/11/2024. Dúvidas:
 Devemos emitir a NF com o CFOP 5.927 – Lançamento efetuado a título de baixa de estoque decorrente de perda, roubo ou deterioração e guardar o Boletim de ocorrência juntamente com a nota fiscal e todos os documentos que comprovem o tal referido roubo ou furto?
@@ -8403,7 +8403,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 17/02/2025 às 14:15 ]
-[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-02-17 16:39:00+00', '2025-02-17 16:39:00+00'),
+[SISTEMA]: Representante atribuído ➔ Maria Lizot', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-02-17 16:39:00+00', '2025-02-17 16:39:00+00'),
   ('855239b4-7e0d-4f08-9e69-bc587a224a3b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Exportação Materiais Tecnomyl PY', '[ Contabilidade Tecnomyl | 14/02/2025 às 10:17 ]
 Bom dia, tudo joia? Faremos uma exportação de alguns pisos para a Tecnomyl PY e precisamos validar algumas informações: * Não temos nos nossos CNAES nenhuma atividade de exportação para esse tipo de material, pode ser feito de mesmo modo recebendo a NF-e do Fornecedor como fim específico de exportação? * Precisamos fazer a inclusão de Atividade no CNPJ? * Análise de Tributação de ICMS, IPI, PIS e Cofins de entrada e saída para o Exterior dos Itens e NCMS abaixo:
 PRODUTO	NCM
@@ -8480,7 +8480,7 @@ Essa exportação será feita por qual estado?
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 14/02/2025 às 10:49 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'media', '2025-02-14 13:17:00+00', '2025-02-14 13:17:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-02-14 13:17:00+00', '2025-02-14 13:17:00+00'),
   ('74a2d0ed-d9b9-4077-9de0-d03e9ab6b588'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'CRÉDITO DE ICMS EM CTES DE COMPRAS', '[ Contabilidade Tecnomyl | 11/02/2025 às 08:16 ]
 Bom dia, tudo bem? Estamos fazendo um mapeamento em nossos CTes, por gentileza, nos fornecer a evidência da legislação onde informa que podemos nos creditar do ICMS dos CTes referente a compras de produtos que comercializamos. Informar o livro do RICMS e os trechos. Para os estados: PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA. Montar em excel conforme as solicitações anteriores. Muito obrigada.
 
@@ -8519,7 +8519,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/02/2025 às 08:50 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-02-11 11:16:00+00', '2025-02-11 11:16:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-02-11 11:16:00+00', '2025-02-11 11:16:00+00'),
   ('9ffd5b59-8505-4387-adc5-d74a3914110a'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'NOTA FISCAL SERVIÇO DE TELECOMUNICAÇÃO', '[ Marcela Rech | 5/02/2025 às 17:56 ]
 Boa tarde! Contratamos serviço de rastreamento onde o fornecedor emite nota fiscal modelo 21 telecomunicação. nossa atividade principal é serviço de transporte onde são colocado rastreadores nos veículos. Na compra de rastreadores podemos nos creditar de PIS/COFINS. Minha duvida é, por ser uma nota fiscal de telecomunicação, posso me creditar de PIS/COFINS? Segue nota fiscal em anexo.
 
@@ -8581,7 +8581,7 @@ Desde já, agradeço.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 6/02/2025 às 07:30 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-02-05 20:56:00+00', '2025-02-05 20:56:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-02-05 20:56:00+00', '2025-02-05 20:56:00+00'),
   ('d05853e4-34f4-42b7-a9ec-74f2215932dc'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'NOTAS FISCAIS DE DEVOLUÇÃO – COM FINALIDADE EM GARANTIA', '[ Marcela Rech | 5/02/2025 às 12:21 ]
 Bom dia! Atualmente alguns fornecedores nos pedem a emissão de notas fiscais de devolução porém com a informação complementar em garantia. Nos como cliente consumidor final emitimos elas normalmente CFOP :5.556/5413 - NF EM ANEXO Questionei ao fornecedor qual era o procedimento para exigirem essa forma de emissão. Responderam da seguinte forma: - Eles mandam a peça para a fabrica (em garantia) se for procedente eles dão em crédito o valor da peça para o cliente (transoeste) e é emitido nota fiscal de venda com a informação adicional, CREDITO REF. NF ... Quando não é procedente eles devolvem a peça com o laudo da fabrica. Sendo assim, se é procedente a nota fiscal fica como garantia, se não, fica como devolução. Essa tratativa fiscal esta correta? Se não, qual seria a forma correta de tratarmos essa operação?
 
@@ -8614,7 +8614,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 5/02/2025 às 12:37 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-02-05 15:21:00+00', '2025-02-05 15:21:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-02-05 15:21:00+00', '2025-02-05 15:21:00+00'),
   ('96e2078e-5502-4bbd-8363-0a43c40fae60'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DIFAL', '[ Contabilidade Tecnomyl | 3/02/2025 às 16:14 ]
 Olá, boa tarde! Tudo bem?   Estamos precisando de um manual detalhado sobre o processo de recolhimento do ICMS DIFAL para as compras da Tecnomyl de materiais destinados ao uso e consumo ou ao ativo imobilizado. Para os estados: PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA O material deve incluir:
 Como realizar o cálculo do DIFAL;
@@ -8671,7 +8671,7 @@ Mapeamento-de-Tributacao_ICMS_DIFAL_Atualizado-em-02.2025.xlsx
 O chamado foi fechado.
 
 [ Ricardo Migueis | 3/02/2025 às 16:34 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2025-02-03 19:14:00+00', '2025-02-03 19:14:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2025-02-03 19:14:00+00', '2025-02-03 19:14:00+00'),
   ('1fa08c00-8472-48bc-92be-239756cfc5d5'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'dbe10aeb-48a8-4ee7-9df6-24f1668c53ac'::uuid, 'O empréstimo entre empresas do mesmo grupo societário', '[ Marcela Rech | 30/01/2025 às 09:41 ]
 Bom dia. Como devemos tratar o empréstimo entre empresas do mesmo grupo societário, onde a empresa que irá emprestar está no Lucro Presumido (holding) e a que irá receber no Lucro Real (Logistica)? Qual o calculo de IOF? É obrigatório cobrar juros?Podem disponibilizar um modelo de contrato de mútuo padrão?
 
@@ -8679,7 +8679,7 @@ Bom dia. Como devemos tratar o empréstimo entre empresas do mesmo grupo societ�
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/01/2025 às 10:35 ]
-[SISTEMA]: Representante atribuído ➔ Washington Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2025-01-30 12:41:00+00', '2025-01-30 12:41:00+00'),
+[SISTEMA]: Representante atribuído ➔ Washington Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2025-01-30 12:41:00+00', '2025-01-30 12:41:00+00'),
   ('8235db2e-2c07-4f7b-99a0-7ec880487047'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão 4º Trimestre 2024 – EFD Contribuições.', '[ Luis Fernando | 23/01/2025 às 08:00 ]
 Bom dia! Segue em anexo arquivos para revisão das Efd Contribuições referente ao 4º Trimestre de 2024 e Planilha de Apuração Pis/Cofins 2024.
 
@@ -8711,7 +8711,7 @@ Gabriel Gama
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 23/01/2025 às 08:36 ]
-[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2025-01-23 11:00:00+00', '2025-01-23 11:00:00+00'),
+[SISTEMA]: Representante atribuído ➔ Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2025-01-23 11:00:00+00', '2025-01-23 11:00:00+00'),
   ('4065ab4f-5c2f-4592-bb65-4ce7aa3ab71b'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'FET – Fundo Estadual de Transporte – TOCANTINS', '[ Adriano Siqueira | 20/01/2025 às 17:17 ]
 Boa tarde, Prezados! Gostaria de confirmar se está obrigatório o recolhimento do FET no estado do Tocantins para a comercialização de Grãos? Ano passado houve muitos impasse e dúvida sobre o recolhimento desse fundo. Atenciosamente,
 
@@ -8869,7 +8869,7 @@ A comercialização dos grãos será em mercado interno ou com finalizada de exp
 [SISTEMA]: Representante atribuído ➔ Diego Melo
 
 [ Ricardo Migueis | 20/01/2025 às 17:22 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2025-01-20 20:17:00+00', '2025-01-20 20:17:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2025-01-20 20:17:00+00', '2025-01-20 20:17:00+00'),
   ('5175c8d4-0064-4b68-acc4-09eb1a81ba96'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Doação _ Ativo Imobilizado', '[ Adriano Siqueira | 15/01/2025 às 19:32 ]
 Prezados, A nossa filial de Água Boa, possui algumas cadeiras que encontram-se no Ativo Imobilizado ( velhas, com avarias, etc..) e querem realizar a doação para uma pessoa física que ajuda em um projeto social no município. Nesse caso haveria incidência de ICMS c/ base reduzida  e ITCD? Como seria o cálculo do ITCD? Pelo beneficiário ser pessoa física, teria alguma particularidade? Atenciosamente,
 
@@ -8916,7 +8916,7 @@ Estado do chamado mudou para «Em Progresso»
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 16/01/2025 às 08:22 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2025-01-15 22:32:00+00', '2025-01-15 22:32:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2025-01-15 22:32:00+00', '2025-01-15 22:32:00+00'),
   ('a34a1674-3ab9-4007-9463-24ff2692b7cf'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'TRANSITO DE VEICULOS NOVOS SEM EMPLACAMENTO', '[ Marcela Rech | 15/01/2025 às 11:20 ]
 Bom dia! Vamos fazer o transito de veículos remontados novos não emplacados de Caxias do Sul (RS) para Rondonópolis (MT), porém as notas fiscais de compra desses veículos são de emissão maior que trinta dias. Há algum empecilho ao realizar  o transporte desses veículos? teria prazo máximo para realização desse transporte? Qual seria a orientação para transporte sem ocorrência de multas?
 
@@ -8983,7 +8983,7 @@ Estado do chamado mudou para «Em Progresso»
 [ Ricardo Migueis | 15/01/2025 às 11:46 ]
 Bom dia!
 poderia enviar as notas fiscais de compra destes veículos para nossa análise!.
-Obrigado.', 'Outros', 'resolvido', 'resolvido', 'media', '2025-01-15 14:20:00+00', '2025-01-15 14:20:00+00'),
+Obrigado.', 'Outros', 'resolvido', 'resolvido', 'normal', '2025-01-15 14:20:00+00', '2025-01-15 14:20:00+00'),
   ('0aa82bed-3f6c-4ce6-8d02-468f712f5e9d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Lei Estadual nº 10.837, sancionada em 26 de dezembro de 2024', '[ Luis Fernando | 6/01/2025 às 16:05 ]
 Boa tarde pessoal, Venho solicitar analise da Lei Estadual nº 10.837, sancionada em 26 de dezembro de 2024, e seus futuros impactos nas operações da Agropecuária Cataratas. Conforme segue: Att, Luis F.G.da Silva 94 99161 1506.   A Lei Estadual nº 10.837, sancionada em 26 de dezembro de 2024, altera dispositivos da Lei Estadual nº 5.674, de 21 de outubro de 1991, que regulamenta o Fundo de Desenvolvimento Econômico do Estado do Pará (FDE). As principais mudanças introduzidas por esta lei incluem: 1. *Contribuições do Setor Mineral*: Institui uma contribuição não compulsória vinculada a tratamentos tributários diferenciados concedidos a contribuintes do segmento de minérios no âmbito do ICMS. A fruição desses benefícios fiscais está condicionada à contribuição para o FDE pelos remetentes das mercadorias especificadas no Anexo I da lei. O valor da contribuição é calculado com base em uma fórmula que considera a quantidade de produtos comercializados e um coeficiente específico para cada tipo de minério. 2. *Contribuições do Setor Agropecuário*: Estabelece uma contribuição similar para contribuintes do segmento agropecuário que usufruem de tratamentos tributários diferenciados relacionados ao ICMS. Os remetentes das mercadorias listadas no Anexo II da lei devem contribuir para o FDE, com valores calculados conforme fórmula análoga à do setor mineral. Importante destacar que o produto dessa contribuição será integralmente aplicado na execução de obras para conservação e melhoria da infraestrutura viária necessária ao escoamento da produção agropecuária paraense. 3. *Administração e Fiscalização*: A Secretaria de Estado da Fazenda (SEFA) é designada como responsável pelo controle da arrecadação e fiscalização das contribuições ao FDE previstas nos artigos 3º-A a 3º-K da lei. A lei também prevê que o Poder Executivo poderá dispensar a aplicação dessas contribuições caso o contribuinte opte por um regime simplificado de apuração e pagamento do ICMS. As alterações visam fortalecer o FDE, ampliando suas fontes de recursos e direcionando investimentos para áreas estratégicas, como a infraestrutura viária, essencial para o desenvolvimento econômico do estado. Para mais detalhes, recomenda-se a leitura completa da Lei nº 10.837, de 26 de dezembro de 2024, disponível no portal de Leis Estaduais do Pará.
 
@@ -9037,7 +9037,7 @@ Para uma melhor análise, iremos precisar de uma relação de NCM referente as o
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 7/01/2025 às 07:53 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-01-06 19:05:00+00', '2025-01-06 19:05:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-01-06 19:05:00+00', '2025-01-06 19:05:00+00'),
   ('e89c3afc-6081-43b2-87de-9bece63ccdf7'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DIFERENCIAL DE ALIQUOTA PRESTAÇÃO DE SERVIÇO DE FRETE', '[ Marcela Rech | 2/01/2025 às 16:31 ]
 Boa tarde! Na operação de serviço onde nós somos o tomador do estado de Mato Grosso(MT), enviando mercadoria para o estado do Pará(PA), o diferencial de alíquota é devido para qual estado? Se devido para o Pará(PA), fazemos o recolhimento via GNRE? Segue cte em anexo para análise.
 
@@ -9078,7 +9078,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 3/01/2025 às 10:31 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2025-01-02 19:31:00+00', '2025-01-02 19:31:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2025-01-02 19:31:00+00', '2025-01-02 19:31:00+00'),
   ('54e86dc7-9313-4a16-b67e-8fd1493868dc'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DIFERENCIAL DE ALIQUOTA', '[ Marcela Rech | 27/12/2024 às 18:24 ]
 Boa tarde Gostaria de saber se essa nota fiscal tem algum benefício que reduza a base de cálculo do diferencial de alíquota ou que isenta. Conforme cita nos dados adicionais o inciso XXXVIII, art. 2, anexo II do RICMS/SC sobre isenção nas saídas interestaduais: "Art. 2° São isentas as seguintes operações internas e interestaduais: XXXVIII – enquanto vigorar o Convênio ICMS 101/97, a saída dos produtos relacionados na Seção XIII do Anexo 1, destinados ao aproveitamento das energias solar e eólica, observado o seguinte (Lei nº 18.319/2021, art. 23):
 a) o benefício somente se aplica se a operação for contemplada com isenção ou alíquota reduzida a 0 (zero) do IPI;
@@ -9152,7 +9152,7 @@ Não venho a nota fiscal, por favor anexar ou nos encaminhar a chave de acesso.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/12/2024 às 10:19 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-12-27 21:24:00+00', '2024-12-27 21:24:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-12-27 21:24:00+00', '2024-12-27 21:24:00+00'),
   ('5af562aa-9608-4f4a-ac1f-24ead878e75c'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'ICMS – Transferência entre estabelecimentos de mesmo titular', '[ Adriano Siqueira | 27/12/2024 às 15:32 ]
 Prezados, Gostaríamos de saber se vocês já tem um entendimento a respeito  do convênio 109/2024, que trata das transferências tributadas interestaduais. Se optamos pela operação não tributada ou pela operação equiparada a tributada? Considerar os Estados RO, PA, MS, MT, MA, AC, TO, Go e MG. Atenciosamente,
 
@@ -9193,7 +9193,7 @@ Sendo que o contribuinte tem que analisar essas questões para tomar a decisão 
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/12/2024 às 10:18 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-12-27 18:32:00+00', '2024-12-27 18:32:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-12-27 18:32:00+00', '2024-12-27 18:32:00+00'),
   ('28c319ba-9e0f-42ef-abc2-6d756877e789'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Fundo de Reforma do Estado', '[ Contabilidade Tecnomyl | 23/12/2024 às 16:10 ]
 Boa tarde. Tudo bem? Recebemos essa informação sobre o Fundo de Reforma do Estado na filial de Rio Grande do Sul. Precisamos saber se necessita algum cadastro no Estado e se há outros Estados com o mesmo tipo de operação considerando nossas filiais.
 Paraná	Goiás	Mato Grosso	São Paulo	Rio Grande do Sul	Bahia	Minas Gerais	Tocantins	Rondônia	Maranhão	Pará
@@ -9218,7 +9218,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/12/2024 às 11:25 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-12-23 19:10:00+00', '2024-12-23 19:10:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-12-23 19:10:00+00', '2024-12-23 19:10:00+00'),
   ('9c334f98-e3e1-4cb3-a4ff-fd3ed9338d11'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Benefício de ICMS no Estado de Roraima', '[ Contabilidade Tecnomyl | 11/12/2024 às 15:46 ]
 Olá, Estamos efetuando uma venda dos seguintes NCM 3808.69.90 - 3808.91.99 - 3808.92.99 e 3808.93.29 que são defensivos agrícolas para plantações, com CFOP 6.102. Saída do estado SP, PR e/ou MT para destino RR - Roraima. Cliente é consumidor final, produtor rural, inscrito no CPF e com inscrição estadual. Pergunta-se: Existe algum benefício fiscal para esta operação?   Um dos clientes nos passaram que tem benefício para pessoa física e nos enviaram esta lei “LEI N° 215 de 11 de setembro de 1998.”  (Anexo 1) Em pesquisa verificamos que no artigo 703, do Regulamento do ICMS, aprovado pelo Decreto nº 4.335-E, de 3 de agosto de 2001, menciona esta lei. Seguindo esta pesquisa achamos dois decretos: Anexo 2 – Decreto: https://leisestaduais.com.br/rr/decreto-n-31587-2022-roraima-concede-beneficios-fiscais-de-que-trata-a-lei-215-de-11-de-setembro-de-1998 Anexo 3 – Decreto: https://leisestaduais.com.br/rr/decreto-n-35482-2024-roraima-concede-beneficios-fiscais-de-que-trata-a-lei-no-215-de-11-de-setembro-de-1998 Portanto abaixo segue a lista dos clientes para consulta, caso precise:
 CLIENTE	CPF	I.E.
@@ -9527,7 +9527,7 @@ Poderia nos informar o município onde está situados os clientes?
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/12/2024 às 16:04 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-12-11 18:46:00+00', '2024-12-11 18:46:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-12-11 18:46:00+00', '2024-12-11 18:46:00+00'),
   ('17ee9f7a-e292-40d1-864a-85d30c3a7f73'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'ICMS SOBRE FRETE CARGA PRÓPRIA E EMISSÃO DE DOCUMENTO FISCAL', '[ Marcela Rech | 29/11/2024 às 16:13 ]
 Boa tarde! Vamos realizar a seguinte operação: Transoeste esta comprando veículos CAMINHÕES e SEMIREBOQUE dentro do estado (MT) porém os veículos vão ser retirado na fábrica em CAXIAS DO SUL (RS). Por serem novos esses veículos irão transitar sem placa e irão vir remontados (caminhão engatado em um semireboque que irá estar carregando outro semireboque) Nesse caso será necessário a emissão de CTE e MDF-e? essa prestação de serviço se considerada carga própria incidirá ICMS?
 
@@ -9572,7 +9572,7 @@ Para melhor análise da situação, poderia nos informar se o semirreboque que v
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 2/12/2024 às 07:52 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-11-29 19:13:00+00', '2024-11-29 19:13:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-11-29 19:13:00+00', '2024-11-29 19:13:00+00'),
   ('8a92165a-6473-496d-a7a3-02ca7c149b0d'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Operação Triangular com Deposito Fechado', '[ Adriano Siqueira | 27/11/2024 às 10:37 ]
 Prezados, Gostaria de um apoio no entendimento das operações de Compra de Mercadoria ( Filiais) e Remessa ( Entrega) no Depósito. No Art. 181 do RICMS/ MT consta: 4° A entrega de mercadorias remetidas a contribuintes deste Estado poderá ser feita em outro estabelecimento pertencente ao mesmo titular do estabelecimento destinatário, quando: I – ambos os estabelecimentos do destinatário estejam situados neste Estado; II – do documento fiscal emitido pelo remetente constem os endereços e os números de inscrição estadual de ambos os estabelecimentos do destinatário, bem como a indicação expressa do local da entrega da mercadoria. 5° Nas hipóteses do § 4° deste artigo, o documento fiscal será registrado unicamente no estabelecimento em que efetivamente entraram as mercadorias. Desse modo,  mesmo que a NF esteja faturada para a filial, o Depósito estaria obrigado a fazer a escrituração da NF Compra e Remessa? Entendendo que essa possibilidade não se aplica a AAPA, poderíamos utilizar a operação triangular: Fornecedores: CFOP 5105/6105 - AAPA; Loja: CFOP 5905/6905- Depósito; Fornecedor - 5923/6923 - Depósito. Qual seria o entendimento do CFOP 5105? Que a mercadoria não transita sobre o estabelecimento do fornecedor ou comprador? Qualquer dúvida fico à disposição,   Atenciosamente,
 
@@ -9700,7 +9700,7 @@ O depósito citado na operação acima é da AAPA ou é de terceiros?
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 27/11/2024 às 11:08 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-11-27 13:37:00+00', '2024-11-27 13:37:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-11-27 13:37:00+00', '2024-11-27 13:37:00+00'),
   ('20b8a06d-daff-458d-a52c-23ffa35628f6'::uuid, '756cfd61-a763-4624-9f1a-f04f2e787cc1'::uuid, 'de202952-beac-40a0-96dd-024b689dbb48'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Incentivos fiscais', '[ Marcela Rech | 25/11/2024 às 09:11 ]
 Bom dia! Quais incentivos fiscais a empresa pode usufruir ao conceder o benefício de auxílio-educação para pós-graduação ou graduação aos seus funcionários e enquadrá-lo como incentivo à educação?
 
@@ -9719,7 +9719,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 25/11/2024 às 09:26 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2024-11-25 12:11:00+00', '2024-11-25 12:11:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-11-25 12:11:00+00', '2024-11-25 12:11:00+00'),
   ('b05c946e-a4ff-4743-9ce6-12f7d16088fa'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Emissão Conhecimento de Transporte – Estado MS', '[ Contabilidade Tecnomyl | 21/11/2024 às 12:06 ]
 Bom dia, tudo bem? Nessa semana tivemos a solicitação de cancelamento de 11 notas fiscais, segundo a transportadora, o prazo para emissão do CTE foi excedido conforme as leis do estado do MS e eles nos encaminharam os dois arquivos em anexo. Precisamos da seguinte análise sobre a Legislação do MS. • Legislação prevê prazo para emissão de CTE? • Legislação prevê prazo de entrega? • é passível de multa? Precisamos de um retorno no máximo até dia 26/11 onde teremos um alinhamento com a transportadora. Muito obrigado desde já. Abaixo o e-mail comunicado da transportadora: Bom dia! Prezado cliente, Segue em anexo comunicado referente a nova regra para emissão de nota fiscal e conhecimento de transporte no mesmo dia (D+0). Teremos que emitir as notas somente dentro do horário de corte acordado que é até no máximo às 14h (horário do MS), com essa regra, o setor de atendimento ao cliente terá o tempo hábil de emitir o conhecimento de transporte que deve ser na mesma data da emissão da nota fiscal. Tal exigência é uma legislação do MS e, nós Bravo teremos que cumprir a fim de evitarmos autuações para nós e nossos clientes. Desta forma, à partir desta data, teremos que recusar notas emitidas após o horário de corte acordado, essas terão que ser emitidas no dia seguinte. Contamos com a compreensão de todos!
 
@@ -9781,7 +9781,7 @@ Não está anexando o arquivo. Deixei disponível nesse link: [PRADO] – Arquiv
 .
 
 [ Contabilidade Tecnomyl | 21/11/2024 às 13:28 ]
-Anexos', 'Outros', 'resolvido', 'resolvido', 'media', '2024-11-21 15:06:00+00', '2024-11-21 15:06:00+00'),
+Anexos', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-11-21 15:06:00+00', '2024-11-21 15:06:00+00'),
   ('790eced2-d9a7-4677-8fbe-8cdc47e4573b'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Obrigações Acessórias CNO Obras.', '[ Luis Fernando | 7/11/2024 às 17:13 ]
 Boa tarde a todos, Solicitou ajuda no entendimento de como devemos prosseguir com a manutenção da CNO de Obras e as notas de Prestação de serviço de construção Civil, com relação aos tópicos abaixo: CNO; RETENÇÕES DE INSS; EFD-REINF; DCTF-WEB, CALCULO DO INSS; CREDITOS DE INSS; FECHAMENTO DA CNO. Segue em anexo CNO e Nota de prestação de Serviço de Obra para analise, e posteriormente contribuição da equipe Prado. Att, Luis F.G. da Silva
 
@@ -9839,7 +9839,7 @@ Att.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 7/11/2024 às 17:45 ]
-[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2024-11-07 20:13:00+00', '2024-11-07 20:13:00+00'),
+[SISTEMA]: Representante atribuído ➔ Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-11-07 20:13:00+00', '2024-11-07 20:13:00+00'),
   ('0e2d60be-e094-4cdb-a26c-20e7dd4d73cf'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 3º Trimestre de 2024.', '[ Luis Fernando | 7/11/2024 às 16:40 ]
 Boa tarde a todos, Segue material para revisão das EFD Contribuições 3º Trimestre de 2024. Arquivos, EFD 07, 08 e 09/2024 e Planilha de Apuração do Pis/Cofins 2024. Att, Luis F.G.da Silva
 
@@ -9862,7 +9862,7 @@ Estado do chamado mudou para «Em Progresso»
 [SISTEMA]: Representante atribuído ➔ Gabriel Gama
 
 [ Luis Fernando | 7/11/2024 às 16:44 ]
-Segue Planilha de Apuração Pis/Cofins 2024.', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-11-07 19:40:00+00', '2024-11-07 19:40:00+00'),
+Segue Planilha de Apuração Pis/Cofins 2024.', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-11-07 19:40:00+00', '2024-11-07 19:40:00+00'),
   ('3217b591-e6b6-4126-ac07-471726b3c879'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'dbe10aeb-48a8-4ee7-9df6-24f1668c53ac'::uuid, 'Revisão de Contrato de Arrendamento Imovel Rural', '[ Luis Fernando | 5/11/2024 às 10:41 ]
 Prezados, bom dia! Segue em anexo Draft de contrato de arrendamento entre a Cataratas e Arrendantes PJ. Solicito analise de como podemos seguir com a contabilização do mesmo e suas variações. Também solicito analise tributaria, quanto a disponibilidade de manutenção de créditos tributários, e incidências de Retenções sobre os pagamentos. Como fica a manutenção do ITR e CCIR durante o período do Contrato? Caso haja outros pontos a serem considerados, solicito que nos alertem. Desde já fico no aguardo. Att, Luis F.G.da Silva 94 99161 1506
 
@@ -9873,7 +9873,7 @@ Estado do chamado mudou para «Em Progresso»
 [SISTEMA]: Representante atribuído ➔ Washington Lima
 
 [ Luis Fernando | 5/11/2024 às 11:03 ]
-Segue anexo:', NULL, 'resolvido', 'resolvido', 'media', '2024-11-05 13:41:00+00', '2024-11-05 13:41:00+00'),
+Segue anexo:', NULL, 'resolvido', 'resolvido', 'normal', '2024-11-05 13:41:00+00', '2024-11-05 13:41:00+00'),
   ('3afcc963-a9d8-434f-aef0-15a53dea2f10'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'NCM- FERTILIZANTES', '[ Adriano Siqueira | 1/11/2024 às 12:44 ]
 Bom dia, Prezados! Poderiam, por gentileza, compartilhar  uma planilha de NCM de adubos e Fertilizantes que tributam PIS E COFINS. Atenciosamente,
 
@@ -9888,7 +9888,7 @@ Atenciosamente,
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 1/11/2024 às 12:47 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'media', '2024-11-01 15:44:00+00', '2024-11-01 15:44:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', NULL, 'resolvido', 'resolvido', 'normal', '2024-11-01 15:44:00+00', '2024-11-01 15:44:00+00'),
   ('f299aa71-1dd1-4da3-a27a-68fab850dfd7'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Produto Fertilizante – CST 51 ( Diferimento) – Venda Consumidor Final', '[ Adriano Siqueira | 24/10/2024 às 11:14 ]
 Bom dia, Prezados! Estamos com a seguinte situação: Está sendo realizada uma venda normal  para Consumidor Final  de Adubo ( Fertilizante) com o CST 51 devido possuirmos o Diferimento do ICMS. No entanto, ao realizar a transmissão da NF, a Sefaz está retornando a mensagem com erro 508. Lembrando que esse cliente tem uma propriedade com IE e essa Sem IE. Na Instrução da TOTVS consta a seguinte instrução: Se o destinatário se enquadrar como 9 (Não contribuinte)  será necessário se adequar a situação tributária da nota correta no campo do TES Sit. trib. ICM F4_SITTRIB = 00, 20, 40, 41 e 60 ou utilizar alguma das  validações que constam nas exceções ( nossa operação não se enquadra nas exceções) Vocês entendem que a gente deveria alterar o CST para algum outro? Fico no aguardo do retorno. Obrigada,
 
@@ -9918,7 +9918,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 24/10/2024 às 11:33 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-10-24 14:14:00+00', '2024-10-24 14:14:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-10-24 14:14:00+00', '2024-10-24 14:14:00+00'),
   ('711f5757-3081-48b2-8ec9-ab05947e2df2'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'NFS Serviço Carga e Descarga para o CNPJ 13.563.680/0064-87', '[ Adriano Siqueira | 24/10/2024 às 10:40 ]
 Bom dia, Prezados (as), Conforme e-mail anexo, o gerente de Logística do Depósito Fechado e Armazéns gerais da AAPA, nos informou que estão cobrando serviço logístico de Carga e descarga no momento do recebimento da mercadoria e algumas transportadoras estão exigindo a Nota fiscal de serviços. Ele questiona se é possível emitir nota fiscal de serviço para o CNPJ do Armazéns gerais - 13.563.680/0064-87 , como serviços logístico? Segue cartão CNPJ para analise desta solicitação! Atenciosamente, Denise Moraes (65) 3319 - 2014
 
@@ -9942,7 +9942,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 24/10/2024 às 11:15 ]
-[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Outros', 'resolvido', 'resolvido', 'media', '2024-10-24 13:40:00+00', '2024-10-24 13:40:00+00'),
+[SISTEMA]: Representante atribuído ➔ Marcely Arruda', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-10-24 13:40:00+00', '2024-10-24 13:40:00+00'),
   ('8b3882b6-4763-44ae-920f-701650492604'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'MAPEAMENTO ICMS GRÃOS: PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA (café e açucar)', '[ Contabilidade Tecnomyl | 15/10/2024 às 11:45 ]
 Bom dia, Tudo bem? Por gentileza, realizar um novo mapeamento tributário de ICMS/2024 para os produtos CAFÉ e AÇUCAR (nos fornecer também a NCM desses itens) para os estados : PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA.
 
@@ -9970,7 +9970,7 @@ Para melhor análise, por favor informar detalhadamente qual açúcar será come
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 15/10/2024 às 14:45 ]
-[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-10-15 14:45:00+00', '2024-10-15 14:45:00+00'),
+[SISTEMA]: Representante atribuído ➔ Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-10-15 14:45:00+00', '2024-10-15 14:45:00+00'),
   ('2c501c7c-57d6-4498-a927-f19d956543ba'::uuid, '8ee84d00-7160-4744-805d-d44cef003d4a'::uuid, '06aa4de5-f6b0-448e-89c9-8142db62ddcf'::uuid, '7d082ece-6710-4148-9bcb-e76287380319'::uuid, 'Aproveitamento de créditos PIS e COFINS – Empresa do Lucro Real', '[ Matheus Bonetti | 11/10/2024 às 12:22 ]
 Bom dia prezados, Na terça-feira 08/10/24 aqui no escritório da O Agro, tivemos uma oportunidade juntamente com o Dr. Carlos Prado tratar sobre o assunto de aproveitamento de créditos do PIS e da COFINS para a empresa do Lucro Real (O Agro Agropecuária - Operacional). As operações de vendas desta empresa, é a venda de grãos (soja e milho) com finalidade de exportação, ou seja, é vendido para a trading e a mesma faz a exportação. Nesta operação, temos o benefício da SUSPENSÃO da incidência do PIS e da COFINS, e o Dr. Carlos comentou da possibilidade de realizarmos o aproveitamento dos créditos da PIS e da COFINS das notas de aquisições na forma em dinheiro de caixa para a empresa. Diante disto, gostaríamos do estudo de vocês, para verificarmos esta possibilidade e maneiras de aproveitamento destes créditos.
 
@@ -9999,7 +9999,7 @@ Solicitacao_de_Documentos_-_O._Agro.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/10/2024 às 14:06 ]
-[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-10-11 15:22:00+00', '2024-10-11 15:22:00+00'),
+[SISTEMA]: Representante atribuído ➔ Geizi Andrade', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-10-11 15:22:00+00', '2024-10-11 15:22:00+00'),
   ('696a677d-a0e6-4448-9a6b-e783849339a5'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'ANULACAO DE VALOR RELATIVO A PREST. SERVICO DE TRANSP', '[ Contabilidade Tecnomyl | 30/09/2024 às 11:28 ]
 Olá, tudo bem? Poderia nos esclarecer referente a operação de "ANULACAO DE VALOR RELATIVO A PREST. SERVICO DE TRANSP". A transportadora TECADI emitiu um CTe com informações incorretas, a medida que eles tomaram para corrigir foi a emissão de uma NFE modelo 55 com CFOP 2.206 com natureza de operação "ANULACAO DE VALOR RELATIVO A PREST. SERVICO DE TRANSP" Gostaria de saber se este procedimento esta correto, se sim por gentileza nos informar qual o dispositivo legal, citar o trecho. Segue documentos em anexo para análise.
 
@@ -10032,7 +10032,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Gabriel Gama
 
 [ Ricardo Migueis | 30/09/2024 às 12:32 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-09-30 14:28:00+00', '2024-09-30 14:28:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-09-30 14:28:00+00', '2024-09-30 14:28:00+00'),
   ('7a8fdf1f-f1ae-4161-9cc1-2b830d4a1f41'::uuid, '4249e9cc-21df-4863-a164-101b0836d946'::uuid, '35419187-0d64-437b-b61e-a59a20855d26'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Registro NF – Acidente Transporte – Extravio/Avaria ( Semente)', '[ Adriano Siqueira | 26/09/2024 às 11:07 ]
 Bom dia, Prezados! Estamos com a seguinte situação: Adquirimos semente tratada pela nossa filial de Diamantino (MT), na modalidade de Frete FOB(por nossa conta), e no percurso do transporte houve um acidente e a semente foi avariada/extraviada. Como proceder com o registro da NF nessa situação? Teremos que realizar o registro da nota fiscal mesmo que não iremos mais comercializá-la? Como disse, trata-se de uma semente tratada que não será reaproveitada, a semente inclusive já foi enviada para incineração, por conta da condição dela. Atenciosamente,
 
@@ -10069,7 +10069,7 @@ Sobre essa situação para ter uma melhor análise, precisamos saber as seguinte
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/09/2024 às 11:19 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-09-26 14:07:00+00', '2024-09-26 14:07:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-09-26 14:07:00+00', '2024-09-26 14:07:00+00'),
   ('f9192fb4-4db4-4a3d-8b95-176e5daefc47'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão EFD Contribuições 1º e 2º Trimestre de 2024.', '[ Luis Fernando | 23/09/2024 às 14:48 ]
 Boa tarde Pessoal, Segue material para revisão da obrigação social EFD Contribuições referente ao 1º e 2º Trimestre. O 1º Trimestre já foi revisado anteriormente, porem segue novamente para verificação dos pontos apresentados na ultima analise, com atenção ao Estorno dos Crédito proporcionais a receia de Venda de Gado. Att, Luis F.G.da Silva
 
@@ -10096,7 +10096,7 @@ Estado do chamado mudou para «Em Progresso»
 atualizado Equipe de Suporte para Gabriel Gama
 
 [ Luis Fernando | 23/09/2024 às 14:48 ]
-Segue demais arquivos:', NULL, 'resolvido', 'resolvido', 'media', '2024-09-23 17:48:00+00', '2024-09-23 17:48:00+00'),
+Segue demais arquivos:', NULL, 'resolvido', 'resolvido', 'normal', '2024-09-23 17:48:00+00', '2024-09-23 17:48:00+00'),
   ('b2654fbc-945f-45ec-82c1-e37c1deacd1c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Mapa Tributário Compra x Saída', '[ Contabilidade Tecnomyl | 23/09/2024 às 14:40 ]
 Boa tarde, tudo bem? Realizamos uma importação desses equipamentos da Ivy empresa do grupo Sarabia pela Tecnomyl e precisamos de algumas informações para emitir a nota fiscal de importação para os NCM''s com os seguintes cenários: NCM Peças: 9015.90.90 NCM Módulo: 9015.80.90 o levantamento desses itens devem ser: 1 - Tecnomyl Importando para Revenda 2 - Tecnomyl Importação para Uso e Consumo. posteriormente como deverá sair essa nota fiscal destinada para a IVY? Com Operação de venda (ICMS PIS COFINS) Com Operação de Uso Consumo (ICMS PIS COFINS)   OBS: Os Itens já estão no Brasil aguardando a nota fiscal para liberação com prazo até até 26/09.
 
@@ -10214,7 +10214,7 @@ atualizado Equipe de Suporte para Mateus Parente
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 23/09/2024 às 14:52 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-23 17:40:00+00', '2024-09-23 17:40:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-23 17:40:00+00', '2024-09-23 17:40:00+00'),
   ('39a2af0e-b2d0-47af-a2bf-eb7f1084c803'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Inscrição CNO – Para Obras.', '[ Luis Fernando | 19/09/2024 às 11:20 ]
 Felipe, conforme havíamos falado, temos 2 obras em andamento nesse momento, sendo: Zona Rural - Ampliação do Silo - Mão de Obra Terceirizada Construtora. Urbana - Construção do Escritório Administrativo Matriz/Redenção - Mão de Obra Terceirizada Construtora. Porem nos foi questionado se a empresa havia feito o cadastro "CNO", que já respondendo não foi feito. Nossos Questionamentos: Qual a necessidade de fazer esse cadastro? Qual as Vantagens de fazer esse cadastro, há benefícios fiscais? Desde já ficamos no aguardo. Att, Luis F.G. da Silva
 
@@ -10282,7 +10282,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 19/09/2024 às 11:26 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-19 14:20:00+00', '2024-09-19 14:20:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-19 14:20:00+00', '2024-09-19 14:20:00+00'),
   ('85767647-8187-4dd1-86ff-fee906f181d6'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Lista de Solicitações Auditoria Externa BDO x Agropecuária Cataras.', '[ Luis Fernando | 13/09/2024 às 10:37 ]
 Ricardo, bom dia!   Conforme havíamos falado apouco, segue lista de solicitações da Equipe de auditoria BDO para auditagem da data base 31/07 que terá inicio 04/10/2024.   Relacionei os pontos que necessitamos de auxílio da equipe Prado e Suzuki para o atendimento das Solicitações, coluna Observação “Modelo Prado”.   Desde já fico a disposição para discutirmos possíveis temas.   Att,
 
@@ -10360,7 +10360,7 @@ Planilha_Imobilizado_Laudo.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 13/09/2024 às 10:42 ]
-atualizado Equipe de Suporte para Willian Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-09-13 13:37:00+00', '2024-09-13 13:37:00+00'),
+atualizado Equipe de Suporte para Willian Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-09-13 13:37:00+00', '2024-09-13 13:37:00+00'),
   ('cd7c16f7-c7cd-4e5d-be63-84ee10534639'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'CONTABILIZACAO VENDA SUFRAMA', '[ Contabilidade Tecnomyl | 11/09/2024 às 09:42 ]
 Bom dia, Estamos fazendo venda para ZFM, e surgiu a seguinte duvida: Valor total dos produtos 172.400,00 Valor total da nota 164.124,80 Valor do icms descontado R$ 8.275,20 (conforme dados adicionais) Como devemos contabilizar a receita? O valor bruto ou o valor com desconto? Como devemos tratar o lançamento desse icms, uma vez que não foi pago por nós? Por favor retornar com o dispositivo legal para tais situações.
 
@@ -10392,7 +10392,7 @@ Cordialmente,
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/09/2024 às 16:17 ]
-atualizado Equipe de Suporte para Marcely Arruda', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-09-11 12:42:00+00', '2024-09-11 12:42:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-09-11 12:42:00+00', '2024-09-11 12:42:00+00'),
   ('fbe600a1-6be1-4980-a165-9bc1cf6c6f82'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Operação Exportação Trator – Ganhador Prêmio', '[ Contabilidade Tecnomyl | 10/09/2024 às 11:05 ]
 Bom dia, tudo bem? Recebemos este trator em julho/2024 como premiação de uma rifa na UOPECAN e registramos conforme a orientação da Mônica Matunaga em bonificação/Doação emitindo a nota fiscal 9333 (em anexo) Esse mesmo trator foi feito uma rifa/sorteio no Paraguai e precisamos fazer a exportação desse item para o ganhador. para isso precisamos saber: 1 - Como será a emissão da nota fiscal para o ganhador no Paraguai com CFOP, etc? 2 - Qual será a tributação dessa exportação com a base legal? 3 - Qual a contabilização da operação? Muito obrigado desde já.
 
@@ -10426,7 +10426,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 10/09/2024 às 11:12 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-10 14:05:00+00', '2024-09-10 14:05:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-10 14:05:00+00', '2024-09-10 14:05:00+00'),
   ('4a08206b-c791-4984-bbc7-44784e1be1d4'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Revisão – DITR/2024', '[ Luis Fernando | 9/09/2024 às 08:13 ]
 Bom dia Pessoal, Segue em anexo copias de segurança das declarações de ITR/2024 e planilha com memoria de calculo para verificação antes de envio. Solicito breve retorno para que possamos transmitir e entrar com processo de compensação dos impostos antes do vencimento. Obrigado! Luis F.G.da Silva.
 
@@ -10455,7 +10455,7 @@ Agro_Cataratas_Apuracao_ITR_2024.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 10/09/2024 às 11:13 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-09 11:13:00+00', '2024-09-09 11:13:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-09 11:13:00+00', '2024-09-09 11:13:00+00'),
   ('9bf7da80-ac7d-4d56-8750-f4c61348d34a'::uuid, '8ee84d00-7160-4744-805d-d44cef003d4a'::uuid, '06aa4de5-f6b0-448e-89c9-8142db62ddcf'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Tributação na venda de milho em grãos – Pessoa Jurídica para Cooperativa', '[ Matheus Bonetti | 3/09/2024 às 11:39 ]
 Bom dia time, Uma dúvida em relação a venda interna de milho em grãos NCM 10059010 de Pessoa Jurídica para Cooperativa. A empresa O Agro Agropecuária (Lucro Real) e Ogliari Agro (Lucro Presumido) vendendo para cooperativa, de conhecimento existe previsão de isenção do ICMS conforme Art. 115, inciso XIX do RICMS/MT/2014, e suspensão do PIS e COFINS conforme Art. 54, inciso I da Lei 12.350/2010. Em relação ao FUNRURAL 1,8%, existe previsão legal de isenção, suspensão ou não incidência ? Existe algum outro benefício fiscal nesta operação ?   Desde já, agradeço a atenção!
 
@@ -10502,7 +10502,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 3/09/2024 às 11:52 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-09-03 14:39:00+00', '2024-09-03 14:39:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-09-03 14:39:00+00', '2024-09-03 14:39:00+00'),
   ('e50a320f-47a3-483c-9c8c-e04e482a8521'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Atualização – Procedimento para emissão de Notas Fiscais', '[ Luis Fernando | 29/08/2024 às 11:01 ]
 Felipe, bom dia!
 Solicito atualização do manual de emissão de Notas Fiscais de Venda, incluindo os seguintes itens para as operações internas, Interestaduais e exportação.
@@ -10558,7 +10558,7 @@ Agropecuaria_Cataratas_ICMS_-_emissao_de_NF_de_venda.pdf
 atualizado Equipe de Suporte para Matheus Lopes
 
 [ prado_administrador | 29/08/2024 às 11:01 ]
-adicionado Contabilidade/Societário para Departamento', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-08-29 14:01:00+00', '2024-08-29 14:01:00+00'),
+adicionado Contabilidade/Societário para Departamento', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-08-29 14:01:00+00', '2024-08-29 14:01:00+00'),
   ('9ec6fa97-4a19-4073-8dc5-97d4589a97bb'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Aplicação de desconto –', '[ Contabilidade Tecnomyl | 28/08/2024 às 16:29 ]
 A Tecnomyl efetuou uma compra no exterior via Comercial Invoice. Foi negociado um contrato de desconto por meio de uma carta de crédito e preciso aplicar esse desconto.  É possível registrar contabilmente uma carta de crédito contra o Custo das Mercadorias Vendidas (CMV) em vez de lançar como "Descontos Obtidos".? Gostaria de saber se há alguma implicação relacionada à não aplicação do PIS/COFINS nesse caso? Se possível, solicito a gentileza de encaminhar a base legal e a referência do CPC que permita o lançamento direto ao CMV.
 
@@ -10581,7 +10581,7 @@ Tecnomyl_Descontos_recebidos_nao_sao_tributaveis_como_receita.pdf
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 28/08/2024 às 16:45 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-08-28 19:29:00+00', '2024-08-28 19:29:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-08-28 19:29:00+00', '2024-08-28 19:29:00+00'),
   ('783419c0-6a25-477a-9ae8-fa92f67ccaee'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Bonificação, brinde e doação', '[ Contabilidade Tecnomyl | 26/08/2024 às 17:54 ]
 Boa tarde, tudo bem? Por gentileza, nos esclarecer como é a tratativa de bonificação, brinde e doação no Paraná. Como devemos dar entrada nas três situações e como devemos emitir a saída também. Dessas três operações, quais incidem impostos e quais os dispositivos legais de cada uma? Para finalizar, como classificar um item de bonificação, brinde e doação?
 
@@ -10674,7 +10674,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/08/2024 às 19:03 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-08-26 20:54:00+00', '2024-08-26 20:54:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-08-26 20:54:00+00', '2024-08-26 20:54:00+00'),
   ('a2c38840-aea5-419f-91cb-f3cc249e504c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Revalidação de Produtos- nova Lei de Agrotoxicos', '[ Contabilidade Tecnomyl | 15/08/2024 às 15:28 ]
 Prezados, boa tarde, Necessitamos de um apoio em relação a uma operação para Revalidação de produtos, segundo a Portaria 1136/2024 , o produto poderá ser revalidado aumentando sua validade, obedecendo alguns critérios. Nestes casos, toda responsabilidade terá que ser da empresa fornecedora do produto, no caso a Tecnomyl, porem nossa intenção será cobrar estes custos incorridos do cliente, formulando uma minuta/contrato onde o cliente dê seu aceite para esta cobrança. Esta cobrança seria uma espécie de reembolso para Tecnomyl. Duvida 1: Há possibilidade da cobrança ao cliente ser efetivada através de nota de debito, ou será necessária emissão de nota fiscal de serviço? Duvida 2: o produto se encontra em posse do cliente, que deverá transferir a posse a Tecnomyl, neste caso, podemos utilizar a operação 5.949/6.949? A nota fiscal deverá obedecer a filial de faturamento? Após a entrada no estoque a Tecnomyl emitirá uma nota de remessa para industrialização para revalidação, e receberá a posterior devolução e cobrança, e, com o lote já revalidado em estoque, a devolução ao cliente será via 5.949/6.949, mencionando a nota origem, correto? Duvida 3: por se tratar de um custo que será repassado posteriormente, na devolutiva da cobrança de industrialização a Tecnomyl poderá se creditar de Pis e Cofins? Aguardamos retorno.
 
@@ -10795,7 +10795,7 @@ atualizado Equipe de Suporte para Monica Matunaga
 Estado do chamado mudou para «Em Progresso»
 
 [ Contabilidade Tecnomyl | 15/08/2024 às 15:38 ]
-Duvida 2.1:  com relação à emissão Cliente x Tecnomyl com CFOP x949 terá o destaque ICMS nessa operação?', 'Outros', 'resolvido', 'resolvido', 'media', '2024-08-15 18:28:00+00', '2024-08-15 18:28:00+00'),
+Duvida 2.1:  com relação à emissão Cliente x Tecnomyl com CFOP x949 terá o destaque ICMS nessa operação?', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-08-15 18:28:00+00', '2024-08-15 18:28:00+00'),
   ('085f7b46-faa0-4559-92f5-1657be6f250d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'RECONTRATAÇÃO DE EMPREGADO', '[ Simone Cavalcante | 14/08/2024 às 14:32 ]
 Boa tarde Recentemente tivemos algumas saídas de colaboradores, esses pediram demissão. E agora estão querendo retornar a empresa, a empresa precisa de mão de obra qualificada e essas pessoas atendem, porem eles sairam a pouco tempo. temos que esperar algum prazo definido para recontrata-los ? ou como a saída foi por pedido de demissão ou encerramento de contrato solicitado pelos próprios, a empresa pode já realizar um novo vinculo. ficamos no aguardo
 
@@ -10820,7 +10820,7 @@ Cordialmente,
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 14/08/2024 às 16:49 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-08-14 17:32:00+00', '2024-08-14 17:32:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-08-14 17:32:00+00', '2024-08-14 17:32:00+00'),
   ('9de3e2bd-c3e1-4091-9959-889ef3988b69'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Nfe de importação – Valor do Pis e Cofins na soma total da NFE', '[ Contabilidade Tecnomyl | 12/08/2024 às 17:25 ]
 Boa tarde, tudo bem? Segue em anexo a documentação referente a um processo de importação que houve incidência de Pis e Cofins. Na data do dia 13/05 realizamos a emissão da Nfe onde consideramos o valor total dos produtos e mais despesas para compor o custo do produto. R$ 4.696.794,18. Hoje surgiu a duvida se na emissão da nfe não devemos considerar  valor do pis e cofins para composição do custo, pois são impostos recuperaveis, mas no valor total da NFE devemos considerar o valor do PIS e Cofins e o valor da emissão ser R$ 5.244.897,55. Poderia validar essa informação e nos retornar.
 
@@ -10869,7 +10869,7 @@ At.te, Mônica Matunaga.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 13/08/2024 às 08:35 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-08-12 20:25:00+00', '2024-08-12 20:25:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-08-12 20:25:00+00', '2024-08-12 20:25:00+00'),
   ('c2b548ff-79be-4d20-bfa5-af9832bb2503'::uuid, '8ee84d00-7160-4744-805d-d44cef003d4a'::uuid, '06aa4de5-f6b0-448e-89c9-8142db62ddcf'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Contabilização de Aplicações com Liquidez Diária', '[ Matheus Bonetti | 9/08/2024 às 11:42 ]
 Bom dia prezados, Uma dúvida em relação a contabilização de valores aplicados com liquidez diária. Em anexo, encaminho o extrato de aplicação referente ao mês 06/2024, aplicado o valor de R$ 1.300.000,00, onde foi gerado rendimentos com incidência de imposto de renda. Deste valor aplicado, foi resgatado R$ 200.141,47 (com rendimento e desconto de imposto de renda) ficando o valor de R$ 1.100.150,72. Minha dúvida é: O valor do saldo que considero é o próprio valor de R$ 1.100.150,72 ou o valor de R$ 1.101.759,12 (com rendimento e desconto de imposto de renda) para efeito de saldo em 30/06/2024?
 
@@ -10890,7 +10890,7 @@ At.te, Mônica Matunaga.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 9/08/2024 às 15:43 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-08-09 14:42:00+00', '2024-08-09 14:42:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-08-09 14:42:00+00', '2024-08-09 14:42:00+00'),
   ('d7a1cc6c-a3b4-44db-9715-4ea4b4b98f99'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'BENEFICIOS PCD', '[ Simone Cavalcante | 5/08/2024 às 16:40 ]
 Boa tarde, vamos enquadrar alguns colaboradores como PCD, gostaria de saber quais serão suas vantagens a partir de agora. sem tem algum direito diferente dos demais, sem tem direto a estabilidade e entre outros. se puder tirar essas duvidas, ficamos gratos.
 
@@ -10967,7 +10967,7 @@ O chamado foi reaberto.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 6/08/2024 às 08:01 ]
-O chamado foi fechado.', 'Outros', 'resolvido', 'resolvido', 'media', '2024-08-05 19:40:00+00', '2024-08-05 19:40:00+00'),
+O chamado foi fechado.', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-08-05 19:40:00+00', '2024-08-05 19:40:00+00'),
   ('9514a9a3-760c-4780-b094-4caa128e2e42'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'MAPEAMENTO PIS/COFINS GRÃOS', '[ Contabilidade Tecnomyl | 29/07/2024 às 18:33 ]
 Bom dia, tudo bem? Por gentileza, realizar um novo mapeamento tributário de PIS/COFINS para os produtos SOJA, MILHO E ALGODÃO (nos fornecer também a NCM desses itens). Operações: Compra produtor interno; Compra produtor p/ exportação; Venda interna; Venda com destino exportação; Venda interestadual  e Exportação direta. Enviar Excel igual aos anteriores.
 
@@ -10986,7 +10986,7 @@ Mapeamento_de_Tributacao_PIS_COFINS_Atualizado_em_08.2024.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:50 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 21:33:00+00', '2024-07-29 21:33:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 21:33:00+00', '2024-07-29 21:33:00+00'),
   ('85113b74-6267-419c-9528-2f7113ed276b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'MAPEAMENTO ICMS GRÃOS: PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA', '[ Contabilidade Tecnomyl | 29/07/2024 às 18:31 ]
 Bom dia, tudo bem? Por gentileza, realizar um novo mapeamento tributário de ICMS/2024 para os produtos SOJA, MILHO E ALGODÃO (nos fornecer também a NCM desses itens) para os estados : PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA. Operações: Compra produtor interno; Compra produtor p/ exportação; Venda interna; Venda com destino exportação; Venda interestadual  e Exportação direta. Enviar Excel igual aos anteriores.
 
@@ -11049,7 +11049,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:51 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 21:31:00+00', '2024-07-29 21:31:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 21:31:00+00', '2024-07-29 21:31:00+00'),
   ('2db7c4a4-6e7c-4e3e-bc45-bb6a0ba0881c'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'IMPORTAÇÃO PARAGUAI H2O', '[ Contabilidade Tecnomyl | 29/07/2024 às 16:27 ]
 Boa tarde, Tudo bem? A empresa H2O (CNPJ 53.206.178/0001-50), do mesmo grupo da Tecnomyl, pretende importar um MacBook do Paraguai. Este computador virá da H2O Paraguai, e realizaremos todo o processo de importação. O transporte será terrestre, mas ainda não definimos a transportadora. Pretendemos utilizar a NCM 8471.30.12 para o MacBook, porém, por gentileza validar se essa se enquadra para o produto "APPLE MACBOOK PRO 2023 16" 18GBRAM/512HD/SILVER (PLATA)". Com base na NCM indicada, quais impostos incidem nesta importação? Quais documentos devemos emitir (DI, MIC, etc.)? É possível realizar todo o processo de importação sem um despachante aduaneiro? Gostaríamos de orientação sobre como proceder, quais impostos incidirão nesta importação, quais documentos precisamos emitir e como emitir a nota de entrada na H2O Brasil para nacionalizar este computador. Por gentileza, citar todos os trechos dos dispositivos legais que forem utilizados para justificar a operação.
 
@@ -11118,7 +11118,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:52 ]
-atualizado Equipe de Suporte para Monica Matunaga', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 19:27:00+00', '2024-07-29 19:27:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 19:27:00+00', '2024-07-29 19:27:00+00'),
   ('72d384e3-bf59-412a-ab82-cad9318b7daa'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'TRANSFERÊNCIA DE MATERIAS DE USO E CONSUMO', '[ Contabilidade Tecnomyl | 29/07/2024 às 11:33 ]
 Bom dia, Tudo bem? Estamos com algumas dúvidas quanto ao crédito de ICMS nas transferências de produtos de uso e consumo entre filiais. Nas saídas dessas transferências emitimos a nota com a CFOP 6557 com destaque de ICMS, na escrituração da entrada dessa nota em outra filial, temos o direito ao crédito desse ICMS? Como exemplo dessa operação segue a nota 9271, PR -> GO. Por gentileza, nos retornar com o embasamento legal, citando o trecho que justifica.
 
@@ -11140,7 +11140,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:52 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 14:33:00+00', '2024-07-29 14:33:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 14:33:00+00', '2024-07-29 14:33:00+00'),
   ('cb917af5-bdbb-44b9-8ba4-6a22110434d0'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'INTEVALO INTRAJORNADA', '[ Simone Cavalcante | 15/07/2024 às 09:05 ]
 Bom dia Temos um acordo individual ja revisado anteriormente pelos senhores, onde trata da compensação de horas, horas positivas, folgas dentre outras. Vimos a necessidade em alguns casos específicos de acrescentar uma clausula de intervalo superior a 2horas, onde será vantajoso para a empresa e para o empregado. Caso seja possível iremos utilizar esse para o cargo de cozinheira, para adaptar seus horários e que possam ter um descanso maior, pois geralmente acordam mais cedo para iniciar suas atividades. em anexo o termo adicionado da clausula 15º. poderia validar por gentiliza o seu uso
 
@@ -11178,7 +11178,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 16/07/2024 às 12:08 ]
-atualizado Equipe de Suporte para Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2024-07-15 12:05:00+00', '2024-07-15 12:05:00+00'),
+atualizado Equipe de Suporte para Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-07-15 12:05:00+00', '2024-07-15 12:05:00+00'),
   ('1ae035d6-a3e8-4627-bb06-9e393eb2da84'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Inscrição CNO – Para Obras.', '[ Luis Fernando | 19/09/2024 às 11:20 ]
 Felipe, conforme havíamos falado, temos 2 obras em andamento nesse momento, sendo: Zona Rural - Ampliação do Silo - Mão de Obra Terceirizada Construtora. Urbana - Construção do Escritório Administrativo Matriz/Redenção - Mão de Obra Terceirizada Construtora. Porem nos foi questionado se a empresa havia feito o cadastro "CNO", que já respondendo não foi feito. Nossos Questionamentos: Qual a necessidade de fazer esse cadastro? Qual as Vantagens de fazer esse cadastro, há benefícios fiscais? Desde já ficamos no aguardo. Att, Luis F.G. da Silva
 
@@ -11246,7 +11246,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 19/09/2024 às 11:26 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-19 14:20:00+00', '2024-09-19 14:20:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-19 14:20:00+00', '2024-09-19 14:20:00+00'),
   ('55887ed7-fc9d-40b7-8c29-5647528e9cd0'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Lista de Solicitações Auditoria Externa BDO x Agropecuária Cataras.', '[ Luis Fernando | 13/09/2024 às 10:37 ]
 Ricardo, bom dia!   Conforme havíamos falado apouco, segue lista de solicitações da Equipe de auditoria BDO para auditagem da data base 31/07 que terá inicio 04/10/2024.   Relacionei os pontos que necessitamos de auxílio da equipe Prado e Suzuki para o atendimento das Solicitações, coluna Observação “Modelo Prado”.   Desde já fico a disposição para discutirmos possíveis temas.   Att,
 
@@ -11324,7 +11324,7 @@ Planilha_Imobilizado_Laudo.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 13/09/2024 às 10:42 ]
-atualizado Equipe de Suporte para Willian Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-09-13 13:37:00+00', '2024-09-13 13:37:00+00'),
+atualizado Equipe de Suporte para Willian Lima', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-09-13 13:37:00+00', '2024-09-13 13:37:00+00'),
   ('542f0bfd-43ae-4c13-8a10-10c6d593a1e1'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'CONTABILIZACAO VENDA SUFRAMA', '[ Contabilidade Tecnomyl | 11/09/2024 às 09:42 ]
 Bom dia, Estamos fazendo venda para ZFM, e surgiu a seguinte duvida: Valor total dos produtos 172.400,00 Valor total da nota 164.124,80 Valor do icms descontado R$ 8.275,20 (conforme dados adicionais) Como devemos contabilizar a receita? O valor bruto ou o valor com desconto? Como devemos tratar o lançamento desse icms, uma vez que não foi pago por nós? Por favor retornar com o dispositivo legal para tais situações.
 
@@ -11356,7 +11356,7 @@ Cordialmente,
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 11/09/2024 às 16:17 ]
-atualizado Equipe de Suporte para Marcely Arruda', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-09-11 12:42:00+00', '2024-09-11 12:42:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-09-11 12:42:00+00', '2024-09-11 12:42:00+00'),
   ('a268fd38-bbf9-4178-903a-bfc3d1b87fd7'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Operação Exportação Trator – Ganhador Prêmio', '[ Contabilidade Tecnomyl | 10/09/2024 às 11:05 ]
 Bom dia, tudo bem? Recebemos este trator em julho/2024 como premiação de uma rifa na UOPECAN e registramos conforme a orientação da Mônica Matunaga em bonificação/Doação emitindo a nota fiscal 9333 (em anexo) Esse mesmo trator foi feito uma rifa/sorteio no Paraguai e precisamos fazer a exportação desse item para o ganhador. para isso precisamos saber: 1 - Como será a emissão da nota fiscal para o ganhador no Paraguai com CFOP, etc? 2 - Qual será a tributação dessa exportação com a base legal? 3 - Qual a contabilização da operação? Muito obrigado desde já.
 
@@ -11390,7 +11390,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 10/09/2024 às 11:12 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-10 14:05:00+00', '2024-09-10 14:05:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-10 14:05:00+00', '2024-09-10 14:05:00+00'),
   ('c623190c-28e8-4147-9b1b-34761ec79849'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Revisão – DITR/2024', '[ Luis Fernando | 9/09/2024 às 08:13 ]
 Bom dia Pessoal, Segue em anexo copias de segurança das declarações de ITR/2024 e planilha com memoria de calculo para verificação antes de envio. Solicito breve retorno para que possamos transmitir e entrar com processo de compensação dos impostos antes do vencimento. Obrigado! Luis F.G.da Silva.
 
@@ -11419,7 +11419,7 @@ Agro_Cataratas_Apuracao_ITR_2024.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 10/09/2024 às 11:13 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'media', '2024-09-09 11:13:00+00', '2024-09-09 11:13:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-09-09 11:13:00+00', '2024-09-09 11:13:00+00'),
   ('778ab553-ba31-4273-a8d6-dafb23be3b39'::uuid, '8ee84d00-7160-4744-805d-d44cef003d4a'::uuid, '06aa4de5-f6b0-448e-89c9-8142db62ddcf'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Tributação na venda de milho em grãos – Pessoa Jurídica para Cooperativa', '[ Matheus Bonetti | 3/09/2024 às 11:39 ]
 Bom dia time, Uma dúvida em relação a venda interna de milho em grãos NCM 10059010 de Pessoa Jurídica para Cooperativa. A empresa O Agro Agropecuária (Lucro Real) e Ogliari Agro (Lucro Presumido) vendendo para cooperativa, de conhecimento existe previsão de isenção do ICMS conforme Art. 115, inciso XIX do RICMS/MT/2014, e suspensão do PIS e COFINS conforme Art. 54, inciso I da Lei 12.350/2010. Em relação ao FUNRURAL 1,8%, existe previsão legal de isenção, suspensão ou não incidência ? Existe algum outro benefício fiscal nesta operação ?   Desde já, agradeço a atenção!
 
@@ -11466,7 +11466,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 3/09/2024 às 11:52 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-09-03 14:39:00+00', '2024-09-03 14:39:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-09-03 14:39:00+00', '2024-09-03 14:39:00+00'),
   ('ff626b23-9856-46b3-821f-87205e537d85'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Atualização – Procedimento para emissão de Notas Fiscais', '[ Luis Fernando | 29/08/2024 às 11:01 ]
 Felipe, bom dia!
 Solicito atualização do manual de emissão de Notas Fiscais de Venda, incluindo os seguintes itens para as operações internas, Interestaduais e exportação.
@@ -11522,7 +11522,7 @@ Agropecuaria_Cataratas_ICMS_-_emissao_de_NF_de_venda.pdf
 atualizado Equipe de Suporte para Matheus Lopes
 
 [ prado_administrador | 29/08/2024 às 11:01 ]
-adicionado Contabilidade/Societário para Departamento', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-08-29 14:01:00+00', '2024-08-29 14:01:00+00'),
+adicionado Contabilidade/Societário para Departamento', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-08-29 14:01:00+00', '2024-08-29 14:01:00+00'),
   ('ceed5928-7377-4834-81e0-fb39de87121e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Aplicação de desconto –', '[ Contabilidade Tecnomyl | 28/08/2024 às 16:29 ]
 A Tecnomyl efetuou uma compra no exterior via Comercial Invoice. Foi negociado um contrato de desconto por meio de uma carta de crédito e preciso aplicar esse desconto.  É possível registrar contabilmente uma carta de crédito contra o Custo das Mercadorias Vendidas (CMV) em vez de lançar como "Descontos Obtidos".? Gostaria de saber se há alguma implicação relacionada à não aplicação do PIS/COFINS nesse caso? Se possível, solicito a gentileza de encaminhar a base legal e a referência do CPC que permita o lançamento direto ao CMV.
 
@@ -11545,7 +11545,7 @@ Tecnomyl_Descontos_recebidos_nao_sao_tributaveis_como_receita.pdf
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 28/08/2024 às 16:45 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-08-28 19:29:00+00', '2024-08-28 19:29:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-08-28 19:29:00+00', '2024-08-28 19:29:00+00'),
   ('248e79cd-036a-4e32-ab8d-5655cab076f0'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Bonificação, brinde e doação', '[ Contabilidade Tecnomyl | 26/08/2024 às 17:54 ]
 Boa tarde, tudo bem? Por gentileza, nos esclarecer como é a tratativa de bonificação, brinde e doação no Paraná. Como devemos dar entrada nas três situações e como devemos emitir a saída também. Dessas três operações, quais incidem impostos e quais os dispositivos legais de cada uma? Para finalizar, como classificar um item de bonificação, brinde e doação?
 
@@ -11638,7 +11638,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 26/08/2024 às 19:03 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-08-26 20:54:00+00', '2024-08-26 20:54:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-08-26 20:54:00+00', '2024-08-26 20:54:00+00'),
   ('1bea6db5-39a3-4c76-8185-144513b72d35'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Revalidação de Produtos- nova Lei de Agrotoxicos', '[ Contabilidade Tecnomyl | 15/08/2024 às 15:28 ]
 Prezados, boa tarde, Necessitamos de um apoio em relação a uma operação para Revalidação de produtos, segundo a Portaria 1136/2024 , o produto poderá ser revalidado aumentando sua validade, obedecendo alguns critérios. Nestes casos, toda responsabilidade terá que ser da empresa fornecedora do produto, no caso a Tecnomyl, porem nossa intenção será cobrar estes custos incorridos do cliente, formulando uma minuta/contrato onde o cliente dê seu aceite para esta cobrança. Esta cobrança seria uma espécie de reembolso para Tecnomyl. Duvida 1: Há possibilidade da cobrança ao cliente ser efetivada através de nota de debito, ou será necessária emissão de nota fiscal de serviço? Duvida 2: o produto se encontra em posse do cliente, que deverá transferir a posse a Tecnomyl, neste caso, podemos utilizar a operação 5.949/6.949? A nota fiscal deverá obedecer a filial de faturamento? Após a entrada no estoque a Tecnomyl emitirá uma nota de remessa para industrialização para revalidação, e receberá a posterior devolução e cobrança, e, com o lote já revalidado em estoque, a devolução ao cliente será via 5.949/6.949, mencionando a nota origem, correto? Duvida 3: por se tratar de um custo que será repassado posteriormente, na devolutiva da cobrança de industrialização a Tecnomyl poderá se creditar de Pis e Cofins? Aguardamos retorno.
 
@@ -11759,7 +11759,7 @@ atualizado Equipe de Suporte para Monica Matunaga
 Estado do chamado mudou para «Em Progresso»
 
 [ Contabilidade Tecnomyl | 15/08/2024 às 15:38 ]
-Duvida 2.1:  com relação à emissão Cliente x Tecnomyl com CFOP x949 terá o destaque ICMS nessa operação?', 'Outros', 'resolvido', 'resolvido', 'media', '2024-08-15 18:28:00+00', '2024-08-15 18:28:00+00'),
+Duvida 2.1:  com relação à emissão Cliente x Tecnomyl com CFOP x949 terá o destaque ICMS nessa operação?', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-08-15 18:28:00+00', '2024-08-15 18:28:00+00'),
   ('28bbd75f-0bf9-4eac-a264-c60f11dac67a'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'RECONTRATAÇÃO DE EMPREGADO', '[ Simone Cavalcante | 14/08/2024 às 14:32 ]
 Boa tarde Recentemente tivemos algumas saídas de colaboradores, esses pediram demissão. E agora estão querendo retornar a empresa, a empresa precisa de mão de obra qualificada e essas pessoas atendem, porem eles sairam a pouco tempo. temos que esperar algum prazo definido para recontrata-los ? ou como a saída foi por pedido de demissão ou encerramento de contrato solicitado pelos próprios, a empresa pode já realizar um novo vinculo. ficamos no aguardo
 
@@ -11784,7 +11784,7 @@ Cordialmente,
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 14/08/2024 às 16:49 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-08-14 17:32:00+00', '2024-08-14 17:32:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-08-14 17:32:00+00', '2024-08-14 17:32:00+00'),
   ('e82bb21b-231e-46d6-93aa-8481f6148190'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Nfe de importação – Valor do Pis e Cofins na soma total da NFE', '[ Contabilidade Tecnomyl | 12/08/2024 às 17:25 ]
 Boa tarde, tudo bem? Segue em anexo a documentação referente a um processo de importação que houve incidência de Pis e Cofins. Na data do dia 13/05 realizamos a emissão da Nfe onde consideramos o valor total dos produtos e mais despesas para compor o custo do produto. R$ 4.696.794,18. Hoje surgiu a duvida se na emissão da nfe não devemos considerar  valor do pis e cofins para composição do custo, pois são impostos recuperaveis, mas no valor total da NFE devemos considerar o valor do PIS e Cofins e o valor da emissão ser R$ 5.244.897,55. Poderia validar essa informação e nos retornar.
 
@@ -11833,7 +11833,7 @@ At.te, Mônica Matunaga.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 13/08/2024 às 08:35 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-08-12 20:25:00+00', '2024-08-12 20:25:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-08-12 20:25:00+00', '2024-08-12 20:25:00+00'),
   ('54fb0d05-6cad-4afe-99c4-e2048326baa6'::uuid, '8ee84d00-7160-4744-805d-d44cef003d4a'::uuid, '06aa4de5-f6b0-448e-89c9-8142db62ddcf'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Contabilização de Aplicações com Liquidez Diária', '[ Matheus Bonetti | 9/08/2024 às 11:42 ]
 Bom dia prezados, Uma dúvida em relação a contabilização de valores aplicados com liquidez diária. Em anexo, encaminho o extrato de aplicação referente ao mês 06/2024, aplicado o valor de R$ 1.300.000,00, onde foi gerado rendimentos com incidência de imposto de renda. Deste valor aplicado, foi resgatado R$ 200.141,47 (com rendimento e desconto de imposto de renda) ficando o valor de R$ 1.100.150,72. Minha dúvida é: O valor do saldo que considero é o próprio valor de R$ 1.100.150,72 ou o valor de R$ 1.101.759,12 (com rendimento e desconto de imposto de renda) para efeito de saldo em 30/06/2024?
 
@@ -11854,7 +11854,7 @@ At.te, Mônica Matunaga.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 9/08/2024 às 15:43 ]
-atualizado Equipe de Suporte para Monica Matunaga', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2024-08-09 14:42:00+00', '2024-08-09 14:42:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2024-08-09 14:42:00+00', '2024-08-09 14:42:00+00'),
   ('6e991f3f-7b74-442f-bbf8-f762bdc857d6'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'BENEFICIOS PCD', '[ Simone Cavalcante | 5/08/2024 às 16:40 ]
 Boa tarde, vamos enquadrar alguns colaboradores como PCD, gostaria de saber quais serão suas vantagens a partir de agora. sem tem algum direito diferente dos demais, sem tem direto a estabilidade e entre outros. se puder tirar essas duvidas, ficamos gratos.
 
@@ -11931,7 +11931,7 @@ O chamado foi reaberto.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 6/08/2024 às 08:01 ]
-O chamado foi fechado.', 'Outros', 'resolvido', 'resolvido', 'media', '2024-08-05 19:40:00+00', '2024-08-05 19:40:00+00'),
+O chamado foi fechado.', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-08-05 19:40:00+00', '2024-08-05 19:40:00+00'),
   ('4d18128f-2a08-4b9d-a59b-73ef458dafd3'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'MAPEAMENTO PIS/COFINS GRÃOS', '[ Contabilidade Tecnomyl | 29/07/2024 às 18:33 ]
 Bom dia, tudo bem? Por gentileza, realizar um novo mapeamento tributário de PIS/COFINS para os produtos SOJA, MILHO E ALGODÃO (nos fornecer também a NCM desses itens). Operações: Compra produtor interno; Compra produtor p/ exportação; Venda interna; Venda com destino exportação; Venda interestadual  e Exportação direta. Enviar Excel igual aos anteriores.
 
@@ -11950,7 +11950,7 @@ Mapeamento_de_Tributacao_PIS_COFINS_Atualizado_em_08.2024.xlsx
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:50 ]
-atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 21:33:00+00', '2024-07-29 21:33:00+00'),
+atualizado Equipe de Suporte para Marcely Arruda', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 21:33:00+00', '2024-07-29 21:33:00+00'),
   ('0259112a-738e-407f-b544-8159abd36818'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'MAPEAMENTO ICMS GRÃOS: PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA', '[ Contabilidade Tecnomyl | 29/07/2024 às 18:31 ]
 Bom dia, tudo bem? Por gentileza, realizar um novo mapeamento tributário de ICMS/2024 para os produtos SOJA, MILHO E ALGODÃO (nos fornecer também a NCM desses itens) para os estados : PR – GO – MT – SP -PR – RS – BA – MG – MS – TO – RO – MA – PA. Operações: Compra produtor interno; Compra produtor p/ exportação; Venda interna; Venda com destino exportação; Venda interestadual  e Exportação direta. Enviar Excel igual aos anteriores.
 
@@ -12013,7 +12013,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:51 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 21:31:00+00', '2024-07-29 21:31:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 21:31:00+00', '2024-07-29 21:31:00+00'),
   ('f30fec65-1fb6-46c3-baf0-ac9e9f58f31e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'IMPORTAÇÃO PARAGUAI H2O', '[ Contabilidade Tecnomyl | 29/07/2024 às 16:27 ]
 Boa tarde, Tudo bem? A empresa H2O (CNPJ 53.206.178/0001-50), do mesmo grupo da Tecnomyl, pretende importar um MacBook do Paraguai. Este computador virá da H2O Paraguai, e realizaremos todo o processo de importação. O transporte será terrestre, mas ainda não definimos a transportadora. Pretendemos utilizar a NCM 8471.30.12 para o MacBook, porém, por gentileza validar se essa se enquadra para o produto "APPLE MACBOOK PRO 2023 16" 18GBRAM/512HD/SILVER (PLATA)". Com base na NCM indicada, quais impostos incidem nesta importação? Quais documentos devemos emitir (DI, MIC, etc.)? É possível realizar todo o processo de importação sem um despachante aduaneiro? Gostaríamos de orientação sobre como proceder, quais impostos incidirão nesta importação, quais documentos precisamos emitir e como emitir a nota de entrada na H2O Brasil para nacionalizar este computador. Por gentileza, citar todos os trechos dos dispositivos legais que forem utilizados para justificar a operação.
 
@@ -12082,7 +12082,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:52 ]
-atualizado Equipe de Suporte para Monica Matunaga', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 19:27:00+00', '2024-07-29 19:27:00+00'),
+atualizado Equipe de Suporte para Monica Matunaga', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 19:27:00+00', '2024-07-29 19:27:00+00'),
   ('59c524a4-54c3-4d57-b843-de9b8b69f8b5'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'TRANSFERÊNCIA DE MATERIAS DE USO E CONSUMO', '[ Contabilidade Tecnomyl | 29/07/2024 às 11:33 ]
 Bom dia, Tudo bem? Estamos com algumas dúvidas quanto ao crédito de ICMS nas transferências de produtos de uso e consumo entre filiais. Nas saídas dessas transferências emitimos a nota com a CFOP 6557 com destaque de ICMS, na escrituração da entrada dessa nota em outra filial, temos o direito ao crédito desse ICMS? Como exemplo dessa operação segue a nota 9271, PR -> GO. Por gentileza, nos retornar com o embasamento legal, citando o trecho que justifica.
 
@@ -12104,7 +12104,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 30/07/2024 às 07:52 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-07-29 14:33:00+00', '2024-07-29 14:33:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-07-29 14:33:00+00', '2024-07-29 14:33:00+00'),
   ('57c4f551-5e14-477b-a32d-5dd054981416'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'INTEVALO INTRAJORNADA', '[ Simone Cavalcante | 15/07/2024 às 09:05 ]
 Bom dia Temos um acordo individual ja revisado anteriormente pelos senhores, onde trata da compensação de horas, horas positivas, folgas dentre outras. Vimos a necessidade em alguns casos específicos de acrescentar uma clausula de intervalo superior a 2horas, onde será vantajoso para a empresa e para o empregado. Caso seja possível iremos utilizar esse para o cargo de cozinheira, para adaptar seus horários e que possam ter um descanso maior, pois geralmente acordam mais cedo para iniciar suas atividades. em anexo o termo adicionado da clausula 15º. poderia validar por gentiliza o seu uso
 
@@ -12142,7 +12142,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 16/07/2024 às 12:08 ]
-atualizado Equipe de Suporte para Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'media', '2024-07-15 12:05:00+00', '2024-07-15 12:05:00+00'),
+atualizado Equipe de Suporte para Claudionor Ferreira', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-07-15 12:05:00+00', '2024-07-15 12:05:00+00'),
   ('407157df-53a9-46f3-a3c8-47f28809782d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'FUNÇÃO', '[ Simone Cavalcante | 10/04/2024 às 08:00 ]
 Bom dia Atualmente estamos com uma colaboradora registrada como serviços gerais , essa realiza atividades de limpeza, e no período da tarde ajuda no escritório na parte administrativa. incluímos a função de auxiliar de limpeza em nossos programas para enquadra-la, porem nos surgiu uma duvida; como fica a situação dessa colaboradora quanto ao período que ela fica no escritório? quais os riscos em manter dessa forma? pedimos um auxilio dos senhores(as) para sanar essa situação. att,
 
@@ -12171,7 +12171,7 @@ Estado do chamado mudou para «Em Progresso»
 O chamado foi reaberto.
 
 [ Ricardo Migueis | 10/04/2024 às 09:38 ]
-O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'media', '2024-04-10 11:00:00+00', '2024-04-10 11:00:00+00'),
+O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'normal', '2024-04-10 11:00:00+00', '2024-04-10 11:00:00+00'),
   ('85ca7bd9-367b-40f8-953b-66c3912c776d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'ESTAGIO', '[ Simone Cavalcante | 9/04/2024 às 08:05 ]
 Bom dia Atualmente em um de nossas fazendas temos uma colaboradora que trabalha na função de auxiliar de limpeza. pelo período da manha ela cumpre com suas obrigações da limpeza e na parte da tarde ele auxilia no escritório administrativo, algo que é uma boa oportunidade de crescimento profissional para ela. porem pode se caracterizar desvio de função. pensamos na seguinte solução; reduzir a carga horaria da colaboradora na função de auxiliar de limpeza (sem prejuízo de salario) e no periodo da tarde vincula-la a um programa de estagio não remunerado, dentro da area administrativa.   o que os senhores podem nos auxiliar nessa situação ? é valida? quais os pontos a serem considerados ?   att,
 
@@ -12200,7 +12200,7 @@ Estado do chamado mudou para «Em Progresso»
 O chamado foi reaberto.
 
 [ Ricardo Migueis | 10/04/2024 às 09:38 ]
-O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'media', '2024-04-09 11:05:00+00', '2024-04-09 11:05:00+00'),
+O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'normal', '2024-04-09 11:05:00+00', '2024-04-09 11:05:00+00'),
   ('60e92d59-2e64-423d-9aa6-ae517b54a80e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'REMESSA ´PARA INCINERAÇÃO – DIFAL', '[ Contabilidade Tecnomyl | 26/03/2024 às 09:44 ]
 Bom dia, tudo bem? Gostaríamos de esclarecer a operação de remessa para incineração quando o destinatário é não contribuinte, devemos realizar o recolhimento do DIFAL? Por gentileza, nos retornar com o dispositivo legal, a citação do trecho que justifica.
 
@@ -12223,7 +12223,7 @@ Como existem particularidades entre os estados para a tratativa com descartes e 
 atualizado Equipe de Suporte para Geizi Andrade
 
 [ Ricardo Migueis | 28/03/2024 às 10:22 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-03-26 12:44:00+00', '2024-03-26 12:44:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-03-26 12:44:00+00', '2024-03-26 12:44:00+00'),
   ('84aa5678-828e-4ac4-b343-65a7a977b603'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'ESCALA 7X7', '[ Simone Cavalcante | 25/03/2024 às 17:47 ]
 Boa tarde, estamos iniciando com alguns colaboradores na função de vigia. esses trabalharão no período noturnos nas empresas, devido as distancias das fazendas e seus respectivos deslocamentos, observamos a possibilidade de contratar esses colaboradores em uma escala 7x7 onde contratamos 2 para da unidade. assim ficando 1 colaborador por 7 dias seguidos e outro por 7 dias seguidos. ambos folgam 7 dias seguidos após cumprir os seus dias de trabalho. os horários seriam das 18:00 as 06:00. (registrando ponto, e ciente que não podem fazer horas extras). em anexo segue o contrato, pedimos uma orientação quanto a validade do mesmo e seus respaldos. att,
 
@@ -12246,7 +12246,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 28/03/2024 às 10:20 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2024-03-25 20:47:00+00', '2024-03-25 20:47:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-03-25 20:47:00+00', '2024-03-25 20:47:00+00'),
   ('1f925d47-6268-4315-8866-5661d65a2c38'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão 4º Trimestre 2023 – EFD Contribuições.', '[ Luis Fernando | 25/03/2024 às 17:05 ]
 Boa tarde Pessoal, Segue anexo material para revisão do 4º Trimestre 2023 EFD Contribuições. Comunico que as sugestões de retificação dos 3 primeiros trimestre de 2023 foram atendidas e retransmitidas a Receita Federal. Demais anexo será encaminhado por email a Gabriel Gama. Desde já fico a disposição. Att, Luis F.G. Silva
 
@@ -12277,7 +12277,7 @@ Estado do chamado mudou para «Em Progresso»
 atualizado Equipe de Suporte para Gabriel Gama
 
 [ Ricardo Migueis | 28/03/2024 às 10:21 ]
-Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-03-25 20:05:00+00', '2024-03-25 20:05:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-03-25 20:05:00+00', '2024-03-25 20:05:00+00'),
   ('c05cff71-e4a6-4145-ac02-41038bf7bf8a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Atualização Mapeamento Tributação', '[ Contabilidade Tecnomyl | 12/03/2024 às 16:20 ]
 Boa tarde, tudo bem?   Precisamos da atualização do Mapa Tributáiro em anexo para os seguintes estados das novas filiais: Tocantins, Rondônia, Maranhão e Pará.
 
@@ -12296,7 +12296,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 13/03/2024 às 08:43 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-03-12 19:20:00+00', '2024-03-12 19:20:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-03-12 19:20:00+00', '2024-03-12 19:20:00+00'),
   ('0e773e83-e3b8-4761-9871-3a490f13323d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Crédito ICMS PIS COFINS com Fretes.', '[ Contabilidade Tecnomyl | 1/03/2024 às 11:02 ]
 Bom dia, tudo bem? Estamos com algumas dúvidas referente ao crédito de ICMS - PIS e COFINS no FRETES interestaduais se podemos nos creditar nas seguintes operações: Frete Remessa para industrialização Frete Retorno de Produto acabado Frete Saída Bonificação Frete Remessa para Incineração Frete Devoluções Frete Remessa de Amostra   Por gentileza anexar a base legal para os créditos.
 
@@ -12322,7 +12322,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 6/03/2024 às 09:24 ]
-atualizado Equipe de Suporte para Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-03-01 14:02:00+00', '2024-03-01 14:02:00+00'),
+atualizado Equipe de Suporte para Gabriel Gama', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-03-01 14:02:00+00', '2024-03-01 14:02:00+00'),
   ('2435d42d-bd39-4c5b-a796-a0093021a759'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Importação RS- Exoneração de ICMS', '[ Contabilidade Tecnomyl | 29/02/2024 às 10:07 ]
 Prezados, bom dia, Estamos iniciando a operação de importação pelo estado do RS. Surgiram algumas duvidas em relação a exoneração do ICMS na importação terrestre. Nosso entendimento inicial, é de que, para obter o diferimento necessitaríamos utilizar despachante aduaneiro e porto seco ( para averbação da DI) do Estado do RS, porém em conversa com empresas do Agro que já realizam esta operação, a mesma nos informou que realiza o desembaraço aduaneiro na unidade de Foz do Iguaçu/PR cujo destino é o RS ( mesmo procedimento que hoje utilizamos para MT e GO). Utilizando a seguinte base legal: DIFERIDO CFE LIVRO I, ART.53, II, APENDICE XVII, ITEM V, ALINEA B DO RICMS DECRETO 37699/97. duvida 1: Conseguiríamos realizar a exoneração em FOZ sem a necessidade de porto seco? duvida 2: Há algum pedido a ser realizado ao estado do RS, em relação aos produtos que serão importados?
 
@@ -12359,7 +12359,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Diego Melo
 
 [ Prado Suporte | 29/02/2024 às 10:31 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-02-29 13:07:00+00', '2024-02-29 13:07:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-02-29 13:07:00+00', '2024-02-29 13:07:00+00'),
   ('b807e7b9-3f9e-43ee-a2a4-4a0baca0037a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'aproveitamento de crédito de ICMS – CTE – GO', '[ Contabilidade Tecnomyl | 26/02/2024 às 10:33 ]
 Bom dia, tudo bem? Estamos com dúvidas com relação a nossa filial de GO, onde não vamos mais tributar ICMS nas saídas em transferências, conforme Lei Complementar Nº 204, De 28 De Dezembro De 2023, porém, podemos tomar crédito de ICMS dos fretes que acompanham essas saídas? Visto que no caso de saída em transferência onde o imposto é devido é permitido tomar crédito do ICMS do frete. Por gentileza, no retorno ao informar o dispositivo legal, informar o trecho do embasamento também.
 
@@ -12415,7 +12415,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/02/2024 às 15:33 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-02-26 13:33:00+00', '2024-02-26 13:33:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-26 13:33:00+00', '2024-02-26 13:33:00+00'),
   ('b3f8636d-e067-4c49-a06b-634b4853521d'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'aproveitamento de crédito de ICMS – CTE', '[ Contabilidade Tecnomyl | 26/02/2024 às 10:29 ]
 Bom dia, tudo bem? Fizemos um questionamento referente aos créditos de ICMS dos fretes que acompanham nossas saídas de nota de transferência em SP, Segue o questionamento que fizemos anteriormente: Tecnomyl: Estamos com dúvidas com relação a nossa filial de SP, onde não vamos mais tributar ICMS nas saídas em transferências, conforme Lei Complementar Nº 204, De 28 De Dezembro De 2023, porém, podemos tomar crédito de ICMS dos fretes que acompanham essas saídas? Visto que no caso de saída em transferência onde o imposto é devido é permitido tomar crédito do ICMS do frete. Retorno PRADO: Em análise do aproveitamento de crédito de ICMS sobre a entrada de conhecimento de transporte originado de uma operação de mercadoria com não incidência de ICMS, entendemos que deva manter o não aproveitamento de ICMS. Com base nos artigos 59 a 61 do regulamento de ICMS do Estado de São Paulo. Porém, lendo os artigos citados do RICMS-SP não conseguimos identificar o trecho da justificativa da resposta de vocês, poderia informar com base em qual trecho dos artigos vocês consideraram?
 
@@ -12450,7 +12450,7 @@ Estado do chamado mudou para «Em Progresso»
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/02/2024 às 15:34 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-02-26 13:29:00+00', '2024-02-26 13:29:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-26 13:29:00+00', '2024-02-26 13:29:00+00'),
   ('add7f56e-a4d2-43d5-b250-3de32d8115d3'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Remessa para incineração ICMS', '[ Contabilidade Tecnomyl | 26/02/2024 às 08:13 ]
 Olá, tudo bem? Temos algumas situações onde mercadorias com a marca Tecnomyl acabam vencendo no cliente e precisamos fazer a coleta e destinar para incineração. Acabamos instruindo o cliente a seguir da seguinte forma: O cliente precisa emitir uma nota fiscal X949 para transitar até o armazém ou a unidade mais próxima com a observação de "mercadoria vencida com destino incineração" e posteriormente a Tecnomyl fará uma nota fiscal x949 destinando à incineradora. Estamos com dúvidas com relação ao ICMS da operação se é devido nessa operação tanto na entrada quanto na saída e qual o dispositivo legal.
 
@@ -12491,7 +12491,7 @@ Essa situação acontece em algum estado especifico que a Tecnomyl está situada
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/02/2024 às 08:34 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-02-26 11:13:00+00', '2024-02-26 11:13:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-02-26 11:13:00+00', '2024-02-26 11:13:00+00'),
   ('91d09385-3ef1-4734-bd9a-f7f1ec59e0ed'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Crédito de Pis e Cofins sobre Frete de compras, e Fretes industrialização', '[ Contabilidade Tecnomyl | 22/02/2024 às 16:20 ]
 Prezados, boa tarde. Gostaríamos de saber como está a sistemática da tomada de crédito de Pis e Cofins sobre Frete s/ compra (ônus suportado pelo comprador) e o Frete prestado no processo de industrialização de um produto para revenda, visto que havia previsão expressa sobre o "frete" em vários momentos na IN RFB 2121/2022, como por exemplo no art 174 e 176 mas com a IN 2152/2023 por algum motivo foram revogados. Entretanto, a Receita Federal,  há muito tempo, já interpreta que os gastos com transporte na aquisição das mercadorias podem compor a base de cálculo dos créditos não cumulativos, uma vez que consoante à boa técnica contábil, o frete, quando pago pelo adquirente, integra o custo de aquisição das mercadorias adquiridas, nessa mesma lógica se aplicaria o frete da Industrialização que é necessário para o acabamento do produto. Dito isso, há alguma previsão legal para a tomada de crédito desses fretes? Se encaixaria em serviços utilizados como insumos ou em alguma outra hipótese prevista na IN, ou ainda, teria alguma solução de consulta que permitiria este crédito?
 
@@ -12525,7 +12525,7 @@ Atenciosamente,
 Gabriel Gama
 
 [ Ricardo Migueis | 23/02/2024 às 14:50 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-02-22 19:20:00+00', '2024-02-22 19:20:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-22 19:20:00+00', '2024-02-22 19:20:00+00'),
   ('5cdffeba-ecc1-4f5d-b7df-a0b483bb8d28'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'CARGO DE CONFIANÇA', '[ Simone Cavalcante | 21/02/2024 às 16:33 ]
 Boa tarde, Senhores(as) estamos precisando de um apoio relacionado ao um parecer sobre uma determinada situação que estamos tendo no atual momento na Agropecuaria Cataratas. Colaboradores de Cargos de Confiança atualmente recebem um adicional 40% de cargo de confiança, porem outros que atuam como gerentes e supervisores não recebem esses valores, querendo assim sanar essa diferença, chegamos as seguintes questões. - incorporar no valor do salario dos que recebem atualmente os 40% através de um termo aditivo do contrato (em anexo), como poderíamos fazer essa alteração tendo em vista que eles recebem desta forma e não receberão mais, como teríamos que fazer as anotações em CTPS. - para novos colaboradores nesses cargos, poderiam validar o contrato, onde não iremos mais especificar esse adicional de 40%. (em anexo) - Para os colaboradores que não recebem atualmente os 40% de adicional, porem ocupam cargo de gerentes e supervisores  não marcando ponto, poderiam validar o termo aditivo ( em anexo ) - uma ultima situação é a que 2 colaboradores antigos não tem especificado no contrato de trabalho o adicional de 40% e depois passaram a receber, esses sendo apenas comunicados do recebimento, como poderíamos fazer essa alteração também incorporando os 40% no valor do salario. obs: esta em anexo 2 termos aditivos (porem no mesmo arquivo para respeita o limite de arquivo enviado) grato pela atenção aguardo um retorno att,
 
@@ -12583,7 +12583,7 @@ Parecer_-_Cargo_de_Confianca_-_PSA_p._Cataratas_S._1895.pdf
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 23/02/2024 às 14:49 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2024-02-21 19:33:00+00', '2024-02-21 19:33:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-02-21 19:33:00+00', '2024-02-21 19:33:00+00'),
   ('32efc929-7f0f-4208-867c-17781907078b'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'IMPOSTO RETIDO EMISSÃO DE NFSE', '[ Contabilidade Tecnomyl | 15/02/2024 às 12:12 ]
 Bom dia, atualmente atendemos um cliente que é um fundo de investimento e na emissão da NFSE destacamos os imposto retidos. Em janeiro/24 entrou em vigência a obrigação acessória da REINF e informamos ao nosso cliente que ele deveria passar a entregar a obrigação. O mesmo nos retornou um email nos informando que fundos de investimento não possuem personalidade Juridica e portanto estão dispensados da retenções de IRRF e CSRF. (segue abaixo trecho legal). A nossa dúvida é precisamos continuar a reter os impostos na emissão da NFSE?   Conforme falamos, Fundos de Investimentos não possuem personalidade jurídica e, portanto, estão dispensados da retenção de IRRF e CSRF. Segue solução de consulta que ratifica o entendimento.   SOLUÇÃO DE CONSULTA DISIT/SRRF06 Nº 6023, DE 12 DE MAIO DE 2016   ASSUNTO: Imposto sobre a Renda Retido na Fonte – IRRF EMENTA: FUNDOS DE INVESTIMENTO. REMUNERAÇÃO DE SERVIÇOS PROFISSIONAIS. As importâncias pagas ou creditadas por fundos de investimento a pessoas jurídicas pela prestação de serviços caracterizadamente de natureza profissional não estão sujeitos à retenção do imposto de renda na fonte (IRRF) de que trata o art. 647 do RIR/99. Tal retenção só se aplica aos pagamentos referidos quando efetuados por pessoas jurídicas, qualificação na qual não se enquadram os fundos de investimentos, dado consistirem em uma comunhão de recursos, constituída sob a forma de condomínio, e, portanto, sem personalidade jurídica. SOLUÇÃO DE CONSULTA VINCULADA À SOLUÇÃO DE CONSULTA COSIT Nº 09, DE 7 DE JANEIRO DE 2014. DISPOSITIVOS LEGAIS: Decreto n° 3.000, de 1999 (Regulamento do Imposto de Renda) art. 647; Instrução CVM n° 409, de 2004, art. 2°; Lei n° 10.406, de 2002 (Código Civil), arts. 1.314 a 1.326; Parecer Normativo CST n° 37, de 1972, Ementa.   ASSUNTO: Imposto sobre a Renda Retido na Fonte - IRRF EMENTA: FUNDOS DE INVESTIMENTO. REMUNERAÇÃO DE SERVIÇOS PROFISSIONAIS. As importâncias pagas ou creditadas por fundos de investimento a pessoas jurídicas pela prestação de serviços caracterizadamente de natureza profissional não estão sujeitos à retenção do imposto de renda na fonte (IRRF) de que trata o art. 647 do RIR/99. Tal retenção só se aplica aos pagamentos referidos quando efetuados por pessoas jurídicas, qualificação na qual não se enquadram os fundos de investimentos, dado consistirem em uma comunhão de recursos, constituída sob a forma de condomínio, e, portanto, sem personalidade jurídica. SOLUÇÃO DE CONSULTA VINCULADA À SOLUÇÃO DE CONSULTA COSIT Nº 09, DE 7 DE JANEIRO DE 2014. DISPOSITIVOS LEGAIS: Decreto n° 3.000, de 1999 (Regulamento do Imposto de Renda) art. 647; Instrução CVM n° 409, de 2004, art. 2°; Lei n° 10.406, de 2002 (Código Civil), arts. 1.314 a 1.326; Parecer Normativo CST n° 37, de 1972, Ementa.   http://normas.receita.fazenda.gov.br/sijut2consulta/link.action?idAto=73883&visao=anotado
 
@@ -12610,7 +12610,7 @@ atualizado Equipe de Suporte para Monica Matunaga
 atualizado Equipe de Suporte para Willian Lima
 
 [ Ricardo Migueis | 23/02/2024 às 14:51 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-02-15 15:12:00+00', '2024-02-15 15:12:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-15 15:12:00+00', '2024-02-15 15:12:00+00'),
   ('85daa017-53b2-4362-b2be-527f1b0652d5'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Transferência entre unidades', '[ Simone Cavalcante | 6/02/2024 às 10:27 ]
 Bom dia! Recentemente fizemos uma transferência de um colaborador entre as unidades Ribeirão Preto e Iguaçu. No atual momento o colaborador se recusa a ir executar suas atividades na unidade destino alegando ser mais longe de sua casa e que ele quer ficar mais próximo dos filhos. De acordo com a CLÁUSULA DECIMA do seu contrato de trabalho tínhamos a legalidade de realizar a transferência, essa deu por motivo de a maquina que o operador realiza suas atividades ter sido transferida para Iguaçu pois as atividades necessárias para máquina na Ribeirão já haviam cessado. Vale ressaltar que no ultimo dia 27/01/2024 houve um acidente de trajeto com o colaborador, ele estava em sua motocicleta em direção a sua casa, ele foi socorrido e não houve sequelas. Mas mesmo antes do acidente o colaborador já havia manifestado sua vontade de não permanecer na Iguaçu. Em relação as transferência de unidade deveríamos ter incrementado 25% em seu salário?   Peço orientação para como proceder nesse caso visto que a vaga/atividades desenvolvidas por esse colaborador não existem mais na unidade de origem.
 
@@ -12639,7 +12639,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 7/02/2024 às 16:57 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2024-02-06 13:27:00+00', '2024-02-06 13:27:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2024-02-06 13:27:00+00', '2024-02-06 13:27:00+00'),
   ('33eff637-06fa-497d-b422-aee12c8d0a39'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'DÚVIDAS REFERENTE AO CTE', '[ Contabilidade Tecnomyl | 5/02/2024 às 18:10 ]
 Boa tarde, Tudo bem? Estamos com dúvidas com relação a nossa filial de SP, onde não vamos mais tributar ICMS nas saídas em transferências, conforme Lei Complementar Nº 204, De 28 De Dezembro De 2023, porém, podemos tomar crédito de ICMS dos fretes que acompanham essas saídas? Visto que no caso de saída em transferência onde o imposto é devido é permitido tomar crédito do ICMS do frete. Outra dúvida pertinente aos CTes, como está as situações da exclusão do ICMS da base de cálculo do CREDITO DO PIS E COFINS? O ICMS deve ser excluído? Se sim, em quais hipóteses? Hoje temos frete sobre vendas e fretes de importação que incidem os dois impostos e precisamos esclarecer para que seja ajustada a base de calculo dos créditos.
 
@@ -12720,7 +12720,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 6/02/2024 às 09:33 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-02-05 21:10:00+00', '2024-02-05 21:10:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-05 21:10:00+00', '2024-02-05 21:10:00+00'),
   ('04ae9ff4-29db-4054-9b83-39b4400a54f3'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Baixa de ativo imobilizado', '[ Contabilidade Tecnomyl | 5/02/2024 às 10:34 ]
 Bom dia, estamos fazendo a imigração de sistema e temos alguns imobilizados que devemos realizar a baixa. Gostaríamos de saber se essa baixa só pode ocorrer via emissão de NFE ou podemos fazer de outra forma?
 
@@ -12752,7 +12752,7 @@ O chamado foi fechado.
 Estado do chamado mudou para «Em Progresso»
 
 [ Ricardo Migueis | 6/02/2024 às 09:32 ]
-atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'media', '2024-02-05 13:34:00+00', '2024-02-05 13:34:00+00'),
+atualizado Equipe de Suporte para Diego Melo', NULL, 'resolvido', 'resolvido', 'normal', '2024-02-05 13:34:00+00', '2024-02-05 13:34:00+00'),
   ('f41cba88-6ad6-4d60-92ce-a744c8545fe8'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Estorno de créditos de ICMS em razão de saídas beneficiadas com isenção ou BC de ICMS reduzida no RS', '[ Contabilidade Tecnomyl | 31/01/2024 às 16:42 ]
 Olá, boa tarde, tudo bem? Estamos com uma dúvida referente a emissão da nota de estorno no estado do RS. Quando emitimos a nota via sistema, automaticamente alimenta os registros C100 e C190, e quando fazemos o ajuste no registro C197 duplica o  valor do débito. Não conseguimos emitir a nota alimentando somente o registro C197. Podemos seguir somente informando os campos C100 e C190 com o debito do ICMS, e nos dados adicionais com as informações "Decreto 37.699/97 (RICMS/RS), Livro II, Art. 25, Inciso VI." ? Link abaixo para facilitar o entendimento, conseguimos seguir o item 2, porém ao realizar o ajuste conforme o item 3 dobra o valor do estorno. https://atendimento.receita.rs.gov.br/como-operacionalizar-o-estorno-de-creditos-de-icms-em-razao-de-saidas-beneficiadas-com-isencao-ou-bc-de-icms-reduzida
 
@@ -12780,7 +12780,7 @@ atualizado Equipe de Suporte para Diego Melo
 Estado do chamado mudou para «Em Progresso»
 
 [ Contabilidade Tecnomyl | 31/01/2024 às 16:52 ]
-Segue documento com mais detalhes.', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-01-31 19:42:00+00', '2024-01-31 19:42:00+00'),
+Segue documento com mais detalhes.', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-01-31 19:42:00+00', '2024-01-31 19:42:00+00'),
   ('2a8b6d8a-d5a2-4459-a186-ee3b33bebb97'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Classificação NCM – produtos', '[ Contabilidade Tecnomyl | 30/01/2024 às 16:46 ]
 Boa tarde a todos. Há uma subposição dentro do capítulo 38 que especifica alguns defensivos: *As subposições 3808.61 a 3808.69 compreendem unicamente as mercadorias da posição 38.08 que contenham alfa-cipermetrina (ISO), bendiocarbe (ISO), bifentrina (ISO), clorfenapir (ISO), ciflutrina (ISO), deltametrina (DCI, ISO), etofenproxi (DCI), fenitrotion (ISO), lambda-cialotrina (ISO), malation (ISO), pirimifós-metila (ISO) ou propoxur (ISO). Para a lista acima a depender da embalagem pode ter imposto de importação ou não. 3808.69.90 nas embalagens de 20L e 10L: zero imposto 3808.62.90 nas embalagens de: 5L e 1L: 7,2% de I.I ADVER – CLORFENAPYR 240 SC 4X5L - 3808.62.90 ADVER – CLORFENAPYR 240 SC 20L E 10L - 3808.69.90 (zero imposto)  JUDOKA SUPER – LAMBDA CIALOTRINA 12X1 - 3808.62.90  JUDOKA SUPER - LAMBDA CIALOTRINA 20L E 10L - 3808.69.90 (zero imposto) ORSA – BIFENTRINA 4X5L - 3808.62.90 ORSA – BIFENTRINA 20L E 10L - 3808.69.90 (zero imposto) Possuímos alguns produtos importados nesta situação, é correto classificar os produtos com embalagem de 4x5L e 12X1L na NCM 3808.62.90 ou há algum modo de classificação em outro NCM sendo que esta esta nota se trata de ingredientes específicos?
 
@@ -12798,7 +12798,7 @@ SC_Cosit_n_98.042-2022.pdf
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 31/01/2024 às 14:56 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2024-01-30 19:46:00+00', '2024-01-30 19:46:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2024-01-30 19:46:00+00', '2024-01-30 19:46:00+00'),
   ('dd3fec50-c989-465c-92fc-eb2cfa669fb0'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'NFCe', '[ Contabilidade Tecnomyl | 25/01/2024 às 12:36 ]
 Boa tarde, tudo bem? Estamos com dúvida referente a escrituração das NFCe emitidas pelos nossos parceiros, como devemos dar entradas nessas notas modelos 65 ? No EFD, como devemos proceder? Por gentileza, nos passar os dispositivos legais referentes as essas situações, com as orientações de como devemos proceder. Obrigada.
 
@@ -12853,7 +12853,7 @@ GUIA_PRATICO_DA_ESCRITURACAO_FISCAL_DIGITAL_-_EFD.pdf
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/01/2024 às 07:20 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2024-01-25 15:36:00+00', '2024-01-25 15:36:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2024-01-25 15:36:00+00', '2024-01-25 15:36:00+00'),
   ('bb8c482c-8965-4bfd-a10f-38d5382a2971'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão 3º Trimestre 2023 – EFD Contribuições.', '[ Luis Fernando | 2/01/2024 às 12:02 ]
 Bom dia Pessoal, Solicito link para que possa subir material para revisão das EFD Contribuições referente ao 3º Trimestre de 2023. Pois os arquivos ultrapassa o tamanho suportado pelo porta de chamados. Att, Luis F.G.da Silva 94 99161 1506
 
@@ -12881,7 +12881,7 @@ Gabriel Gama
 atualizado Equipe de Suporte para Gabriel Gama
 
 [ Ricardo Migueis | 2/01/2024 às 15:36 ]
-Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2024-01-02 15:02:00+00', '2024-01-02 15:02:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2024-01-02 15:02:00+00', '2024-01-02 15:02:00+00'),
   ('433ac834-73aa-4e63-b464-c2221279b6c0'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão 2º Trimestre 2023 – EFD Contribuições.', '[ Luis Fernando | 5/12/2023 às 17:53 ]
 Boa tarde Pessoal, Segue em anexo material para revisão da Apuração Pis/Cofins referente ao 2º Trimestre de 2023 Desde já fico a disposição para o que for necessario Att, Luis F.G. da Silva
 
@@ -12906,7 +12906,7 @@ Estado do chamado mudou para «Em Progresso»
 [ Luis Fernando | 5/12/2023 às 18:01 ]
 Segue anexo:
 
-2o_Trim_2023.zip', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2023-12-05 20:53:00+00', '2023-12-05 20:53:00+00'),
+2o_Trim_2023.zip', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2023-12-05 20:53:00+00', '2023-12-05 20:53:00+00'),
   ('465314e6-5d16-406d-bd0c-ccb18e05d5e3'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Colaboradores que não registram ponto', '[ Simone Cavalcante | 5/12/2023 às 16:16 ]
 Bom dia!   Existe alguma possibilidade de um colaborador que não exerce cargo de confiança ficar sem registrar o ponto?
 
@@ -12936,7 +12936,7 @@ Atenciosamente,
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 5/12/2023 às 17:31 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2023-12-05 19:16:00+00', '2023-12-05 19:16:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2023-12-05 19:16:00+00', '2023-12-05 19:16:00+00'),
   ('fdbae816-000b-4413-ac35-8c13f20b0a50'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Operação de Troca de Mercadoria', '[ Contabilidade Tecnomyl | 9/11/2023 às 17:58 ]
 Olá, tudo bem?   Estamos com um volume grande de produto (vazamento)  no cliente e precisamos substituir ele, a operação que realizamos hoje é da seguinte forma:   1 - Identificado vazamento de 1000 LT no cliente para substituir. 2 - Fazemos uma nota fiscal de venda de um produto similar nos mesmos valores da nota origem 1000LT 3 - cliente faz a devolução do produto vazando 4 - fazemos a compensação financeira da devolução x venda substituta.   Pensamos em utilizar o cfop 5915/6915 - Remessa de mercadoria ou bem para conserto ou reparo, e alterar a natureza da operação para remessa para troca porém entendemos que este não se aplica para esse tipo de produto e como é vazamento não será possível consertá-lo.   Existe alguma outra forma de efetuarmos essa substituição sem gerar o efeito finaceiro e destaque ICMS nesse tipo de opeação?
 
@@ -12955,7 +12955,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 13/11/2023 às 10:51 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-11-09 20:58:00+00', '2023-11-09 20:58:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-11-09 20:58:00+00', '2023-11-09 20:58:00+00'),
   ('4e408fa2-f64e-43ca-a5b3-295948a70e5d'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Adicional de 40% para colaboradores com cargos de confiança', '[ Simone Cavalcante | 6/11/2023 às 09:57 ]
 Bom dia! A Cataratas possui atualmente alguns colaboradores a qual pagamos um adicional de cargo de confiança de 40% sobre o salário como gerentes e coordenadores. Outros como supervisores por exemplo ainda não estão recebendo. Gostaria de saber se o adicional de 40% é realmente obrigatório o pagamento para todos os cargos de confiança e ainda de se há flexibilidade para o adicional ser de apenas 20%?
 
@@ -12991,7 +12991,7 @@ Atenciosamente,
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 6/11/2023 às 14:29 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2023-11-06 12:57:00+00', '2023-11-06 12:57:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2023-11-06 12:57:00+00', '2023-11-06 12:57:00+00'),
   ('4c3a0989-4451-426b-a266-d5ba55cc1856'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Operações NF-e Venda e entrega Diferente do Cadastro', '[ Contabilidade Tecnomyl | 31/10/2023 às 17:41 ]
 Boa tarde. Tudo bem?   Estamos mapeando algumas operações de venda e ficamos com algumas duvidas de como utilizar a operação corretamente.   Precisamos saber do fluxo de notas CFOP e incidência de ICMS nas seguintes operações.   Venda de mercadorias para um cliente de Londrina - PR porém a entrega do produto será no armazém parceiro dele está situado em Maringá - PR. Nesse caso ficaria: 1 - Nota de venda para o cliente (CFOP 5102 ou outro) 2 - Nota de remessa para o endereço de entrega (armazém) (CFOP XXXX? qual utilizar) 3 - Cliente emite nota de cobertura para armazenagem? (CFOP 5907?)   Utilizando esse mesmo exemplo acima porém o armazém parceiro do cliente está em outro Estado. Quais etapas e CFOPS utilizamos? Quais notas terão incidência de ICMS?   Outra questão que tivemos foi o seguinte: Emitimos uma venda para o cliente 5102/6102 porém apenas na observação deixamos o endereço de entrega o armazém parceiro do cliente. Nesse caso há algum risco de algum fiscal autuar? devido ao endereço ser diferente do cadastrado no CNPJ ou Inscrição Estadual do cliente? também deve ter uma nota de remessa para o armazém parceiro? O CFOP 5102/6102 está correto para a operação ou utilizamos outro em específico?
 
@@ -13035,7 +13035,7 @@ Operacoes_NF-e_Venda_e_entrega_Diferente_do_Cadastro.pdf
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 6/11/2023 às 09:28 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-10-31 20:41:00+00', '2023-10-31 20:41:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-10-31 20:41:00+00', '2023-10-31 20:41:00+00'),
   ('f0c8a082-b572-420c-ab4e-dedcc79d97e9'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, 'b9d78de7-708b-407e-9e5f-14879c4a0a12'::uuid, 'Entrega de relatório de espelho de ponto para os colaboradores', '[ Simone Cavalcante | 24/10/2023 às 11:54 ]
 Atualmente a Cataratas utiliza registro de ponto online (Ponteiro.online) onde os colaboradores registraram seus horários com fotos. Ao final do período de ponto emitimos o relatório e recolhemos a assinatura. O sistema não emite recibo do registro realizado pelo colaborador de forma que ele não tem nenhum comprovante de seus horários. Nesse caso a empresa é obrigada a entregar uma cópia do relatório mensal dos registros?
 
@@ -13064,7 +13064,7 @@ Estado do chamado mudou para «Em Progresso»
 atualizado Equipe de Suporte para Claudionor Ferreira
 
 [ Ricardo Migueis | 25/10/2023 às 08:06 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2023-10-24 14:54:00+00', '2023-10-24 14:54:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2023-10-24 14:54:00+00', '2023-10-24 14:54:00+00'),
   ('8d014701-4a99-4f40-b041-7ddbbc90638e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Registro C170 – item despesa genérico', '[ Contabilidade Tecnomyl | 19/10/2023 às 11:06 ]
 Olá, tudo bem? Estamos trocando nosso ERP e ficamos com uma dúvida na questão de registro de Documento fiscal. Na entrada de uso e consumo no ERP que utilizamos hoje, cadastramos item a item da nota fiscal no sistema para o lançamento da NF. para o ERP novo pensamos em utilizar um item genérico com a descrição da conta contábil, por exemplo:   NF-e de compra no mercado. nessa NF terá itens de uso e consumo e material de limpeza. ERP Antigo: item a item cada um com seu NCM e classificado como uso e consumo CFOP 1556 e contabilização proporcional a utilização do item de consumo/limpeza. ERP Novo: 1 Item genérico Uso e consumo, NCM 9999.99.99 e 1 item genérico Material de limpeza NCM 9999.99.99   A dúvida ficou na questão do EFD ICMS que no registro C170 é obrigatório todo esse detalhamento ou utilizando o genérico atende a obrigação?
 
@@ -13102,7 +13102,7 @@ Estado do chamado mudou para «Em Progresso»
 [ Contabilidade Tecnomyl | 19/10/2023 às 11:08 ]
 segue arquivo sped e print registro
 
-c170.zip', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-10-19 14:06:00+00', '2023-10-19 14:06:00+00'),
+c170.zip', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-10-19 14:06:00+00', '2023-10-19 14:06:00+00'),
   ('ac525793-68c4-446f-a0eb-6613c91ad225'::uuid, '1f0b4119-7378-420a-814e-7e94a8664189'::uuid, '747e44ae-602e-4fe5-9481-3b9c14901c2c'::uuid, '9682a160-3eb7-40da-a390-25d5f4bc4adb'::uuid, 'Revisão 1º Trimestre 2023 – EFD Contribuições.', '[ Luis Fernando | 17/10/2023 às 07:57 ]
 Bom dia Pessoal, Segue em anexo material para revisão das apurações Pis/Cofins do 1º Trimestre de 2023. Att, Luis F.G. da Silva
 
@@ -13130,7 +13130,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Gabriel Gama
 
 [ Ricardo Migueis | 17/10/2023 às 09:47 ]
-Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2023-10-17 10:57:00+00', '2023-10-17 10:57:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2023-10-17 10:57:00+00', '2023-10-17 10:57:00+00'),
   ('9b3867a2-8e0e-4faf-99b8-fe80a00741dc'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Troca de Série NF-e', '[ Contabilidade Tecnomyl | 26/09/2023 às 08:53 ]
 Olá, tudo bem?   Estamos trocando de ERP do Siagri para o SAP e ficamos na dúvida referente a troca de Série de NF-e. Pensamos inicialmente em resetar a numeração de todas as filiais e em 2024 utilizar a Série nº 2 para no sistema novo. Não encontrei se existe alguma base legal para a escolha da série da NF-e ou é apenas uma escolha da empresa mesmo qual série de NF-e utilizar.
 
@@ -13147,7 +13147,7 @@ O chamado foi fechado.
 atualizado Equipe de Suporte para Diego Melo
 
 [ Ricardo Migueis | 26/09/2023 às 16:01 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-09-26 11:53:00+00', '2023-09-26 11:53:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-09-26 11:53:00+00', '2023-09-26 11:53:00+00'),
   ('21489878-84b6-460a-b5ac-872055f62974'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Venda de grãos e químicos pelo mesmo estabelecimento', '[ Contabilidade Tecnomyl | 21/09/2023 às 15:13 ]
 Prezados, Espero que esta mensagem os encontre bem. A Tecnomyl encontra-se atualmente sem processo de implementação do sistema de barter. No momento, nossa operação se limita à celebração dos contratos. Contudo, temos a intenção de adotar, num futuro próximo, o seguinte procedimento:
 A Tecnomyl comercializa insumos agrícolas ao produtor rural.
@@ -13191,7 +13191,7 @@ atualizado Equipe de Suporte para Monica Matunaga
 atualizado Equipe de Suporte para Marcely Arruda
 
 [ Ricardo Migueis | 22/09/2023 às 15:03 ]
-Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'media', '2023-09-21 18:13:00+00', '2023-09-21 18:13:00+00'),
+Estado do chamado mudou para «Em Progresso»', NULL, 'resolvido', 'resolvido', 'normal', '2023-09-21 18:13:00+00', '2023-09-21 18:13:00+00'),
   ('b41a8ae0-536b-456f-9d9f-32fa2d304f6a'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'FCI – Ficha de Conteúdo de Importação', '[ Contabilidade Tecnomyl | 1/09/2023 às 11:31 ]
 Olá, tudo bem? Recentemente fomos questionados por um cliente sobre o número da FCI – Ficha de Conteúdo de Importação, de um produto, NCM 3808.93.22 – Item com similar nacional com aliquota 4% nas operações interestaduais. A Tecnomyl importa os produtos como esse normalmente da China e Paraguai e distribui para todo o Brasil, dessa forma somos obrigados a informar o FCI para esses produtos? como conseguimos esse número? Muito obrigado desde já.
 
@@ -13213,12 +13213,12 @@ At.te, Monica Matunaga
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 4/09/2023 às 09:20 ]
-Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'media', '2023-09-01 14:31:00+00', '2023-09-01 14:31:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Outros', 'resolvido', 'resolvido', 'normal', '2023-09-01 14:31:00+00', '2023-09-01 14:31:00+00'),
   ('a4e4e627-adfa-4c96-8f14-2468786eb0e9'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, 'ec8c2f0e-6999-4387-8417-c617a728b428'::uuid, 'FCI – Ficha de Conteúdo de Importação', '[ Contabilidade Tecnomyl | 1/09/2023 às 11:30 ]
 Olá, tudo bem? Recentemente fomos questionados por um cliente sobre o número da FCI - Ficha de Conteúdo de Importação, de um produto, NCM 3808.93.22 - Item com similar nacional com aliquota 4% nas operações interestaduais. A Tecnomyl importa os produtos como esse normalmente da China e Paraguai e distribui para todo o Brasil, dessa forma somos obrigados a informar o FCI para esses produtos? como conseguimos esse número? Muito obrigado desde já.
 
 [ Contabilidade Tecnomyl | 1/09/2023 às 11:30 ]
-O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'media', '2023-09-01 14:30:00+00', '2023-09-01 14:30:00+00'),
+O chamado foi fechado.', NULL, 'resolvido', 'resolvido', 'normal', '2023-09-01 14:30:00+00', '2023-09-01 14:30:00+00'),
   ('a48555e5-d3ad-4e41-b53c-58f4af8f895f'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '0e2136ac-7e21-4885-8347-ce436c4c1cf9'::uuid, 'Estorno Proporcional ICMS – RS', '[ Contabilidade Tecnomyl | 1/09/2023 às 11:10 ]
 Bom dia, tudo bem?   Inciamos as atividades na unidade de RS em março/2023 e a partir desse mês tivemos que realizar o estorno de ICMS conforme repassado pela contabilidade da região. Porém ainda segue um pouco confuso qual a forma de cálculo correto para esse estorno. (esse estorno não estava previsto porém foi orientado pela contabilidade) Qual a forma correta da operação de estorno? Caso tenha entrada de mercadoria com ICMS e nenhuma saída interna/interestadual podemos manter o saldo? estou encaminhando os livros de cada mês, os exemplos de cálculos com base no repasse da contabilidade e a consulta que eles realizaram em outro momento.
 
@@ -13247,7 +13247,7 @@ atualizado Equipe de Suporte para Diego Melo
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 4/09/2023 às 09:21 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-09-01 14:10:00+00', '2023-09-01 14:10:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-09-01 14:10:00+00', '2023-09-01 14:10:00+00'),
   ('a498aab5-2637-4385-8e34-9425e2eb1128'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Descontos Recebidos não são tributáveis como receita', '[ Contabilidade Tecnomyl | 31/08/2023 às 09:20 ]
 Boa tarde James e Felipe! Tudo bem? Recebi esse e-mail e gostaria de compartilhar com vocês. O Item 6 que trata de (Descontos Recebidos não são tributáveis como receita), ou seja, não deveriam ser base de cálculo para PIS e COFINS. A Tecnomyl recebeu a alguns dias quase 800 mil dólares de descontos via notas de crédito (em anexo), sobre compras realizadas em 2022, esses descontos foram aplicados na contabilidade como descontos financeiros abatendo o saldo devedor do fornecedor e oferecemos a receita desses descontos para tributação de PIS e COFINS. Se essa matéria tiver fundamento, acredito que se aplicaria ao nosso caso, é um desconto sobre compras de mercadorias e logo não deveria ser base de cálculo para PIS e COFINS. Vocês poderiam verificar por gentileza se há fundamento e se podemos nos beneficiar dessa decisão e se sim como reconhecer esse crédito na contabilidade? Qualquer dúvida estou à disposição. Saudações. Junior
 
@@ -13272,7 +13272,7 @@ At.te, Monica Matunaga
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 31/08/2023 às 15:04 ]
-Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'media', '2023-08-31 12:20:00+00', '2023-08-31 12:20:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'PIS/Cofins', 'resolvido', 'resolvido', 'normal', '2023-08-31 12:20:00+00', '2023-08-31 12:20:00+00'),
   ('66e19e1f-f329-4791-9d5a-a060b2b70d5e'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Movimentação IBC’s – Reprocesso', '[ Contabilidade Tecnomyl | 15/08/2023 às 11:11 ]
 Bom dia, tudo bem? Estamos em um trabalho de coleta de produto com vazamento que estão em diversos locais para reprocesso em SP, o caminhão não pode transitar com esse produto derramando por conta de riscos com fiscalizações ambientais. Para isso compramos alguns IBC''s (nota fiscal em anexo) para armazenar esses galões que estão com esse problema. Temos que enviar o IBC vazio ao local da coleta que será na filial de MT e na Filial de SP e também ao cliente (MT/TO/SP), pensamos inicialmente em emitir uma nota fiscal CFOP x949 - Outras Saídas para transitar e e posteriormente retornando os galões e IBC''s com x949 também (tanto filial quanto cliente). 1 - Nas operações x949 sem destaque de ICMS está correto? 2 - Tem outra forma de trabalho com esses envios?
 
@@ -13301,7 +13301,7 @@ Tecnomyl_Coleta%20de%20galões%20com%20vazaamento.docx
 atualizado Equipe de Suporte para Marcely Arruda
 
 [ Ricardo Migueis | 16/08/2023 às 11:50 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-15 14:11:00+00', '2023-08-15 14:11:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-15 14:11:00+00', '2023-08-15 14:11:00+00'),
   ('3b809ca7-9c29-4f1d-806c-e96bba5ff3c8'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Baixa de imobilizado', '[ Contabilidade Tecnomyl | 7/08/2023 às 17:40 ]
 Boa tarde, tudo bem? Estamos com alguns ativos imobilizados que foram danificados/sucateados e outros ficaram em posse do colaborador devido à política de troca de equipamentos.  (em anexo os itens com valores e descrição) Precisamos de orientação de como proceder com a baixa do bem e se podemos seguir com as baixas desses itens apenas contabilmente sem a emissão de nota fiscal.   Muito obrigado desde já.
 
@@ -13323,7 +13323,7 @@ Tecnomyl_Baixa%20de%20Imobilizado_08.2023.pdf
 atualizado Equipe de Suporte para Monica Matunaga
 
 [ Ricardo Migueis | 8/08/2023 às 09:52 ]
-Estado do chamado mudou para «Em Progresso»', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'media', '2023-08-07 20:40:00+00', '2023-08-07 20:40:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'Contabilidade/Societário', 'resolvido', 'resolvido', 'normal', '2023-08-07 20:40:00+00', '2023-08-07 20:40:00+00'),
   ('3925434c-aa30-4a60-9112-9338df480442'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Obrigação acessória (RO)', '[ Contabilidade Tecnomyl | 7/08/2023 às 13:49 ]
 Boa tarde! Tudo bem? A Tecnomyl está abrindo uma unidade nova em RO, por favor informar quais são as obrigações acessórias estaduais (GIA, EFD Fiscal, GIA anual, ...)? Incluir legislação e vencimento, se o estado tem manual de EFD específico. At.te
 
@@ -13341,7 +13341,7 @@ Tecnomyl_Obrigação%20Acessória_RO.docx
 atualizado Equipe de Suporte para Marcely Arruda
 
 [ Ricardo Migueis | 8/08/2023 às 09:55 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-07 16:49:00+00', '2023-08-07 16:49:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-07 16:49:00+00', '2023-08-07 16:49:00+00'),
   ('39372ff2-786f-4942-890e-086bc78f4fce'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Obrigação acessória (MG)', '[ Contabilidade Tecnomyl | 7/08/2023 às 13:48 ]
 Boa tarde! Tudo bem? A Tecnomyl está abrindo uma unidade nova em MG, por favor informar quais são as obrigações acessórias estaduais (GIA, EFD Fiscal, GIA anual, ...)? Incluir legislação e vencimento, se o estado tem manual de EFD específico. At.te
 
@@ -13356,7 +13356,7 @@ Quaisquer dúvidas, estou à disposição!
 Tecnomyl_Obrigação%20Acessória_MG.docx
 
 [ Ricardo Migueis | 8/08/2023 às 09:56 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-07 16:48:00+00', '2023-08-07 16:48:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-07 16:48:00+00', '2023-08-07 16:48:00+00'),
   ('99829eb6-526c-4bc8-8fcf-59d8801195b6'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4ddd05d2-c199-4907-8fb7-55c8e5de1a21'::uuid, 'Obrigação acessória (TO)', '[ Contabilidade Tecnomyl | 7/08/2023 às 13:46 ]
 Boa tarde! Tudo bem? A Tecnomyl está abrindo uma unidade nova em TO, por favor informar quais são as obrigações acessórias estaduais (GIA, EFD Fiscal, GIA anual, ...)? Incluir legislação e vencimento, se o estado tem manual de EFD específico. At.te
 
@@ -13404,7 +13404,7 @@ Leiaute GIAM – versão 10.0
 At.te, Mônica Matunaga.
 
 [ Monica Matunaga | 7/08/2023 às 16:53 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-07 16:46:00+00', '2023-08-07 16:46:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-07 16:46:00+00', '2023-08-07 16:46:00+00'),
   ('b52e01f2-3b21-4e26-b038-b50dd5688bad'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Obrigação acessoria (MS)', '[ Contabilidade Tecnomyl | 7/08/2023 às 13:45 ]
 Boa tarde! Tudo bem? A Tecnomyl está abrindo uma unidade nova em MS, por favor informar quais são as obrigações acessórias estaduais (GIA, EFD Fiscal, GIA anual, ...)? Incluir legislação e vencimento, se o estado tem manual de EFD especifico. At.te
 
@@ -13422,7 +13422,7 @@ Tecnomyl_Obrigação%20Acessória_MS.docx
 atualizado Equipe de Suporte para Marcely Arruda
 
 [ Ricardo Migueis | 8/08/2023 às 09:57 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-07 16:45:00+00', '2023-08-07 16:45:00+00'),
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-07 16:45:00+00', '2023-08-07 16:45:00+00'),
   ('d283d6bd-4172-4b61-9dfc-57410ad69ec0'::uuid, 'd4e9360c-cae8-4c04-bc05-b89640c23fad'::uuid, '5c3ded88-4ba6-4387-aad6-9c8bf07c1579'::uuid, '4a57f82f-8532-47a9-b471-6951072a66f4'::uuid, 'Remessa e Retorno', '[ Contabilidade Tecnomyl | 3/08/2023 às 17:01 ]
 Boa tarde! Tudo bem? Com frequência ao realizar uma operação de remessa e retorno em comodato, nosso parceiro não solicita para a Tecnomyl emitir a nota de retorno, ele emite uma nota fiscal de entrada em retorno, mesmo após a ocorrência do fato gerador e a Tecnomyl ser contribuinte de ICMS e emitir nota fiscal no modelo 55 em todas as unidades. A Tecnomyl registra a nota fiscal de remessa do parceiro, realiza uma manifestação do destinatário na nota de retorno dele, emite uma nota de retorno e envia para o parceiro. Esta situação est gerando um pouco de aborrecimento entre as duas empresas, e para evitar que o transtorno continue gostaria de encaminhar uma carta ao parceiro, informando sobre a obrigação acessória legal da Tecnomyl emitir a nota fiscal de retorno. Por favor retornar a resposta considerando os seguintes estados: GO, MT, SP, PR, RS, BA, MA, PA, MS, RO e TO. Obs. Caso o parceiro esteja realizando a operação da forma correta, por favor retornar com a base legal. At.te
 
@@ -13437,7 +13437,7 @@ Quaisquer dúvidas, estou à disposição!
 Tecnomyl_Remessa%20e%20retorno%20comodato.docx
 
 [ Marcely Arruda | 7/08/2023 às 10:53 ]
-Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'media', '2023-08-03 20:01:00+00', '2023-08-03 20:01:00+00')
+Estado do chamado mudou para «Em Progresso»', 'ICMS/IPI', 'resolvido', 'resolvido', 'normal', '2023-08-03 20:01:00+00', '2023-08-03 20:01:00+00')
 ON CONFLICT (id) DO NOTHING;
 
 DO $$
