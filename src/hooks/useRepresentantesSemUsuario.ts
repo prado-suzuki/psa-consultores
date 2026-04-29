@@ -35,28 +35,29 @@ interface RawRow {
   nome: string;
   email: string | null;
   id_cliente: string;
-  cliente: { id: string; nome: string; ativo: boolean | null } | null;
+  cliente: { id: string; nome: string; ativo: boolean | null; fixo: string | null } | null;
 }
 
 /**
  * Lista representantes que ainda NÃO possuem usuário no sistema (user_id IS NULL),
- * com email válido, do ambiente atual e do cliente conforme filtro de status.
+ * com email válido, do ambiente atual e do cliente conforme filtros de status e tipo.
  *
  * Usado pela sub-ferramenta "Carga de chamados" em Gerenciar dados.
  */
 export const useRepresentantesSemUsuario = (
   status: StatusClienteFiltro,
   enabled: boolean = true,
+  tipo: TipoClienteFiltro = 'todos',
 ) => {
   return useQuery({
-    queryKey: ['representantes-sem-usuario', currentAmbiente, status],
+    queryKey: ['representantes-sem-usuario', currentAmbiente, status, tipo],
     enabled,
     staleTime: 30_000,
     queryFn: async (): Promise<RepresentantePendente[]> => {
       let q = supabase
         .from('representante')
         .select(
-          'id_representante, nome, email, id_cliente, cliente!inner(id, nome, ativo, ambiente, excluido)',
+          'id_representante, nome, email, id_cliente, cliente!inner(id, nome, ativo, ambiente, excluido, fixo)',
         )
         .eq('excluido', false)
         .is('user_id', null)
@@ -69,6 +70,9 @@ export const useRepresentantesSemUsuario = (
 
       if (status === 'ativos') q = q.eq('cliente.ativo', true);
       else if (status === 'inativos') q = q.or('ativo.is.null,ativo.eq.false', { foreignTable: 'cliente' });
+
+      if (tipo === 'fixos') q = q.eq('cliente.fixo', 'Sim');
+      else if (tipo === 'pontuais') q = q.or('fixo.is.null,fixo.neq.Sim', { foreignTable: 'cliente' });
 
       const { data, error } = await q;
       if (error) throw error;
