@@ -22,11 +22,12 @@ import type { WelcomeWebhookPayload } from '@/lib/welcomeWebhookQueue';
 
 export const CriarUsuariosTab = () => {
   const [status, setStatus] = useState<StatusClienteFiltro>('ativos');
+  const [tipo, setTipo] = useState<TipoClienteFiltro>('todos');
   const [dispararN8n, setDispararN8n] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [resultado, setResultado] = useState<CargaResultado | null>(null);
 
-  const { data: representantes = [], isLoading, refetch } = useRepresentantesSemUsuario(status, modalOpen);
+  const { data: representantes = [], isLoading, refetch } = useRepresentantesSemUsuario(status, modalOpen, tipo);
   const { run, reenviarEmails, progress, running, MAX_BATCH } = useCriarUsuariosRepresentantes();
 
   const handleAbrirModal = async () => {
