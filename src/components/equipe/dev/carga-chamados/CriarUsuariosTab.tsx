@@ -106,6 +106,27 @@ export const CriarUsuariosTab = () => {
             </RadioGroup>
           </div>
 
+          <div>
+            <Label className="text-sm font-medium mb-3 block">Tipo do cliente</Label>
+            <RadioGroup
+              value={tipo}
+              onValueChange={(v) => setTipo(v as TipoClienteFiltro)}
+              className="flex gap-6"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="fixos" id="tp-fixos" />
+                <Label htmlFor="tp-fixos" className="cursor-pointer">Fixos</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="pontuais" id="tp-pontuais" />
+                <Label htmlFor="tp-pontuais" className="cursor-pointer">Pontuais</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="todos" id="tp-todos" />
+                <Label htmlFor="tp-todos" className="cursor-pointer">Todos</Label>
+              </div>
+            </RadioGroup>
+          </div>
           <div className="flex items-start gap-3 p-3 rounded-md border bg-muted/30">
             <Checkbox
               id="disparar-n8n"
