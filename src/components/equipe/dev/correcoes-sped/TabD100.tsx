@@ -111,6 +111,7 @@ interface TabD100Props extends CorrecoesActionsProps {
 
 export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabD100Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'D100', cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<D100Item[]>([]);
