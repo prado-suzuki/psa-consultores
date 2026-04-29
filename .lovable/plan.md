@@ -1,77 +1,46 @@
+# Importação do histórico de chamados — execução
 
-## Diagnóstico do "12 vs 22"
+## Resultado da geração
 
-Não há bug. O hook `useRepresentantesSemUsuario` filtra por `currentAmbiente`, que é detectado via hostname:
+Arquivos criados:
 
-- Preview (`id-preview--*.lovable.app`) → `ambiente = 'dev'` → **12 representantes pendentes** ✅
-- Produção (`psaconsultores.com.br`) → `ambiente = 'prod'` → **22 representantes pendentes** ✅
+- `supabase/migrations/20260429120000_import_legacy_tickets.sql` (1.3 MB, ~13 458 linhas)
+- `supabase/migrations/20260429120001_revert_legacy_tickets.sql.disabled` (rollback, **não aplicado** — basta renomear para `.sql` e republicar para reverter)
 
-Os 22 que listei na consulta SQL anterior estavam todos em `ambiente='prod'`. Quando você publicar/abrir em produção, o modal mostrará os 22. No preview ele mostra (corretamente) apenas os 12 de dev.
+## Estatísticas (CSV: 290 linhas)
 
-## Auditoria do email placeholder (Rafael Castro)
+| Métrica | Valor |
+|---|---|
+| Inseridos em `tickets` | **277** |
+| Pulados | **13** (todos por email sem cliente em prod) |
+| Aliases de email aplicados | 0 (CSV anexo não tem Simone Cavalcante; alias permanece registrado) |
+| Fallback `assigned_to = Maria Lizot` | 42 chamados |
 
-- **Representante:** Rafael Castro (`52e1b819-45d5-4b0e-97e9-6a4b25c82afc`)
-- **Cliente:** Álvaro De Oliveira Castro
-- **Email atual:** `xxxxxxx@xxxxx.xxx.xx`
-- **Criado em:** 09/04/2026 18:42:09
-- **Autor identificado:** **Monica Matunaga** (`monica.matunaga@psaconsultores.com.br`)
-  - Não há log direto na tabela `audit_logs` para o representante (criação de representante via NewClientModal não estava sendo logada na época), mas o cliente associado foi criado pela Monica 2 segundos depois (18:42:11), no mesmo fluxo do NewClientModal — autoria por correlação temporal e funcional.
+## Pulados (registrados via `RAISE NOTICE` na própria migration)
 
-## Mudanças propostas
+- 11× `cliente@pradoconsultores.com` — sem cliente cadastrado em prod
+- 1× `marcus.laurentino@prado-advogados.com` — idem
+- 1× `solange.silva@tecnomyl.com` — idem
 
-### 1. Endurecer o filtro do hook `useRepresentantesSemUsuario`
+## Como o sistema atribuiu cada campo
 
-Hoje aceita qualquer email com `@`. Ajustar para excluir emails claramente inválidos/placeholder, garantindo que após a limpeza o Rafael Castro (e futuros casos) não apareçam mesmo se houver `@`:
+- `user_id` + `cliente_id` → representante mais recente em `prod` por email (canonicalizado via aliases). Linhas sem `user_id` foram puladas (regra: nunca criar usuário).
+- `assigned_to` → `profiles.first_name + last_name` (case-insensitive). Sem match → Maria Lizot (`b9d78de7-708b-407e-9e5f-14879c4a0a12`).
+  - Sem profile na base: Claudionor Ferreira, Matheus Lopes, Mateus Parente, Willian Lima, Prado Suporte, prado_administrador.
+- `status = 'resolvido'` e `activity_status = 'resolvido'` para **todos**.
+- `priority = 'media'` (padrão; CSV não traz).
+- `created_at` extraído de `Data abertura` (parse robusto, aceita também o formato "Última modificação\nDD/MM/YYYY às HH:MM" presente em chamados não fechados).
+- `updated_at` extraído do bloco `fechado em: AAAA-MM-DD às: HH:MM:SS` da coluna `Atividade`; quando ausente, recebe `created_at`.
+- `description` recebe o texto integral da coluna `Histórico` (quebras de linha preservadas).
 
-- Rejeitar emails sem `.` após o `@`
-- Rejeitar emails contendo sequências `xxxx`, `xxxxx`, `placeholder`, `teste@teste`, etc.
-- Rejeitar emails cujo domínio não tenha TLD válido (regex simples `/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i`)
-- Adicionar normalização (trim + lowercase) já existente
+## Garantias
 
-A filtragem fina é feita client-side após o fetch (Postgres não suporta regex tão facilmente via PostgREST; mantemos `LIKE '%@%'` no servidor + validação robusta no client).
+- ✅ Sem alteração de schema — só `INSERT` em `tickets`.
+- ✅ Sem disparo de webhook n8n (SQL puro, fora do app).
+- ✅ Sem criação de usuário.
+- ✅ Reversibilidade pura via SQL: `*_revert_legacy_tickets.sql.disabled` faz `DELETE` pelos 277 UUIDs explícitos.
+- ✅ Cliente do portal e responsável atribuído passam a ver os chamados imediatamente (RLS atual já cobre `cliente_id` e `assigned_to`).
 
-### 2. Migration: limpar o email placeholder
+## Aplicação
 
-Atualizar o representante Rafael Castro para `email = NULL`. Com isso, ele deixa de satisfazer o filtro `.not('email', 'is', null)` e não aparece mais no modal — independente do hook.
-
-Nenhum outro campo é alterado. Soft-delete não é aplicado (o representante continua válido, apenas sem email).
-
-### 3. Registrar no audit_logs a limpeza
-
-Criar uma entrada manual em `audit_logs` documentando:
-- Ação: `updated`
-- Campo alterado: `email` (de `xxxxxxx@xxxxx.xxx.xx` → `NULL`)
-- `details`: justificativa + autor original identificado (Monica Matunaga) + autor da limpeza (sistema/migration)
-
-### 4. Verificação de outros placeholders
-
-A migration faz uma busca preventiva por outros emails com padrão claramente placeholder (`xxxx@`, `@xxxx`, sem TLD) **somente para reportar via NOTICE no log da migration** — não altera nenhum outro registro automaticamente, para não causar efeitos colaterais.
-
-## Detalhes técnicos
-
-**Arquivo afetado (código):**
-- `src/hooks/useRepresentantesSemUsuario.ts` — adicionar função `isValidEmail()` e filtrar no `.map`/`.filter` final
-
-**Migration SQL (resumo):**
-```sql
--- 1. Auditar a mudança
-INSERT INTO audit_logs (area, entity_type, entity_id, entity_name, action, performed_by, changed_fields, details)
-VALUES ('client-management', 'representante', '52e1b819-...', 'Rafael Castro', 'updated', NULL,
-        '{"email":{"old":"xxxxxxx@xxxxx.xxx.xx","new":null}}'::jsonb,
-        '{"reason":"Limpeza de email placeholder","original_author":"monica.matunaga@psaconsultores.com.br","cleaned_by":"migration"}'::jsonb);
-
--- 2. Limpar
-UPDATE representante SET email = NULL, updated_at = now()
-WHERE id_representante = '52e1b819-45d5-4b0e-97e9-6a4b25c82afc'
-  AND email = 'xxxxxxx@xxxxx.xxx.xx';
-
--- 3. NOTICE com outros placeholders (somente log)
-DO $$ ... RAISE NOTICE ... $$;
-```
-
-## Resultado esperado
-
-- Modal continua mostrando 12 em dev e passará a mostrar 21 em prod (22 menos o Rafael Castro).
-- Rafael Castro permanece cadastrado como representante, apenas sem email.
-- Histórico da limpeza fica registrado em `audit_logs` com referência ao autor original.
-- Hook fica resiliente a futuros placeholders mesmo se o banco tiver lixo.
+A migration tem nome no padrão `<timestamp>_*.sql` em `supabase/migrations/`, portanto será aplicada automaticamente no próximo deploy do Lovable Cloud (publish/preview do projeto). O arquivo de rollback fica versionado mas inerte enquanto mantiver a extensão `.sql.disabled`.
