@@ -1,46 +1,50 @@
-# Importação do histórico de chamados — execução
+## Diagnóstico
 
-## Resultado da geração
+Confirmado pelo banco:
 
-Arquivos criados:
+- Migrations aplicadas: a mais recente é `20260428205348`. A migration `20260429120000_import_legacy_tickets.sql` **nunca foi aplicada** — existe no repositório (`supabase/migrations/`, 1.36 MB, 13 458 linhas) mas o pipeline de aplicação não a executou nesta sessão.
+- Tabela `tickets`: 7 registros, nenhum com `status='resolvido'`, último `created_at = 2026-04-27`. Ou seja, zero tickets legados foram inseridos.
+- O schema da tabela `tickets` é compatível com o INSERT da migration (todas as colunas usadas existem; `department` é nullable; sem CHECK constraints conflitantes).
 
-- `supabase/migrations/20260429120000_import_legacy_tickets.sql` (1.3 MB, ~13 458 linhas)
-- `supabase/migrations/20260429120001_revert_legacy_tickets.sql.disabled` (rollback, **não aplicado** — basta renomear para `.sql` e republicar para reverter)
+Conclusão: não houve falha de SQL — a migration apenas precisa ser **reapresentada para aplicação**. Como o registro `version = 20260429120000` não está em `supabase_migrations.schema_migrations`, basta disparar uma nova aplicação que ela será executada.
 
-## Estatísticas (CSV: 290 linhas)
+## Plano de correção
 
-| Métrica | Valor |
-|---|---|
-| Inseridos em `tickets` | **277** |
-| Pulados | **13** (todos por email sem cliente em prod) |
-| Aliases de email aplicados | 0 (CSV anexo não tem Simone Cavalcante; alias permanece registrado) |
-| Fallback `assigned_to = Maria Lizot` | 42 chamados |
+1. **Reaplicar a migration existente sem alterá-la** (mesmo conteúdo já aprovado anteriormente: 277 INSERTs, status `resolvido`, fallback Maria Lizot, alias Simone→Luis Fernando, sem webhook).
 
-## Pulados (registrados via `RAISE NOTICE` na própria migration)
+   - Estratégia: criar uma cópia versionada com novo timestamp (`20260429130000_import_legacy_tickets_retry.sql`) com **conteúdo idêntico** ao arquivo original, exceto por um `ON CONFLICT (id) DO NOTHING` adicionado ao `INSERT` para tornar a operação **idempotente** (caso parte tenha sido aplicada por algum motivo, não duplica).
+   - O arquivo original `20260429120000_import_legacy_tickets.sql` **permanece** no repo (não removo) — apenas não será mais executado por já estar "à frente" do timestamp atual aplicado, mas o retry com timestamp posterior garante execução.
 
-- 11× `cliente@pradoconsultores.com` — sem cliente cadastrado em prod
-- 1× `marcus.laurentino@prado-advogados.com` — idem
-- 1× `solange.silva@tecnomyl.com` — idem
+2. **Submeter via ferramenta de migration do Lovable Cloud** (não via `INSERT` em runtime, não via Edge Function), garantindo:
+   - Sem disparo de webhook n8n.
+   - Sem criação de usuário.
+   - Sem alteração de schema.
 
-## Como o sistema atribuiu cada campo
+3. **Validar pós-execução** com queries de leitura:
+   - `SELECT COUNT(*) FROM tickets WHERE status='resolvido'` deve retornar **277** (ou 277 + qualquer pré-existente, atualmente 0).
+   - `SELECT COUNT(DISTINCT assigned_to) FROM tickets WHERE status='resolvido'` para conferir distribuição.
+   - Spot-check em 3 UUIDs do arquivo de rollback.
 
-- `user_id` + `cliente_id` → representante mais recente em `prod` por email (canonicalizado via aliases). Linhas sem `user_id` foram puladas (regra: nunca criar usuário).
-- `assigned_to` → `profiles.first_name + last_name` (case-insensitive). Sem match → Maria Lizot (`b9d78de7-708b-407e-9e5f-14879c4a0a12`).
-  - Sem profile na base: Claudionor Ferreira, Matheus Lopes, Mateus Parente, Willian Lima, Prado Suporte, prado_administrador.
-- `status = 'resolvido'` e `activity_status = 'resolvido'` para **todos**.
-- `priority = 'media'` (padrão; CSV não traz).
-- `created_at` extraído de `Data abertura` (parse robusto, aceita também o formato "Última modificação\nDD/MM/YYYY às HH:MM" presente em chamados não fechados).
-- `updated_at` extraído do bloco `fechado em: AAAA-MM-DD às: HH:MM:SS` da coluna `Atividade`; quando ausente, recebe `created_at`.
-- `description` recebe o texto integral da coluna `Histórico` (quebras de linha preservadas).
+4. **Atualizar `.lovable/plan.md`** com o novo timestamp e o resultado da contagem real obtida do banco após aplicação.
 
-## Garantias
+5. **Rollback continua disponível**: o arquivo `20260429120001_revert_legacy_tickets.sql.disabled` permanece válido — os UUIDs inseridos serão exatamente os mesmos (são literais no SQL, não gerados em runtime).
 
-- ✅ Sem alteração de schema — só `INSERT` em `tickets`.
-- ✅ Sem disparo de webhook n8n (SQL puro, fora do app).
-- ✅ Sem criação de usuário.
-- ✅ Reversibilidade pura via SQL: `*_revert_legacy_tickets.sql.disabled` faz `DELETE` pelos 277 UUIDs explícitos.
-- ✅ Cliente do portal e responsável atribuído passam a ver os chamados imediatamente (RLS atual já cobre `cliente_id` e `assigned_to`).
+## Detalhes técnicos
 
-## Aplicação
+- O `ON CONFLICT (id) DO NOTHING` é seguro porque os UUIDs são literais e únicos; não há risco de mascarar erro real (qualquer erro de FK em `user_id`/`cliente_id`/`assigned_to` continua estourando normalmente).
+- Não vou tocar nas tabelas `representante`, `profiles` ou `cliente`.
+- Não vou criar nem modificar Edge Functions, hooks, componentes ou qualquer arquivo fora de `supabase/migrations/` e `.lovable/plan.md`.
+- A interface `EquipeChamados`/`GestaoChamados` já lê `tickets` com enriquecimento (`useTicketsList`) — assim que os 277 registros entrarem, eles aparecerão automaticamente para os usuários com RLS satisfeita (cliente dono, assigned_to, e roles de gestão).
 
-A migration tem nome no padrão `<timestamp>_*.sql` em `supabase/migrations/`, portanto será aplicada automaticamente no próximo deploy do Lovable Cloud (publish/preview do projeto). O arquivo de rollback fica versionado mas inerte enquanto mantiver a extensão `.sql.disabled`.
+## Arquivos a criar/editar
+
+- `supabase/migrations/20260429130000_import_legacy_tickets_retry.sql` (novo, ~1.36 MB, idempotente)
+- `.lovable/plan.md` (atualizar bloco "Aplicação" com resultado real)
+
+## O que NÃO será feito
+
+- Não criar tabelas nem colunas.
+- Não criar usuários.
+- Não disparar webhooks.
+- Não alterar a migration original `20260429120000_import_legacy_tickets.sql` (fica como histórico).
+- Não mexer em UI da aba "Importar histórico".
