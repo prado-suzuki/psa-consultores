@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 
 export type StatusClienteFiltro = 'ativos' | 'inativos' | 'todos';
+export type TipoClienteFiltro = 'fixos' | 'pontuais' | 'todos';
 
 export interface RepresentantePendente {
   id_representante: string;
