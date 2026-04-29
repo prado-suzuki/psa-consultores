@@ -71,15 +71,22 @@ export const useRepresentantesSemUsuario = (
       if (status === 'ativos') q = q.eq('cliente.ativo', true);
       else if (status === 'inativos') q = q.or('ativo.is.null,ativo.eq.false', { foreignTable: 'cliente' });
 
-      if (tipo === 'fixos') q = q.eq('cliente.fixo', 'Sim');
-      else if (tipo === 'pontuais') q = q.or('fixo.is.null,fixo.neq.Sim', { foreignTable: 'cliente' });
+      // Nota: filtro de `fixo` é aplicado client-side abaixo para garantir
+      // consistência. O filtro server-side em embedded resource via PostgREST
+      // tem comportamento inconsistente quando combinado com `!inner` + `.or()`,
+      // o que estava deixando passar clientes pontuais mesmo com tipo='fixos'.
 
       const { data, error } = await q;
       if (error) throw error;
 
       const rows = (data ?? []) as unknown as RawRow[];
       return rows
-        .filter((r) => r.cliente && isValidEmail(r.email))
+        .filter((r) => {
+          if (!r.cliente || !isValidEmail(r.email)) return false;
+          if (tipo === 'fixos') return r.cliente.fixo === 'Sim';
+          if (tipo === 'pontuais') return r.cliente.fixo !== 'Sim'; // inclui null e 'Não'
+          return true;
+        })
         .map<RepresentantePendente>((r) => ({
           id_representante: r.id_representante,
           nome: r.nome,
