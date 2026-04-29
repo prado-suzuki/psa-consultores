@@ -1,0 +1,26 @@
+-- ============================================================
+-- ROLLBACK da importação do histórico legado
+-- ============================================================
+-- Este arquivo está com extensão .sql.disabled de propósito,
+-- para NÃO ser aplicado automaticamente.
+-- Para reverter, renomeie para .sql e execute como migration.
+--
+-- Total de tickets a remover: 13
+-- ============================================================
+
+DELETE FROM public.tickets
+WHERE id = ANY (ARRAY[
+  '168dd63a-d70a-47cb-be1a-6ddff59ee280',
+  '1a241369-5008-4036-8b84-60a7b1d9f235',
+  '11fd5bc8-ddc1-45ce-a947-3b91f32289ab',
+  '1d136af0-fb39-49a6-b005-f018e330b30b',
+  'b95b4068-20b9-4181-8b8c-afa36d66919b',
+  '01001056-b2e9-4685-a002-66369ddee311',
+  '39286ec3-5c12-4573-a023-75827102a4fc',
+  '45d9af3f-b34f-4fbf-a714-ceafc677c2f8',
+  'a6388f52-a2a2-4f81-9173-588f0ac5f31b',
+  '0c2187ab-c1f2-44df-8b62-36a65679e449',
+  'b7fa2b7d-d799-44dc-8a9e-d7d62a008881',
+  '4ad8914e-43c9-4a91-97db-be75c3e14c89',
+  '2d3f05ee-234d-4895-a207-3d5786206db1'
+]::uuid[]);
