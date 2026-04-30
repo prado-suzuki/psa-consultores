@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { useNavigate } from 'react-router-dom';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
