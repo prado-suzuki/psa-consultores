@@ -127,7 +127,7 @@ const toolGroups: ToolGroup[] = [
     ],
   },
   {
-    label: DEV_NAV_LABELS.apuracaoDifal,
+    label: DEV_NAV_LABELS.analiseIcms,
     tools: [
       {
         name: DEV_NAV_LABELS.icmsSaidas,
@@ -135,11 +135,6 @@ const toolGroups: ToolGroup[] = [
         path: '/equipe/dev/apuracao-difal/icms-saidas',
         icon: Truck,
       },
-    ],
-  },
-  {
-    label: DEV_NAV_LABELS.difalInteligente,
-    tools: [
       {
         name: DEV_NAV_LABELS.difalInteligente,
         description: 'Auditoria automatizada de DIFAL por NCM',

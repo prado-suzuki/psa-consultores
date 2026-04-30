@@ -60,12 +60,12 @@ const pisCofinsSubItems: NavItem[] = [
   { icon: FileText, label: DEV_NAV_LABELS.revisaoRegistrosEfd, path: "/equipe/dev/correcoes-sped" },
 ];
 
-const apuracaoDifalSubItems: NavItem[] = [
+const analiseIcmsSubItems: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.icmsSaidas, path: "/equipe/dev/apuracao-difal/icms-saidas" },
+  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/processo-difal" },
 ];
 
 const navItemsAfterSped: NavItem[] = [
-  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/processo-difal" },
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
   { icon: FileSpreadsheet, label: DEV_NAV_LABELS.controlePerdcomp, path: "/equipe/dev/controle-perdcomp" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
@@ -88,14 +88,14 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const [pisCofinsOpen, setPisCofinsOpen] = useState(() =>
     pisCofinsSubItems.some((item) => location.pathname === item.path),
   );
-  const [apuracaoDifalOpen, setApuracaoDifalOpen] = useState(() =>
-    apuracaoDifalSubItems.some((item) => location.pathname === item.path),
+  const [analiseIcmsOpen, setAnaliseIcmsOpen] = useState(() =>
+    analiseIcmsSubItems.some((item) => location.pathname === item.path),
   );
 
   const isActive = (path: string) => location.pathname === path;
   const isSpedActive = spedSubItems.some((item) => location.pathname === item.path);
   const isPisCofinsActive = pisCofinsSubItems.some((item) => location.pathname === item.path);
-  const isApuracaoDifalActive = apuracaoDifalSubItems.some((item) => location.pathname === item.path);
+  const isAnaliseIcmsActive = analiseIcmsSubItems.some((item) => location.pathname === item.path);
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
@@ -208,25 +208,25 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 </CollapsibleContent>
               </Collapsible>
 
-              {/* Apuração do DIFAL - Collapsible */}
-              <Collapsible open={apuracaoDifalOpen} onOpenChange={setApuracaoDifalOpen}>
+              {/* Análise ICMS - Collapsible */}
+              <Collapsible open={analiseIcmsOpen} onOpenChange={setAnaliseIcmsOpen}>
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
-                      isApuracaoDifalActive
+                      isAnaliseIcmsActive
                         ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
                         : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                     }`}
                   >
-                    <span className="flex-1 text-left">{DEV_NAV_LABELS.apuracaoDifal}</span>
+                    <span className="flex-1 text-left">{DEV_NAV_LABELS.analiseIcms}</span>
                     <ChevronDown
-                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${apuracaoDifalOpen ? "rotate-180" : ""}`}
+                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${analiseIcmsOpen ? "rotate-180" : ""}`}
                     />
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                  {apuracaoDifalSubItems.map((item) => (
+                  {analiseIcmsSubItems.map((item) => (
                     <Button
                       key={item.path}
                       variant="ghost"
