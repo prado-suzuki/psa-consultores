@@ -175,6 +175,7 @@ export function useTicketsList(options?: TicketsListOptions) {
         user_id: ticket.user_id,
         created_at: ticket.created_at || '',
         updated_at: ticket.updated_at || '',
+        closed_at: (ticket as any).closed_at ?? null,
         assigned_to: ticket.assigned_to || null,
         activity_status: ticket.activity_status || 'aguardando_resposta',
         deadline: (ticket as any).deadline ?? null,
