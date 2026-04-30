@@ -167,13 +167,13 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <NotificationPopover navigateTo="/admin/chamados" />
+            <NotificationPopover navigateTo="/gestao/chamados" />
             {headerActions}
           </div>
         </header>
 
         {/* Pending Tickets Alert */}
-        <PendingTicketsAlert navigateTo="/admin/chamados" />
+        <PendingTicketsAlert navigateTo="/gestao/chamados" />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">

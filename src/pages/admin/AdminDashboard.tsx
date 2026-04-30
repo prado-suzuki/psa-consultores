@@ -108,21 +108,8 @@ export default function AdminDashboard() {
             </Card>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 mt-12">
-            <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin/clientes')}>
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Users className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground">Gerenciar Clientes</h3>
-                <p className="text-muted-foreground">
-                  Visualize e gerencie todos os clientes cadastrados
-                </p>
-                <Button className="w-full">Acessar</Button>
-              </div>
-            </Card>
-
-            <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin/chamados')}>
+          <div className="grid md:grid-cols-1 gap-6 mt-12">
+            <Card className="p-8 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/gestao/chamados')}>
               <div className="flex flex-col items-center text-center space-y-4">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                   <FileText className="h-8 w-8 text-primary" />
