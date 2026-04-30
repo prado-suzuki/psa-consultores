@@ -529,7 +529,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => {
-                    const linhaCorrigida = buildChangedFields(item._originalSnapshot, item.F120 as unknown as Record<string, unknown>).length > 0;
+                    const displayedF120 = getDisplayedF120(item);
+                    const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF120 as unknown as Record<string, unknown>).length > 0;
                     return (
                       <TableRow key={`f120-${item.F120.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F120.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
                         {isEditMode && (
