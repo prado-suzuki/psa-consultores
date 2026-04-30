@@ -125,10 +125,11 @@ export function FloatingScrollbar({ targetRef, alwaysVisible = false, position =
     <div
       ref={scrollbarRef}
       onScroll={handleFloatingScroll}
-      className="fixed bottom-0 z-50 overflow-x-auto overflow-y-hidden"
+      className={`fixed z-50 overflow-x-auto overflow-y-hidden ${position === "top" ? "" : "bottom-0"}`}
       style={{
         left: style.left,
         width: style.width,
+        ...(position === "top" ? { top: style.top ?? 0 } : {}),
         height: 14,
         backgroundColor: "hsl(var(--muted) / 0.6)",
         backdropFilter: "blur(4px)",
