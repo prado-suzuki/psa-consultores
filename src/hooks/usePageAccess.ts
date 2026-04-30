@@ -1,5 +1,5 @@
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -17,8 +17,16 @@ import { supabase } from '@/integrations/supabase/client';
 export function usePageAccess(pagePath: string) {
   const { user, isAdmin, loading: authLoading } = useAuth();
 
+  // ATENÇÃO: a queryKey NÃO inclui `isAdmin` de propósito.
+  // Quando supabase-js dispara TOKEN_REFRESHED em rajada (ex.: salvar muitas
+  // linhas em loop nas abas F120/F130), o AuthContext re-emite estado e o
+  // valor de `isAdmin` pode oscilar por uma fração de segundo. Se isAdmin
+  // estiver na chave, cada oscilação cria uma nova entrada de cache vazia
+  // (data === undefined), o gate cai no fallback `?? false` e mostra
+  // "Acesso Negado" mesmo com o usuário autenticado e autorizado.
+  // A checagem de admin acontece dentro do queryFn, não na chave.
   const { data: hasAccess, isLoading } = useQuery({
-    queryKey: ['page-access', user?.id, pagePath, isAdmin],
+    queryKey: ['page-access', user?.id, pagePath],
     queryFn: async () => {
       if (!user) return false;
       if (isAdmin) return true;
@@ -44,7 +52,20 @@ export function usePageAccess(pagePath: string) {
     },
     enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000,
+    // Mantém o último valor durante refetch para evitar flash de "Acesso
+    // Negado" quando o React Query recalcula em meio a re-renders disparados
+    // por eventos de auth (TOKEN_REFRESHED, USER_UPDATED).
+    placeholderData: keepPreviousData,
   });
 
-  return { hasAccess: hasAccess ?? false, isLoading: authLoading || isLoading };
+  // Enquanto não temos resposta definitiva (data === undefined) mas o usuário
+  // está autenticado, tratamos como "carregando" em vez de negar acesso.
+  // Isso evita o falso negativo durante a janela entre `enabled` virar true
+  // e o queryFn resolver.
+  const stillResolving = !!user && hasAccess === undefined;
+
+  return {
+    hasAccess: hasAccess ?? false,
+    isLoading: authLoading || isLoading || stillResolving,
+  };
 }
