@@ -252,21 +252,26 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
     const displayedF120 = getDisplayedF120(item);
     const nextSnapshot: Record<string, unknown> = { ...displayedF120 };
+    const displayedRec = displayedF120 as unknown as Record<string, unknown>;
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
+      const currentValue = displayedRec[field];
       if (numericFields.has(field)) {
         if (!raw) { toast.error(`Preencha o campo ${field}.`); return; }
         const parsed = Number(raw.replace(',', '.'));
         if (Number.isNaN(parsed)) { toast.error(`Valor inválido para ${field}.`); return; }
+        if (typeof currentValue === 'number' && currentValue === parsed) continue;
         nextSnapshot[field] = parsed;
         continue;
       }
       if (codeFields.has(field)) {
         if (!raw) { toast.error(`Selecione um código para ${field}.`); return; }
+        if (currentValue != null && String(currentValue) === raw) continue;
         nextSnapshot[field] = raw;
         continue;
       }
+      if (currentValue != null && String(currentValue) === raw) continue;
       nextSnapshot[field] = raw;
     }
 

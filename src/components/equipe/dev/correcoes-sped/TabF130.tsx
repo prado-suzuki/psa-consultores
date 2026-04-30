@@ -253,21 +253,26 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   const buildNextSnapshot = (item: F130Item, draft: F130Draft) => {
     const displayedF130 = getDisplayedF130(item);
     const nextSnapshot: Record<string, unknown> = { ...displayedF130 };
+    const displayedRec = displayedF130 as unknown as Record<string, unknown>;
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
+      const currentValue = displayedRec[field];
       if (numericFields.has(field)) {
         if (!raw) { toast.error(`Preencha o campo ${field}.`); return; }
         const parsed = Number(raw.replace(',', '.'));
         if (Number.isNaN(parsed)) { toast.error(`Valor inválido para ${field}.`); return; }
+        if (typeof currentValue === 'number' && currentValue === parsed) continue;
         nextSnapshot[field] = parsed;
         continue;
       }
       if (codeFields.has(field)) {
         if (!raw) { toast.error(`Selecione um código para ${field}.`); return; }
+        if (currentValue != null && String(currentValue) === raw) continue;
         nextSnapshot[field] = raw;
         continue;
       }
+      if (currentValue != null && String(currentValue) === raw) continue;
       nextSnapshot[field] = raw;
     }
 
