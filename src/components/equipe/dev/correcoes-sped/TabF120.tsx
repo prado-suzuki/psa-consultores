@@ -35,14 +35,8 @@ const F120_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'COD_CTA', label: 'Conta' },
 ];
 
-const f120RowAccessor = (item: F120Item, key: string): string => {
-  if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
-  if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
-  if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
-  const v = item.F120[key as keyof F120Reg];
-  if (v === null || v === undefined) return '';
-  return String(v);
-};
+// f120RowAccessor agora é definido dentro do componente como `f120RowAccessorWithEdits`
+// para considerar overlay de edições aplicadas em editedRows.
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -256,7 +250,9 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
-    const nextSnapshot: Record<string, unknown> = { ...item.F120 };
+  const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
+    const displayedF120 = getDisplayedF120(item);
+    const nextSnapshot: Record<string, unknown> = { ...displayedF120 };
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
