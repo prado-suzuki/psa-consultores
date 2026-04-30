@@ -235,6 +235,7 @@ export function useTicketDetail(ticketId: string | undefined, options?: TicketDe
         ...data,
         deadline: (data as any).deadline ?? null,
         estrutura_area_id: (data as any).estrutura_area_id ?? null,
+        cluster_id: (data as any).cluster_id ?? null,
         cliente_id: (data as any).cliente_id ?? null,
         profiles: profileData || undefined,
         areaName,
