@@ -3,6 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+let refreshSessionPromise: Promise<Session | null> | null = null;
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -262,8 +264,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const refreshSession = async (): Promise<Session | null> => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
+    if (refreshSessionPromise) return refreshSessionPromise;
+
+    refreshSessionPromise = supabase.auth.refreshSession()
+      .then(({ data, error }) => {
       if (error) {
         console.error('Erro ao renovar sessão:', error);
         return null;
@@ -272,11 +276,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setSession(data.session);
         setUser(data.session.user);
       }
-      return data.session;
-    } catch (error) {
-      console.error('Erro ao renovar sessão:', error);
-      return null;
-    }
+      return data.session ?? null;
+    })
+      .catch((error) => {
+        console.error('Erro ao renovar sessão:', error);
+        return null;
+      })
+      .finally(() => {
+        refreshSessionPromise = null;
+      });
+
+    return refreshSessionPromise;
   };
 
   return (
