@@ -22,9 +22,10 @@ export function useApiAuth() {
   };
 
   const getValidToken = async (): Promise<string | null> => {
-    if (!session) {
+    const currentSession = session ?? (await supabase.auth.getSession()).data.session;
+
+    if (!currentSession) {
       console.warn('[Auth] Sem sessão ativa');
-      handleSessionExpired();
       return null;
     }
 
@@ -32,12 +33,14 @@ export function useApiAuth() {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       console.error('[Auth] Sessão inválida:', error?.message);
+      const newSession = await refreshSession();
+      if (newSession) return newSession.access_token;
       handleSessionExpired();
       return null;
     }
 
     // Check if token is expired or about to expire (5 min buffer)
-    const expiresAt = session.expires_at;
+    const expiresAt = currentSession.expires_at;
     if (expiresAt) {
       const now = Math.floor(Date.now() / 1000);
       const bufferSeconds = 5 * 60; // 5 minutes
@@ -53,7 +56,7 @@ export function useApiAuth() {
       }
     }
 
-    return session.access_token;
+    return currentSession.access_token;
   };
 
   const handleSessionExpired = () => {
@@ -83,7 +86,19 @@ export function useApiAuth() {
         
         const token = await getValidToken();
         if (!token) {
-          throw new Error('Sessão expirada');
+          const newSession = await refreshSession();
+          if (!newSession) {
+            throw new Error('Sessão expirada');
+          }
+          const isFormData = options.body instanceof FormData;
+          const headers: Record<string, string> = {
+            ...(options.headers as Record<string, string>),
+            'Authorization': `Bearer ${newSession.access_token}`,
+            ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+          };
+          const response = await fetch(url, { ...options, headers, signal: controller.signal });
+          clearTimeout(timeoutId);
+          return response;
         }
 
         const isFormData = options.body instanceof FormData;

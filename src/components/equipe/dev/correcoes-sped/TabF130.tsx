@@ -118,7 +118,7 @@ interface TabF130Props extends CorrecoesActionsProps {
 }
 
 export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF130Props) {
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [editedRows, setEditedRows] = useState<Record<string, F130Reg>>({});
@@ -290,8 +290,8 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
       const expiresAt = sessionData.session?.expires_at ?? 0;
       const now = Math.floor(Date.now() / 1000);
       if (expiresAt - now < 60) {
-        const { error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError) throw new Error('Sessão expirada. Faça login novamente.');
+        const refreshedSession = await refreshSession();
+        if (!refreshedSession) throw new Error('Sessão expirada. Faça login novamente.');
       }
 
       let changedCount = 0;
