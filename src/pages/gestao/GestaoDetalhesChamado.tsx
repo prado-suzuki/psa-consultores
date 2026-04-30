@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTicketDetail, useTicketMessages, useTicketAttachments, useTicketAgents } from '@/hooks/useTickets';
-import { useAssignTicket, useSendTicketMessage, useUpdateTicketStatus } from '@/hooks/useTicketMutations';
+import { useAssignTicket, useSendTicketMessage, useUpdateTicketStatus, useUpdateTicketRouting } from '@/hooks/useTicketMutations';
+import { useTicketEmpresas, useTicketClustersForCliente, useTicketAreasForCliente } from '@/hooks/useCreateTicket';
 import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { Button } from '@/components/ui/button';
@@ -58,8 +59,30 @@ export default function GestaoDetalhesChamado() {
   const assignTicket = useAssignTicket();
   const sendMessage = useSendTicketMessage();
   const updateStatus = useUpdateTicketStatus();
+  const updateRouting = useUpdateTicketRouting();
+
+  const { data: empresas = [] } = useTicketEmpresas();
+  const { data: clientClusters = [] } = useTicketClustersForCliente(ticket?.cliente_id || undefined);
+  const { data: clientAreas = [] } = useTicketAreasForCliente(
+    ticket?.cliente_id || undefined,
+    ticket?.cluster_id || undefined,
+  );
 
   const [newMessage, setNewMessage] = useState('');
+
+  const handleRoutingChange = async (
+    field: 'cliente_id' | 'cluster_id' | 'estrutura_area_id',
+    value: string,
+  ) => {
+    if (!id) return;
+    const next = value === 'none' ? null : value;
+    try {
+      await updateRouting.mutateAsync({ ticketId: id, [field]: next });
+      toast({ title: 'Roteamento atualizado' });
+    } catch {
+      toast({ title: 'Erro ao atualizar roteamento', variant: 'destructive' });
+    }
+  };
 
   const handleAssign = async (agentId: string) => {
     if (!id) return;
@@ -214,7 +237,71 @@ export default function GestaoDetalhesChamado() {
                 </Badge>
               )}
             </div>
-            
+
+            {/* Roteamento — Cliente / Cluster / Área (cascata) */}
+            <div className="rounded-md border border-slate-200 bg-slate-50/60 p-4">
+              <h3 className="text-sm font-semibold text-slate-700 mb-3">Roteamento</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-xs text-slate-500">Cliente</label>
+                  <Select
+                    value={ticket.cliente_id || 'none'}
+                    onValueChange={(v) => handleRoutingChange('cliente_id', v)}
+                    disabled={updateRouting.isPending}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200">
+                      <SelectValue placeholder="Selecione o cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Sem cliente —</SelectItem>
+                      {empresas.map((e) => (
+                        <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-slate-500">Cluster</label>
+                  <Select
+                    value={ticket.cluster_id || 'none'}
+                    onValueChange={(v) => handleRoutingChange('cluster_id', v)}
+                    disabled={!ticket.cliente_id || updateRouting.isPending}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200">
+                      <SelectValue placeholder={ticket.cliente_id ? 'Selecione o cluster' : 'Selecione o cliente primeiro'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Sem cluster —</SelectItem>
+                      {clientClusters.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs text-slate-500">Área</label>
+                  <Select
+                    value={ticket.estrutura_area_id || 'none'}
+                    onValueChange={(v) => handleRoutingChange('estrutura_area_id', v)}
+                    disabled={!ticket.cluster_id || updateRouting.isPending}
+                  >
+                    <SelectTrigger className="bg-white border-slate-200">
+                      <SelectValue placeholder={ticket.cluster_id ? 'Selecione a área' : 'Selecione o cluster primeiro'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">— Sem área —</SelectItem>
+                      {clientAreas.map((a) => (
+                        <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+
+
             <p className="text-slate-600">{ticket.description}</p>
             <div className="text-sm text-slate-500">
               Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}

@@ -1,6 +1,105 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { computeFieldDiff } from '@/lib/diffUtils';
+
+// ── useUpdateTicketRouting ────────────────────────────────────
+// Updates cliente_id / cluster_id / estrutura_area_id with cascade validation.
+
+interface UpdateTicketRoutingParams {
+  ticketId: string;
+  cliente_id?: string | null;
+  cluster_id?: string | null;
+  estrutura_area_id?: string | null;
+}
+
+export function useUpdateTicketRouting() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (params: UpdateTicketRoutingParams) => {
+      const { data: current, error: readError } = await supabase
+        .from('tickets')
+        .select('cliente_id, cluster_id, estrutura_area_id')
+        .eq('id', params.ticketId)
+        .maybeSingle();
+
+      if (readError) throw readError;
+      if (!current) throw new Error('Chamado não encontrado');
+
+      const next = {
+        cliente_id: params.cliente_id !== undefined ? params.cliente_id : (current as any).cliente_id,
+        cluster_id: params.cluster_id !== undefined ? params.cluster_id : (current as any).cluster_id,
+        estrutura_area_id:
+          params.estrutura_area_id !== undefined ? params.estrutura_area_id : (current as any).estrutura_area_id,
+      };
+
+      // Cascade: cluster must belong to chosen client
+      if (next.cluster_id && next.cliente_id) {
+        const { data: link } = await supabase
+          .from('cliente_clusters')
+          .select('cluster_id')
+          .eq('cliente_id', next.cliente_id)
+          .eq('cluster_id', next.cluster_id)
+          .maybeSingle();
+        if (!link) {
+          next.cluster_id = null;
+          next.estrutura_area_id = null;
+        }
+      } else if (!next.cliente_id) {
+        next.cluster_id = null;
+        next.estrutura_area_id = null;
+      }
+
+      // Cascade: area must belong to chosen cluster
+      if (next.estrutura_area_id && next.cluster_id) {
+        const { data: area } = await supabase
+          .from('estrutura_areas')
+          .select('id')
+          .eq('id', next.estrutura_area_id)
+          .eq('cluster_id', next.cluster_id)
+          .maybeSingle();
+        if (!area) next.estrutura_area_id = null;
+      } else if (!next.cluster_id) {
+        next.estrutura_area_id = null;
+      }
+
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          cliente_id: next.cliente_id,
+          cluster_id: next.cluster_id,
+          estrutura_area_id: next.estrutura_area_id,
+        })
+        .eq('id', params.ticketId);
+
+      if (error) throw error;
+
+      const diff = computeFieldDiff(
+        current as any,
+        next as any,
+        ['cliente_id', 'cluster_id', 'estrutura_area_id'],
+      );
+
+      return { ticketId: params.ticketId, before: current, after: next, diff };
+    },
+    onSuccess: (result) => {
+      if (Object.keys(result.diff).length > 0) {
+        logAction({
+          area: 'cadastros',
+          entity_type: 'cliente',
+          entity_id: result.ticketId,
+          entity_name: 'Chamado',
+          action: 'updated',
+          changed_fields: result.diff,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      queryClient.invalidateQueries({ queryKey: ['ticket-notifications'] });
+    },
+  });
+}
 
 // ── Shared invalidation helper ───────────────────────────────
 
