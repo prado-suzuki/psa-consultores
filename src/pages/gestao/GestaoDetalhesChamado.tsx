@@ -71,6 +71,7 @@ export default function GestaoDetalhesChamado() {
   const sendMessage = useSendTicketMessage();
   const updateStatus = useUpdateTicketStatus();
   const updateRouting = useUpdateTicketRouting();
+  const updateDeadline = useUpdateTicketDeadline();
 
   const { data: empresas = [] } = useTicketEmpresas();
   const { data: clientClusters = [] } = useTicketClustersForCliente(ticket?.cliente_id || undefined);
