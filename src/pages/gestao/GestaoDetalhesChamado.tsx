@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTicketDetail, useTicketMessages, useTicketAttachments, useTicketAgents } from '@/hooks/useTickets';
-import { useAssignTicket, useSendTicketMessage, useUpdateTicketStatus, useUpdateTicketRouting } from '@/hooks/useTicketMutations';
+import { useAssignTicket, useSendTicketMessage, useUpdateTicketStatus, useUpdateTicketRouting, useUpdateTicketDeadline } from '@/hooks/useTicketMutations';
 import { useTicketEmpresas, useTicketClustersForCliente, useTicketAreasForCliente } from '@/hooks/useCreateTicket';
 import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
@@ -13,8 +13,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
 
 const statusColors: Record<string, string> = {
   aberto: 'bg-blue-500',
@@ -46,6 +47,16 @@ const departmentLabels: Record<string, string> = {
   outros: 'Outros',
 };
 
+const deadlineOptions: Record<string, string> = {
+  'none': 'Sem prazo',
+  '1': '1 dia',
+  '3': '3 dias',
+  '5': '5 dias',
+  '7': '7 dias',
+  '10': '10 dias',
+  '15': '15 dias',
+};
+
 export default function GestaoDetalhesChamado() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -60,6 +71,7 @@ export default function GestaoDetalhesChamado() {
   const sendMessage = useSendTicketMessage();
   const updateStatus = useUpdateTicketStatus();
   const updateRouting = useUpdateTicketRouting();
+  const updateDeadline = useUpdateTicketDeadline();
 
   const { data: empresas = [] } = useTicketEmpresas();
   const { data: clientClusters = [] } = useTicketClustersForCliente(ticket?.cliente_id || undefined);
@@ -99,6 +111,31 @@ export default function GestaoDetalhesChamado() {
     } catch {
       toast({ title: 'Erro ao atribuir responsável', variant: 'destructive' });
     }
+  };
+
+  const handleDeadlineChange = async (days: string) => {
+    if (!id || !ticket) return;
+    const deadline = days === 'none'
+      ? null
+      : format(addDays(parseDate(ticket.created_at.slice(0, 10)), parseInt(days)), 'yyyy-MM-dd');
+    try {
+      await updateDeadline.mutateAsync({ ticketId: id, deadline });
+      toast({
+        title: 'Prazo atualizado',
+        description: deadline
+          ? `Prazo definido para ${format(parseDate(deadline), 'dd/MM/yyyy')}.`
+          : 'Prazo removido.',
+      });
+    } catch {
+      toast({ title: 'Erro ao atualizar prazo', variant: 'destructive' });
+    }
+  };
+
+  const getDeadlineSelectValue = (t: { deadline: string | null; created_at: string }): string => {
+    if (!t.deadline) return 'none';
+    const days = differenceInCalendarDays(parseDate(t.deadline), new Date(t.created_at));
+    const key = String(days);
+    return deadlineOptions[key] ? key : 'none';
   };
 
   const handleDownloadFile = async (filePath: string, fileName: string) => {
@@ -218,6 +255,20 @@ export default function GestaoDetalhesChamado() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select
+                  value={getDeadlineSelectValue(ticket)}
+                  onValueChange={handleDeadlineChange}
+                  disabled={updateDeadline.isPending}
+                >
+                  <SelectTrigger className="w-40 bg-white border-slate-200">
+                    <SelectValue placeholder="Prazo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(deadlineOptions).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
@@ -236,6 +287,22 @@ export default function GestaoDetalhesChamado() {
                   Área: {ticket.areaName}
                 </Badge>
               )}
+              {ticket.deadline && (() => {
+                const deadlineDate = parseDate(ticket.deadline);
+                const isPast = isPastBrazil(deadlineDate);
+                const isToday = isTodayBrazil(deadlineDate);
+                const isTomorrow = isTomorrowBrazil(deadlineDate);
+                const cls = isPast
+                  ? 'border-red-200 text-red-700 bg-red-50'
+                  : isToday || isTomorrow
+                    ? 'border-amber-200 text-amber-700 bg-amber-50'
+                    : 'border-slate-200 text-slate-600';
+                return (
+                  <Badge variant="outline" className={cls}>
+                    Prazo: {format(deadlineDate, "dd/MM/yyyy (EEE)", { locale: ptBR })}
+                  </Badge>
+                );
+              })()}
             </div>
 
             {/* Roteamento — Cliente / Cluster / Área (cascata) */}
