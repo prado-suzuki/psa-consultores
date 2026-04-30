@@ -1,49 +1,59 @@
-## Causa do erro
 
-A tabela `public.cliente_clusters` tem 5 RLS policies, mas só **duas** permitem escrita (INSERT/UPDATE/DELETE):
+## Origem de cada campo do "Novo Chamado" (CreateTicketDialog)
 
-| Policy | Comando | Quem permite |
+Arquivo: `src/components/gestao/CreateTicketDialog.tsx`
+Hooks consumidos: `useTicketClientProfiles`, `useTicketEmpresas`, `useTicketAreasForCliente`, `useCreateTicketGestao` (todos em `src/hooks/useCreateTicket.ts`).
+
+| Rótulo atual | Campo do form (state) | Coluna gravada em `tickets` | Tabela/origem dos itens da lista | Filtro aplicado |
+|---|---|---|---|---|
+| Usuário (Cliente) * | `user_id` | `tickets.user_id` | `user_roles` (role = `client`) + RPC `get_profiles_with_email` (nome/email do `profiles`) | role = `client` |
+| Empresa * | `cliente_id` | `tickets.cliente_id` | `cliente` (id, nome) | `ativo = true`, `excluido = false`, `ambiente = currentAmbiente` |
+| Título * | `title` | `tickets.title` | input livre | — |
+| Descrição * | `description` | `tickets.description` | textarea livre | — |
+| Área * | `estrutura_area_id` (+ `cluster_id` derivado) | `tickets.estrutura_area_id`, `tickets.cluster_id` | `estrutura_areas` (id, name, cluster_id) cruzado com `cliente_clusters` da empresa selecionada | `is_active = true` e `cluster_id IN clusters do cliente` |
+| Assunto | `department` | `tickets.department` | enum local `departmentLabels` (contabilidade, icms_ipi, irpj_csll, pis_cofins, produtor_rural, outros) — **não vem do banco** | — |
+| Prioridade | `priority` | `tickets.priority` | enum local `priorityLabels` (baixa, normal, alta, urgente) | — |
+| Anexos | `selectedFiles` | `ticket_attachments` (+ Storage bucket `ticket-attachments`) | upload do usuário | — |
+
+Campos preenchidos automaticamente no insert (não aparecem no form):
+- `tickets.status = 'aberto'`
+- `tickets.activity_status = 'aguardando_resposta'`
+- `tickets.cluster_id` derivado da Área escolhida
+- `tickets.assigned_to`: não preenchido aqui (atribuição posterior)
+
+## Padronização de rótulos proposta
+
+Conforme o restante do app (ex.: tabela de chamados em `/gestao/chamados`, módulo de cadastros), os nomes corretos são:
+
+| Rótulo atual | Rótulo padronizado | Justificativa |
 |---|---|---|
-| `admin_full_access_cliente_clusters` | ALL | role `admin` |
-| `lider_manage_cliente_clusters` | ALL | role `lider` |
-| `sublider_select_cliente_clusters` | **SELECT** | role `sublider` |
-| `team_member_select_cliente_clusters` | **SELECT** | `team_member`+ |
-| `Clients can read their cliente_clusters` | **SELECT** | client dono |
+| Usuário (Cliente) * | **Representante *** | A entidade é `representante` (pessoa do cliente que abre chamado). Já é o termo usado em listagens. |
+| Empresa * | **Cliente *** | Tabela é `cliente`; o restante do sistema usa "Cliente" para a empresa. |
+| Área * | **Área *** | Já está correto (vem de `estrutura_areas`). |
+| Assunto | **Categoria** | "Assunto" é ambíguo; o restante do app trata esse enum como categoria/departamento do chamado. (Confirmar preferência: Categoria vs Assunto vs Departamento.) |
+| Prioridade | **Prioridade** | Mantém. |
+| Anexos | **Anexos** | Mantém. |
 
-A usuária com role `sublider` consegue **ler** os vínculos cliente↔cluster, mas qualquer `INSERT` é bloqueado — exatamente o erro `new row violates row-level security policy for table "cliente_clusters"`.
+Placeholders também serão atualizados:
+- "Selecione o usuário" → "Selecione o representante"
+- "Selecione a empresa" → "Selecione o cliente"
+- "Selecione a empresa primeiro" → "Selecione o cliente primeiro"
+- Título do diálogo "Crie um chamado em nome de um cliente." → "Crie um chamado em nome de um representante do cliente."
 
-## Por que a outra alteração salvou
+## Mudanças de código
 
-Os outros campos do bloco "Dados do Cliente/Grupo" (nome, categoria, status, fixo, área, região) gravam apenas na tabela `cliente`, que tem policy permitindo escrita para `sublider`. O campo **Clusters** é o único que escreve em `cliente_clusters`. Quando ela alterou só os outros campos, o save concluiu; ao mexer no cluster, o `INSERT` em `cliente_clusters` falhou.
+Arquivo único a editar: `src/components/gestao/CreateTicketDialog.tsx`
+- Trocar textos das `<Label>` e dos `placeholder` dos `Select` conforme tabela acima.
+- Atualizar a `DialogDescription`.
+- **Não alterar** nomes dos campos no state, hooks, payload do insert ou colunas do banco — apenas o texto visível ao usuário.
 
-Isso bate com nosso padrão de hierarquia: `sublider` deve poder operar estrutura organizacional, mas a policy nunca foi criada para escrita nessa tabela.
+Sem migrations, sem mudanças em hooks, sem mudanças em RLS.
 
-## Correção proposta
+## Pergunta pendente
 
-Migration adicionando policy de escrita para `sublider+` em `cliente_clusters`, alinhada com `has_role_or_higher` (mesmo padrão usado em outras tabelas de estrutura).
+Confirmar preferência para o rótulo "Assunto":
+- (a) **Categoria** (sugestão default)
+- (b) **Departamento** (mais próximo do nome técnico da coluna `department`)
+- (c) Manter **Assunto**
 
-```sql
--- Permite sublíder e acima gerenciarem vínculos cliente↔cluster
-CREATE POLICY "sublider_or_higher_manage_cliente_clusters"
-ON public.cliente_clusters
-FOR ALL
-TO authenticated
-USING (public.has_role_or_higher(auth.uid(), 'sublider'::app_role))
-WITH CHECK (public.has_role_or_higher(auth.uid(), 'sublider'::app_role));
-
--- Remove a policy antiga só de SELECT (substituída pela nova ALL)
-DROP POLICY IF EXISTS sublider_select_cliente_clusters ON public.cliente_clusters;
-```
-
-As policies de SELECT para `team_member` e `client` permanecem intactas — `team_member` puro continua só lendo, e cliente continua vendo apenas os próprios clusters.
-
-## Verificação pós-deploy
-
-1. Logar como a sublíder afetada → editar Transoeste → trocar/adicionar cluster → salvar deve concluir sem erro.
-2. Logar como `team_member` puro → tentar a mesma operação continua bloqueado (esperado).
-3. `useAuditLog` continua registrando o save do cliente normalmente.
-
-## Arquivos afetados
-
-- 1 migration nova em `supabase/migrations/` (apenas DDL de RLS).
-- Nenhuma mudança em hooks/componentes — o fluxo de save em `ClienteTab.tsx` já está correto, faltava só a permissão no banco.
+Se não houver resposta, aplico (a) **Categoria**.

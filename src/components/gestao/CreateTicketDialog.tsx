@@ -169,20 +169,20 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         <DialogHeader>
           <DialogTitle className="text-slate-900">Novo Chamado</DialogTitle>
           <DialogDescription className="text-slate-500">
-            Crie um chamado em nome de um cliente.
+            Crie um chamado em nome de um representante do cliente.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Usuário (Cliente) */}
+          {/* Representante */}
           <div className="space-y-2">
-            <Label htmlFor="client" className="text-slate-700">Usuário (Cliente) <RequiredMark /></Label>
+            <Label htmlFor="client" className="text-slate-700">Representante <RequiredMark /></Label>
             <Select
               value={formData.user_id}
               onValueChange={(v) => setFormData({ ...formData, user_id: v })}
             >
               <SelectTrigger className="bg-white border-slate-200">
-                <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o usuário"} />
+                <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o representante"} />
               </SelectTrigger>
               <SelectContent>
                 {clients.map((client) => (
@@ -194,15 +194,15 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
             </Select>
           </div>
 
-          {/* Empresa */}
+          {/* Cliente */}
           <div className="space-y-2">
-            <Label className="text-slate-700">Empresa <RequiredMark /></Label>
+            <Label className="text-slate-700">Cliente <RequiredMark /></Label>
             <Select
               value={formData.cliente_id}
               onValueChange={handleEmpresaChange}
             >
               <SelectTrigger className="bg-white border-slate-200">
-                <SelectValue placeholder={loadingEmpresas ? "Carregando..." : "Selecione a empresa"} />
+                <SelectValue placeholder={loadingEmpresas ? "Carregando..." : "Selecione o cliente"} />
               </SelectTrigger>
               <SelectContent>
                 {empresas.map((emp) => (
@@ -247,7 +247,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
                 <SelectValue
                   placeholder={
                     !formData.cliente_id
-                      ? "Selecione a empresa primeiro"
+                      ? "Selecione o cliente primeiro"
                       : loadingAreas
                         ? "Carregando..."
                         : "Selecione a área"
@@ -264,7 +264,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-700">Assunto</Label>
+              <Label className="text-slate-700">Categoria</Label>
               <Select
                 value={formData.department}
                 onValueChange={(v) => setFormData({ ...formData, department: v })}
