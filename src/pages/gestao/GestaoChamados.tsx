@@ -654,6 +654,11 @@ export default function GestaoChamados() {
                     <TableCell className="text-slate-500 text-sm">
                       {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}
                     </TableCell>
+                    <TableCell className="text-slate-500 text-sm">
+                      {ticket.closed_at
+                        ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm')
+                        : '—'}
+                    </TableCell>
                     <TableCell>
                       <Button
                         variant="outline"
