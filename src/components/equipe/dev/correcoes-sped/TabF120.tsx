@@ -360,9 +360,11 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     const descKey = DESC_KEY_BY_CODE_FIELD[field];
     const descFallback = item[descKey] ?? '';
 
-    const currentCode = isEditMode && draft ? draft[field] : item.F120[field];
-    const origCode = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
-    const isChanged = !Object.is(item.F120[field], origCode);
+    const displayedF120 = getDisplayedF120(item);
+    const originalSnapshot = getOriginalSnapshot(item);
+    const currentCode = isEditMode && draft ? draft[field] : displayedF120[field];
+    const origCode = (originalSnapshot as unknown as Record<string, unknown>)[field];
+    const isChanged = !Object.is(displayedF120[field], origCode);
     const selectedOption = options.find((o) => o.code === currentCode);
     const displayDescription = selectedOption?.description ?? descFallback;
     const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
@@ -431,8 +433,10 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     const draft = drafts[item.F120.uuid];
 
     if (!isEditMode || !draft) {
-      const value = item.F120[field as keyof F120Reg];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
+      const displayedF120 = getDisplayedF120(item);
+      const originalSnapshot = getOriginalSnapshot(item);
+      const value = displayedF120[field as keyof F120Reg];
+      const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
