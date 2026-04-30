@@ -303,8 +303,15 @@ export default function GestaoDetalhesChamado() {
 
 
             <p className="text-slate-600">{ticket.description}</p>
-            <div className="text-sm text-slate-500">
-              Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+            <div className="text-sm text-slate-500 space-y-0.5">
+              <div>
+                Aberto em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+              </div>
+              {ticket.closed_at && (
+                <div>
+                  Fechado em {format(new Date(ticket.closed_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                </div>
+              )}
             </div>
 
             {attachments.length > 0 && (

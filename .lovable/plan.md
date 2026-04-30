@@ -1,33 +1,43 @@
-# Plano: Barra de rolagem superior na tabela de /gestao/chamados
+# Plano: Registrar data de entrada e data de fechamento dos chamados
 
-## Objetivo
-Adicionar uma barra de rolagem horizontal **fixa no topo** da tabela em `GestaoChamados.tsx`, sincronizada com a rolagem nativa, para facilitar a navegação quando há muitas colunas (Status, Título, Departamento, Área, Cluster, Representante, Cliente, Responsável, Prazo, Atualizado, Ações).
+## Situação atual
+- A tabela `tickets` já possui `created_at` (data de entrada) — não precisa de alteração para isso.
+- **Não existe** coluna para registrar quando o chamado foi fechado/resolvido.
+- O hook `useUpdateTicketStatus` (`src/hooks/useTicketMutations.ts:164`) só atualiza `status`, sem registrar timestamp de fechamento.
+- Status considerados "fechados" no sistema: `resolvido` e `fechado` (visto em `GestaoChamados.tsx`).
 
 ## Mudanças
 
-### 1. `src/components/ui/floating-scrollbar.tsx`
-Adicionar suporte a posicionamento no topo:
-- Nova prop `position?: "top" | "bottom"` (default `"bottom"`).
-- Quando `position="top"`: a barra é posicionada de forma `fixed` usando `top: rect.top` (calculado via `getBoundingClientRect()` do alvo) em vez de `bottom: 0`.
-- A lógica de visibilidade muda: para `top`, mostrar quando o **topo** do conteúdo NÃO está visível (`rect.top < 0`) ou quando `alwaysVisible` for true e houver overflow horizontal.
-- Sincronização horizontal já existente continua valendo.
+### 1. Migração de banco
+Adicionar coluna `closed_at timestamptz` em `public.tickets` (nullable).
 
-### 2. `src/pages/gestao/GestaoChamados.tsx`
-- Criar `const tableContainerRef = useRef<HTMLDivElement>(null);`
-- Passar `containerRef={tableContainerRef}` para `<Table>` (a prop já existe em `src/components/ui/table.tsx`).
-- Renderizar logo acima ou abaixo do `<Card>` da tabela:
-  ```tsx
-  <FloatingScrollbar targetRef={tableContainerRef} position="top" alwaysVisible />
-  ```
-- Importar `FloatingScrollbar` e `useRef`.
+Backfill: preencher `closed_at = updated_at` para todos os tickets existentes cujo `status IN ('resolvido','fechado')` e `closed_at IS NULL` — assim os chamados já fechados ficam com uma data razoável retroativa.
 
-## Comportamento esperado
-- Ao abrir `/gestao/chamados`, se a tabela tiver overflow horizontal, aparece uma barrinha fina fixa no topo da viewport (alinhada à largura da tabela) que move junto com a rolagem nativa inferior.
-- Mover a barra superior rola a tabela; rolar a tabela move a barra superior — ambas sincronizadas.
-- Quando o topo da tabela está visível na tela, a barra superior some (a menos que `alwaysVisible` mantenha quando há overflow). Vamos manter `alwaysVisible` para sempre exibir a barra superior enquanto houver overflow horizontal — isso é o pedido do usuário.
+Trigger `BEFORE UPDATE ON tickets` (SECURITY DEFINER, search_path public):
+- Quando `NEW.status` muda para `'resolvido'` ou `'fechado'` e `OLD.status` não era → setar `NEW.closed_at = now()`.
+- Quando `NEW.status` muda de fechado para reaberto (`aberto`/`em_andamento`) → setar `NEW.closed_at = NULL`.
 
-## Arquivos modificados
-- `src/components/ui/floating-scrollbar.tsx` (adiciona prop `position`)
-- `src/pages/gestao/GestaoChamados.tsx` (usa o componente com `position="top"`)
+Isso garante consistência mesmo se o status for alterado por outras vias (admin, edge function, etc.).
 
-Sem alterações de banco, hooks ou tipos.
+### 2. Hook `useUpdateTicketStatus`
+Após a migração, o trigger cuida do timestamp automaticamente. Manter o hook como está, mas:
+- Incluir `closed_at` no `changed_fields` do log de auditoria quando o status mudar para fechado/resolvido (informativo).
+
+### 3. Tipos e exibição
+- `src/hooks/useTickets.ts`: incluir `closed_at` nos `select(...)` da listagem e do detalhe, e na interface `TicketDetail`/`TicketListItem`.
+- `src/pages/gestao/GestaoDetalhesChamado.tsx`: mostrar no painel de informações:
+  - **Data de abertura**: `created_at` (já exibido em alguns lugares — padronizar rótulo).
+  - **Data de fechamento**: `closed_at` (formatado em pt-BR; só exibe quando preenchido).
+- `src/pages/gestao/GestaoChamados.tsx`: opcional — adicionar coluna "Fechado em" na tabela (ao lado de "Atualizado em").
+
+## Arquivos afetados
+- Migração SQL nova (coluna + backfill + trigger).
+- `src/hooks/useTickets.ts` (select + interface).
+- `src/hooks/useTicketMutations.ts` (audit log informativo).
+- `src/pages/gestao/GestaoDetalhesChamado.tsx` (exibição).
+- `src/pages/gestao/GestaoChamados.tsx` (coluna opcional na tabela).
+
+## Detalhes técnicos
+- A trigger no banco é a fonte de verdade — qualquer caminho que altere status (UI, edge function, admin) registra corretamente.
+- `closed_at` é zerado em reabertura, garantindo que o campo sempre reflete o último fechamento ativo.
+- Sem alterações de RLS necessárias (a coluna herda as políticas existentes da tabela).

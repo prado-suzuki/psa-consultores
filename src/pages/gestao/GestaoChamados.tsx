@@ -1,5 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
-import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
@@ -76,7 +75,6 @@ const departmentLabels: Record<string, string> = {
 
 export default function GestaoChamados() {
   const navigate = useNavigate();
-  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: tickets = [], isLoading: loading } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
@@ -289,6 +287,7 @@ export default function GestaoChamados() {
       'Prazo': ticket.deadline ? format(parseDate(ticket.deadline), 'dd/MM/yyyy') : '',
       'Criado em': format(new Date(ticket.created_at), 'dd/MM/yyyy HH:mm'),
       'Atualizado em': format(new Date(ticket.updated_at), 'dd/MM/yyyy HH:mm'),
+      'Fechado em': ticket.closed_at ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm') : '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -518,7 +517,7 @@ export default function GestaoChamados() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <Table containerRef={tableContainerRef}>
+            <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -557,6 +556,7 @@ export default function GestaoChamados() {
                       Atualização {getSortIcon('updated_at')}
                     </div>
                   </TableHead>
+                  <TableHead>Fechado em</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -655,6 +655,11 @@ export default function GestaoChamados() {
                     <TableCell className="text-slate-500 text-sm">
                       {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}
                     </TableCell>
+                    <TableCell className="text-slate-500 text-sm">
+                      {ticket.closed_at
+                        ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm')
+                        : '—'}
+                    </TableCell>
                     <TableCell>
                       <Button
                         variant="outline"
@@ -672,7 +677,6 @@ export default function GestaoChamados() {
           )}
         </CardContent>
       </Card>
-      <FloatingScrollbar targetRef={tableContainerRef} position="top" alwaysVisible />
 
       {/* Create Ticket Dialog */}
       <CreateTicketDialog

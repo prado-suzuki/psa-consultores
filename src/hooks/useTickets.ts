@@ -19,6 +19,7 @@ export interface TicketListItem {
   department: string;
   created_at: string;
   updated_at: string;
+  closed_at?: string | null;
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
@@ -41,6 +42,7 @@ export interface TicketDetail {
   department: string;
   created_at: string;
   updated_at: string;
+  closed_at?: string | null;
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
@@ -109,7 +111,7 @@ export function useTicketsList(options?: TicketsListOptions) {
     queryFn: async (): Promise<TicketListItem[]> => {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id, cliente_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, closed_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id, cliente_id')
         .order('created_at', { ascending: false });
 
       if (assignedTo) {
