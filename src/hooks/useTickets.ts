@@ -111,7 +111,7 @@ export function useTicketsList(options?: TicketsListOptions) {
     queryFn: async (): Promise<TicketListItem[]> => {
       let query = supabase
         .from('tickets')
-        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id, cliente_id')
+        .select('id, title, description, status, priority, department, user_id, created_at, updated_at, closed_at, assigned_to, activity_status, deadline, estrutura_area_id, cluster_id, cliente_id')
         .order('created_at', { ascending: false });
 
       if (assignedTo) {
