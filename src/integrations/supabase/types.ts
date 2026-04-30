@@ -4912,6 +4912,14 @@ export type Database = {
       }
     }
     Functions: {
+      get_internal_users: {
+        Args: never
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
       get_ordens_by_client_name: {
         Args: { p_client_id: string }
         Returns: {
