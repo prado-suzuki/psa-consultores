@@ -33,6 +33,8 @@ export function useApiAuth() {
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error || !user) {
       console.error('[Auth] Sessão inválida:', error?.message);
+      const newSession = await refreshSession();
+      if (newSession) return newSession.access_token;
       handleSessionExpired();
       return null;
     }
