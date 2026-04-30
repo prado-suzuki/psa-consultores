@@ -1,43 +1,23 @@
-# Plano: Registrar data de entrada e data de fechamento dos chamados
+# Bug: coluna "Fechado em" sempre mostra "—"
 
-## Situação atual
-- A tabela `tickets` já possui `created_at` (data de entrada) — não precisa de alteração para isso.
-- **Não existe** coluna para registrar quando o chamado foi fechado/resolvido.
-- O hook `useUpdateTicketStatus` (`src/hooks/useTicketMutations.ts:164`) só atualiza `status`, sem registrar timestamp de fechamento.
-- Status considerados "fechados" no sistema: `resolvido` e `fechado` (visto em `GestaoChamados.tsx`).
+## Diagnóstico
 
-## Mudanças
+O trigger `trg_tickets_set_closed_at` está funcionando perfeitamente — verifiquei no banco e todos os 277 tickets `resolvido` e 7 `fechado` têm `closed_at` preenchido, inclusive um ticket fechado em 16/04 e outros fechados hoje (30/04).
 
-### 1. Migração de banco
-Adicionar coluna `closed_at timestamptz` em `public.tickets` (nullable).
+O problema é puramente **frontend**: em `src/hooks/useTickets.ts`, a função `useTicketsList` faz `SELECT` incluindo `closed_at`, mas o `.map()` final que monta cada objeto `TicketListItem` **não copia** o campo `closed_at` para o objeto retornado. Resultado: `ticket.closed_at` chega como `undefined` no componente, e o ternário em `GestaoChamados.tsx` (linha 659) cai sempre em `'—'`.
 
-Backfill: preencher `closed_at = updated_at` para todos os tickets existentes cujo `status IN ('resolvido','fechado')` e `closed_at IS NULL` — assim os chamados já fechados ficam com uma data razoável retroativa.
+## Correção
 
-Trigger `BEFORE UPDATE ON tickets` (SECURITY DEFINER, search_path public):
-- Quando `NEW.status` muda para `'resolvido'` ou `'fechado'` e `OLD.status` não era → setar `NEW.closed_at = now()`.
-- Quando `NEW.status` muda de fechado para reaberto (`aberto`/`em_andamento`) → setar `NEW.closed_at = NULL`.
+Em `src/hooks/useTickets.ts`, dentro do `return ticketsData.map(ticket => ({ ... }))` da função `useTicketsList`, adicionar:
 
-Isso garante consistência mesmo se o status for alterado por outras vias (admin, edge function, etc.).
+```ts
+closed_at: ticket.closed_at ?? null,
+```
 
-### 2. Hook `useUpdateTicketStatus`
-Após a migração, o trigger cuida do timestamp automaticamente. Manter o hook como está, mas:
-- Incluir `closed_at` no `changed_fields` do log de auditoria quando o status mudar para fechado/resolvido (informativo).
+ao lado de `updated_at`.
 
-### 3. Tipos e exibição
-- `src/hooks/useTickets.ts`: incluir `closed_at` nos `select(...)` da listagem e do detalhe, e na interface `TicketDetail`/`TicketListItem`.
-- `src/pages/gestao/GestaoDetalhesChamado.tsx`: mostrar no painel de informações:
-  - **Data de abertura**: `created_at` (já exibido em alguns lugares — padronizar rótulo).
-  - **Data de fechamento**: `closed_at` (formatado em pt-BR; só exibe quando preenchido).
-- `src/pages/gestao/GestaoChamados.tsx`: opcional — adicionar coluna "Fechado em" na tabela (ao lado de "Atualizado em").
+## Arquivos alterados
 
-## Arquivos afetados
-- Migração SQL nova (coluna + backfill + trigger).
-- `src/hooks/useTickets.ts` (select + interface).
-- `src/hooks/useTicketMutations.ts` (audit log informativo).
-- `src/pages/gestao/GestaoDetalhesChamado.tsx` (exibição).
-- `src/pages/gestao/GestaoChamados.tsx` (coluna opcional na tabela).
+- `src/hooks/useTickets.ts` — uma linha adicionada no mapeamento do `useTicketsList`.
 
-## Detalhes técnicos
-- A trigger no banco é a fonte de verdade — qualquer caminho que altere status (UI, edge function, admin) registra corretamente.
-- `closed_at` é zerado em reabertura, garantindo que o campo sempre reflete o último fechamento ativo.
-- Sem alterações de RLS necessárias (a coluna herda as políticas existentes da tabela).
+Não há mudanças de banco, migrations ou outros componentes — assim que o campo for propagado, a coluna "Fechado em" da `/gestao/chamados` passa a exibir a data corretamente para os tickets já fechados e para novos fechamentos.
