@@ -47,6 +47,16 @@ const departmentLabels: Record<string, string> = {
   outros: 'Outros',
 };
 
+const deadlineOptions: Record<string, string> = {
+  'none': 'Sem prazo',
+  '1': '1 dia',
+  '3': '3 dias',
+  '5': '5 dias',
+  '7': '7 dias',
+  '10': '10 dias',
+  '15': '15 dias',
+};
+
 export default function GestaoDetalhesChamado() {
   const { id } = useParams();
   const navigate = useNavigate();
