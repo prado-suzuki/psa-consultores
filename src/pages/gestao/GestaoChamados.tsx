@@ -672,6 +672,7 @@ export default function GestaoChamados() {
           )}
         </CardContent>
       </Card>
+      <FloatingScrollbar targetRef={tableContainerRef} position="top" alwaysVisible />
 
       {/* Create Ticket Dialog */}
       <CreateTicketDialog
