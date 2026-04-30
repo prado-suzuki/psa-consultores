@@ -531,7 +531,8 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => {
-                    const linhaCorrigida = buildChangedFields(item._originalSnapshot, item.F130 as unknown as Record<string, unknown>).length > 0;
+                    const displayedF130 = getDisplayedF130(item);
+                    const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF130 as unknown as Record<string, unknown>).length > 0;
                     return (
                       <TableRow key={`f130-${item.F130.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F130.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
                         {isEditMode && (
