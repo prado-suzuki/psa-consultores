@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,14 +35,8 @@ const F120_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'COD_CTA', label: 'Conta' },
 ];
 
-const f120RowAccessor = (item: F120Item, key: string): string => {
-  if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
-  if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
-  if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
-  const v = item.F120[key as keyof F120Reg];
-  if (v === null || v === undefined) return '';
-  return String(v);
-};
+// f120RowAccessor agora é definido dentro do componente como `f120RowAccessorWithEdits`
+// para considerar overlay de edições aplicadas em editedRows.
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -126,15 +120,15 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<F120Item[]>([]);
+  const [editedRows, setEditedRows] = useState<Record<string, F120Reg>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, F120Draft>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  const selection = useRowSelection();
-  const locallyEditedIds = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const selection = useRowSelection();
+  const deferredSearchText = useDeferredValue(searchText);
 
   const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
     setSortConfig({ key, direction });
@@ -149,57 +143,74 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
 
   useEffect(() => {
     if (!data) return;
-    if (isEditMode) return;
-    if (locallyEditedIds.current.size === 0) { setRows(data); return; }
-    setRows((currentRows) => data.map(d => {
-      if (locallyEditedIds.current.has(d.F120.uuid)) {
-        const local = currentRows.find(r => r.F120.uuid === d.F120.uuid);
-        return local ?? d;
-      }
-      return d;
+    const validIds = new Set(data.map((item) => item.F120.uuid));
+    setEditedRows((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) => validIds.has(id));
+      if (nextEntries.length === Object.keys(current).length) return current;
+      return Object.fromEntries(nextEntries);
+    });
+  }, [data]);
+
+  const getDisplayedF120 = (item: F120Item): F120Reg => editedRows[item.F120.uuid] ?? item.F120;
+  const getOriginalSnapshot = (item: F120Item): F120Reg => item._originalSnapshot ?? item.F120;
+
+  const f120RowAccessorWithEdits = (item: F120Item, key: string): string => {
+    if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
+    if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
+    if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
+    const f = getDisplayedF120(item);
+    const v = f[key as keyof F120Reg];
+    if (v === null || v === undefined) return '';
+    return String(v);
+  };
+
+  const indexedItems = useMemo(() => {
+    if (!data) return [] as Array<{ item: F120Item; searchKey: string }>;
+    return data.map((item) => ({
+      item,
+      searchKey: `${item.DESC_IDENT_BEM_IMOB ?? ''} ${item.DESC_IND_UTIL_BEM_IMOB ?? ''} ${item.F120.COD_CTA ?? ''}`.toLowerCase(),
     }));
-  }, [data, isEditMode]);
+  }, [data]);
 
   const baseFiltered = useMemo(() => {
-    let items = rows;
-    if (searchText.trim()) {
-      const s = searchText.toLowerCase();
-      items = items.filter((i) =>
-        i.DESC_IDENT_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.DESC_IND_UTIL_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.F120.COD_CTA?.toLowerCase().includes(s)
-      );
+    if (!deferredSearchText.trim()) {
+      return indexedItems.map(({ item }) => item);
     }
-    return items;
-  }, [rows, searchText]);
+    const searchTerm = deferredSearchText.trim().toLowerCase();
+    return indexedItems
+      .filter(({ searchKey }) => searchKey.includes(searchTerm))
+      .map(({ item }) => item);
+  }, [deferredSearchText, indexedItems]);
 
   const cascadingUniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
     for (const { key } of F120_FILTERABLE_KEYS) {
       let subset = baseFiltered;
       for (const [fk, allowed] of Object.entries(columnFilters)) {
-        if (fk !== key) subset = subset.filter((r) => allowed.has(f120RowAccessor(r, fk)));
+        if (fk !== key) subset = subset.filter((r) => allowed.has(f120RowAccessorWithEdits(r, fk)));
       }
-      result[key] = [...new Set(subset.map((r) => f120RowAccessor(r, key)))];
+      result[key] = [...new Set(subset.map((r) => f120RowAccessorWithEdits(r, key)))];
     }
     return result;
-  }, [baseFiltered, columnFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, editedRows]);
 
   const filtered = useMemo(() => {
     let items = baseFiltered;
     for (const [key, allowed] of Object.entries(columnFilters)) {
-      if (allowed.size > 0) items = items.filter((i) => allowed.has(f120RowAccessor(i, key)));
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(f120RowAccessorWithEdits(i, key)));
     }
     if (sortConfig) {
       items = [...items].sort((a, b) => {
-        const av = f120RowAccessor(a, sortConfig.key);
-        const bv = f120RowAccessor(b, sortConfig.key);
+        const av = f120RowAccessorWithEdits(a, sortConfig.key);
+        const bv = f120RowAccessorWithEdits(b, sortConfig.key);
         const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
         return sortConfig.direction === 'asc' ? cmp : -cmp;
       });
     }
     return items;
-  }, [baseFiltered, columnFilters, sortConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, sortConfig, editedRows]);
 
   useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
 
@@ -212,9 +223,9 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const identBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IDENT_BEM_IMOB'), [rows]);
-  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IND_UTIL_BEM_IMOB'), [rows]);
-  const natBcCredOptions = useMemo(() => buildCodeOptions(rows, 'NAT_BC_CRED'), [rows]);
+  const identBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IDENT_BEM_IMOB'), [data]);
+  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IND_UTIL_BEM_IMOB'), [data]);
+  const natBcCredOptions = useMemo(() => buildCodeOptions(data ?? [], 'NAT_BC_CRED'), [data]);
   const optionsByField: Record<CodeField120, { code: string; description: string }[]> = {
     IDENT_BEM_IMOB: identBemImobOptions,
     IND_UTIL_BEM_IMOB: indUtilBemImobOptions,
@@ -222,7 +233,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleEnableEditMode = () => {
-    setDrafts(Object.fromEntries(rows.map((row) => [row.F120.uuid, toDraft(row)])));
+    if (!data) return;
+    setDrafts(Object.fromEntries(data.map((item) => [item.F120.uuid, toDraft({ ...item, F120: getDisplayedF120(item) })])));
     selection.clear();
     setIsEditMode(true);
   };
@@ -238,7 +250,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
-    const nextSnapshot: Record<string, unknown> = { ...item.F120 };
+    const displayedF120 = getDisplayedF120(item);
+    const nextSnapshot: Record<string, unknown> = { ...displayedF120 };
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
@@ -261,8 +274,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleSaveAll = async () => {
-    if (!user) {
-      toast.error('Usuário não autenticado para salvar a correção.');
+    if (!user || !data) {
+      if (!user) toast.error('Usuário não autenticado para salvar a correção.');
       return;
     }
 
@@ -271,22 +284,24 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     try {
       let changedCount = 0;
       let savedCount = 0;
-      const nextRows = [...rows];
+      const nextEditedRows = { ...editedRows };
 
-      for (const [index, item] of rows.entries()) {
+      for (const item of data) {
         const draft = drafts[item.F120.uuid];
         if (!draft) continue;
 
+        const originalSnapshot = getOriginalSnapshot(item);
+        const displayedF120 = getDisplayedF120(item);
         const nextSnapshot = buildNextSnapshot(item, draft);
         if (!nextSnapshot) {
           setIsSaving(false);
           return;
         }
 
-        if (buildChangedFields(item.F120, nextSnapshot).length === 0) continue;
+        if (buildChangedFields(displayedF120, nextSnapshot).length === 0) continue;
 
         changedCount += 1;
-        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+        const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
 
         const { data: correcaoAtiva, error: buscaError } = await supabase
           .from('efd_correcoes').select('id')
@@ -299,8 +314,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
             const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
             if (e) throw e;
           }
-          nextRows[index] = { ...item, F120: { ...item._originalSnapshot } };
-          locallyEditedIds.current.add(item.F120.uuid);
+          delete nextEditedRows[item.F120.uuid];
           savedCount += 1;
           continue;
         }
@@ -322,8 +336,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
         const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
         if (insertError) throw insertError;
 
-        nextRows[index] = { ...item, F120: { ...item.F120, ...nextSnapshot } as F120Reg };
-        locallyEditedIds.current.add(item.F120.uuid);
+        nextEditedRows[item.F120.uuid] = { ...item.F120, ...nextSnapshot } as F120Reg;
         savedCount += 1;
       }
 
@@ -333,7 +346,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
         return;
       }
 
-      setRows(nextRows);
+      setEditedRows(nextEditedRows);
       handleCancelEditMode();
       await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do F120 salva.' : `${savedCount} correções do F120 salvas.`);
@@ -347,9 +360,11 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     const descKey = DESC_KEY_BY_CODE_FIELD[field];
     const descFallback = item[descKey] ?? '';
 
-    const currentCode = isEditMode && draft ? draft[field] : item.F120[field];
-    const origCode = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
-    const isChanged = !Object.is(item.F120[field], origCode);
+    const displayedF120 = getDisplayedF120(item);
+    const originalSnapshot = getOriginalSnapshot(item);
+    const currentCode = isEditMode && draft ? draft[field] : displayedF120[field];
+    const origCode = (originalSnapshot as unknown as Record<string, unknown>)[field];
+    const isChanged = !Object.is(displayedF120[field], origCode);
     const selectedOption = options.find((o) => o.code === currentCode);
     const displayDescription = selectedOption?.description ?? descFallback;
     const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
@@ -418,8 +433,10 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     const draft = drafts[item.F120.uuid];
 
     if (!isEditMode || !draft) {
-      const value = item.F120[field as keyof F120Reg];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
+      const displayedF120 = getDisplayedF120(item);
+      const originalSnapshot = getOriginalSnapshot(item);
+      const value = displayedF120[field as keyof F120Reg];
+      const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
@@ -512,7 +529,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
                 </TableHeader>
                 <TableBody>
                   {paged.map((item, idx) => {
-                    const linhaCorrigida = buildChangedFields(item._originalSnapshot, item.F120 as unknown as Record<string, unknown>).length > 0;
+                    const displayedF120 = getDisplayedF120(item);
+                    const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF120 as unknown as Record<string, unknown>).length > 0;
                     return (
                       <TableRow key={`f120-${item.F120.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F120.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
                         {isEditMode && (
