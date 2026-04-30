@@ -20,6 +20,11 @@ import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/corre
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
+import {
+  IDENT_BEM_IMOB_OPTIONS,
+  IND_UTIL_BEM_IMOB_OPTIONS,
+  NAT_BC_CRED_OPTIONS,
+} from '@/components/equipe/dev/correcoes-sped/spedCatalogs';
 import type { F120Item, F120Reg, CampoAlteradoEfd } from '@/types/correcoesSped';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { cn } from '@/lib/utils';
@@ -76,19 +81,11 @@ const DESC_KEY_BY_CODE_FIELD: Record<CodeField120, 'DESC_IDENT_BEM_IMOB' | 'DESC
   NAT_BC_CRED: 'DESC_NAT_BC_CRED',
 };
 
-function buildCodeOptions(rows: F120Item[], codeField: CodeField120): { code: string; description: string }[] {
-  const descKey = DESC_KEY_BY_CODE_FIELD[codeField];
-  const map = new Map<string, string>();
-  for (const row of rows) {
-    const rawCode = row.F120[codeField];
-    if (rawCode === null || rawCode === undefined || rawCode === '') continue;
-    const code = String(rawCode);
-    if (!map.has(code)) map.set(code, String(row[descKey] ?? ''));
-  }
-  return Array.from(map.entries())
-    .map(([code, description]) => ({ code, description }))
-    .sort((a, b) => a.code.localeCompare(b.code, 'pt-BR', { numeric: true }));
-}
+const OPTIONS_BY_CODE_FIELD: Record<CodeField120, { code: string; description: string }[]> = {
+  IDENT_BEM_IMOB: IDENT_BEM_IMOB_OPTIONS,
+  IND_UTIL_BEM_IMOB: IND_UTIL_BEM_IMOB_OPTIONS,
+  NAT_BC_CRED: NAT_BC_CRED_OPTIONS,
+};
 
 function serializeValue(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -223,14 +220,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const identBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IDENT_BEM_IMOB'), [data]);
-  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IND_UTIL_BEM_IMOB'), [data]);
-  const natBcCredOptions = useMemo(() => buildCodeOptions(data ?? [], 'NAT_BC_CRED'), [data]);
-  const optionsByField: Record<CodeField120, { code: string; description: string }[]> = {
-    IDENT_BEM_IMOB: identBemImobOptions,
-    IND_UTIL_BEM_IMOB: indUtilBemImobOptions,
-    NAT_BC_CRED: natBcCredOptions,
-  };
+  const optionsByField = OPTIONS_BY_CODE_FIELD;
 
   const handleEnableEditMode = () => {
     if (!data) return;
