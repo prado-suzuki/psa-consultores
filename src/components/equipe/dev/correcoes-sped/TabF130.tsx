@@ -251,7 +251,8 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   };
 
   const buildNextSnapshot = (item: F130Item, draft: F130Draft) => {
-    const nextSnapshot: Record<string, unknown> = { ...item.F130 };
+    const displayedF130 = getDisplayedF130(item);
+    const nextSnapshot: Record<string, unknown> = { ...displayedF130 };
 
     for (const field of editableFields) {
       const raw = draft[field].trim();
@@ -274,8 +275,8 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleSaveAll = async () => {
-    if (!user) {
-      toast.error('Usuário não autenticado para salvar a correção.');
+    if (!user || !data) {
+      if (!user) toast.error('Usuário não autenticado para salvar a correção.');
       return;
     }
 
@@ -284,22 +285,24 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     try {
       let changedCount = 0;
       let savedCount = 0;
-      const nextRows = [...rows];
+      const nextEditedRows = { ...editedRows };
 
-      for (const [index, item] of rows.entries()) {
+      for (const item of data) {
         const draft = drafts[item.F130.uuid];
         if (!draft) continue;
 
+        const originalSnapshot = getOriginalSnapshot(item);
+        const displayedF130 = getDisplayedF130(item);
         const nextSnapshot = buildNextSnapshot(item, draft);
         if (!nextSnapshot) {
           setIsSaving(false);
           return;
         }
 
-        if (buildChangedFields(item.F130, nextSnapshot).length === 0) continue;
+        if (buildChangedFields(displayedF130, nextSnapshot).length === 0) continue;
 
         changedCount += 1;
-        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+        const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
 
         const { data: correcaoAtiva, error: buscaError } = await supabase
           .from('efd_correcoes').select('id')
@@ -312,8 +315,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
             const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
             if (e) throw e;
           }
-          nextRows[index] = { ...item, F130: { ...item._originalSnapshot } };
-          locallyEditedIds.current.add(item.F130.uuid);
+          delete nextEditedRows[item.F130.uuid];
           savedCount += 1;
           continue;
         }
@@ -335,8 +337,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
         const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
         if (insertError) throw insertError;
 
-        nextRows[index] = { ...item, F130: { ...item.F130, ...nextSnapshot } as F130Reg };
-        locallyEditedIds.current.add(item.F130.uuid);
+        nextEditedRows[item.F130.uuid] = { ...item.F130, ...nextSnapshot } as F130Reg;
         savedCount += 1;
       }
 
@@ -346,7 +347,7 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
         return;
       }
 
-      setRows(nextRows);
+      setEditedRows(nextEditedRows);
       handleCancelEditMode();
       await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do F130 salva.' : `${savedCount} correções do F130 salvas.`);
