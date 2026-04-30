@@ -1,23 +1,21 @@
-# Bug: coluna "Fechado em" sempre mostra "—"
+# Migrar tickets `resolvido` → `fechado`
 
-## Diagnóstico
+## O que será feito
 
-O trigger `trg_tickets_set_closed_at` está funcionando perfeitamente — verifiquei no banco e todos os 277 tickets `resolvido` e 7 `fechado` têm `closed_at` preenchido, inclusive um ticket fechado em 16/04 e outros fechados hoje (30/04).
+Executar um único UPDATE no banco para normalizar os 276 chamados que ainda estão com status `resolvido`:
 
-O problema é puramente **frontend**: em `src/hooks/useTickets.ts`, a função `useTicketsList` faz `SELECT` incluindo `closed_at`, mas o `.map()` final que monta cada objeto `TicketListItem` **não copia** o campo `closed_at` para o objeto retornado. Resultado: `ticket.closed_at` chega como `undefined` no componente, e o ternário em `GestaoChamados.tsx` (linha 659) cai sempre em `'—'`.
-
-## Correção
-
-Em `src/hooks/useTickets.ts`, dentro do `return ticketsData.map(ticket => ({ ... }))` da função `useTicketsList`, adicionar:
-
-```ts
-closed_at: ticket.closed_at ?? null,
+```sql
+UPDATE public.tickets
+SET status = 'fechado'
+WHERE status = 'resolvido';
 ```
 
-ao lado de `updated_at`.
+## Efeitos colaterais (validados)
 
-## Arquivos alterados
+- **`closed_at` preservado**: o trigger `trg_tickets_set_closed_at` só reseta `closed_at` quando o status sai do conjunto fechado. Como `resolvido` e `fechado` estão ambos nesse conjunto, o trigger não toca em `closed_at`.
+- **`updated_at`**: será atualizado pelo trigger `update_tickets_updated_at` (esperado).
+- **Estado final do banco**: apenas os status `fechado`, `aberto` e `em_andamento` permanecerão.
 
-- `src/hooks/useTickets.ts` — uma linha adicionada no mapeamento do `useTicketsList`.
+## Por que não foi aplicado ainda
 
-Não há mudanças de banco, migrations ou outros componentes — assim que o campo for propagado, a coluna "Fechado em" da `/gestao/chamados` passa a exibir a data corretamente para os tickets já fechados e para novos fechamentos.
+Este turno está em modo plano (read-only) — a ferramenta de migração só fica disponível depois que você aprovar este plano. Aprovando, o UPDATE roda imediatamente.
