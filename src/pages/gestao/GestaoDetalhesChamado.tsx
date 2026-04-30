@@ -287,6 +287,22 @@ export default function GestaoDetalhesChamado() {
                   Área: {ticket.areaName}
                 </Badge>
               )}
+              {ticket.deadline && (() => {
+                const deadlineDate = parseDate(ticket.deadline);
+                const isPast = isPastBrazil(deadlineDate);
+                const isToday = isTodayBrazil(deadlineDate);
+                const isTomorrow = isTomorrowBrazil(deadlineDate);
+                const cls = isPast
+                  ? 'border-red-200 text-red-700 bg-red-50'
+                  : isToday || isTomorrow
+                    ? 'border-amber-200 text-amber-700 bg-amber-50'
+                    : 'border-slate-200 text-slate-600';
+                return (
+                  <Badge variant="outline" className={cls}>
+                    Prazo: {format(deadlineDate, "dd/MM/yyyy (EEE)", { locale: ptBR })}
+                  </Badge>
+                );
+              })()}
             </div>
 
             {/* Roteamento — Cliente / Cluster / Área (cascata) */}
