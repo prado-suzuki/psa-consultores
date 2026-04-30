@@ -4,14 +4,16 @@ interface FloatingScrollbarProps {
   targetRef: RefObject<HTMLElement | null>;
   /** Always show when content overflows, regardless of native scrollbar visibility */
   alwaysVisible?: boolean;
+  /** Where to dock the floating scrollbar. Defaults to "bottom". */
+  position?: "top" | "bottom";
 }
 
-export function FloatingScrollbar({ targetRef, alwaysVisible = false }: FloatingScrollbarProps) {
+export function FloatingScrollbar({ targetRef, alwaysVisible = false, position = "bottom" }: FloatingScrollbarProps) {
   const scrollbarRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const syncing = useRef(false);
   const [visible, setVisible] = useState(false);
-  const [style, setStyle] = useState<{ left: number; width: number }>({ left: 0, width: 0 });
+  const [style, setStyle] = useState<{ left: number; width: number; top?: number }>({ left: 0, width: 0 });
   const [contentWidth, setContentWidth] = useState(0);
 
   const updateLayout = useCallback(() => {
@@ -20,16 +22,28 @@ export function FloatingScrollbar({ targetRef, alwaysVisible = false }: Floating
 
     const rect = target.getBoundingClientRect();
     const hasOverflow = target.scrollWidth > target.clientWidth + 1;
-
-    // Check if the native scrollbar is in view
-    const bottomOfTarget = rect.bottom;
     const viewportHeight = window.innerHeight;
-    const nativeScrollbarVisible = bottomOfTarget <= viewportHeight;
 
-    setVisible(hasOverflow && (alwaysVisible || !nativeScrollbarVisible));
-    setStyle({ left: rect.left, width: rect.width });
+    let nativeEdgeVisible: boolean;
+    if (position === "top") {
+      // Show when the top of the target is scrolled out of view
+      nativeEdgeVisible = rect.top >= 0;
+    } else {
+      // Show when the bottom (native scrollbar) is out of view
+      nativeEdgeVisible = rect.bottom <= viewportHeight;
+    }
+
+    // Only render when target is at least partially in viewport
+    const inViewport = rect.bottom > 0 && rect.top < viewportHeight;
+
+    setVisible(hasOverflow && inViewport && (alwaysVisible || !nativeEdgeVisible));
+    setStyle({
+      left: rect.left,
+      width: rect.width,
+      top: position === "top" ? Math.max(0, rect.top) : undefined,
+    });
     setContentWidth(target.scrollWidth);
-  }, [targetRef, alwaysVisible]);
+  }, [targetRef, alwaysVisible, position]);
 
   useEffect(() => {
     const target = targetRef.current;
