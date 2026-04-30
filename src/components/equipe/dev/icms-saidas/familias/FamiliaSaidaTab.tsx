@@ -103,42 +103,7 @@ export function FamiliaSaidaTab({
 
   return (
     <div className="space-y-6">
-      {/* Banner — campos esperados que a API não retornou */}
-      {hasMissing && rows.length > 0 && (
-        <Card className="border-amber-300 bg-amber-50/40">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-bold text-amber-900 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              Campos esperados não retornados pela API
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-xs text-amber-900">
-            {missingDataFields.length > 0 && (
-              <div>
-                <span className="font-semibold">Linhas detalhadas:</span>{' '}
-                {missingDataFields.map((f) => (
-                  <code key={f} className="font-mono bg-white border border-amber-200 rounded px-1.5 py-0.5 mr-1">
-                    {f}
-                  </code>
-                ))}
-              </div>
-            )}
-            {missingTotalsFields.length > 0 && (
-              <div>
-                <span className="font-semibold">Resumo mensal:</span>{' '}
-                {missingTotalsFields.map((f) => (
-                  <code key={f} className="font-mono bg-white border border-amber-200 rounded px-1.5 py-0.5 mr-1">
-                    {f}
-                  </code>
-                ))}
-              </div>
-            )}
-            <p className="text-[11px] text-amber-700 pt-1">
-              Comparado contra a planilha WP_ICMS_SAIDAS.xlsb (T03.1). Reportar ao backend para popular esses campos.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+
 
       {/* Resumo mensal — só renderiza se o endpoint devolver totalizadores */}
       {resumo.length > 0 && (
