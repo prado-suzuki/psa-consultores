@@ -1,59 +1,49 @@
-## Objetivo
+## Causa do erro
 
-Fazer o dropdown "Responsável" em `/gestao/chamados` (e demais telas que usam `useTicketAgents`) listar **todos os usuários internos** — ou seja, qualquer pessoa com role `team_member`, `sublider`, `lider` ou `admin` — em vez de apenas `team_member` + `admin`.
+A tabela `public.cliente_clusters` tem 5 RLS policies, mas só **duas** permitem escrita (INSERT/UPDATE/DELETE):
 
-Hoje membros do Fiscal que têm apenas role `lider` ou `sublider` ficam de fora do dropdown.
+| Policy | Comando | Quem permite |
+|---|---|---|
+| `admin_full_access_cliente_clusters` | ALL | role `admin` |
+| `lider_manage_cliente_clusters` | ALL | role `lider` |
+| `sublider_select_cliente_clusters` | **SELECT** | role `sublider` |
+| `team_member_select_cliente_clusters` | **SELECT** | `team_member`+ |
+| `Clients can read their cliente_clusters` | **SELECT** | client dono |
 
-## Mudança
+A usuária com role `sublider` consegue **ler** os vínculos cliente↔cluster, mas qualquer `INSERT` é bloqueado — exatamente o erro `new row violates row-level security policy for table "cliente_clusters"`.
 
-### 1. Nova função SQL `get_internal_users()` (SECURITY DEFINER)
+## Por que a outra alteração salvou
 
-Não dá para chamar `has_role_or_higher` diretamente do client em cima de cada user_id (seria N+1). Criar uma RPC que devolve todos os usuários internos:
+Os outros campos do bloco "Dados do Cliente/Grupo" (nome, categoria, status, fixo, área, região) gravam apenas na tabela `cliente`, que tem policy permitindo escrita para `sublider`. O campo **Clusters** é o único que escreve em `cliente_clusters`. Quando ela alterou só os outros campos, o save concluiu; ao mexer no cluster, o `INSERT` em `cliente_clusters` falhou.
+
+Isso bate com nosso padrão de hierarquia: `sublider` deve poder operar estrutura organizacional, mas a policy nunca foi criada para escrita nessa tabela.
+
+## Correção proposta
+
+Migration adicionando policy de escrita para `sublider+` em `cliente_clusters`, alinhada com `has_role_or_higher` (mesmo padrão usado em outras tabelas de estrutura).
 
 ```sql
-create or replace function public.get_internal_users()
-returns table(id uuid, first_name text, last_name text)
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select p.id, p.first_name, p.last_name
-  from public.profiles p
-  where exists (
-    select 1 from public.user_roles ur
-    where ur.user_id = p.id
-      and ur.role in ('team_member','sublider','lider','admin')
-  )
-  order by p.first_name, p.last_name;
-$$;
+-- Permite sublíder e acima gerenciarem vínculos cliente↔cluster
+CREATE POLICY "sublider_or_higher_manage_cliente_clusters"
+ON public.cliente_clusters
+FOR ALL
+TO authenticated
+USING (public.has_role_or_higher(auth.uid(), 'sublider'::app_role))
+WITH CHECK (public.has_role_or_higher(auth.uid(), 'sublider'::app_role));
+
+-- Remove a policy antiga só de SELECT (substituída pela nova ALL)
+DROP POLICY IF EXISTS sublider_select_cliente_clusters ON public.cliente_clusters;
 ```
 
-Equivalente semanticamente a `has_role_or_higher(p.id, 'team_member')` — qualquer role >= team_member na hierarquia.
+As policies de SELECT para `team_member` e `client` permanecem intactas — `team_member` puro continua só lendo, e cliente continua vendo apenas os próprios clusters.
 
-Acesso: chamável por usuários autenticados (a função em si não expõe dados sensíveis — só nome).
+## Verificação pós-deploy
 
-### 2. Atualizar `useTicketAgents` em `src/hooks/useTickets.ts`
+1. Logar como a sublíder afetada → editar Transoeste → trocar/adicionar cluster → salvar deve concluir sem erro.
+2. Logar como `team_member` puro → tentar a mesma operação continua bloqueado (esperado).
+3. `useAuditLog` continua registrando o save do cliente normalmente.
 
-Substituir a query atual (que filtra `role in ('admin','team_member')` e cruza com `profiles_safe`) por uma única chamada:
+## Arquivos afetados
 
-```ts
-const { data, error } = await supabase.rpc('get_internal_users');
-```
-
-Mantém a mesma `queryKey` (`['tickets','agents']`) e o mesmo shape de retorno (`TicketProfile[]`), então nenhum consumidor precisa mudar.
-
-## Impacto
-
-Telas afetadas automaticamente (todas consomem `useTicketAgents`):
-- `src/pages/gestao/GestaoChamados.tsx`
-- `src/pages/gestao/GestaoDetalhesChamado.tsx`
-- `src/pages/admin/AdminChamados.tsx`
-- `src/pages/equipe/EquipeChamados.tsx`
-
-Resultado: o dropdown passa a mostrar líderes e sublíderes também, cobrindo o time Fiscal completo.
-
-## Fora de escopo
-
-- Não filtra por área/cluster do ticket (lista continua global, como hoje).
-- Não mexe em RLS de `tickets` nem em outras telas de atribuição (tarefas, projetos).
+- 1 migration nova em `supabase/migrations/` (apenas DDL de RLS).
+- Nenhuma mudança em hooks/componentes — o fluxo de save em `ClienteTab.tsx` já está correto, faltava só a permissão no banco.
