@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,28 +8,19 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { IcmsSaidasAuditModal } from '@/components/equipe/dev/IcmsSaidasAuditModal';
 import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoTab';
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
-import type { T032Linha } from '@/components/equipe/dev/icms-saidas/mocks';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { cn } from '@/lib/utils';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
-import type { DifalGroupedItem } from '@/types/difal';
 import { Search, CalendarIcon, Filter, Eraser } from 'lucide-react';
 
 const CLIENTES_PERMITIDOS_NOMES = ['Barralcool', 'COPRODIA'];
-
-const UFS_BR = [
-  'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
-  'MG', 'MS', 'MT', 'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN',
-  'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO',
-];
 
 interface ClienteRecord { id: string; nome: string }
 interface ContribuinteRecord { id: string; nome_razao_social: string; cpf_cnpj: string | null }
@@ -48,18 +39,9 @@ const IcmsSaidas = () => {
 
   const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
-  const [ufFiltro, setUfFiltro] = useState<string>('ALL');
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
-
-  // Decisões locais — chave: groupKey. Preservadas ao limpar filtros.
-  const [decisions, setDecisions] = useState<Map<string, { regraId: string; decididoEm: string }>>(new Map());
-
-  const [selectedGroup, setSelectedGroup] = useState<DifalGroupedItem | null>(null);
-  const [selectedTipoOperacao, setSelectedTipoOperacao] = useState<string>('');
-  const [selectedUfModal, setSelectedUfModal] = useState<string>('');
-  const [modalOpen, setModalOpen] = useState(false);
 
   // Clientes
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
@@ -116,54 +98,12 @@ const IcmsSaidas = () => {
     setSearchTriggered(true);
   };
 
-  // Limpa filtros mas PRESERVA decisions (classificações da sessão)
   const handleClearFilters = () => {
     setSelectedCliente('');
     setSelectedContribuinte('');
-    setUfFiltro('ALL');
     setDataInicio(defaultDates.inicio);
     setDataFim(defaultDates.fim);
     setSearchTriggered(false);
-  };
-
-  // T03.2 (mock) — constrói DifalGroupedItem a partir da linha mock
-  const handleT032LineClick = (linha: T032Linha) => {
-    const group: DifalGroupedItem = {
-      groupKey: `${linha.nf}|${linha.codProduto}|${linha.ncm}`,
-      xProd: linha.produto,
-      cod_produto: linha.codProduto,
-      cod_ncm: linha.ncm,
-      id_contribuinte: selectedContribuinte,
-      cfop: linha.cfop,
-      cst_icms: linha.cst,
-      aliq_icms: linha.aliquota ?? 0,
-      pRedBC: null,
-      count: 1,
-      totalValue: linha.valorMercadoria,
-      nfesCount: 1,
-      status: 'pendente',
-      classificacao: null,
-    };
-    setSelectedGroup(group);
-    setSelectedTipoOperacao(linha.descricao);
-    setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
-    setModalOpen(true);
-  };
-
-  // T03.1 (endpoints reais) — recebe DifalGroupedItem já adaptado pelo FamiliaSaidaTab
-  const handleT031AuditClick = (group: DifalGroupedItem, tipoOperacao: string) => {
-    setSelectedGroup(group);
-    setSelectedTipoOperacao(tipoOperacao);
-    setSelectedUfModal(ufFiltro === 'ALL' ? '' : ufFiltro);
-    setModalOpen(true);
-  };
-
-  const handleDecisionSaved = (group: DifalGroupedItem, regraId: string) => {
-    setDecisions((prev) => {
-      const next = new Map(prev);
-      next.set(group.groupKey, { regraId, decididoEm: new Date().toISOString() });
-      return next;
-    });
   };
 
   const headerActions = (
@@ -236,24 +176,6 @@ const IcmsSaidas = () => {
                 <SelectContent>
                   {contribuintes?.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* UF Destino */}
-            <div className="md:col-span-1">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                UF Destino
-              </label>
-              <Select value={ufFiltro} onValueChange={setUfFiltro}>
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-72">
-                  <SelectItem value="ALL">Todas</SelectItem>
-                  {UFS_BR.map((uf) => (
-                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -375,7 +297,6 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            onAuditClick={handleT031AuditClick}
           />
         </TabsContent>
 
@@ -385,20 +306,9 @@ const IcmsSaidas = () => {
             contribuinteId={selectedContribuinte}
             dataInicio={dataInicio}
             dataFim={dataFim}
-            onLineClick={handleT032LineClick}
           />
         </TabsContent>
       </Tabs>
-
-      {/* Modal global — único, compartilhado entre T03.1 e T03.2 */}
-      <IcmsSaidasAuditModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        group={selectedGroup}
-        ufDestino={selectedUfModal}
-        tipoOperacao={selectedTipoOperacao}
-        onDecisionSaved={handleDecisionSaved}
-      />
     </DevLayout>
   );
 };

@@ -12,7 +12,6 @@ interface T03_2SaidasStTabProps {
   contribuinteId: string;
   dataInicio: string;
   dataFim: string;
-  onLineClick: (linha: T032Linha) => void;
 }
 
 const fmt = (v: number | null | undefined) =>
@@ -24,7 +23,7 @@ const dash = (v: string | null | undefined) => (v && v.length ? v : '—');
 const FAMILIAS_T032 = ['Açúcar ST', 'Etanol Interestadual ST'];
 const SEM_CLASS = '__SEM_CLASSIFICACAO__';
 
-export const T03_2SaidasStTab = ({ enabled, onLineClick }: T03_2SaidasStTabProps) => {
+export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
   const linhas = T03_2_LINHAS_MOCK;
 
   const sortedLinhas = useMemo(() => {
@@ -189,10 +188,8 @@ export const T03_2SaidasStTab = ({ enabled, onLineClick }: T03_2SaidasStTabProps
                       <TableRow
                         key={`${l.nf}-${l.codProduto}-${idx}`}
                         className={cn(
-                          'cursor-pointer',
                           naoClass ? 'bg-amber-50/40 hover:bg-amber-100/60' : 'hover:bg-slate-50',
                         )}
-                        onClick={() => onLineClick(l)}
                       >
                         <TableCell>
                           {naoClass ? (

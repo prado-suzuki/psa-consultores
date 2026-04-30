@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FamiliaSaidaTab } from './familias/FamiliaSaidaTab';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
-import type { DifalGroupedItem } from '@/types/difal';
 
 interface T03_1SaidasTabProps {
   enabled: boolean;
   contribuinteId: string;
   dataInicio: string;
   dataFim: string;
-  onAuditClick: (group: DifalGroupedItem, tipoOperacao: string) => void;
 }
 
 const FAMILIA_TABS: { value: FamiliaSaida; label: string }[] = [
@@ -26,7 +24,6 @@ export const T03_1SaidasTab = ({
   contribuinteId,
   dataInicio,
   dataFim,
-  onAuditClick,
 }: T03_1SaidasTabProps) => {
   const [familia, setFamilia] = useState<FamiliaSaida>('acucar');
 
@@ -50,7 +47,6 @@ export const T03_1SaidasTab = ({
               contribuinteId={contribuinteId}
               dataInicio={dataInicio}
               dataFim={dataFim}
-              onAuditClick={onAuditClick}
             />
           )}
         </TabsContent>

@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { AlertCircle, AlertTriangle, Calculator, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSaidaIcms, SAIDA_ICMS_PAGE_SIZE, type FamiliaSaida } from '@/hooks/useSaidaIcms';
-import { formatCell, isNumericKey, type ViewMode } from './formatCell';
-import { buildAuditGroupFromRow, pickTipoOperacao } from './buildAuditGroup';
+import { formatCell, isNumericKey } from './formatCell';
 import { labelFor } from './columnLabels';
 import { EXPECTED_SCHEMA, findMissingFields } from './expectedColumns';
 import { isCheckKey, checkColorClass } from './checkColor';
-import type { DifalGroupedItem } from '@/types/difal';
+import { deriveDetailChecks, deriveTotalsChecks } from './derivedChecks';
+import { orderColumns } from './columnOrder';
 
 interface FamiliaSaidaTabProps {
   familia: FamiliaSaida;
@@ -19,7 +20,6 @@ interface FamiliaSaidaTabProps {
   contribuinteId: string;
   dataInicio: string;
   dataFim: string;
-  onAuditClick: (group: DifalGroupedItem, tipoOperacao: string) => void;
 }
 
 export function FamiliaSaidaTab({
@@ -28,10 +28,10 @@ export function FamiliaSaidaTab({
   contribuinteId,
   dataInicio,
   dataFim,
-  onAuditClick,
 }: FamiliaSaidaTabProps) {
   const [page, setPage] = useState(1);
-  const [viewMode, setViewMode] = useState<ViewMode>('raw');
+  const resumoScrollRef = useRef<HTMLDivElement>(null);
+  const detailScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setPage(1);
@@ -45,11 +45,24 @@ export function FamiliaSaidaTab({
     enabled,
   });
 
-  const rows = data?.data ?? [];
-  const resumo = data?.totalizadores_mensal ?? [];
+  const rawRows = data?.data ?? [];
+  const rawResumo = data?.totalizadores_mensal ?? [];
 
-  const dataColumns = useMemo(() => (rows.length > 0 ? Object.keys(rows[0]) : []), [rows]);
-  const resumoColumns = useMemo(() => (resumo.length > 0 ? Object.keys(resumo[0]) : []), [resumo]);
+  // Adiciona Checks derivados (replica fórmulas da planilha T03.1) antes de extrair colunas
+  const rows = useMemo(
+    () => rawRows.map((r) => deriveDetailChecks(r, familia)),
+    [rawRows, familia],
+  );
+  const resumo = useMemo(() => rawResumo.map((r) => deriveTotalsChecks(r)), [rawResumo]);
+
+  const dataColumns = useMemo(
+    () => (rows.length > 0 ? orderColumns(Object.keys(rows[0]), familia, 'data') : []),
+    [rows, familia],
+  );
+  const resumoColumns = useMemo(
+    () => (resumo.length > 0 ? orderColumns(Object.keys(resumo[0]), familia, 'totals') : []),
+    [resumo, familia],
+  );
 
   const expected = EXPECTED_SCHEMA[familia];
   const missingDataFields = useMemo(
@@ -60,9 +73,6 @@ export function FamiliaSaidaTab({
     () => (expected.hasTotals && resumo.length > 0 ? findMissingFields(expected.totals, resumoColumns) : []),
     [expected.hasTotals, expected.totals, resumo, resumoColumns],
   );
-
-  const renderHeader = (key: string) =>
-    viewMode === 'raw' ? key : labelFor(key);
 
   if (!enabled) {
     return (
@@ -114,7 +124,7 @@ export function FamiliaSaidaTab({
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto" ref={resumoScrollRef}>
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50 hover:bg-slate-50">
@@ -122,12 +132,11 @@ export function FamiliaSaidaTab({
                       <TableHead
                         key={col}
                         className={cn(
-                          'text-[11px] tracking-wider whitespace-nowrap',
-                          viewMode === 'raw' ? 'font-mono uppercase' : 'font-semibold',
+                          'text-[11px] tracking-wider whitespace-nowrap font-semibold',
                           isNumericKey(col, resumo[0]?.[col]) && 'text-right',
                         )}
                       >
-                        {renderHeader(col)}
+                        {labelFor(col)}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -141,10 +150,10 @@ export function FamiliaSaidaTab({
                           className={cn(
                             'font-mono text-sm whitespace-nowrap',
                             isNumericKey(col, row[col]) && 'text-right',
-                            isCheckKey(col) && checkColorClass(col, row[col]),
+                            isCheckKey(col) && checkColorClass(col, row[col], row),
                           )}
                         >
-                          {formatCell(col, row[col], viewMode)}
+                          {formatCell(col, row[col])}
                         </TableCell>
                       ))}
                     </TableRow>
@@ -152,6 +161,7 @@ export function FamiliaSaidaTab({
                 </TableBody>
               </Table>
             </div>
+            <FloatingScrollbar targetRef={resumoScrollRef} />
           </CardContent>
         </Card>
       )}
@@ -160,41 +170,15 @@ export function FamiliaSaidaTab({
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-            Linhas Detalhadas
+            Análise Detalhada
             {isFetching && !showInitialLoading && (
               <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />
             )}
           </CardTitle>
-          <div className="flex items-center gap-3">
-            <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5 text-xs">
-              <button
-                type="button"
-                onClick={() => setViewMode('raw')}
-                className={cn(
-                  'px-2 py-1 rounded transition-colors',
-                  viewMode === 'raw' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700',
-                )}
-                title="Mostra os valores exatamente como retornados pela API (JSON.stringify)"
-              >
-                Bruto
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('formatted')}
-                className={cn(
-                  'px-2 py-1 rounded transition-colors',
-                  viewMode === 'formatted' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:text-slate-700',
-                )}
-                title="Aplica formatação BRL, percentual, data brasileira e cabeçalhos em PT-BR"
-              >
-                Formatado
-              </button>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <span>Página {page}</span>
-              <span>·</span>
-              <span>{rows.length} {rows.length === 1 ? 'item' : 'itens'}</span>
-            </div>
+          <div className="flex items-center gap-2 text-xs text-slate-500">
+            <span>Página {page}</span>
+            <span>·</span>
+            <span>{rows.length} {rows.length === 1 ? 'item' : 'itens'}</span>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -209,48 +193,49 @@ export function FamiliaSaidaTab({
               Nenhum registro encontrado para os filtros selecionados.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-slate-50 hover:bg-slate-50">
-                    {dataColumns.map((col) => (
-                      <TableHead
-                        key={col}
-                        className={cn(
-                          'text-[11px] tracking-wider whitespace-nowrap',
-                          viewMode === 'raw' ? 'font-mono uppercase' : 'font-semibold',
-                          isNumericKey(col, rows[0]?.[col]) && 'text-right',
-                        )}
-                      >
-                        {renderHeader(col)}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((row, idx) => (
-                    <TableRow
-                      key={`row-${page}-${idx}`}
-                      className="cursor-pointer hover:bg-slate-50"
-                      onClick={() => onAuditClick(buildAuditGroupFromRow(row, contribuinteId), pickTipoOperacao(row))}
-                    >
+            <>
+              <div className="overflow-x-auto" ref={detailScrollRef}>
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50 hover:bg-slate-50">
                       {dataColumns.map((col) => (
-                        <TableCell
+                        <TableHead
                           key={col}
                           className={cn(
-                            'font-mono text-xs whitespace-nowrap',
-                            isNumericKey(col, row[col]) && 'text-right',
-                            isCheckKey(col) && checkColorClass(col, row[col]),
+                            'text-[11px] tracking-wider whitespace-nowrap font-semibold',
+                            isNumericKey(col, rows[0]?.[col]) && 'text-right',
                           )}
                         >
-                          {formatCell(col, row[col], viewMode)}
-                        </TableCell>
+                          {labelFor(col)}
+                        </TableHead>
                       ))}
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {rows.map((row, idx) => (
+                      <TableRow
+                        key={`row-${page}-${idx}`}
+                        className="hover:bg-slate-50"
+                      >
+                        {dataColumns.map((col) => (
+                          <TableCell
+                            key={col}
+                            className={cn(
+                              'font-mono text-xs whitespace-nowrap',
+                              isNumericKey(col, row[col]) && 'text-right',
+                              isCheckKey(col) && checkColorClass(col, row[col], row),
+                            )}
+                          >
+                            {formatCell(col, row[col])}
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <FloatingScrollbar targetRef={detailScrollRef} />
+            </>
           )}
         </CardContent>
         {/* Paginação */}

@@ -50,6 +50,12 @@ const COMMON_LABELS: Record<string, string> = {
   ICMS_17: 'ICMS 17%',
   // Sucata
   CLASSIF: 'Classificação',
+  // Checks derivados (calculados no front conforme planilha T03.1)
+  C190_CHECK: 'EFD C190 - Check',
+  ICMS_C190_CHECK: 'EFD C190 - Check (ICMS)',
+  FUNDES_E116_CHECK: 'E116 - Check (FUNDES)',
+  FUNDED_E116_CHECK: 'E116 - Check (FUNDED)',
+  FUNDEIC_E116_CHECK: 'E116 - Check (FUNDEIC)',
 };
 
 export function labelFor(key: string): string {

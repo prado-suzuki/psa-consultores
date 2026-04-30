@@ -20,17 +20,7 @@ const coerceNumber = (value: unknown): number | null => {
   return null;
 };
 
-export type ViewMode = 'formatted' | 'raw';
-
-export function formatCell(key: string, value: unknown, mode: ViewMode = 'formatted'): string {
-  if (mode === 'raw') {
-    // Mostra exatamente como veio da API. JSON.stringify diferencia tipos:
-    //  string "158138.59" → "158138.59"  (com aspas)
-    //  number  158138.59  → 158138.59    (sem aspas)
-    //  null               → null
-    return JSON.stringify(value);
-  }
-
+export function formatCell(key: string, value: unknown): string {
   if (value === null || value === undefined || value === '') return '—';
 
   if (DATE_RE.test(key) && typeof value === 'string') {
