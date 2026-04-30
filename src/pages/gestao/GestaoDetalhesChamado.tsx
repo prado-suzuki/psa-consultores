@@ -255,6 +255,20 @@ export default function GestaoDetalhesChamado() {
                     ))}
                   </SelectContent>
                 </Select>
+                <Select
+                  value={getDeadlineSelectValue(ticket)}
+                  onValueChange={handleDeadlineChange}
+                  disabled={updateDeadline.isPending}
+                >
+                  <SelectTrigger className="w-40 bg-white border-slate-200">
+                    <SelectValue placeholder="Prazo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(deadlineOptions).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>{label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             
