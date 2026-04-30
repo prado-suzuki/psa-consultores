@@ -37,9 +37,6 @@ import DetalhesChamado from "./pages/cliente/DetalhesChamado";
 
 // Admin
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminClientes from "./pages/admin/AdminClientes";
-import AdminChamados from "./pages/admin/AdminChamados";
-import AdminDetalhesChamado from "./pages/admin/AdminDetalhesChamado";
 
 // Equipe (core)
 import EquipeAuth from "./pages/equipe/EquipeAuth";
@@ -142,9 +139,6 @@ const App = () => (
 
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-              <Route path="/admin/clientes" element={<AdminRoute><AdminClientes /></AdminRoute>} />
-              <Route path="/admin/chamados" element={<AdminRoute><AdminChamados /></AdminRoute>} />
-              <Route path="/admin/chamados/:id" element={<AdminRoute><AdminDetalhesChamado /></AdminRoute>} />
 
               {/* Equipe Routes */}
               <Route path="/equipe" element={<EquipeAuth />} />
