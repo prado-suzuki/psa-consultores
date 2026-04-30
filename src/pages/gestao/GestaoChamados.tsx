@@ -287,6 +287,7 @@ export default function GestaoChamados() {
       'Prazo': ticket.deadline ? format(parseDate(ticket.deadline), 'dd/MM/yyyy') : '',
       'Criado em': format(new Date(ticket.created_at), 'dd/MM/yyyy HH:mm'),
       'Atualizado em': format(new Date(ticket.updated_at), 'dd/MM/yyyy HH:mm'),
+      'Fechado em': ticket.closed_at ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm') : '',
     }));
 
     const worksheet = XLSX.utils.json_to_sheet(exportData);
