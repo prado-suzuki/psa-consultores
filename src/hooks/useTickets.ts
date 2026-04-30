@@ -42,6 +42,7 @@ export interface TicketDetail {
   department: string;
   created_at: string;
   updated_at: string;
+  closed_at: string | null;
   user_id: string;
   assigned_to: string | null;
   activity_status: string | null;
