@@ -46,6 +46,7 @@ export interface TicketDetail {
   activity_status: string | null;
   deadline: string | null;
   estrutura_area_id: string | null;
+  cluster_id: string | null;
   cliente_id: string | null;
   profiles?: TicketProfile;
   areaName?: string | null;
