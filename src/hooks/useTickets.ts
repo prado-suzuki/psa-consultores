@@ -308,20 +308,11 @@ export function useTicketAgents() {
   return useQuery({
     queryKey: ['tickets', 'agents'],
     queryFn: async (): Promise<TicketProfile[]> => {
-      const { data: roleData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['admin', 'team_member']);
-
-      if (!roleData || roleData.length === 0) return [];
-
-      const userIds = roleData.map(r => r.user_id);
-      const { data: profiles } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .in('id', userIds);
-
-      return (profiles || []) as TicketProfile[];
+      // Lista todos os usuários internos (team_member, sublider, lider, admin)
+      // via RPC get_internal_users — equivalente a has_role_or_higher('team_member').
+      const { data, error } = await supabase.rpc('get_internal_users');
+      if (error) throw error;
+      return (data || []) as TicketProfile[];
     },
     staleTime: 5 * 60 * 1000, // 5 min cache
   });
