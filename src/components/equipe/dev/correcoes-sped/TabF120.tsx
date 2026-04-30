@@ -274,8 +274,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleSaveAll = async () => {
-    if (!user) {
-      toast.error('Usuário não autenticado para salvar a correção.');
+    if (!user || !data) {
+      if (!user) toast.error('Usuário não autenticado para salvar a correção.');
       return;
     }
 
@@ -284,22 +284,24 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
     try {
       let changedCount = 0;
       let savedCount = 0;
-      const nextRows = [...rows];
+      const nextEditedRows = { ...editedRows };
 
-      for (const [index, item] of rows.entries()) {
+      for (const item of data) {
         const draft = drafts[item.F120.uuid];
         if (!draft) continue;
 
+        const originalSnapshot = getOriginalSnapshot(item);
+        const displayedF120 = getDisplayedF120(item);
         const nextSnapshot = buildNextSnapshot(item, draft);
         if (!nextSnapshot) {
           setIsSaving(false);
           return;
         }
 
-        if (buildChangedFields(item.F120, nextSnapshot).length === 0) continue;
+        if (buildChangedFields(displayedF120, nextSnapshot).length === 0) continue;
 
         changedCount += 1;
-        const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
+        const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
 
         const { data: correcaoAtiva, error: buscaError } = await supabase
           .from('efd_correcoes').select('id')
@@ -312,8 +314,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
             const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
             if (e) throw e;
           }
-          nextRows[index] = { ...item, F120: { ...item._originalSnapshot } };
-          locallyEditedIds.current.add(item.F120.uuid);
+          delete nextEditedRows[item.F120.uuid];
           savedCount += 1;
           continue;
         }
@@ -335,8 +336,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
         const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
         if (insertError) throw insertError;
 
-        nextRows[index] = { ...item, F120: { ...item.F120, ...nextSnapshot } as F120Reg };
-        locallyEditedIds.current.add(item.F120.uuid);
+        nextEditedRows[item.F120.uuid] = { ...item.F120, ...nextSnapshot } as F120Reg;
         savedCount += 1;
       }
 
@@ -346,7 +346,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
         return;
       }
 
-      setRows(nextRows);
+      setEditedRows(nextEditedRows);
       handleCancelEditMode();
       await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do F120 salva.' : `${savedCount} correções do F120 salvas.`);
