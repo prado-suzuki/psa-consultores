@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
@@ -35,8 +35,6 @@ import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
 import DetalhesChamado from "./pages/cliente/DetalhesChamado";
 
-// Admin
-import AdminDashboard from "./pages/admin/AdminDashboard";
 
 // Equipe (core)
 import EquipeAuth from "./pages/equipe/EquipeAuth";
@@ -138,7 +136,7 @@ const App = () => (
               <Route path="/cliente/chamados/:id" element={<ProtectedRoute><DetalhesChamado /></ProtectedRoute>} />
 
               {/* Admin Routes */}
-              <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+              <Route path="/admin" element={<Navigate to="/gestao" replace />} />
 
               {/* Equipe Routes */}
               <Route path="/equipe" element={<EquipeAuth />} />

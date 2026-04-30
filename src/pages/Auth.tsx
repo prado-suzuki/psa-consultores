@@ -53,7 +53,7 @@ export default function Auth() {
         navigate('/primeiro-acesso', { replace: true });
         return;
       }
-      navigate(isAdmin ? '/admin' : '/cliente');
+      navigate(isAdmin ? '/gestao' : '/cliente');
     }
   }, [user, isAdmin, navigate]);
 
