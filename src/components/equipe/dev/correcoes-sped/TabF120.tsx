@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, Check, ChevronsUpDown, Info, Loader2, X } from 'lucide-react';
@@ -123,6 +124,7 @@ interface TabF120Props extends CorrecoesActionsProps {
 
 export default function TabF120({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF120Props) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<F120Item[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -333,6 +335,7 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
 
       setRows(nextRows);
       handleCancelEditMode();
+      await queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
       toast.success(savedCount === 1 ? '1 correção do F120 salva.' : `${savedCount} correções do F120 salvas.`);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Erro ao salvar correções.'); }
     finally { setIsSaving(false); }
