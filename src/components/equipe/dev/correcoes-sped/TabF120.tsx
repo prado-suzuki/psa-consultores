@@ -250,7 +250,6 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
-  const buildNextSnapshot = (item: F120Item, draft: F120Draft) => {
     const displayedF120 = getDisplayedF120(item);
     const nextSnapshot: Record<string, unknown> = { ...displayedF120 };
 
