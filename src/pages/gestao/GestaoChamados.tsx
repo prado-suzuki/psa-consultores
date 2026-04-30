@@ -555,6 +555,7 @@ export default function GestaoChamados() {
                       Atualização {getSortIcon('updated_at')}
                     </div>
                   </TableHead>
+                  <TableHead>Fechado em</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
