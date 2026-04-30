@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,14 +36,8 @@ const F130_FILTERABLE_KEYS: { key: string; label: string }[] = [
   { key: 'COD_CTA', label: 'Conta' },
 ];
 
-const f130RowAccessor = (item: F130Item, key: string): string => {
-  if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
-  if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
-  if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
-  const v = item.F130[key as keyof F130Reg];
-  if (v === null || v === undefined) return '';
-  return String(v);
-};
+// f130RowAccessor agora é definido dentro do componente como `f130RowAccessorWithEdits`
+// para considerar overlay de edições aplicadas em editedRows.
 
 const formatCurrency = (v: number | null | undefined) =>
   (v ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -127,15 +121,15 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<F130Item[]>([]);
+  const [editedRows, setEditedRows] = useState<Record<string, F130Reg>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, F130Draft>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  const selection = useRowSelection();
-  const locallyEditedIds = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const selection = useRowSelection();
+  const deferredSearchText = useDeferredValue(searchText);
 
   const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
     setSortConfig({ key, direction });
@@ -150,57 +144,74 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
 
   useEffect(() => {
     if (!data) return;
-    if (isEditMode) return;
-    if (locallyEditedIds.current.size === 0) { setRows(data); return; }
-    setRows((currentRows) => data.map(d => {
-      if (locallyEditedIds.current.has(d.F130.uuid)) {
-        const local = currentRows.find(r => r.F130.uuid === d.F130.uuid);
-        return local ?? d;
-      }
-      return d;
+    const validIds = new Set(data.map((item) => item.F130.uuid));
+    setEditedRows((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) => validIds.has(id));
+      if (nextEntries.length === Object.keys(current).length) return current;
+      return Object.fromEntries(nextEntries);
+    });
+  }, [data]);
+
+  const getDisplayedF130 = (item: F130Item): F130Reg => editedRows[item.F130.uuid] ?? item.F130;
+  const getOriginalSnapshot = (item: F130Item): F130Reg => item._originalSnapshot ?? item.F130;
+
+  const f130RowAccessorWithEdits = (item: F130Item, key: string): string => {
+    if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
+    if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
+    if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
+    const f = getDisplayedF130(item);
+    const v = f[key as keyof F130Reg];
+    if (v === null || v === undefined) return '';
+    return String(v);
+  };
+
+  const indexedItems = useMemo(() => {
+    if (!data) return [] as Array<{ item: F130Item; searchKey: string }>;
+    return data.map((item) => ({
+      item,
+      searchKey: `${item.DESC_IDENT_BEM_IMOB ?? ''} ${item.DESC_IND_UTIL_BEM_IMOB ?? ''} ${item.F130.COD_CTA ?? ''}`.toLowerCase(),
     }));
-  }, [data, isEditMode]);
+  }, [data]);
 
   const baseFiltered = useMemo(() => {
-    let items = rows;
-    if (searchText.trim()) {
-      const s = searchText.toLowerCase();
-      items = items.filter((i) =>
-        i.DESC_IDENT_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.DESC_IND_UTIL_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.F130.COD_CTA?.toLowerCase().includes(s)
-      );
+    if (!deferredSearchText.trim()) {
+      return indexedItems.map(({ item }) => item);
     }
-    return items;
-  }, [rows, searchText]);
+    const searchTerm = deferredSearchText.trim().toLowerCase();
+    return indexedItems
+      .filter(({ searchKey }) => searchKey.includes(searchTerm))
+      .map(({ item }) => item);
+  }, [deferredSearchText, indexedItems]);
 
   const cascadingUniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
     for (const { key } of F130_FILTERABLE_KEYS) {
       let subset = baseFiltered;
       for (const [fk, allowed] of Object.entries(columnFilters)) {
-        if (fk !== key) subset = subset.filter((r) => allowed.has(f130RowAccessor(r, fk)));
+        if (fk !== key) subset = subset.filter((r) => allowed.has(f130RowAccessorWithEdits(r, fk)));
       }
-      result[key] = [...new Set(subset.map((r) => f130RowAccessor(r, key)))];
+      result[key] = [...new Set(subset.map((r) => f130RowAccessorWithEdits(r, key)))];
     }
     return result;
-  }, [baseFiltered, columnFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, editedRows]);
 
   const filtered = useMemo(() => {
     let items = baseFiltered;
     for (const [key, allowed] of Object.entries(columnFilters)) {
-      if (allowed.size > 0) items = items.filter((i) => allowed.has(f130RowAccessor(i, key)));
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(f130RowAccessorWithEdits(i, key)));
     }
     if (sortConfig) {
       items = [...items].sort((a, b) => {
-        const av = f130RowAccessor(a, sortConfig.key);
-        const bv = f130RowAccessor(b, sortConfig.key);
+        const av = f130RowAccessorWithEdits(a, sortConfig.key);
+        const bv = f130RowAccessorWithEdits(b, sortConfig.key);
         const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
         return sortConfig.direction === 'asc' ? cmp : -cmp;
       });
     }
     return items;
-  }, [baseFiltered, columnFilters, sortConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, sortConfig, editedRows]);
 
   useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
 
@@ -213,9 +224,9 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const identBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IDENT_BEM_IMOB'), [rows]);
-  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IND_UTIL_BEM_IMOB'), [rows]);
-  const natBcCredOptions = useMemo(() => buildCodeOptions(rows, 'NAT_BC_CRED'), [rows]);
+  const identBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IDENT_BEM_IMOB'), [data]);
+  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IND_UTIL_BEM_IMOB'), [data]);
+  const natBcCredOptions = useMemo(() => buildCodeOptions(data ?? [], 'NAT_BC_CRED'), [data]);
   const optionsByField: Record<CodeField130, { code: string; description: string }[]> = {
     IDENT_BEM_IMOB: identBemImobOptions,
     IND_UTIL_BEM_IMOB: indUtilBemImobOptions,
@@ -223,7 +234,8 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleEnableEditMode = () => {
-    setDrafts(Object.fromEntries(rows.map((row) => [row.F130.uuid, toDraft(row)])));
+    if (!data) return;
+    setDrafts(Object.fromEntries(data.map((item) => [item.F130.uuid, toDraft({ ...item, F130: getDisplayedF130(item) })])));
     selection.clear();
     setIsEditMode(true);
   };
