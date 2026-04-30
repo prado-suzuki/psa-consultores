@@ -76,6 +76,7 @@ const departmentLabels: Record<string, string> = {
 
 export default function GestaoChamados() {
   const navigate = useNavigate();
+  const tableContainerRef = useRef<HTMLDivElement>(null);
 
   const { data: tickets = [], isLoading: loading } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
