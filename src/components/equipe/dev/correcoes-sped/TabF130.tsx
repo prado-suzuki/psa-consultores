@@ -361,9 +361,11 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     const descKey = DESC_KEY_BY_CODE_FIELD[field];
     const descFallback = item[descKey] ?? '';
 
-    const currentCode = isEditMode && draft ? draft[field] : item.F130[field];
-    const origCode = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
-    const isChanged = !Object.is(item.F130[field], origCode);
+    const displayedF130 = getDisplayedF130(item);
+    const originalSnapshot = getOriginalSnapshot(item);
+    const currentCode = isEditMode && draft ? draft[field] : displayedF130[field];
+    const origCode = (originalSnapshot as unknown as Record<string, unknown>)[field];
+    const isChanged = !Object.is(displayedF130[field], origCode);
     const selectedOption = options.find((o) => o.code === currentCode);
     const displayDescription = selectedOption?.description ?? descFallback;
     const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
@@ -432,8 +434,10 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     const draft = drafts[item.F130.uuid];
 
     if (!isEditMode || !draft) {
-      const value = item.F130[field as keyof F130Reg];
-      const origValue = item._originalSnapshot ? (item._originalSnapshot as unknown as Record<string, unknown>)[field] : undefined;
+      const displayedF130 = getDisplayedF130(item);
+      const originalSnapshot = getOriginalSnapshot(item);
+      const value = displayedF130[field as keyof F130Reg];
+      const origValue = (originalSnapshot as unknown as Record<string, unknown>)[field];
       const isChanged = !Object.is(value, origValue);
       const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
 
