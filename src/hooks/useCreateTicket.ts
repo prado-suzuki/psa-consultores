@@ -192,6 +192,31 @@ export function useCreateTicketCliente() {
         }
       }
 
+      // Auto-resolve cluster_id when not informed: use the single cluster of the client (if any)
+      let resolvedClusterId: string | null = params.cluster_id ?? null;
+      if (!resolvedClusterId && clienteId) {
+        const { data: clusterLinks } = await supabase
+          .from('cliente_clusters')
+          .select('cluster_id')
+          .eq('cliente_id', clienteId);
+        if (clusterLinks && clusterLinks.length === 1) {
+          resolvedClusterId = clusterLinks[0].cluster_id;
+        }
+      }
+
+      // Auto-resolve estrutura_area_id when cluster has exactly ONE active area
+      let resolvedAreaId: string | null = null;
+      if (resolvedClusterId) {
+        const { data: areas } = await supabase
+          .from('estrutura_areas')
+          .select('id')
+          .eq('cluster_id', resolvedClusterId)
+          .eq('is_active', true);
+        if (areas && areas.length === 1) {
+          resolvedAreaId = areas[0].id;
+        }
+      }
+
       const insertPayload: any = {
         user_id: params.userId,
         title: params.title,
@@ -200,12 +225,9 @@ export function useCreateTicketCliente() {
         priority: params.priority,
         status: 'aberto',
       };
-      if (clienteId) {
-        insertPayload.cliente_id = clienteId;
-      }
-      if (params.cluster_id) {
-        insertPayload.cluster_id = params.cluster_id;
-      }
+      if (clienteId) insertPayload.cliente_id = clienteId;
+      if (resolvedClusterId) insertPayload.cluster_id = resolvedClusterId;
+      if (resolvedAreaId) insertPayload.estrutura_area_id = resolvedAreaId;
 
       const { data: ticketData, error } = await supabase
         .from('tickets')
