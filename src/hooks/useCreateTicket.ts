@@ -27,8 +27,41 @@ export function useTicketEmpresas() {
   });
 }
 
+// ── useTicketClustersForCliente ──────────────────────────────
+// Clusters of a specific client (for routing selectors)
+
+export interface TicketCluster {
+  id: string;
+  name: string;
+}
+
+export function useTicketClustersForCliente(clienteId: string | undefined) {
+  return useQuery({
+    queryKey: ['tickets', 'clusters-for-cliente', clienteId],
+    queryFn: async (): Promise<TicketCluster[]> => {
+      const { data: links } = await supabase
+        .from('cliente_clusters')
+        .select('cluster_id')
+        .eq('cliente_id', clienteId!);
+
+      const ids = (links || []).map(l => l.cluster_id);
+      if (ids.length === 0) return [];
+
+      const { data } = await supabase
+        .from('estrutura_clusters')
+        .select('id, name')
+        .in('id', ids)
+        .eq('is_active', true)
+        .order('name');
+
+      return (data || []) as TicketCluster[];
+    },
+    enabled: !!clienteId,
+  });
+}
+
 // ── useTicketAreasForCliente ──────────────────────────────────
-// Clusters → areas for a specific client
+// Clusters → areas for a specific client (optionally narrowed by cluster)
 
 export interface TicketArea {
   id: string;
@@ -36,9 +69,12 @@ export interface TicketArea {
   cluster_id: string;
 }
 
-export function useTicketAreasForCliente(clienteId: string | undefined) {
+export function useTicketAreasForCliente(
+  clienteId: string | undefined,
+  clusterId?: string | null,
+) {
   return useQuery({
-    queryKey: ['tickets', 'areas-for-cliente', clienteId],
+    queryKey: ['tickets', 'areas-for-cliente', clienteId, clusterId ?? 'all'],
     queryFn: async (): Promise<TicketArea[]> => {
       // 1. Get clusters for this client
       const { data: clusterLinks } = await supabase
@@ -46,17 +82,29 @@ export function useTicketAreasForCliente(clienteId: string | undefined) {
         .select('cluster_id')
         .eq('cliente_id', clienteId!);
 
-      const clusterIds = (clusterLinks || []).map(c => c.cluster_id);
+      const allowedClusterIds = (clusterLinks || []).map(c => c.cluster_id);
 
-      // 2. Fetch areas — filtered by clusters if any, otherwise all active
+      // 2. Decide which cluster IDs filter areas
+      let filterClusterIds: string[] | null = null;
+      if (clusterId) {
+        // Restrict to chosen cluster (only if it belongs to client)
+        if (allowedClusterIds.length === 0 || allowedClusterIds.includes(clusterId)) {
+          filterClusterIds = [clusterId];
+        } else {
+          return [];
+        }
+      } else if (allowedClusterIds.length > 0) {
+        filterClusterIds = allowedClusterIds;
+      }
+
       let query = supabase
         .from('estrutura_areas')
         .select('id, name, cluster_id')
         .eq('is_active', true)
         .order('name');
 
-      if (clusterIds.length > 0) {
-        query = query.in('cluster_id', clusterIds);
+      if (filterClusterIds) {
+        query = query.in('cluster_id', filterClusterIds);
       }
 
       const { data } = await query;
