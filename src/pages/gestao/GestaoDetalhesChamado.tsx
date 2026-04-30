@@ -113,6 +113,31 @@ export default function GestaoDetalhesChamado() {
     }
   };
 
+  const handleDeadlineChange = async (days: string) => {
+    if (!id || !ticket) return;
+    const deadline = days === 'none'
+      ? null
+      : format(addDays(parseDate(ticket.created_at.slice(0, 10)), parseInt(days)), 'yyyy-MM-dd');
+    try {
+      await updateDeadline.mutateAsync({ ticketId: id, deadline });
+      toast({
+        title: 'Prazo atualizado',
+        description: deadline
+          ? `Prazo definido para ${format(parseDate(deadline), 'dd/MM/yyyy')}.`
+          : 'Prazo removido.',
+      });
+    } catch {
+      toast({ title: 'Erro ao atualizar prazo', variant: 'destructive' });
+    }
+  };
+
+  const getDeadlineSelectValue = (t: { deadline: string | null; created_at: string }): string => {
+    if (!t.deadline) return 'none';
+    const days = differenceInCalendarDays(parseDate(t.deadline), new Date(t.created_at));
+    const key = String(days);
+    return deadlineOptions[key] ? key : 'none';
+  };
+
   const handleDownloadFile = async (filePath: string, fileName: string) => {
     try {
       await downloadTicketFile(filePath, fileName);
