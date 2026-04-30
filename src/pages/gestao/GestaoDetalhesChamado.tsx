@@ -59,8 +59,30 @@ export default function GestaoDetalhesChamado() {
   const assignTicket = useAssignTicket();
   const sendMessage = useSendTicketMessage();
   const updateStatus = useUpdateTicketStatus();
+  const updateRouting = useUpdateTicketRouting();
+
+  const { data: empresas = [] } = useTicketEmpresas();
+  const { data: clientClusters = [] } = useTicketClustersForCliente(ticket?.cliente_id || undefined);
+  const { data: clientAreas = [] } = useTicketAreasForCliente(
+    ticket?.cliente_id || undefined,
+    ticket?.cluster_id || undefined,
+  );
 
   const [newMessage, setNewMessage] = useState('');
+
+  const handleRoutingChange = async (
+    field: 'cliente_id' | 'cluster_id' | 'estrutura_area_id',
+    value: string,
+  ) => {
+    if (!id) return;
+    const next = value === 'none' ? null : value;
+    try {
+      await updateRouting.mutateAsync({ ticketId: id, [field]: next });
+      toast({ title: 'Roteamento atualizado' });
+    } catch {
+      toast({ title: 'Erro ao atualizar roteamento', variant: 'destructive' });
+    }
+  };
 
   const handleAssign = async (agentId: string) => {
     if (!id) return;
