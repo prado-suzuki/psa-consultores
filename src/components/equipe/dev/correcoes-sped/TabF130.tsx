@@ -283,6 +283,17 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
     setIsSaving(true);
 
     try {
+      // Garante sessão válida antes de iniciar o loop sequencial de saves.
+      // Sem isto, durante a execução o token pode expirar e o cliente Supabase
+      // passa a usar o anon key, gerando 401/RLS na metade do processo.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const expiresAt = sessionData.session?.expires_at ?? 0;
+      const now = Math.floor(Date.now() / 1000);
+      if (expiresAt - now < 60) {
+        const { error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError) throw new Error('Sessão expirada. Faça login novamente.');
+      }
+
       let changedCount = 0;
       let savedCount = 0;
       const nextEditedRows = { ...editedRows };
@@ -331,11 +342,16 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
         };
 
         if (correcaoAtiva?.id) {
-          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'F130').eq('registro_original_id', item.F130.uuid).eq('ativo', true);
+          // Atualiza a correção existente in-place (preserva UUID original)
+          const { error: e } = await supabase
+            .from('efd_correcoes')
+            .update(payload)
+            .eq('id', correcaoAtiva.id);
           if (e) throw e;
+        } else {
+          const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
+          if (insertError) throw insertError;
         }
-        const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
-        if (insertError) throw insertError;
 
         nextEditedRows[item.F130.uuid] = { ...item.F130, ...nextSnapshot } as F130Reg;
         savedCount += 1;
