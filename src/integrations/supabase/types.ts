@@ -4443,6 +4443,7 @@ export type Database = {
           activity_status: string | null
           assigned_to: string | null
           cliente_id: string | null
+          closed_at: string | null
           cluster_id: string | null
           created_at: string | null
           deadline: string | null
@@ -4460,6 +4461,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
+          closed_at?: string | null
           cluster_id?: string | null
           created_at?: string | null
           deadline?: string | null
@@ -4477,6 +4479,7 @@ export type Database = {
           activity_status?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
+          closed_at?: string | null
           cluster_id?: string | null
           created_at?: string | null
           deadline?: string | null
