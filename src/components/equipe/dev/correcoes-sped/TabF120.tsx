@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import CorrecoesActionButtons, { type CorrecoesActionsProps } from './CorrecoesActionButtons';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,15 +126,15 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
-  const [rows, setRows] = useState<F120Item[]>([]);
+  const [editedRows, setEditedRows] = useState<Record<string, F120Reg>>({});
   const [isEditMode, setIsEditMode] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, F120Draft>>({});
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [columnFilters, setColumnFilters] = useState<Record<string, Set<string>>>({});
-  const selection = useRowSelection();
-  const locallyEditedIds = useRef<Set<string>>(new Set());
   const scrollRef = useRef<HTMLDivElement>(null);
+  const selection = useRowSelection();
+  const deferredSearchText = useDeferredValue(searchText);
 
   const handleSort = useCallback((key: string, direction: 'asc' | 'desc') => {
     setSortConfig({ key, direction });
@@ -149,57 +149,74 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
 
   useEffect(() => {
     if (!data) return;
-    if (isEditMode) return;
-    if (locallyEditedIds.current.size === 0) { setRows(data); return; }
-    setRows((currentRows) => data.map(d => {
-      if (locallyEditedIds.current.has(d.F120.uuid)) {
-        const local = currentRows.find(r => r.F120.uuid === d.F120.uuid);
-        return local ?? d;
-      }
-      return d;
+    const validIds = new Set(data.map((item) => item.F120.uuid));
+    setEditedRows((current) => {
+      const nextEntries = Object.entries(current).filter(([id]) => validIds.has(id));
+      if (nextEntries.length === Object.keys(current).length) return current;
+      return Object.fromEntries(nextEntries);
+    });
+  }, [data]);
+
+  const getDisplayedF120 = (item: F120Item): F120Reg => editedRows[item.F120.uuid] ?? item.F120;
+  const getOriginalSnapshot = (item: F120Item): F120Reg => item._originalSnapshot ?? item.F120;
+
+  const f120RowAccessorWithEdits = (item: F120Item, key: string): string => {
+    if (key === 'DESC_IDENT_BEM_IMOB') return item.DESC_IDENT_BEM_IMOB ?? '';
+    if (key === 'DESC_IND_UTIL_BEM_IMOB') return item.DESC_IND_UTIL_BEM_IMOB ?? '';
+    if (key === 'DESC_NAT_BC_CRED') return item.DESC_NAT_BC_CRED ?? '';
+    const f = getDisplayedF120(item);
+    const v = f[key as keyof F120Reg];
+    if (v === null || v === undefined) return '';
+    return String(v);
+  };
+
+  const indexedItems = useMemo(() => {
+    if (!data) return [] as Array<{ item: F120Item; searchKey: string }>;
+    return data.map((item) => ({
+      item,
+      searchKey: `${item.DESC_IDENT_BEM_IMOB ?? ''} ${item.DESC_IND_UTIL_BEM_IMOB ?? ''} ${item.F120.COD_CTA ?? ''}`.toLowerCase(),
     }));
-  }, [data, isEditMode]);
+  }, [data]);
 
   const baseFiltered = useMemo(() => {
-    let items = rows;
-    if (searchText.trim()) {
-      const s = searchText.toLowerCase();
-      items = items.filter((i) =>
-        i.DESC_IDENT_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.DESC_IND_UTIL_BEM_IMOB?.toLowerCase().includes(s) ||
-        i.F120.COD_CTA?.toLowerCase().includes(s)
-      );
+    if (!deferredSearchText.trim()) {
+      return indexedItems.map(({ item }) => item);
     }
-    return items;
-  }, [rows, searchText]);
+    const searchTerm = deferredSearchText.trim().toLowerCase();
+    return indexedItems
+      .filter(({ searchKey }) => searchKey.includes(searchTerm))
+      .map(({ item }) => item);
+  }, [deferredSearchText, indexedItems]);
 
   const cascadingUniqueValues = useMemo(() => {
     const result: Record<string, string[]> = {};
     for (const { key } of F120_FILTERABLE_KEYS) {
       let subset = baseFiltered;
       for (const [fk, allowed] of Object.entries(columnFilters)) {
-        if (fk !== key) subset = subset.filter((r) => allowed.has(f120RowAccessor(r, fk)));
+        if (fk !== key) subset = subset.filter((r) => allowed.has(f120RowAccessorWithEdits(r, fk)));
       }
-      result[key] = [...new Set(subset.map((r) => f120RowAccessor(r, key)))];
+      result[key] = [...new Set(subset.map((r) => f120RowAccessorWithEdits(r, key)))];
     }
     return result;
-  }, [baseFiltered, columnFilters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, editedRows]);
 
   const filtered = useMemo(() => {
     let items = baseFiltered;
     for (const [key, allowed] of Object.entries(columnFilters)) {
-      if (allowed.size > 0) items = items.filter((i) => allowed.has(f120RowAccessor(i, key)));
+      if (allowed.size > 0) items = items.filter((i) => allowed.has(f120RowAccessorWithEdits(i, key)));
     }
     if (sortConfig) {
       items = [...items].sort((a, b) => {
-        const av = f120RowAccessor(a, sortConfig.key);
-        const bv = f120RowAccessor(b, sortConfig.key);
+        const av = f120RowAccessorWithEdits(a, sortConfig.key);
+        const bv = f120RowAccessorWithEdits(b, sortConfig.key);
         const cmp = av.localeCompare(bv, 'pt-BR', { numeric: true });
         return sortConfig.direction === 'asc' ? cmp : -cmp;
       });
     }
     return items;
-  }, [baseFiltered, columnFilters, sortConfig]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [baseFiltered, columnFilters, sortConfig, editedRows]);
 
   useEffect(() => { setPage(0); }, [searchText, columnFilters, sortConfig]);
 
@@ -212,9 +229,9 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
-  const identBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IDENT_BEM_IMOB'), [rows]);
-  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(rows, 'IND_UTIL_BEM_IMOB'), [rows]);
-  const natBcCredOptions = useMemo(() => buildCodeOptions(rows, 'NAT_BC_CRED'), [rows]);
+  const identBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IDENT_BEM_IMOB'), [data]);
+  const indUtilBemImobOptions = useMemo(() => buildCodeOptions(data ?? [], 'IND_UTIL_BEM_IMOB'), [data]);
+  const natBcCredOptions = useMemo(() => buildCodeOptions(data ?? [], 'NAT_BC_CRED'), [data]);
   const optionsByField: Record<CodeField120, { code: string; description: string }[]> = {
     IDENT_BEM_IMOB: identBemImobOptions,
     IND_UTIL_BEM_IMOB: indUtilBemImobOptions,
@@ -222,7 +239,8 @@ export default function TabF120({ data, isLoading, error, hasQueried, searchText
   };
 
   const handleEnableEditMode = () => {
-    setDrafts(Object.fromEntries(rows.map((row) => [row.F120.uuid, toDraft(row)])));
+    if (!data) return;
+    setDrafts(Object.fromEntries(data.map((item) => [item.F120.uuid, toDraft({ ...item, F120: getDisplayedF120(item) })])));
     selection.clear();
     setIsEditMode(true);
   };
