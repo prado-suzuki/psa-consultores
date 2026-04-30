@@ -154,8 +154,10 @@ export function useTicketsList(options?: TicketsListOptions) {
 
       // Cliente (empresa) names
       const clienteIds = [...new Set(ticketsData.filter(t => (t as any).cliente_id).map(t => (t as any).cliente_id as string))];
+      // Enriquecimento de cliente (empresa) feito por UUID — sem filtro de ambiente,
+      // pois tickets antigos podem referenciar clientes de outro ambiente.
       const { data: clientesData } = clienteIds.length > 0
-        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds).eq('ambiente', currentAmbiente)
+        ? await supabase.from('cliente').select('id, nome').in('id', clienteIds)
         : { data: [] as { id: string; nome: string }[] };
       const clienteMap = new Map<string, string>();
       clientesData?.forEach(c => clienteMap.set(c.id, c.nome));
