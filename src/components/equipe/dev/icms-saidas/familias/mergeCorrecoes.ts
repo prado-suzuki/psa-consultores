@@ -15,8 +15,21 @@ const num = (v: unknown): number => {
 };
 
 const mesAno = (dataIso: string): string => {
-  // 'YYYY-MM-DD' → 'YYYY-MM'
-  return dataIso.slice(0, 7);
+  // 'YYYY-MM-DD' → 'MM/YYYY' (formato usado pela API no resumo mensal)
+  const [y, m] = dataIso.slice(0, 7).split('-');
+  return `${m}/${y}`;
+};
+
+/** Normaliza diferentes formatos de competência para 'MM/YYYY'. */
+const normalizeMesAno = (raw: string): string => {
+  if (!raw) return raw;
+  // 'YYYY-MM' → 'MM/YYYY'
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[2]}/${isoMatch[1]}`;
+  // 'YYYY-MM-DD' → 'MM/YYYY'
+  const isoFullMatch = raw.match(/^(\d{4})-(\d{2})-\d{2}$/);
+  if (isoFullMatch) return `${isoFullMatch[2]}/${isoFullMatch[1]}`;
+  return raw; // já é 'MM/YYYY' ou outro formato
 };
 
 /** Campos do resumo mensal que cada família soma a partir da correção. */
