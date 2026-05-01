@@ -2,17 +2,37 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
-import { AlertCircle, AlertTriangle, Calculator, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import {
+  AlertCircle,
+  Calculator,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSaidaIcms, SAIDA_ICMS_PAGE_SIZE, type FamiliaSaida } from '@/hooks/useSaidaIcms';
+import {
+  useCorrecoesIcms,
+  useDeleteCorrecaoIcms,
+  type FamiliaCorrecao,
+} from '@/hooks/useCorrecoesIcms';
 import { formatCell, isNumericKey } from './formatCell';
 import { labelFor } from './columnLabels';
 import { EXPECTED_SCHEMA, findMissingFields } from './expectedColumns';
 import { isCheckKey, checkColorClass } from './checkColor';
 import { deriveDetailChecks, deriveTotalsChecks } from './derivedChecks';
 import { orderColumns } from './columnOrder';
+import {
+  mergeCorrecoesIntoDetail,
+  mergeCorrecoesIntoTotals,
+} from './mergeCorrecoes';
+import { NovaCorrecaoDialog } from './NovaCorrecaoDialog';
 
 interface FamiliaSaidaTabProps {
   familia: FamiliaSaida;
@@ -22,6 +42,11 @@ interface FamiliaSaidaTabProps {
   dataFim: string;
 }
 
+const FAMILIAS_COM_CORRECAO: FamiliaCorrecao[] = ['acucar', 'etanol_interestado', 'biodiesel'];
+
+const isFamiliaComCorrecao = (f: FamiliaSaida): f is FamiliaCorrecao =>
+  (FAMILIAS_COM_CORRECAO as string[]).includes(f);
+
 export function FamiliaSaidaTab({
   familia,
   enabled,
@@ -29,7 +54,9 @@ export function FamiliaSaidaTab({
   dataInicio,
   dataFim,
 }: FamiliaSaidaTabProps) {
+  const { toast } = useToast();
   const [page, setPage] = useState(1);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const resumoScrollRef = useRef<HTMLDivElement>(null);
   const detailScrollRef = useRef<HTMLDivElement>(null);
 
@@ -45,18 +72,48 @@ export function FamiliaSaidaTab({
     enabled,
   });
 
+  const allowCorrecoes = isFamiliaComCorrecao(familia);
+
+  const { data: correcoes = [] } = useCorrecoesIcms({
+    contribuinteId,
+    familia: allowCorrecoes ? familia : 'acucar',
+    dataInicio: dataInicio || undefined,
+    dataFim: dataFim || undefined,
+    enabled: enabled && allowCorrecoes && !!contribuinteId,
+  });
+
+  const deleteMutation = useDeleteCorrecaoIcms();
+
   const rawRows = data?.data ?? [];
   const rawResumo = data?.totalizadores_mensal ?? [];
 
-  // Adiciona Checks derivados (replica fórmulas da planilha T03.1) antes de extrair colunas
-  const rows = useMemo(
-    () => rawRows.map((r) => deriveDetailChecks(r, familia)),
-    [rawRows, familia],
+  // Merge correções no detalhe e no resumo (apenas na primeira página, evita duplicação na paginação)
+  const mergedRawRows = useMemo(
+    () =>
+      allowCorrecoes && page === 1
+        ? mergeCorrecoesIntoDetail(rawRows, correcoes, familia as FamiliaCorrecao)
+        : rawRows,
+    [allowCorrecoes, page, rawRows, correcoes, familia],
   );
-  const resumo = useMemo(() => rawResumo.map((r) => deriveTotalsChecks(r)), [rawResumo]);
+  const mergedRawResumo = useMemo(
+    () =>
+      allowCorrecoes
+        ? mergeCorrecoesIntoTotals(rawResumo, correcoes, familia as FamiliaCorrecao)
+        : rawResumo,
+    [allowCorrecoes, rawResumo, correcoes, familia],
+  );
+
+  const rows = useMemo(
+    () => mergedRawRows.map((r) => deriveDetailChecks(r, familia)),
+    [mergedRawRows, familia],
+  );
+  const resumo = useMemo(
+    () => mergedRawResumo.map((r) => deriveTotalsChecks(r)),
+    [mergedRawResumo],
+  );
 
   const dataColumns = useMemo(
-    () => (rows.length > 0 ? orderColumns(Object.keys(rows[0]), familia, 'data') : []),
+    () => (rows.length > 0 ? orderColumns(Object.keys(rows[0]).filter((k) => !k.startsWith('__')), familia, 'data') : []),
     [rows, familia],
   );
   const resumoColumns = useMemo(
@@ -73,6 +130,21 @@ export function FamiliaSaidaTab({
     () => (expected.hasTotals && resumo.length > 0 ? findMissingFields(expected.totals, resumoColumns) : []),
     [expected.hasTotals, expected.totals, resumo, resumoColumns],
   );
+
+  const handleDeleteCorrecao = async (correcaoId: string) => {
+    const target = correcoes.find((c) => c.id === correcaoId);
+    if (!target) return;
+    try {
+      await deleteMutation.mutateAsync(target);
+      toast({ title: 'Correção excluída.' });
+    } catch (err) {
+      toast({
+        title: 'Erro ao excluir correção',
+        description: err instanceof Error ? err.message : 'Tente novamente.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   if (!enabled) {
     return (
@@ -107,20 +179,23 @@ export function FamiliaSaidaTab({
     );
   }
 
-  const hasNextPage = rows.length === SAIDA_ICMS_PAGE_SIZE;
+  const hasNextPage = rawRows.length === SAIDA_ICMS_PAGE_SIZE;
   const showInitialLoading = isLoading && rows.length === 0;
   const hasMissing = missingDataFields.length > 0 || missingTotalsFields.length > 0;
 
   return (
     <div className="space-y-6">
-
-
-      {/* Resumo mensal — só renderiza se o endpoint devolver totalizadores */}
+      {/* Resumo mensal */}
       {resumo.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
               Resumo Mensal
+              {allowCorrecoes && correcoes.length > 0 && (
+                <Badge variant="outline" className="ml-2 text-[10px] border-amber-300 text-amber-700">
+                  inclui {correcoes.length} correção{correcoes.length > 1 ? 'ões' : ''}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
@@ -175,10 +250,21 @@ export function FamiliaSaidaTab({
               <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />
             )}
           </CardTitle>
-          <div className="flex items-center gap-2 text-xs text-slate-500">
+          <div className="flex items-center gap-3 text-xs text-slate-500">
             <span>Página {page}</span>
             <span>·</span>
             <span>{rows.length} {rows.length === 1 ? 'item' : 'itens'}</span>
+            {allowCorrecoes && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setDialogOpen(true)}
+                className="ml-2 h-8"
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" />
+                Adicionar correção
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -198,6 +284,7 @@ export function FamiliaSaidaTab({
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      {allowCorrecoes && <TableHead className="w-10" />}
                       {dataColumns.map((col) => (
                         <TableHead
                           key={col}
@@ -212,25 +299,54 @@ export function FamiliaSaidaTab({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rows.map((row, idx) => (
-                      <TableRow
-                        key={`row-${page}-${idx}`}
-                        className="hover:bg-slate-50"
-                      >
-                        {dataColumns.map((col) => (
-                          <TableCell
-                            key={col}
-                            className={cn(
-                              'font-mono text-xs whitespace-nowrap',
-                              isNumericKey(col, row[col]) && 'text-right',
-                              isCheckKey(col) && checkColorClass(col, row[col], row),
-                            )}
-                          >
-                            {formatCell(col, row[col])}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
+                    {rows.map((row, idx) => {
+                      const isCorrecao = row.__correcao === true;
+                      const correcaoId = row.__correcao_id as string | undefined;
+                      return (
+                        <TableRow
+                          key={`row-${page}-${idx}`}
+                          className={cn(
+                            'hover:bg-slate-50',
+                            isCorrecao && 'bg-amber-50/60 hover:bg-amber-50',
+                          )}
+                        >
+                          {allowCorrecoes && (
+                            <TableCell className="p-1 text-center">
+                              {isCorrecao && correcaoId && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleDeleteCorrecao(correcaoId)}
+                                  disabled={deleteMutation.isPending}
+                                  title="Excluir correção"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          )}
+                          {dataColumns.map((col) => (
+                            <TableCell
+                              key={col}
+                              className={cn(
+                                'font-mono text-xs whitespace-nowrap',
+                                isNumericKey(col, row[col]) && 'text-right',
+                                isCheckKey(col) && checkColorClass(col, row[col], row),
+                              )}
+                            >
+                              {col === 'NUM_NOTA' && isCorrecao ? (
+                                <Badge variant="outline" className="border-amber-300 text-amber-700 text-[10px]">
+                                  Correção
+                                </Badge>
+                              ) : (
+                                formatCell(col, row[col])
+                              )}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -262,6 +378,15 @@ export function FamiliaSaidaTab({
           </div>
         )}
       </Card>
+
+      {allowCorrecoes && (
+        <NovaCorrecaoDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          familia={familia as FamiliaCorrecao}
+          contribuinteId={contribuinteId}
+        />
+      )}
     </div>
   );
 }
