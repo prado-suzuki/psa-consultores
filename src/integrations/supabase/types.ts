@@ -727,6 +727,54 @@ export type Database = {
           },
         ]
       }
+      correcoes_icms: {
+        Row: {
+          ambiente: string
+          campos: Json
+          competencia: string | null
+          contribuinte_id: string
+          created_at: string
+          created_by: string | null
+          data_lancamento: string
+          descricao: string
+          excluido: boolean
+          familia: string
+          id: string
+          produto: string | null
+          updated_at: string
+        }
+        Insert: {
+          ambiente?: string
+          campos?: Json
+          competencia?: string | null
+          contribuinte_id: string
+          created_at?: string
+          created_by?: string | null
+          data_lancamento: string
+          descricao: string
+          excluido?: boolean
+          familia: string
+          id?: string
+          produto?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ambiente?: string
+          campos?: Json
+          competencia?: string | null
+          contribuinte_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_lancamento?: string
+          descricao?: string
+          excluido?: boolean
+          familia?: string
+          id?: string
+          produto?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_standups: {
         Row: {
           blockers: string | null
