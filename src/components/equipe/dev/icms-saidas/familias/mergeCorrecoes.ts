@@ -85,7 +85,7 @@ export function correcaoToDetailRow(
   const base: Record<string, unknown> = {
     __correcao: true,
     __correcao_id: c.id,
-    MES_ANO: c.competencia || mesAno(c.data_lancamento),
+    MES_ANO: c.competencia ? normalizeMesAno(c.competencia) : mesAno(c.data_lancamento),
     DATA_NOTA: c.data_lancamento,
     NUM_NOTA: 'CORREÇÃO',
     DESCRICAO_PRODUTO: c.produto || c.descricao,
