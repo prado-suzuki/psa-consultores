@@ -117,12 +117,12 @@ export function mergeCorrecoesIntoTotals(
   const byMes = new Map<string, Record<string, unknown>>();
 
   totals.forEach((row) => {
-    const key = String(row.MES_ANO ?? '');
-    byMes.set(key, { ...row });
+    const key = normalizeMesAno(String(row.MES_ANO ?? ''));
+    byMes.set(key, { ...row, MES_ANO: key });
   });
 
   correcoes.forEach((c) => {
-    const key = c.competencia || mesAno(c.data_lancamento);
+    const key = c.competencia ? normalizeMesAno(c.competencia) : mesAno(c.data_lancamento);
     const t = correcaoTotals(c, familia);
     const existing = byMes.get(key);
     if (existing) {
