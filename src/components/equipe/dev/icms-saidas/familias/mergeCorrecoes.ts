@@ -15,8 +15,21 @@ const num = (v: unknown): number => {
 };
 
 const mesAno = (dataIso: string): string => {
-  // 'YYYY-MM-DD' → 'YYYY-MM'
-  return dataIso.slice(0, 7);
+  // 'YYYY-MM-DD' → 'MM/YYYY' (formato usado pela API no resumo mensal)
+  const [y, m] = dataIso.slice(0, 7).split('-');
+  return `${m}/${y}`;
+};
+
+/** Normaliza diferentes formatos de competência para 'MM/YYYY'. */
+const normalizeMesAno = (raw: string): string => {
+  if (!raw) return raw;
+  // 'YYYY-MM' → 'MM/YYYY'
+  const isoMatch = raw.match(/^(\d{4})-(\d{2})$/);
+  if (isoMatch) return `${isoMatch[2]}/${isoMatch[1]}`;
+  // 'YYYY-MM-DD' → 'MM/YYYY'
+  const isoFullMatch = raw.match(/^(\d{4})-(\d{2})-\d{2}$/);
+  if (isoFullMatch) return `${isoFullMatch[2]}/${isoFullMatch[1]}`;
+  return raw; // já é 'MM/YYYY' ou outro formato
 };
 
 /** Campos do resumo mensal que cada família soma a partir da correção. */
@@ -72,7 +85,7 @@ export function correcaoToDetailRow(
   const base: Record<string, unknown> = {
     __correcao: true,
     __correcao_id: c.id,
-    MES_ANO: c.competencia || mesAno(c.data_lancamento),
+    MES_ANO: c.competencia ? normalizeMesAno(c.competencia) : mesAno(c.data_lancamento),
     DATA_NOTA: c.data_lancamento,
     NUM_NOTA: 'CORREÇÃO',
     DESCRICAO_PRODUTO: c.produto || c.descricao,
@@ -104,12 +117,12 @@ export function mergeCorrecoesIntoTotals(
   const byMes = new Map<string, Record<string, unknown>>();
 
   totals.forEach((row) => {
-    const key = String(row.MES_ANO ?? '');
-    byMes.set(key, { ...row });
+    const key = normalizeMesAno(String(row.MES_ANO ?? ''));
+    byMes.set(key, { ...row, MES_ANO: key });
   });
 
   correcoes.forEach((c) => {
-    const key = c.competencia || mesAno(c.data_lancamento);
+    const key = c.competencia ? normalizeMesAno(c.competencia) : mesAno(c.data_lancamento);
     const t = correcaoTotals(c, familia);
     const existing = byMes.get(key);
     if (existing) {
