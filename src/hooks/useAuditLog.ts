@@ -9,7 +9,7 @@ type AuditEntityType =
   | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
   | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
   | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
-  | 'regra_pis_cofins' | 'procedimento'
+  | 'regra_pis_cofins' | 'procedimento' | 'correcao_icms'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral';
 
 interface AuditLogEntry {
