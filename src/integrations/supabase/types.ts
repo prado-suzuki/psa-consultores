@@ -1774,27 +1774,6 @@ export type Database = {
           },
         ]
       }
-      gestao_area_password: {
-        Row: {
-          id: string
-          password_hash: string
-          updated_at: string | null
-          updated_by: string | null
-        }
-        Insert: {
-          id?: string
-          password_hash: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Update: {
-          id?: string
-          password_hash?: string
-          updated_at?: string | null
-          updated_by?: string | null
-        }
-        Relationships: []
-      }
       improvement_savings_details: {
         Row: {
           cost_after: number | null
