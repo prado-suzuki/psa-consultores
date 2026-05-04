@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
+
 
 export interface ClienteCluster {
   id: string;
@@ -30,12 +30,13 @@ export function useClienteClusters(userId: string | undefined) {
         return { clusters: [] as ClienteCluster[], clienteId: null };
       }
 
-      // 2. Resolve to a single cliente in current ambiente
+      // 2. Resolve to a single cliente (sem filtrar por `ambiente`: representante
+      // já referencia o cliente correto via id_cliente; filtrar por hostname
+      // quebrava a resolução em previews e domínios alternativos).
       const { data: clienteRow } = await supabase
         .from('cliente')
         .select('id')
         .in('id', candidateIds)
-        .eq('ambiente', currentAmbiente)
         .eq('excluido', false)
         .limit(1)
         .maybeSingle();
