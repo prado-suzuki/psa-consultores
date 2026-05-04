@@ -37,6 +37,8 @@ const FIELD_ALIASES: Record<string, string> = {
   C190_VL_ICMS: 'VL_ICMS_C190',
   EFD_C190_BC: 'BC_ICMS_C190',
   EFD_C190_ICMS: 'VL_ICMS_C190',
+  DIF: 'C190_CHECK',
+  CHECK: 'CHECK_',
 };
 
 function canonicalKey(rawKey: string): string {

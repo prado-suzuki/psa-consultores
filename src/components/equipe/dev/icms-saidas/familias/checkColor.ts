@@ -18,6 +18,8 @@ const coerceNumber = (value: unknown): number | null => {
 
 /** Para cada Check derivado, qual campo serve de base p/ % relativo. */
 const CHECK_BASE_MAP: Record<string, string[]> = {
+  ICMS_RECOLHER_E116_CHECK: ['ICMS_RECOLHER'],
+  ICMS_DEVIDO_E116_CHECK: ['ICMS_DEVIDO'],
   FUNDES_E116_CHECK: ['FUNDES'],
   FUNDED_E116_CHECK: ['FUNDED'],
   FUNDEIC_E116_CHECK: ['FUNDEIC'],

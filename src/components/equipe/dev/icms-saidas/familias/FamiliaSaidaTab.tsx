@@ -28,6 +28,7 @@ import { EXPECTED_SCHEMA, findMissingFields } from './expectedColumns';
 import { isCheckKey, checkColorClass } from './checkColor';
 import { deriveDetailChecks, deriveTotalsChecks } from './derivedChecks';
 import { orderColumns } from './columnOrder';
+import { BaseLegalCard } from './BaseLegalCard';
 import {
   mergeCorrecoesIntoDetail,
   mergeCorrecoesIntoTotals,
@@ -185,6 +186,8 @@ export function FamiliaSaidaTab({
 
   return (
     <div className="space-y-6">
+      <BaseLegalCard familia={familia} />
+
       {/* Resumo mensal */}
       {resumo.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
