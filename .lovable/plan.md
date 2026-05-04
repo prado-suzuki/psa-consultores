@@ -1,39 +1,36 @@
-## Problema
+# Organizar lista de usuários em Acessos
 
-O chamado `d25222e6-…` foi criado sem `cliente_id`, `cluster_id` nem `estrutura_area_id`, aparecendo na gestão como "Sem cliente / Sem cluster / Sem área".
+## Objetivo
+Na aba "Usuários" do Controle de Acessos (`UsersTab`), reorganizar a lista lateral para ficar agrupada por **role** (RLS) e, dentro de cada grupo, **ordem alfabética** pelo nome.
 
-### Causa raiz
+## Onde
+- `src/components/acessos/UsersTab.tsx` (lista lateral à esquerda).
 
-Em `src/hooks/useCreateTicket.ts` (`useCreateTicketCliente`) e em `src/hooks/useClienteClusters.ts`, a resolução do cliente a partir do representante faz:
+## Como
 
-```ts
-supabase.from('cliente')
-  .select('id').in('id', candidateIds)
-  .eq('ambiente', currentAmbiente)   // ← filtra por ambiente
-  .eq('excluido', false)
-```
+### 1. Ordem das roles (hierarquia visual)
+Seguir a hierarquia já usada no projeto:
+1. Admin
+2. Líder Geral
+3. Sublíder
+4. Membro (team_member)
+5. Time Cliente (timecliente)
+6. Cliente (client)
+7. Sem role (fallback)
 
-A tabela `representante` **não tem coluna `ambiente`** — ela aponta diretamente para `cliente.id` via `id_cliente`. No banco, o representante da Francelina (`user_id e66d…`) aponta para o cliente Transoeste, que está cadastrado com `ambiente='prod'`.
+A "role principal" de cada usuário é a primeira encontrada nessa ordem dentro de `user.roles`.
 
-`currentAmbiente` é derivado do hostname: só é `'prod'` em `psa-consultores.lovable.app` / `psaconsultores.com.br`. Em qualquer outro host (preview `id-preview--…lovable.app`, sandbox, domínio alternativo), vira `'dev'`, o filtro não casa, `clienteId` fica `null`, o cluster/area também não é resolvido e o ticket é inserido "órfão".
+### 2. Ordenação
+- Agrupar usuários pela role principal seguindo a ordem acima.
+- Dentro de cada grupo: ordenar alfabeticamente por `first_name + last_name` (case-insensitive, `localeCompare` pt-BR).
 
-Como a relação representante → cliente já é uma FK direta e o representante é único por ambiente de uso, o filtro por `ambiente` nessa etapa é incorreto — basta usar o `id_cliente` da linha do representante e validar apenas que o cliente não está excluído.
+### 3. UI
+Adicionar um pequeno cabeçalho (label) por grupo na lista lateral, reutilizando `ROLE_SHORT_LABELS` e `ROLE_BADGE_CLASSES` de `roleOptions.ts`, no mesmo estilo discreto (texto pequeno, uppercase, slate-500), para facilitar a leitura. Cards de usuário permanecem iguais.
 
-## Mudanças
+## Detalhes técnicos
+- Computar a lista ordenada via `useMemo` sobre `users` retornados por `useUsersWithRoles`.
+- Sem mudanças em hooks, queries ou banco — apenas apresentação no componente `UsersTab`.
+- Sem novas dependências.
 
-**1. `src/hooks/useCreateTicket.ts` – `useCreateTicketCliente`**
-- Remover o `.eq('ambiente', currentAmbiente)` da resolução de `clienteId`. Manter apenas `.in('id', candidateIds).eq('excluido', false)`.
-- Se mesmo assim `clienteId` for `null` após ter `candidateIds`, logar um `console.warn` para facilitar debug futuro (sem bloquear, igual hoje).
-
-**2. `src/hooks/useClienteClusters.ts`**
-- Mesma correção: remover `.eq('ambiente', currentAmbiente)` na resolução do cliente a partir do representante.
-
-**3. Backfill do ticket existente (migração)**
-- Atualizar o ticket `d25222e6-4626-4648-8e54-553871cc8bde` setando:
-  - `cliente_id = de202952-beac-40a0-96dd-024b689dbb48` (Transoeste Logística)
-  - `cluster_id` e `estrutura_area_id` resolvidos automaticamente se a Transoeste tiver exatamente 1 cluster e 1 área ativa (caso contrário deixar null para a gestão atribuir manualmente).
-
-## Fora do escopo
-
-- Não mexer em `useCreateTicketGestao` (lá o cliente é selecionado manualmente e funciona).
-- Não alterar a lógica de `currentAmbiente` — ela continua válida para outras tabelas que de fato têm a coluna `ambiente`.
+## Fora de escopo
+- Não alterar `UsersRolesView` (views compactas em `/administracao/acessos` e `/gestao/acessos`), apenas a aba de gestão em `/equipe/acessos`. Posso estender depois se quiser.
