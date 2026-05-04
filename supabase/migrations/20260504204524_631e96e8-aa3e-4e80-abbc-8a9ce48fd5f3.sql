@@ -1,0 +1,1 @@
+UPDATE public.fiscal_tasks SET contribuinte_id = '36e67a4f-e6ef-43a1-a12b-25794bac03d4' WHERE contribuinte_id = '3fe8c372-bfc0-4cd1-90ae-73d8a5b883f1';
