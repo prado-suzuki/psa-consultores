@@ -1,18 +1,31 @@
-// Ordenação e ocultação de colunas por família, alinhadas ao layout da
-// planilha WP_Revisao_Barralcool_2º Semestre 2025 (T03.1_Saídas).
+// Ordenacao e ocultacao de colunas por familia, alinhadas ao layout da
+// planilha WP_Revisao_Barralcool_2o Semestre 2025 (T03.1_Saidas).
 //
-// Colunas presentes na resposta da API mas não declaradas em ORDER vão para
-// o final ("extras"). Se a coluna está em ORDER mas não vem na resposta,
-// ela simplesmente não aparece (sem placeholder).
+// Colunas presentes na resposta da API mas nao declaradas em ORDER vao para
+// o final ("extras"). Se a coluna esta em ORDER mas nao vem na resposta,
+// ela simplesmente nao aparece (sem placeholder).
 
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
 
-/** Colunas que nunca devem aparecer (redundantes ou substituídas por derivadas). */
+/** Colunas que nunca devem aparecer (redundantes ou substituidas por derivadas). */
 const HIDDEN_KEYS = new Set([
-  'ID_CONTRIBUINTE', // sempre o do filtro — redundante
-  'FUNDES_EFD',      // raw E116 — substituído pelo Check derivado
+  'ID_CONTRIBUINTE',
+  'FUNDES_EFD',
   'FUNDED_EFD',
   'FUNDEIC_EFD',
+]);
+
+/** Totais nao devem exibir colunas cruas usadas apenas para derivar os checks. */
+const HIDDEN_TOTAL_KEYS = new Set([
+  'VL_ICMS_C190',
+  'ICMS_RECOLHER_EFD',
+  'ICMS_RECOLHER_E116',
+  'E116_ICMS_RECOLHER',
+  'ICMS_DEVIDO_EFD',
+  'ICMS_DEVIDO_E116',
+  'E116_ICMS_DEVIDO',
+  'E116_ICMS',
+  'ICMS_EFD',
 ]);
 
 interface FamilyOrder {
@@ -21,31 +34,31 @@ interface FamilyOrder {
 }
 
 export const COLUMN_ORDER: Record<FamiliaSaida, FamilyOrder> = {
-  // BLOCO 1 (planilha cols 2-17)
   acucar: {
     data: [
-      'MES_ANO',           // Competência
-      'NUM_NOTA',          // Nota Fiscal
-      'DATA_NOTA',         // Data
-      'CFOP',              // C.F.O.P.
-      'DESCRICAO_CFOP',    // Descrição
-      'DESCRICAO_PRODUTO', // Produto
-      'VALOR_MERCADORIA',  // Valor Mercadoria
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'BASE_CALCULO_ICMS', // BC Cálculo
-      'ALIQUOTA',          // Alíquota
-      'ICMS_NORMAL',       // ICMS Normal
-      'BENEFICIO',         // % Benefício
-      'VALOR_CREDITO',     // Valor Crédito
-      'ICMS_RECOLHER',     // ICMS Recolher
-      'FUNDES',            // FUNDES 6%
-      'FUNDED',            // FUNDED 1%
+      'MES_ANO',
+      'NUM_NOTA',
+      'DATA_NOTA',
+      'CFOP',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'VALOR_MERCADORIA',
+      'INCIDENCIA_ICMS',
+      'BASE_CALCULO_ICMS',
+      'ALIQUOTA',
+      'ICMS_NORMAL',
+      'BENEFICIO',
+      'VALOR_CREDITO',
+      'ICMS_RECOLHER',
+      'FUNDES',
+      'FUNDED',
     ],
-    // Resumo planilha cols 8-14: Comp | ICMS Normal | ICMS Recolher | FUNDES | E116-Check | FUNDED | E116-Check
     totals: [
       'MES_ANO',
       'ICMS_NORMAL',
+      'ICMS_C190_CHECK',
       'ICMS_RECOLHER',
+      'ICMS_RECOLHER_E116_CHECK',
       'FUNDES',
       'FUNDES_E116_CHECK',
       'FUNDED',
@@ -53,60 +66,57 @@ export const COLUMN_ORDER: Record<FamiliaSaida, FamilyOrder> = {
     ],
   },
 
-  // BLOCO 2 (planilha cols 19-35)
   etanol_interno: {
     data: [
-      'MES_ANO',           // Competência
-      'DATA_NOTA',         // Data
-      'NUM_NOTA',          // Nota Fiscal
-      'NUM_DOC',           // EFD - C190 (NF do EFD)
-      'CFOP',              // C.F.O.P.
-      'CST_ICMS',          // CST
-      'DESCRICAO_CFOP',    // Descrição
-      'DESCRICAO_PRODUTO', // Produto
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'QUANTIDADE',        // QNT/BC Litros
-      'PMPF',              // PMPF
-      'PMPF_BC_REDUZIDA',  // 38% PMPF (BC reduzida)
-      'BC_CALCULADA',      // BC (calculada)
-      'BASE_CALCULO_ICMS', // BC ICMS (raw da view, se vier)
-      'ICMS_17_CALCULADO', // ICMS 17%
-      'BC_ICMS_C190',      // EFD - C190 (BC)
-      'VL_ICMS_C190',      // EFD - C190 (Vl ICMS)
-      'C190_CHECK',        // Check (derivado)
+      'MES_ANO',
+      'DATA_NOTA',
+      'NUM_NOTA',
+      'NUM_DOC',
+      'CFOP',
+      'CST_ICMS',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'INCIDENCIA_ICMS',
+      'QUANTIDADE',
+      'PMPF',
+      'PMPF_BC_REDUZIDA',
+      'BC_CALCULADA',
+      'BASE_CALCULO_ICMS',
+      'ICMS_17_CALCULADO',
+      'BC_ICMS_C190',
+      'VL_ICMS_C190',
+      'C190_CHECK',
     ],
-    // Resumo planilha cols 27-29: Comp | ICMS Normal | EFD C190-Check
-    totals: ['MES_ANO', 'ICMS_17_CALCULADO', 'VL_ICMS_C190', 'ICMS_C190_CHECK'],
+    totals: ['MES_ANO', 'ICMS_17_CALCULADO', 'ICMS_C190_CHECK'],
   },
 
-  // BLOCO 3 (planilha cols 37-53)
   etanol_interestado: {
     data: [
-      'MES_ANO',           // Competência
-      'NUM_NOTA',          // Nota Fiscal
-      'DATA_NOTA',         // Data
-      'CFOP',              // C.F.O.P.
-      'DESCRICAO_CFOP',    // Descrição
-      'CST_ICMS',          // CST
-      'DESCRICAO_PRODUTO', // Produto
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'QUANTIDADE',        // Quantidade
-      'VALOR_MERCADORIA',  // Valor
-      'ICMS_12',           // ICMS 12%
-      'BASE_CALCULO_ICMS', // BC ICMS
-      'VALOR_ICMS',        // Valor ICMS
-      'CREDITO_OUTORGADO', // Crédito Outor. 73,3333% / 0,21/L
-      'ICMS_DEVIDO',       // ICMS Devido
-      'FUNDEIC',           // FUNDEIC 1%
-      'FUNDED',            // FUNDED 1%
+      'MES_ANO',
+      'NUM_NOTA',
+      'DATA_NOTA',
+      'CFOP',
+      'DESCRICAO_CFOP',
+      'CST_ICMS',
+      'DESCRICAO_PRODUTO',
+      'INCIDENCIA_ICMS',
+      'QUANTIDADE',
+      'VALOR_MERCADORIA',
+      'ICMS_12',
+      'BASE_CALCULO_ICMS',
+      'VALOR_ICMS',
+      'CREDITO_OUTORGADO',
+      'ICMS_DEVIDO',
+      'FUNDEIC',
+      'FUNDED',
+      'C190_CHECK',
     ],
-    // Resumo planilha cols 46-53: Comp | ICMS Normal | EFD C190-Check | ICMS Devido | FUNDEIC | E116-Check | FUNDED | E116-Check
     totals: [
       'MES_ANO',
-      'VALOR_ICMS',          // ICMS Normal (12%)
-      'VL_ICMS_C190',        // valor escriturado C190
-      'ICMS_C190_CHECK',     // EFD C190-Check (derivado)
+      'VALOR_ICMS',
+      'ICMS_C190_CHECK',
       'ICMS_DEVIDO',
+      'ICMS_DEVIDO_E116_CHECK',
       'FUNDEIC',
       'FUNDEIC_E116_CHECK',
       'FUNDED',
@@ -114,79 +124,75 @@ export const COLUMN_ORDER: Record<FamiliaSaida, FamilyOrder> = {
     ],
   },
 
-  // BLOCO 4 (planilha cols 55-67)
   residuos_producao: {
     data: [
-      'MES_ANO',           // Competência
-      'NUM_NOTA',          // Nota Fiscal
-      'DATA_NOTA',         // Data
-      'CFOP',              // C.F.O.P.
-      'DESCRICAO_PRODUTO', // Produto
-      'VALOR_MERCADORIA',  // Valor Mercadoria
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'BASE_CALCULO_ICMS', // BC Cálculo
-      'ALIQUOTA',          // Alíquota
-      'ICMS_NORMAL',       // ICMS Normal
-      'BC_ICMS_C190',      // C190 - BC
-      'VL_ICMS_C190',      // C190 - Vl. ICMS
-      'CHECK_',            // Check (vem da API)
+      'MES_ANO',
+      'NUM_NOTA',
+      'DATA_NOTA',
+      'CFOP',
+      'DESCRICAO_PRODUTO',
+      'VALOR_MERCADORIA',
+      'INCIDENCIA_ICMS',
+      'BASE_CALCULO_ICMS',
+      'ALIQUOTA',
+      'ICMS_NORMAL',
+      'BC_ICMS_C190',
+      'VL_ICMS_C190',
+      'CHECK_',
     ],
     totals: [],
   },
 
-  // BLOCO 5 (planilha cols 70-84)
   sucata: {
     data: [
-      'MES_ANO',           // Competência
-      'NUM_NOTA',          // Nº NF
-      'DATA_NOTA',         // Data
-      'CFOP',              // CFOP
-      'DESCRICAO_CFOP',    // Descrição
-      'DESCRICAO_PRODUTO', // Produto
-      'CLASSIF',           // Classif.
-      'VALOR_MERCADORIA',  // Valor
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'BASE_CALCULO_ICMS', // BC Cálculo
-      'ALIQUOTA',          // Alíquota
-      'ICMS_NORMAL',       // ICMS Normal
-      'BC_ICMS_C190',      // EFD C190 - BC
-      'VL_ICMS_C190',      // C190 - Vl. ICMS
-      'CHECK_',            // Check
+      'MES_ANO',
+      'NUM_NOTA',
+      'DATA_NOTA',
+      'CFOP',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'CLASSIF',
+      'VALOR_MERCADORIA',
+      'INCIDENCIA_ICMS',
+      'BASE_CALCULO_ICMS',
+      'ALIQUOTA',
+      'ICMS_NORMAL',
+      'BC_ICMS_C190',
+      'VL_ICMS_C190',
+      'CHECK_',
     ],
     totals: [],
   },
 
-  // BLOCO 6 (planilha cols 86-105)
   biodiesel: {
     data: [
-      'MES_ANO',           // Competência
-      'DATA_NOTA',         // Data
-      'NUM_NOTA',          // Nota Fiscal
-      'EFD_C190_NF',       // EFD - C190 (NF)
-      'CFOP',              // C.F.O.P.
-      'CST_ICMS',          // CST
-      'DESCRICAO_CFOP',    // Descrição
-      'DESCRICAO_PRODUTO', // Produto
-      'INCIDENCIA_ICMS',   // Incidência do ICMS?
-      'QUANTIDADE',        // QNT/BC Litros
-      'ADREM',             // AdRem
-      'BASE_CALCULO_ICMS', // BC
-      'ICMS_17',           // ICMS 17%
-      'BC_ICMS_C190',      // EFD - C190 (BC)
-      'VL_ICMS_C190',      // EFD - C190 (Vl ICMS)
-      'CHECK_',            // Check
-      'CREDITO_OUTORGADO', // Crédito Outor. 85%
-      'ICMS_DEVIDO',       // ICMS Devido
-      'FUNDEIC',           // FUNDEIC 1%
-      'FUNDED',            // FUNDED 1%
+      'MES_ANO',
+      'DATA_NOTA',
+      'NUM_NOTA',
+      'EFD_C190_NF',
+      'CFOP',
+      'CST_ICMS',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'INCIDENCIA_ICMS',
+      'QUANTIDADE',
+      'ADREM',
+      'BASE_CALCULO_ICMS',
+      'ICMS_17',
+      'BC_ICMS_C190',
+      'VL_ICMS_C190',
+      'CHECK_',
+      'CREDITO_OUTORGADO',
+      'ICMS_DEVIDO',
+      'FUNDEIC',
+      'FUNDED',
     ],
-    // Resumo planilha cols 94-101: Comp | ICMS Normal | EFD C190-Check | ICMS Devido | FUNDEIC | E116-Check | FUNDED | E116-Check
     totals: [
       'MES_ANO',
       'ICMS_17',
-      'VL_ICMS_C190',
       'ICMS_C190_CHECK',
       'ICMS_DEVIDO',
+      'ICMS_DEVIDO_E116_CHECK',
       'FUNDEIC',
       'FUNDEIC_E116_CHECK',
       'FUNDED',
@@ -195,13 +201,15 @@ export const COLUMN_ORDER: Record<FamiliaSaida, FamilyOrder> = {
   },
 };
 
-/** Filtra escondidas e ordena conforme layout da planilha. Extras vão para o final. */
+/** Filtra escondidas e ordena conforme layout da planilha. Extras vao para o final. */
 export function orderColumns(
   actual: string[],
   familia: FamiliaSaida,
   kind: 'data' | 'totals',
 ): string[] {
-  const visible = actual.filter((k) => !HIDDEN_KEYS.has(k));
+  const visible = actual.filter(
+    (k) => !HIDDEN_KEYS.has(k) && !(kind === 'totals' && HIDDEN_TOTAL_KEYS.has(k)),
+  );
   const desired = COLUMN_ORDER[familia][kind];
   const desiredSet = new Set(desired);
   const ordered = desired.filter((k) => visible.includes(k));

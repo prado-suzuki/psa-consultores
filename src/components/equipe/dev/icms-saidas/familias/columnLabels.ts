@@ -53,6 +53,8 @@ const COMMON_LABELS: Record<string, string> = {
   // Checks derivados (calculados no front conforme planilha T03.1)
   C190_CHECK: 'EFD C190 - Check',
   ICMS_C190_CHECK: 'EFD C190 - Check (ICMS)',
+  ICMS_RECOLHER_E116_CHECK: 'E116 - Check (ICMS a Recolher)',
+  ICMS_DEVIDO_E116_CHECK: 'E116 - Check (ICMS Devido)',
   FUNDES_E116_CHECK: 'E116 - Check (FUNDES)',
   FUNDED_E116_CHECK: 'E116 - Check (FUNDED)',
   FUNDEIC_E116_CHECK: 'E116 - Check (FUNDEIC)',

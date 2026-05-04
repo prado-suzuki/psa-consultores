@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { T03_2_RESUMO_MOCK, T03_2_LINHAS_MOCK, compIndex, type T032Linha } from './mocks';
+import { formatCell } from './familias/formatCell';
 
 interface T03_2SaidasStTabProps {
   enabled: boolean;
@@ -100,7 +101,7 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
               <TableBody>
                 {T03_2_RESUMO_MOCK.map((r) => (
                   <TableRow key={r.competencia}>
-                    <TableCell className="font-medium">{r.competencia}</TableCell>
+                    <TableCell className="font-medium">{formatCell('COMPETENCIA', r.competencia)}</TableCell>
                     <TableCell className="text-right font-mono text-teal-700">{fmt(r.icmsSt)}</TableCell>
                     <TableCell className="text-right font-mono">{fmt(r.bcSt)}</TableCell>
                     <TableCell
@@ -200,7 +201,7 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
                             <span className="text-sm font-medium text-slate-700">{l.familia}</span>
                           )}
                         </TableCell>
-                        <TableCell className="text-sm">{l.competencia}</TableCell>
+                        <TableCell className="text-sm">{formatCell('COMPETENCIA', l.competencia)}</TableCell>
                         <TableCell className="font-mono text-xs">{l.nf}</TableCell>
                         <TableCell className="text-sm">{l.data}</TableCell>
                         <TableCell><Badge variant="outline" className="font-mono">{l.cfop}</Badge></TableCell>
