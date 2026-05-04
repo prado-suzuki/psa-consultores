@@ -36,6 +36,29 @@ export const UsersTab = () => {
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
+  // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
+  const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
+  const groupedUsers = useMemo(() => {
+    if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
+    const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
+      ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
+    const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
+    for (const u of users) {
+      const r = primaryRole(u);
+      if (!buckets.has(r)) buckets.set(r, []);
+      buckets.get(r)!.push(u);
+    }
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
+    const sortKey = (u: UserWithRoles) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
+    const order: Array<AppRole | 'none'> = [...ROLE_ORDER, 'none'];
+    return order
+      .filter((r) => buckets.has(r))
+      .map((role) => ({
+        role,
+        users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
+      }));
+  }, [users]);
+
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
