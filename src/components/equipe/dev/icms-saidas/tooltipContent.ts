@@ -15,8 +15,10 @@ export const ICMS_PAGE_TOOLTIPS = {
 
 export const ICMS_FAMILIA_TAB_TOOLTIPS: Record<FamiliaSaida, string> = {
   acucar: 'Saídas de açúcar.',
+  acucar_st: 'Saídas ST de açúcar.',
   etanol_interno: 'Saídas internas de etanol.',
   etanol_interestado: 'Saídas interestaduais de etanol.',
+  etanol_interestado_st: 'Saídas ST de etanol interestadual.',
   residuos_producao: 'Saídas de resíduos.',
   sucata: 'Operações com sucata.',
   biodiesel: 'Saídas de biodiesel.',
@@ -45,11 +47,10 @@ export const ICMS_T01_TOOLTIPS = {
 export const ICMS_T02_TOOLTIPS = {
   cfop: 'CFOP da saída.',
   descricao: 'Descrição do CFOP.',
-  vlItemEfd: 'Valor dos itens na EFD.',
-  bcEfd: 'Base de cálculo na EFD.',
-  icmsEfd: 'ICMS na EFD.',
-  vlItemCliente: 'Valor dos itens no cliente.',
-  diferenca: 'Diferença cliente x EFD.',
+  vlItem: 'Valor do item.',
+  bcIcms: 'Base do ICMS.',
+  icms: 'Valor do ICMS.',
+  pctIcms: 'Percentual do ICMS.',
 } as const;
 
 export const ICMS_T03_COLUMN_TOOLTIPS: Record<string, string> = {

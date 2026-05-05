@@ -50,6 +50,20 @@ const COMMON_LABELS: Record<string, string> = {
   ICMS_17: 'ICMS 17%',
   // Sucata
   CLASSIF: 'Classificação',
+  // T03.2 — Saídas ST (Açúcar ST e Etanol Interestadual ST)
+  CST: 'CST',
+  INCIDENCIA_ST: 'Incidência ST',
+  BASE_CALCULO: 'BC Cálculo',
+  MVA: 'MVA',
+  BC_ST: 'BC ST',
+  ICMS_ST_PRADO: 'ICMS ST',
+  C190_BC_ST: 'EFD C190 - BC ST',
+  C190_ICMS_ST: 'EFD C190 - ICMS ST',
+  CHECK_DIF: 'Diferença',
+  UF_DESTINO: 'UF Destino',
+  UF_ALIQUOTA: 'Alíquota UF',
+  VALOR_ICMS_ST: 'Valor ICMS ST',
+  E250_TOTAL: 'EFD E250 - Total',
   // Checks derivados (calculados no front conforme planilha T03.1)
   C190_CHECK: 'EFD C190 - Check',
   ICMS_C190_CHECK: 'EFD C190 - Check (ICMS)',

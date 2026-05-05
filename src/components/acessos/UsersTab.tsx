@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,29 @@ export const UsersTab = () => {
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
+  // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
+  const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
+  const groupedUsers = useMemo(() => {
+    if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
+    const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
+      ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
+    const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
+    for (const u of users) {
+      const r = primaryRole(u);
+      if (!buckets.has(r)) buckets.set(r, []);
+      buckets.get(r)!.push(u);
+    }
+    const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
+    const sortKey = (u: UserWithRoles) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
+    const order: Array<AppRole | 'none'> = [...ROLE_ORDER, 'none'];
+    return order
+      .filter((r) => buckets.has(r))
+      .map((role) => ({
+        role,
+        users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
+      }));
+  }, [users]);
+
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
@@ -61,34 +85,42 @@ export const UsersTab = () => {
                 <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
               </div>
             ) : (
-              users?.map((u) => (
-                <button
-                  key={u.id}
-                  className={`w-full p-3 rounded-lg text-left transition-colors ${
-                    selectedUserId === u.id
-                      ? 'bg-teal-500/10 border border-teal-200'
-                      : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
-                  }`}
-                  onClick={() => setSelectedUserId(u.id)}
-                >
-                  <p className="font-medium text-slate-900 text-sm">
-                    {u.first_name} {u.last_name}
+              groupedUsers.map((group) => (
+                <div key={group.role} className="space-y-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
+                    {group.role === 'none' ? 'Sem role' : (ROLE_SHORT_LABELS[group.role] ?? group.role)}
+                    <span className="ml-1 text-slate-400 font-normal normal-case tracking-normal">({group.users.length})</span>
                   </p>
-                  <p className="text-xs text-slate-500">{u.email}</p>
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {u.roles.map((role) => (
-                      <Badge
-                        key={role}
-                        variant="outline"
-                        className={`text-xs ${
-                          ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-slate-50'
-                        }`}
-                      >
-                        {ROLE_SHORT_LABELS[role] ?? role}
-                      </Badge>
-                    ))}
-                  </div>
-                </button>
+                  {group.users.map((u) => (
+                    <button
+                      key={u.id}
+                      className={`w-full p-3 rounded-lg text-left transition-colors ${
+                        selectedUserId === u.id
+                          ? 'bg-teal-500/10 border border-teal-200'
+                          : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
+                      }`}
+                      onClick={() => setSelectedUserId(u.id)}
+                    >
+                      <p className="font-medium text-slate-900 text-sm">
+                        {u.first_name} {u.last_name}
+                      </p>
+                      <p className="text-xs text-slate-500">{u.email}</p>
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {u.roles.map((role) => (
+                          <Badge
+                            key={role}
+                            variant="outline"
+                            className={`text-xs ${
+                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-slate-50'
+                            }`}
+                          >
+                            {ROLE_SHORT_LABELS[role] ?? role}
+                          </Badge>
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               ))
             )}
           </CardContent>

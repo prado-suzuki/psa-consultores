@@ -37,6 +37,12 @@ const CHECK_BASE_MAP: Record<string, string[]> = {
     'VALOR_ICMS',
     'ICMS_17',
   ],
+  CHECK_DIF: [
+    'ICMS_ST_PRADO',
+    'VALOR_ICMS_ST',
+    'C190_ICMS_ST',
+    'ICMS_NORMAL',
+  ],
 };
 
 export function isCheckKey(key: string): boolean {

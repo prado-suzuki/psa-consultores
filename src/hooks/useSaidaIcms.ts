@@ -4,8 +4,10 @@ import { getApiUrl } from '@/config/api';
 
 export type FamiliaSaida =
   | 'acucar'
+  | 'acucar_st'
   | 'biodiesel'
   | 'etanol_interestado'
+  | 'etanol_interestado_st'
   | 'etanol_interno'
   | 'residuos_producao'
   | 'sucata';
