@@ -286,7 +286,7 @@ const IcmsSaidas = () => {
 
         <Tabs defaultValue="t01" className="w-full">
           <TabsList
-            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 shadow-inner"
+            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm"
           >
             {[
               { value: 't01', label: 'T01 - Apuração', tip: ICMS_PAGE_TOOLTIPS.tabT01 },
@@ -299,12 +299,11 @@ const IcmsSaidas = () => {
                   value={t.value}
                   className={cn(
                     'relative h-10 text-sm font-semibold rounded-md',
-                    'text-slate-600 dark:text-slate-300',
+                    'text-slate-600 dark:text-slate-300 bg-transparent',
                     'transition-all duration-300 ease-out',
-                    'hover:text-primary hover:bg-primary/5',
+                    'hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
                     'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground',
                     'data-[state=active]:shadow-md data-[state=active]:shadow-primary/30',
-                    'data-[state=active]:scale-[1.02]',
                   )}
                 >
                   {t.label}
