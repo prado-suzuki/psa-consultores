@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calculator } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { T03_2_RESUMO_MOCK, T03_2_LINHAS_MOCK, compIndex, type T032Linha } from './mocks';
+import { T03_2_RESUMO_MOCK, T03_2_LINHAS_MOCK, compIndex } from './mocks';
 import { formatCell } from './familias/formatCell';
+import { ICMS_T03_2_TOOLTIPS } from './tooltipContent';
+import { ButtonTooltip, InlineTooltip, renderColumnLabel } from './tooltipHelpers';
 
 interface T03_2SaidasStTabProps {
   enabled: boolean;
@@ -80,7 +82,6 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Resumo mensal */}
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -92,10 +93,10 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead>Competência</TableHead>
-                  <TableHead className="text-right">ICMS ST</TableHead>
-                  <TableHead className="text-right">BC ST</TableHead>
-                  <TableHead className="text-right">Diferença EFD</TableHead>
+                  <TableHead>{renderColumnLabel('Competência', ICMS_T03_2_TOOLTIPS.resumoCompetencia)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('ICMS ST', ICMS_T03_2_TOOLTIPS.resumoIcmsSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('BC ST', ICMS_T03_2_TOOLTIPS.resumoBcSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Diferença EFD', ICMS_T03_2_TOOLTIPS.resumoDiferencaEfd)}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -133,46 +134,62 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
         </CardContent>
       </Card>
 
-      {/* Pills de família */}
       <div className="flex flex-wrap gap-2">
-        <Pill active={familiaFiltro === 'TODOS'} onClick={() => setFamiliaFiltro('TODOS')}>
+        <Pill
+          active={familiaFiltro === 'TODOS'}
+          onClick={() => setFamiliaFiltro('TODOS')}
+          tooltip={ICMS_T03_2_TOOLTIPS.familiaTodos}
+        >
           Todos <span className="ml-1.5 opacity-70">({counts.TODOS})</span>
         </Pill>
         {FAMILIAS_T032.map((f) => (
-          <Pill key={f} active={familiaFiltro === f} onClick={() => setFamiliaFiltro(f)}>
+          <Pill
+            key={f}
+            active={familiaFiltro === f}
+            onClick={() => setFamiliaFiltro(f)}
+            tooltip={
+              f === 'Açúcar ST'
+                ? ICMS_T03_2_TOOLTIPS.familiaAcucarSt
+                : ICMS_T03_2_TOOLTIPS.familiaEtanolSt
+            }
+          >
             {f} <span className="ml-1.5 opacity-70">({counts[f]})</span>
           </Pill>
         ))}
-        <Pill active={familiaFiltro === SEM_CLASS} onClick={() => setFamiliaFiltro(SEM_CLASS)} variant="warning">
+        <Pill
+          active={familiaFiltro === SEM_CLASS}
+          onClick={() => setFamiliaFiltro(SEM_CLASS)}
+          variant="warning"
+          tooltip={ICMS_T03_2_TOOLTIPS.familiaNaoClassificados}
+        >
           Não classificados <span className="ml-1.5 opacity-70">({counts[SEM_CLASS]})</span>
         </Pill>
       </div>
 
-      {/* Tabela principal */}
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-0">
           <div className="rounded-md overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="w-[180px]">Família</TableHead>
-                  <TableHead>Competência</TableHead>
-                  <TableHead>NF</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>CFOP</TableHead>
-                  <TableHead>CST</TableHead>
-                  <TableHead>NCM</TableHead>
-                  <TableHead>Cód. Produto</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead className="text-right">Valor Mercadoria</TableHead>
-                  <TableHead>Incidência ST</TableHead>
-                  <TableHead className="text-right">BC ST</TableHead>
-                  <TableHead className="text-right">Alíquota</TableHead>
-                  <TableHead className="text-right">MVA</TableHead>
-                  <TableHead className="text-right">ICMS ST</TableHead>
-                  <TableHead className="text-right">EFD BC ST</TableHead>
-                  <TableHead className="text-right">Diferença</TableHead>
+                  <TableHead className="w-[180px]">{renderColumnLabel('Família', ICMS_T03_2_TOOLTIPS.familia)}</TableHead>
+                  <TableHead>{renderColumnLabel('Competência', ICMS_T03_2_TOOLTIPS.competencia)}</TableHead>
+                  <TableHead>{renderColumnLabel('NF', ICMS_T03_2_TOOLTIPS.nf)}</TableHead>
+                  <TableHead>{renderColumnLabel('Data', ICMS_T03_2_TOOLTIPS.data)}</TableHead>
+                  <TableHead>{renderColumnLabel('CFOP', ICMS_T03_2_TOOLTIPS.cfop)}</TableHead>
+                  <TableHead>{renderColumnLabel('CST', ICMS_T03_2_TOOLTIPS.cst)}</TableHead>
+                  <TableHead>{renderColumnLabel('NCM', ICMS_T03_2_TOOLTIPS.ncm)}</TableHead>
+                  <TableHead>{renderColumnLabel('Cód. Produto', ICMS_T03_2_TOOLTIPS.codProduto)}</TableHead>
+                  <TableHead>{renderColumnLabel('Descrição', ICMS_T03_2_TOOLTIPS.descricao)}</TableHead>
+                  <TableHead>{renderColumnLabel('Produto', ICMS_T03_2_TOOLTIPS.produto)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Valor Mercadoria', ICMS_T03_2_TOOLTIPS.valorMercadoria)}</TableHead>
+                  <TableHead>{renderColumnLabel('Incidência ST', ICMS_T03_2_TOOLTIPS.incidenciaSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('BC ST', ICMS_T03_2_TOOLTIPS.bcSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Alíquota', ICMS_T03_2_TOOLTIPS.aliquota)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('MVA', ICMS_T03_2_TOOLTIPS.mva)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('ICMS ST', ICMS_T03_2_TOOLTIPS.icmsSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('EFD BC ST', ICMS_T03_2_TOOLTIPS.efdBcSt)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Diferença', ICMS_T03_2_TOOLTIPS.diferenca)}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -208,8 +225,24 @@ export const T03_2SaidasStTab = ({ enabled }: T03_2SaidasStTabProps) => {
                         <TableCell className="font-mono text-xs">{l.cst}</TableCell>
                         <TableCell className="font-mono text-xs">{l.ncm}</TableCell>
                         <TableCell className="font-mono text-xs">{l.codProduto}</TableCell>
-                        <TableCell className="text-xs text-slate-600 max-w-[200px] truncate">{l.descricao}</TableCell>
-                        <TableCell className="text-sm font-medium text-slate-900 max-w-[240px] truncate">{l.produto}</TableCell>
+                        <TableCell className="text-xs text-slate-600 max-w-[200px]">
+                          <InlineTooltip
+                            content={l.descricao}
+                            contentClassName="max-w-[320px] text-left break-words"
+                            align="start"
+                          >
+                            <span className="block truncate">{l.descricao}</span>
+                          </InlineTooltip>
+                        </TableCell>
+                        <TableCell className="text-sm font-medium text-slate-900 max-w-[240px]">
+                          <InlineTooltip
+                            content={l.produto}
+                            contentClassName="max-w-[320px] text-left break-words"
+                            align="start"
+                          >
+                            <span className="block truncate">{l.produto}</span>
+                          </InlineTooltip>
+                        </TableCell>
                         <TableCell className="text-right font-mono text-sm">{fmt(l.valorMercadoria)}</TableCell>
                         <TableCell className="text-sm">{dash(l.incidencia)}</TableCell>
                         <Cell muted={naoClass}>{fmt(l.bcSt)}</Cell>
@@ -243,26 +276,30 @@ const Pill = ({
   active,
   onClick,
   children,
+  tooltip,
   variant = 'default',
 }: {
   active: boolean;
   onClick: () => void;
-  children: React.ReactNode;
+  children: ReactNode;
+  tooltip: string;
   variant?: 'default' | 'warning';
 }) => (
-  <Button
-    type="button"
-    size="sm"
-    variant={active ? 'default' : 'outline'}
-    onClick={onClick}
-    className={cn(
-      'h-8',
-      !active && variant === 'warning' && 'border-amber-300 text-amber-700 hover:bg-amber-50',
-      active && variant === 'warning' && 'bg-amber-600 hover:bg-amber-700',
-    )}
-  >
-    {children}
-  </Button>
+  <ButtonTooltip text={tooltip}>
+    <Button
+      type="button"
+      size="sm"
+      variant={active ? 'default' : 'outline'}
+      onClick={onClick}
+      className={cn(
+        'h-8',
+        !active && variant === 'warning' && 'border-amber-300 text-amber-700 hover:bg-amber-50',
+        active && variant === 'warning' && 'bg-amber-600 hover:bg-amber-700',
+      )}
+    >
+      {children}
+    </Button>
+  </ButtonTooltip>
 );
 
 const Cell = ({
@@ -270,7 +307,7 @@ const Cell = ({
   muted,
   className,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   muted?: boolean;
   className?: string;
 }) => (

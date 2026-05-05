@@ -5,6 +5,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
 import { T02_MOCK } from './mocks';
+import { ICMS_T02_TOOLTIPS } from './tooltipContent';
+import { renderColumnLabel } from './tooltipHelpers';
 
 interface T02CfopTabProps {
   enabled: boolean;
@@ -53,7 +55,7 @@ export const T02CfopTab = ({ enabled, contribuinteId, dataInicio, dataFim }: T02
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Calculator className="h-4 w-4 text-slate-500" />
-          Reconciliação EFD vs. Cliente — por CFOP
+          Reconciliação EFD vs. Cliente - por CFOP
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -68,13 +70,13 @@ export const T02CfopTab = ({ enabled, contribuinteId, dataInicio, dataFim }: T02
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="w-[80px]">CFOP</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Vl. Item EFD</TableHead>
-                  <TableHead className="text-right">BC EFD</TableHead>
-                  <TableHead className="text-right">ICMS EFD</TableHead>
-                  <TableHead className="text-right">Vl. Item Cliente</TableHead>
-                  <TableHead className="text-right">Diferença</TableHead>
+                  <TableHead className="w-[80px]">{renderColumnLabel('CFOP', ICMS_T02_TOOLTIPS.cfop)}</TableHead>
+                  <TableHead>{renderColumnLabel('Descrição', ICMS_T02_TOOLTIPS.descricao)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Vl. Item EFD', ICMS_T02_TOOLTIPS.vlItemEfd)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('BC EFD', ICMS_T02_TOOLTIPS.bcEfd)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('ICMS EFD', ICMS_T02_TOOLTIPS.icmsEfd)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Vl. Item Cliente', ICMS_T02_TOOLTIPS.vlItemCliente)}</TableHead>
+                  <TableHead className="text-right">{renderColumnLabel('Diferença', ICMS_T02_TOOLTIPS.diferenca)}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

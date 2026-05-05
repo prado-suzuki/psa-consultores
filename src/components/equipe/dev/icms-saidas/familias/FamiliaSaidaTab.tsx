@@ -34,6 +34,11 @@ import {
   mergeCorrecoesIntoTotals,
 } from './mergeCorrecoes';
 import { NovaCorrecaoDialog } from './NovaCorrecaoDialog';
+import {
+  ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS,
+  ICMS_T03_COLUMN_TOOLTIPS,
+} from '../tooltipContent';
+import { ButtonTooltip, renderColumnLabel } from '../tooltipHelpers';
 
 interface FamiliaSaidaTabProps {
   familia: FamiliaSaida;
@@ -88,7 +93,6 @@ export function FamiliaSaidaTab({
   const rawRows = data?.data ?? [];
   const rawResumo = data?.totalizadores_mensal ?? [];
 
-  // Merge correções no detalhe e no resumo (apenas na primeira página, evita duplicação na paginação)
   const mergedRawRows = useMemo(
     () =>
       allowCorrecoes && page === 1
@@ -188,7 +192,6 @@ export function FamiliaSaidaTab({
     <div className="space-y-6">
       <BaseLegalCard familia={familia} />
 
-      {/* Resumo mensal */}
       {resumo.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3">
@@ -214,7 +217,7 @@ export function FamiliaSaidaTab({
                           isNumericKey(col, resumo[0]?.[col]) && 'text-right',
                         )}
                       >
-                        {labelFor(col)}
+                        {renderColumnLabel(labelFor(col), ICMS_T03_COLUMN_TOOLTIPS[col])}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -244,7 +247,6 @@ export function FamiliaSaidaTab({
         </Card>
       )}
 
-      {/* Tabela principal */}
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -258,15 +260,17 @@ export function FamiliaSaidaTab({
             <span>·</span>
             <span>{rows.length} {rows.length === 1 ? 'item' : 'itens'}</span>
             {allowCorrecoes && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setDialogOpen(true)}
-                className="ml-2 h-8"
-              >
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                Adicionar correção
-              </Button>
+              <ButtonTooltip text={ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS.adicionarCorrecao}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setDialogOpen(true)}
+                  className="ml-2 h-8"
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  Adicionar correção
+                </Button>
+              </ButtonTooltip>
             )}
           </div>
         </CardHeader>
@@ -296,7 +300,7 @@ export function FamiliaSaidaTab({
                             isNumericKey(col, rows[0]?.[col]) && 'text-right',
                           )}
                         >
-                          {labelFor(col)}
+                          {renderColumnLabel(labelFor(col), ICMS_T03_COLUMN_TOOLTIPS[col])}
                         </TableHead>
                       ))}
                     </TableRow>
@@ -316,16 +320,17 @@ export function FamiliaSaidaTab({
                           {allowCorrecoes && (
                             <TableCell className="p-1 text-center">
                               {isCorrecao && correcaoId && (
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
-                                  onClick={() => handleDeleteCorrecao(correcaoId)}
-                                  disabled={deleteMutation.isPending}
-                                  title="Excluir correção"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                <ButtonTooltip text={ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS.excluirCorrecao}>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => handleDeleteCorrecao(correcaoId)}
+                                    disabled={deleteMutation.isPending}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </ButtonTooltip>
                               )}
                             </TableCell>
                           )}
@@ -357,27 +362,30 @@ export function FamiliaSaidaTab({
             </>
           )}
         </CardContent>
-        {/* Paginação */}
         {rows.length > 0 && (
           <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-200">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1 || isFetching}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
-              Anterior
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!hasNextPage || isFetching}
-              onClick={() => setPage((p) => p + 1)}
-            >
-              Próxima
-              <ChevronRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
+            <ButtonTooltip text={ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS.paginaAnterior}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page === 1 || isFetching}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="h-3.5 w-3.5 mr-1" />
+                Anterior
+              </Button>
+            </ButtonTooltip>
+            <ButtonTooltip text={ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS.paginaProxima}>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasNextPage || isFetching}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                Próxima
+                <ChevronRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </ButtonTooltip>
           </div>
         )}
       </Card>

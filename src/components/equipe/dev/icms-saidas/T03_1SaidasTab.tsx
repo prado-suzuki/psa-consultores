@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FamiliaSaidaTab } from './familias/FamiliaSaidaTab';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
+import { ICMS_FAMILIA_TAB_TOOLTIPS } from './tooltipContent';
+import { InlineTooltip } from './tooltipHelpers';
 
 interface T03_1SaidasTabProps {
   enabled: boolean;
@@ -31,15 +33,16 @@ export const T03_1SaidasTab = ({
     <Tabs value={familia} onValueChange={(v) => setFamilia(v as FamiliaSaida)} className="w-full">
       <TabsList className="grid w-full grid-cols-6 h-10">
         {FAMILIA_TABS.map((t) => (
-          <TabsTrigger key={t.value} value={t.value} className="text-xs sm:text-sm">
-            {t.label}
-          </TabsTrigger>
+          <InlineTooltip key={t.value} content={ICMS_FAMILIA_TAB_TOOLTIPS[t.value]}>
+            <TabsTrigger value={t.value} className="text-xs sm:text-sm">
+              {t.label}
+            </TabsTrigger>
+          </InlineTooltip>
         ))}
       </TabsList>
 
       {FAMILIA_TABS.map((t) => (
         <TabsContent key={t.value} value={t.value} className="mt-4">
-          {/* Renderiza só quando aba está ativa para não disparar fetches em paralelo */}
           {familia === t.value && (
             <FamiliaSaidaTab
               familia={t.value}

@@ -8,10 +8,17 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoTab';
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
+import {
+  ButtonTooltip,
+  FieldTooltip,
+  InlineTooltip,
+} from '@/components/equipe/dev/icms-saidas/tooltipHelpers';
+import { ICMS_PAGE_TOOLTIPS } from '@/components/equipe/dev/icms-saidas/tooltipContent';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
@@ -115,201 +122,222 @@ const IcmsSaidas = () => {
   const tabsEnabled = searchTriggered && !!selectedContribuinte;
 
   return (
-    <DevLayout
-      title="ICMS das Saídas"
-      subtitle="Apuração, reconciliação e classificação fiscal de saídas"
-      headerActions={headerActions}
-    >
-      {/* Filtros globais */}
-      <Card className="mb-6 border-slate-200 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg flex items-center gap-2 text-primary">
-            <Filter className="h-5 w-5" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
-              Filtros de Busca
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
-            {/* Cliente */}
-            <div className="md:col-span-3">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Cliente <RequiredMark />
-              </label>
-              <Select
-                value={selectedCliente}
-                onValueChange={(value) => {
-                  setSelectedCliente(value);
-                  setSelectedContribuinte('');
-                  setSearchTriggered(false);
-                }}
-                disabled={isLoadingClientes}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <TooltipProvider delayDuration={200}>
+      <DevLayout
+        title="ICMS das Saídas"
+        subtitle="Apuração, reconciliação e classificação fiscal de saídas"
+        headerActions={headerActions}
+      >
+        <Card className="mb-6 border-slate-200 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg flex items-center gap-2 text-primary">
+              <Filter className="h-5 w-5" />
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+                Filtros de Busca
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>
+                      Cliente <RequiredMark />
+                    </span>
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.cliente} />
+                  </span>
+                </label>
+                <Select
+                  value={selectedCliente}
+                  onValueChange={(value) => {
+                    setSelectedCliente(value);
+                    setSelectedContribuinte('');
+                    setSearchTriggered(false);
+                  }}
+                  disabled={isLoadingClientes}
+                >
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-4">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>Contribuinte</span>
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.contribuinte} />
+                  </span>
+                </label>
+                <Select
+                  value={selectedContribuinte}
+                  onValueChange={(value) => {
+                    setSelectedContribuinte(value);
+                    setSearchTriggered(false);
+                  }}
+                  disabled={!selectedCliente || isLoadingContribuintes}
+                >
+                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectValue placeholder="Selecione o contribuinte" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contribuintes?.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>Data Início</span>
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataInicio} />
+                  </span>
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                        !dataInicio && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataInicio ? format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      selected={dataInicio ? parse(dataInicio, 'yyyy-MM-dd', new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataInicio(date ? format(date, 'yyyy-MM-dd') : '');
+                        setSearchTriggered(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>Data Fim</span>
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataFim} />
+                  </span>
+                </label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                        !dataFim && 'text-muted-foreground',
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                      {dataFim ? format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      selected={dataFim ? parse(dataFim, 'yyyy-MM-dd', new Date()) : undefined}
+                      onSelect={(date) => {
+                        setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
+                        setSearchTriggered(false);
+                      }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
-            {/* Contribuinte */}
-            <div className="md:col-span-4">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Contribuinte
-              </label>
-              <Select
-                value={selectedContribuinte}
-                onValueChange={(value) => {
-                  setSelectedContribuinte(value);
-                  setSearchTriggered(false);
-                }}
-                disabled={!selectedCliente || isLoadingContribuintes}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent>
-                  {contribuintes?.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome_razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <ButtonTooltip text={ICMS_PAGE_TOOLTIPS.limparFiltros}>
+                <Button
+                  variant="ghost"
+                  onClick={handleClearFilters}
+                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  <Eraser className="h-4 w-4 mr-2" />
+                  Limpar filtros
+                </Button>
+              </ButtonTooltip>
+              <ButtonTooltip text={ICMS_PAGE_TOOLTIPS.buscar}>
+                <Button
+                  onClick={handleSearch}
+                  disabled={!selectedContribuinte || isLoadingItems}
+                  className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  Buscar produtos
+                </Button>
+              </ButtonTooltip>
             </div>
+          </CardContent>
+        </Card>
 
-            {/* Data Início */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Início
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
-                      !dataInicio && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataInicio ? format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    selected={dataInicio ? parse(dataInicio, 'yyyy-MM-dd', new Date()) : undefined}
-                    onSelect={(date) => {
-                      setDataInicio(date ? format(date, 'yyyy-MM-dd') : '');
-                      setSearchTriggered(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+        <Tabs defaultValue="t01" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 h-12">
+            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT01}>
+              <TabsTrigger value="t01">T01 - Apuração</TabsTrigger>
+            </InlineTooltip>
+            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT02}>
+              <TabsTrigger value="t02">T02 - CFOP</TabsTrigger>
+            </InlineTooltip>
+            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT03_1}>
+              <TabsTrigger value="t03_1">T03.1 - Saídas</TabsTrigger>
+            </InlineTooltip>
+            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT03_2}>
+              <TabsTrigger value="t03_2">T03.2 - Saídas ST</TabsTrigger>
+            </InlineTooltip>
+          </TabsList>
 
-            {/* Data Fim */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim
-              </label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
-                      !dataFim && 'text-muted-foreground',
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataFim ? format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    selected={dataFim ? parse(dataFim, 'yyyy-MM-dd', new Date()) : undefined}
-                    onSelect={(date) => {
-                      setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
-                      setSearchTriggered(false);
-                    }}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
+          <TabsContent value="t01" className="mt-4">
+            <T01ApuracaoTab
+              enabled={tabsEnabled}
+              contribuinteId={selectedContribuinte}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+            />
+          </TabsContent>
 
-          {/* Botões */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button
-              variant="ghost"
-              onClick={handleClearFilters}
-              className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-            >
-              <Eraser className="h-4 w-4 mr-2" />
-              Limpar filtros
-            </Button>
-            <Button
-              onClick={handleSearch}
-              disabled={!selectedContribuinte || isLoadingItems}
-              className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              Buscar produtos
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+          <TabsContent value="t02" className="mt-4">
+            <T02CfopTab
+              enabled={tabsEnabled}
+              contribuinteId={selectedContribuinte}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+            />
+          </TabsContent>
 
-      {/* Tabs */}
-      <Tabs defaultValue="t01" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 h-12">
-          <TabsTrigger value="t01">T01 — Apuração</TabsTrigger>
-          <TabsTrigger value="t02">T02 — CFOP</TabsTrigger>
-          <TabsTrigger value="t03_1">T03.1 — Saídas</TabsTrigger>
-          <TabsTrigger value="t03_2">T03.2 — Saídas ST</TabsTrigger>
-        </TabsList>
+          <TabsContent value="t03_1" className="mt-4">
+            <T03_1SaidasTab
+              enabled={tabsEnabled}
+              contribuinteId={selectedContribuinte}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+            />
+          </TabsContent>
 
-        <TabsContent value="t01" className="mt-4">
-          <T01ApuracaoTab
-            enabled={tabsEnabled}
-            contribuinteId={selectedContribuinte}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-          />
-        </TabsContent>
-
-        <TabsContent value="t02" className="mt-4">
-          <T02CfopTab
-            enabled={tabsEnabled}
-            contribuinteId={selectedContribuinte}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-          />
-        </TabsContent>
-
-        <TabsContent value="t03_1" className="mt-4">
-          <T03_1SaidasTab
-            enabled={tabsEnabled}
-            contribuinteId={selectedContribuinte}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-          />
-        </TabsContent>
-
-        <TabsContent value="t03_2" className="mt-4">
-          <T03_2SaidasStTab
-            enabled={tabsEnabled}
-            contribuinteId={selectedContribuinte}
-            dataInicio={dataInicio}
-            dataFim={dataFim}
-          />
-        </TabsContent>
-      </Tabs>
-    </DevLayout>
+          <TabsContent value="t03_2" className="mt-4">
+            <T03_2SaidasStTab
+              enabled={tabsEnabled}
+              contribuinteId={selectedContribuinte}
+              dataInicio={dataInicio}
+              dataFim={dataFim}
+            />
+          </TabsContent>
+        </Tabs>
+      </DevLayout>
+    </TooltipProvider>
   );
 };
 
