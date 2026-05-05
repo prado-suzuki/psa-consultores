@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -113,12 +112,6 @@ const IcmsSaidas = () => {
     setSearchTriggered(false);
   };
 
-  const headerActions = (
-    <Badge variant="secondary" className="bg-amber-100 text-amber-700 hover:bg-amber-100">
-      Beta
-    </Badge>
-  );
-
   const tabsEnabled = searchTriggered && !!selectedContribuinte;
 
   return (
@@ -126,7 +119,6 @@ const IcmsSaidas = () => {
       <DevLayout
         title="ICMS das Saídas"
         subtitle="Apuração, reconciliação e classificação fiscal de saídas"
-        headerActions={headerActions}
       >
         <Card className="mb-6 border-slate-200 shadow-sm">
           <CardHeader className="pb-4">
@@ -171,7 +163,9 @@ const IcmsSaidas = () => {
               <div className="md:col-span-4">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
-                    <span>Contribuinte</span>
+                    <span>
+                      Contribuinte <RequiredMark />
+                    </span>
                     <FieldTooltip text={ICMS_PAGE_TOOLTIPS.contribuinte} />
                   </span>
                 </label>
@@ -197,7 +191,9 @@ const IcmsSaidas = () => {
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
-                    <span>Data Início</span>
+                    <span>
+                      Data Início <RequiredMark />
+                    </span>
                     <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataInicio} />
                   </span>
                 </label>
@@ -229,7 +225,9 @@ const IcmsSaidas = () => {
               <div className="md:col-span-2">
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
-                    <span>Data Fim</span>
+                    <span>
+                      Data Fim <RequiredMark />
+                    </span>
                     <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataFim} />
                   </span>
                 </label>
@@ -298,12 +296,14 @@ const IcmsSaidas = () => {
                 <TabsTrigger
                   value={t.value}
                   className={cn(
-                    'relative h-10 text-sm font-semibold rounded-md',
+                    'relative isolate h-10 overflow-hidden text-sm font-semibold rounded-md border border-transparent',
                     'text-slate-600 dark:text-slate-300 bg-transparent',
                     'transition-all duration-300 ease-out',
-                    'hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
-                    'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground',
-                    'data-[state=active]:shadow-md data-[state=active]:shadow-primary/30',
+                    'hover:-translate-y-0.5 hover:border-primary/15 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
+                    'data-[state=active]:-translate-y-0.5 data-[state=active]:border-primary/15 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground',
+                    'data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30',
+                    'after:absolute after:inset-x-5 after:bottom-1.5 after:h-0.5 after:rounded-full after:bg-transparent after:transition-all after:duration-300',
+                    'hover:after:bg-white/70 data-[state=active]:after:bg-white/85 data-[state=active]:after:animate-pulse',
                   )}
                 >
                   {t.label}

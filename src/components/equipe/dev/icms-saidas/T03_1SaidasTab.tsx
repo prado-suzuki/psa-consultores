@@ -38,12 +38,14 @@ export const T03_1SaidasTab = ({
             <TabsTrigger
               value={t.value}
               className={cn(
-                'relative h-8 text-xs sm:text-sm font-medium rounded-sm bg-transparent',
+                'relative isolate h-8 overflow-hidden text-xs sm:text-sm font-medium rounded-sm border border-transparent bg-transparent',
                 'text-slate-600 dark:text-slate-300',
                 'transition-all duration-300 ease-out',
-                'hover:bg-primary hover:text-primary-foreground hover:shadow-sm hover:shadow-primary/20',
-                'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:font-semibold',
-                'data-[state=active]:shadow-sm data-[state=active]:shadow-primary/30',
+                'hover:-translate-y-0.5 hover:border-primary/10 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:shadow-primary/10',
+                'data-[state=active]:-translate-y-0.5 data-[state=active]:border-primary/15 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold',
+                'data-[state=active]:shadow-sm data-[state=active]:shadow-primary/15',
+                'after:absolute after:inset-x-4 after:bottom-1 after:h-0.5 after:rounded-full after:bg-transparent after:transition-all after:duration-300',
+                'hover:after:bg-primary/40 data-[state=active]:after:bg-primary data-[state=active]:after:animate-pulse',
               )}
             >
               {t.label}
