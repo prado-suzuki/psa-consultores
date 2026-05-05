@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>PSA Digital, Estrutura de Execução do Projeto OSG (v2)</title>
+<style>
+  :root{
+    --bg:#0b1220;--panel:#111a2e;--border:#1f2f54;
+    --ink:#e6edf7;--ink-soft:#9fb0cc;--muted:#6b7d9b;
+    --accent:#4f8cff;--accent-2:#22d3ee;
+    --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--gold:#d4af37;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Inter,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 28px 80px}
+  .hero{padding:48px;border-radius:18px;background:radial-gradient(800px 320px at 0% 0%,rgba(79,140,255,0.22),transparent 60%),linear-gradient(135deg,#0f1b35,#0b1220);border:1px solid var(--border);margin-bottom:36px}
+  .kicker{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent-2);font-weight:700;margin-bottom:10px}
+  h1{font-size:34px;margin:0 0 12px;font-weight:700;letter-spacing:-0.02em}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:780px;margin:0}
+  .path{display:inline-block;margin-top:18px;padding:8px 14px;border-radius:8px;background:rgba(79,140,255,0.12);border:1px solid rgba(79,140,255,0.3);font-family:"SF Mono","Consolas",monospace;font-size:13px;color:#c2d7ff}
+  h2{font-size:22px;margin:48px 0 14px;font-weight:700;display:flex;align-items:center;gap:12px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021;font-size:13px;font-weight:800}
+  h3{font-size:16px;margin:0 0 8px;font-weight:600}
+  .lead{color:var(--ink-soft);font-size:15px;margin:0 0 22px;max-width:920px}
+  .tree{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:28px;overflow-x:auto}
+  .tree-line{font-family:"SF Mono","Consolas",monospace;font-size:13.5px;line-height:1.85;display:flex;align-items:flex-start;gap:14px;padding:3px 0;border-radius:6px;transition:background .15s}
+  .tree-line:hover{background:rgba(255,255,255,0.025)}
+  .tree-folder{color:var(--ink);min-width:340px;flex-shrink:0}
+  .tree-folder .root{color:var(--accent-2);font-weight:700}
+  .tree-folder .lvl1{color:var(--gold)}
+  .tree-folder .lvl2{color:#c2d7ff}
+  .tree-folder .lvl3{color:var(--ink-soft)}
+  .tree-explain{color:var(--ink-soft);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;flex:1}
+  .tree-explain strong{color:var(--ink)}
+  .conv{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px}
+  .conv h3{margin-top:0}
+  .conv code{background:rgba(79,140,255,0.12);border:1px solid rgba(79,140,255,0.3);color:#c2d7ff;padding:2px 8px;border-radius:5px;font-family:"SF Mono","Consolas",monospace;font-size:12.5px;display:inline-block;margin:2px 0}
+  .conv ul{margin:8px 0 0;padding-left:20px;color:var(--ink-soft);font-size:14px}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:900px){.compare{grid-template-columns:1fr}}
+  .compare > div{padding:20px;border-radius:12px;border:1px solid var(--border)}
+  .compare .before{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.25)}
+  .compare .after{background:rgba(34,197,94,0.05);border-color:rgba(34,197,94,0.3)}
+  .before h4,.after h4{margin:0 0 12px;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
+  .before h4{color:#fca5a5}
+  .after h4{color:#7ee2a8}
+  .compare ul{margin:0;padding-left:20px;color:var(--ink-soft);font-size:13.5px;line-height:1.7}
+  .insights{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:28px}
+  @media (max-width:900px){.insights{grid-template-columns:1fr}}
+  .insight{padding:20px;background:var(--panel);border:1px solid var(--border);border-radius:12px;border-left:3px solid var(--accent-2)}
+  .insight .tag{font-size:10px;color:var(--accent-2);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px}
+  .insight h4{margin:0 0 8px;font-size:15px}
+  .insight p{margin:0;color:var(--ink-soft);font-size:13.5px}
+  .dim{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px}
+  @media (max-width:900px){.dim{grid-template-columns:1fr}}
+  .dim-card{padding:22px;border-radius:14px;background:linear-gradient(180deg,var(--panel),#0f1a32);border:1px solid var(--border)}
+  .dim-card .dn{font-size:11px;color:var(--accent-2);text-transform:uppercase;letter-spacing:2px;font-weight:700}
+  .dim-card h4{margin:8px 0 6px;font-size:17px;font-weight:700}
+  .dim-card .lab{color:var(--ink-soft);font-size:13.5px;margin:0 0 14px}
+  .dim-card ul{margin:0;padding-left:18px;color:var(--ink-soft);font-size:13px}
+  .dim-card ul li{margin-bottom:4px}
+  .dim-card.d1{border-top:3px solid #4f8cff}
+  .dim-card.d2{border-top:3px solid #d4af37}
+  .dim-card.d3{border-top:3px solid #22d3ee}
+  .step{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:12px;display:flex;gap:16px;align-items:flex-start}
+  .step .stepn{width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .step h3{margin:0 0 6px}
+  .step p{margin:0;color:var(--ink-soft);font-size:13.5px}
+  .step code{background:rgba(79,140,255,0.12);border:1px solid rgba(79,140,255,0.3);color:#c2d7ff;padding:2px 7px;border-radius:5px;font-family:"SF Mono","Consolas",monospace;font-size:12.5px}
+  .foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">PSA Digital · Cliente Interno · OSG · Versão 2 calibrada com base no Fiscal</div>
+  <h1>Estrutura de Execução do Projeto</h1>
+  <p class="sub">Desenho recalibrado depois de analisar o tree real do PSA_Fiscal. Tira o que não funcionou (Projetos vazio, Como Era × Como Ficou rígido) e preserva o que dá certo (triplo de mapeamento, dupla SOP, tripla de manual, área de trabalho com reuniões datadas).</p>
+  <span class="path">G:\Drives compartilhados\PSA Digital\03_Clientes_Internos\PSA_OSG</span>
+</div>
+
+<h2><span class="num">01</span>O que aprendi olhando o Fiscal</h2>
+<p class="lead">Antes de propor, contei onde os arquivos do Fiscal realmente estão e onde faltam. As quatro observações que mais pesaram no novo desenho.</p>
+
+<div class="insights">
+  <div class="insight">
+    <div class="tag">Observação 01</div>
+    <h4>A pasta 01_PROJETOS é um cemitério</h4>
+    <p>P4, P5, P6, P7, P8 têm o esqueleto inteiro (Especificação, Apresentação, Aprovações, Entregas) sem nenhum arquivo dentro. Toda a vida real acontece em 02_PROCESSOS. A divisão duplicou propósito e a metade superior morreu.</p>
+  </div>
+  <div class="insight">
+    <div class="tag">Observação 02</div>
+    <h4>Como Era × Como Ficou só funciona depois</h4>
+    <p>Em P2 SPED, P3 NCM, P3 CNPJ, P5 Saldos, P6 Distribuição, P7 DIFAL e outros o 02_COMO FICOU está com 6 subpastas vazias esperando uma migração. Quem entra na pasta vê um buraco e perde a referência.</p>
+  </div>
+  <div class="insight">
+    <div class="tag">Observação 03</div>
+    <h4>O que se repete e dá vida</h4>
+    <p>Quatro padrões aparecem em todos os processos vivos: triplo de mapeamento (MAPA + Tango + Fluxograma), dupla SOP (docx + pptx), tripla de manual (md + html + pdf), área de trabalho com reuniões datadas. Esses padrões precisam ser preservados.</p>
+  </div>
+  <div class="insight">
+    <div class="tag">Observação 04</div>
+    <h4>Onde está a iteração com o cliente</h4>
+    <p>Em P5 PERDCOMP, P6 Lovable, P6 Dashboards, P7 DIFAL, a 06_Area_Trabalho dentro de COMO FICOU concentra reuniões com data, anotações Alexandre, atas Gemini, redesigns. É lá que o trabalho vivo acontece.</p>
+  </div>
+</div>
+
+<h2><span class="num">02</span>Três dimensões separadas</h2>
+<p class="lead">A equipe trabalha em três modos que não são a mesma coisa: descobrir, construir, executar no tempo. No Fiscal os três foram empurrados pra mesma pasta. No OSG vão ficar separados.</p>
+
+<div class="dim">
+  <div class="dim-card d1">
+    <div class="dn">Dimensão 1 · Conhecimento</div>
+    <h4>Descobrir o AS-IS</h4>
+    <p class="lab">Como cada bloco de trabalho da OSG funciona hoje. Aqui mora o saber.</p>
+    <ul>
+      <li>00_Briefing</li>
+      <li>01_Mapeamento_Processos</li>
+      <li>02_Diagnostico_Estrategico</li>
+    </ul>
+  </div>
+  <div class="dim-card d2">
+    <div class="dn">Dimensão 2 · Produto</div>
+    <h4>Construir as ferramentas</h4>
+    <p class="lab">Cada ferramenta é um produto autocontido com ciclo próprio.</p>
+    <ul>
+      <li>03_Roadmap_e_Backlog</li>
+      <li>04_Ferramentas (com 7 subpastas-padrão)</li>
+    </ul>
+  </div>
+  <div class="dim-card d3">
+    <div class="dn">Dimensão 3 · Tempo</div>
+    <h4>Executar em ciclos</h4>
+    <p class="lab">Sprints, comunicação com sócios, indicadores e handover seguem o calendário.</p>
+    <ul>
+      <li>05_Sprints</li>
+      <li>06_Stakeholders_e_Comunicacao</li>
+      <li>07_Indicadores_ROI</li>
+      <li>08_Handover</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="num">03</span>Antes (Fiscal) × Depois (OSG)</h2>
+
+<div class="compare">
+  <div class="before">
+    <h4>O que tinha problema no Fiscal</h4>
+    <ul>
+      <li>01_PROJETOS com 5+ projetos esqueletos vazios</li>
+      <li>02_PROCESSOS forçando Como Era × Como Ficou em todos</li>
+      <li>02_COMO FICOU com 6 subpastas vazias por meses</li>
+      <li>Sprints e ferramentas misturadas em pastas de processo</li>
+      <li>_Backlog solto no fim, sem ligação com priorização</li>
+      <li>Identidade visual num lugar inesperado, dentro do P9 Onboarding</li>
+    </ul>
+  </div>
+  <div class="after">
+    <h4>O que muda no OSG</h4>
+    <ul>
+      <li>Projetos some como camada própria, vira pasta de Ferramentas com vida</li>
+      <li>01_Mapeamento_Processos preserva os 5 blocos que funcionam</li>
+      <li>Pasta de ferramenta só nasce quando há ferramenta de fato</li>
+      <li>Sprints como dimensão temporal separada (05_Sprints)</li>
+      <li>_Backlog dentro do 03_Roadmap_e_Backlog, ligado à matriz de priorização</li>
+      <li>Identidade Visual no 00_Briefing, junto com contexto e stakeholders</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="num">04</span>Estrutura completa</h2>
+<p class="lead">Com os templates dentro de cada bloco que viraliza, três template-pastas marcadas com underline (_TEMPLATE_PROCESSO, _TEMPLATE_FERRAMENTA, _TEMPLATE_SPRINT) que a equipe copia quando começa algo novo.</p>
+
+<div class="tree">
+  <div class="tree-line"><div class="tree-folder"><span class="root">📁 PSA_OSG/</span></div><div class="tree-explain">Raiz do cliente interno OSG.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">📋 00_Briefing/</span></div><div class="tree-explain"><strong>Setup do cliente interno.</strong> Contexto, stakeholders, documentos originais (cargos OSG, processos atuais), identidade visual da PSA.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🔍 01_Mapeamento_Processos/</span></div><div class="tree-explain"><strong>AS-IS dos blocos de trabalho da OSG.</strong> Substitui o 02_PROCESSOS do Fiscal sem o binário Como Era / Como Ficou.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">_TEMPLATE_PROCESSO/</span></div><div class="tree-explain">Esqueleto com os 5 padrões que funcionam: MAPA, Tango, Fluxogramas, Documentos_Exemplo, SOP, Notas.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">01_DP_Diagnostico_Patrimonial/</span></div><div class="tree-explain">Bloco de maior frequência. Recebe o template-padrão.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">02_WP_Socios/</span></div><div class="tree-explain">Qualificação, organograma, riscos sucessórios.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">03_Atas_e_Alteracoes_Contratuais/</span></div><div class="tree-explain">Bloco mais frequente da operação OSG.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">04_Contrato_Estatuto_Social/</span></div><div class="tree-explain">Constituição e integralização de bens.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">05_Cisao_Fusao_Incorporacao/</span></div><div class="tree-explain">Reorganização societária, alta complexidade.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">06_Instrumentos_Agrarios/</span></div><div class="tree-explain">Parceria, comodato, arrendamento, encerramento de safra.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">07_ITCD_e_Sucessorios/</span></div><div class="tree-explain">Cálculo, doações, testamentos.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">08_Diagnostico_Tributario/</span></div><div class="tree-explain">Comparativo de regimes (LR, LP, Rural).</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">09_Apresentacoes_de_Projeto/</span></div><div class="tree-explain">pptx inicial, execução e final.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🎯 02_Diagnostico_Estrategico/</span></div><div class="tree-explain"><strong>A fase atual.</strong> Análise estratégica entregue, forms enviados, entrevistas a marcar.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Analise_Estrategica/</span></div><div class="tree-explain">O HTML que entreguei vai ser copiado pra cá.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Forms/</span></div><div class="tree-explain">Configuração (.gs), Respostas Sócios, Seniores, Assistentes.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Entrevistas_1on1/</span></div><div class="tree-explain">Subpasta por pessoa: Fernando, Cuba, Seniores, Assistentes.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">Relatorio_Final/</span></div><div class="tree-explain">Consolidação para apresentar no final do Mês 1.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🗺️ 03_Roadmap_e_Backlog/</span></div><div class="tree-explain"><strong>Priorização e backlog.</strong> Inclui o _Backlog que no Fiscal vivia solto na raiz dos projetos.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Matriz_Impacto_Esforco/</span></div><div class="tree-explain">A matriz que está na análise estratégica vira viva aqui.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Roadmap_Visual/</span></div><div class="tree-explain">Cronograma de 6 sprints em formato visual.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">_Backlog_Futuras_Ferramentas/</span></div><div class="tree-explain">Ideias que ficaram fora da Wave 1 e 2.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🛠️ 04_Ferramentas/</span></div><div class="tree-explain"><strong>Cada ferramenta é um produto autocontido.</strong> 7 subpastas espelham o ciclo de P5 PERDCOMP e P6 Dashboards do Fiscal, que funciona.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">_TEMPLATE_FERRAMENTA/</span></div><div class="tree-explain">Esqueleto com 7 fases.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">01_Especificacao/</span></div><div class="tree-explain">Spec, requisitos, decisões de design.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">02_Fluxograma_TOBE/</span></div><div class="tree-explain">Como o processo fica depois da ferramenta.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">03_Build/</span></div><div class="tree-explain">Arquivos em construção (códigos, planilhas, modelos).</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">04_Validacao_Equipe_OSG/</span></div><div class="tree-explain">Testes com a equipe-cliente, feedback estruturado.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">05_Manual/</span></div><div class="tree-explain">Trio de manual final (md + html + pdf), padrão Fiscal.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">06_Entregas/</span></div><div class="tree-explain">Versões liberadas, controle de release.</div></div>
+  <div class="tree-line"><div class="tree-folder">│     └─ <span class="lvl3">07_Area_Trabalho/</span></div><div class="tree-explain">Reuniões datadas, atas Gemini, anotações por participante. É onde a iteração viva acontece.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🏃 05_Sprints/</span></div><div class="tree-explain"><strong>Dimensão temporal.</strong> Cada sprint autocontido com 5 subpastas.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">_TEMPLATE_SPRINT/</span></div><div class="tree-explain">Planejamento, Execução, Entregas, Retrospectiva, Demo Sócios.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">💬 06_Stakeholders_e_Comunicacao/</span></div><div class="tree-explain"><strong>Material com cliente interno.</strong> Apresentações sócios, atas, comunicação com equipe OSG.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">📈 07_Indicadores_ROI/</span></div><div class="tree-explain"><strong>Mensuração.</strong> Baseline, medições Wave 1 e 2, relatórios mensais.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🎓 08_Handover/</span></div><div class="tree-explain"><strong>Entrega final.</strong> Manuais, treinamento, documentação técnica para a OSG sustentar sozinha.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">└─ <span class="lvl1">📝 _Scratch/</span></div><div class="tree-explain"><strong>Espaço livre da equipe da PSA Digital.</strong> Não é compartilhado com a OSG.</div></div>
+</div>
+
+<h2><span class="num">05</span>Convenção de nomes</h2>
+
+<div class="conv">
+  <h3>Sprint</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato: <code>S[NN]_AAAA-MM_Tema</code></p>
+  <p style="color:var(--ink-soft);margin:6px 0 0;font-size:14px">Exemplo: <code>S01_2026-04_Diagnostico_Inicial</code></p>
+</div>
+
+<div class="conv">
+  <h3>Ferramenta</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato: <code>F[NN]_NomeCurto</code></p>
+  <p style="color:var(--ink-soft);margin:6px 0 0;font-size:14px">Exemplo: <code>F01_DP_Inteligente</code></p>
+</div>
+
+<div class="conv">
+  <h3>Reunião com OSG</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato: <code>AAAA-MM-DD_Tipo_Reuniao_OSG.ext</code></p>
+  <p style="color:var(--ink-soft);margin:6px 0 0;font-size:14px">Exemplo: <code>2026-05-12_Validacao_DP_OSG.docx</code></p>
+</div>
+
+<div class="conv">
+  <h3>Outros arquivos</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato: <code>AAAA-MM-DD_Tema_TipoDoc_v[N].extensao</code></p>
+  <ul>
+    <li><code>2026-04-27_OSG_Analise_Estrategica_v1.html</code></li>
+    <li><code>2026-06-10_OSG_DP_Inteligente_Spec_v2.docx</code></li>
+  </ul>
+</div>
+
+<h2><span class="num">06</span>Como subir tudo no Drive compartilhado</h2>
+
+<div class="step">
+  <div class="stepn">1</div>
+  <div>
+    <h3>Abrir o PowerShell</h3>
+    <p>Win+R, digita <code>powershell</code>, Enter.</p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="stepn">2</div>
+  <div>
+    <h3>Ir até a pasta do script</h3>
+    <p><code>cd "C:\Users\Patricia Melo\psa-consultores"</code></p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="stepn">3</div>
+  <div>
+    <h3>Liberar e executar</h3>
+    <p><code>Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code></p>
+    <p><code>.\Estruturar_PSA_OSG.ps1</code></p>
+    <p style="margin-top:10px">O script cria todas as pastas no <code>G:\</code>, gera os LEIA-MEs nas pastas-template, e copia a análise estratégica e o .gs do forms pros lugares certos dentro de <code>02_Diagnostico_Estrategico</code>.</p>
+  </div>
+</div>
+
+<div class="foot">
+  PSA Digital · Coordenação Patrícia Melo · Versão 2 · Calibrada com base no PSA_Fiscal · Abril de 2026
+</div>
+
+</div>
+</body>
+</html>

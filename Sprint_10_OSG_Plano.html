@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sprint 10 OSG · 11 a 22 de Maio</title>
+<style>
+  :root{
+    --bg:#0b1220;--bg-2:#0f172a;--panel:#111a2e;--panel-2:#152340;
+    --border:#1f2f54;--ink:#e6edf7;--ink-soft:#9fb0cc;--muted:#6b7d9b;
+    --accent:#4f8cff;--accent-2:#22d3ee;
+    --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--gold:#d4af37;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:40px 28px 80px}
+  /* Header */
+  .hero{position:relative;padding:48px;border-radius:20px;background:radial-gradient(1200px 400px at 0% 0%, rgba(79,140,255,0.25), transparent 60%),radial-gradient(800px 300px at 100% 100%, rgba(212,175,55,0.18), transparent 60%),linear-gradient(135deg,#0f1b35,#0b1220);border:1px solid var(--border);overflow:hidden}
+  .kicker{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent-2);font-weight:700;margin-bottom:12px}
+  h1{font-size:38px;line-height:1.15;margin:0 0 12px;font-weight:700;letter-spacing:-0.02em}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:860px;margin:0}
+  .meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.08)}
+  .meta > div{font-size:13px;color:var(--ink-soft)}
+  .meta strong{display:block;color:var(--ink);font-size:14px;margin-bottom:2px;font-weight:600}
+  /* Sections */
+  section{margin-top:48px}
+  h2{font-size:24px;margin:0 0 8px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;gap:14px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021;font-size:14px;font-weight:800}
+  h3{font-size:16px;margin:0 0 10px;font-weight:600;color:var(--ink)}
+  .lead{color:var(--ink-soft);font-size:15px;margin:0 0 22px;max-width:920px}
+  /* KPIs */
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  .kpi{padding:22px;border-radius:14px;background:var(--panel);border:1px solid var(--border);position:relative;overflow:hidden}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .kpi .val{font-size:28px;font-weight:700;margin-top:6px;letter-spacing:-0.02em}
+  .kpi .desc{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .kpi::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+  @media (max-width:960px){.grid-2,.grid-3,.kpis{grid-template-columns:1fr}}
+  /* Card */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px}
+  /* Pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+  .pill.ok{background:rgba(34,197,94,0.15);color:#7ee2a8;border:1px solid rgba(34,197,94,0.3)}
+  .pill.warn{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+  .pill.bad{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+  .pill.info{background:rgba(79,140,255,0.15);color:#93b6ff;border:1px solid rgba(79,140,255,0.3)}
+  .pill.gold{background:rgba(212,175,55,0.15);color:#e3c664;border:1px solid rgba(212,175,55,0.3)}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;padding:12px 14px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:top}
+  tr:hover td{background:rgba(255,255,255,0.015)}
+  /* Backlog cards */
+  .backlog{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+  @media (max-width:960px){.backlog{grid-template-columns:1fr}}
+  .bcard{padding:20px;background:var(--panel);border:1px solid var(--border);border-radius:14px;border-left:3px solid var(--accent-2)}
+  .bcard.p1{border-left-color:var(--bad)}
+  .bcard.p2{border-left-color:var(--warn)}
+  .bcard.p3{border-left-color:var(--accent-2)}
+  .bcard.p4{border-left-color:var(--ok)}
+  .bcard h3{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+  .bcard .bid{font-size:11px;color:var(--accent-2);text-transform:uppercase;letter-spacing:2px;font-weight:700;margin-bottom:6px}
+  .bcard p{margin:0 0 10px;color:var(--ink-soft);font-size:13.5px}
+  .bcard .stats{display:flex;gap:14px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-size:12px;color:var(--muted)}
+  .bcard .stats span strong{color:var(--ink);font-size:13px}
+  /* Calendar */
+  .cal{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:14px}
+  @media (max-width:960px){.cal{grid-template-columns:repeat(2,1fr)}}
+  .day{padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:12px;min-height:160px;position:relative}
+  .day .dh{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)}
+  .day .ddate{font-size:18px;font-weight:700;color:var(--ink)}
+  .day .ddow{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:600}
+  .day ul{margin:0;padding-left:14px;color:var(--ink-soft);font-size:11.5px;line-height:1.55}
+  .day ul li{margin-bottom:4px}
+  .day.demo{background:linear-gradient(180deg,rgba(212,175,55,0.08),var(--panel));border-color:rgba(212,175,55,0.3)}
+  .day.kickoff{background:linear-gradient(180deg,rgba(79,140,255,0.1),var(--panel));border-color:rgba(79,140,255,0.4)}
+  .day.retro{background:linear-gradient(180deg,rgba(34,211,238,0.06),var(--panel));border-color:rgba(34,211,238,0.3)}
+  .week-tag{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent-2);font-weight:700;margin:18px 0 10px}
+  /* Roadmap mini */
+  .roadmap{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .rm-item{flex:1;min-width:150px;padding:14px;background:var(--panel);border:1px solid var(--border);border-radius:10px;text-align:center;position:relative;opacity:0.45}
+  .rm-item.done{opacity:0.8;border-color:var(--ok)}
+  .rm-item.now{opacity:1;border:2px solid var(--gold);background:linear-gradient(180deg,rgba(212,175,55,0.12),var(--panel));box-shadow:0 0 20px rgba(212,175,55,0.15)}
+  .rm-item .rm-tag{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
+  .rm-item.done .rm-tag{color:#7ee2a8}
+  .rm-item.now .rm-tag{color:var(--gold)}
+  .rm-item .rm-title{font-size:13px;color:var(--ink);font-weight:600;margin-bottom:4px}
+  .rm-item .rm-period{font-size:11px;color:var(--muted)}
+  /* Risk */
+  .risk{display:flex;gap:14px;padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;border-left:3px solid var(--bad)}
+  .risk .icon{width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.15);color:#fca5a5;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;font-size:13px}
+  .risk h4{margin:0 0 4px;font-size:14px;font-weight:600}
+  .risk p{margin:0;color:var(--ink-soft);font-size:13px}
+  .risk .miti{margin-top:6px;font-size:12px;color:#93b6ff;font-style:italic}
+  /* Goal */
+  .goal{padding:22px;border-radius:14px;background:linear-gradient(135deg,rgba(79,140,255,0.06),rgba(34,211,238,0.04));border:1px solid var(--border);border-left:3px solid var(--accent-2)}
+  .goal h3{margin:0 0 8px;color:var(--accent-2);font-size:13px;text-transform:uppercase;letter-spacing:2px}
+  .goal p{margin:0;color:var(--ink);font-size:16px;font-style:italic;line-height:1.6}
+  /* Meeting list */
+  .mtg{padding:14px 18px;background:var(--panel);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;display:flex;gap:18px;align-items:center}
+  .mtg .mdate{min-width:90px;font-size:12px;color:var(--accent-2);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .mtg .mtitle{flex:1;font-size:13.5px;color:var(--ink);font-weight:600}
+  .mtg .mwho{font-size:12px;color:var(--ink-soft)}
+  /* Footer */
+  .foot{margin-top:48px;padding-top:24px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;text-align:center}
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap;gap:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="kicker">PSA · TRANSFORMAÇÃO DIGITAL · OSG · SPRINT 10</div>
+  <h1>Sprint 10 · Mapeamento AS-IS dos Processos Prioritários<br><span style="color:var(--accent-2);font-weight:500;font-size:24px">11 a 22 de Maio · 10 dias úteis · 2 semanas</span></h1>
+  <p class="sub">Primeira sprint de execução real do projeto OSG. O Kickoff já foi apresentado aos sócios (30/04) e aos seniores (07/05). A lista priorizada de processos para mapear será validada com os sócios entre 08 e 09/05. A Sprint 10 começa com prioridade aprovada e foca em mergulhar nos processos AS-IS junto com a equipe da OSG.</p>
+  <div class="meta">
+    <div><strong>Coordenação</strong>Patrícia Melo · Transformação Digital PSA</div>
+    <div><strong>Equipe envolvida</strong>2 sócios · 6 seniores · 3 assistentes (OSG)</div>
+    <div><strong>Demo aos sócios</strong>22/05 (sexta) · fim da Sprint</div>
+    <div><strong>Próxima sprint</strong>S11 · 25/05 a 05/06</div>
+  </div>
+</div>
+
+<!-- LOCALIZAÇÃO NO ROADMAP -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">01</span>Onde estamos no roadmap</h2>
+      <p class="lead">A Sprint 10 abre a fase de mapeamento detalhado. É a primeira sprint pós-validação dos sócios.</p>
+    </div>
+  </div>
+  <div class="roadmap">
+    <div class="rm-item done">
+      <div class="rm-tag">Concluído</div>
+      <div class="rm-title">Diagnóstico</div>
+      <div class="rm-period">Abr · 11 vozes</div>
+    </div>
+    <div class="rm-item done">
+      <div class="rm-tag">Concluído</div>
+      <div class="rm-title">Kickoff Sócios</div>
+      <div class="rm-period">30/04</div>
+    </div>
+    <div class="rm-item done">
+      <div class="rm-tag">Esta semana</div>
+      <div class="rm-title">Kickoff Seniores</div>
+      <div class="rm-period">07/05 quinta</div>
+    </div>
+    <div class="rm-item done">
+      <div class="rm-tag">Esta semana</div>
+      <div class="rm-title">Validar prioridades</div>
+      <div class="rm-period">08-09/05 com sócios</div>
+    </div>
+    <div class="rm-item now">
+      <div class="rm-tag">★ Sprint 10 atual</div>
+      <div class="rm-title">Mapeamento AS-IS</div>
+      <div class="rm-period">11/05 a 22/05</div>
+    </div>
+    <div class="rm-item">
+      <div class="rm-tag">Próxima</div>
+      <div class="rm-title">Sprint 11</div>
+      <div class="rm-period">25/05 a 05/06</div>
+    </div>
+    <div class="rm-item">
+      <div class="rm-tag">Junho-Julho</div>
+      <div class="rm-title">Wave 1 · Construção</div>
+      <div class="rm-period">F01 a F04</div>
+    </div>
+    <div class="rm-item">
+      <div class="rm-tag">Agosto</div>
+      <div class="rm-title">Buffer + Handover</div>
+      <div class="rm-period">Encerramento</div>
+    </div>
+  </div>
+</section>
+
+<!-- OBJETIVO DA SPRINT -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">02</span>Objetivo da Sprint</h2>
+      <p class="lead">Uma frase que orienta as decisões dos próximos 10 dias.</p>
+    </div>
+  </div>
+  <div class="goal">
+    <h3>Sprint Goal</h3>
+    <p>"Entregar mapeamento AS-IS completo de pelo menos 2 processos prioritários (DP e WP Sócios), com fluxograma desenhado, SOP versionado, documentos-exemplo coletados, oportunidades de automação identificadas e validadas pela equipe da OSG. Demonstrar aos sócios na sexta 22/05 com base concreta para iniciar a Wave 1 em junho."</p>
+  </div>
+</section>
+
+<!-- METAS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">03</span>Metas Mensuráveis</h2>
+      <p class="lead">Como saberemos que a Sprint cumpriu o objetivo.</p>
+    </div>
+  </div>
+  <div class="grid kpis">
+    <div class="kpi">
+      <div class="label">Processos mapeados AS-IS</div>
+      <div class="val">2 de 4</div>
+      <div class="desc">DP e WP Sócios completos. Atas e Cálculos iniciados.</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Entrevistas 1:1</div>
+      <div class="val">5 entrevistas</div>
+      <div class="desc">Anne, Karlene, Daniela, Maritsa, mais 1 senior a definir</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Documentos-exemplo coletados</div>
+      <div class="val">≥ 12 amostras</div>
+      <div class="desc">3 por processo (DP, WP, Atas) + base de minutas</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Oportunidades validadas</div>
+      <div class="val">≥ 8</div>
+      <div class="desc">Pontos de automação identificados e priorizados pela equipe</div>
+    </div>
+  </div>
+</section>
+
+<!-- BACKLOG -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">04</span>Backlog Priorizado</h2>
+      <p class="lead">10 itens distribuídos nos 10 dias úteis. Prioridade P1 entrega antes do meio da sprint para liberar dependências.</p>
+    </div>
+  </div>
+  <div class="backlog">
+
+    <div class="bcard p1">
+      <div class="bid">B01 · P1</div>
+      <h3>Sprint Planning + alinhamento com a equipe<span class="pill bad">P1</span></h3>
+      <p>Reunião de abertura da sprint com toda a equipe da OSG (sócios, seniores, assistentes). Apresentar objetivos, processos selecionados, agenda e critérios de pronto. 60 min.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> Seg 11/05</span>
+        <span><strong>Resp.</strong> Patrícia</span>
+        <span><strong>Esforço</strong> 1h</span>
+      </div>
+    </div>
+
+    <div class="bcard p1">
+      <div class="bid">B02 · P1</div>
+      <h3>Mapeamento AS-IS · Diagnóstico Patrimonial<span class="pill bad">P1</span></h3>
+      <p>Mapeamento detalhado do processo de DP usando triplo MAPA (D.A.T.A.S) + Tango.us para gravar passo a passo + fluxograma. Foco em análise de matrículas, ITR, CCIR, escrituras (parte mais trabalhosa apontada pelos 5 níveis).</p>
+      <div class="stats">
+        <span><strong>Quando</strong> 12 a 15/05</span>
+        <span><strong>Resp.</strong> Patrícia + Karlene + Daniela</span>
+        <span><strong>Esforço</strong> 14h</span>
+      </div>
+    </div>
+
+    <div class="bcard p1">
+      <div class="bid">B03 · P1</div>
+      <h3>Entrevista 1:1 · Anne (10+ anos)<span class="pill bad">P1</span></h3>
+      <p>Entrevista aprofundada com Anne (senior). Foco em validar a H6 ressuscitada (Cálculo ITCD e instrumentos sucessórios). Ela citou explicitamente esses dois temas no formulário. Levantar processo atual em detalhe.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> Ter 12/05</span>
+        <span><strong>Resp.</strong> Patrícia + Anne</span>
+        <span><strong>Esforço</strong> 1.5h</span>
+      </div>
+    </div>
+
+    <div class="bcard p2">
+      <div class="bid">B04 · P2</div>
+      <h3>Mapeamento AS-IS · WP Sócios<span class="pill warn">P2</span></h3>
+      <p>Processo de qualificação de sócios e organograma familiar. Inclui levantamento de estado civil, regime de bens, riscos sucessórios. Time atual gasta de 2h a 1 dia (varia muito) por cliente.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> 14 a 18/05</span>
+        <span><strong>Resp.</strong> Patrícia + Maritsa</span>
+        <span><strong>Esforço</strong> 10h</span>
+      </div>
+    </div>
+
+    <div class="bcard p2">
+      <div class="bid">B05 · P2</div>
+      <h3>Entrevista 1:1 · Daniela (Assistente C)<span class="pill warn">P2</span></h3>
+      <p>Daniela é a única que se identifica como "saturada" (perde prazo quase toda semana). Faz DP de ponta a ponta + instrumentos agrários 30-40% do tempo. Validar a H1 dor silenciosa de carga de assistentes.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> Qua 13/05</span>
+        <span><strong>Resp.</strong> Patrícia + Daniela</span>
+        <span><strong>Esforço</strong> 1h</span>
+      </div>
+    </div>
+
+    <div class="bcard p2">
+      <div class="bid">B06 · P2</div>
+      <h3>Coleta de documentos-exemplo<span class="pill warn">P2</span></h3>
+      <p>3 amostras reais por processo (DP, WP, Atas). Anonimizadas. Servirão de base para a biblioteca de modelos da Wave 1 e como insumo para validação dos templates inteligentes.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> 12 a 21/05</span>
+        <span><strong>Resp.</strong> Equipe OSG</span>
+        <span><strong>Esforço</strong> 6h</span>
+      </div>
+    </div>
+
+    <div class="bcard p3">
+      <div class="bid">B07 · P3</div>
+      <h3>Setup inicial da Lovable para OSG<span class="pill info">P3</span></h3>
+      <p>Configuração da plataforma já construída no Fiscal. Criar workspace OSG, importar lista de projetos atuais, mapear papéis (sócio, senior, assistente A/B/C), preparar 7 indicadores do Cuba para a Wave 2.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> 18 a 21/05</span>
+        <span><strong>Resp.</strong> Patrícia + IAplicada</span>
+        <span><strong>Esforço</strong> 8h</span>
+      </div>
+    </div>
+
+    <div class="bcard p3">
+      <div class="bid">B08 · P3</div>
+      <h3>Iniciar mapeamento de Atas e Alterações<span class="pill info">P3</span></h3>
+      <p>Bloco mais frequente da OSG (citado por 4 dos 6 seniores). Mesmo método (triplo MAPA + Tango + Fluxograma). Ficará incompleto na Sprint 10 e fecha na Sprint 11.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> 19 a 22/05</span>
+        <span><strong>Resp.</strong> Patrícia + Jakeline + Anne</span>
+        <span><strong>Esforço</strong> 6h</span>
+      </div>
+    </div>
+
+    <div class="bcard p4">
+      <div class="bid">B09 · P4</div>
+      <h3>Workshop de oportunidades com a equipe<span class="pill ok">P4</span></h3>
+      <p>Sessão colaborativa de 2h com seniores e assistentes para revisar os mapeamentos AS-IS e identificar oportunidades de automação. Saída: lista priorizada de melhorias por processo.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> Qui 21/05</span>
+        <span><strong>Resp.</strong> Patrícia + 6 seniores + 3 assistentes</span>
+        <span><strong>Esforço</strong> 2h</span>
+      </div>
+    </div>
+
+    <div class="bcard p4">
+      <div class="bid">B10 · P4</div>
+      <h3>Demo aos sócios + Retrospectiva<span class="pill ok">P4</span></h3>
+      <p>Apresentação dos AS-IS, oportunidades validadas, ajustes de roadmap. Em seguida, retrospectiva interna da equipe da PSA Digital para preparar Sprint 11.</p>
+      <div class="stats">
+        <span><strong>Quando</strong> Sex 22/05</span>
+        <span><strong>Resp.</strong> Patrícia · sócios · IAplicada</span>
+        <span><strong>Esforço</strong> 2.5h</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- CRONOGRAMA DIÁRIO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">05</span>Cronograma Dia a Dia</h2>
+      <p class="lead">Distribuição visual dos 10 dias úteis. As cores destacam marcos importantes: planning, demo e retrospectiva.</p>
+    </div>
+  </div>
+
+  <div class="week-tag">Semana 1 · 11 a 15 de Maio · Mergulho inicial</div>
+  <div class="cal">
+    <div class="day kickoff">
+      <div class="dh"><div class="ddate">11</div><div class="ddow">Seg · maio</div></div>
+      <ul>
+        <li><strong>Sprint Planning</strong> (10h, 1h)</li>
+        <li>Apresentação roadmap atualizado à equipe</li>
+        <li>Acordos da sprint</li>
+        <li>Daily às 9h durante toda a sprint</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">12</div><div class="ddow">Ter</div></div>
+      <ul>
+        <li>Início mapeamento DP (Karlene)</li>
+        <li>Entrevista 1:1 Anne (14h, 1.5h) · foco H6 cálculos</li>
+        <li>Tango.us das primeiras etapas do DP</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">13</div><div class="ddow">Qua</div></div>
+      <ul>
+        <li>Mapeamento DP continua</li>
+        <li>Entrevista 1:1 Daniela (15h, 1h) · validar saturação assistente C</li>
+        <li>Coleta de 3 amostras DP de clientes reais</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">14</div><div class="ddow">Qui</div></div>
+      <ul>
+        <li>Início mapeamento WP Sócios (Maritsa)</li>
+        <li>Continua mapeamento DP</li>
+        <li>Primeira versão do fluxograma DP</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">15</div><div class="ddow">Sex</div></div>
+      <ul>
+        <li><strong>Fechamento DP</strong> (AS-IS completo)</li>
+        <li>Validação fluxograma com Karlene + Anne</li>
+        <li>Review da semana com a equipe (15min)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="week-tag">Semana 2 · 18 a 22 de Maio · Consolidação e demo</div>
+  <div class="cal">
+    <div class="day">
+      <div class="dh"><div class="ddate">18</div><div class="ddow">Seg</div></div>
+      <ul>
+        <li>Continuar mapeamento WP Sócios</li>
+        <li><strong>Setup Lovable OSG</strong> (workspace + importação)</li>
+        <li>Entrevista 1:1 a definir (5º senior)</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">19</div><div class="ddow">Ter</div></div>
+      <ul>
+        <li>Início mapeamento Atas e Alterações</li>
+        <li>Lovable: configuração de papéis</li>
+        <li>Coleta de amostras de minutas</li>
+      </ul>
+    </div>
+    <div class="day">
+      <div class="dh"><div class="ddate">20</div><div class="ddow">Qua</div></div>
+      <ul>
+        <li><strong>Fechamento WP Sócios</strong> (AS-IS completo)</li>
+        <li>Continua mapeamento Atas</li>
+        <li>Lovable: 7 indicadores do Cuba</li>
+      </ul>
+    </div>
+    <div class="day retro">
+      <div class="dh"><div class="ddate">21</div><div class="ddow">Qui</div></div>
+      <ul>
+        <li><strong>Workshop de oportunidades</strong> (14h, 2h)</li>
+        <li>Toda a equipe da OSG</li>
+        <li>Saída: lista priorizada por processo</li>
+      </ul>
+    </div>
+    <div class="day demo">
+      <div class="dh"><div class="ddate">22</div><div class="ddow">Sex</div></div>
+      <ul>
+        <li><strong>Demo aos sócios</strong> (10h, 1h)</li>
+        <li>Apresentação AS-IS + oportunidades</li>
+        <li><strong>Retrospectiva PSA Digital</strong> (15h, 1h)</li>
+        <li>Encerramento Sprint 10</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- REUNIÕES -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">06</span>Reuniões da Sprint</h2>
+      <p class="lead">5 reuniões formais marcadas. Daily às 9h não está listada (15 min, virtual).</p>
+    </div>
+  </div>
+
+  <div class="mtg">
+    <div class="mdate">11/05 Seg<br>10h-11h</div>
+    <div class="mtitle">Sprint Planning</div>
+    <div class="mwho">Toda a equipe OSG · Patrícia conduz</div>
+  </div>
+  <div class="mtg">
+    <div class="mdate">12/05 Ter<br>14h-15h30</div>
+    <div class="mtitle">Entrevista 1:1 com Anne (foco H6 cálculos)</div>
+    <div class="mwho">Anne + Patrícia</div>
+  </div>
+  <div class="mtg">
+    <div class="mdate">13/05 Qua<br>15h-16h</div>
+    <div class="mtitle">Entrevista 1:1 com Daniela (foco saturação)</div>
+    <div class="mwho">Daniela + Patrícia</div>
+  </div>
+  <div class="mtg">
+    <div class="mdate">21/05 Qui<br>14h-16h</div>
+    <div class="mtitle">Workshop de Oportunidades (validação AS-IS)</div>
+    <div class="mwho">6 seniores + 3 assistentes + Patrícia</div>
+  </div>
+  <div class="mtg">
+    <div class="mdate">22/05 Sex<br>10h-11h</div>
+    <div class="mtitle">Demo aos Sócios (Fernando e Cuba)</div>
+    <div class="mwho">Sócios + Patrícia + IAplicada</div>
+  </div>
+  <div class="mtg">
+    <div class="mdate">22/05 Sex<br>15h-16h</div>
+    <div class="mtitle">Retrospectiva interna PSA Digital</div>
+    <div class="mwho">Patrícia + equipe Transformação Digital</div>
+  </div>
+</section>
+
+<!-- ENTREGAS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">07</span>Entregas Esperadas</h2>
+      <p class="lead">Tudo vai parar na pasta <code style="background:rgba(79,140,255,0.12);padding:2px 8px;border-radius:5px;font-size:12px">G:\PSA Digital\03_Clientes_Internos\PSA_OSG\05_Sprints\S10_2026-05_Mapeamento_ASIS\</code> seguindo a estrutura do template de sprint.</p>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <table>
+      <thead>
+        <tr><th style="width:120px">Pasta</th><th>Entregável</th><th style="width:140px">Formato</th><th style="width:120px">Status alvo</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>01_Planejamento</strong></td><td>Plano de Sprint (este painel + ata do planning)</td><td>HTML + DOCX</td><td><span class="pill ok">D1</span></td></tr>
+        <tr><td><strong>01_Planejamento</strong></td><td>Backlog priorizado com 10 itens</td><td>XLSX ou Lovable</td><td><span class="pill ok">D1</span></td></tr>
+        <tr><td rowspan="4"><strong>02_Execucao</strong></td><td>Mapeamento AS-IS Diagnóstico Patrimonial (triplo MAPA)</td><td>TXT + PDF + PNG</td><td><span class="pill warn">D5</span></td></tr>
+        <tr><td>Mapeamento AS-IS WP Sócios (triplo MAPA)</td><td>TXT + PDF + PNG</td><td><span class="pill warn">D8</span></td></tr>
+        <tr><td>Atas das 3 entrevistas 1:1 + transcrições</td><td>DOCX</td><td><span class="pill warn">D7</span></td></tr>
+        <tr><td>12+ documentos-exemplo coletados (anonimizados)</td><td>Originais</td><td><span class="pill warn">D9</span></td></tr>
+        <tr><td><strong>03_Entregas</strong></td><td>Lista priorizada de oportunidades de automação</td><td>XLSX</td><td><span class="pill warn">D9</span></td></tr>
+        <tr><td><strong>03_Entregas</strong></td><td>Workspace OSG configurado na Lovable</td><td>Plataforma</td><td><span class="pill warn">D10</span></td></tr>
+        <tr><td><strong>04_Retrospectiva</strong></td><td>Ata da retro + ações para Sprint 11</td><td>MD</td><td><span class="pill warn">D10</span></td></tr>
+        <tr><td><strong>05_Demo_Socios</strong></td><td>Deck demo (visão executiva dos achados)</td><td>PPTX</td><td><span class="pill warn">D10</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- RACI -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">08</span>Quem Faz o Quê (RACI Simplificado)</h2>
+      <p class="lead">Responsáveis por bloco de trabalho. Daily às 9h alinha o que está travando.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card" style="border-left:3px solid var(--accent-2)">
+      <span class="pill info">Conduz</span>
+      <h3 style="margin-top:10px">Patrícia Melo</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Coordena toda a sprint. Lidera as entrevistas, planning, workshop e demo. Consolida entregas. Daily às 9h.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <span class="pill info">Apoia técnico</span>
+      <h3 style="margin-top:10px">Time IAplicada</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Setup da Lovable OSG, configuração técnica, demo final. Disponibilidade combinada de 8h na sprint.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Mapeia AS-IS</span>
+      <h3 style="margin-top:10px">Karlene Silva (Senior)</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Lidera detalhamento do DP. Foi quem mais explicitou DP como dor. Validar fluxograma com ela.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Mapeia AS-IS</span>
+      <h3 style="margin-top:10px">Anne Strini (Senior)</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Entrevista 1:1 sobre H6 cálculos. Apoia mapeamento de Atas (alta frequência).</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Mapeia AS-IS</span>
+      <h3 style="margin-top:10px">Daniela Sanches (Assistente C)</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Faz DP ponta a ponta. Entrevista sobre saturação. Apoia coleta de exemplos.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Mapeia AS-IS</span>
+      <h3 style="margin-top:10px">Maritsa Padilha (Assistente)</h3>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0">Lidera detalhamento do WP Sócios. Faz qualificação dos clientes hoje.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RISCOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">09</span>Riscos e Mitigações</h2>
+      <p class="lead">Quatro riscos identificados, cada um com plano de mitigação preparado.</p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <div class="icon">R1</div>
+    <div>
+      <h4>Disponibilidade da equipe da OSG durante a sprint</h4>
+      <p>A equipe está "no limite" segundo Cuba. Pode haver dificuldade em bloquear 14h ao todo (entre entrevistas, mapeamento e workshop) sem prejudicar entregas a clientes.</p>
+      <p class="miti">Mitigação: bloquear agendas com 1 semana de antecedência. Agendar entrevistas em janelas curtas (1h-1.5h). Pré-work enviado 48h antes para reduzir tempo da reunião.</p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <div class="icon">R2</div>
+    <div>
+      <h4>Resistência em compartilhar documentos-exemplo de clientes</h4>
+      <p>O time pode ter receio de compartilhar amostras reais por questão de sigilo, mesmo anonimizadas. Sem amostras, o mapeamento perde concretude.</p>
+      <p class="miti">Mitigação: alinhar com sócios na sexta 09/05 que documentos serão anonimizados. Padrão de anonimização definido no planning. Equipe da OSG faz o anonimato, não a equipe da Transformação Digital.</p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <div class="icon">R3</div>
+    <div>
+      <h4>Lovable do Fiscal pode não se adaptar diretamente à OSG</h4>
+      <p>O setup inicial pode revelar que a estrutura de projetos do Fiscal não cabe direto na OSG (ciclos mais longos, interdependência maior). Pode atrasar a Wave 2.</p>
+      <p class="miti">Mitigação: setup é só configuração inicial nesta sprint, não implantação completa. Diagnóstico da adaptação necessária vira input da Sprint 11. Sem promessa de Lovable rodando ao fim da S10.</p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <div class="icon">R4</div>
+    <div>
+      <h4>3 processos em paralelo é ambicioso</h4>
+      <p>DP, WP Sócios e Atas mapeados em 10 dias é apertado. Pode ser que Atas fique apenas iniciado.</p>
+      <p class="miti">Mitigação: critério de pronto explícito. P1 (DP) é não-negociável. P2 (WP) é forte expectativa. P3 (Atas) pode ser apenas iniciado e fechar na Sprint 11. Comunicar isso aos sócios na demo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CRITÉRIOS DE PRONTO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">10</span>Definição de Pronto da Sprint</h2>
+      <p class="lead">Como saberemos que a Sprint 10 fechou com sucesso. Lista mínima não-negociável para a demo.</p>
+    </div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>Mínimo viável (P1)</h3>
+      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:14px;line-height:1.85">
+        <li>Mapeamento AS-IS do <strong>Diagnóstico Patrimonial</strong> completo (triplo MAPA)</li>
+        <li>3 entrevistas 1:1 realizadas (Anne, Daniela, mais 1)</li>
+        <li>Workshop de oportunidades realizado</li>
+        <li>Lista priorizada de oportunidades validada</li>
+        <li>Demo aos sócios entregue</li>
+        <li>Retrospectiva da equipe documentada</li>
+      </ul>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent-2)">
+      <h3>Esticado (P2 e P3)</h3>
+      <ul style="margin:0;padding-left:18px;color:var(--ink-soft);font-size:14px;line-height:1.85">
+        <li>Mapeamento AS-IS do <strong>WP Sócios</strong> completo</li>
+        <li>Mapeamento AS-IS de <strong>Atas e Alterações</strong> iniciado</li>
+        <li>12+ documentos-exemplo coletados</li>
+        <li>Workspace OSG configurado na Lovable</li>
+        <li>5 entrevistas 1:1 realizadas (em vez de 3)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<div class="foot">
+  Sprint 10 OSG · 11 a 22 de Maio de 2026 · Coordenação Patrícia Melo · Transformação Digital PSA<br>
+  Plano construído com base nos arquivos do 00_Briefing (Apresentacao_Kickoff_OSG_v3, Diagnóstico Estratégico, Respostas dos 3 níveis)
+</div>
+
+</div>
+</body>
+</html>

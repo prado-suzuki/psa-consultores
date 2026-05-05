@@ -1,0 +1,1960 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análise Estratégica PSA OSG | Transformação Digital</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --bg-2:#0f172a;
+    --panel:#111a2e;
+    --panel-2:#152340;
+    --border:#1f2f54;
+    --ink:#e6edf7;
+    --ink-soft:#9fb0cc;
+    --muted:#6b7d9b;
+    --accent:#4f8cff;
+    --accent-2:#22d3ee;
+    --ok:#22c55e;
+    --warn:#f59e0b;
+    --bad:#ef4444;
+    --gold:#d4af37;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent-2);text-decoration:none}
+  .wrap{max-width:1240px;margin:0 auto;padding:40px 28px 80px}
+  /* Header */
+  .hero{position:relative;padding:56px 48px;border-radius:20px;background:radial-gradient(1200px 400px at 0% 0%, rgba(79,140,255,0.25), transparent 60%),radial-gradient(800px 300px at 100% 100%, rgba(34,211,238,0.18), transparent 60%),linear-gradient(135deg,#0f1b35, #0b1220);border:1px solid var(--border);overflow:hidden}
+  .hero::after{content:"";position:absolute;top:0;right:0;width:380px;height:380px;background:radial-gradient(circle, rgba(212,175,55,0.15), transparent 65%);pointer-events:none}
+  .kicker{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--accent-2);font-weight:600;margin-bottom:12px}
+  h1{font-size:42px;line-height:1.15;margin:0 0 14px;font-weight:700;letter-spacing:-0.02em}
+  .sub{color:var(--ink-soft);font-size:17px;max-width:780px;margin:0}
+  .meta{display:flex;gap:28px;flex-wrap:wrap;margin-top:28px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08)}
+  .meta > div{font-size:13px;color:var(--ink-soft)}
+  .meta strong{display:block;color:var(--ink);font-size:14px;margin-bottom:2px;font-weight:600}
+  /* Sections */
+  section{margin-top:56px}
+  h2{font-size:26px;margin:0 0 8px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;gap:14px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021;font-size:14px;font-weight:800}
+  h3{font-size:17px;margin:0 0 10px;font-weight:600;color:var(--ink)}
+  .lead{color:var(--ink-soft);font-size:15.5px;margin:0 0 24px;max-width:920px}
+  /* KPI cards */
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .kpi{padding:22px;border-radius:14px;background:var(--panel);border:1px solid var(--border);position:relative;overflow:hidden}
+  .kpi .label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .kpi .val{font-size:30px;font-weight:700;margin-top:8px;letter-spacing:-0.02em}
+  .kpi .desc{font-size:12px;color:var(--ink-soft);margin-top:6px}
+  .kpi::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,var(--accent),var(--accent-2))}
+  /* Card */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px}
+  .card + .card{margin-top:14px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:960px){.grid-2,.grid-3,.kpis{grid-template-columns:1fr}}
+  /* Pills */
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+  .pill.ok{background:rgba(34,197,94,0.15);color:#7ee2a8;border:1px solid rgba(34,197,94,0.3)}
+  .pill.warn{background:rgba(245,158,11,0.15);color:#fbbf24;border:1px solid rgba(245,158,11,0.3)}
+  .pill.bad{background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.3)}
+  .pill.info{background:rgba(79,140,255,0.15);color:#93b6ff;border:1px solid rgba(79,140,255,0.3)}
+  .pill.gold{background:rgba(212,175,55,0.15);color:#e3c664;border:1px solid rgba(212,175,55,0.3)}
+  /* Table */
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;padding:12px 14px;font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border)}
+  td{padding:14px;border-bottom:1px solid rgba(255,255,255,0.05);vertical-align:top}
+  tr:hover td{background:rgba(255,255,255,0.015)}
+  /* Bars */
+  .bar{height:8px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden;margin-top:6px}
+  .bar > span{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  /* Hypothesis block */
+  .hypo{padding:18px 20px;border-radius:12px;background:var(--panel);border:1px solid var(--border);border-left:3px solid var(--warn)}
+  .hypo h4{margin:0 0 6px;font-size:15px;font-weight:600}
+  .hypo p{margin:0;color:var(--ink-soft);font-size:14px}
+  /* Priority matrix */
+  .matrix{position:relative;height:520px;background:var(--panel);border:1px solid var(--border);border-radius:14px;margin-top:14px;padding:36px 36px 56px 80px}
+  .matrix .axis-x{position:absolute;bottom:20px;left:0;right:0;text-align:center;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .matrix .axis-y{position:absolute;top:0;bottom:0;left:24px;display:flex;align-items:center;justify-content:center;writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .matrix .plot{position:relative;width:100%;height:100%;border-left:1px dashed rgba(255,255,255,0.1);border-bottom:1px dashed rgba(255,255,255,0.1)}
+  /* Quadrant separators */
+  .matrix .plot::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(255,255,255,0.06)}
+  .matrix .plot::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(255,255,255,0.06)}
+  .matrix .q-label{position:absolute;font-size:10px;text-transform:uppercase;letter-spacing:2px;color:rgba(255,255,255,0.25);font-weight:700;pointer-events:none}
+  .matrix .dot{position:absolute;transform:translate(-50%,-50%);padding:7px 11px;border-radius:8px;font-size:11px;font-weight:600;white-space:nowrap;cursor:default;transition:all .2s;box-shadow:0 4px 14px rgba(0,0,0,0.25)}
+  .matrix .dot:hover{transform:translate(-50%,-50%) scale(1.08);z-index:10}
+  .dot-1{background:rgba(34,197,94,0.25);border:1px solid #22c55e;color:#a3ebb1}
+  .dot-2{background:rgba(79,140,255,0.25);border:1px solid var(--accent);color:#c2d7ff}
+  .dot-3{background:rgba(212,175,55,0.25);border:1px solid var(--gold);color:#efd578}
+  .dot-4{background:rgba(245,158,11,0.2);border:1px solid var(--warn);color:#fcd34d}
+  .dot-5{background:rgba(239,68,68,0.2);border:1px solid var(--bad);color:#fca5a5}
+  /* Timeline */
+  .timeline{position:relative;margin-top:20px}
+  .timeline::before{content:"";position:absolute;left:20px;top:14px;bottom:14px;width:2px;background:linear-gradient(180deg,var(--accent),var(--accent-2),var(--gold))}
+  .tl-item{position:relative;padding:0 0 26px 56px}
+  .tl-item::before{content:"";position:absolute;left:12px;top:6px;width:18px;height:18px;border-radius:50%;background:var(--bg);border:3px solid var(--accent);box-shadow:0 0 0 3px rgba(79,140,255,0.15)}
+  .tl-item.m2::before{border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(34,211,238,0.15)}
+  .tl-item.m3::before{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,0.15)}
+  .tl-month{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--accent-2);font-weight:700;margin-bottom:4px}
+  .tl-title{font-size:17px;font-weight:600;margin-bottom:8px}
+  .tl-desc{color:var(--ink-soft);font-size:14px;margin-bottom:12px}
+  .tl-tags{display:flex;gap:8px;flex-wrap:wrap}
+  /* Automation focus */
+  .auto-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px}
+  @media (max-width:960px){.auto-grid{grid-template-columns:1fr}}
+  .auto-card{padding:22px;background:linear-gradient(180deg,var(--panel),#0f1a32);border:1px solid var(--border);border-radius:14px;position:relative;overflow:hidden;transition:transform .2s, border-color .2s}
+  .auto-card:hover{transform:translateY(-3px);border-color:var(--accent)}
+  .auto-card .rank{position:absolute;top:16px;right:16px;font-size:44px;font-weight:800;color:rgba(255,255,255,0.06);line-height:1}
+  .auto-card h4{margin:0 0 6px;font-size:16px;font-weight:600;padding-right:50px}
+  .auto-card .cat{font-size:11px;color:var(--accent-2);text-transform:uppercase;letter-spacing:1.5px;font-weight:600;margin-bottom:14px}
+  .auto-card .desc{color:var(--ink-soft);font-size:13.5px;margin:0 0 14px}
+  .auto-card .stats{display:flex;gap:16px;padding-top:14px;border-top:1px solid var(--border)}
+  .auto-card .stat{flex:1}
+  .auto-card .stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .auto-card .stat-val{font-size:15px;font-weight:700;margin-top:2px}
+  /* Risks */
+  .risk{display:flex;gap:14px;padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:10px}
+  .risk .icon{width:36px;height:36px;border-radius:8px;background:rgba(239,68,68,0.15);color:#fca5a5;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0}
+  .risk h4{margin:0 0 4px;font-size:14px;font-weight:600}
+  .risk p{margin:0;color:var(--ink-soft);font-size:13px}
+  /* Footer */
+  .foot{margin-top:56px;padding-top:24px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;text-align:center}
+  /* Convergence view */
+  .conv-table td{font-size:13.5px}
+  .conv-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  /* Methodology badge */
+  .methodology{display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:10px;background:rgba(79,140,255,0.1);border:1px solid rgba(79,140,255,0.3);font-size:13px;margin-top:18px}
+  .methodology strong{color:var(--accent-2)}
+  /* Progress ring */
+  .progress-ring{display:flex;align-items:center;gap:14px}
+  .ring{position:relative;width:54px;height:54px}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+  /* Section header row */
+  .sec-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:20px;flex-wrap:wrap;gap:14px}
+  /* Tabs */
+  .tabs{display:flex;gap:6px;margin:32px 0 4px;padding:6px;background:var(--panel);border:1px solid var(--border);border-radius:14px;flex-wrap:wrap}
+  .tab-btn{flex:1;min-width:200px;padding:14px 18px;background:transparent;border:none;color:var(--ink-soft);font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;transition:all .2s;font-family:inherit;text-align:left;display:flex;align-items:center;gap:12px}
+  .tab-btn:hover{background:rgba(255,255,255,0.03);color:var(--ink)}
+  .tab-btn.active{background:linear-gradient(135deg,rgba(79,140,255,0.2),rgba(34,211,238,0.15));color:var(--ink);box-shadow:inset 0 0 0 1px rgba(79,140,255,0.3)}
+  .tab-btn .tab-icon{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--accent-2)}
+  .tab-btn.active .tab-icon{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021}
+  .tab-btn .tab-sub{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:2px;text-transform:none;letter-spacing:0}
+  .tab-content{display:none;animation:fadeIn .3s ease}
+  .tab-content.active{display:block}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+  /* Process AS-IS → TO-BE */
+  .proc{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:0;overflow:hidden;margin-bottom:20px}
+  .proc-head{padding:20px 24px;background:linear-gradient(90deg,rgba(79,140,255,0.08),transparent);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+  .proc-head h3{margin:0;font-size:18px}
+  .proc-head .proc-meta{display:flex;gap:10px;flex-wrap:wrap}
+  .proc-body{display:grid;grid-template-columns:1fr 70px 1fr;gap:0}
+  @media (max-width:900px){.proc-body{grid-template-columns:1fr}.proc-arrow{transform:rotate(90deg);padding:16px 0 !important}}
+  .proc-col{padding:24px}
+  .proc-col.asis{border-right:1px solid var(--border);background:rgba(239,68,68,0.03)}
+  .proc-col.tobe{background:rgba(34,197,94,0.04)}
+  .proc-col h4{margin:0 0 14px;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:700;display:flex;align-items:center;gap:10px}
+  .proc-col.asis h4{color:#fca5a5}
+  .proc-col.tobe h4{color:#7ee2a8}
+  .proc-col ul{margin:0;padding:0;list-style:none}
+  .proc-col ul li{position:relative;padding:8px 0 8px 22px;font-size:13.5px;color:var(--ink-soft);border-bottom:1px dashed rgba(255,255,255,0.05)}
+  .proc-col ul li:last-child{border-bottom:none}
+  .proc-col.asis ul li::before{content:"✕";position:absolute;left:0;top:8px;color:#ef4444;font-size:12px;font-weight:700}
+  .proc-col.tobe ul li::before{content:"✓";position:absolute;left:0;top:8px;color:#22c55e;font-size:13px;font-weight:700}
+  .proc-arrow{display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--accent-2);font-weight:700;background:rgba(34,211,238,0.04);border-right:1px solid var(--border)}
+  .proc-footer{padding:16px 24px;background:rgba(79,140,255,0.06);border-top:1px solid var(--border);display:flex;gap:20px;flex-wrap:wrap;font-size:13px}
+  .proc-footer > div{display:flex;align-items:center;gap:8px}
+  .proc-footer .fl{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600}
+  .proc-footer .fv{font-weight:700;color:var(--accent-2)}
+  /* Form questions */
+  .form-block{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px}
+  .form-block .fh{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;padding-bottom:20px;border-bottom:1px solid var(--border);margin-bottom:22px}
+  .form-block .fh h3{font-size:20px;margin:0 0 6px}
+  .form-block .fh .fsub{color:var(--ink-soft);font-size:13.5px;margin:0;max-width:640px}
+  .form-block .fh .fbadge{padding:10px 14px;border-radius:10px;background:rgba(79,140,255,0.12);border:1px solid rgba(79,140,255,0.3);font-size:12px;color:#c2d7ff}
+  .form-section{margin-top:22px}
+  .form-section > .fsec-title{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--accent-2);font-weight:700;margin-bottom:12px}
+  .q{padding:14px 16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;margin-bottom:10px}
+  .q .qn{display:inline-block;font-size:11px;font-weight:700;color:var(--muted);background:rgba(255,255,255,0.04);padding:3px 8px;border-radius:6px;margin-right:10px;letter-spacing:0.5px}
+  .q .qtext{font-size:14px;color:var(--ink);font-weight:500}
+  .q .qtype{display:block;margin-top:8px;font-size:11.5px;color:var(--muted);font-style:italic}
+  .q .qopts{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px}
+  .q .qopt{font-size:11px;padding:3px 9px;border-radius:6px;background:rgba(79,140,255,0.08);border:1px solid rgba(79,140,255,0.2);color:#c2d7ff}
+  .q.priority{border-left:3px solid var(--gold)}
+  .q.priority .qtext::before{content:"★ ";color:var(--gold);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- HERO -->
+<div class="hero">
+  <div class="kicker">PSA · Transformação Digital · OSG · v4 com cruzamento dos 3 níveis (sócios, seniores, assistentes)</div>
+  <h1>Análise Estratégica OSG<br><span style="color:var(--accent-2);font-weight:500">Diagnóstico Cruzado · Plano de Melhorias · Roadmap de Automação</span></h1>
+  <p class="sub">Os três níveis responderam: 2 sócios (Cuba e Fernando), 6 seniores e 3 assistentes. O cruzamento revelou 5 convergências unânimes, fez a Hipótese 6 ressuscitar (sócios não citaram cálculos, seniores citaram explicitamente) e trouxe uma Hipótese 9 nova (integração de horas e timesheet, dor silenciosa pedida por 5 pessoas da equipe). Decisões estratégicas: Lovable do Fiscal como base e Google Workspace como padrão único.</p>
+  <div class="methodology"><span>Metodologia <strong>MAPA · D.A.T.A.S.</strong> — 8 sprints aplicados em Fiscal, 92% aderência · R$98k/ano economia · 21 ferramentas entregues</span></div>
+  <div class="meta">
+    <div><strong>Elaboração</strong>Patrícia Melo · Coordenadora de Transformação Digital</div>
+    <div><strong>Destinatários</strong>Fernando e Luciano Cuba · Sócios PSA OSG</div>
+    <div><strong>Respostas recebidas</strong>2 sócios + 6 seniores + 3 assistentes = 11 pessoas</div>
+    <div><strong>Horizonte</strong>3 meses de execução (maio a julho) + gordura até final de agosto</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('diagnostico', this)">
+    <span class="tab-icon">01</span>
+    <span>Diagnóstico Validado<span class="tab-sub">Leitura, blocos, roadmap, ROI</span></span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('respostas', this)">
+    <span class="tab-icon">02</span>
+    <span>Voz da Equipe<span class="tab-sub">2 sócios + 6 seniores + 3 assistentes</span></span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('processos', this)">
+    <span class="tab-icon">03</span>
+    <span>Processos × Automação<span class="tab-sub">AS-IS → TO-BE por bloco</span></span>
+  </button>
+  <button class="tab-btn" onclick="switchTab('formularios', this)">
+    <span class="tab-icon">04</span>
+    <span>Formulários enviados<span class="tab-sub">Referência das perguntas</span></span>
+  </button>
+</div>
+
+<!-- TAB 1: DIAGNÓSTICO -->
+<div id="tab-diagnostico" class="tab-content active">
+
+<!-- RESUMO EXECUTIVO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">01</span>Resumo Executivo</h2>
+      <p class="lead">A OSG entrega produtos de alta complexidade jurídico-tributária com execução artesanal. O núcleo do diagnóstico aponta uma janela enorme de padronização: <strong>7 de 10 blocos de trabalho recorrentes</strong> têm alto potencial de automação sem comprometer o caráter consultivo.</p>
+    </div>
+  </div>
+  <div class="grid kpis">
+    <div class="kpi">
+      <div class="label">Equipe operacional</div>
+      <div class="val">9</div>
+      <div class="desc">2 sócios · 6 seniores · 3 assistentes (A, B, C)</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Capacidade mensal disponível</div>
+      <div class="val">~1.440h</div>
+      <div class="desc">Horas úteis totais da equipe OSG</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Trabalho manual / coleta</div>
+      <div class="val">40–55%</div>
+      <div class="desc">Benchmark Fiscal: 53% sem expertise técnica</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Recuperação potencial</div>
+      <div class="val">280–450h/mês</div>
+      <div class="desc">Janela-alvo do programa de 3 meses</div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISÕES ESTRATÉGICAS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">★</span>Decisões Estratégicas Tomadas</h2>
+      <p class="lead">Antes de detalhar o cruzamento das respostas, duas decisões já foram fechadas e elas mudam o desenho da Wave 1 e Wave 2. Essas decisões reduzem esforço de construção e aceleram o resultado.</p>
+    </div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Decisão 01</span>
+      <h3 style="margin-top:12px">Reaproveitar a Lovable do Fiscal</h3>
+      <p style="color:var(--ink-soft);font-size:14px;margin:0 0 10px">A plataforma já construída para o Fiscal será a base da gestão de projetos e tarefas da OSG. Não vamos construir do zero. Vamos configurar a estrutura existente para a realidade da OSG e adicionar os pedidos do Cuba (7 indicadores) e do Fernando (interface com o cliente).</p>
+      <p style="color:var(--ink);font-size:13px;margin:0;font-style:italic">Impacto: a F04 Dashboard OSG deixa de ser construção do zero e vira configuração + extensão. Reduz o esforço da Wave 2 em estimados 50 a 60 por cento.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent)">
+      <span class="pill info">Decisão 02</span>
+      <h3 style="margin-top:12px">Google Workspace como padrão único</h3>
+      <p style="color:var(--ink-soft);font-size:14px;margin:0 0 10px">Toda a equipe da OSG vai padronizar em Google Workspace para comunicação, documentos e produtividade. Resolve diretamente a dor da fragmentação de canais (Slack vs Teams vs Google Chat vs Email) que os dois sócios apontaram.</p>
+      <p style="color:var(--ink);font-size:13px;margin:0;font-style:italic">Impacto: a F05 Integração OSG-Fiscal-Consultoria fica mais simples porque o substrato é o mesmo. As IAs já contratadas (Gemini, NotebookLM, Claude) ganham fluxo natural com docs e drives unificados.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CRUZAMENTO DOS SÓCIOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">02</span>Cruzamento das Respostas dos Sócios</h2>
+      <p class="lead">As duas vozes leem a OSG por ângulos diferentes. Cuba olha para dentro (sucessão da própria área, automação operacional, indicadores granulares). Fernando olha para fora (faturamento, atendimento ao cliente, gargalos visíveis nos clientes). Onde convergem, há prioridade clara. Onde divergem, há ponto a alinhar antes do roadmap fechar.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:8px;font-size:14px;color:#7ee2a8;text-transform:uppercase;letter-spacing:2px">5 Convergências fortes</h3>
+  <div class="grid grid-2" style="margin-top:8px">
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>Comunicação fragmentada</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba citou textualmente "Slack vs Teams vs Google Chat vs Email". Fernando citou "comunicação manual (e-mail, telefone, whatsapp) por vários canais". Ambos pedem aplicativo único integrador.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>Visibilidade dos projetos baixa</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba deu nota 1 de 5. Fernando deu 2 de 5. Os dois alinhados em que a visibilidade atual é insuficiente, sob ângulos diferentes (Cuba operacional, Fernando executivo).</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>Tarefas repetitivas como dor</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba: "tarefas repetitivas, digitação de matrículas, troca de caracteres em minutas". Fernando: "excesso de ações repetitivas e burocráticas, alimentações manuais de arquivos". Ambos pedem automação.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>Multidisciplinaridade como diferencial</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba: "equipe interdisciplinar (fiscal, contábil, pessoas, administração, psicologia)". Fernando: "multidisciplinariedade de áreas (jurídico, fiscal, contábil)". O posicionamento da OSG está consensado.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok);grid-column:1 / -1">
+      <h3>Necessidade de aplicativo único</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Os dois pedem plataforma centralizada. Fernando especifica "personalizada de controle de projetos com interface com o cliente". Cuba especifica "centralizar a comunicação entre áreas da Holding (incluindo PSA Norte)". Junta tudo: a Lovable do Fiscal expandida atende, com a adição do módulo de cliente.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:30px;font-size:14px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px">4 Divergências relevantes</h3>
+  <div class="card" style="padding:0;margin-top:8px">
+    <table>
+      <thead>
+        <tr>
+          <th>Tema</th>
+          <th>Cuba (interno · operacional)</th>
+          <th>Fernando (externo · executivo)</th>
+          <th style="width:240px">Implicação para o roadmap</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Capacidade da equipe</strong></td>
+          <td><span class="pill warn">No limite</span></td>
+          <td><span class="pill info">Equilibrado</span></td>
+          <td style="font-size:13px;color:var(--ink-soft)">Validar com seniores e assistentes. Se equipe sentir "no limite", prioridade de automação aumenta.</td>
+        </tr>
+        <tr>
+          <td><strong>Prioridade 12 meses</strong></td>
+          <td>Sucessão interna da área + automação de rotinas</td>
+          <td>Aumentar faturamento + aperfeiçoar atendimento ao cliente</td>
+          <td style="font-size:13px;color:var(--ink-soft)">Não são opostas. O roadmap precisa servir aos dois eixos: liberar tempo (Cuba) e visibilidade ao cliente (Fernando).</td>
+        </tr>
+        <tr>
+          <td><strong>Como acompanha hoje</strong></td>
+          <td>OpenProject + Slack + Scrum</td>
+          <td>Relatório + feedback em reuniões pontuais</td>
+          <td style="font-size:13px;color:var(--ink-soft)">A Lovable precisa servir tanto operação (Cuba) quanto visão executiva (Fernando). Dois níveis de view.</td>
+        </tr>
+        <tr>
+          <td><strong>Que indicadores</strong></td>
+          <td>7 KPIs específicos: cronograma, custos, horas, prazos vencidos, etc</td>
+          <td>Evolução de projetos + gargalos (qualitativo)</td>
+          <td style="font-size:13px;color:var(--ink-soft)">Dashboard precisa ter visão granular (Cuba) e visão executiva resumida (Fernando) na mesma plataforma.</td>
+        </tr>
+        <tr>
+          <td><strong>Avaliação da comunicação</strong></td>
+          <td><span class="pill warn">3 de 5</span></td>
+          <td><span class="pill info">4 de 5</span></td>
+          <td style="font-size:13px;color:var(--ink-soft)">Diferença de exposição. Cuba sente mais o atrito do dia a dia, Fernando vê do alto.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3 style="margin-top:30px;font-size:14px;color:#d4af37;text-transform:uppercase;letter-spacing:2px">3 Insights novos do Fernando</h3>
+  <div class="grid grid-3">
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <h3>Foco no Produtor Rural</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Fernando coloca "Organização empresarial do produtor rural" como projeto número 1. Cuba colocou genérico "Organização Patrimonial". A OSG tem perfil rural mais forte do que o diagnóstico inicial sugeria, alinha com Fiscal.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <h3>Camadas de revisão como dor</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Fernando incluiu "camadas de revisão" entre as ações burocráticas a eliminar. Sugere que o fluxo assistente B → assistente A → senior → sócio é parte do problema, não só a execução.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <h3>Gargalos criados pelo cliente</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Fernando aponta que muitos gargalos vêm do próprio cliente (atraso de envio de documento, mudança de escopo). Implica que a Lovable precisa de módulo de interface com cliente para acelerar a resposta.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CRUZAMENTO 3 NÍVEIS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">03</span>Cruzamento dos 3 Níveis (sócios × seniores × assistentes)</h2>
+      <p class="lead">A leitura mais rica do diagnóstico. 11 vozes respondidas (2 sócios, 6 seniores, 3 assistentes). O cruzamento separa convergências (alta prioridade), divergências (alinhamento político) e dores silenciosas (automação de maior impacto). É onde a verdade da operação aparece.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:8px;font-size:14px;color:#7ee2a8;text-transform:uppercase;letter-spacing:2px">5 Convergências unânimes (todos os níveis confirmam)</h3>
+  <p style="color:var(--ink-soft);font-size:13px;margin:6px 0 14px">Quando uma dor aparece em todos os níveis, ela não precisa de mais validação. Vai direto pro roadmap.</p>
+
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>1 · DP é o gargalo central</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Sócios: Cuba citou "tempo de DP", Fernando citou "alimentações manuais". Seniores: Thiago, Luana, Karlene apontaram DP como o mais demorado. Assistentes: Daniela disse que "compilação de DP, análise de muitas matrículas" é o que mais consome. Sete vozes em sete confirmam.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>2 · Análise de matrículas é a parte mais trabalhosa</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Anne e Luana (seniores) citaram "matrículas extensas, averbações, registros". Karlene disse "mapeamento dos documentos". Daniela e Arielly (assistentes) disseram "análise das matrículas, relacionar com DIRPFs". A ferramenta de DP Inteligente precisa atacar especificamente essa etapa.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>3 · Minutas com problemas de revisão e padronização</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba "troca de caracteres". Fernando "camadas de revisão". Jakeline e Mônica eliminariam elaboração/revisão. O que mais volta na revisão são erros previsíveis: numeração, capital social, formatação, dados pessoais, endereço. Tudo padronizável.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <h3>4 · Plataforma única e fim da fragmentação</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba: "Slack vs Teams vs Google Chat vs Email". Fernando: "aplicativo personalizado integrando áreas". Jakeline: "meio de comunicação único". Mônica: idem. Decisão Google Workspace + Lovable atende.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok);grid-column:1 / -1">
+      <h3>5 · Visibilidade dos projetos é insuficiente em todos os níveis</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Cuba 1/5, Fernando 2/5. Os seniores acompanham por uma mistura de planilha, Slack, agenda, OpenProject e Legal One. Os assistentes acompanham por agenda pessoal, anotações, iPad, ou nem acompanham. Cada um tem seu próprio sistema, e nenhum deles tem visão completa. A Lovable consolidada resolve.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:30px;font-size:14px;color:#fbbf24;text-transform:uppercase;letter-spacing:2px">3 Dores silenciosas (assistentes/seniores apontam, sócios não veem)</h3>
+  <p style="color:var(--ink-soft);font-size:13px;margin:6px 0 14px">Esses são os achados mais valiosos do diagnóstico. Quando o operacional sofre e o estratégico não enxerga, é onde a automação tem maior impacto e onde o projeto ganha valor político.</p>
+
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--bad);grid-column:1 / -1">
+      <span class="pill bad">Dor silenciosa nº 1 · Carga real da equipe</span>
+      <h3 style="margin-top:8px">Os sócios dizem "no limite" ou "equilibrado". Os assistentes estão saturados.</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Daniela (assistente C): "quase toda semana" sentiu que ia perder prazo. Maritsa: 40%+ do tempo em revisão e exigências, ferramentas de gestão "atrapalham" porque tem tempo apertado. Arielly: às vezes sente que vai perder prazo. <strong>Falas literais dos seniores sobre o que sócios não veem:</strong> "sócios não enxergam que é serviço extremamente técnico e complexo" (Thiago). "Não estão atentos às transformações digitais" (Mônica). "Detalhes da execução não chegam ao plano de ação" (Karlene). "Volume de trabalho exige forte apoio de outros líderes" (Fernando-senior).</p>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill bad">Dor silenciosa nº 2 · Cálculos (H6 ressuscitada)</span>
+      <h3 style="margin-top:8px">Anne quer automatizar Cálculo ITCD especificamente</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Os 2 sócios não citaram cálculos. Era para a H6 sair do roadmap. Mas Anne (senior, 10+ anos de casa) disse explicitamente que automatizaria "Cálculo de ITCD e respectivos Instrumentos sucessórios". Mônica também citou cálculos como dor. Caso clássico de dor silenciosa: quem faz sente, quem decide não vê. <strong>Decisão recomendada:</strong> manter F03 Calculadora ITCD na Wave 1.</p>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill bad">Dor silenciosa nº 3 · Lançamento de horas (H9 nova)</span>
+      <h3 style="margin-top:8px">Cinco pessoas pedindo a mesma coisa: integrar horas e projetos</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Thiago: "automatizar lançamento de demandas com horas, dispensar planilha". Jakeline: "Timesheet, OpenProject, Kairós". Luana: "lançamento de horas automático conforme pastas e documentos". Maritsa: "amarrar OpenProject com Timesheet". Daniela: "somar horas trabalhadas por projeto, não consigo manter o prazo". Hipótese nova H9: <strong>integração horas + projetos.</strong></p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:30px;font-size:14px;color:#93b6ff;text-transform:uppercase;letter-spacing:2px">Divergências internas relevantes</h3>
+  <div class="grid grid-2" style="margin-top:8px">
+    <div class="card" style="border-left:3px solid var(--info)">
+      <h3>Padronização das minutas: 3 ou 5?</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Thiago, Anne e Mônica deram 5/5 (totalmente padronizado). Luana e Karlene deram 3/5 (cada um faz do seu jeito). Fernando 4/5. A própria equipe não concorda sobre o nível atual de padronização. A Biblioteca de Minutas precisa unificar isso na prática, não só no discurso.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--info)">
+      <h3>Carga de trabalho: leitura desigual</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Daniela faz instrumentos agrários "com frequência" (30-40% do tempo). Mônica faz "raramente". Existe assimetria de carga entre assistentes que vale mapear. Pode ser área de melhoria de gestão antes mesmo da automação.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--info)">
+      <h3>Apagar incêndios: Thiago e Karlene marcam alto</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Thiago marcou 20-30% do tempo em "apagar incêndios e urgências". Karlene marcou que é o que mais consome menos valor agrega. Indica operação reativa, não planejada. A Lovable + Dashboard ataca esse ponto, mas vale ver se há causa cultural por trás.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--info)">
+      <h3>Sistemas auxiliares por papel</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:0">Toda a equipe já está no <strong>Google Workspace</strong> como base, conforme decisão estratégica. Algumas pessoas usam sistemas auxiliares específicos: Karlene e Arielly trabalham com <strong>Legal One</strong> para acompanhamento processual, Daniela cita <strong>Docbox</strong> como ferramenta que mais "atrapalha". Maritsa mencionou OneDrive de forma pontual. A migração principal não precisa de tratamento especial, mas vale mapear o uso desses sistemas auxiliares para entender se entram no escopo da centralização ou se ficam como ferramentas de apoio paralelas.</p>
+    </div>
+  </div>
+</section>
+
+<!-- LEITURA ESTRATÉGICA -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">02</span>Leitura Estratégica da Área</h2>
+      <p class="lead">Três implicações estruturais que moldam todo o diagnóstico e a priorização de ataque.</p>
+    </div>
+  </div>
+  <div class="grid grid-3">
+    <div class="card">
+      <span class="pill info">Implicação 01</span>
+      <h3 style="margin-top:12px">Estrutura repete, conteúdo varia</h3>
+      <p style="color:var(--ink-soft);margin:0;font-size:14px">Diagnóstico Patrimonial, WP Sócios, minutas, atas, instrumentos agrários e cálculos de ITCD são blocos com estrutura constante entre clientes. É exatamente onde padronização libera o tempo consultivo.</p>
+    </div>
+    <div class="card">
+      <span class="pill warn">Implicação 02</span>
+      <h3 style="margin-top:12px">60–70% do tempo é coleta, não análise</h3>
+      <p style="color:var(--ink-soft);margin:0;font-size:14px">Quando um assistente elabora Contrato Social ou Ata, a maior parte do tempo é coletar, compilar e formatar. O tempo de leitura de risco e decisão sobre estrutura — o diferencial PSA — é comprimido no que sobra.</p>
+    </div>
+    <div class="card">
+      <span class="pill bad">Implicação 03</span>
+      <h3 style="margin-top:12px">Interdependência gerida por WhatsApp</h3>
+      <p style="color:var(--ink-soft);margin:0;font-size:14px">OSG conversa com Fiscal (Felipe/Ricardo) e Consultoria (Washington) via e-mail, chat e avisos informais. Existe risco operacional e uma oportunidade política de integração cruzada.</p>
+    </div>
+  </div>
+</section>
+
+<!-- BLOCOS DE TRABALHO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">03</span>Mapeamento dos 10 Blocos de Trabalho</h2>
+      <p class="lead">Derivados da descrição de cargos (Assistentes A, B, C) cruzada com o diagnóstico estratégico. Sete blocos têm potencial de padronização alta — este é o sinal mais forte do estudo inicial.</p>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:42px">#</th>
+          <th>Bloco de trabalho</th>
+          <th>Recorrência</th>
+          <th style="width:280px">Potencial de padronização</th>
+          <th style="width:120px">Prioridade</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>1</td><td><strong>Solicitação e organização de documentos preliminares</strong><br><span style="color:var(--muted);font-size:12.5px">Docbox, devolutivas, organização inicial do dossiê</span></td><td>Todo projeto</td><td><div class="bar"><span style="width:90%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 90%</span></td><td><span class="pill ok">P1</span></td></tr>
+        <tr><td>2</td><td><strong>Diagnóstico Patrimonial (DP)</strong><br><span style="color:var(--muted);font-size:12.5px">Matrículas, CCIR, ITR, escrituras, DIRPF, balanços</span></td><td>Todo projeto</td><td><div class="bar"><span style="width:75%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Média-Alta · 75%</span></td><td><span class="pill ok">P1</span></td></tr>
+        <tr><td>3</td><td><strong>WP Sócios e organograma familiar</strong><br><span style="color:var(--muted);font-size:12.5px">Estado civil, regime de bens, riscos sucessórios</span></td><td>Todo projeto</td><td><div class="bar"><span style="width:85%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 85%</span></td><td><span class="pill ok">P1</span></td></tr>
+        <tr><td>4</td><td><strong>Contrato / Estatuto Social</strong><br><span style="color:var(--muted);font-size:12.5px">Constituição, integralização de bens imóveis</span></td><td>Frequente</td><td><div class="bar"><span style="width:88%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 88%</span></td><td><span class="pill ok">P1</span></td></tr>
+        <tr><td>5</td><td><strong>Alterações contratuais e atas de assembleia</strong><br><span style="color:var(--muted);font-size:12.5px">Concentração de quotas, dividendos, posse</span></td><td>Muito frequente</td><td><div class="bar"><span style="width:92%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 92%</span></td><td><span class="pill ok">P1</span></td></tr>
+        <tr><td>6</td><td><strong>Reorganização societária (cisão, fusão, incorporação)</strong><br><span style="color:var(--muted);font-size:12.5px">Protocolo e justificação, atas de reunião</span></td><td>Pontual · alto valor</td><td><div class="bar"><span style="width:55%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Média · 55%</span></td><td><span class="pill warn">P3</span></td></tr>
+        <tr><td>7</td><td><strong>Instrumentos agrários</strong><br><span style="color:var(--muted);font-size:12.5px">Parceria, comodato, arrendamento, encerramento de safra</span></td><td>Sazonal + recorrente</td><td><div class="bar"><span style="width:85%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 85%</span></td><td><span class="pill info">P2</span></td></tr>
+        <tr><td>8</td><td><strong>Cálculo ITCD e instrumentos sucessórios</strong><br><span style="color:var(--muted);font-size:12.5px">Legítima, disponível, doações, testamentos</span></td><td>Pontual</td><td><div class="bar"><span style="width:65%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Média · 65%</span></td><td><span class="pill info">P2</span></td></tr>
+        <tr><td>9</td><td><strong>Diagnóstico Tributário de estruturas</strong><br><span style="color:var(--muted);font-size:12.5px">Comparativo de regimes, análise de risco tributário</span></td><td>Projeto-a-projeto</td><td><div class="bar"><span style="width:60%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Média · 60%</span></td><td><span class="pill warn">P3</span></td></tr>
+        <tr><td>10</td><td><strong>Apresentações de projeto (pptx)</strong><br><span style="color:var(--muted);font-size:12.5px">Inicial, execução, final — DP e marcos</span></td><td>Todo projeto</td><td><div class="bar"><span style="width:88%"></span></div><span style="font-size:12px;color:var(--ink-soft)">Alta · 88%</span></td><td><span class="pill info">P2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- HIPÓTESES DE DOR -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">04</span>Hipóteses de Dor (com status pós-resposta dos 2 sócios)</h2>
+      <p class="lead">As 6 hipóteses originais ganharam status duplo (Cuba e Fernando). Cinco foram confirmadas pelos dois ou pelo Cuba. Uma sétima foi trazida pelo Cuba (concentração de conhecimento). Uma oitava foi trazida pelo Fernando (interface com o cliente). Os pills marcam quem confirmou e o quote literal aparece abaixo de cada uma.</p>
+    </div>
+  </div>
+  <div class="grid grid-2">
+    <div class="hypo" style="border-left-color:var(--ok)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill ok">Cuba ✓</span><span class="pill ok">Fernando ✓</span></div>
+      <h4>H1 · Gargalo em Diagnóstico Patrimonial</h4>
+      <p>Matrículas, CCIR, ITR, escrituras, DIRPF e balanços coletados, conferidos e compilados manualmente.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba: "digitação de matrículas, organização de arquivos recebidos pelo cliente". Cita "tempo de elaboração de Diagnóstico Patrimonial" como causa de atraso.<br><br>Fernando: "alimentações manuais de arquivos e documentos" entre o que ele eliminaria do dia a dia.</p>
+    </div>
+
+    <div class="hypo" style="border-left-color:var(--ok)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill ok">Cuba ✓</span><span class="pill warn">Fernando parcial</span></div>
+      <h4>H2 · Minutas societárias como troca de caracteres</h4>
+      <p>Contrato Social, Alterações e Atas elaborados do zero ou a partir de modelos dispersos, sem biblioteca central versionada.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba: "elaboração e revisão de minutas societárias que praticamente são troca de caracteres".<br><br>Fernando: cita "ações repetitivas e burocráticas" e "camadas de revisão" mas não nomeia minutas especificamente. Implícito.</p>
+    </div>
+
+    <div class="hypo" style="border-left-color:var(--ok)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill ok">Cuba ✓</span><span class="pill ok">Fernando ✓</span></div>
+      <h4>H3 · Comunicação fragmentada entre áreas</h4>
+      <p>Múltiplos canais de comunicação sem plataforma única. A resposta cruzada confirmou que essa é uma das dores mais consensadas.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba: "Slack vs Teams vs Google Chat vs Email, ausência de plataforma única para abertura de demandas".<br><br>Fernando: "comunicação manual (e-mail, telefone, whatsapp) por vários canais. Aplicativo personalizado de controle de projetos que integre as áreas com interface com o cliente".</p>
+    </div>
+
+    <div class="hypo" style="border-left-color:var(--ok)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill ok">Cuba ✓</span><span class="pill ok">Fernando ✓</span></div>
+      <h4>H4 · Gestão documental fragmentada</h4>
+      <p>Documentos chegam por múltiplos canais sem ponto único de verdade por cliente.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba: "organização de arquivos recebidos pelo cliente" entre as tarefas repetitivas.<br><br>Fernando: "alimentações manuais de arquivos e documentos" como dor a eliminar.</p>
+    </div>
+
+    <div class="hypo" style="border-left-color:var(--bad)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill bad">Cuba 1/5</span><span class="pill warn">Fernando 2/5</span></div>
+      <h4>H5 · Governança de prazos sem visibilidade</h4>
+      <p>9 pessoas tocando múltiplos projetos em paralelo sem dashboard único.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba 1 de 5 (a pior nota). Listou 7 KPIs específicos: cronograma, custos, horas, alteração de horas, prazos vencidos, projetos parados, comunicação cliente-equipe.<br><br>Fernando 2 de 5. Quer ver "evolução dos projetos e eventuais gargalos, na maioria criados pelo próprio cliente, que precisa de ação rápida".</p>
+    </div>
+
+    <div class="hypo" style="border-left-color:var(--bad)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill bad">Dor silenciosa confirmada</span><span class="pill ok">Anne ✓</span><span class="pill ok">Mônica ✓</span></div>
+      <h4>H6 · Cálculos sem ferramenta padronizada (RESSUSCITADA)</h4>
+      <p>ITCD, Diagnóstico Tributário e comparativos de regime em planilhas Excel artesanais. Era para sair do roadmap, mas as vozes seniores trouxeram de volta.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Anne (senior, 10+ anos): "automatizaria Cálculo de ITCD e respectivos Instrumentos sucessórios, baseado nas informações repassadas".<br><br>Mônica (senior, 5-10 anos): "elaboração de contratos, instrumentos, levantamento de patrimônio e revisões".<br><br>Caso clássico de dor silenciosa. Os 2 sócios não viram, mas quem executa pediu explicitamente. <strong>Decisão recomendada: F03 Calculadora ITCD volta para a Wave 1.</strong></p>
+    </div>
+
+    <!-- HIPÓTESE NOVA H7 -->
+    <div class="hypo" style="border-left-color:var(--gold);grid-column:1 / -1;background:linear-gradient(135deg,rgba(212,175,55,0.06),transparent)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill gold">Nova · só Cuba</span><span class="pill warn">Fernando não menciona</span></div>
+      <h4>H7 · Concentração de conhecimento e necessidade de sucessão interna</h4>
+      <p>O conhecimento de acordos de acionistas, protocolos e estruturas de conselho está limitado a poucas pessoas na OSG. Cuba conecta com sua prioridade de processo sucessório.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Cuba: "tornar o conhecimento de acordos, protocolos e conselho limitado para poucas pessoas". Prioridade 12 meses: "Realizar um processo sucessório nas áreas de Sucessão Patrimonial e Governança".<br><br>Fernando não citou. Possível leitura: como Cuba está se preparando para sair (ele próprio escreveu "fui sócio até minha retirada"), enxerga a sucessão com mais urgência. Vale levar para reunião de validação.</p>
+      <p style="margin-top:8px;color:var(--ink-soft);font-size:13px">Implicação para o roadmap: a Wave 3 (pós-90d) deve incluir uma biblioteca viva de conhecimento que destrave seniores para produzirem o que hoje só sócios fazem.</p>
+    </div>
+
+    <!-- HIPÓTESE NOVA H8 -->
+    <div class="hypo" style="border-left-color:var(--gold);grid-column:1 / -1;background:linear-gradient(135deg,rgba(212,175,55,0.06),transparent)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill gold">Nova · trazida por Fernando</span><span class="pill info">Cuba alinhado por extensão</span></div>
+      <h4>H8 · Interface com o cliente dentro da plataforma</h4>
+      <p>Fernando trouxe um requisito novo importante: o aplicativo de gestão precisa ter interface com o cliente, não apenas interna. Muitos gargalos vêm do próprio cliente (atraso de envio, mudança de escopo). Sem visibilidade do cliente no sistema, a OSG não consegue antecipar.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Fernando: "uso de um aplicativo mais personalizado de controle de projetos e que integre as áreas, com interface com o cliente, é o mais adequado". Sobre gargalos: "na maioria criado pelo próprio cliente, mas que precisa de ação rápida para ajustes".<br><br>Cuba alinhado por extensão: pediu "centralizar a comunicação entre áreas da Holding (incluindo PSA Norte)", está no mesmo eixo de unificação de plataformas.</p>
+      <p style="margin-top:8px;color:var(--ink-soft);font-size:13px">Implicação para a Wave 2: a F04 Dashboard OSG (baseada na Lovable do Fiscal) precisa ter módulo cliente, ou pelo menos um portal simples onde o cliente envie documentos, veja status do seu projeto e responda solicitações pendentes.</p>
+    </div>
+
+    <!-- HIPÓTESE NOVA H9 -->
+    <div class="hypo" style="border-left-color:var(--bad);grid-column:1 / -1;background:linear-gradient(135deg,rgba(239,68,68,0.06),transparent)">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"><span class="pill bad">Dor silenciosa nº 1</span><span class="pill ok">Thiago ✓</span><span class="pill ok">Jakeline ✓</span><span class="pill ok">Luana ✓</span><span class="pill ok">Maritsa ✓</span><span class="pill ok">Daniela ✓</span></div>
+      <h4>H9 · Lançamento de horas e integração OpenProject ↔ Timesheet (NOVA E URGENTE)</h4>
+      <p>Cinco pessoas da equipe pediram a mesma coisa: integração automática entre OpenProject (gestão de projetos) e o sistema de lançamento de horas (Timesheet/Kairós). Hoje, a equipe perde tempo significativo lançando horas em planilhas separadas dos projetos. Daniela disse que a prioridade são entregas pro cliente, então o lançamento de horas fica atrasado, o que distorce a medição da operação.</p>
+      <p style="margin-top:10px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.08);font-style:italic;color:var(--ink);font-size:13px">Thiago (senior): "automatizar lançamento de demandas com horas, dispensar planilha".<br><br>Jakeline (senior): "Timesheet, OpenProject, Kairós, controle de banco de horas".<br><br>Luana (senior): "lançamento de horas automático conforme pastas e documentos".<br><br>Maritsa (assistente): "amarrar OpenProject com Timesheet".<br><br>Daniela (assistente C): "somar horas trabalhadas por projeto, hoje não consigo manter o prazo dela".<br><br>Os sócios não citaram explicitamente, mas Cuba pediu "facilitar o lançamento de horas e controle de custos".</p>
+      <p style="margin-top:8px;color:var(--ink-soft);font-size:13px"><strong>Implicação para o roadmap:</strong> entra como módulo da F04 (Lovable de gestão de projetos). É baixo esforço técnico (integração de APIs entre sistemas existentes) e alto impacto. Pode entrar até no Sprint 4.</p>
+    </div>
+  </div>
+</section>
+
+<!-- MATRIZ IMPACTO × ESFORÇO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">05</span>Matriz Impacto × Esforço — Priorização de Ataque</h2>
+      <p class="lead">Por onde começar. Quadrante superior-esquerdo (alto impacto, baixo esforço) é onde mora o primeiro ciclo.</p>
+    </div>
+  </div>
+  <div class="matrix">
+    <div class="axis-y">↑ Alto impacto · Baixo impacto ↓</div>
+    <div class="axis-x">← Baixo esforço · Alto esforço →</div>
+    <div class="plot">
+      <div class="q-label" style="top:14px;left:14px">QUICK WINS</div>
+      <div class="q-label" style="top:14px;right:14px">PROJETOS ESTRATÉGICOS</div>
+      <div class="q-label" style="bottom:14px;left:14px">BAIXA PRIORIDADE</div>
+      <div class="q-label" style="bottom:14px;right:14px">REAVALIAR</div>
+
+      <!-- QUICK WINS · alto impacto / baixo esforço (top-left) -->
+      <div class="dot dot-1" style="left:14%;top:18%">① Biblioteca de Minutas</div>
+      <div class="dot dot-1" style="left:22%;top:32%">② Calculadora ITCD</div>
+      <div class="dot dot-1" style="left:30%;top:14%">③ Template WP Sócios</div>
+
+      <!-- ALTO VALOR · alto impacto / esforço médio (top-center) -->
+      <div class="dot dot-2" style="left:48%;top:22%">④ DP Inteligente</div>
+      <div class="dot dot-2" style="left:42%;top:38%">⑤ Atas automatizadas</div>
+
+      <!-- ESTRATÉGICOS · alto impacto / alto esforço (top-right) -->
+      <div class="dot dot-3" style="left:72%;top:30%">⑥ Dashboard OSG</div>
+      <div class="dot dot-3" style="left:80%;top:18%">⑦ Integração OSG–Fiscal</div>
+
+      <!-- IMPACTO MÉDIO · centro-baixo -->
+      <div class="dot dot-4" style="left:38%;top:62%">⑨ Pptx automatizado</div>
+      <div class="dot dot-4" style="left:60%;top:58%">⑧ Template Diag. Tributário</div>
+
+      <!-- REAVALIAR · baixo impacto / alto esforço -->
+      <div class="dot dot-5" style="left:84%;top:78%">⑩ Reorganização (M&A)</div>
+    </div>
+  </div>
+  <p style="font-size:12.5px;color:var(--muted);margin-top:10px">Legenda · <span class="conv-dot" style="background:#22c55e"></span>Quick Win · <span class="conv-dot" style="background:#4f8cff"></span>Alto valor · <span class="conv-dot" style="background:#d4af37"></span>Estratégico · <span class="conv-dot" style="background:#f59e0b"></span>Impacto médio · <span class="conv-dot" style="background:#ef4444"></span>Baixa prioridade</p>
+</section>
+
+<!-- FOCO EM AUTOMAÇÃO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">06</span>Consultoria Focada em Automação — Roadmap Recalibrado</h2>
+      <p class="lead">Recalibrado após as respostas dos 2 sócios e as 2 decisões estratégicas (Lovable como base, Google Workspace padrão). O Dashboard OSG (F04) muda de natureza, deixa de ser construção e vira configuração + extensão da Lovable do Fiscal com os 7 indicadores do Cuba e o módulo cliente do Fernando. A Calculadora ITCD perde prioridade porque nenhum sócio citou cálculos como dor relevante. Wave 1 fica focada em DP e Minutas (validação dupla) e o Dashboard sobe para acompanhar.</p>
+    </div>
+  </div>
+  <div class="auto-grid">
+    <div class="auto-card">
+      <span class="rank">01</span>
+      <div class="cat">Automação · Dados Patrimoniais</div>
+      <h4>Template Inteligente de Diagnóstico Patrimonial</h4>
+      <p class="desc">Checklist ativo de documentos + extração e consolidação automática de matrículas, ITR, CCIR e escrituras em modelo padronizado. Cliente envia via Docbox, o sistema monta a espinha do DP.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Horas/mês</div><div class="stat-val">40–60h</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#fbbf24">Média</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">3–4</div></div>
+      </div>
+    </div>
+    <div class="auto-card">
+      <span class="rank">02</span>
+      <div class="cat">Automação · Documentos Societários</div>
+      <h4>Biblioteca Versionada de Minutas</h4>
+      <p class="desc">Contrato Social, Alterações Contratuais e Atas de Assembleia em modelos únicos versionados, com preenchimento assistido a partir dos dados do DP e WP Sócios. Reduz elaboração do zero e normaliza padrão PSA.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Horas/mês</div><div class="stat-val">30–50h</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#7ee2a8">Baixa-Média</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">3</div></div>
+      </div>
+    </div>
+    <div class="auto-card">
+      <span class="rank">03</span>
+      <div class="cat">Automação · Cálculos Sucessórios</div>
+      <h4>Calculadora ITCD Padronizada <span class="pill ok" style="margin-left:6px;font-size:10px;padding:2px 8px">Confirmada por seniores</span></h4>
+      <p class="desc">Ferramenta única para cálculo de ITCD com separação de legítima e disponível, parametrizada por UF, com rastreabilidade. <strong>Anne (senior)</strong> pediu explicitamente automatização desse bloco. <strong>Mônica</strong> também citou. Era para sair do roadmap, voltou pela voz da equipe. Caso clássico de dor silenciosa.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Horas/mês</div><div class="stat-val">8–12h</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#7ee2a8">Baixa</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">4</div></div>
+      </div>
+    </div>
+
+    <div class="auto-card" style="border:1px solid var(--bad);background:linear-gradient(180deg,rgba(239,68,68,0.06),#0f1a32)">
+      <span class="rank">04</span>
+      <div class="cat" style="color:#fca5a5">Dor silenciosa · Pedido de 5 pessoas da equipe</div>
+      <h4>Integração OpenProject ↔ Timesheet <span class="pill bad" style="margin-left:6px;font-size:10px;padding:2px 8px">Nova H9 urgente</span></h4>
+      <p class="desc">Lançamento automático de horas a partir do OpenProject. Resolve dor citada explicitamente por Thiago, Jakeline, Luana, Maritsa e Daniela. Baixo esforço técnico (integração de APIs entre sistemas existentes), alto impacto na rotina. Daniela: "hoje não consigo manter o prazo do lançamento". Pode integrar com Kairós também.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Pessoas pedindo</div><div class="stat-val" style="color:#fca5a5">5 de 9</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#7ee2a8">Baixa</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">4</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wave 2 -->
+  <h3 style="margin-top:30px;font-size:15px;color:var(--accent-2);text-transform:uppercase;letter-spacing:2px">Wave 2 · Mês 3 · Integração e Visibilidade</h3>
+  <div class="auto-grid">
+    <div class="auto-card" style="border:1px solid var(--gold);background:linear-gradient(180deg,rgba(212,175,55,0.08),#0f1a32)">
+      <span class="rank">05</span>
+      <div class="cat" style="color:var(--gold)">Visibilidade · Reaproveitando Lovable + Pedidos dos 2 sócios</div>
+      <h4>Plataforma de Gestão de Projetos OSG <span class="pill gold" style="margin-left:6px;font-size:10px;padding:2px 8px">Lovable do Fiscal como base</span></h4>
+      <p class="desc">Configuração e extensão da plataforma já construída no Fiscal. Adições para a OSG: 7 indicadores do Cuba (cronograma, custos, horas, alteração de horas, prazos vencidos, projetos parados, comunicação cliente-equipe), módulo de interface com o cliente do Fernando (envio de documentos, status do projeto, solicitações pendentes), duas views (executiva para os sócios e operacional para seniores e assistentes).</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Visibilidade hoje</div><div class="stat-val" style="color:#fca5a5">1–2/5</div></div>
+        <div class="stat"><div class="stat-label">Esforço</div><div class="stat-val" style="color:#7ee2a8">Reduzido</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">4–5</div></div>
+      </div>
+    </div>
+    <div class="auto-card">
+      <span class="rank">06</span>
+      <div class="cat">Integração · Padronização Google Workspace</div>
+      <h4>Hub de Comunicação Unificado <span class="pill info" style="margin-left:6px;font-size:10px;padding:2px 8px">Decisão tomada</span></h4>
+      <p class="desc">Padronização da OSG em Google Workspace (Drive, Docs, Chat, Meet) como única plataforma. Substitui o ambiente atual de Slack vs Teams vs Google Chat vs Email. Pasta única por cliente, gatilho automático de chegada de documento, integração nativa com a Lovable e com as IAs já contratadas (Gemini e NotebookLM). Inclui PSA Norte no escopo da centralização.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Ganho</div><div class="stat-val">Fragmentação ↓</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#7ee2a8">Baixa-Média</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">5–6</div></div>
+      </div>
+    </div>
+    <div class="auto-card">
+      <span class="rank">07</span>
+      <div class="cat">Automação · Análise Tributária</div>
+      <h4>Template Diagnóstico Tributário</h4>
+      <p class="desc">Planilha estruturada para comparação de regimes (LR, LP, Rural) com rastreabilidade dos inputs e validação automática de consistência.</p>
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Horas/mês</div><div class="stat-val">15–25h</div></div>
+        <div class="stat"><div class="stat-label">Complexidade</div><div class="stat-val" style="color:#fbbf24">Média</div></div>
+        <div class="stat"><div class="stat-label">Sprint</div><div class="stat-val">6</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP 3 MESES -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">07</span>Roadmap 3 Meses + Gordura · 6 Sprints + Buffer</h2>
+      <p class="lead">3 meses de execução efetiva (maio, junho, julho) divididos em 6 sprints de 2 semanas, com gordura de 1 mês (agosto) para ajustes finos, treinamento e handover. Metodologia idêntica à aplicada em Fiscal (92% aderência ao roadmap).</p>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-month">Maio · Sprints 1–2 · Diagnóstico</div>
+      <div class="tl-title">Diagnóstico e Priorização</div>
+      <div class="tl-desc">Cruzamento das respostas dos 3 níveis (sócios já respondidos, seniores e assistentes em curso), entrevistas 1:1 onde necessário para aprofundar pontos divergentes, mapeamento AS-IS dos 3 processos de maior volume (DP, WP Sócios, Atas), consolidação da matriz impacto × esforço e apresentação executiva do roadmap validado pelos sócios.</div>
+      <div class="tl-tags">
+        <span class="pill info">Cruzamento 3 níveis</span>
+        <span class="pill info">Mapeamento AS-IS</span>
+        <span class="pill gold">Apresentação aos sócios</span>
+      </div>
+    </div>
+    <div class="tl-item m2">
+      <div class="tl-month">Junho a Julho · Sprints 3–4 · Wave 1</div>
+      <div class="tl-title">Construção das Primeiras Automações</div>
+      <div class="tl-desc">Entrega em ambiente de teste: DP Inteligente, Biblioteca de Minutas. Configuração inicial da Lovable do Fiscal para a OSG. Validação pelos assistentes e seniores, documentação inicial e treinamento.</div>
+      <div class="tl-tags">
+        <span class="pill ok">DP Inteligente</span>
+        <span class="pill ok">Biblioteca de Minutas</span>
+        <span class="pill gold">Configuração Lovable</span>
+      </div>
+    </div>
+    <div class="tl-item m3">
+      <div class="tl-month">Julho · Sprints 5–6 · Wave 2</div>
+      <div class="tl-title">Integração, Visibilidade e Cliente</div>
+      <div class="tl-desc">Plataforma de gestão na Lovable em produção com 7 indicadores do Cuba e módulo cliente do Fernando. Padronização Google Workspace para toda a OSG. Integração entre áreas (incluindo PSA Norte). Documentação completa.</div>
+      <div class="tl-tags">
+        <span class="pill gold">Lovable em produção</span>
+        <span class="pill gold">Módulo cliente</span>
+        <span class="pill gold">Google Workspace</span>
+      </div>
+    </div>
+    <div class="tl-item m3" style="opacity:0.95">
+      <div class="tl-month">Agosto · Buffer · Gordura para Ajustes Finos</div>
+      <div class="tl-title">Refino, Treinamento e Handover</div>
+      <div class="tl-desc">Mês de gordura (não-execução de novas ferramentas). Foco em ajuste fino com base no feedback real de uso, treinamento aprofundado da equipe nas IAs já contratadas (Gemini, NotebookLM, Claude), documentação consolidada de handover, plano de sustentação de 90 dias e encerramento formal do projeto.</div>
+      <div class="tl-tags">
+        <span class="pill warn">Buffer</span>
+        <span class="pill info">Treinamento IAs</span>
+        <span class="pill gold">Handover</span>
+        <span class="pill gold">Encerramento</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ROI -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">08</span>Retorno Estimado · Visão Conservadora</h2>
+      <p class="lead">Premissas conservadoras: não soma sobreposições entre ferramentas, exclui ganhos qualitativos. Os números finais serão calibrados após entrevistas 1:1 e mapeamento AS-IS detalhado (metodologia ETAGV aplicada em Fiscal).</p>
+    </div>
+  </div>
+  <div class="grid grid-3">
+    <div class="kpi">
+      <div class="label">Recuperação de capacidade</div>
+      <div class="val">90–140h/mês</div>
+      <div class="desc">Equivalente a 0,5 a 0,8 FTE na equipe OSG</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Retorno anualizado</div>
+      <div class="val">R$ 86k–201k</div>
+      <div class="desc">Hora média ponderada OSG R$80–120/h carregada</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Horizonte de payback</div>
+      <div class="val">&lt; 90 dias</div>
+      <div class="desc">Entregas da Wave 1 começam a render já no Sprint 4</div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:14px">
+    <h3>Ganhos qualitativos (não monetizados)</h3>
+    <p style="color:var(--ink-soft);margin:0;font-size:14px">Redução de retrabalho em apresentações · aumento de rastreabilidade em documentos jurídicos · redução de erro manual em cálculos tributários e sucessórios · visibilidade executiva em tempo real para Fernando e Cuba · liberação dos seniores para análise estratégica · alívio perceptível na camada de assistentes (fator de retenção).</p>
+  </div>
+</section>
+
+<!-- CONVERGÊNCIA DOS 3 DIAGNÓSTICOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">09</span>Leitura Cruzada — O que os 3 Formulários Vão Revelar</h2>
+      <p class="lead">Cruzar sócios × seniores × assistentes permite separar convergências (prioridade imediata), divergências (alinhamento político) e dores silenciosas (automações de maior impacto).</p>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <table class="conv-table">
+      <thead>
+        <tr>
+          <th>Sinal</th>
+          <th>Interpretação</th>
+          <th>Ação recomendada</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="conv-dot" style="background:#22c55e"></span><strong>Convergência</strong><br><span style="color:var(--muted);font-size:12px">Todos os níveis apontam o mesmo problema</span></td>
+          <td>Dor comprovada e percebida em toda a cadeia. Baixíssima resistência a mudança.</td>
+          <td><strong>Alta prioridade</strong> — entra na Wave 1. Não requer mais validação.</td>
+        </tr>
+        <tr>
+          <td><span class="conv-dot" style="background:#f59e0b"></span><strong>Divergência</strong><br><span style="color:var(--muted);font-size:12px">Sócio vê uma coisa, operação vê outra</span></td>
+          <td>Há um gap de percepção — a realidade operacional não chega à sala dos sócios.</td>
+          <td><strong>Oportunidade política</strong> — apresentar o dado cru aos sócios vira alinhamento e legitima o projeto.</td>
+        </tr>
+        <tr>
+          <td><span class="conv-dot" style="background:#ef4444"></span><strong>Dores silenciosas</strong><br><span style="color:var(--muted);font-size:12px">Assistentes apontam, seniores minimizam</span></td>
+          <td>Operação sofre, mas a dor foi "normalizada" ou não é visível para quem lidera.</td>
+          <td><strong>Automação de maior impacto</strong> — transformar invisível em visível é onde os ganhos aparecem.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- RISCOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">10</span>Riscos e Pontos de Atenção</h2>
+      <p class="lead">Identificados já no diagnóstico inicial. Mitigação entra no planejamento de cada sprint.</p>
+    </div>
+  </div>
+  <div class="risk"><div class="icon">R1</div><div><h4>Resistência cultural da área jurídica</h4><p>O artesanal é valorizado culturalmente. Mitigação: enquadrar padronização como <em>liberação de tempo para o que importa</em>, não como engessamento. Envolver seniores desde o desenho.</p></div></div>
+  <div class="risk"><div class="icon">R2</div><div><h4>Interdependência com outras áreas</h4><p>Melhorias de interface dependem de adesão de Felipe, Ricardo e Washington. Mitigação: a Wave 2 (integração) só entra após construída confiança no ciclo e com dados concretos de impacto em mão.</p></div></div>
+  <div class="risk"><div class="icon">R3</div><div><h4>Nível de exigência técnica dos documentos</h4><p>Documentos societários têm baixa tolerância a erro. Mitigação: todas as ferramentas serão construídas com revisão embutida (checklists, validações, trilha de auditoria).</p></div></div>
+  <div class="risk"><div class="icon">R4</div><div><h4>Disponibilidade da equipe nos sprints</h4><p>Sócios e seniores precisam bloquear 2–4h por ciclo. Mitigação: agenda travada na primeira reunião estratégica; pré-work enviado 72h antes de cada sessão.</p></div></div>
+</section>
+
+<!-- O QUE PATRÍCIA PRECISA -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">11</span>O que Precisa Ser Validado pelos Sócios</h2>
+      <p class="lead">Pauta objetiva da primeira conversa com Fernando e Cuba. 6 pontos fechados.</p>
+    </div>
+  </div>
+  <div class="grid grid-2">
+    <div class="card"><span class="pill info">01</span><h3 style="margin-top:10px">Validação da leitura estratégica</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">As 3 implicações estruturais fazem sentido? O que precisa ser ajustado?</p></div>
+    <div class="card"><span class="pill info">02</span><h3 style="margin-top:10px">Confirmação do dimensionamento</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">9 pessoas, 1.440h/mês, 40–55% em trabalho manual — bate com a percepção de vocês?</p></div>
+    <div class="card"><span class="pill info">03</span><h3 style="margin-top:10px">Ranking das hipóteses de dor</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">Cada sócio dá o seu ranking individual das 6 hipóteses. Diferença entre os dois já é sinal.</p></div>
+    <div class="card"><span class="pill info">04</span><h3 style="margin-top:10px">Escolha dos participantes</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">Sugestão: 3 seniores representativos + 1 assistente por nível para entrevistas e testes.</p></div>
+    <div class="card"><span class="pill info">05</span><h3 style="margin-top:10px">Agenda travada</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">2 entrevistas 1:1 de 2h nas próximas 2 semanas. Pré-work enviado 72h antes.</p></div>
+    <div class="card"><span class="pill info">06</span><h3 style="margin-top:10px">Alinhamento de expectativas</h3><p style="color:var(--ink-soft);margin:0;font-size:14px">Ciclo de 3 meses, 6 entregas, relatório executivo mensal. Tudo alinhado?</p></div>
+  </div>
+</section>
+
+<!-- PRÓXIMOS PASSOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">12</span>Próximos Passos Imediatos</h2>
+      <p class="lead">Ações desta e da próxima semana para travar o ciclo.</p>
+    </div>
+  </div>
+  <div class="card" style="padding:0">
+    <table>
+      <thead>
+        <tr><th style="width:140px">Prazo</th><th>Ação</th><th style="width:200px">Responsável</th><th style="width:120px">Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>Concluído</strong></td><td>Publicar e disparar os 3 formulários para sócios, seniores e assistentes</td><td>Patrícia</td><td><span class="pill ok">✓ Feito</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Receber resposta do Cuba (27/04 18:36)</td><td>Cuba</td><td><span class="pill ok">✓ Recebido</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Receber resposta do Fernando (29/04 10:43)</td><td>Fernando</td><td><span class="pill ok">✓ Recebido</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Decisões estratégicas tomadas (Lovable como base + Google Workspace padrão)</td><td>Patrícia</td><td><span class="pill ok">✓ Decidido</span></td></tr>
+        <tr><td><strong>Esta semana</strong></td><td>Apresentar este painel aos sócios na reunião de validação cruzada de dores e roadmap</td><td>Patrícia</td><td><span class="pill warn">A fazer</span></td></tr>
+        <tr><td><strong>Esta semana</strong></td><td>Validar com os sócios as 8 perguntas em aberto (capacidade, H6, H7, escopo do módulo cliente, PSA Norte, etc)</td><td>Patrícia + Sócios</td><td><span class="pill warn">A fazer</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Receber respostas dos 6 seniores e dos 3 assistentes</td><td>Equipe OSG</td><td><span class="pill ok">✓ Recebido</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Cruzar respostas dos 3 níveis (convergência × divergência × dores silenciosas) — 5 convergências, 3 dores silenciosas, 4 divergências internas</td><td>Patrícia</td><td><span class="pill ok">✓ Feito</span></td></tr>
+        <tr><td><strong>Concluído</strong></td><td>Atualizar diagnóstico com H6 ressuscitada e H9 nova (lançamento de horas)</td><td>Patrícia</td><td><span class="pill ok">✓ Feito</span></td></tr>
+        <tr><td><strong>Maio</strong></td><td>Iniciar mapeamento AS-IS dos 3 processos-chave (DP, WP Sócios, Atas)</td><td>Patrícia + Equipe OSG</td><td><span class="pill info">Planejado</span></td></tr>
+        <tr><td><strong>Maio</strong></td><td>Apresentação executiva do diagnóstico completo e roadmap final aprovado pelos sócios</td><td>Patrícia</td><td><span class="pill info">Planejado</span></td></tr>
+        <tr><td><strong>Jun a Jul</strong></td><td>Construção das 3 ferramentas-âncora da Wave 1 (DP Inteligente, Biblioteca de Minutas, configuração da Lovable)</td><td>Patrícia + IAplicada + Equipe OSG</td><td><span class="pill info">Planejado</span></td></tr>
+        <tr><td><strong>Jul</strong></td><td>Wave 2: módulo cliente na Lovable, padronização Google Workspace, integração entre áreas</td><td>Patrícia + IAplicada</td><td><span class="pill info">Planejado</span></td></tr>
+        <tr><td><strong>Ago</strong></td><td>Gordura para ajustes finos, validação com a equipe OSG, treinamento e documentação consolidada (handover)</td><td>Patrícia + Equipe OSG</td><td><span class="pill gold">Buffer</span></td></tr>
+        <tr><td><strong>Final Ago</strong></td><td>Entregas finais aprovadas e projeto formalmente encerrado</td><td>Patrícia + Sócios</td><td><span class="pill gold">Marco final</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin-top:14px;color:var(--ink-soft);font-size:13.5px;font-style:italic">Cronograma com 3 meses de execução efetiva (maio a julho) e gordura de 1 mês (agosto) para ajustes finos, treinamento da equipe e handover. Total: 4 meses corridos do diagnóstico ao encerramento formal.</p>
+</section>
+
+<div class="foot">
+  Documento preparado como insumo para conversa estratégica · Dados a serem calibrados nas entrevistas 1:1 · Metodologia MAPA (D.A.T.A.S.) em uso há 8 sprints na PSA Fiscal com 92% de aderência<br>
+  PSA Prado Suzuki · Transformação Digital · Coordenação Patrícia Melo · Abril de 2026
+</div>
+
+</div><!-- /tab-diagnostico -->
+
+<!-- =========================================================== -->
+<!-- TAB 2 (NOVA): VOZ DOS SÓCIOS — RESPOSTAS DETALHADAS DO CUBA -->
+<!-- =========================================================== -->
+<div id="tab-respostas" class="tab-content">
+
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">★</span>Voz dos Sócios — Respostas Reais</h2>
+      <p class="lead">Os dois sócios responderam. Esta aba traz a fala literal de cada um lado a lado, organizada por tema. Material direto para a reunião de validação dos dois.</p>
+    </div>
+  </div>
+
+  <!-- Status de respostas -->
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(34,197,94,0.18);color:#7ee2a8;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">LC</div>
+        <div>
+          <h3 style="margin:0">Luciano Aparecido Cuba</h3>
+          <p style="margin:2px 0 0;color:var(--ink-soft);font-size:13px">Mais de 15 anos · Respondeu em 27/04 às 18:36 · Visão interna e operacional</p>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--ok)">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:48px;height:48px;border-radius:12px;background:rgba(34,197,94,0.18);color:#7ee2a8;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800">FM</div>
+        <div>
+          <h3 style="margin:0">Fernando Oliveira Machado</h3>
+          <p style="margin:2px 0 0;color:var(--ink-soft);font-size:13px">Mais de 15 anos · Respondeu em 29/04 às 10:43 · Visão externa e executiva</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARATIVO LADO A LADO -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">⇄</span>Cuba × Fernando, Lado a Lado</h2>
+      <p class="lead">Mesmas perguntas, duas vozes. Compare onde convergem e onde divergem.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <!-- Papel da OSG -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Papel da OSG</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Fui sócio por quase 20 anos, era responsável pela área OSG, atuando em Planejamento Tático, monitoramento de orçamento, representação institucional, gestão da equipe, execução de trabalhos como acordos de acionistas, conselhos, contratos de fusão e aquisição."</p>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Papel da OSG</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Área responsável pelo produto Organização Patrimonial, Sucessão e Governança perante os clientes."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Mais sucinto e voltado para o produto/cliente.</p>
+    </div>
+
+    <!-- 3 tipos de projeto -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">3 principais tipos de projeto</h3>
+      <ol style="color:var(--ink-soft);font-size:13.5px;padding-left:20px;margin:8px 0 0;line-height:1.8">
+        <li>Organização Patrimonial, Societária e Sucessão</li>
+        <li>Governança</li>
+        <li>Consultoria Societária para clientes externos ou internos</li>
+      </ol>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">3 principais tipos de projeto</h3>
+      <ol style="color:var(--ink-soft);font-size:13.5px;padding-left:20px;margin:8px 0 0;line-height:1.8">
+        <li><strong style="color:var(--gold)">Organização empresarial do produtor rural</strong></li>
+        <li>Planejamento sucessório</li>
+        <li>Consultoria em governança</li>
+      </ol>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Coloca o produtor rural no topo, alinha com perfil do Fiscal.</p>
+    </div>
+
+    <!-- Prioridade 12 meses -->
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Prioridade nos próximos 12 meses</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Realizar processo sucessório nas áreas de Sucessão Patrimonial e Governança, bem como tornar as rotinas operacionais autônomas via IA ou outra tecnologia."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Foco interno: sucessão e automação.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Prioridade nos próximos 12 meses</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Aumentar o faturamento e aperfeiçoar o atendimento ao cliente."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Foco externo: faturamento e cliente. Divergente em ângulo, complementar em direção.</p>
+    </div>
+
+    <!-- Capacidade -->
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Capacidade da equipe</h3>
+      <div style="margin-top:10px"><span class="pill warn" style="font-size:13px;padding:6px 14px">No limite</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Capacidade da equipe</h3>
+      <div style="margin-top:10px"><span class="pill info" style="font-size:13px;padding:6px 14px">Equilibrado</span></div>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Divergência relevante. Validar com seniores e assistentes.</p>
+    </div>
+
+    <!-- O que atrasa -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">O que atrasa um projeto novo</h3>
+      <ul style="color:var(--ink-soft);font-size:13px;padding-left:18px;margin:8px 0 0;line-height:1.7">
+        <li>Tempo de elaboração de DP</li>
+        <li>Tempo de elaboração de minutas</li>
+        <li>Revisão pelo senior ou sócio</li>
+        <li>Exigências de órgãos</li>
+        <li>Outros</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">O que atrasa um projeto novo</h3>
+      <ul style="color:var(--ink-soft);font-size:13px;padding-left:18px;margin:8px 0 0;line-height:1.7">
+        <li>Exigências de órgãos</li>
+        <li>Outros</li>
+      </ul>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Lista mais curta. Não menciona DP, minutas ou revisão como causa direta de atraso.</p>
+    </div>
+
+    <!-- O que eliminaria -->
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">O que eliminaria do dia a dia</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Tarefas repetitivas, digitação de matrículas, revisão de materiais e alterações simples, organização de arquivos do cliente, minutas que são troca de caracteres, conhecimento limitado a poucas pessoas."</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">O que eliminaria do dia a dia</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Excesso de ações repetitivas e burocráticas (camadas de revisão), e alimentações manuais de arquivos e documentos."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Inclui "camadas de revisão" como ação burocrática a eliminar. Cuba não usou esse termo.</p>
+    </div>
+
+    <!-- Visibilidade -->
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Visibilidade em tempo real</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:10px">
+        <div style="font-size:48px;font-weight:800;color:#fca5a5;line-height:1">1</div>
+        <div style="color:var(--ink-soft);font-size:13px">de 5</div>
+      </div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--warn)">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Visibilidade em tempo real</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:10px">
+        <div style="font-size:48px;font-weight:800;color:#fbbf24;line-height:1">2</div>
+        <div style="color:var(--ink-soft);font-size:13px">de 5</div>
+      </div>
+    </div>
+
+    <!-- Que info quer ver -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Que informação quer em tempo real</h3>
+      <ol style="color:var(--ink-soft);font-size:13px;padding-left:18px;margin:8px 0 0;line-height:1.7">
+        <li>Cronograma previsto vs realizado</li>
+        <li>Custos projetados vs realizados</li>
+        <li>Horas executadas por tarefa</li>
+        <li>Alteração de horas sinalizada</li>
+        <li>Projetos com prazo vencido</li>
+        <li>Projetos parados há X dias</li>
+        <li>Comunicação cliente-equipe</li>
+      </ol>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Que informação quer em tempo real</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;font-style:italic;margin:8px 0 0">"Evolução dos projetos e eventuais gargalos, na maioria criados pelo próprio cliente, mas que precisa de ação rápida para ajustes."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Visão qualitativa e executiva. Cuba pediu visão granular. Combinadas dão a base de duas views da plataforma.</p>
+    </div>
+
+    <!-- Comunicação nota -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Avaliação da comunicação com outras áreas</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:10px">
+        <div style="font-size:48px;font-weight:800;color:#fbbf24;line-height:1">3</div>
+        <div style="color:var(--ink-soft);font-size:13px">de 5</div>
+      </div>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Avaliação da comunicação com outras áreas</h3>
+      <div style="display:flex;align-items:center;gap:14px;margin-top:10px">
+        <div style="font-size:48px;font-weight:800;color:#93b6ff;line-height:1">4</div>
+        <div style="color:var(--ink-soft);font-size:13px">de 5</div>
+      </div>
+    </div>
+
+    <!-- Pontos de atrito -->
+    <div class="card">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Pontos de atrito</h3>
+      <p style="color:var(--ink-soft);font-size:13px;font-style:italic;margin:8px 0 0">"Canais diversos (Slack vs Teams vs Google Chat vs Email), canais diversos de gestão de projetos, ausência de plataforma única para abertura de demandas, ausência de indicadores de demanda entre áreas."</p>
+    </div>
+    <div class="card">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Pontos de atrito</h3>
+      <p style="color:var(--ink-soft);font-size:13px;font-style:italic;margin:8px 0 0">"Comunicação manual (email, telefone, whatsapp) por vários canais. Aplicativo personalizado de controle de projetos que integre as áreas, com interface com o cliente, é o mais adequado."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Insight novo: pede interface com o cliente, vira H8.</p>
+    </div>
+
+    <!-- Sucesso em 3 meses -->
+    <div class="card" style="border-left:3px solid var(--accent-2)">
+      <span class="pill info">Cuba</span>
+      <h3 style="margin-top:8px">Sucesso em 3 meses</h3>
+      <p style="color:var(--ink-soft);font-size:13px;font-style:italic;margin:8px 0 0">"Indicadores de andamento, horas e custos. Rotinas repetitivas automatizadas. Centralização da comunicação entre áreas (incluindo PSA Norte). Lançamento de horas facilitado. Treinar equipe para extrair melhores práticas das IAs já contratadas (Gemini, NotebookLM, Claude)."</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--accent-2)">
+      <span class="pill info">Fernando</span>
+      <h3 style="margin-top:8px">Sucesso em 3 meses</h3>
+      <p style="color:var(--ink-soft);font-size:13px;font-style:italic;margin:8px 0 0">"Controle mais efetivo e transparente entre os gestores envolvidos, além do tempo de resposta e atendimento ao cliente."</p>
+      <p style="color:var(--ink);font-size:12.5px;margin-top:10px">Mais conciso. Foca em transparência entre gestores e tempo de resposta ao cliente.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PONTOS A LEVAR PARA REUNIÃO COM SÓCIOS -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">?</span>Pontos a Levar para a Reunião com os Sócios</h2>
+      <p class="lead">Com as 11 respostas em mão, esses são os 8 pontos que precisam de validação ou decisão dos sócios na reunião de alinhamento. Inclui os achados que vieram da equipe e que os sócios não enxergaram.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill bad">Trazer achado para a mesa</span>
+      <h3 style="margin-top:8px">Carga real dos assistentes</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Cuba diz "no limite", Fernando diz "equilibrado". Mas Daniela (assistente C) sente que vai perder prazo "quase toda semana". Há divergência entre a percepção dos sócios e a realidade do nível assistente. Apresentar esse dado e alinhar a leitura.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill bad">Trazer achado para a mesa</span>
+      <h3 style="margin-top:8px">H6 ressuscitada (cálculos)</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Os sócios não viram, mas Anne pediu explicitamente automatização de Cálculo ITCD e instrumentos sucessórios. Trazer como dor silenciosa e propor manter a F03 Calculadora ITCD na Wave 1.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <span class="pill bad">Trazer achado para a mesa</span>
+      <h3 style="margin-top:8px">H9 nova (lançamento de horas)</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">5 pessoas da equipe pediram. Cuba mencionou de leve, Fernando não. É a dor silenciosa de maior consenso interno. Apresentar como prioridade Wave 1, integração baixo esforço alto impacto.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Decisão pendente</span>
+      <h3 style="margin-top:8px">Sucessão interna (H7) tem mesma urgência para Fernando?</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Cuba colocou como prioridade número 1. Fernando não citou. Possível leitura: Cuba se preparando para sair, enxerga com mais urgência. Vale alinhar como entra no roadmap.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Decisão pendente</span>
+      <h3 style="margin-top:8px">Escopo do módulo cliente na plataforma</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Fernando pediu "interface com o cliente". Vale definir o escopo: só envio de documentos, acompanhamento de status, ou também resposta a solicitações? Define complexidade da extensão da Lovable.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--gold)">
+      <span class="pill gold">Decisão pendente</span>
+      <h3 style="margin-top:8px">PSA Norte entra no escopo da Wave 2?</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Cuba citou explicitamente. Vale confirmar se a unidade Norte entra agora na centralização ou fica para depois. Impacta complexidade do Hub Google Workspace.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--info)">
+      <span class="pill info">Atenção operacional</span>
+      <h3 style="margin-top:8px">Sistemas auxiliares (Legal One, Docbox)</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Toda a equipe já está no Google Workspace como base. Karlene e Arielly usam Legal One para acompanhamento processual, Daniela cita Docbox como o que mais atrapalha. Vale mapear o uso desses sistemas auxiliares: integrar com a Lovable, manter como ferramenta paralela, ou substituir por algo nativo no novo fluxo.</p>
+    </div>
+    <div class="card" style="border-left:3px solid var(--info)">
+      <span class="pill info">Atenção cultural</span>
+      <h3 style="margin-top:8px">Camadas de revisão como dor estrutural</h3>
+      <p style="color:var(--ink-soft);font-size:13.5px;margin:8px 0 0">Fernando citou. Apagar incêndios também aparece em Thiago e Karlene como tempo significativo. Há sinal de que parte do problema é fluxo de revisão, não só execução. Vale propor uma análise mais profunda do fluxo Assistente C → Assistente A → Senior → Sócio antes de só automatizar.</p>
+    </div>
+  </div>
+</section>
+
+<!-- VOZ DOS SENIORES -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">S</span>Voz dos Seniores · 6 respondentes</h2>
+      <p class="lead">Cards individuais com a fala de cada senior. Duração de cada bloco: nome, tempo de casa, atividade que mais consome com menor valor agregado, o que automatizaria, e o que sócios não veem.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-2">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">TS</div><div><h3 style="margin:0">Thiago de Souza Santos</h3><p style="margin:0;color:var(--muted);font-size:12px">2-5 anos · Mais de 10 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Reuniões internas e alinhamentos.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "DP e Apresentações pptx, são dados padronizados que buscam alcançar um objetivo previamente definido, não exige desenvoltura técnica para preenchimento. Lançamento de demandas com horas, dispensar planilha."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic"><strong style="color:var(--ink);font-style:normal">Sócios não veem:</strong> "Que elaboramos um serviço extremamente técnico e complexo, que apesar de executarmos com naturalidade, não é uma coisa fácil de ser feita."</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">JG</div><div><h3 style="margin:0">Jakeline Granja</h3><p style="margin:0;color:var(--muted);font-size:12px">5-10 anos · 7-10 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Elaboração e revisão de minutas.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "Elaboração e revisão de documentos. Várias ferramentas corporativas: Timesheet, OpenProject, Kairós, controle de banco de horas."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic"><strong style="color:var(--ink);font-style:normal">Sócios não veem:</strong> "A quantidade de execução e alinhamento para entregarmos os arquivos finais."</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">AS</div><div><h3 style="margin:0">Anne Strini</h3><p style="margin:0;color:var(--muted);font-size:12px">Mais de 10 anos · Mais de 10 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Reuniões de alinhamento.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "Cálculo de ITCD e respectivos Instrumentos sucessórios, baseado nas informações repassadas. Acordo de Quotistas/Acionistas."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic"><strong style="color:var(--ink);font-style:normal">Sócios não veem:</strong> "Volume de documentos e análises, a depender da etapa do projeto."</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">LS</div><div><h3 style="margin:0">Luana Stelle</h3><p style="margin:0;color:var(--muted);font-size:12px">2-5 anos · 7-10 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Análise de documentos.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "Lançamento de horas (automático conforme pastas e documentos), arquivamento de documentos (filtro por tipo), revisão simples (alteração de endereço, qualificação, aumento em moeda corrente)."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic;color:var(--muted)">Sem resposta sobre o que sócios não veem.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">MP</div><div><h3 style="margin:0">Mônica Del Posso</h3><p style="margin:0;color:var(--muted);font-size:12px">5-10 anos · 1-3 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Elaboração e revisão de minutas.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "Elaboração de contratos, instrumentos, levantamento de patrimônio e revisões."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic"><strong style="color:var(--ink);font-style:normal">Sócios não veem:</strong> "Não estão atentos às transformações digitais."</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(79,140,255,0.15);color:#93b6ff;display:flex;align-items:center;justify-content:center;font-weight:800">KG</div><div><h3 style="margin:0">Karlene Gallo Silva</h3><p style="margin:0;color:var(--muted);font-size:12px">5-10 anos · Mais de 10 projetos/mês</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome menor valor:</strong> Apagar incêndios e urgências.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Automatizaria:</strong> "Diagnóstico Patrimonial."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0;font-style:italic"><strong style="color:var(--ink);font-style:normal">Sócios não veem:</strong> "Os detalhes. Na teoria ou no plano de ação tudo é perfeito, mas na execução há muitas pontas a serem conectadas, e nem sempre isso acontece no prazo ou na forma preestabelecida."</p>
+    </div>
+  </div>
+</section>
+
+<!-- VOZ DOS ASSISTENTES -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">A</span>Voz dos Assistentes · 3 respondentes</h2>
+      <p class="lead">Quem executa a rotina operacional. Os achados aqui são onde a automação tem maior impacto direto na liberação de tempo.</p>
+    </div>
+  </div>
+
+  <div class="grid grid-3">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(212,175,55,0.18);color:#e3c664;display:flex;align-items:center;justify-content:center;font-weight:800">MP</div><div><h3 style="margin:0">Maritsa Padilha</h3><p style="margin:0;color:var(--muted);font-size:12px">1-2 anos</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome:</strong> Revisão (não pelo tempo, pela quantidade).</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Mais repetitiva:</strong> Acompanhamento de protocolos das Juntas Comerciais.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Mais atrapalha:</strong> "Abertura de PDF."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Quer automação:</strong> "Amarrar OpenProject com Timesheet."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink);background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:4px">⚠ Atenção:</strong> Salva docs no <strong>OneDrive</strong>, não no Google Drive.</p>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(212,175,55,0.18);color:#e3c664;display:flex;align-items:center;justify-content:center;font-weight:800">AF</div><div><h3 style="margin:0">Arielly Félix</h3><p style="margin:0;color:var(--muted);font-size:12px">Menos de 6 meses</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome:</strong> Análise de matrículas e revisão de documentos.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Mais repetitiva:</strong> Consulta de processos na Sefaz.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Trabalhoso DP:</strong> "Organização e espera dos clientes em mandar a documentação."</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Quer automação:</strong> Conferência de informações da descrição da área.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink);background:rgba(245,158,11,0.15);padding:2px 6px;border-radius:4px">⚠ Atenção:</strong> Usa <strong>SharePoint</strong> e <strong>Legal One</strong>, não Google Drive.</p>
+    </div>
+
+    <div class="card" style="border-left:3px solid var(--bad)">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><div style="width:38px;height:38px;border-radius:9px;background:rgba(239,68,68,0.18);color:#fca5a5;display:flex;align-items:center;justify-content:center;font-weight:800">DS</div><div><h3 style="margin:0">Daniela Sanches</h3><p style="margin:0;color:var(--muted);font-size:12px">Assistente C · 1-2 anos</p></div></div>
+      <p style="color:var(--ink-soft);font-size:13px;margin:0"><strong style="color:var(--ink)">Mais consome:</strong> Compilação de DP, análise de muitas matrículas.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Carga heavy:</strong> Faz instrumentos agrários "com frequência" (30-40% do tempo). Elabora DP de ponta a ponta.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink);color:#fca5a5">Saturação:</strong> "Quase toda semana" sentiu que ia perder prazo.</p>
+      <p style="color:var(--ink-soft);font-size:13px;margin:8px 0 0"><strong style="color:var(--ink)">Quer automação:</strong> "Somar horas trabalhadas por projeto, hoje não consigo manter o prazo do lançamento, prioridade vai sempre para entregáveis ao cliente."</p>
+    </div>
+  </div>
+</section>
+
+<!-- INDICADORES OBJETIVOS DA EQUIPE -->
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">#</span>Indicadores Objetivos</h2>
+      <p class="lead">Números que saíram dos formulários e dão dimensão concreta para apresentar aos sócios.</p>
+    </div>
+  </div>
+
+  <div class="grid kpis">
+    <div class="kpi"><div class="label">Tempo procurando documento</div><div class="val">~30 min</div><div class="desc">Maioria dos seniores. Fernando 1-2h. Indica padrão melhor que o esperado.</div></div>
+    <div class="kpi"><div class="label">Padronização de minutas</div><div class="val">3 a 5 / 5</div><div class="desc">Divergência interna sobre o nível atual de padronização.</div></div>
+    <div class="kpi"><div class="label">Tempo revisão de Ata/Alteração</div><div class="val">30 min - 2h</div><div class="desc">Maioria 30 min a 1h. Mônica gasta mais de 2h. Indica revisão pesada onde há pouca padronização.</div></div>
+    <div class="kpi"><div class="label">Pessoas pedindo automação de horas</div><div class="val">5 de 9</div><div class="desc">Mais de metade da equipe. Dor unânime no operacional.</div></div>
+  </div>
+</section>
+
+</div><!-- /tab-respostas -->
+
+<!-- =========================================================== -->
+<!-- TAB 3: PROCESSOS ATUAIS × AUTOMAÇÃO -->
+<!-- =========================================================== -->
+<div id="tab-processos" class="tab-content">
+
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">AS</span>Processos Atuais × Como Ficarão com Automação</h2>
+      <p class="lead">Leitura AS-IS (como é hoje) × TO-BE (como fica após a transformação digital) para os 10 blocos de trabalho da OSG. Cada bloco mostra as dores atuais, a proposta automatizada e o ganho estimado de horas/mês.</p>
+    </div>
+  </div>
+
+  <!-- Bloco 1 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>① Solicitação e Organização de Documentos Preliminares</h3>
+      <div class="proc-meta"><span class="pill info">Todo projeto</span><span class="pill ok">Quick Win</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Assistente solicita pelo Docbox, acompanha devolutiva, cobra por WhatsApp e e-mail</li>
+          <li>Documentos chegam por múltiplos canais (Docbox, e-mail, WhatsApp, Drive)</li>
+          <li>Sem checklist padronizado por tipo de projeto — cada caso é lembrado de cor</li>
+          <li>Cliente recebe cobranças repetidas, fragmentadas e sem contexto</li>
+          <li>Dossiê do cliente espalhado em múltiplas pastas com nomenclatura inconsistente</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Checklist dinâmico por tipo de projeto (reestruturação, sucessório, rural)</li>
+          <li>Portal único de coleta com status em tempo real (cliente vê o que falta)</li>
+          <li>Lembretes automáticos escalonados (72h / 48h / 24h)</li>
+          <li>Ingestão automática no dossiê padronizado do cliente (pasta única)</li>
+          <li>Nomenclatura normalizada por cliente (não por código de projeto)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">~15–25h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">3</span></div>
+      <div><span class="fl">Impacto</span> <span class="fv">Assistentes A, B, C</span></div>
+      <div><span class="fl">Risco</span> <span class="fv">Baixo</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 2 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>② Diagnóstico Patrimonial (DP)</h3>
+      <div class="proc-meta"><span class="pill info">Todo projeto</span><span class="pill gold">Âncora Wave 1</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Matrículas, CCIR, ITR, escrituras, contratos, DIRPF e balanços lidos manualmente</li>
+          <li>Dados transcritos à mão em planilha ou Word, com alto risco de erro</li>
+          <li>Consome 30–50% do tempo inicial do projeto antes de qualquer análise</li>
+          <li>Sem modelo padrão — cada assistente monta do seu jeito</li>
+          <li>Revisão do senior frequentemente volta o trabalho por inconsistência de dados</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Template inteligente de DP com campos pré-mapeados por tipo de ativo</li>
+          <li>Extração automática de dados-chave de matrículas, CCIR, ITR e DIRPF</li>
+          <li>Consolidação automática em espinha padronizada do DP</li>
+          <li>Validação cruzada (p.ex. área na matrícula × área no CCIR × área no ITR)</li>
+          <li>Assistente foca em análise de risco e estrutura, não em digitação</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">40–60h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">3–4</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Média</span></div>
+      <div><span class="fl">Responsável</span> <span class="fv">Patrícia + IAplicada</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 3 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>③ WP Sócios e Organograma Familiar</h3>
+      <div class="proc-meta"><span class="pill info">Todo projeto</span><span class="pill ok">Quick Win</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Estado civil, regime de bens e organograma montados manualmente caso a caso</li>
+          <li>Riscos sucessórios identificados por inspeção humana — sujeito a escapar</li>
+          <li>Organograma desenhado em PowerPoint ou Visio, sem padrão visual</li>
+          <li>Sem rastreabilidade entre mudanças familiares e impacto societário</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Template parametrizado de WP Sócios com campos obrigatórios por perfil</li>
+          <li>Geração automática do organograma familiar a partir dos dados do WP</li>
+          <li>Alertas automáticos de risco sucessório (regime, união estável, herdeiro menor)</li>
+          <li>Integração direta com o DP e com a minuta de Contrato Social</li>
+          <li>Versionamento da árvore familiar ao longo do projeto</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">~12–20h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">3</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Baixa-Média</span></div>
+      <div><span class="fl">Risco</span> <span class="fv">Baixo</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 4 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>④ Contrato / Estatuto Social</h3>
+      <div class="proc-meta"><span class="pill info">Frequente</span><span class="pill gold">Âncora Wave 1</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Minuta montada a partir de projeto anterior, com risco de vício do modelo-fonte</li>
+          <li>Informações (nome, endereço, objeto social, administração, bens) digitadas manualmente</li>
+          <li>Boletim de subscrição e termos de posse elaborados separadamente</li>
+          <li>Sem biblioteca central — cada senior tem sua base pessoal</li>
+          <li>Retrabalho alto na revisão por inconsistências entre DP e minuta</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Biblioteca central versionada (padrão PSA aprovado pelos sócios)</li>
+          <li>Preenchimento assistido via dados do DP + WP Sócios (fim da digitação dupla)</li>
+          <li>Boletim de subscrição e termo de posse gerados em cascata</li>
+          <li>Cláusulas opcionais via wizard (administração, vedações, quórum)</li>
+          <li>Diff automático entre versões para auditoria e revisão do senior</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">15–25h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">3</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Baixa-Média</span></div>
+      <div><span class="fl">Impacto</span> <span class="fv">Assistentes + Seniores</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 5 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑤ Alterações Contratuais e Atas de Assembleia</h3>
+      <div class="proc-meta"><span class="pill bad">Muito frequente</span><span class="pill gold">Âncora Wave 1</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Cada alteração (concentração de quotas, dividendos, posse) redigida do zero</li>
+          <li>Análise de Lucros/Reservas consultada no balanço manualmente</li>
+          <li>Cálculo de quóruns feito com calculadora à parte</li>
+          <li>Assistente C elabora, Assistente A/B revisa, senior revisa novamente — múltiplas idas e voltas</li>
+          <li>Risco jurídico alto em atos mal redigidos (nulidade por vício formal)</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Catálogo de atos padronizados (concentração de quotas, distribuição, posse)</li>
+          <li>Dados societários vivos puxados do dossiê (quadro de sócios, capital, reservas)</li>
+          <li>Cálculo automático de quórum com validação legal</li>
+          <li>Validação formal embutida (comparecimento, ordem do dia, deliberações)</li>
+          <li>Revisão do senior cai de 1–2h para 20–30 min por documento</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">20–30h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">3–4</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Média</span></div>
+      <div><span class="fl">Impacto</span> <span class="fv">Toda a equipe</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 6 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑥ Reorganização Societária (Cisão, Fusão, Incorporação)</h3>
+      <div class="proc-meta"><span class="pill warn">Pontual · alto valor</span><span class="pill info">Wave 3</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Cada operação montada artesanalmente (protocolo, justificação, atas)</li>
+          <li>Ordenamento de documentos em checklist mental — alto risco de esquecer peça</li>
+          <li>Coordenação entre OSG, Fiscal e Consultoria por WhatsApp e e-mail</li>
+          <li>Timeline do projeto em planilha pessoal do senior</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Playbook digital por tipo de operação com sequência obrigatória de documentos</li>
+          <li>Templates base de protocolo, justificação e atas ligados ao playbook</li>
+          <li>Timeline automática com marcos, dependências e responsáveis</li>
+          <li>Integração com Fiscal para aprovação tributária antes do ato</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">Qualitativo + redução de erro</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">Pós-90d</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Alta</span></div>
+      <div><span class="fl">Prioridade</span> <span class="fv">Wave 3</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 7 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑦ Instrumentos Agrários (Parceria, Comodato, Arrendamento, Encerramento de Safra)</h3>
+      <div class="proc-meta"><span class="pill info">Sazonal + recorrente</span><span class="pill info">Wave 2</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Cada instrumento elaborado caso a caso, com base em modelos dispersos</li>
+          <li>Termos de Encerramento de Safra feitos manualmente ao final do ciclo rural</li>
+          <li>Recibos e instrumentos sem vínculo com a base de dados do cliente</li>
+          <li>Volume sazonal cria gargalo previsível no encerramento (janeiro-abril)</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Biblioteca de instrumentos agrários com wizard de tipo (parceria, comodato etc.)</li>
+          <li>Geração em lote de Termos de Encerramento de Safra ao final do ciclo</li>
+          <li>Recibos vinculados ao contrato-mãe e ao dossiê rural do cliente</li>
+          <li>Calendário agrário embutido com alertas de vencimento de safra</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">~10–18h/mês (pico: 40h/mês)</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">6+</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Baixa-Média</span></div>
+      <div><span class="fl">Sazonalidade</span> <span class="fv">Alta</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 8 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑧ Cálculo ITCD e Instrumentos Sucessórios</h3>
+      <div class="proc-meta"><span class="pill info">Pontual</span><span class="pill ok">Quick Win</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Cálculo de ITCD em planilha Excel artesanal, diferente por UF</li>
+          <li>Separação de legítima e disponível feita manualmente</li>
+          <li>Instrumentos de doação e testamento redigidos sem padrão consolidado</li>
+          <li>Rastreabilidade baixa — difícil reconstituir como o cálculo foi feito</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Calculadora ITCD padronizada com parametrização por UF</li>
+          <li>Separação automática de legítima × disponível com trilha de cálculo</li>
+          <li>Templates de doação e testamento alimentados pela calculadora</li>
+          <li>Histórico versionado de cada cálculo para auditoria</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">8–12h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">4</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Baixa</span></div>
+      <div><span class="fl">Redução de erro</span> <span class="fv">Alta</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 9 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑨ Diagnóstico Tributário de Estruturas</h3>
+      <div class="proc-meta"><span class="pill info">Projeto-a-projeto</span><span class="pill info">Wave 2</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Planilhas Excel artesanais com comparação manual de regimes (LR, LP, Rural)</li>
+          <li>Riscos tributários apontados por inspeção humana, sem trilha estruturada</li>
+          <li>Interface com equipe do Felipe (Fiscal) por WhatsApp/e-mail, sem handoff formal</li>
+          <li>Retrabalho quando dados do DP mudam e a planilha precisa ser refeita</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Template estruturado de Diagnóstico Tributário alimentado pelo DP</li>
+          <li>Comparativo automático de regimes com cenários paralelos</li>
+          <li>Checklist de riscos tributários com referências normativas</li>
+          <li>Handoff formal OSG → Fiscal com pacote padronizado</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">15–25h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">6</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Média</span></div>
+      <div><span class="fl">Impacto cruzado</span> <span class="fv">OSG + Fiscal</span></div>
+    </div>
+  </div>
+
+  <!-- Bloco 10 -->
+  <div class="proc">
+    <div class="proc-head">
+      <h3>⑩ Apresentações de Projeto (pptx Inicial, Execução, Final)</h3>
+      <div class="proc-meta"><span class="pill info">Todo projeto</span><span class="pill info">Wave 2</span></div>
+    </div>
+    <div class="proc-body">
+      <div class="proc-col asis">
+        <h4>AS-IS · Hoje</h4>
+        <ul>
+          <li>Cada apresentação construída do zero, copiando slides de projetos anteriores</li>
+          <li>Dados do DP re-digitados nos slides, com risco de inconsistência</li>
+          <li>Identidade visual variável — cada pessoa monta do seu jeito</li>
+          <li>Apresentações marcadas de última hora geram noites de virada</li>
+        </ul>
+      </div>
+      <div class="proc-arrow">→</div>
+      <div class="proc-col tobe">
+        <h4>TO-BE · Com Automação</h4>
+        <ul>
+          <li>Gerador de pptx a partir do DP, WP Sócios e diagnóstico tributário</li>
+          <li>Template PSA padronizado (inicial, execução, final) com identidade visual travada</li>
+          <li>Dados sincronizados: mudou o DP, a apresentação atualiza</li>
+          <li>Tempo de preparação cai de horas para minutos</li>
+        </ul>
+      </div>
+    </div>
+    <div class="proc-footer">
+      <div><span class="fl">Ganho</span> <span class="fv">10–20h/mês</span></div>
+      <div><span class="fl">Sprint</span> <span class="fv">5–6</span></div>
+      <div><span class="fl">Complexidade</span> <span class="fv">Média</span></div>
+      <div><span class="fl">Ganho qualitativo</span> <span class="fv">Identidade PSA</span></div>
+    </div>
+  </div>
+
+</section>
+
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">Σ</span>Consolidado AS-IS × TO-BE</h2>
+      <p class="lead">Soma conservadora (sem sobreposição) das horas recuperadas nos 10 blocos.</p>
+    </div>
+  </div>
+  <div class="grid kpis">
+    <div class="kpi"><div class="label">Horas recuperadas (faixa)</div><div class="val">145–235h/mês</div><div class="desc">Soma dos 10 blocos · visão otimista</div></div>
+    <div class="kpi"><div class="label">Horas conservadoras</div><div class="val">90–140h/mês</div><div class="desc">Sem sobreposições · base para ROI</div></div>
+    <div class="kpi"><div class="label">Blocos automatizáveis</div><div class="val">7 de 10</div><div class="desc">Potencial de padronização alta</div></div>
+    <div class="kpi"><div class="label">Blocos atacados em 90d</div><div class="val">6 de 10</div><div class="desc">Wave 1 + Wave 2</div></div>
+  </div>
+</section>
+
+</div><!-- /tab-processos -->
+
+<!-- =========================================================== -->
+<!-- TAB 3: SUGESTÃO DE PERGUNTAS -->
+<!-- =========================================================== -->
+<div id="tab-formularios" class="tab-content">
+
+<section>
+  <div class="sec-head">
+    <div>
+      <h2><span class="num">F</span>Sugestão de Perguntas por Cargo</h2>
+      <p class="lead">Formulários segmentados por nível hierárquico para capturar perspectivas complementares. As perguntas marcadas com ★ são prioritárias para o diagnóstico de automação. Prazos sugeridos: Sócios 10 dias · Seniores 7 dias · Assistentes 7 dias.</p>
+    </div>
+  </div>
+
+  <!-- SÓCIOS -->
+  <div class="form-block" id="form-socios">
+    <div class="fh">
+      <div>
+        <span class="pill gold">FORMS 01 · SÓCIOS</span>
+        <h3 style="margin-top:10px">Diagnóstico Estratégico OSG — Visão dos Sócios</h3>
+        <p class="fsub">Fernando e Cuba · Foco em visão estratégica, expectativas, visibilidade percebida e leitura da área. 15 perguntas · ~25 minutos.</p>
+      </div>
+      <div class="fbadge">Prazo: 10 dias</div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 1 · Identificação</div>
+      <div class="q"><span class="qn">Q1</span><span class="qtext">Nome completo</span><span class="qtype">Tipo: resposta curta</span></div>
+      <div class="q"><span class="qn">Q2</span><span class="qtext">Tempo de atuação na PSA</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 5 anos</span><span class="qopt">5–10</span><span class="qopt">10–15</span><span class="qopt">&gt; 15 anos</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 2 · Visão da Área</div>
+      <div class="q"><span class="qn">Q3</span><span class="qtext">Em 2-3 linhas, descreva qual é o papel da OSG dentro da holding PSA hoje.</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q"><span class="qn">Q4</span><span class="qtext">Quais são os 3 principais tipos de projeto que a OSG entrega atualmente?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q"><span class="qn">Q5</span><span class="qtext">Como você descreveria o diferencial da OSG em relação a outros escritórios que fazem reestruturação societária?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q6</span><span class="qtext">Olhando para os próximos 12 meses, qual é sua principal prioridade estratégica para a área?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 3 · Percepção de Eficiência</div>
+      <div class="q priority"><span class="qn">Q7</span><span class="qtext">Como você avalia a capacidade atual da equipe de absorver novas demandas?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Sobrando</span><span class="qopt">Equilibrado</span><span class="qopt">No limite</span><span class="qopt">Saturada, perdendo oportunidades</span></div></div>
+      <div class="q priority"><span class="qn">Q8</span><span class="qtext">O que hoje atrasa a entrega de um projeto novo?</span><span class="qtype">Tipo: caixas de seleção (múltiplas)</span><div class="qopts"><span class="qopt">Coleta de documentos</span><span class="qopt">Tempo de DP</span><span class="qopt">Minutas societárias</span><span class="qopt">Revisão senior/sócio</span><span class="qopt">Interface com Fiscal/Consultoria</span><span class="qopt">Interface com advogados</span><span class="qopt">Exigências de órgãos</span><span class="qopt">Disponibilidade da equipe</span><span class="qopt">Outros</span></div></div>
+      <div class="q priority"><span class="qn">Q9</span><span class="qtext">Se você pudesse eliminar uma coisa do dia a dia da OSG, o que seria?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 4 · Visibilidade e Gestão</div>
+      <div class="q"><span class="qn">Q10</span><span class="qtext">Hoje, como você acompanha o andamento dos projetos em execução?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q11</span><span class="qtext">Você sente que tem visibilidade em tempo real do status de cada projeto?</span><span class="qtype">Tipo: escala linear 1 a 5 (1 = nenhuma, 5 = total)</span></div>
+      <div class="q priority"><span class="qn">Q12</span><span class="qtext">Qual informação você gostaria de ter em tempo real sobre a OSG, mas hoje não tem?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 5 · Interface com Outras Áreas</div>
+      <div class="q"><span class="qn">Q13</span><span class="qtext">Como você avalia a comunicação da OSG com as outras áreas da holding (Fiscal, Consultoria, Fixos, advogados)?</span><span class="qtype">Tipo: escala linear 1 a 5</span></div>
+      <div class="q priority"><span class="qn">Q14</span><span class="qtext">Onde estão os principais pontos de atrito na comunicação entre OSG e outras áreas?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 6 · Expectativas do Projeto</div>
+      <div class="q priority"><span class="qn">Q15</span><span class="qtext">Se este projeto de transformação digital for um sucesso em 3 meses, o que deve ter mudado na OSG?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+  </div>
+
+  <!-- SENIORES -->
+  <div class="form-block" id="form-seniores">
+    <div class="fh">
+      <div>
+        <span class="pill info">FORMS 02 · SENIORES</span>
+        <h3 style="margin-top:10px">Diagnóstico Operacional OSG — Visão dos Seniores</h3>
+        <p class="fsub">6 consultores seniores · Quem lidera a operação e tem o mapa real do que funciona e do que trava. 25 perguntas · ~35–40 minutos. Não é avaliação de desempenho.</p>
+      </div>
+      <div class="fbadge">Prazo: 7 dias</div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 1 · Identificação</div>
+      <div class="q"><span class="qn">Q1</span><span class="qtext">Nome completo</span><span class="qtype">Tipo: resposta curta</span></div>
+      <div class="q"><span class="qn">Q2</span><span class="qtext">Tempo de atuação na PSA</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 2 anos</span><span class="qopt">2–5</span><span class="qopt">5–10</span><span class="qopt">&gt; 10 anos</span></div></div>
+      <div class="q"><span class="qn">Q3</span><span class="qtext">Quantos projetos você lidera ou acompanha em média por mês?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">1–3</span><span class="qopt">4–6</span><span class="qopt">7–10</span><span class="qopt">&gt; 10</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 2 · Distribuição de Tempo</div>
+      <div class="q priority"><span class="qn">Q4</span><span class="qtext">Numa semana típica, qual o percentual do seu tempo em cada atividade? (soma 100%)</span><span class="qtype">Tipo: grade linear — opções 0-10%, 10-20%, 20-30%, 30-40%, 40%+</span><div class="qopts"><span class="qopt">Análise técnica</span><span class="qopt">Elaboração/revisão minutas</span><span class="qopt">Reuniões cliente</span><span class="qopt">Reuniões internas</span><span class="qopt">Supervisão de assistentes</span><span class="qopt">Coleta de documentos</span><span class="qopt">Pesquisa técnica</span><span class="qopt">Apagar incêndios</span></div></div>
+      <div class="q priority"><span class="qn">Q5</span><span class="qtext">Qual atividade da Q4 mais consome seu tempo e você sente que tem menor valor agregado?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 3 · Processos Recorrentes</div>
+      <div class="q"><span class="qn">Q6</span><span class="qtext">Dos blocos abaixo, quais você executa ou supervisiona com mais frequência?</span><span class="qtype">Tipo: caixas de seleção</span><div class="qopts"><span class="qopt">DP</span><span class="qopt">WP Sócios</span><span class="qopt">Contrato/Estatuto</span><span class="qopt">Alterações e Atas</span><span class="qopt">Reorganização societária</span><span class="qopt">Instrumentos agrários</span><span class="qopt">Encerramento de safra</span><span class="qopt">ITCD</span><span class="qopt">Doações/Testamentos</span><span class="qopt">Diagnóstico Tributário</span><span class="qopt">pptx</span></div></div>
+      <div class="q priority"><span class="qn">Q7</span><span class="qtext">Entre esses blocos, qual é o mais demorado em relação ao valor que entrega?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q8</span><span class="qtext">Existe algum desses blocos que você acha que a tecnologia poderia automatizar parcial ou totalmente? Qual e por quê?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 4 · Diagnóstico Patrimonial</div>
+      <div class="q priority"><span class="qn">Q9</span><span class="qtext">Em média, quanto tempo leva para elaborar o DP de um projeto novo?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 1 semana</span><span class="qopt">1–2 sem</span><span class="qopt">2–4 sem</span><span class="qopt">&gt; 4 sem</span><span class="qopt">Varia muito</span></div></div>
+      <div class="q"><span class="qn">Q10</span><span class="qtext">Qual a parte mais trabalhosa do DP hoje?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q11</span><span class="qtext">Você usa algum modelo ou template padrão para o DP, ou cada um faz do seu jeito?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 5 · Minutas e Documentos Societários</div>
+      <div class="q priority"><span class="qn">Q12</span><span class="qtext">Quando você vai elaborar um Contrato Social ou Alteração Contratual, de onde tira o modelo base?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Projeto anterior meu</span><span class="qopt">Pasta compartilhada</span><span class="qopt">Monto do zero</span><span class="qopt">Peço ao assistente</span><span class="qopt">Varia</span></div></div>
+      <div class="q priority"><span class="qn">Q13</span><span class="qtext">As minutas da OSG hoje têm padrão consolidado, ou cada senior tem seu jeito?</span><span class="qtype">Tipo: escala linear 1 a 5 (1 = cada um faz do seu jeito, 5 = totalmente padronizado)</span></div>
+      <div class="q"><span class="qn">Q14</span><span class="qtext">Quanto tempo, em média, você gasta revisando uma Ata ou Alteração Contratual elaborada pelo assistente?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 30 min</span><span class="qopt">30min–1h</span><span class="qopt">1–2h</span><span class="qopt">&gt; 2h</span></div></div>
+      <div class="q priority"><span class="qn">Q15</span><span class="qtext">O que mais volta da sua revisão para o assistente corrigir?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 6 · Documentos, Sistemas e Organização</div>
+      <div class="q"><span class="qn">Q16</span><span class="qtext">Onde você encontra os documentos de um projeto hoje?</span><span class="qtype">Tipo: caixas de seleção</span><div class="qopts"><span class="qopt">Google Drive OSG</span><span class="qopt">SharePoint</span><span class="qopt">E-mail</span><span class="qopt">WhatsApp</span><span class="qopt">Docbox</span><span class="qopt">Drive pessoal</span><span class="qopt">Outros</span></div></div>
+      <div class="q priority"><span class="qn">Q17</span><span class="qtext">Quanto tempo, em média, você gasta por semana procurando documento?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 30min</span><span class="qopt">30min–1h</span><span class="qopt">1–2h</span><span class="qopt">2–4h</span><span class="qopt">&gt; 4h</span></div></div>
+      <div class="q"><span class="qn">Q18</span><span class="qtext">Quais sistemas ou ferramentas você usa no dia a dia?</span><span class="qtype">Tipo: caixas de seleção</span><div class="qopts"><span class="qopt">Google Workspace</span><span class="qopt">SharePoint</span><span class="qopt">Docbox</span><span class="qopt">Excel</span><span class="qopt">Word</span><span class="qopt">PowerPoint</span><span class="qopt">Juntas Comerciais</span><span class="qopt">e-CAC</span><span class="qopt">Cartórios online</span><span class="qopt">Outros</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 7 · Interface com Outras Áreas</div>
+      <div class="q"><span class="qn">Q19</span><span class="qtext">Em projetos que envolvem o Fiscal (Felipe, Ricardo) ou Consultoria, como está a comunicação?</span><span class="qtype">Tipo: escala linear 1 a 5</span></div>
+      <div class="q priority"><span class="qn">Q20</span><span class="qtext">Já aconteceu de receber demanda de última hora de outra área? Com que frequência?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Nunca</span><span class="qopt">1x mês</span><span class="qopt">2–3x mês</span><span class="qopt">Semanal</span><span class="qopt">Várias vezes/semana</span></div></div>
+      <div class="q priority"><span class="qn">Q21</span><span class="qtext">Onde está o maior atrito na interface entre OSG e outras áreas?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 8 · Gestão de Prazos e Projetos</div>
+      <div class="q"><span class="qn">Q22</span><span class="qtext">Como você acompanha hoje os prazos dos seus projetos?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q23</span><span class="qtext">Já aconteceu de perder ou quase perder prazo por falta de visibilidade? Descreva brevemente.</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 9 · Oportunidades</div>
+      <div class="q priority"><span class="qn">Q24</span><span class="qtext">Se você pudesse automatizar UMA coisa hoje, qual seria?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q25</span><span class="qtext">O que você acha que os sócios não veem sobre o dia a dia da operação?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+  </div>
+
+  <!-- ASSISTENTES -->
+  <div class="form-block" id="form-assistentes">
+    <div class="fh">
+      <div>
+        <span class="pill ok">FORMS 03 · ASSISTENTES</span>
+        <h3 style="margin-top:10px">Diagnóstico Operacional OSG — Visão dos Assistentes (A, B, C)</h3>
+        <p class="fsub">3 assistentes · Quem executa a rotina e conhece onde o tempo realmente é gasto. 28 perguntas · ~40 minutos. <strong>NÃO é avaliação de desempenho</strong> — é mapeamento de processo.</p>
+      </div>
+      <div class="fbadge">Prazo: 7 dias</div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 1 · Identificação</div>
+      <div class="q"><span class="qn">Q1</span><span class="qtext">Nome completo</span><span class="qtype">Tipo: resposta curta</span></div>
+      <div class="q"><span class="qn">Q2</span><span class="qtext">Nível do cargo</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Assistente A</span><span class="qopt">Assistente B</span><span class="qopt">Assistente C</span></div></div>
+      <div class="q"><span class="qn">Q3</span><span class="qtext">Tempo de atuação na PSA</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 6 meses</span><span class="qopt">6m–1a</span><span class="qopt">1–2a</span><span class="qopt">2–5a</span><span class="qopt">&gt; 5a</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 2 · Rotina Real (onde o tempo é gasto)</div>
+      <div class="q priority"><span class="qn">Q4</span><span class="qtext">Numa semana típica, qual o % do seu tempo em cada atividade? (soma 100%)</span><span class="qtype">Tipo: grade linear — opções 0-10%, 10-20%, 20-30%, 30-40%, 40%+</span><div class="qopts"><span class="qopt">Solicitação/organização docs</span><span class="qopt">Análise matrículas/ITR/CCIR</span><span class="qopt">Compilação DP</span><span class="qopt">WP Sócios</span><span class="qopt">Minutas</span><span class="qopt">Instrumentos agrários</span><span class="qopt">pptx</span><span class="qopt">Cálculos (ITCD, DT)</span><span class="qopt">Revisão</span><span class="qopt">Exigências juntas/cartórios</span><span class="qopt">Reuniões</span><span class="qopt">Outros</span></div></div>
+      <div class="q priority"><span class="qn">Q5</span><span class="qtext">Qual dessas atividades consome mais tempo do seu dia?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q6</span><span class="qtext">Qual atividade você acha mais repetitiva e mecânica?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 3 · Documentos e Coleta</div>
+      <div class="q"><span class="qn">Q7</span><span class="qtext">De onde vêm os documentos dos clientes que você recebe?</span><span class="qtype">Tipo: caixas de seleção</span><div class="qopts"><span class="qopt">Docbox</span><span class="qopt">E-mail</span><span class="qopt">WhatsApp</span><span class="qopt">Drive</span><span class="qopt">SharePoint</span><span class="qopt">Reunião</span><span class="qopt">Outros</span></div></div>
+      <div class="q priority"><span class="qn">Q8</span><span class="qtext">Quanto tempo, em média, você gasta por semana organizando documentos recebidos?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 1h</span><span class="qopt">1–3h</span><span class="qopt">3–5h</span><span class="qopt">5–10h</span><span class="qopt">&gt; 10h</span></div></div>
+      <div class="q"><span class="qn">Q9</span><span class="qtext">Quando um documento chega, onde você salva?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q10</span><span class="qtext">Já aconteceu de precisar de um documento e não conseguir localizar rápido?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Nunca</span><span class="qopt">Raramente</span><span class="qopt">Às vezes</span><span class="qopt">Frequentemente</span><span class="qopt">Sempre</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 4 · Diagnóstico Patrimonial</div>
+      <div class="q"><span class="qn">Q11</span><span class="qtext">Você elabora ou auxilia na elaboração do DP?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">De ponta a ponta</span><span class="qopt">Com supervisão</span><span class="qopt">Auxilio coleta e compilação</span><span class="qopt">Não participo</span></div></div>
+      <div class="q priority"><span class="qn">Q12</span><span class="qtext">Quanto tempo em média leva para montar um DP?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 4h</span><span class="qopt">4–8h</span><span class="qopt">1–2 dias</span><span class="qopt">3–5 dias</span><span class="qopt">&gt; 5 dias</span><span class="qopt">Varia</span></div></div>
+      <div class="q priority"><span class="qn">Q13</span><span class="qtext">Qual a parte mais chata ou demorada do DP?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q14</span><span class="qtext">Você usa algum modelo padrão ou cada cliente é montado do zero?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 5 · Minutas Societárias</div>
+      <div class="q priority"><span class="qn">Q15</span><span class="qtext">Quando você elabora um Contrato Social, Alteração ou Ata, de onde tira o modelo?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Projeto anterior</span><span class="qopt">Pasta de modelos</span><span class="qopt">Senior manda</span><span class="qopt">Monto do zero</span><span class="qopt">Varia</span></div></div>
+      <div class="q priority"><span class="qn">Q16</span><span class="qtext">Quantas vezes, em média, uma minuta volta para correção após revisão do senior?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Raramente</span><span class="qopt">1x</span><span class="qopt">2x</span><span class="qopt">3x ou mais</span><span class="qopt">Varia</span></div></div>
+      <div class="q priority"><span class="qn">Q17</span><span class="qtext">Quais são os erros ou correções mais comuns que voltam?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 6 · WP Sócios e Organograma</div>
+      <div class="q"><span class="qn">Q18</span><span class="qtext">Como é o processo de montar o WP Sócios hoje (estado civil, regime, organograma)?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q"><span class="qn">Q19</span><span class="qtext">Quanto tempo leva para montar um WP Sócios completo?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">&lt; 2h</span><span class="qopt">2–4h</span><span class="qopt">Meio dia</span><span class="qopt">1 dia</span><span class="qopt">&gt; 1 dia</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 7 · Instrumentos Agrários</div>
+      <div class="q"><span class="qn">Q20</span><span class="qtext">Você elabora instrumentos agrários (parceria, comodato, arrendamento, encerramento de safra)?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Sim, frequente</span><span class="qopt">Eventualmente</span><span class="qopt">Raramente</span><span class="qopt">Não</span></div></div>
+      <div class="q priority"><span class="qn">Q21</span><span class="qtext">Se elabora, quais travam mais o seu tempo?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 8 · Ferramentas e Sistemas</div>
+      <div class="q"><span class="qn">Q22</span><span class="qtext">Quais ferramentas você usa diariamente?</span><span class="qtype">Tipo: caixas de seleção</span><div class="qopts"><span class="qopt">Word</span><span class="qopt">Excel</span><span class="qopt">PowerPoint</span><span class="qopt">Google Docs/Sheets</span><span class="qopt">Docbox</span><span class="qopt">SharePoint</span><span class="qopt">Juntas</span><span class="qopt">e-CAC</span><span class="qopt">Cartórios</span><span class="qopt">Outros</span></div></div>
+      <div class="q priority"><span class="qn">Q23</span><span class="qtext">Qual dessas ferramentas você acha que mais atrapalha ou trava?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q24</span><span class="qtext">Você sente que tem os meios e sistemas certos para fazer seu trabalho?</span><span class="qtype">Tipo: escala linear 1 a 5 (1 = totalmente insuficiente, 5 = tenho tudo)</span></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 9 · Gestão de Prazos</div>
+      <div class="q"><span class="qn">Q25</span><span class="qtext">Como você acompanha os prazos das suas entregas hoje?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q26</span><span class="qtext">Já teve semana em que sentiu que ia perder prazo por excesso de demanda?</span><span class="qtype">Tipo: múltipla escolha</span><div class="qopts"><span class="qopt">Nunca</span><span class="qopt">Raramente</span><span class="qopt">Às vezes</span><span class="qopt">Frequentemente</span><span class="qopt">Quase toda semana</span></div></div>
+    </div>
+
+    <div class="form-section">
+      <div class="fsec-title">Seção 10 · O Que Mudaria</div>
+      <div class="q priority"><span class="qn">Q27</span><span class="qtext">Se você pudesse eliminar UMA tarefa repetitiva do seu dia, qual seria?</span><span class="qtype">Tipo: parágrafo</span></div>
+      <div class="q priority"><span class="qn">Q28</span><span class="qtext">Se você pudesse ter UMA ferramenta ou automação nova, o que ela faria?</span><span class="qtype">Tipo: parágrafo</span></div>
+    </div>
+  </div>
+
+  <!-- Orientação de uso -->
+  <div class="card" style="margin-top:24px">
+    <h3 style="display:flex;align-items:center;gap:10px"><span class="pill info">Guia de Aplicação</span>Como enviar e o que cruzar nas respostas</h3>
+    <p style="color:var(--ink-soft);font-size:14px;margin:10px 0 14px">Ordem recomendada: (1) enviar aos sócios primeiro, (2) 24–48h depois seniores e assistentes no mesmo dia. Prazos realistas travam compromisso sem gerar atrito.</p>
+    <div class="grid grid-3">
+      <div style="padding:14px;background:rgba(34,197,94,0.06);border-radius:10px;border:1px solid rgba(34,197,94,0.2)"><strong style="color:#7ee2a8">Convergência</strong><p style="margin:6px 0 0;font-size:13px;color:var(--ink-soft)">Se sócios, seniores e assistentes apontam a mesma dor → entra na Wave 1 sem mais validação.</p></div>
+      <div style="padding:14px;background:rgba(245,158,11,0.06);border-radius:10px;border:1px solid rgba(245,158,11,0.2)"><strong style="color:#fbbf24">Divergência</strong><p style="margin:6px 0 0;font-size:13px;color:var(--ink-soft)">Sócio vê uma coisa, operação vê outra → oportunidade política de trazer o dado cru à mesa.</p></div>
+      <div style="padding:14px;background:rgba(239,68,68,0.06);border-radius:10px;border:1px solid rgba(239,68,68,0.2)"><strong style="color:#fca5a5">Dores silenciosas</strong><p style="margin:6px 0 0;font-size:13px;color:var(--ink-soft)">Assistentes apontam, seniores minimizam → geralmente é onde mora a maior automação de impacto.</p></div>
+    </div>
+  </div>
+
+</section>
+
+</div><!-- /tab-formularios -->
+
+<script>
+function switchTab(name, btn){
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({top: btn.closest('.tabs').offsetTop - 20, behavior: 'smooth'});
+}
+</script>
+
+</div>
+</body>
+</html>
