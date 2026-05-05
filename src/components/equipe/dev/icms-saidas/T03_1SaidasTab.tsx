@@ -4,6 +4,7 @@ import { FamiliaSaidaTab } from './familias/FamiliaSaidaTab';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
 import { ICMS_FAMILIA_TAB_TOOLTIPS } from './tooltipContent';
 import { InlineTooltip } from './tooltipHelpers';
+import { cn } from '@/lib/utils';
 
 interface T03_1SaidasTabProps {
   enabled: boolean;
