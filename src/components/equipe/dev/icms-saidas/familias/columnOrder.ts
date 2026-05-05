@@ -164,6 +164,55 @@ export const COLUMN_ORDER: Record<FamiliaSaida, FamilyOrder> = {
     totals: [],
   },
 
+  // T03.2 — Açúcar ST
+  acucar_st: {
+    data: [
+      'MES_ANO',           // Competência
+      'NUM_NOTA',          // Nota Fiscal
+      'DATA_NOTA',         // Data
+      'CFOP',              // C.F.O.P.
+      'CST',               // CST
+      'DESCRICAO_CFOP',    // Descrição
+      'DESCRICAO_PRODUTO', // Produto
+      'VALOR_MERCADORIA',  // Valor Mercadoria
+      'INCIDENCIA_ST',     // Incidência ST
+      'BASE_CALCULO',      // BC Cálculo
+      'ALIQUOTA',          // Alíquota
+      'ICMS_NORMAL',       // ICMS Normal
+      'MVA',               // MVA
+      'BC_ST',             // BC ST
+      'ICMS_ST_PRADO',     // ICMS ST (calculado)
+      'C190_BC_ST',        // EFD C190 - BC ST
+      'C190_ICMS_ST',      // EFD C190 - ICMS ST
+      'CHECK_DIF',         // Diferença
+    ],
+    totals: ['MES_ANO', 'ICMS_ST_PRADO', 'C190_ICMS_ST', 'E250_TOTAL'],
+  },
+
+  // T03.2 — Etanol Interestadual ST
+  etanol_interestado_st: {
+    data: [
+      'MES_ANO',           // Competência
+      'NUM_NOTA',          // Nota Fiscal
+      'DATA_NOTA',         // Data
+      'CFOP',              // C.F.O.P.
+      'CST',               // CST
+      'DESCRICAO_CFOP',    // Descrição
+      'DESCRICAO_PRODUTO', // Produto
+      'INCIDENCIA_ST',     // Incidência ST
+      'VALOR_MERCADORIA',  // Valor
+      'MVA',               // MVA
+      'BASE_CALCULO',      // BC ICMS ST
+      'UF_DESTINO',        // UF Destino
+      'UF_ALIQUOTA',       // Alíquota UF
+      'VALOR_ICMS_ST',     // Valor ICMS ST
+      'C190_BC_ST',        // EFD C190 - BC ST
+      'C190_ICMS_ST',      // EFD C190 - ICMS ST
+      'CHECK_DIF',         // Diferença
+    ],
+    totals: ['MES_ANO', 'VALOR_ICMS_ST', 'C190_ICMS_ST', 'E250_TOTAL'],
+  },
+
   biodiesel: {
     data: [
       'MES_ANO',

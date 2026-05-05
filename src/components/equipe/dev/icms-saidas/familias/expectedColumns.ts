@@ -152,6 +152,57 @@ export const EXPECTED_SCHEMA: Record<FamiliaSaida, FamiliaSchema> = {
     hasTotals: false,
   },
 
+  // VW_ANL_ACUCAR_ST (saída ST — substituição tributária do açúcar)
+  acucar_st: {
+    data: [
+      'MES_ANO',
+      'DATA_NOTA',
+      'NUM_NOTA',
+      'CFOP',
+      'CST',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'VALOR_MERCADORIA',
+      'INCIDENCIA_ST',
+      'BASE_CALCULO',
+      'ALIQUOTA',
+      'ICMS_NORMAL',
+      'MVA',
+      'BC_ST',
+      'ICMS_ST_PRADO',
+      'C190_BC_ST',
+      'C190_ICMS_ST',
+      'CHECK_DIF',
+    ],
+    totals: ['MES_ANO', 'ICMS_ST_PRADO', 'C190_ICMS_ST', 'E250_TOTAL'],
+    hasTotals: true,
+  },
+
+  // VW_ANL_ETANOL_INTERESTADO_ST (saída ST interestadual — etanol)
+  etanol_interestado_st: {
+    data: [
+      'MES_ANO',
+      'DATA_NOTA',
+      'NUM_NOTA',
+      'CFOP',
+      'CST',
+      'DESCRICAO_CFOP',
+      'DESCRICAO_PRODUTO',
+      'INCIDENCIA_ST',
+      'VALOR_MERCADORIA',
+      'MVA',
+      'BASE_CALCULO',
+      'UF_DESTINO',
+      'UF_ALIQUOTA',
+      'VALOR_ICMS_ST',
+      'C190_BC_ST',
+      'C190_ICMS_ST',
+      'CHECK_DIF',
+    ],
+    totals: ['MES_ANO', 'VALOR_ICMS_ST', 'C190_ICMS_ST', 'E250_TOTAL'],
+    hasTotals: true,
+  },
+
   // VW_ANL_BIODIESEL
   biodiesel: {
     data: [
