@@ -35,8 +35,10 @@ const pickFirst = (row: Record<string, unknown>, keys: string[]): unknown => {
 /** Campo "ICMS calculado" usado pelo detail Check de cada familia. */
 const DETAIL_CALC_FIELD: Record<FamiliaSaida, string[]> = {
   acucar: ['ICMS_NORMAL'],
+  acucar_st: ['ICMS_ST_PRADO'],
   etanol_interno: ['ICMS_17_CALCULADO', 'icms_17_calculado'],
   etanol_interestado: ['VALOR_ICMS'],
+  etanol_interestado_st: ['VALOR_ICMS_ST'],
   residuos_producao: ['ICMS_NORMAL'],
   sucata: ['ICMS_NORMAL'],
   biodiesel: ['ICMS_17'],
