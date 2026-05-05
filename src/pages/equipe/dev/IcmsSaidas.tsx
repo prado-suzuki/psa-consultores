@@ -285,19 +285,32 @@ const IcmsSaidas = () => {
         </Card>
 
         <Tabs defaultValue="t01" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 h-12">
-            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT01}>
-              <TabsTrigger value="t01">T01 - Apuração</TabsTrigger>
-            </InlineTooltip>
-            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT02}>
-              <TabsTrigger value="t02">T02 - CFOP</TabsTrigger>
-            </InlineTooltip>
-            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT03_1}>
-              <TabsTrigger value="t03_1">T03.1 - Saídas</TabsTrigger>
-            </InlineTooltip>
-            <InlineTooltip content={ICMS_PAGE_TOOLTIPS.tabT03_2}>
-              <TabsTrigger value="t03_2">T03.2 - Saídas ST</TabsTrigger>
-            </InlineTooltip>
+          <TabsList
+            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-slate-200/70 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 shadow-inner"
+          >
+            {[
+              { value: 't01', label: 'T01 - Apuração', tip: ICMS_PAGE_TOOLTIPS.tabT01 },
+              { value: 't02', label: 'T02 - CFOP', tip: ICMS_PAGE_TOOLTIPS.tabT02 },
+              { value: 't03_1', label: 'T03.1 - Saídas', tip: ICMS_PAGE_TOOLTIPS.tabT03_1 },
+              { value: 't03_2', label: 'T03.2 - Saídas ST', tip: ICMS_PAGE_TOOLTIPS.tabT03_2 },
+            ].map((t) => (
+              <InlineTooltip key={t.value} content={t.tip}>
+                <TabsTrigger
+                  value={t.value}
+                  className={cn(
+                    'relative h-10 text-sm font-semibold rounded-md',
+                    'text-slate-600 dark:text-slate-300',
+                    'transition-all duration-300 ease-out',
+                    'hover:text-primary hover:bg-primary/5',
+                    'data-[state=active]:bg-primary data-[state=active]:text-primary-foreground',
+                    'data-[state=active]:shadow-md data-[state=active]:shadow-primary/30',
+                    'data-[state=active]:scale-[1.02]',
+                  )}
+                >
+                  {t.label}
+                </TabsTrigger>
+              </InlineTooltip>
+            ))}
           </TabsList>
 
           <TabsContent value="t01" className="mt-4">
