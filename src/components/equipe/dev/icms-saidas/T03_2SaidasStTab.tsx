@@ -40,10 +40,9 @@ export const T03_2SaidasStTab = ({
                 'text-slate-600 dark:text-slate-300',
                 'transition-all duration-300 ease-out',
                 'hover:-translate-y-0.5 hover:border-primary/10 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:shadow-primary/10',
-                'data-[state=active]:-translate-y-0.5 data-[state=active]:border-primary/15 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-semibold',
-                'data-[state=active]:shadow-sm data-[state=active]:shadow-primary/15',
-                'after:absolute after:inset-x-4 after:bottom-1 after:h-0.5 after:rounded-full after:bg-transparent after:transition-all after:duration-300',
-                'hover:after:bg-primary/40 data-[state=active]:after:bg-primary data-[state=active]:after:animate-pulse',
+                t.value === familia
+                  ? 'bg-primary/10 text-primary font-semibold shadow-sm shadow-primary/15 border-primary/15 -translate-y-0.5'
+                  : 'bg-transparent',
               )}
             >
               {t.label}

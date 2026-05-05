@@ -48,6 +48,7 @@ const IcmsSaidas = () => {
   const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
   const [dataFim, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
+  const [activeTab, setActiveTab] = useState('t01');
 
   // Clientes
   const { data: clientes, isLoading: isLoadingClientes } = useQuery({
@@ -282,7 +283,7 @@ const IcmsSaidas = () => {
           </CardContent>
         </Card>
 
-        <Tabs defaultValue="t01" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
             className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm"
           >
@@ -297,13 +298,12 @@ const IcmsSaidas = () => {
                   value={t.value}
                   className={cn(
                     'relative isolate h-10 overflow-hidden text-sm font-semibold rounded-md border border-transparent',
-                    'text-slate-600 dark:text-slate-300 bg-transparent',
+                    'text-slate-600 dark:text-slate-300',
                     'transition-all duration-300 ease-out',
                     'hover:-translate-y-0.5 hover:border-primary/15 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
-                    'data-[state=active]:-translate-y-0.5 data-[state=active]:border-primary/15 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground',
-                    'data-[state=active]:shadow-lg data-[state=active]:shadow-primary/30',
-                    'after:absolute after:inset-x-5 after:bottom-1.5 after:h-0.5 after:rounded-full after:bg-transparent after:transition-all after:duration-300',
-                    'hover:after:bg-white/70 data-[state=active]:after:bg-white/85 data-[state=active]:after:animate-pulse',
+                    t.value === activeTab
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 border-primary/15 -translate-y-0.5'
+                      : 'bg-transparent',
                   )}
                 >
                   {t.label}
