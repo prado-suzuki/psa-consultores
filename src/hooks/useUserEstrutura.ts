@@ -49,7 +49,7 @@ export function useUserEstrutura(userId?: string): UserEstrutura {
       // 2. Get teams
       const { data: equipes, error: eErr } = await supabase
         .from('estrutura_equipes')
-        .select('id, name, area_id, sublider_id')
+        .select('id, name, area_id')
         .in('id', equipeIds);
       if (eErr) throw eErr;
 
