@@ -6,7 +6,6 @@ interface EstruturaEquipe {
   id: string;
   name: string;
   area_id: string;
-  sublider_id: string | null;
 }
 
 interface EstruturaArea {
