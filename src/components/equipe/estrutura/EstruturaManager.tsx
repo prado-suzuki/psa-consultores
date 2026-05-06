@@ -155,13 +155,13 @@ export default function EstruturaManager() {
   // ─── Equipe CRUD ──────────────────────────────────────────────────
   const [equipeDialog, setEquipeDialog] = useState(false);
   const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null);
-  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '', sublider_id: '' });
+  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '' });
 
-  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId, sublider_id: '' }); setEquipeDialog(true); };
-  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, sublider_id: e.sublider_id || '' }); setEquipeDialog(true); };
+  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId }); setEquipeDialog(true); };
+  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id }); setEquipeDialog(true); };
 
   const saveEquipe = async () => {
-    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, sublider_id: equipeForm.sublider_id || null }, editingEquipe);
+    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id }, editingEquipe);
     setEquipeDialog(false);
   };
 
