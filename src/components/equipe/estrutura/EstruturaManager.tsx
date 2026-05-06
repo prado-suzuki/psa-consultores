@@ -575,21 +575,6 @@ export default function EstruturaManager() {
               <Label>Nome da Equipe *</Label>
               <Input value={equipeForm.name} onChange={e => setEquipeForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Equipe Fiscal SP..." />
             </div>
-            <div className="space-y-2">
-              <Label>Sublíder (opcional)</Label>
-              <Select value={equipeForm.sublider_id} onValueChange={val => setEquipeForm(f => ({ ...f, sublider_id: val }))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecionar sublíder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {allProfiles.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {profileLabel(p)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEquipeDialog(false)}>Cancelar</Button>
