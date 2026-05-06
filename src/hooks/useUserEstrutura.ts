@@ -18,7 +18,6 @@ interface EstruturaArea {
 interface EstruturaCluster {
   id: string;
   name: string;
-  cost_center: string | null;
 }
 
 interface UserEstrutura {
@@ -69,7 +68,7 @@ export function useUserEstrutura(userId?: string): UserEstrutura {
       // 4. Get clusters
       const { data: clusters, error: cErr } = await supabase
         .from('estrutura_clusters')
-        .select('id, name, cost_center')
+        .select('id, name')
         .in('id', clusterIds);
       if (cErr) throw cErr;
 

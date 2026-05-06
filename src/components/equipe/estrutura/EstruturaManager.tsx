@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import {
   useEstruturaClusters, useEstruturaAreas, useEstruturaLideres,
-  useEstruturaEquipes, useEstruturaMembros, useEstruturaEmpresas,
+  useEstruturaEquipes, useEstruturaMembros,
   useEstruturaCentrosCusto, useEstruturaMutations,
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
@@ -80,7 +80,6 @@ export default function EstruturaManager() {
   const { data: lideres = [] } = useEstruturaLideres();
   const { data: equipes = [] } = useEstruturaEquipes();
   const { data: membros = [] } = useEstruturaMembros();
-  const { data: empresas = [] } = useEstruturaEmpresas();
   const { data: centrosCusto = [] } = useEstruturaCentrosCusto();
 
   // Mutations from hook
@@ -93,34 +92,41 @@ export default function EstruturaManager() {
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
-  // Helper to get CC name from empresa
-  const getEmpresaCcLabel = (empresaId: string | null) => {
-    if (!empresaId) return null;
-    const emp = empresas.find(e => e.id === empresaId);
-    if (!emp?.centro_custo_id) return null;
-    const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+  // Helper para label do CC a partir do id
+  const getCcLabel = (ccId: string | null | undefined) => {
+    if (!ccId) return null;
+    const cc = centrosCusto.find(c => c.id === ccId);
     return cc ? `${cc.codigo} - ${cc.nome}` : null;
   };
 
   // ─── Cluster CRUD ─────────────────────────────────────────────────
   const [clusterDialog, setClusterDialog] = useState(false);
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
-  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '', empresa_id: '' });
+  const [clusterForm, setClusterForm] = useState({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '' });
 
-  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '', empresa_id: '' }); setClusterDialog(true); };
-  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
+  const openClusterCreate = () => {
+    setEditingCluster(null);
+    setClusterForm({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '' });
+    setClusterDialog(true);
+  };
+  const openClusterEdit = (c: Cluster) => {
+    setEditingCluster(c);
+    setClusterForm({
+      name: c.name,
+      nome_empresa: c.nome_empresa || '',
+      cnpj: c.cnpj || '',
+      cost_center_id: c.cost_center_id || '',
+    });
+    setClusterDialog(true);
+  };
 
   const saveCluster = async () => {
-    const empresaId = clusterForm.empresa_id || null;
-    let costCenter = clusterForm.cost_center || null;
-    if (empresaId) {
-      const emp = empresas.find(e => e.id === empresaId);
-      if (emp?.centro_custo_id) {
-        const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
-        if (cc) costCenter = cc.codigo;
-      }
-    }
-    await mutations.saveCluster({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }, editingCluster);
+    await mutations.saveCluster({
+      name: clusterForm.name,
+      nome_empresa: clusterForm.nome_empresa.trim() || null,
+      cnpj: clusterForm.cnpj.trim() || null,
+      cost_center_id: clusterForm.cost_center_id || null,
+    }, editingCluster);
     setClusterDialog(false);
   };
 
@@ -254,14 +260,12 @@ export default function EstruturaManager() {
                     <Network className="h-5 w-5 text-teal-600 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-900">{cluster.name}</div>
-                      {cluster.empresa_id && (
+                      {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
                         <div className="text-xs text-slate-500">
-                          Empresa: {empresas.find(e => e.id === cluster.empresa_id)?.nome || '—'}
-                          {getEmpresaCcLabel(cluster.empresa_id) && ` • CC: ${getEmpresaCcLabel(cluster.empresa_id)}`}
+                          {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
+                          {cluster.cnpj && <> • CNPJ: {cluster.cnpj}</>}
+                          {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
                         </div>
-                      )}
-                      {!cluster.empresa_id && cluster.cost_center && (
-                        <div className="text-xs text-slate-500">Centro de Custo: {cluster.cost_center}</div>
                       )}
                     </div>
                     <Badge variant="secondary" className="mr-2">{clusterAreas.length} áreas</Badge>
@@ -308,7 +312,7 @@ export default function EstruturaManager() {
                                       const cc = centrosCusto.find(c => c.id === area.cost_center_id);
                                       ccLabel = cc ? `${cc.codigo} - ${cc.nome}` : null;
                                     } else {
-                                      ccLabel = getEmpresaCcLabel(cluster.empresa_id);
+                                      ccLabel = getCcLabel(cluster.cost_center_id);
                                     }
                                     return ccLabel ? (
                                       <Badge variant="secondary" className="text-xs ml-1">{area.cost_center_id ? 'CC:' : 'CC (herdado):'} {ccLabel}</Badge>
@@ -464,24 +468,35 @@ export default function EstruturaManager() {
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
             <div className="space-y-2">
-              <Label>Empresa / Faturamento</Label>
-              <Select value={clusterForm.empresa_id} onValueChange={(val) => setClusterForm(f => ({ ...f, empresa_id: val === '_none' ? '' : val }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
+              <Label>Nome da Empresa</Label>
+              <Input
+                value={clusterForm.nome_empresa}
+                onChange={e => setClusterForm(f => ({ ...f, nome_empresa: e.target.value }))}
+                placeholder="Ex: PSA Consultores Ltda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={clusterForm.cnpj}
+                onChange={e => setClusterForm(f => ({ ...f, cnpj: e.target.value }))}
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo</Label>
+              <Select
+                value={clusterForm.cost_center_id || '_none'}
+                onValueChange={(val) => setClusterForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar centro de custo..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">Nenhuma</SelectItem>
-                  {empresas.map(e => (
-                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  <SelectItem value="_none">Nenhum</SelectItem>
+                  {centrosCusto.map(cc => (
+                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {clusterForm.empresa_id && getEmpresaCcLabel(clusterForm.empresa_id) && (
-                <p className="text-xs text-slate-500">Centro de Custo: {getEmpresaCcLabel(clusterForm.empresa_id)}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label>Centro de Custo (manual)</Label>
-              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" disabled={!!clusterForm.empresa_id} />
-              {clusterForm.empresa_id && <p className="text-xs text-slate-400">Preenchido automaticamente pela empresa</p>}
             </div>
           </div>
           <DialogFooter>
