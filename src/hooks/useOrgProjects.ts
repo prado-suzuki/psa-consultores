@@ -395,7 +395,7 @@ export const useDeleteOrgProject = () => {
       toast.success('Projeto excluído');
     },
     onError: (error) => {
-      toast.error('Erro ao excluir: ' + error.message);
+      toast.error(formatProjectError(error, 'delete'));
     },
   });
 };
