@@ -34,7 +34,6 @@ export interface Equipe {
   id: string;
   area_id: string;
   name: string;
-  sublider_id: string | null;
   is_active: boolean;
 }
 
