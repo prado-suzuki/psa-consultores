@@ -18,7 +18,6 @@ interface EstruturaArea {
 interface EstruturaCluster {
   id: string;
   name: string;
-  cost_center: string | null;
 }
 
 interface UserEstrutura {
