@@ -241,13 +241,13 @@ export const useEstruturaMutations = () => {
 
   // ─── Equipe ───────────────────────────────────────────────────
   const saveEquipe = useCallback(async (
-    form: { name: string; area_id: string; sublider_id: string | null },
+    form: { name: string; area_id: string },
     editing: Equipe | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
       const { error } = await supabase.from('estrutura_equipes')
-        .update({ name: form.name, sublider_id: form.sublider_id })
+        .update({ name: form.name })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe atualizada');
@@ -256,12 +256,11 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
-          sublider_id: { old: editing.sublider_id, new: form.sublider_id },
         },
       });
     } else {
       const { data, error } = await supabase.from('estrutura_equipes')
-        .insert({ name: form.name, area_id: form.area_id, sublider_id: form.sublider_id })
+        .insert({ name: form.name, area_id: form.area_id })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe criada');
