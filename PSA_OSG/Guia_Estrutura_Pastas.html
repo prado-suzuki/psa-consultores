@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Guia de Estrutura, PSA OSG</title>
+<style>
+  :root{
+    --bg:#0b1220;--panel:#111a2e;--border:#1f2f54;
+    --ink:#e6edf7;--ink-soft:#9fb0cc;--muted:#6b7d9b;
+    --accent:#4f8cff;--accent-2:#22d3ee;
+    --ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--gold:#d4af37;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI",Roboto,Inter,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:40px 28px 80px}
+  .hero{padding:48px;border-radius:18px;background:radial-gradient(800px 320px at 0% 0%,rgba(79,140,255,0.22),transparent 60%),linear-gradient(135deg,#0f1b35,#0b1220);border:1px solid var(--border);margin-bottom:36px}
+  .kicker{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--accent-2);font-weight:700;margin-bottom:10px}
+  h1{font-size:36px;margin:0 0 12px;font-weight:700;letter-spacing:-0.02em}
+  .sub{color:var(--ink-soft);font-size:16px;max-width:760px;margin:0}
+  h2{font-size:22px;margin:48px 0 14px;font-weight:700;display:flex;align-items:center;gap:12px}
+  h2 .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#071021;font-size:13px;font-weight:800}
+  h3{font-size:16px;margin:0 0 8px;font-weight:600}
+  .lead{color:var(--ink-soft);font-size:15px;margin:0 0 22px;max-width:880px}
+  /* Principles */
+  .principles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+  @media (max-width:900px){.principles{grid-template-columns:1fr 1fr}}
+  .principle{padding:18px;background:var(--panel);border:1px solid var(--border);border-radius:12px;border-top:3px solid var(--accent-2)}
+  .principle .pn{font-size:11px;color:var(--accent-2);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px}
+  .principle h4{margin:0 0 6px;font-size:14px}
+  .principle p{margin:0;color:var(--ink-soft);font-size:13px}
+  /* Tree */
+  .tree{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:28px;overflow-x:auto}
+  .tree-line{font-family:"SF Mono","Consolas",monospace;font-size:13.5px;line-height:1.9;display:flex;align-items:flex-start;gap:14px;padding:3px 0;border-radius:6px;transition:background .15s}
+  .tree-line:hover{background:rgba(255,255,255,0.025)}
+  .tree-folder{color:var(--ink);min-width:340px;flex-shrink:0}
+  .tree-folder .ic{margin-right:6px}
+  .tree-folder .root{color:var(--accent-2);font-weight:700}
+  .tree-folder .lvl1{color:var(--gold)}
+  .tree-folder .lvl2{color:#c2d7ff}
+  .tree-folder .lvl3{color:var(--ink-soft)}
+  .tree-explain{color:var(--ink-soft);font-family:-apple-system,"Segoe UI",Roboto,sans-serif;font-size:13px;flex:1}
+  .tree-explain strong{color:var(--ink)}
+  /* Cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:900px){.cards{grid-template-columns:1fr}}
+  .card{padding:20px;background:var(--panel);border:1px solid var(--border);border-radius:12px}
+  .card h3{display:flex;align-items:center;gap:10px}
+  .card .icon{width:32px;height:32px;border-radius:8px;background:rgba(79,140,255,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--accent-2)}
+  .card p{margin:8px 0 0;color:var(--ink-soft);font-size:13.5px}
+  /* Conv table */
+  .conv{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:14px}
+  .conv h3{margin-top:0}
+  .conv code{background:rgba(79,140,255,0.12);border:1px solid rgba(79,140,255,0.3);color:#c2d7ff;padding:2px 8px;border-radius:5px;font-family:"SF Mono","Consolas",monospace;font-size:12.5px;display:inline-block;margin:2px 0}
+  .conv ul{margin:8px 0 0;padding-left:20px;color:var(--ink-soft);font-size:14px}
+  .conv ul li{margin-bottom:6px}
+  /* Compare */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+  @media (max-width:900px){.compare{grid-template-columns:1fr}}
+  .compare > div{padding:20px;border-radius:12px;border:1px solid var(--border)}
+  .compare .before{background:rgba(239,68,68,0.05);border-color:rgba(239,68,68,0.25)}
+  .compare .after{background:rgba(34,197,94,0.05);border-color:rgba(34,197,94,0.3)}
+  .compare h4{margin:0 0 12px;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;font-weight:700}
+  .before h4{color:#fca5a5}
+  .after h4{color:#7ee2a8}
+  .compare ul{margin:0;padding-left:20px;color:var(--ink-soft);font-size:13.5px;line-height:1.7}
+  /* Pill */
+  .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+  .pill.info{background:rgba(79,140,255,0.15);color:#93b6ff;border:1px solid rgba(79,140,255,0.3)}
+  .foot{margin-top:48px;padding-top:20px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="kicker">PSA · Transformação Digital · Organização da OSG</div>
+  <h1>Guia de Estrutura de Pastas, OSG</h1>
+  <p class="sub">Modelo proposto para organização de projetos e processos da Organização Societária e Governança. Pensado para reduzir tempo de busca, padronizar entregas e dar visibilidade aos sócios sem engessar a operação.</p>
+</div>
+
+<h2><span class="num">01</span>Princípios da nova organização</h2>
+<p class="lead">Quatro regras que sustentam toda a estrutura. Tudo o que vem depois é consequência delas.</p>
+
+<div class="principles">
+  <div class="principle">
+    <div class="pn">Princípio 01</div>
+    <h4>Cliente é a unidade primária</h4>
+    <p>Não código de projeto. Ninguém lembra códigos, todo mundo lembra de cliente. Busca acelera 5x.</p>
+  </div>
+  <div class="principle">
+    <div class="pn">Princípio 02</div>
+    <h4>Modelos centralizados</h4>
+    <p>Pasta única para minutas, calculadoras e templates. Quem precisa sempre sabe onde buscar e onde atualizar.</p>
+  </div>
+  <div class="principle">
+    <div class="pn">Princípio 03</div>
+    <h4>Esqueleto-padrão por cliente</h4>
+    <p>Toda pasta de cliente tem a mesma estrutura interna. Treinou uma vez, sabe trabalhar com qualquer um.</p>
+  </div>
+  <div class="principle">
+    <div class="pn">Princípio 04</div>
+    <h4>Numeração que ordena</h4>
+    <p>Pastas com prefixo 00, 01, 02 mantêm ordem lógica no Windows e Drive sem depender de configuração.</p>
+  </div>
+</div>
+
+<h2><span class="num">02</span>Antes × Depois</h2>
+<p class="lead">O que muda na prática para quem trabalha com documentos da OSG todos os dias.</p>
+
+<div class="compare">
+  <div class="before">
+    <h4>Como era na pasta PSA Consultores</h4>
+    <ul>
+      <li>Documentos espalhados em Drive, SharePoint, Docbox, e-mail e WhatsApp</li>
+      <li>Nomenclatura por código de projeto, ninguém memoriza</li>
+      <li>Modelos de minuta dispersos, cada senior tem o seu</li>
+      <li>Tempo de busca de 30 min por documento (relato de seniores)</li>
+      <li>Cliente sem ponto único de verdade, dossiê fragmentado</li>
+      <li>Sem distinção clara entre rascunho e versão final liberada</li>
+    </ul>
+  </div>
+  <div class="after">
+    <h4>Como fica em PSA OSG</h4>
+    <ul>
+      <li>Pasta única por cliente, com tudo dele em um lugar só</li>
+      <li>Nomenclatura por nome fantasia + CNPJ curto</li>
+      <li>Biblioteca central versionada de minutas e calculadoras</li>
+      <li>Busca em menos de 30 segundos por convenção de nome</li>
+      <li>Pasta 00_Dossie_Cliente concentra dados gerais do cliente</li>
+      <li>Pasta 06_Final separada, intocável após liberação</li>
+    </ul>
+  </div>
+</div>
+
+<h2><span class="num">03</span>Estrutura completa</h2>
+<p class="lead">Sete pastas-raiz, cada uma com uma função clara. Numeração da raiz controla a ordem de exibição.</p>
+
+<div class="tree">
+  <div class="tree-line"><div class="tree-folder"><span class="root">📁 PSA_OSG/</span></div><div class="tree-explain">Pasta-raiz da área. Tudo da OSG vive aqui dentro.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">📚 00_Modelos_e_Bibliotecas/</span></div><div class="tree-explain"><strong>Repositório central de tudo que é reutilizável.</strong> Minutas, calculadoras, templates e checklists. Modelos só vivem aqui, nunca duplicados em pasta de cliente.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Minutas/</span></div><div class="tree-explain">Contrato Social, Alterações, Atas, Instrumentos Agrários e Sucessórios, todos versionados.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Calculadoras/</span></div><div class="tree-explain">Planilhas-padrão de ITCD e Diagnóstico Tributário.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Apresentacoes_pptx/</span></div><div class="tree-explain">Templates PSA para apresentação inicial, de execução e final.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Checklists_DP/</span></div><div class="tree-explain">Listas de documentos a coletar por tipo de projeto.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">Templates_Email/</span></div><div class="tree-explain">Modelos de comunicação com cliente para situações recorrentes.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">👥 01_Clientes_Ativos/</span></div><div class="tree-explain"><strong>Onde mora o trabalho do dia a dia.</strong> Um subdiretório por cliente, todos seguindo o mesmo esqueleto.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">_KIT_NOVO_CLIENTE/</span></div><div class="tree-explain">Pasta-modelo. Copia, renomeia, e o cliente novo está pronto. Não apagar.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">[Cliente]_[CNPJ]/</span></div><div class="tree-explain">Pasta do cliente, com Dossiê (00) + Projetos (01) + Comunicação (02).</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">00_Dossie_Cliente/</span></div><div class="tree-explain">Dados gerais que não pertencem a um projeto específico (CNPJ, contatos, histórico).</div></div>
+  <div class="tree-line"><div class="tree-folder">│     ├─ <span class="lvl3">01_Projetos/[AAAA-MM]_Tipo_Codigo/</span></div><div class="tree-explain">Cada projeto contratado tem 6 subpastas-padrão (Documentos, DP, WP, Minutas, Apresentações, Final).</div></div>
+  <div class="tree-line"><div class="tree-folder">│     └─ <span class="lvl3">02_Comunicacao_Cliente/</span></div><div class="tree-explain">Atas de reunião e e-mails de marco. Não confundir com WhatsApp do dia a dia.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">⚡ 02_Transformacao_Digital/</span></div><div class="tree-explain"><strong>Tudo do projeto de Transformação Digital da OSG.</strong> Diagnóstico, formulários, roadmap e ferramentas entregues.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Diagnostico/</span></div><div class="tree-explain">Análise estratégica, AS-IS, TO-BE.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Formularios/</span></div><div class="tree-explain">Forms e respostas dos diagnósticos com sócios, seniores e assistentes.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Roadmap_e_Sprints/</span></div><div class="tree-explain">Planejamento dos 6 sprints, marcos, retrospectivas.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">Ferramentas_Entregues/</span></div><div class="tree-explain">Cada ferramenta concluída ganha sua subpasta com documentação e versionamento.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">👔 03_Equipe/</span></div><div class="tree-explain"><strong>Gestão de pessoas e capacitação.</strong> Cargos, níveis, onboarding e trilhas de desenvolvimento.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Cargos_e_Niveis/</span></div><div class="tree-explain">Descrições de cargo Assistente A, B, C e Senior.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Onboarding/</span></div><div class="tree-explain">Material de integração de novos colaboradores.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">Capacitacao/</span></div><div class="tree-explain">Treinamentos, materiais técnicos, atualizações.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">📊 04_Operacional/</span></div><div class="tree-explain"><strong>Visão da operação em tempo real.</strong> Status, capacidade, indicadores. É o que vai virar dashboard na Wave 2.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Status_Projetos/</span></div><div class="tree-explain">Tracking de andamento, prazos e marcos.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">Capacidade_Equipe/</span></div><div class="tree-explain">Alocação por pessoa, horas disponíveis, semáforo de carga.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">Indicadores_e_KPIs/</span></div><div class="tree-explain">Métricas mensais para acompanhamento dos sócios.</div></div>
+
+  <div class="tree-line"><div class="tree-folder">├─ <span class="lvl1">🗂️ 05_Arquivo_Concluidos/</span></div><div class="tree-explain"><strong>Onde projetos concluídos descansam.</strong> Organizado por ano. Regra prática: 90 dias após entrega final sem novas demandas, arquiva.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">2024/</span></div><div class="tree-explain">Projetos concluídos em 2024.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  ├─ <span class="lvl2">2025/</span></div><div class="tree-explain">Projetos concluídos em 2025.</div></div>
+  <div class="tree-line"><div class="tree-folder">│  └─ <span class="lvl2">2026/</span></div><div class="tree-explain">Projetos concluídos em 2026 (em andamento).</div></div>
+
+  <div class="tree-line"><div class="tree-folder">└─ <span class="lvl1">📖 99_Referencias_Legais/</span></div><div class="tree-explain"><strong>Doutrina, jurisprudência, legislação.</strong> Material de apoio técnico que serve a todos os clientes. Numerado 99 para ficar no fim, fora do fluxo do dia a dia.</div></div>
+  <div class="tree-line"><div class="tree-folder">   ├─ <span class="lvl2">Societario/</span></div><div class="tree-explain">Lei das S.A., Código Civil, jurisprudências relevantes.</div></div>
+  <div class="tree-line"><div class="tree-folder">   ├─ <span class="lvl2">Tributario/</span></div><div class="tree-explain">Reforma tributária, normas e estudos.</div></div>
+  <div class="tree-line"><div class="tree-folder">   ├─ <span class="lvl2">Sucessorio/</span></div><div class="tree-explain">Material sobre ITCD, doação, testamento.</div></div>
+  <div class="tree-line"><div class="tree-folder">   └─ <span class="lvl2">Rural/</span></div><div class="tree-explain">Estatuto da Terra, Lei do Agronegócio, instrumentos agrários.</div></div>
+</div>
+
+<h2><span class="num">04</span>Convenção de nomes</h2>
+<p class="lead">Padrão único para arquivos, pastas de cliente e pastas de projeto. Não é regra burocrática, é o que faz a busca cair de 30 minutos para 30 segundos.</p>
+
+<div class="conv">
+  <h3>Pasta de cliente</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato:</p>
+  <code>[Nome_Fantasia]_[CNPJ_Curto]</code>
+  <p style="color:var(--ink-soft);margin:10px 0 0;font-size:14px">Exemplo: <code>Fazenda_SaoJoao_12345678</code></p>
+</div>
+
+<div class="conv">
+  <h3>Pasta de projeto</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato:</p>
+  <code>[AAAA-MM]_[TipoProjeto]_[Codigo]</code>
+  <p style="color:var(--ink-soft);margin:10px 0 0;font-size:14px">Exemplo: <code>2026-04_Reestruturacao_OSG-127</code></p>
+  <p style="color:var(--ink-soft);margin:6px 0 0;font-size:13.5px">Tipos sugeridos: Reestruturacao, Sucessorio, Constituicao, Rural, DiagnosticoTributario, MA</p>
+</div>
+
+<div class="conv">
+  <h3>Arquivo dentro do projeto</h3>
+  <p style="color:var(--ink-soft);margin:0 0 6px;font-size:14px">Formato:</p>
+  <code>[AAAA-MM-DD]_[Cliente]_[TipoDoc]_v[N].extensao</code>
+  <p style="color:var(--ink-soft);margin:10px 0 0;font-size:14px">Exemplos:</p>
+  <ul>
+    <li><code>2026-04-15_FazendaSaoJoao_DP_v1.docx</code></li>
+    <li><code>2026-04-22_FazendaSaoJoao_ContratoSocial_v3.docx</code></li>
+    <li><code>2026-04-25_FazendaSaoJoao_Apresentacao_DP_v2.pptx</code></li>
+    <li><code>2026-04-27_FazendaSaoJoao_ITCD_calculo_v1.xlsx</code></li>
+  </ul>
+</div>
+
+<div class="conv">
+  <h3>Versionamento</h3>
+  <ul style="color:var(--ink-soft);font-size:14px;padding-left:20px;margin:8px 0 0">
+    <li><code>v1, v2, v3</code> para versões em construção</li>
+    <li><code>vFINAL</code> apenas quando liberado ao cliente</li>
+    <li>Nunca sobrescrever <code>vFINAL</code>. Alteração nova vira <code>v[N+1]</code></li>
+  </ul>
+</div>
+
+<h2><span class="num">05</span>Como começar amanhã</h2>
+<p class="lead">A estrutura já está criada na sua máquina, em <code style="background:rgba(79,140,255,0.12);padding:2px 8px;border-radius:5px;font-size:13px">C:\Users\Patricia Melo\psa-consultores\PSA_OSG\</code>. Quatro passos para implantar com a equipe.</p>
+
+<div class="cards">
+  <div class="card">
+    <h3><span class="icon">1</span>Migrar 1 cliente piloto</h3>
+    <p>Escolha um cliente ativo de complexidade média. Mova as pastas dele para a nova estrutura e veja onde a regra trava. Ajusta antes de escalar.</p>
+  </div>
+  <div class="card">
+    <h3><span class="icon">2</span>Popular a biblioteca</h3>
+    <p>Cada senior leva seus melhores modelos de Contrato Social, Atas, Alterações para a pasta <strong>00_Modelos_e_Bibliotecas</strong>. Versão única consolidada.</p>
+  </div>
+  <div class="card">
+    <h3><span class="icon">3</span>Treinar a equipe (30 min)</h3>
+    <p>Reunião curta com os 9 da OSG explicando o esqueleto, a convenção de nomes e a regra do <strong>vFINAL</strong>. O guia LEIA-ME fica fixado.</p>
+  </div>
+  <div class="card">
+    <h3><span class="icon">4</span>Onboardar novos clientes</h3>
+    <p>A partir do dia da migração, todo cliente novo entra pelo <strong>_KIT_NOVO_CLIENTE</strong>. Em 6 meses, 100% da operação está no novo padrão.</p>
+  </div>
+  <div class="card">
+    <h3><span class="icon">5</span>Sincronizar nuvem</h3>
+    <p>Se vocês usam OneDrive, Drive ou SharePoint, replicar a mesma estrutura. Sem variação por canal, é o que mata o sistema.</p>
+  </div>
+  <div class="card">
+    <h3><span class="icon">6</span>Arquivar concluídos</h3>
+    <p>Projetos com 90 dias sem demanda nova vão para <strong>05_Arquivo_Concluidos/[ANO]</strong>. Mantém Clientes_Ativos limpo.</p>
+  </div>
+</div>
+
+<div class="foot">
+  PSA · Transformação Digital · Coordenação Patrícia Melo · Versão 1.0 · Abril de 2026
+</div>
+
+</div>
+</body>
+</html>
