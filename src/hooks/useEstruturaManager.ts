@@ -134,13 +134,14 @@ export const useEstruturaMutations = () => {
 
   // ─── Cluster ──────────────────────────────────────────────────
   const saveCluster = useCallback(async (
-    form: { name: string; nome_empresa: string | null; cnpj: string | null; cost_center_id: string | null },
+    form: { name: string; nome_empresa: string | null; cnpj: string | null; cost_center_id: string | null; is_active?: boolean },
     editing: Cluster | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
+      const nextIsActive = form.is_active ?? editing.is_active;
       const { error } = await supabase.from('estrutura_clusters')
-        .update({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id })
+        .update({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id, is_active: nextIsActive })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
@@ -152,6 +153,7 @@ export const useEstruturaMutations = () => {
           nome_empresa: { old: editing.nome_empresa, new: form.nome_empresa },
           cnpj: { old: editing.cnpj, new: form.cnpj },
           cost_center_id: { old: editing.cost_center_id, new: form.cost_center_id },
+          is_active: { old: editing.is_active, new: nextIsActive },
         },
       });
     } else {
