@@ -17,6 +17,8 @@ import {
   useCreateCorrecaoIcms,
   type FamiliaCorrecao,
 } from '@/hooks/useCorrecoesIcms';
+import { ICMS_CORRECAO_FIELD_TOOLTIPS } from '../tooltipContent';
+import { ButtonTooltip, FieldTooltip } from '../tooltipHelpers';
 
 interface NovaCorrecaoDialogProps {
   open: boolean;
@@ -30,9 +32,7 @@ interface FieldDef {
   label: string;
   type: 'text' | 'date' | 'number' | 'competencia' | 'textarea';
   required?: boolean;
-  /** Onde salvar — 'top' = coluna dedicada da tabela; 'campos' = jsonb */
   target: 'top' | 'campos';
-  /** Nome canônico no jsonb (quando target=campos) */
   canon?: string;
 }
 
@@ -117,7 +117,6 @@ export function NovaCorrecaoDialog({
     setValues((prev) => ({ ...prev, [key]: value }));
 
   const handleSubmit = async () => {
-    // Validação básica
     for (const f of fields) {
       if (f.required && !values[f.key]?.trim()) {
         toast({
@@ -173,7 +172,7 @@ export function NovaCorrecaoDialog({
     <Dialog open={open} onOpenChange={(v) => (v ? onOpenChange(v) : handleClose())}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Nova correção — {FAMILIA_LABEL[familia]}</DialogTitle>
+          <DialogTitle>Nova correção - {FAMILIA_LABEL[familia]}</DialogTitle>
           <DialogDescription>
             O lançamento será adicionado à tabela detalhada e somado ao Resumo Mensal do mês correspondente.
           </DialogDescription>
@@ -185,8 +184,13 @@ export function NovaCorrecaoDialog({
             return (
               <div key={f.key} className={isFull ? 'sm:col-span-2' : undefined}>
                 <Label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  {f.label}
-                  {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                  <span className="inline-flex items-center gap-1.5">
+                    <span>
+                      {f.label}
+                      {f.required && <span className="text-red-500 ml-0.5">*</span>}
+                    </span>
+                    <FieldTooltip text={ICMS_CORRECAO_FIELD_TOOLTIPS[f.key] ?? `Explica o campo ${f.label}.`} />
+                  </span>
                 </Label>
                 {f.type === 'textarea' ? (
                   <Textarea
@@ -232,13 +236,17 @@ export function NovaCorrecaoDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={create.isPending}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={create.isPending}>
-            {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Salvar correção
-          </Button>
+          <ButtonTooltip text={ICMS_CORRECAO_FIELD_TOOLTIPS.cancelar}>
+            <Button variant="outline" onClick={handleClose} disabled={create.isPending}>
+              Cancelar
+            </Button>
+          </ButtonTooltip>
+          <ButtonTooltip text={ICMS_CORRECAO_FIELD_TOOLTIPS.salvar}>
+            <Button onClick={handleSubmit} disabled={create.isPending}>
+              {create.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Salvar correção
+            </Button>
+          </ButtonTooltip>
         </DialogFooter>
       </DialogContent>
     </Dialog>

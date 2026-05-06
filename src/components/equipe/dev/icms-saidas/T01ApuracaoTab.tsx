@@ -6,6 +6,8 @@ import { useIcmsSaidasApuracao } from '@/hooks/useIcmsSaidasApuracao';
 import { cn } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
 import type { T01MatrizRow, T01MatrizSection } from './mocks';
+import { ICMS_T01_TOOLTIPS } from './tooltipContent';
+import { renderColumnLabel } from './tooltipHelpers';
 
 interface T01ApuracaoTabProps {
   enabled: boolean;
@@ -87,14 +89,28 @@ export const T01ApuracaoTab = ({
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50 hover:bg-slate-50">
-                    <TableHead>Período</TableHead>
-                    <TableHead className="text-right">Débitos Saídas</TableHead>
-                    <TableHead className="text-right">Créditos</TableHead>
-                    <TableHead className="text-right">Estornos Débito</TableHead>
-                    <TableHead className="text-right">ICMS a Recolher</TableHead>
-                    <TableHead className="text-right">DIFAL</TableHead>
-                    <TableHead className="text-right">Total Recolhido</TableHead>
-                    <TableHead className="text-right">Diferença</TableHead>
+                    <TableHead>{renderColumnLabel('Período', ICMS_T01_TOOLTIPS.periodo)}</TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('Débitos Saídas', ICMS_T01_TOOLTIPS.debitosSaidas)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('Créditos', ICMS_T01_TOOLTIPS.creditos)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('Estornos Débito', ICMS_T01_TOOLTIPS.estornosDebito)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('ICMS a Recolher', ICMS_T01_TOOLTIPS.icmsRecolher)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('DIFAL', ICMS_T01_TOOLTIPS.difal)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('Total Recolhido', ICMS_T01_TOOLTIPS.totalRecolhido)}
+                    </TableHead>
+                    <TableHead className="text-right">
+                      {renderColumnLabel('Diferença', ICMS_T01_TOOLTIPS.diferenca)}
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -192,19 +208,39 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-100 hover:bg-slate-100">
-                <TableHead rowSpan={2} className="min-w-[160px] align-middle">Período</TableHead>
-                <TableHead colSpan={2} className="min-w-[320px] text-center">EFD ICMS IPI</TableHead>
+                <TableHead rowSpan={2} className="min-w-[160px] align-middle">
+                  {renderColumnLabel('Período', ICMS_T01_TOOLTIPS.periodo)}
+                </TableHead>
+                <TableHead colSpan={2} className="min-w-[320px] text-center">
+                  {renderColumnLabel('EFD ICMS IPI', ICMS_T01_TOOLTIPS.matrizEfd)}
+                </TableHead>
                 <TableHead className="min-w-[150px] text-center">&nbsp;</TableHead>
-                <TableHead colSpan={2} className="min-w-[320px] text-center">Recolhimentos</TableHead>
-                <TableHead className="min-w-[180px] text-center">CHECK DIFERENÇAS</TableHead>
+                <TableHead colSpan={2} className="min-w-[320px] text-center">
+                  {renderColumnLabel('Recolhimentos', ICMS_T01_TOOLTIPS.matrizRecolhimentos)}
+                </TableHead>
+                <TableHead className="min-w-[180px] text-center">
+                  {renderColumnLabel('CHECK DIFERENÇAS', ICMS_T01_TOOLTIPS.matrizCheck)}
+                </TableHead>
               </TableRow>
               <TableRow className="bg-slate-50 hover:bg-slate-50">
-                <TableHead className="min-w-[160px] text-right">Apurado</TableHead>
-                <TableHead className="min-w-[160px] text-right">Créditos</TableHead>
-                <TableHead className="min-w-[150px] text-right">Devido</TableHead>
-                <TableHead className="min-w-[160px] text-right">DAR</TableHead>
-                <TableHead className="min-w-[160px] text-right">Total</TableHead>
-                <TableHead className="min-w-[180px] text-right">EFD x Recolhido</TableHead>
+                <TableHead className="min-w-[160px] text-right">
+                  {renderColumnLabel('Apurado', ICMS_T01_TOOLTIPS.apurado)}
+                </TableHead>
+                <TableHead className="min-w-[160px] text-right">
+                  {renderColumnLabel('Créditos', ICMS_T01_TOOLTIPS.creditosMatriz)}
+                </TableHead>
+                <TableHead className="min-w-[150px] text-right">
+                  {renderColumnLabel('Devido', ICMS_T01_TOOLTIPS.devido)}
+                </TableHead>
+                <TableHead className="min-w-[160px] text-right">
+                  {renderColumnLabel('DAR', ICMS_T01_TOOLTIPS.dar)}
+                </TableHead>
+                <TableHead className="min-w-[160px] text-right">
+                  {renderColumnLabel('Total', ICMS_T01_TOOLTIPS.total)}
+                </TableHead>
+                <TableHead className="min-w-[180px] text-right">
+                  {renderColumnLabel('EFD x Recolhido', ICMS_T01_TOOLTIPS.efdXRecolhido)}
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

@@ -2,6 +2,9 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FamiliaSaidaTab } from './familias/FamiliaSaidaTab';
 import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
+import { ICMS_FAMILIA_TAB_TOOLTIPS } from './tooltipContent';
+import { InlineTooltip } from './tooltipHelpers';
+import { cn } from '@/lib/utils';
 
 interface T03_2SaidasStTabProps {
   enabled: boolean;
@@ -27,11 +30,24 @@ export const T03_2SaidasStTab = ({
 
   return (
     <Tabs value={familia} onValueChange={(v) => setFamilia(v as FamiliaSaidaSt)} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 h-10">
+      <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm">
         {FAMILIA_TABS.map((t) => (
-          <TabsTrigger key={t.value} value={t.value} className="text-xs sm:text-sm">
-            {t.label}
-          </TabsTrigger>
+          <InlineTooltip key={t.value} content={ICMS_FAMILIA_TAB_TOOLTIPS[t.value]}>
+            <TabsTrigger
+              value={t.value}
+              className={cn(
+                'relative isolate h-8 overflow-hidden text-xs sm:text-sm font-medium rounded-sm border border-transparent bg-transparent',
+                'text-slate-600 dark:text-slate-300',
+                'transition-all duration-300 ease-out',
+                'hover:-translate-y-0.5 hover:border-primary/10 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:shadow-primary/10',
+                t.value === familia
+                  ? 'bg-primary/10 text-primary font-semibold shadow-sm shadow-primary/15 border-primary/15 -translate-y-0.5'
+                  : 'bg-transparent',
+              )}
+            >
+              {t.label}
+            </TabsTrigger>
+          </InlineTooltip>
         ))}
       </TabsList>
 

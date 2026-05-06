@@ -6,7 +6,6 @@ interface EstruturaEquipe {
   id: string;
   name: string;
   area_id: string;
-  sublider_id: string | null;
 }
 
 interface EstruturaArea {
@@ -19,7 +18,6 @@ interface EstruturaArea {
 interface EstruturaCluster {
   id: string;
   name: string;
-  cost_center: string | null;
 }
 
 interface UserEstrutura {
@@ -50,7 +48,7 @@ export function useUserEstrutura(userId?: string): UserEstrutura {
       // 2. Get teams
       const { data: equipes, error: eErr } = await supabase
         .from('estrutura_equipes')
-        .select('id, name, area_id, sublider_id')
+        .select('id, name, area_id')
         .in('id', equipeIds);
       if (eErr) throw eErr;
 
@@ -70,7 +68,7 @@ export function useUserEstrutura(userId?: string): UserEstrutura {
       // 4. Get clusters
       const { data: clusters, error: cErr } = await supabase
         .from('estrutura_clusters')
-        .select('id, name, cost_center')
+        .select('id, name')
         .in('id', clusterIds);
       if (cErr) throw cErr;
 

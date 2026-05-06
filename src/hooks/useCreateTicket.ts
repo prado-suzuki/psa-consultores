@@ -179,25 +179,15 @@ export function useCreateTicketCliente() {
         .filter(Boolean);
 
       if (candidateIds.length > 0) {
-        // Não filtrar por `ambiente` aqui: a tabela representante já aponta
-        // diretamente para o cliente correto via id_cliente. Filtrar pelo
-        // hostname-derived `currentAmbiente` quebrava a resolução em previews
-        // e domínios alternativos, deixando o ticket sem cliente_id.
-        const { data: clienteRow } = await supabase
-          .from('cliente')
-          .select('id')
-          .in('id', candidateIds)
-          .eq('excluido', false)
-          .limit(1)
-          .maybeSingle();
-        if (clienteRow) {
-          clienteId = (clienteRow as any).id;
-        } else {
-          console.warn('[useCreateTicketCliente] cliente não resolvido para representante', {
-            userId: params.userId,
-            candidateIds,
-          });
-        }
+        // Confiamos no vínculo da tabela `representante` (RLS permite ao próprio
+        // cliente ler seu registro via auth.uid() = user_id). Não consultamos a
+        // tabela `cliente` aqui porque o RLS atual bloqueia leitura para a role
+        // `client`, o que fazia o ticket ser inserido sem cliente_id.
+        clienteId = candidateIds[0];
+      } else {
+        console.warn('[useCreateTicketCliente] nenhum representante encontrado para user', {
+          userId: params.userId,
+        });
       }
 
       // Auto-resolve cluster_id when not informed: use the single cluster of the client (if any)

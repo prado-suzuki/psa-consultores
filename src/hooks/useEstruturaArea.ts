@@ -9,31 +9,22 @@ export const useEstruturaArea = (estruturaAreaId: string | null | undefined) => 
   const enabled = !!estruturaAreaId;
 
   const { data: liderIds = [], isLoading: loadingLideres } = useQuery({
-    queryKey: ['estrutura-area-lideres', estruturaAreaId],
+    queryKey: ['estrutura-area-gestores', estruturaAreaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('estrutura_area_lideres')
-        .select('user_id')
-        .eq('area_id', estruturaAreaId!);
+        .from('estrutura_equipes')
+        .select('gestor_id')
+        .eq('area_id', estruturaAreaId!)
+        .eq('is_active', true)
+        .not('gestor_id', 'is', null);
       if (error) throw error;
-      return (data || []).map(d => d.user_id);
+      return [...new Set((data || []).map(d => d.gestor_id as string))];
     },
     enabled,
   });
 
-  const { data: subliderIds = [], isLoading: loadingSublideres } = useQuery({
-    queryKey: ['estrutura-area-sublideres', estruturaAreaId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_equipes')
-        .select('sublider_id')
-        .eq('area_id', estruturaAreaId!)
-        .not('sublider_id', 'is', null);
-      if (error) throw error;
-      return [...new Set((data || []).map(d => d.sublider_id!))];
-    },
-    enabled,
-  });
+  const subliderIds: string[] = [];
+  const loadingSublideres = false;
 
   const { data: memberIds = [], isLoading: loadingMembros } = useQuery({
     queryKey: ['estrutura-area-membros', estruturaAreaId],

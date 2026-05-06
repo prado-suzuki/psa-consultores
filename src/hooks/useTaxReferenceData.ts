@@ -100,26 +100,12 @@ export function useTeamRolesForProjects() {
   });
 }
 
-/** Membros filtrados por equipes de sublíderes selecionados */
-export function useSubliderTeamMembers(subliderIds: string[], enabled: boolean) {
+/** @deprecated sublider_id removido de estrutura_equipes; mantido como no-op para compatibilidade */
+export function useSubliderTeamMembers(_subliderIds: string[], _enabled: boolean) {
   return useQuery({
-    queryKey: ['sublider-team-members', subliderIds],
-    queryFn: async () => {
-      if (subliderIds.length === 0) return [];
-      const { data: teams, error: tErr } = await supabase
-        .from('estrutura_equipes')
-        .select('id')
-        .in('sublider_id', subliderIds);
-      if (tErr) throw tErr;
-      if (!teams?.length) return [];
-      const { data: members, error: mErr } = await supabase
-        .from('estrutura_equipe_membros')
-        .select('user_id')
-        .in('equipe_id', teams.map(t => t.id));
-      if (mErr) throw mErr;
-      return [...new Set((members || []).map(m => m.user_id))];
-    },
-    enabled,
+    queryKey: ['sublider-team-members-deprecated'],
+    queryFn: async () => [] as string[],
+    enabled: false,
   });
 }
 
@@ -221,11 +207,14 @@ export function useTeamMembersForTasks(clusterId?: string) {
           ? supabase.from('estrutura_equipe_membros').select('user_id').in('equipe_id', equipeIds)
           : Promise.resolve({ data: [] as { user_id: string }[] });
 
-        // 4. Líderes das áreas
-        const lideresPromise = supabase
-          .from('estrutura_area_lideres')
-          .select('user_id')
-          .in('area_id', areaIds);
+        // 4. Gestores das equipes (substitui antigos líderes de área)
+        const lideresPromise = equipeIds.length > 0
+          ? supabase
+              .from('estrutura_equipes')
+              .select('gestor_id')
+              .in('id', equipeIds)
+              .not('gestor_id', 'is', null)
+          : Promise.resolve({ data: [] as { gestor_id: string }[] });
 
         // 5. Admins (sempre visíveis)
         const adminsPromise = supabase
@@ -241,7 +230,7 @@ export function useTeamMembersForTasks(clusterId?: string) {
 
         const combined = new Set([
           ...(membros || []).map(m => m.user_id),
-          ...(lideres || []).map(l => l.user_id),
+          ...(lideres || []).map(l => l.gestor_id as string),
           ...(admins || []).map(a => a.user_id),
         ]);
         if (combined.size === 0) return [];

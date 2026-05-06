@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
@@ -14,11 +16,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Plus, Trash2, Pencil, Building2, Users, Network, UserCheck, X
+  Plus, Trash2, Pencil, Building2, Users, Network, UserCheck, X, ChevronDown
 } from 'lucide-react';
 import {
-  useEstruturaClusters, useEstruturaAreas, useEstruturaLideres,
-  useEstruturaEquipes, useEstruturaMembros, useEstruturaEmpresas,
+  useEstruturaClusters, useEstruturaAreas,
+  useEstruturaEquipes, useEstruturaMembros,
   useEstruturaCentrosCusto, useEstruturaMutations,
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
@@ -77,10 +79,8 @@ export default function EstruturaManager() {
   // Data queries from hooks
   const { data: clusters = [], isLoading: loadingClusters } = useEstruturaClusters();
   const { data: areas = [] } = useEstruturaAreas();
-  const { data: lideres = [] } = useEstruturaLideres();
   const { data: equipes = [] } = useEstruturaEquipes();
   const { data: membros = [] } = useEstruturaMembros();
-  const { data: empresas = [] } = useEstruturaEmpresas();
   const { data: centrosCusto = [] } = useEstruturaCentrosCusto();
 
   // Mutations from hook
@@ -93,34 +93,43 @@ export default function EstruturaManager() {
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
-  // Helper to get CC name from empresa
-  const getEmpresaCcLabel = (empresaId: string | null) => {
-    if (!empresaId) return null;
-    const emp = empresas.find(e => e.id === empresaId);
-    if (!emp?.centro_custo_id) return null;
-    const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+  // Helper para label do CC a partir do id
+  const getCcLabel = (ccId: string | null | undefined) => {
+    if (!ccId) return null;
+    const cc = centrosCusto.find(c => c.id === ccId);
     return cc ? `${cc.codigo} - ${cc.nome}` : null;
   };
 
   // ─── Cluster CRUD ─────────────────────────────────────────────────
   const [clusterDialog, setClusterDialog] = useState(false);
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
-  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '', empresa_id: '' });
+  const [clusterForm, setClusterForm] = useState({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '', is_active: true });
 
-  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '', empresa_id: '' }); setClusterDialog(true); };
-  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
+  const openClusterCreate = () => {
+    setEditingCluster(null);
+    setClusterForm({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '', is_active: true });
+    setClusterDialog(true);
+  };
+  const openClusterEdit = (c: Cluster) => {
+    setEditingCluster(c);
+    setClusterForm({
+      name: c.name,
+      nome_empresa: c.nome_empresa || '',
+      cnpj: c.cnpj || '',
+      cost_center_id: c.cost_center_id || '',
+      is_active: c.is_active,
+    });
+    setClusterDialog(true);
+  };
 
   const saveCluster = async () => {
-    const empresaId = clusterForm.empresa_id || null;
-    let costCenter = clusterForm.cost_center || null;
-    if (empresaId) {
-      const emp = empresas.find(e => e.id === empresaId);
-      if (emp?.centro_custo_id) {
-        const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
-        if (cc) costCenter = cc.codigo;
-      }
-    }
-    await mutations.saveCluster({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }, editingCluster);
+    await mutations.saveCluster({
+      name: clusterForm.name,
+      nome_empresa: clusterForm.nome_empresa.trim() || null,
+      cnpj: clusterForm.cnpj.trim() || null,
+      cost_center_id: clusterForm.cost_center_id || null,
+      is_active: clusterForm.is_active,
+    }, editingCluster);
     setClusterDialog(false);
   };
 
@@ -145,23 +154,22 @@ export default function EstruturaManager() {
     setDeleteConfirm({ type: 'area', id: area.id, label: area.name });
   };
 
-  // ─── Lider ────────────────────────────────────────────────────────
-  const handleSetAreaLider = async (areaId: string, userId: string | null) => {
-    const oldLider = lideres.find(l => l.area_id === areaId);
-    const area = areas.find(a => a.id === areaId);
-    await mutations.setAreaLider(areaId, userId, area?.name || areaId, oldLider?.user_id || null);
+  // ─── Gestor da equipe ─────────────────────────────────────────────
+  const handleSetEquipeGestor = async (equipeId: string, userId: string | null) => {
+    const equipe = equipes.find(e => e.id === equipeId);
+    await mutations.setEquipeGestor(equipeId, userId, equipe?.name || equipeId, equipe?.gestor_id || null);
   };
 
   // ─── Equipe CRUD ──────────────────────────────────────────────────
   const [equipeDialog, setEquipeDialog] = useState(false);
   const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null);
-  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '', sublider_id: '' });
+  const [equipeForm, setEquipeForm] = useState<{ name: string; area_id: string; gestor_id: string | null }>({ name: '', area_id: '', gestor_id: null });
 
-  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId, sublider_id: '' }); setEquipeDialog(true); };
-  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, sublider_id: e.sublider_id || '' }); setEquipeDialog(true); };
+  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId, gestor_id: null }); setEquipeDialog(true); };
+  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, gestor_id: e.gestor_id }); setEquipeDialog(true); };
 
   const saveEquipe = async () => {
-    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, sublider_id: equipeForm.sublider_id || null }, editingEquipe);
+    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, gestor_id: equipeForm.gestor_id }, editingEquipe);
     setEquipeDialog(false);
   };
 
@@ -212,6 +220,197 @@ export default function EstruturaManager() {
   const totalEquipes = equipes.length;
   const totalMembros = membros.length;
 
+  const activeClusters = clusters.filter(c => c.is_active);
+  const inactiveClusters = clusters.filter(c => !c.is_active);
+
+  const renderClusterItem = (cluster: Cluster) => {
+    const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
+    return (
+      <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
+          <div className="flex items-center gap-3 flex-1 text-left">
+            <Network className="h-5 w-5 text-teal-600 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-medium text-slate-900">{cluster.name}</div>
+              {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
+                <div className="text-xs text-slate-500">
+                  {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
+                  {cluster.cnpj && <> • CNPJ: {cluster.cnpj}</>}
+                  {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
+                </div>
+              )}
+            </div>
+            <Badge variant="secondary" className="mr-2">{clusterAreas.length} áreas</Badge>
+            <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openClusterEdit(cluster)}>
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => confirmDeleteCluster(cluster)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4">
+          <div className="space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-sm font-medium text-slate-700">Áreas</span>
+              <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => openAreaCreate(cluster.id)}>
+                <Plus className="h-3 w-3" /> Nova Área
+              </Button>
+            </div>
+
+            {clusterAreas.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">Nenhuma área neste cluster.</p>
+            ) : (
+              <Accordion type="multiple" className="space-y-2">
+                {clusterAreas.map(area => {
+                  const areaEquipes = equipes.filter(e => e.area_id === area.id);
+                  // Gestores das equipes da área (substitui o antigo "líder da área")
+                  const gestorIds = [...new Set(areaEquipes.map(e => e.gestor_id).filter(Boolean) as string[])];
+                  const gestorProfiles = gestorIds
+                    .map(id => allProfiles.find(p => p.id === id))
+                    .filter((p): p is Profile => !!p);
+
+                  return (
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-slate-50/50">
+                      <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-100/50 text-sm">
+                        <div className="flex items-center gap-2 flex-1 text-left">
+                          <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
+                          <span className="font-medium text-slate-800">{area.name}</span>
+                          {gestorProfiles.length > 0 && (
+                            <span className="text-xs text-slate-500 ml-1">
+                              • Gestor{gestorProfiles.length > 1 ? 'es' : ''}: {gestorProfiles.map(profileLabel).join(', ')}
+                            </span>
+                          )}
+                          {(() => {
+                            let ccLabel: string | null = null;
+                            if (area.cost_center_id) {
+                              const cc = centrosCusto.find(c => c.id === area.cost_center_id);
+                              ccLabel = cc ? `${cc.codigo} - ${cc.nome}` : null;
+                            } else {
+                              ccLabel = getCcLabel(cluster.cost_center_id);
+                            }
+                            return ccLabel ? (
+                              <Badge variant="secondary" className="text-xs ml-1">{area.cost_center_id ? 'CC:' : 'CC (herdado):'} {ccLabel}</Badge>
+                            ) : null;
+                          })()}
+                          <Badge variant="outline" className="ml-auto mr-2 text-xs">{areaEquipes.length} equipes</Badge>
+                          <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openAreaEdit(area)}>
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteArea(area)}>
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-3 pb-3">
+                        <div className="space-y-3">
+                          {/* Equipes */}
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-medium text-slate-600">Equipes</span>
+                            <Button variant="outline" size="sm" className="gap-1 h-6 text-xs" onClick={() => openEquipeCreate(area.id)}>
+                              <Plus className="h-3 w-3" /> Nova Equipe
+                            </Button>
+                          </div>
+
+                          {areaEquipes.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">Nenhuma equipe.</p>
+                          ) : (
+                            <div className="space-y-2">
+                              {areaEquipes.map(equipe => {
+                                const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
+                                const membroIds = equipeMembros.map(m => m.user_id);
+                                const availableMembers = memberProfiles.filter(p => !membroIds.includes(p.id));
+
+                                return (
+                                  <div key={equipe.id} className="rounded border border-slate-200 bg-white p-3 space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-2">
+                                        <Users className="h-3.5 w-3.5 text-slate-500" />
+                                        <span className="text-sm font-medium text-slate-800">{equipe.name}</span>
+                                      </div>
+                                      <div className="flex gap-1">
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
+                                          <Pencil className="h-3 w-3" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteEquipe(equipe)}>
+                                          <Trash2 className="h-3 w-3" />
+                                        </Button>
+                                      </div>
+                                    </div>
+
+                                    {/* Gestor (1 por equipe) */}
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-xs text-slate-600 shrink-0">Gestor:</Label>
+                                      <Select
+                                        value={equipe.gestor_id || '_none'}
+                                        onValueChange={(val) => handleSetEquipeGestor(equipe.id, val === '_none' ? null : val)}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs max-w-[220px]">
+                                          <SelectValue placeholder="Selecionar gestor..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="_none" className="text-xs">Nenhum</SelectItem>
+                                          {liderProfiles.map(p => (
+                                            <SelectItem key={p.id} value={p.id} className="text-xs">
+                                              {profileLabel(p)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
+                                    {/* Members */}
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {equipeMembros.map(m => {
+                                        const profile = allProfiles.find(p => p.id === m.user_id);
+                                        return (
+                                          <Badge key={m.id} variant="secondary" className="text-xs gap-1 pr-1">
+                                            {profile ? profileLabel(profile) : m.user_id.slice(0, 8)}
+                                            <button onClick={() => handleRemoveMembro(m.id)} className="hover:text-destructive ml-0.5">
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </Badge>
+                                        );
+                                      })}
+                                    </div>
+
+                                    {/* Add member */}
+                                    {availableMembers.length > 0 && (
+                                      <Select onValueChange={(val) => handleAddMembro(equipe.id, val)}>
+                                        <SelectTrigger className="h-7 text-xs max-w-[220px]">
+                                          <SelectValue placeholder="+ Adicionar membro..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {availableMembers.map(p => (
+                                            <SelectItem key={p.id} value={p.id} className="text-xs">
+                                              {profileLabel(p)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -244,195 +443,36 @@ export default function EstruturaManager() {
           </CardContent>
         </Card>
       ) : (
-        <Accordion type="multiple" className="space-y-3">
-          {clusters.map(cluster => {
-            const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
-            return (
-              <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-                <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
-                  <div className="flex items-center gap-3 flex-1 text-left">
-                    <Network className="h-5 w-5 text-teal-600 shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-slate-900">{cluster.name}</div>
-                      {cluster.empresa_id && (
-                        <div className="text-xs text-slate-500">
-                          Empresa: {empresas.find(e => e.id === cluster.empresa_id)?.nome || '—'}
-                          {getEmpresaCcLabel(cluster.empresa_id) && ` • CC: ${getEmpresaCcLabel(cluster.empresa_id)}`}
-                        </div>
-                      )}
-                      {!cluster.empresa_id && cluster.cost_center && (
-                        <div className="text-xs text-slate-500">Centro de Custo: {cluster.cost_center}</div>
-                      )}
-                    </div>
-                    <Badge variant="secondary" className="mr-2">{clusterAreas.length} áreas</Badge>
-                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openClusterEdit(cluster)}>
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => confirmDeleteCluster(cluster)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-4 pb-4">
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-slate-700">Áreas</span>
-                      <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => openAreaCreate(cluster.id)}>
-                        <Plus className="h-3 w-3" /> Nova Área
-                      </Button>
-                    </div>
+        <div className="space-y-4">
+          {activeClusters.length === 0 ? (
+            <Card className="bg-white border-slate-200/60 shadow-sm">
+              <CardContent className="py-6 text-center text-slate-500 text-sm">
+                Nenhum cluster ativo.
+              </CardContent>
+            </Card>
+          ) : (
+            <Accordion type="multiple" className="space-y-3">
+              {activeClusters.map(renderClusterItem)}
+            </Accordion>
+          )}
 
-                    {clusterAreas.length === 0 ? (
-                      <p className="text-sm text-slate-400 italic">Nenhuma área neste cluster.</p>
-                    ) : (
-                      <Accordion type="multiple" className="space-y-2">
-                        {clusterAreas.map(area => {
-                          const areaLider = lideres.find(l => l.area_id === area.id);
-                          const areaEquipes = equipes.filter(e => e.area_id === area.id);
-                          const liderProfile = areaLider ? allProfiles.find(p => p.id === areaLider.user_id) : null;
-
-                          return (
-                            <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-slate-50/50">
-                              <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-100/50 text-sm">
-                                <div className="flex items-center gap-2 flex-1 text-left">
-                                  <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
-                                  <span className="font-medium text-slate-800">{area.name}</span>
-                                  {liderProfile && (
-                                    <span className="text-xs text-slate-500 ml-1">• Líder: {profileLabel(liderProfile)}</span>
-                                  )}
-                                  {(() => {
-                                    let ccLabel: string | null = null;
-                                    if (area.cost_center_id) {
-                                      const cc = centrosCusto.find(c => c.id === area.cost_center_id);
-                                      ccLabel = cc ? `${cc.codigo} - ${cc.nome}` : null;
-                                    } else {
-                                      ccLabel = getEmpresaCcLabel(cluster.empresa_id);
-                                    }
-                                    return ccLabel ? (
-                                      <Badge variant="secondary" className="text-xs ml-1">{area.cost_center_id ? 'CC:' : 'CC (herdado):'} {ccLabel}</Badge>
-                                    ) : null;
-                                  })()}
-                                  <Badge variant="outline" className="ml-auto mr-2 text-xs">{areaEquipes.length} equipes</Badge>
-                                  <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openAreaEdit(area)}>
-                                      <Pencil className="h-3 w-3" />
-                                    </Button>
-                                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteArea(area)}>
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              </AccordionTrigger>
-                              <AccordionContent className="px-3 pb-3">
-                                <div className="space-y-3">
-                                  {/* Lider select */}
-                                  <div className="flex items-center gap-2">
-                                    <Label className="text-xs text-slate-600 shrink-0">Líder Responsável:</Label>
-                                    <Select
-                                      value={areaLider?.user_id || ''}
-                                      onValueChange={(val) => handleSetAreaLider(area.id, val || null)}
-                                    >
-                                      <SelectTrigger className="h-8 text-xs max-w-[250px]">
-                                        <SelectValue placeholder="Selecionar líder..." />
-                                      </SelectTrigger>
-                                      <SelectContent>
-                                        {liderProfiles.map(p => (
-                                          <SelectItem key={p.id} value={p.id} className="text-xs">
-                                            {profileLabel(p)}
-                                          </SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                  </div>
-
-                                  {/* Equipes */}
-                                  <div className="flex justify-between items-center">
-                                    <span className="text-xs font-medium text-slate-600">Equipes</span>
-                                    <Button variant="outline" size="sm" className="gap-1 h-6 text-xs" onClick={() => openEquipeCreate(area.id)}>
-                                      <Plus className="h-3 w-3" /> Nova Equipe
-                                    </Button>
-                                  </div>
-
-                                  {areaEquipes.length === 0 ? (
-                                    <p className="text-xs text-slate-400 italic">Nenhuma equipe.</p>
-                                  ) : (
-                                    <div className="space-y-2">
-                                      {areaEquipes.map(equipe => {
-                                        const sublider = equipe.sublider_id ? allProfiles.find(p => p.id === equipe.sublider_id) : null;
-                                        const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
-                                        const membroIds = equipeMembros.map(m => m.user_id);
-                                        const availableMembers = memberProfiles.filter(p => !membroIds.includes(p.id));
-
-                                        return (
-                                          <div key={equipe.id} className="rounded border border-slate-200 bg-white p-3 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex items-center gap-2">
-                                                <Users className="h-3.5 w-3.5 text-slate-500" />
-                                                <span className="text-sm font-medium text-slate-800">{equipe.name}</span>
-                                                {sublider && (
-                                                  <span className="text-xs text-slate-500">• Sublíder: {profileLabel(sublider)}</span>
-                                                )}
-                                              </div>
-                                              <div className="flex gap-1">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
-                                                  <Pencil className="h-3 w-3" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive" onClick={() => confirmDeleteEquipe(equipe)}>
-                                                  <Trash2 className="h-3 w-3" />
-                                                </Button>
-                                              </div>
-                                            </div>
-
-                                            {/* Members */}
-                                            <div className="flex flex-wrap gap-1.5">
-                                              {equipeMembros.map(m => {
-                                                const profile = allProfiles.find(p => p.id === m.user_id);
-                                                return (
-                                                  <Badge key={m.id} variant="secondary" className="text-xs gap-1 pr-1">
-                                                    {profile ? profileLabel(profile) : m.user_id.slice(0, 8)}
-                                                    <button onClick={() => handleRemoveMembro(m.id)} className="hover:text-destructive ml-0.5">
-                                                      <X className="h-3 w-3" />
-                                                    </button>
-                                                  </Badge>
-                                                );
-                                              })}
-                                            </div>
-
-                                            {/* Add member */}
-                                            {availableMembers.length > 0 && (
-                                              <Select onValueChange={(val) => handleAddMembro(equipe.id, val)}>
-                                                <SelectTrigger className="h-7 text-xs max-w-[220px]">
-                                                  <SelectValue placeholder="+ Adicionar membro..." />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                  {availableMembers.map(p => (
-                                                    <SelectItem key={p.id} value={p.id} className="text-xs">
-                                                      {profileLabel(p)}
-                                                    </SelectItem>
-                                                  ))}
-                                                </SelectContent>
-                                              </Select>
-                                            )}
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                              </AccordionContent>
-                            </AccordionItem>
-                          );
-                        })}
-                      </Accordion>
-                    )}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            );
-          })}
-        </Accordion>
+          {inactiveClusters.length > 0 && (
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+                <div className="flex items-center gap-2">
+                  <span>Clusters inativos</span>
+                  <Badge variant="secondary" className="text-xs">{inactiveClusters.length}</Badge>
+                </div>
+                <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3">
+                <Accordion type="multiple" className="space-y-3 opacity-75">
+                  {inactiveClusters.map(renderClusterItem)}
+                </Accordion>
+              </CollapsibleContent>
+            </Collapsible>
+          )}
+        </div>
       )}
 
       {/* ─── Delete Confirmation AlertDialog ─────────────────────────── */}
@@ -468,25 +508,55 @@ export default function EstruturaManager() {
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
             <div className="space-y-2">
-              <Label>Empresa / Faturamento</Label>
-              <Select value={clusterForm.empresa_id} onValueChange={(val) => setClusterForm(f => ({ ...f, empresa_id: val === '_none' ? '' : val }))}>
-                <SelectTrigger><SelectValue placeholder="Selecionar empresa..." /></SelectTrigger>
+              <Label>Nome da Empresa</Label>
+              <Input
+                value={clusterForm.nome_empresa}
+                onChange={e => setClusterForm(f => ({ ...f, nome_empresa: e.target.value }))}
+                placeholder="Ex: PSA Consultores Ltda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={clusterForm.cnpj}
+                onChange={e => setClusterForm(f => ({ ...f, cnpj: e.target.value }))}
+                placeholder="00.000.000/0000-00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de Custo</Label>
+              <Select
+                value={clusterForm.cost_center_id || '_none'}
+                onValueChange={(val) => setClusterForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar centro de custo..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="_none">Nenhuma</SelectItem>
-                  {empresas.map(e => (
-                    <SelectItem key={e.id} value={e.id}>{e.nome}</SelectItem>
+                  <SelectItem value="_none">Nenhum</SelectItem>
+                  {centrosCusto.map(cc => (
+                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {clusterForm.empresa_id && getEmpresaCcLabel(clusterForm.empresa_id) && (
-                <p className="text-xs text-slate-500">Centro de Custo: {getEmpresaCcLabel(clusterForm.empresa_id)}</p>
-              )}
             </div>
-            <div className="space-y-2">
-              <Label>Centro de Custo (manual)</Label>
-              <Input value={clusterForm.cost_center} onChange={e => setClusterForm(f => ({ ...f, cost_center: e.target.value }))} placeholder="Ex: CC-001" disabled={!!clusterForm.empresa_id} />
-              {clusterForm.empresa_id && <p className="text-xs text-slate-400">Preenchido automaticamente pela empresa</p>}
-            </div>
+            {editingCluster && (
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+                <div className="space-y-0.5">
+                  <Label htmlFor="cluster-active" className="cursor-pointer">
+                    {clusterForm.is_active ? 'Cluster ativo' : 'Cluster inativo'}
+                  </Label>
+                  <p className="text-xs text-slate-500">
+                    {clusterForm.is_active
+                      ? 'Visível na lista principal.'
+                      : 'Será exibido na seção de inativos.'}
+                  </p>
+                </div>
+                <Switch
+                  id="cluster-active"
+                  checked={clusterForm.is_active}
+                  onCheckedChange={(checked) => setClusterForm(f => ({ ...f, is_active: checked }))}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClusterDialog(false)}>Cancelar</Button>
@@ -578,21 +648,6 @@ export default function EstruturaManager() {
             <div className="space-y-2">
               <Label>Nome da Equipe *</Label>
               <Input value={equipeForm.name} onChange={e => setEquipeForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Equipe Fiscal SP..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Sublíder (opcional)</Label>
-              <Select value={equipeForm.sublider_id} onValueChange={val => setEquipeForm(f => ({ ...f, sublider_id: val }))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecionar sublíder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {allProfiles.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {profileLabel(p)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>

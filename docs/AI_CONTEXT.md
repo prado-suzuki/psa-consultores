@@ -20,6 +20,8 @@
 > - **NUNCA** remover tipagens TypeScript ou usar `any` sem justificativa documentada em comentário.
 > - **NUNCA** criar rotas protegidas sem registrá-las em `src/config/protectedPages.ts`.
 > - **NUNCA** alterar `src/constants/efdConfig.ts` para renomear "Participante" — refere-se ao SPED fiscal, não ao cadastro de clientes.
+> - **NUNCA** usar `npm`, `yarn`, `pnpm` ou `npx` neste repositório. O fluxo oficial é sempre com `bun`.
+> - **NUNCA** deletar, mover ou modificar `package-lock.json`. Ele permanece versionado por compatibilidade histórica, mas não é o lockfile de referência da build.
 >
 > ### Obrigações absolutas
 > - **SEMPRE** usar `useToast` ou `sonner` para feedback ao usuário.
@@ -65,6 +67,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 |---|---|
 | Frontend | React 18 + Vite + TypeScript |
 | UI | Tailwind CSS + shadcn-ui (tokens semânticos em `index.css` + `tailwind.config.ts`) |
+| UI complementar | Radix UI, sonner, lucide-react |
 | Roteamento | react-router-dom v6 |
 | Estado servidor | @tanstack/react-query |
 | Backend | Lovable Cloud (Supabase): Postgres + Auth + Storage + Edge Functions (Deno) |
@@ -73,6 +76,23 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 | Animações | framer-motion |
 | Datas | date-fns |
 | Validação | zod + react-hook-form |
+| Qualidade | ESLint 9 + Prettier 3 + TypeScript build mode |
+| Testes | Vitest 4 + Testing Library + jsdom |
+
+### 2.1 Gerenciamento de pacotes e scripts
+
+- **Padrão obrigatório:** `bun`
+- **Instalação:** `bun install`
+- **Dev server:** `bun run dev`
+- **Build:** `bun run build` e `bun run build:dev`
+- **Preview:** `bun run preview`
+- **Lint:** `bun run lint`
+- **Formatação:** `bun run format` e `bun run format:check`
+- **Typecheck:** `bun run typecheck` e `bun run typecheck:strict`
+- **Testes:** `bun run test`, `bun run test:watch`, `bun run test:ui`
+- **Lockfiles de referência:** `bun.lock` e `bun.lockb`
+
+> `README.md` ainda cita `npm`, mas o fluxo correto deste repositório é via `bun`.
 
 ---
 
@@ -82,22 +102,35 @@ Sistema de gestão interna e portal de clientes da PSA Consultores — consultor
 
 ```
 src/
+├── assets/          → Assets estáticos importados pelo app
 ├── pages/           → Páginas por módulo (equipe/, cliente/, admin/, gestao/, administracao/, gerencial/)
 ├── components/      → Componentes por domínio (equipe/fiscal/, equipe/dev/, ui/, etc.)
 ├── hooks/           → Custom hooks — ÚNICA camada permitida para data fetching
 ├── contexts/        → AuthContext — ÚNICO contexto global
 ├── config/          → api.ts (URLs/ambientes), protectedPages.ts (registro de rotas)
 ├── lib/             → Utilitários puros (dateUtils, selicCalculator, markdownRenderer, diffUtils, etc.)
+├── test/            → Setup global de testes com Vitest/Testing Library
 ├── types/           → Tipos de domínio (workPackage, efd, difal, ibscbs, clientForm, correcoesSped)
 ├── constants/       → brandColors, efdConfig, exportConfig, devNavLabels
 └── integrations/    → Cliente Supabase (auto-gerado, NÃO EDITAR)
 ```
+
+### 3.1.1 Artefatos de apoio fora de `src/`
+
+- `docs/AI_CONTEXT.md` — contexto técnico expandido do projeto
+- `docs/notificacoes-chamados.md` — fluxo de notificações de tickets (`notify-ticket` → n8n → Gmail)
+- `bigquery/views/` — SQLs analíticos consumidos por BI
+- `bigquery/docs/` — documentação operacional de dashboards Looker Studio
+- `supabase/functions/` — Edge Functions Deno
+- `public/` — assets públicos
 
 ### 3.2 Padrão de Data Fetching
 
 **Regra**: toda query/mutation Supabase DEVE residir em um custom hook dentro de `src/hooks/`.
 
 **Catálogo de hooks existentes:**
+
+> Lista de referência, não exaustiva. Para inventário completo, consulte `src/hooks/`.
 
 | Hook | Propósito |
 |---|---|
@@ -227,7 +260,7 @@ Roles são armazenadas **exclusivamente** em `public.user_roles` (tabela separad
 
 ```
 Clusters → Áreas → Equipes → Membros
-                 → Líderes (1:1 via estrutura_area_lideres)
+                 → Líderes (1:1 via estrutura_equipes.gestor_id)
 ```
 
 **Tabelas:**
@@ -235,14 +268,14 @@ Clusters → Áreas → Equipes → Membros
 - `estrutura_areas` — áreas de atuação (cluster_id, page_categories[], cost_center_id, color)
 - `estrutura_equipes` — equipes dentro de áreas (area_id, sublider_id)
 - `estrutura_equipe_membros` — membros de equipes (equipe_id, user_id)
-- `estrutura_area_lideres` — líder por área (area_id, user_id; relação 1:1)
+- `estrutura_equipes.gestor_id` — líder por área (area_id, user_id; relação 1:1)
 
 **Conexão Tax ↔ Estrutura:**
 `tax_areas.estrutura_area_id` → `estrutura_areas.id` (FK, ON DELETE SET NULL)
 
 - `cliente_clusters` — associação N:N entre `cliente` e `estrutura_clusters`
 
-Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_area_lideres`.
+Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_equipes.gestor_id`.
 
 ---
 
@@ -260,7 +293,7 @@ Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estr
 ### 6.2 Tabelas-chave por domínio
 
 **Auth/Org:**
-`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_area_lideres`, `user_invitations` (criada, sem frontend)
+`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_equipes.gestor_id`, `user_invitations` (criada, sem frontend)
 
 **Tax/Fiscal:**
 `org_projects`, `org_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
@@ -300,7 +333,8 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 
 | Hostname | Ambiente | API URL |
 |---|---|---|
-| `psa-consultores.lovable.app`, `psaconsultores.com.br` | prod | `psa-backend-api-1010211821554...` |
+| `localhost`, `127.0.0.1` | local | `http://localhost:8000` |
+| `psa-consultores.lovable.app`, `psaconsultores.com.br`, `www.psaconsultores.com.br` | prod | `psa-backend-api-1010211821554...` |
 | Outros (preview Lovable) | dev | `psa-backend-api-456879351254...` |
 
 **Separação de dados por ambiente (coluna `ambiente`):**
@@ -323,6 +357,7 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 
 | Função | Propósito |
 |---|---|
+| `analise-inteligente-sprints` | Análises inteligentes de sprints com apoio de IA |
 | `calculate-process-roi` | Cálculo de ROI de melhorias em processos |
 | `check-ticket-deadlines` | Verificação de prazos de chamados (cron-like) |
 | `create-team-member` | Criação de membro da equipe (signup + role) |
@@ -335,9 +370,12 @@ Detecção automática em `src/config/api.ts` via `window.location.hostname`.
 | `restructure-process` | Reestruturação de processos via IA |
 | `sync-cadastros` | Sincronização de cadastros com DW |
 | `sync-perdcomp` | Sincronização de PERDCOMP com DW |
+| `upsert-representante-user` | Vinculação/criação de usuário para representantes |
 | `gerar-sintese-executiva` | Síntese executiva de desempenho via IA |
 | `gerar-recomendacoes-pessoas` | Recomendações de gestão de pessoas via IA |
 | `gerar-relatorio-individual` | Relatório individual de desempenho via IA |
+
+> `_shared/` contém utilitários compartilhados entre funções e não é uma função deployável por si só.
 
 ### 7.2 Regras de implementação
 
@@ -426,13 +464,21 @@ O formulário de criação de chamados pela gestão segue o fluxo:
 
 ## 10. Integrações Externas
 
-### 9.1 API Backend (GCP Cloud Run)
+### 10.1 API Backend (GCP Cloud Run)
 
 Dois ambientes com URLs distintas (ver seção 6.4). Autenticação via `useApiAuth` hook que injeta token JWT do Supabase nos headers.
 
-### 9.2 Sincronização com Data Warehouse
+### 10.2 Sincronização com Data Warehouse
 
 Fire-and-forget via Edge Functions (`sync-perdcomp`, `sync-cadastros`). Token de autenticação: secret `DW_SYNC_TOKEN`. Lib auxiliar: `src/lib/syncPerdcomp.ts`.
+
+### 10.3 Notificações de chamados
+
+- Arquitetura: Frontend → Edge Function `notify-ticket` → webhook n8n → Gmail
+- Documento operacional: `docs/notificacoes-chamados.md`
+- O roteamento dos gestores da Área Fiscal é resolvido dinamicamente por `estrutura_areas` + `estrutura_equipes.gestor_id`
+- Secret relevante: `N8N_WEBHOOK_URL`
+
 
 ---
 

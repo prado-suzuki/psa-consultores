@@ -28,13 +28,8 @@ export interface CentroCusto {
   is_active: boolean;
 }
 
-export interface EmpresaFat {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  centro_custo_id: string | null;
-  is_active: boolean;
-}
+// EmpresaFat removida — empresas agora vivem dentro de estrutura_clusters
+
 
 // ── Produto/Segmento ───────────────────────────────────────────────────
 
@@ -262,82 +257,9 @@ export const useCentroCustoDelete = () => {
 };
 
 // ── Empresas Faturamento ───────────────────────────────────────────────
+// Tabela `empresas_faturamento` foi mesclada em `estrutura_clusters`.
+// Hooks removidos — gerencie empresa/cnpj/centro de custo direto no cluster.
 
-export const useEmpresasFaturamentoList = () =>
-  useQuery({
-    queryKey: ['empresas_faturamento'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('empresas_faturamento').select('*').order('nome');
-      if (error) throw error;
-      return data as EmpresaFat[];
-    },
-  });
-
-export const useEmpresaFaturamentoSave = () => {
-  const qc = useQueryClient();
-  const { logAction } = useAuditLog();
-
-  return {
-    save: async (editId: string | null, nome: string, cnpj: string | null, centroCustoId: string | null) => {
-      if (!nome.trim()) { toast.error('Nome é obrigatório'); throw new Error('Validation'); }
-      const payload = { nome: nome.trim(), cnpj: cnpj?.trim() || null, centro_custo_id: centroCustoId || null };
-      try {
-        if (editId) {
-          const { error } = await supabase.from('empresas_faturamento').update(payload).eq('id', editId);
-          if (error) throw error;
-          logAction({ area: 'cadastros', entity_type: 'empresa', entity_id: editId, entity_name: nome.trim(), action: 'updated' });
-          toast.success('Empresa atualizada');
-        } else {
-          const { data, error } = await supabase.from('empresas_faturamento').insert(payload).select('id').single();
-          if (error) throw error;
-          logAction({ area: 'cadastros', entity_type: 'empresa', entity_id: data.id, entity_name: nome.trim(), action: 'created' });
-          toast.success('Empresa criada');
-        }
-        qc.invalidateQueries({ queryKey: ['empresas_faturamento'] });
-      } catch (e: any) {
-        if (e.message !== 'Validation') toast.error(e.message || 'Erro ao salvar');
-        throw e;
-      }
-    },
-  };
-};
-
-export const useEmpresaFaturamentoToggle = () => {
-  const qc = useQueryClient();
-  const { logAction } = useAuditLog();
-
-  return useMutation({
-    mutationFn: async (item: EmpresaFat) => {
-      const { error } = await supabase.from('empresas_faturamento').update({ is_active: !item.is_active }).eq('id', item.id);
-      if (error) throw error;
-      return item;
-    },
-    onSuccess: (_, item) => {
-      qc.invalidateQueries({ queryKey: ['empresas_faturamento'] });
-      logAction({ area: 'cadastros', entity_type: 'empresa', entity_id: item.id, entity_name: item.nome, action: 'updated', changed_fields: { is_active: { old: item.is_active, new: !item.is_active } } });
-    },
-  });
-};
-
-export const useEmpresaFaturamentoDelete = () => {
-  const qc = useQueryClient();
-  const { logAction } = useAuditLog();
-
-  return {
-    remove: async (item: EmpresaFat) => {
-      try {
-        const { error } = await supabase.from('empresas_faturamento').delete().eq('id', item.id);
-        if (error) throw error;
-        qc.invalidateQueries({ queryKey: ['empresas_faturamento'] });
-        toast.success('Empresa excluída');
-        logAction({ area: 'cadastros', entity_type: 'empresa', entity_id: item.id, entity_name: item.nome, action: 'deleted' });
-      } catch (e: any) {
-        if (e.code === '23503') toast.error('Não é possível excluir: empresa em uso');
-        else toast.error('Erro ao excluir');
-      }
-    },
-  };
-};
 
 // ── Produto × Serviço ─────────────────────────────────────────────────
 

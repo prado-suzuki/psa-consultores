@@ -8,7 +8,7 @@ const ALLOWED_TABLES = [
   'contribuinte_bal_config', 'ordem_servico', 'os_produtos_contratados',
   'distribuicao_receita', 'servicos_prestados', 'produto_segmento',
   'produto_servico', 'setor_cliente', 'centros_custo',
-  'empresas_faturamento', 'estrutura_clusters',
+  'estrutura_clusters',
   'cliente_clusters', 'org_projects', 'fiscal_tasks',
   'project_work_packages', 'estrutura_areas',
 ] as const

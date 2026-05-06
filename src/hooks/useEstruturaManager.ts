@@ -9,8 +9,9 @@ import { useCallback } from 'react';
 export interface Cluster {
   id: string;
   name: string;
-  cost_center: string | null;
-  empresa_id: string | null;
+  nome_empresa: string | null;
+  cnpj: string | null;
+  cost_center_id: string | null;
   is_active: boolean;
 }
 
@@ -24,18 +25,12 @@ export interface Area {
   cost_center_id: string | null;
 }
 
-export interface AreaLider {
-  id: string;
-  area_id: string;
-  user_id: string;
-}
-
 export interface Equipe {
   id: string;
   area_id: string;
   name: string;
-  sublider_id: string | null;
   is_active: boolean;
+  gestor_id: string | null;
 }
 
 export interface EquipeMembro {
@@ -44,13 +39,7 @@ export interface EquipeMembro {
   user_id: string;
 }
 
-export interface EmpresaFat {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  centro_custo_id: string | null;
-  is_active: boolean;
-}
+// (EmpresaFat removida — empresas agora vivem dentro de estrutura_clusters)
 
 export interface CentroCusto {
   id: string;
@@ -81,15 +70,7 @@ export const useEstruturaAreas = () =>
     },
   });
 
-export const useEstruturaLideres = () =>
-  useQuery({
-    queryKey: ['estrutura-lideres'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_area_lideres').select('*');
-      if (error) throw error;
-      return data as AreaLider[];
-    },
-  });
+// useEstruturaLideres removido — gestor agora vive em estrutura_equipes.gestor_id
 
 export const useEstruturaEquipes = () =>
   useQuery({
@@ -111,15 +92,8 @@ export const useEstruturaMembros = () =>
     },
   });
 
-export const useEstruturaEmpresas = () =>
-  useQuery({
-    queryKey: ['empresas_faturamento'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('empresas_faturamento').select('*').eq('is_active', true).order('nome');
-      if (error) throw error;
-      return data as EmpresaFat[];
-    },
-  });
+// useEstruturaEmpresas removido — empresa agora vive dentro de estrutura_clusters
+
 
 export const useEstruturaCentrosCusto = () =>
   useQuery({
@@ -147,13 +121,14 @@ export const useEstruturaMutations = () => {
 
   // ─── Cluster ──────────────────────────────────────────────────
   const saveCluster = useCallback(async (
-    form: { name: string; cost_center: string | null; empresa_id: string | null },
+    form: { name: string; nome_empresa: string | null; cnpj: string | null; cost_center_id: string | null; is_active?: boolean },
     editing: Cluster | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
+      const nextIsActive = form.is_active ?? editing.is_active;
       const { error } = await supabase.from('estrutura_clusters')
-        .update({ name: form.name, cost_center: form.cost_center, empresa_id: form.empresa_id })
+        .update({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id, is_active: nextIsActive })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
@@ -162,12 +137,15 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
-          empresa_id: { old: editing.empresa_id, new: form.empresa_id },
+          nome_empresa: { old: editing.nome_empresa, new: form.nome_empresa },
+          cnpj: { old: editing.cnpj, new: form.cnpj },
+          cost_center_id: { old: editing.cost_center_id, new: form.cost_center_id },
+          is_active: { old: editing.is_active, new: nextIsActive },
         },
       });
     } else {
       const { data, error } = await supabase.from('estrutura_clusters')
-        .insert({ name: form.name, cost_center: form.cost_center, empresa_id: form.empresa_id })
+        .insert({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster criado');
@@ -224,31 +202,16 @@ export const useEstruturaMutations = () => {
     invalidateAll();
   }, [logAction, invalidateAll]);
 
-  // ─── Lider ────────────────────────────────────────────────────
-  const setAreaLider = useCallback(async (areaId: string, userId: string | null, areaName: string, oldUserId: string | null) => {
-    await supabase.from('estrutura_area_lideres').delete().eq('area_id', areaId);
-    if (userId) {
-      const { error } = await supabase.from('estrutura_area_lideres').insert({ area_id: areaId, user_id: userId });
-      if (error) { toast.error(error.message); return; }
-    }
-    toast.success('Líder atualizado');
-    logAction({
-      area: 'estrutura', entity_type: 'lider', entity_id: areaId,
-      entity_name: areaName, action: 'updated',
-      changed_fields: { user_id: { old: oldUserId, new: userId } },
-    });
-    invalidateAll();
-  }, [logAction, invalidateAll]);
-
   // ─── Equipe ───────────────────────────────────────────────────
   const saveEquipe = useCallback(async (
-    form: { name: string; area_id: string; sublider_id: string | null },
+    form: { name: string; area_id: string; gestor_id?: string | null },
     editing: Equipe | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
+      const nextGestor = form.gestor_id !== undefined ? form.gestor_id : editing.gestor_id;
       const { error } = await supabase.from('estrutura_equipes')
-        .update({ name: form.name, sublider_id: form.sublider_id })
+        .update({ name: form.name, gestor_id: nextGestor })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe atualizada');
@@ -257,17 +220,31 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
-          sublider_id: { old: editing.sublider_id, new: form.sublider_id },
+          gestor_id: { old: editing.gestor_id, new: nextGestor },
         },
       });
     } else {
       const { data, error } = await supabase.from('estrutura_equipes')
-        .insert({ name: form.name, area_id: form.area_id, sublider_id: form.sublider_id })
+        .insert({ name: form.name, area_id: form.area_id, gestor_id: form.gestor_id ?? null })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe criada');
       logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: data.id, entity_name: form.name, action: 'created' });
     }
+    invalidateAll();
+  }, [logAction, invalidateAll]);
+
+  const setEquipeGestor = useCallback(async (equipeId: string, userId: string | null, equipeName: string, oldUserId: string | null) => {
+    const { error } = await supabase.from('estrutura_equipes')
+      .update({ gestor_id: userId })
+      .eq('id', equipeId);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Gestor atualizado');
+    logAction({
+      area: 'estrutura', entity_type: 'equipe', entity_id: equipeId,
+      entity_name: equipeName, action: 'updated',
+      changed_fields: { gestor_id: { old: oldUserId, new: userId } },
+    });
     invalidateAll();
   }, [logAction, invalidateAll]);
 
@@ -305,7 +282,7 @@ export const useEstruturaMutations = () => {
   return {
     saveCluster, deleteCluster,
     saveArea, deleteArea,
-    setAreaLider,
+    setEquipeGestor,
     saveEquipe, deleteEquipe,
     addMembro, removeMembro,
     invalidateAll,

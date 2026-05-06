@@ -37,14 +37,16 @@ async function getGestorRecipients(
 
   const areaIds = areas.map((a: { id: string }) => a.id);
 
-  const { data: lideres } = await supabase
-    .from("estrutura_area_lideres")
-    .select("user_id")
-    .in("area_id", areaIds);
+  const { data: equipes } = await supabase
+    .from("estrutura_equipes")
+    .select("gestor_id")
+    .in("area_id", areaIds)
+    .eq("is_active", true)
+    .not("gestor_id", "is", null);
 
-  if (!lideres?.length) return [];
+  if (!equipes?.length) return [];
 
-  const userIds = [...new Set(lideres.map((l: { user_id: string }) => l.user_id))];
+  const userIds = [...new Set(equipes.map((e: { gestor_id: string }) => e.gestor_id))];
 
   const { data: profiles } = await supabase
     .from("profiles")

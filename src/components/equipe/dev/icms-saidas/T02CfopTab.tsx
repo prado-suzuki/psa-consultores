@@ -6,6 +6,8 @@ import { AlertCircle, Calculator } from 'lucide-react';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { getCfopDescription } from './cfopDescriptions';
+import { ICMS_T02_TOOLTIPS } from './tooltipContent';
+import { renderColumnLabel } from './tooltipHelpers';
 
 interface T02CfopTabProps {
   enabled: boolean;
@@ -135,16 +137,8 @@ export const T02CfopTab = ({ enabled, contribuinteId, dataInicio, dataFim }: T02
 
   return (
     <div className="space-y-6">
-      <CfopTable
-        title="Itens das notas (C170)"
-        rows={data?.c170 ?? []}
-        isLoading={isLoading}
-      />
-      <CfopTable
-        title="Resumo analítico (C190)"
-        rows={data?.c190 ?? []}
-        isLoading={isLoading}
-      />
+      <CfopTable title="Itens das notas (C170)" rows={data?.c170 ?? []} isLoading={isLoading} />
+      <CfopTable title="Resumo analítico (C190)" rows={data?.c190 ?? []} isLoading={isLoading} />
     </div>
   );
 };
@@ -190,12 +184,24 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="w-[80px]">CFOP</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Vl. Item</TableHead>
-                  <TableHead className="text-right">BC ICMS</TableHead>
-                  <TableHead className="text-right">ICMS</TableHead>
-                  <TableHead className="text-right w-[100px]">% ICMS</TableHead>
+                  <TableHead className="w-[80px]">
+                    {renderColumnLabel('CFOP', ICMS_T02_TOOLTIPS.cfop)}
+                  </TableHead>
+                  <TableHead>
+                    {renderColumnLabel('Descrição', ICMS_T02_TOOLTIPS.descricao)}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {renderColumnLabel('Vl. Item', ICMS_T02_TOOLTIPS.vlItem)}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {renderColumnLabel('BC ICMS', ICMS_T02_TOOLTIPS.bcIcms)}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {renderColumnLabel('ICMS', ICMS_T02_TOOLTIPS.icms)}
+                  </TableHead>
+                  <TableHead className="text-right w-[100px]">
+                    {renderColumnLabel('% ICMS', ICMS_T02_TOOLTIPS.pctIcms)}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
