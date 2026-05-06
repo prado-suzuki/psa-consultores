@@ -19,7 +19,7 @@ import {
   Plus, Trash2, Pencil, Building2, Users, Network, UserCheck, X, ChevronDown
 } from 'lucide-react';
 import {
-  useEstruturaClusters, useEstruturaAreas, useEstruturaLideres,
+  useEstruturaClusters, useEstruturaAreas,
   useEstruturaEquipes, useEstruturaMembros,
   useEstruturaCentrosCusto, useEstruturaMutations,
   type Cluster, type Area, type Equipe,
@@ -79,7 +79,6 @@ export default function EstruturaManager() {
   // Data queries from hooks
   const { data: clusters = [], isLoading: loadingClusters } = useEstruturaClusters();
   const { data: areas = [] } = useEstruturaAreas();
-  const { data: lideres = [] } = useEstruturaLideres();
   const { data: equipes = [] } = useEstruturaEquipes();
   const { data: membros = [] } = useEstruturaMembros();
   const { data: centrosCusto = [] } = useEstruturaCentrosCusto();
