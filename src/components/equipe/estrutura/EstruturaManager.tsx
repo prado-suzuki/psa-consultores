@@ -360,7 +360,6 @@ export default function EstruturaManager() {
                                   ) : (
                                     <div className="space-y-2">
                                       {areaEquipes.map(equipe => {
-                                        const sublider = equipe.sublider_id ? allProfiles.find(p => p.id === equipe.sublider_id) : null;
                                         const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
                                         const membroIds = equipeMembros.map(m => m.user_id);
                                         const availableMembers = memberProfiles.filter(p => !membroIds.includes(p.id));
