@@ -62,16 +62,21 @@ import DevDashboard from "./pages/equipe/dev/DevDashboard";
 import NovaFerramenta from "./pages/equipe/dev/NovaFerramenta";
 import DetalheFerramenta from "./pages/equipe/dev/DetalheFerramenta";
 import ConsultaXMLs from "./pages/equipe/dev/ConsultaXMLs";
+import ConsultaSpedHub from "./pages/equipe/dev/ConsultaSpedHub";
 import ConsultaEFD from "./pages/equipe/dev/ConsultaEFD";
 import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
 import ConsultaECD from "./pages/equipe/dev/ConsultaECD";
 import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
+import AnaliseIcmsHub from "./pages/equipe/dev/AnaliseIcmsHub";
+import PerdcompHub from "./pages/equipe/dev/PerdcompHub";
+import PerdcompDashboard from "./pages/equipe/dev/PerdcompDashboard";
 import ProcessoDifal from "./pages/equipe/dev/ProcessoDifal";
 import ControlePerdcomp from "./pages/equipe/dev/ControlePerdcomp";
 import CalculadoraIbsCbs from "./pages/equipe/dev/CalculadoraIbsCbs";
 import ControleBalancetes from "./pages/equipe/dev/ControleBalancetes";
 import ApuracaoPisCofins from "./pages/equipe/dev/ApuracaoPisCofins";
+import LevantamentoPisCofinsHub from "./pages/equipe/dev/LevantamentoPisCofinsHub";
 import MapaNCMPisCofins from "./pages/equipe/dev/MapaNCMPisCofins";
 import AuditoriaCruzada from "./pages/equipe/dev/AuditoriaCruzada";
 import CorrecoesSped from "./pages/equipe/dev/CorrecoesSped";
@@ -162,11 +167,16 @@ const App = () => (
               <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-xmls" element={<PageAccessGate pagePath="/equipe/dev/consulta-xmls"><ConsultaXMLs /></PageAccessGate>} />
+              <Route path="/equipe/dev/consulta-sped" element={<PageAccessGate pagePath="/equipe/dev/consulta-sped"><ConsultaSpedHub /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-efd" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd"><ConsultaEFD /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-ecd" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-ecf" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate>} />
               <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate>} />
+              <Route path="/equipe/dev/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
+              <Route path="/equipe/dev/perdcomp" element={<PageAccessGate pagePath="/equipe/dev/perdcomp"><PerdcompHub /></PageAccessGate>} />
+              <Route path="/equipe/dev/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/dev/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />
+              <Route path="/equipe/dev/analise-icms" element={<PageAccessGate pagePath="/equipe/dev/analise-icms"><AnaliseIcmsHub /></PageAccessGate>} />
               <Route path="/equipe/dev/processo-difal" element={<PageAccessGate pagePath="/equipe/dev/processo-difal"><ProcessoDifal /></PageAccessGate>} />
               <Route path="/equipe/dev/controle-perdcomp" element={<PageAccessGate pagePath="/equipe/dev/controle-perdcomp"><ControlePerdcomp /></PageAccessGate>} />
               <Route path="/equipe/dev/controle-balancetes" element={<PageAccessGate pagePath="/equipe/dev/controle-balancetes"><ControleBalancetes /></PageAccessGate>} />

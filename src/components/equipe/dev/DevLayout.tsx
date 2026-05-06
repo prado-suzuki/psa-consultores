@@ -10,7 +10,6 @@ import {
   LogOut,
   ExternalLink,
   ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Menu,
   Plus,
@@ -19,11 +18,10 @@ import {
   FileText,
   User,
   Calculator,
-  FileSpreadsheet,
   Users,
-  Layers,
-  ScanSearch,
+  type LucideIcon,
 } from "lucide-react";
+import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 
 interface DevLayoutProps {
@@ -35,9 +33,21 @@ interface DevLayoutProps {
 }
 
 interface NavItem {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   path: string;
+  matchPaths?: string[];
+}
+
+interface HubSidebarSectionProps {
+  label: string;
+  landingPath: string;
+  items: NavItem[];
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  active: boolean;
+  currentPath: string;
+  navigate: (path: string) => void;
 }
 
 const navItems: NavItem[] = [
@@ -46,32 +56,97 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: DEV_NAV_LABELS.consultaXmls, path: "/equipe/dev/consulta-xmls" },
 ];
 
-const spedSubItems: NavItem[] = [
-  { icon: FileText, label: DEV_NAV_LABELS.efdContribuicoes, path: "/equipe/dev/consulta-efd" },
-  { icon: FileText, label: DEV_NAV_LABELS.efdIcms, path: "/equipe/dev/consulta-efd-icms" },
-  { icon: FileText, label: DEV_NAV_LABELS.ecd, path: "/equipe/dev/consulta-ecd" },
-  { icon: FileText, label: DEV_NAV_LABELS.ecf, path: "/equipe/dev/consulta-ecf" },
-];
+const spedSubItems: NavItem[] = DEV_HUBS.consultaSped.options.map((option) => ({
+  icon: option.icon,
+  label: option.title,
+  path: option.path,
+}));
 
-const pisCofinsSubItems: NavItem[] = [
-  { icon: Layers, label: DEV_NAV_LABELS.mapaNCMs, path: "/equipe/dev/mapa-ncm-pis-cofins" },
-  { icon: Calculator, label: DEV_NAV_LABELS.apuracaoTributaria, path: "/equipe/dev/apuracao-pis-cofins" },
-  { icon: ScanSearch, label: DEV_NAV_LABELS.analiseCruzada, path: "/equipe/dev/cruzamento-dados" },
-  { icon: FileText, label: DEV_NAV_LABELS.revisaoRegistrosEfd, path: "/equipe/dev/correcoes-sped" },
-];
+const pisCofinsSubItems: NavItem[] = DEV_HUBS.levantamentoPisCofins.options.map((option) => ({
+  icon: option.icon,
+  label: option.title,
+  path: option.path,
+}));
 
-const analiseIcmsSubItems: NavItem[] = [
-  { icon: Calculator, label: DEV_NAV_LABELS.icmsSaidas, path: "/equipe/dev/apuracao-difal/icms-saidas" },
-  { icon: Calculator, label: DEV_NAV_LABELS.difalInteligente, path: "/equipe/dev/processo-difal" },
-];
+const analiseIcmsSubItems: NavItem[] = DEV_HUBS.analiseIcms.options.map((option) => ({
+  icon: option.icon,
+  label: option.title,
+  path: option.path,
+}));
 
-const navItemsAfterSped: NavItem[] = [
+const perdcompSubItems: NavItem[] = DEV_HUBS.perdcomp.options.map((option) => ({
+  icon: option.icon,
+  label: option.title,
+  path: option.path,
+}));
+
+const navItemsAfterGroups: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
-  { icon: FileSpreadsheet, label: DEV_NAV_LABELS.controlePerdcomp, path: "/equipe/dev/controle-perdcomp" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
   { icon: Users, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
   { icon: Database, label: DEV_NAV_LABELS.gerenciarDados, path: "/equipe/dev/gerenciar-dados" },
 ];
+
+const HubSidebarSection = ({
+  label,
+  landingPath,
+  items,
+  open,
+  onOpenChange,
+  active,
+  currentPath,
+  navigate,
+}: HubSidebarSectionProps) => (
+  <Collapsible open={open} onOpenChange={onOpenChange}>
+    <div
+      className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition-colors h-auto ${
+        active ? "bg-teal-500/10 text-teal-700" : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
+      }`}
+    >
+      <button
+        type="button"
+        className="flex-1 px-0 py-1.5 text-left"
+        onClick={() => {
+          onOpenChange(true);
+          navigate(landingPath);
+        }}
+      >
+        {label}
+      </button>
+
+      <CollapsibleTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`h-8 w-8 flex-shrink-0 ${
+            active
+              ? "text-teal-700 hover:bg-teal-500/10 hover:text-teal-700"
+              : "text-slate-700 hover:bg-slate-100 hover:text-teal-600"
+          }`}
+        >
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+        </Button>
+      </CollapsibleTrigger>
+    </div>
+
+    <CollapsibleContent className="mt-0.5 space-y-0.5 pl-4">
+      {items.map((item) => (
+        <Button
+          key={item.path}
+          variant="ghost"
+          className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+            currentPath === item.path
+              ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
+              : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+          }`}
+          onClick={() => navigate(item.path)}
+        >
+          {item.label}
+        </Button>
+      ))}
+    </CollapsibleContent>
+  </Collapsible>
+);
 
 export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: DevLayoutProps) => {
   const { signOut, user } = useAuth();
@@ -84,51 +159,63 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     navigate("/");
   };
 
-  const [spedOpen, setSpedOpen] = useState(() => spedSubItems.some((item) => location.pathname === item.path));
-  const [pisCofinsOpen, setPisCofinsOpen] = useState(() =>
-    pisCofinsSubItems.some((item) => location.pathname === item.path),
+  const [spedOpen, setSpedOpen] = useState(
+    () => location.pathname === DEV_HUBS.consultaSped.landingPath || spedSubItems.some((item) => location.pathname === item.path),
   );
-  const [analiseIcmsOpen, setAnaliseIcmsOpen] = useState(() =>
-    analiseIcmsSubItems.some((item) => location.pathname === item.path),
+  const [pisCofinsOpen, setPisCofinsOpen] = useState(
+    () =>
+      location.pathname === DEV_HUBS.levantamentoPisCofins.landingPath ||
+      pisCofinsSubItems.some((item) => location.pathname === item.path),
+  );
+  const [analiseIcmsOpen, setAnaliseIcmsOpen] = useState(
+    () => location.pathname === DEV_HUBS.analiseIcms.landingPath || analiseIcmsSubItems.some((item) => location.pathname === item.path),
+  );
+  const [perdcompOpen, setPerdcompOpen] = useState(
+    () => location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path),
   );
 
-  const isActive = (path: string) => location.pathname === path;
-  const isSpedActive = spedSubItems.some((item) => location.pathname === item.path);
-  const isPisCofinsActive = pisCofinsSubItems.some((item) => location.pathname === item.path);
-  const isAnaliseIcmsActive = analiseIcmsSubItems.some((item) => location.pathname === item.path);
+  const isItemActive = (item: NavItem) =>
+    item.path === location.pathname || item.matchPaths?.includes(location.pathname) === true;
+
+  const isSpedActive =
+    location.pathname === DEV_HUBS.consultaSped.landingPath || spedSubItems.some((item) => location.pathname === item.path);
+  const isPisCofinsActive =
+    location.pathname === DEV_HUBS.levantamentoPisCofins.landingPath ||
+    pisCofinsSubItems.some((item) => location.pathname === item.path);
+  const isAnaliseIcmsActive =
+    location.pathname === DEV_HUBS.analiseIcms.landingPath || analiseIcmsSubItems.some((item) => location.pathname === item.path);
+  const isPerdcompActive =
+    location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path);
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
-      {/* Sidebar */}
+    <div className="flex min-h-screen w-full bg-slate-50">
       <aside
-        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
+        className={`${collapsed ? "w-0" : "w-64 border-r border-slate-200/60"} sticky top-0 h-screen flex-shrink-0 overflow-x-hidden overflow-y-auto bg-white transition-all duration-300 ease-in-out scrollbar-hide`}
       >
-        {/* Sidebar content — only rendered when expanded */}
         {!collapsed && (
           <>
-            {/* Sidebar header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200/60 flex-shrink-0">
+            <div className="flex flex-shrink-0 items-center justify-between border-b border-slate-200/60 p-6">
               <div className="min-w-0">
-                <h2 className="font-semibold text-slate-900 text-lg">Digital Dev</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Digital Dev</h2>
                 <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                className="flex-shrink-0 text-slate-600 hover:text-slate-900"
                 onClick={() => setCollapsed(true)}
               >
                 <ChevronLeft className="h-5 w-5" />
               </Button>
             </div>
-            {/* Navigation */}
-            <nav className="p-4 space-y-1">
+
+            <nav className="space-y-1 p-4">
               {navItems.map((item) => (
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(item.path)
+                  className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isItemActive(item)
                       ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
                       : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
@@ -138,117 +225,56 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                 </Button>
               ))}
 
-              {/* Consulta SPED - Collapsible */}
-              <Collapsible open={spedOpen} onOpenChange={setSpedOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      isSpedActive
-                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-                    }`}
-                  >
-                    <span className="flex-1 text-left">{DEV_NAV_LABELS.consultaSped}</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 transition-transform duration-200 ${spedOpen ? "rotate-180" : ""}`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                  {spedSubItems.map((item) => (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive(item.path)
-                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
-                      }`}
-                      onClick={() => navigate(item.path)}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
+              <HubSidebarSection
+                label={DEV_HUBS.consultaSped.label}
+                landingPath={DEV_HUBS.consultaSped.landingPath}
+                items={spedSubItems}
+                open={spedOpen}
+                onOpenChange={setSpedOpen}
+                active={isSpedActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
 
-              {/* Levantamento de Créditos - Collapsible */}
-              <Collapsible open={pisCofinsOpen} onOpenChange={setPisCofinsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
-                      isPisCofinsActive
-                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-                    }`}
-                  >
-                    <span className="flex-1 text-left">{DEV_NAV_LABELS.levantamentoPisCofins}</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${pisCofinsOpen ? "rotate-180" : ""}`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                  {pisCofinsSubItems.map((item) => (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive(item.path)
-                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
-                      }`}
-                      onClick={() => navigate(item.path)}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
+              <HubSidebarSection
+                label={DEV_HUBS.levantamentoPisCofins.label}
+                landingPath={DEV_HUBS.levantamentoPisCofins.landingPath}
+                items={pisCofinsSubItems}
+                open={pisCofinsOpen}
+                onOpenChange={setPisCofinsOpen}
+                active={isPisCofinsActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
 
-              {/* Análise ICMS - Collapsible */}
-              <Collapsible open={analiseIcmsOpen} onOpenChange={setAnaliseIcmsOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors h-auto ${
-                      isAnaliseIcmsActive
-                        ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
-                    }`}
-                  >
-                    <span className="flex-1 text-left">{DEV_NAV_LABELS.analiseIcms}</span>
-                    <ChevronDown
-                      className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-200 ${analiseIcmsOpen ? "rotate-180" : ""}`}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pl-4 space-y-0.5 mt-0.5">
-                  {analiseIcmsSubItems.map((item) => (
-                    <Button
-                      key={item.path}
-                      variant="ghost"
-                      className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isActive(item.path)
-                          ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                          : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
-                      }`}
-                      onClick={() => navigate(item.path)}
-                    >
-                      {item.label}
-                    </Button>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
+              <HubSidebarSection
+                label={DEV_HUBS.analiseIcms.label}
+                landingPath={DEV_HUBS.analiseIcms.landingPath}
+                items={analiseIcmsSubItems}
+                open={analiseIcmsOpen}
+                onOpenChange={setAnaliseIcmsOpen}
+                active={isAnaliseIcmsActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
 
-              {navItemsAfterSped.map((item) => (
+              <HubSidebarSection
+                label={DEV_HUBS.perdcomp.label}
+                landingPath={DEV_HUBS.perdcomp.landingPath}
+                items={perdcompSubItems}
+                open={perdcompOpen}
+                onOpenChange={setPerdcompOpen}
+                active={isPerdcompActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
+
+              {navItemsAfterGroups.map((item) => (
                 <Button
                   key={item.path}
                   variant="ghost"
-                  className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                    isActive(item.path)
+                  className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    isItemActive(item)
                       ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
                       : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
                   }`}
@@ -259,34 +285,32 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               ))}
             </nav>
 
-            {/* Footer Actions */}
-            <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-                <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
+            <div className="mt-auto space-y-2 border-t border-slate-200/60 p-4">
+              <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/10">
                   <User className="h-4 w-4 text-teal-600" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
-                    {user?.email?.split("@")[0] || "Usuário"}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-slate-900">{user?.email?.split("@")[0] || "Usuario"}</p>
                   <p className="text-xs text-slate-500">Digital Dev</p>
                 </div>
               </div>
 
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors"
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-teal-600"
                 onClick={() => navigate("/equipe/digital")}
               >
-                <ArrowLeft className="h-4 w-4 mr-3" />
+                <ArrowLeft className="mr-3 h-4 w-4" />
                 Voltar para Digital
               </Button>
+
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
                 onClick={handleSignOut}
               >
-                <LogOut className="h-4 w-4 mr-3" />
+                <LogOut className="mr-3 h-4 w-4" />
                 Sair
               </Button>
             </div>
@@ -294,25 +318,24 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
         )}
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
-        {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-slate-200/60 bg-white px-6">
           <div className="flex items-center gap-3">
             {collapsed && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                className="flex-shrink-0 text-slate-600 hover:text-slate-900"
                 onClick={() => setCollapsed(false)}
               >
                 <Menu className="h-5 w-5" />
               </Button>
             )}
+
             <div>
               <h1 className="text-xl font-bold text-slate-900">{title}</h1>
               {subtitle && (
-                <p className="text-sm text-slate-500 flex items-center gap-0 flex-wrap">
+                <p className="flex flex-wrap items-center gap-0 text-sm text-slate-500">
                   {subtitle}
                   {sopUrl && (
                     <>
@@ -321,7 +344,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                         href={sopUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-teal-600 hover:text-teal-700 hover:underline inline-flex items-center gap-1 font-medium"
+                        className="inline-flex items-center gap-1 font-medium text-teal-600 hover:text-teal-700 hover:underline"
                       >
                         Acessar SOP desta ferramenta
                         <ExternalLink className="h-3.5 w-3.5" />
@@ -332,18 +355,17 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               )}
             </div>
           </div>
+
           <div className="flex items-center gap-3">
             <NotificationPopover navigateTo="/equipe/chamados" />
             {headerActions}
           </div>
         </header>
 
-        {/* Pending Tickets Alert */}
         <PendingTicketsAlert navigateTo="/equipe/chamados" />
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-          <div className="p-6 w-full min-w-0">{children}</div>
+        <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto">
+          <div className="w-full min-w-0 p-6">{children}</div>
         </div>
       </main>
     </div>

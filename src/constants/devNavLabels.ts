@@ -26,6 +26,8 @@ export const DEV_NAV_LABELS = {
 
   // After SPED
 
+  perdcomp: "PERDCOMP",
+  dashboardPerdcomp: "Dashboard PERDCOMP",
   calculadoraIbsCbs: "Calculadora IBS/CBS",
   controlePerdcomp: "Controle PERDCOMP",
   controleBalancetes: "Controle Balancetes",

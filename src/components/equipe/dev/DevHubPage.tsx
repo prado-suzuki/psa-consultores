@@ -1,0 +1,84 @@
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, ArrowRight } from "lucide-react";
+import { DevLayout } from "@/components/equipe/dev/DevLayout";
+import { HeroBanner } from "@/components/dashboard/momentum";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import type { DevHubDefinition } from "@/types/devHub";
+
+interface DevHubPageProps {
+  hub: DevHubDefinition;
+}
+
+const DevHubPage = ({ hub }: DevHubPageProps) => {
+  const navigate = useNavigate();
+  const HeroIcon = hub.heroIcon;
+
+  return (
+    <DevLayout
+      title={hub.title}
+      subtitle={hub.subtitle}
+      headerActions={
+        <Button variant="outline" onClick={() => navigate(hub.backPath ?? "/equipe/dev")}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          {hub.backLabel ?? "Voltar ao painel"}
+        </Button>
+      }
+    >
+      <div className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center gap-8">
+        <HeroBanner
+          eyebrow={hub.heroEyebrow}
+          title={hub.heroTitle}
+          description={hub.heroDescription}
+          icon={<HeroIcon className="h-6 w-6 text-white" />}
+        />
+
+        <div className={`mx-auto grid w-full max-w-5xl grid-cols-1 gap-6 ${hub.options.length > 2 ? "xl:grid-cols-2" : "lg:grid-cols-2"}`}>
+          {hub.options.map((option) => {
+            const Icon = option.icon;
+
+            return (
+              <button
+                key={option.path}
+                type="button"
+                onClick={() => navigate(option.path)}
+                className="group flex min-h-[320px] flex-col rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+              >
+                <div className="mb-6 flex items-start justify-between gap-4">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 transition-colors group-hover:bg-teal-100">
+                    <Icon className="h-7 w-7" />
+                  </div>
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                    {option.badge}
+                  </Badge>
+                </div>
+
+                <div className="space-y-3">
+                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{option.title}</h2>
+                  <p className="text-sm leading-relaxed text-slate-500">{option.description}</p>
+                </div>
+
+                <div className="mt-6 space-y-2">
+                  {option.highlights.map((highlight) => (
+                    <div key={highlight} className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                      {highlight}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-auto flex items-center justify-between border-t border-slate-200 pt-6">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform group-hover:translate-x-1">
+                    Abrir
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </DevLayout>
+  );
+};
+
+export default DevHubPage;
