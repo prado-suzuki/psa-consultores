@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import {
   useEstruturaClusters, useEstruturaAreas, useEstruturaLideres,
-  useEstruturaEquipes, useEstruturaMembros, useEstruturaEmpresas,
+  useEstruturaEquipes, useEstruturaMembros,
   useEstruturaCentrosCusto, useEstruturaMutations,
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
