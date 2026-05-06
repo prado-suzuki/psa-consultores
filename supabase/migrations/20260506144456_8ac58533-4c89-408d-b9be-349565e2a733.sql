@@ -1,0 +1,1 @@
+ALTER TABLE public.estrutura_equipes DROP COLUMN IF EXISTS sublider_id;

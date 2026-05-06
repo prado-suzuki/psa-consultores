@@ -21,19 +21,8 @@ export const useEstruturaArea = (estruturaAreaId: string | null | undefined) => 
     enabled,
   });
 
-  const { data: subliderIds = [], isLoading: loadingSublideres } = useQuery({
-    queryKey: ['estrutura-area-sublideres', estruturaAreaId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_equipes')
-        .select('sublider_id')
-        .eq('area_id', estruturaAreaId!)
-        .not('sublider_id', 'is', null);
-      if (error) throw error;
-      return [...new Set((data || []).map(d => d.sublider_id!))];
-    },
-    enabled,
-  });
+  const subliderIds: string[] = [];
+  const loadingSublideres = false;
 
   const { data: memberIds = [], isLoading: loadingMembros } = useQuery({
     queryKey: ['estrutura-area-membros', estruturaAreaId],

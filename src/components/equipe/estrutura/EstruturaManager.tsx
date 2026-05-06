@@ -155,13 +155,13 @@ export default function EstruturaManager() {
   // ─── Equipe CRUD ──────────────────────────────────────────────────
   const [equipeDialog, setEquipeDialog] = useState(false);
   const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null);
-  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '', sublider_id: '' });
+  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '' });
 
-  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId, sublider_id: '' }); setEquipeDialog(true); };
-  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, sublider_id: e.sublider_id || '' }); setEquipeDialog(true); };
+  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId }); setEquipeDialog(true); };
+  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id }); setEquipeDialog(true); };
 
   const saveEquipe = async () => {
-    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, sublider_id: equipeForm.sublider_id || null }, editingEquipe);
+    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id }, editingEquipe);
     setEquipeDialog(false);
   };
 
@@ -360,7 +360,6 @@ export default function EstruturaManager() {
                                   ) : (
                                     <div className="space-y-2">
                                       {areaEquipes.map(equipe => {
-                                        const sublider = equipe.sublider_id ? allProfiles.find(p => p.id === equipe.sublider_id) : null;
                                         const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
                                         const membroIds = equipeMembros.map(m => m.user_id);
                                         const availableMembers = memberProfiles.filter(p => !membroIds.includes(p.id));
@@ -371,9 +370,6 @@ export default function EstruturaManager() {
                                               <div className="flex items-center gap-2">
                                                 <Users className="h-3.5 w-3.5 text-slate-500" />
                                                 <span className="text-sm font-medium text-slate-800">{equipe.name}</span>
-                                                {sublider && (
-                                                  <span className="text-xs text-slate-500">• Sublíder: {profileLabel(sublider)}</span>
-                                                )}
                                               </div>
                                               <div className="flex gap-1">
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
@@ -578,21 +574,6 @@ export default function EstruturaManager() {
             <div className="space-y-2">
               <Label>Nome da Equipe *</Label>
               <Input value={equipeForm.name} onChange={e => setEquipeForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Equipe Fiscal SP..." />
-            </div>
-            <div className="space-y-2">
-              <Label>Sublíder (opcional)</Label>
-              <Select value={equipeForm.sublider_id} onValueChange={val => setEquipeForm(f => ({ ...f, sublider_id: val }))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Selecionar sublíder..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {allProfiles.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {profileLabel(p)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>

@@ -1440,7 +1440,6 @@ export type Database = {
           id: string
           is_active: boolean
           name: string
-          sublider_id: string | null
         }
         Insert: {
           area_id: string
@@ -1448,7 +1447,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           name: string
-          sublider_id?: string | null
         }
         Update: {
           area_id?: string
@@ -1456,7 +1454,6 @@ export type Database = {
           id?: string
           is_active?: boolean
           name?: string
-          sublider_id?: string | null
         }
         Relationships: [
           {
@@ -1464,20 +1461,6 @@ export type Database = {
             columns: ["area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "estrutura_equipes_sublider_id_fkey"
-            columns: ["sublider_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "estrutura_equipes_sublider_id_fkey"
-            columns: ["sublider_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]

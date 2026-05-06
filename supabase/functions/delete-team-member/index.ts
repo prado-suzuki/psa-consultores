@@ -105,7 +105,6 @@ Deno.serve(async (req) => {
 
     // Nullify references that shouldn't cascade delete
     const nullifyTables = [
-      { table: 'estrutura_equipes', column: 'sublider_id' },
       { table: 'fiscal_tasks', column: 'assigned_to' },
       { table: 'fiscal_tasks', column: 'created_by' },
       { table: 'fiscal_task_comments', column: 'user_id' },

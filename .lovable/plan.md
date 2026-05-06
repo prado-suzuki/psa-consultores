@@ -1,55 +1,49 @@
 ## Objetivo
 
-Substituir mensagens genéricas de erro do Supabase (ex.: *"new row violates row-level security policy for table org_projects"*) por mensagens amigáveis que expliquem ao usuário o real motivo (falta de permissão) e o caminho (procurar líder/admin).
+Remover com segurança a coluna `sublider_id` da tabela `estrutura_equipes`, sem quebrar a edge function `delete-team-member` nem perder histórico de quem era sublíder de cada equipe.
 
-## Escopo
+## Contexto da auditoria
 
-Arquivo único: `src/hooks/useOrgProjects.ts` — três pontos:
-- `useCreateOrgProject` (linha 257)
-- `useUpdateOrgProject` (linha 347)
-- `useDeleteOrgProject` (linha 371)
+- **Frontend (`src/`)**: 0 referências.
+- **Views / funções SQL / RLS policies**: 0 referências.
+- **FK existente**: `estrutura_equipes_sublider_id_fkey` → `profiles(id)` (some junto com a coluna).
+- **Edge function**: `supabase/functions/delete-team-member/index.ts` (linha 108) — faz `UPDATE estrutura_equipes SET sublider_id = null` ao excluir membro. Vai quebrar com `column does not exist` se a coluna sumir antes do deploy.
+- **Dados**: 5 das 7 linhas têm `sublider_id` preenchido — esses vínculos serão perdidos se não houver backup.
 
-## Abordagem
+## Etapas (ordem importa)
 
-1. Criar helper local `formatProjectError(error, action)` que detecta erros de RLS via:
-   - `error.code === '42501'`
-   - mensagem contendo `row-level security` / `violates row-level security` / `permission denied`
-   
-2. Para erros de RLS, retornar mensagens contextualizadas:
-   - **Criar:** *"Você não tem permissão para criar projetos. Apenas usuários com perfil Sublíder ou superior podem criar projetos. Solicite acesso à liderança."*
-   - **Atualizar:** *"Você não tem permissão para atualizar este projeto. É necessário ser membro do projeto ou ter perfil Sublíder ou superior."*
-   - **Excluir:** *"Você não tem permissão para excluir este projeto. Apenas o criador ou um Líder pode excluir."*
-
-3. Para outros erros, mostrar mensagem genérica + `error.message` original (mantendo comportamento atual).
-
-4. Substituir os 3 `toast.error(...)` para usar o helper.
-
-## Detalhes técnicos
-
-```ts
-function formatProjectError(error: any, action: 'create' | 'update' | 'delete'): string {
-  const msg = (error?.message || '').toLowerCase();
-  const isRls = error?.code === '42501' || msg.includes('row-level security') || msg.includes('row level security') || msg.includes('permission denied');
-
-  if (isRls) {
-    switch (action) {
-      case 'create': return 'Sem permissão para criar projetos. Apenas Sublíder, Líder ou Admin podem criar. Solicite acesso à liderança.';
-      case 'update': return 'Sem permissão para editar este projeto. É necessário ser membro do projeto ou ter perfil Sublíder ou superior.';
-      case 'delete': return 'Sem permissão para excluir este projeto. Apenas o criador ou um Líder pode excluir.';
-    }
-  }
-  const fallback = { create: 'Erro ao criar projeto', update: 'Erro ao atualizar projeto', delete: 'Erro ao excluir projeto' }[action];
-  return `${fallback}: ${error?.message ?? 'erro desconhecido'}`;
-}
+### 1. Backup dos dados atuais (precaução)
+Antes de qualquer alteração, exportar via `read_query`:
+```sql
+SELECT id, nome, sublider_id FROM estrutura_equipes WHERE sublider_id IS NOT NULL;
 ```
+Salvar resultado em `/mnt/documents/backup_sublider_estrutura_equipes.csv` para que a liderança possa reconstituir a informação se necessário.
 
-E nos `onError`:
-```ts
-toast.error(formatProjectError(error, 'create'));
+### 2. Atualizar a edge function `delete-team-member`
+Remover a entrada `{ table: 'estrutura_equipes', column: 'sublider_id' }` do array `nullifyTables` (linha 108 do `supabase/functions/delete-team-member/index.ts`).
+
+### 3. Deploy da edge function
+Fazer deploy de `delete-team-member` **antes** da migration. Garante que nenhuma execução em curso vai tentar atualizar a coluna que está prestes a sumir.
+
+### 4. Migration de remoção
+```sql
+ALTER TABLE public.estrutura_equipes
+  DROP COLUMN IF EXISTS sublider_id;
 ```
+A FK `estrutura_equipes_sublider_id_fkey` é dropada automaticamente pelo `DROP COLUMN`.
+
+### 5. Validação pós-deploy
+- Rodar `SELECT column_name FROM information_schema.columns WHERE table_name='estrutura_equipes' AND column_name='sublider_id'` (esperado: 0 linhas).
+- Conferir no preview que telas de Estrutura/Equipes seguem carregando.
+- Smoke-test: tentar excluir um team member para confirmar que `delete-team-member` roda sem erro.
+
+## Ordem fixa de execução
+1. Backup CSV.
+2. Editar edge function.
+3. Deploy edge function.
+4. Migration `DROP COLUMN`.
+5. Validação.
 
 ## Fora de escopo
-
-- Não alterar a UI (botões/permissões) — fica para outro plano.
-- Não alterar policies do banco.
-- Padrão pode ser replicado em outros hooks depois, mas este plano cobre apenas `useOrgProjects.ts`.
+- Não criar tabela substituta para "sublíder de equipe". Hoje a liderança continua sendo modelada via `estrutura_area_lideres` (nível área). Se no futuro for preciso voltar a ter sublíder por equipe, será uma nova feature.
+- Não regenerar o `src/integrations/supabase/types.ts` manualmente — ele é atualizado automaticamente após a migration.
