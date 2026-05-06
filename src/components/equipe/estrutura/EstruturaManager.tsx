@@ -154,23 +154,22 @@ export default function EstruturaManager() {
     setDeleteConfirm({ type: 'area', id: area.id, label: area.name });
   };
 
-  // ─── Lider ────────────────────────────────────────────────────────
-  const handleSetAreaLider = async (areaId: string, userId: string | null) => {
-    const oldLider = lideres.find(l => l.area_id === areaId);
-    const area = areas.find(a => a.id === areaId);
-    await mutations.setAreaLider(areaId, userId, area?.name || areaId, oldLider?.user_id || null);
+  // ─── Gestor da equipe ─────────────────────────────────────────────
+  const handleSetEquipeGestor = async (equipeId: string, userId: string | null) => {
+    const equipe = equipes.find(e => e.id === equipeId);
+    await mutations.setEquipeGestor(equipeId, userId, equipe?.name || equipeId, equipe?.gestor_id || null);
   };
 
   // ─── Equipe CRUD ──────────────────────────────────────────────────
   const [equipeDialog, setEquipeDialog] = useState(false);
   const [editingEquipe, setEditingEquipe] = useState<Equipe | null>(null);
-  const [equipeForm, setEquipeForm] = useState({ name: '', area_id: '' });
+  const [equipeForm, setEquipeForm] = useState<{ name: string; area_id: string; gestor_id: string | null }>({ name: '', area_id: '', gestor_id: null });
 
-  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId }); setEquipeDialog(true); };
-  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id }); setEquipeDialog(true); };
+  const openEquipeCreate = (areaId: string) => { setEditingEquipe(null); setEquipeForm({ name: '', area_id: areaId, gestor_id: null }); setEquipeDialog(true); };
+  const openEquipeEdit = (e: Equipe) => { setEditingEquipe(e); setEquipeForm({ name: e.name, area_id: e.area_id, gestor_id: e.gestor_id }); setEquipeDialog(true); };
 
   const saveEquipe = async () => {
-    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id }, editingEquipe);
+    await mutations.saveEquipe({ name: equipeForm.name, area_id: equipeForm.area_id, gestor_id: equipeForm.gestor_id }, editingEquipe);
     setEquipeDialog(false);
   };
 
@@ -266,9 +265,12 @@ export default function EstruturaManager() {
             ) : (
               <Accordion type="multiple" className="space-y-2">
                 {clusterAreas.map(area => {
-                  const areaLider = lideres.find(l => l.area_id === area.id);
                   const areaEquipes = equipes.filter(e => e.area_id === area.id);
-                  const liderProfile = areaLider ? allProfiles.find(p => p.id === areaLider.user_id) : null;
+                  // Gestores das equipes da área (substitui o antigo "líder da área")
+                  const gestorIds = [...new Set(areaEquipes.map(e => e.gestor_id).filter(Boolean) as string[])];
+                  const gestorProfiles = gestorIds
+                    .map(id => allProfiles.find(p => p.id === id))
+                    .filter((p): p is Profile => !!p);
 
                   return (
                     <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-slate-50/50">
@@ -276,8 +278,10 @@ export default function EstruturaManager() {
                         <div className="flex items-center gap-2 flex-1 text-left">
                           <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
                           <span className="font-medium text-slate-800">{area.name}</span>
-                          {liderProfile && (
-                            <span className="text-xs text-slate-500 ml-1">• Líder: {profileLabel(liderProfile)}</span>
+                          {gestorProfiles.length > 0 && (
+                            <span className="text-xs text-slate-500 ml-1">
+                              • Gestor{gestorProfiles.length > 1 ? 'es' : ''}: {gestorProfiles.map(profileLabel).join(', ')}
+                            </span>
                           )}
                           {(() => {
                             let ccLabel: string | null = null;
@@ -304,26 +308,6 @@ export default function EstruturaManager() {
                       </AccordionTrigger>
                       <AccordionContent className="px-3 pb-3">
                         <div className="space-y-3">
-                          {/* Lider select */}
-                          <div className="flex items-center gap-2">
-                            <Label className="text-xs text-slate-600 shrink-0">Líder Responsável:</Label>
-                            <Select
-                              value={areaLider?.user_id || ''}
-                              onValueChange={(val) => handleSetAreaLider(area.id, val || null)}
-                            >
-                              <SelectTrigger className="h-8 text-xs max-w-[250px]">
-                                <SelectValue placeholder="Selecionar líder..." />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {liderProfiles.map(p => (
-                                  <SelectItem key={p.id} value={p.id} className="text-xs">
-                                    {profileLabel(p)}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
                           {/* Equipes */}
                           <div className="flex justify-between items-center">
                             <span className="text-xs font-medium text-slate-600">Equipes</span>
