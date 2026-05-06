@@ -17,6 +17,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, Globe, Layers, TrendingDown, TrendingUp } from "lucide-react";
 import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
 import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
@@ -25,6 +26,7 @@ import { fmtBRL, fmtBRLCompact, fmtPct, fmtMesAno, fmtPp } from "@/lib/ibs-cbs/f
 const CORES = {
   antes: "#F2810A",
   depois: "#0D9488",
+  icmsMonof: "#6B46E8",
   lime: "#65A30D",
   composicao: ["#0D9488", "#65A30D", "#F2810A", "#0EA271", "#3478F5", "#6B46E8", "#0A9BB5"],
 };
@@ -35,9 +37,10 @@ interface KpiCardProps {
   sub?: ReactNode;
   accent: "neutral" | "antes" | "depois" | "lime";
   trend?: { dir: "up" | "down"; text: string };
+  tooltip?: ReactNode;
 }
 
-function KpiCard({ label, value, sub, accent, trend }: KpiCardProps) {
+function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
   const accentColor = {
     neutral: "#3478F5",
     antes: CORES.antes,
@@ -45,8 +48,10 @@ function KpiCard({ label, value, sub, accent, trend }: KpiCardProps) {
     lime: CORES.lime,
   }[accent];
 
-  return (
-    <Card className="relative overflow-hidden border-slate-200">
+  const card = (
+    <Card
+      className={`relative overflow-hidden border-slate-200 ${tooltip ? "cursor-help" : ""}`}
+    >
       <div
         className="absolute inset-x-0 top-0 h-[3px]"
         style={{ background: accentColor }}
@@ -78,6 +83,17 @@ function KpiCard({ label, value, sub, accent, trend }: KpiCardProps) {
       </CardContent>
     </Card>
   );
+
+  if (!tooltip) return card;
+
+  return (
+    <UITooltip>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent side="bottom" className="max-w-xs shadow-2xl ring-1 ring-slate-200">
+        {tooltip}
+      </TooltipContent>
+    </UITooltip>
+  );
 }
 
 interface SegmentoCardProps {
@@ -97,17 +113,14 @@ function SegmentoCard({ icon, label, segmento, totalFaturamento, accent, emptyHi
   return (
     <Card className="border-slate-200">
       <CardContent className="p-5">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <div
-              className="h-8 w-8 rounded-lg flex items-center justify-center"
-              style={{ background: `${accent}15`, color: accent }}
-            >
-              {icon}
-            </div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+        <div className="flex items-center gap-2 mb-3">
+          <div
+            className="h-8 w-8 rounded-lg flex items-center justify-center"
+            style={{ background: `${accent}15`, color: accent }}
+          >
+            {icon}
           </div>
-          <span className="text-xs font-mono text-slate-400">{fmtPct(pct)} do fat.</span>
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
         </div>
         {isEmpty ? (
           <div>
@@ -119,6 +132,7 @@ function SegmentoCard({ icon, label, segmento, totalFaturamento, accent, emptyHi
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Faturamento</p>
               <p className="font-bold text-slate-900 tabular-nums">{fmtBRL(segmento.faturamento)}</p>
+              <p className="text-slate-500 font-mono">{fmtPct(pct)} do fat.</p>
             </div>
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
@@ -156,16 +170,26 @@ export function AbaResumo({ filtros }: AbaResumoProps) {
       vCOFINS: "COFINS",
       vCOFINS_ST: "COFINS-ST",
     };
+    const total = Object.values(composicaoAntes).reduce((acc, v) => acc + v, 0);
     return Object.entries(composicaoAntes)
-      .filter(([, v]) => v > 0)
+      .filter(([, v]) => v > 0 && v / total >= 0.001)
       .map(([k, v]) => ({ name: labels[k as keyof typeof composicaoAntes], value: v }));
   }, [composicaoAntes]);
 
+  const cargaIbsCbsPct = totais.faturamento > 0 ? (totais.tributoDepoisIbsCbs / totais.faturamento) * 100 : 0;
+  const cargaIcmsMonofPct = totais.faturamento > 0 ? (totais.tributoDepoisIcmsMonof / totais.faturamento) * 100 : 0;
   const cargaCompara = [
     {
-      label: "Carga %",
+      label: "Antes",
       Antes: Number((totais.cargaAntesPct * 100).toFixed(2)),
-      Depois: Number((totais.cargaDepoisPct * 100).toFixed(2)),
+      "IBS/CBS": 0,
+      "ICMS monofásico": 0,
+    },
+    {
+      label: "Depois",
+      Antes: 0,
+      "IBS/CBS": Number(cargaIbsCbsPct.toFixed(2)),
+      "ICMS monofásico": Number(cargaIcmsMonofPct.toFixed(2)),
     },
   ];
 
@@ -236,6 +260,41 @@ export function AbaResumo({ filtros }: AbaResumoProps) {
             </>
           }
           accent="depois"
+          tooltip={
+            <div className="space-y-2 text-xs">
+              <p className="font-semibold text-slate-900">Composição do tributo DEPOIS</p>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: CORES.depois }}
+                    />
+                    IBS/CBS real
+                  </span>
+                  <span className="tabular-nums font-semibold text-slate-900">
+                    {fmtBRL(totais.tributoDepoisIbsCbs)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <span className="flex items-center gap-1.5 text-slate-600">
+                    <span
+                      className="inline-block h-2 w-2 rounded-full"
+                      style={{ background: CORES.icmsMonof }}
+                    />
+                    ICMS provisório (monofásicos)
+                  </span>
+                  <span className="tabular-nums font-semibold text-slate-900">
+                    {fmtBRL(totais.tributoDepoisIcmsMonof)}
+                  </span>
+                </div>
+              </div>
+              <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+                ICMS aplicado provisoriamente em itens monofásicos enquanto as alíquotas efetivas de IBS/CBS
+                não são definidas.
+              </p>
+            </div>
+          }
         />
         <KpiCard
           label="Δ Carga"
@@ -289,14 +348,15 @@ export function AbaResumo({ filtros }: AbaResumoProps) {
                   stroke="#7A8899"
                   fontSize={12}
                 />
-                <YAxis type="category" dataKey="label" hide />
+                <YAxis type="category" dataKey="label" stroke="#7A8899" fontSize={12} width={64} />
                 <Tooltip
                   formatter={(v: number) => `${v.toFixed(2)}%`}
                   contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
-                <Bar dataKey="Antes" fill={CORES.antes} radius={[4, 4, 4, 4]} barSize={28} />
-                <Bar dataKey="Depois" fill={CORES.depois} radius={[4, 4, 4, 4]} barSize={28} />
+                <Bar dataKey="Antes" stackId="carga" fill={CORES.antes} barSize={32} />
+                <Bar dataKey="IBS/CBS" stackId="carga" fill={CORES.depois} barSize={32} />
+                <Bar dataKey="ICMS monofásico" stackId="carga" fill={CORES.icmsMonof} barSize={32} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -323,6 +383,11 @@ export function AbaResumo({ filtros }: AbaResumoProps) {
                     innerRadius={56}
                     outerRadius={90}
                     paddingAngle={2}
+                    label={({ percent }) =>
+                      percent && percent >= 0.001 ? `${(percent * 100).toFixed(1)}%` : ""
+                    }
+                    labelLine={true}
+                    fontSize={11}
                   >
                     {composicaoData.map((_, i) => (
                       <Cell key={i} fill={CORES.composicao[i % CORES.composicao.length]} />

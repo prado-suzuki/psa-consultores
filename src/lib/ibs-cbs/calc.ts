@@ -32,6 +32,8 @@ export function totais(notas: NotaSaida[]): AgregadoTotais {
   let faturamento = 0;
   let tributoAntes = 0;
   let tributoDepois = 0;
+  let tributoDepoisIbsCbs = 0;
+  let tributoDepoisIcmsMonof = 0;
   let faturamentoTributado = 0;
   let somaAliqNomPond = 0;
   const chaves = new Set<string>();
@@ -39,6 +41,8 @@ export function totais(notas: NotaSaida[]): AgregadoTotais {
     faturamento += n.valor_bruto;
     tributoAntes += n.tributoAntes;
     tributoDepois += n.tributoDepois;
+    tributoDepoisIbsCbs += n.valor_ibs_cbs;
+    tributoDepoisIcmsMonof += n.icms_monofasico;
     if (n.chave_nfe) chaves.add(n.chave_nfe);
     if (n.reducao_aliq < 1 && n.aliq_ibs_cbs > 0) {
       faturamentoTributado += n.valor_bruto;
@@ -51,6 +55,8 @@ export function totais(notas: NotaSaida[]): AgregadoTotais {
     faturamento,
     tributoAntes,
     tributoDepois,
+    tributoDepoisIbsCbs,
+    tributoDepoisIcmsMonof,
     cargaAntesPct,
     cargaDepoisPct,
     deltaPp: (cargaDepoisPct - cargaAntesPct) * 100,

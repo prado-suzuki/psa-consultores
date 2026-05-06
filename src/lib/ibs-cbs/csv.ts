@@ -74,6 +74,8 @@ export function parseNotasSaidaCsv(text: string): NotaSaida[] {
     const vCOFINS = num(c[cols.vCOFINS]);
     const vCOFINS_ST = num(c[cols.vCOFINS_ST]);
     const valor_ibs_cbs = num(c[cols.valor_ibs_cbs]);
+    const monofasico = (c[cols.monofasico] ?? "").toLowerCase() === "true";
+    const icmsMonofasico = monofasico ? vICMS : 0;
 
     rows.push({
       chave_nfe: c[cols.chave_nfe] ?? "",
@@ -96,13 +98,14 @@ export function parseNotasSaidaCsv(text: string): NotaSaida[] {
       vCOFINS,
       vCOFINS_ST,
       regra_reducao: regra || "Sem anexo",
-      monofasico: (c[cols.monofasico] ?? "").toLowerCase() === "true",
+      monofasico,
       ibs_cbs_base: num(c[cols.ibs_cbs_base]),
       reducao_aliq: num(c[cols.reducao_aliq]),
       aliq_ibs_cbs: num(c[cols.aliq_ibs_cbs]),
       valor_ibs_cbs,
+      icms_monofasico: icmsMonofasico,
       tributoAntes: vICMS + vICMSST + vIPI + vPIS + vPIS_ST + vCOFINS + vCOFINS_ST,
-      tributoDepois: valor_ibs_cbs,
+      tributoDepois: valor_ibs_cbs + icmsMonofasico,
     });
   }
   return rows;

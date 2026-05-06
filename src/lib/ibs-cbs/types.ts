@@ -24,6 +24,7 @@ export interface NotaSaida {
   reducao_aliq: number;
   aliq_ibs_cbs: number;
   valor_ibs_cbs: number;
+  icms_monofasico: number;
   tributoAntes: number;
   tributoDepois: number;
 }
@@ -39,6 +40,8 @@ export interface AgregadoTotais {
   faturamento: number;
   tributoAntes: number;
   tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
   cargaAntesPct: number;
   cargaDepoisPct: number;
   deltaPp: number;

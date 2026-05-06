@@ -120,6 +120,14 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
     [sorted]
   );
 
+  const legendaAnexos = useMemo(() => {
+    const presentes = new Set(scatterData.map((d) => d.anexo));
+    return Array.from(presentes).map((anexo) => ({
+      anexo,
+      cor: corDoAnexo(anexo),
+    }));
+  }, [scatterData]);
+
   if (error) {
     return (
       <Alert variant="destructive">
@@ -146,6 +154,93 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
           Comparativo por produto (NCM × xProd). Cálculo sobre saídas — Δ é variação na carga sobre faturamento.
         </AlertDescription>
       </Alert>
+
+      <Card className="border-slate-200">
+        <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <CardTitle className="text-sm font-semibold text-slate-700">
+            Onde a reforma muda mais
+            <span className="ml-2 text-xs font-normal text-slate-500">
+              X: faturamento · Y: Δ pp na carga · cor: anexo
+            </span>
+          </CardTitle>
+          {legendaAnexos.length > 0 && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              {legendaAnexos.map((l) => (
+                <div key={l.anexo} className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-2.5 w-2.5 rounded-full"
+                    style={{ background: l.cor }}
+                  />
+                  <span className="text-xs text-slate-600">{l.anexo}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {scatterData.length === 0 ? (
+            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={340}>
+              <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E4E9F0" />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  name="Faturamento"
+                  tickFormatter={(v) => fmtBRL(v).replace("R$ ", "R$ ")}
+                  stroke="#7A8899"
+                  fontSize={11}
+                />
+                <YAxis
+                  type="number"
+                  dataKey="y"
+                  name="Δ pp"
+                  tickFormatter={(v) => `${v.toFixed(1)}`}
+                  stroke="#7A8899"
+                  fontSize={11}
+                  width={50}
+                />
+                <ZAxis type="number" dataKey="z" range={[20, 280]} />
+                <Tooltip
+                  cursor={{ strokeDasharray: "3 3" }}
+                  contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload || payload.length === 0) return null;
+                    const d = payload[0].payload;
+                    return (
+                      <div className="bg-white border border-slate-200 rounded-lg shadow-md p-3 text-xs">
+                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">{d.produto}</p>
+                        <p className="text-slate-500 font-mono">NCM {d.ncm}</p>
+                        <span
+                          className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
+                          style={{
+                            background: `${d.fill}20`,
+                            color: d.fill,
+                          }}
+                        >
+                          {d.anexo}
+                        </span>
+                        <div className="mt-1 text-slate-700">
+                          Faturamento: <strong>{fmtBRL(d.x)}</strong>
+                        </div>
+                        <div className="text-slate-700">
+                          Δ pp: <strong>{fmtPp(d.y)}</strong>
+                        </div>
+                      </div>
+                    );
+                  }}
+                />
+                <Scatter data={scatterData}>
+                  {scatterData.map((d, i) => (
+                    <Cell key={i} fill={d.fill} fillOpacity={0.7} />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-slate-200">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -287,72 +382,6 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
                 </Button>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="border-slate-200">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
-            Onde a reforma muda mais
-            <span className="ml-2 text-xs font-normal text-slate-500">
-              X: faturamento · Y: Δ pp na carga · cor: anexo
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {scatterData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={340}>
-              <ScatterChart margin={{ top: 12, right: 24, bottom: 8, left: 8 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E4E9F0" />
-                <XAxis
-                  type="number"
-                  dataKey="x"
-                  name="Faturamento"
-                  tickFormatter={(v) => fmtBRL(v).replace("R$ ", "R$ ")}
-                  stroke="#7A8899"
-                  fontSize={11}
-                />
-                <YAxis
-                  type="number"
-                  dataKey="y"
-                  name="Δ pp"
-                  tickFormatter={(v) => `${v.toFixed(1)}`}
-                  stroke="#7A8899"
-                  fontSize={11}
-                  width={50}
-                />
-                <ZAxis type="number" dataKey="z" range={[20, 280]} />
-                <Tooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
-                  content={({ active, payload }) => {
-                    if (!active || !payload || payload.length === 0) return null;
-                    const d = payload[0].payload;
-                    return (
-                      <div className="bg-white border border-slate-200 rounded-lg shadow-md p-3 text-xs">
-                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">{d.produto}</p>
-                        <p className="text-slate-500 font-mono">NCM {d.ncm}</p>
-                        <p className="text-slate-500">{d.anexo}</p>
-                        <div className="mt-1 text-slate-700">
-                          Faturamento: <strong>{fmtBRL(d.x)}</strong>
-                        </div>
-                        <div className="text-slate-700">
-                          Δ pp: <strong>{fmtPp(d.y)}</strong>
-                        </div>
-                      </div>
-                    );
-                  }}
-                />
-                <Scatter data={scatterData}>
-                  {scatterData.map((d, i) => (
-                    <Cell key={i} fill={d.fill} fillOpacity={0.7} />
-                  ))}
-                </Scatter>
-              </ScatterChart>
-            </ResponsiveContainer>
           )}
         </CardContent>
       </Card>
