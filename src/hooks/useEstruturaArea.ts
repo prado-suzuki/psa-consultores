@@ -9,14 +9,16 @@ export const useEstruturaArea = (estruturaAreaId: string | null | undefined) => 
   const enabled = !!estruturaAreaId;
 
   const { data: liderIds = [], isLoading: loadingLideres } = useQuery({
-    queryKey: ['estrutura-area-lideres', estruturaAreaId],
+    queryKey: ['estrutura-area-gestores', estruturaAreaId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('estrutura_area_lideres')
-        .select('user_id')
-        .eq('area_id', estruturaAreaId!);
+        .from('estrutura_equipes')
+        .select('gestor_id')
+        .eq('area_id', estruturaAreaId!)
+        .eq('is_active', true)
+        .not('gestor_id', 'is', null);
       if (error) throw error;
-      return (data || []).map(d => d.user_id);
+      return [...new Set((data || []).map(d => d.gestor_id as string))];
     },
     enabled,
   });

@@ -207,11 +207,14 @@ export function useTeamMembersForTasks(clusterId?: string) {
           ? supabase.from('estrutura_equipe_membros').select('user_id').in('equipe_id', equipeIds)
           : Promise.resolve({ data: [] as { user_id: string }[] });
 
-        // 4. Líderes das áreas
-        const lideresPromise = supabase
-          .from('estrutura_area_lideres')
-          .select('user_id')
-          .in('area_id', areaIds);
+        // 4. Gestores das equipes (substitui antigos líderes de área)
+        const lideresPromise = equipeIds.length > 0
+          ? supabase
+              .from('estrutura_equipes')
+              .select('gestor_id')
+              .in('id', equipeIds)
+              .not('gestor_id', 'is', null)
+          : Promise.resolve({ data: [] as { gestor_id: string }[] });
 
         // 5. Admins (sempre visíveis)
         const adminsPromise = supabase
@@ -227,7 +230,7 @@ export function useTeamMembersForTasks(clusterId?: string) {
 
         const combined = new Set([
           ...(membros || []).map(m => m.user_id),
-          ...(lideres || []).map(l => l.user_id),
+          ...(lideres || []).map(l => l.gestor_id as string),
           ...(admins || []).map(a => a.user_id),
         ]);
         if (combined.size === 0) return [];

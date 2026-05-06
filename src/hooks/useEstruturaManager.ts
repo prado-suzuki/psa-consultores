@@ -25,17 +25,12 @@ export interface Area {
   cost_center_id: string | null;
 }
 
-export interface AreaLider {
-  id: string;
-  area_id: string;
-  user_id: string;
-}
-
 export interface Equipe {
   id: string;
   area_id: string;
   name: string;
   is_active: boolean;
+  gestor_id: string | null;
 }
 
 export interface EquipeMembro {
@@ -75,15 +70,7 @@ export const useEstruturaAreas = () =>
     },
   });
 
-export const useEstruturaLideres = () =>
-  useQuery({
-    queryKey: ['estrutura-lideres'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_area_lideres').select('*');
-      if (error) throw error;
-      return data as AreaLider[];
-    },
-  });
+// useEstruturaLideres removido — gestor agora vive em estrutura_equipes.gestor_id
 
 export const useEstruturaEquipes = () =>
   useQuery({
@@ -215,31 +202,16 @@ export const useEstruturaMutations = () => {
     invalidateAll();
   }, [logAction, invalidateAll]);
 
-  // ─── Lider ────────────────────────────────────────────────────
-  const setAreaLider = useCallback(async (areaId: string, userId: string | null, areaName: string, oldUserId: string | null) => {
-    await supabase.from('estrutura_area_lideres').delete().eq('area_id', areaId);
-    if (userId) {
-      const { error } = await supabase.from('estrutura_area_lideres').insert({ area_id: areaId, user_id: userId });
-      if (error) { toast.error(error.message); return; }
-    }
-    toast.success('Líder atualizado');
-    logAction({
-      area: 'estrutura', entity_type: 'lider', entity_id: areaId,
-      entity_name: areaName, action: 'updated',
-      changed_fields: { user_id: { old: oldUserId, new: userId } },
-    });
-    invalidateAll();
-  }, [logAction, invalidateAll]);
-
   // ─── Equipe ───────────────────────────────────────────────────
   const saveEquipe = useCallback(async (
-    form: { name: string; area_id: string },
+    form: { name: string; area_id: string; gestor_id?: string | null },
     editing: Equipe | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
+      const nextGestor = form.gestor_id !== undefined ? form.gestor_id : editing.gestor_id;
       const { error } = await supabase.from('estrutura_equipes')
-        .update({ name: form.name })
+        .update({ name: form.name, gestor_id: nextGestor })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe atualizada');
@@ -248,16 +220,31 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
+          gestor_id: { old: editing.gestor_id, new: nextGestor },
         },
       });
     } else {
       const { data, error } = await supabase.from('estrutura_equipes')
-        .insert({ name: form.name, area_id: form.area_id })
+        .insert({ name: form.name, area_id: form.area_id, gestor_id: form.gestor_id ?? null })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Equipe criada');
       logAction({ area: 'estrutura', entity_type: 'equipe', entity_id: data.id, entity_name: form.name, action: 'created' });
     }
+    invalidateAll();
+  }, [logAction, invalidateAll]);
+
+  const setEquipeGestor = useCallback(async (equipeId: string, userId: string | null, equipeName: string, oldUserId: string | null) => {
+    const { error } = await supabase.from('estrutura_equipes')
+      .update({ gestor_id: userId })
+      .eq('id', equipeId);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Gestor atualizado');
+    logAction({
+      area: 'estrutura', entity_type: 'equipe', entity_id: equipeId,
+      entity_name: equipeName, action: 'updated',
+      changed_fields: { gestor_id: { old: oldUserId, new: userId } },
+    });
     invalidateAll();
   }, [logAction, invalidateAll]);
 
@@ -295,7 +282,7 @@ export const useEstruturaMutations = () => {
   return {
     saveCluster, deleteCluster,
     saveArea, deleteArea,
-    setAreaLider,
+    setEquipeGestor,
     saveEquipe, deleteEquipe,
     addMembro, removeMembro,
     invalidateAll,

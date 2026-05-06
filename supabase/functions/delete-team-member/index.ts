@@ -84,7 +84,6 @@ Deno.serve(async (req) => {
       { table: 'user_page_access', column: 'user_id' },
       { table: 'user_page_access', column: 'granted_by' },
       { table: 'user_roles', column: 'user_id' },
-      { table: 'estrutura_area_lideres', column: 'user_id' },
       { table: 'estrutura_equipe_membros', column: 'user_id' },
       { table: 'daily_standups', column: 'user_id' },
       { table: 'client_visible_projects', column: 'user_id' },
@@ -105,6 +104,7 @@ Deno.serve(async (req) => {
 
     // Nullify references that shouldn't cascade delete
     const nullifyTables = [
+      { table: 'estrutura_equipes', column: 'gestor_id' },
       { table: 'fiscal_tasks', column: 'assigned_to' },
       { table: 'fiscal_tasks', column: 'created_by' },
       { table: 'fiscal_task_comments', column: 'user_id' },
