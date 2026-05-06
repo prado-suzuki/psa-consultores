@@ -370,9 +370,6 @@ export default function EstruturaManager() {
                                               <div className="flex items-center gap-2">
                                                 <Users className="h-3.5 w-3.5 text-slate-500" />
                                                 <span className="text-sm font-medium text-slate-800">{equipe.name}</span>
-                                                {sublider && (
-                                                  <span className="text-xs text-slate-500">• Sublíder: {profileLabel(sublider)}</span>
-                                                )}
                                               </div>
                                               <div className="flex gap-1">
                                                 <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
