@@ -9,8 +9,9 @@ import { useCallback } from 'react';
 export interface Cluster {
   id: string;
   name: string;
-  cost_center: string | null;
-  empresa_id: string | null;
+  nome_empresa: string | null;
+  cnpj: string | null;
+  cost_center_id: string | null;
   is_active: boolean;
 }
 
