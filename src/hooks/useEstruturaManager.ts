@@ -105,15 +105,8 @@ export const useEstruturaMembros = () =>
     },
   });
 
-export const useEstruturaEmpresas = () =>
-  useQuery({
-    queryKey: ['empresas_faturamento'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('empresas_faturamento').select('*').eq('is_active', true).order('nome');
-      if (error) throw error;
-      return data as EmpresaFat[];
-    },
-  });
+// useEstruturaEmpresas removido — empresa agora vive dentro de estrutura_clusters
+
 
 export const useEstruturaCentrosCusto = () =>
   useQuery({
