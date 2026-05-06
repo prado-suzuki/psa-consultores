@@ -28,13 +28,8 @@ export interface CentroCusto {
   is_active: boolean;
 }
 
-export interface EmpresaFat {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  centro_custo_id: string | null;
-  is_active: boolean;
-}
+// EmpresaFat removida — empresas agora vivem dentro de estrutura_clusters
+
 
 // ── Produto/Segmento ───────────────────────────────────────────────────
 
