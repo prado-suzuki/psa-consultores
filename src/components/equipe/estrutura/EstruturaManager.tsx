@@ -80,7 +80,6 @@ export default function EstruturaManager() {
   const { data: lideres = [] } = useEstruturaLideres();
   const { data: equipes = [] } = useEstruturaEquipes();
   const { data: membros = [] } = useEstruturaMembros();
-  const { data: empresas = [] } = useEstruturaEmpresas();
   const { data: centrosCusto = [] } = useEstruturaCentrosCusto();
 
   // Mutations from hook
@@ -93,34 +92,41 @@ export default function EstruturaManager() {
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
-  // Helper to get CC name from empresa
-  const getEmpresaCcLabel = (empresaId: string | null) => {
-    if (!empresaId) return null;
-    const emp = empresas.find(e => e.id === empresaId);
-    if (!emp?.centro_custo_id) return null;
-    const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
+  // Helper para label do CC a partir do id
+  const getCcLabel = (ccId: string | null | undefined) => {
+    if (!ccId) return null;
+    const cc = centrosCusto.find(c => c.id === ccId);
     return cc ? `${cc.codigo} - ${cc.nome}` : null;
   };
 
   // ─── Cluster CRUD ─────────────────────────────────────────────────
   const [clusterDialog, setClusterDialog] = useState(false);
   const [editingCluster, setEditingCluster] = useState<Cluster | null>(null);
-  const [clusterForm, setClusterForm] = useState({ name: '', cost_center: '', empresa_id: '' });
+  const [clusterForm, setClusterForm] = useState({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '' });
 
-  const openClusterCreate = () => { setEditingCluster(null); setClusterForm({ name: '', cost_center: '', empresa_id: '' }); setClusterDialog(true); };
-  const openClusterEdit = (c: Cluster) => { setEditingCluster(c); setClusterForm({ name: c.name, cost_center: c.cost_center || '', empresa_id: c.empresa_id || '' }); setClusterDialog(true); };
+  const openClusterCreate = () => {
+    setEditingCluster(null);
+    setClusterForm({ name: '', nome_empresa: '', cnpj: '', cost_center_id: '' });
+    setClusterDialog(true);
+  };
+  const openClusterEdit = (c: Cluster) => {
+    setEditingCluster(c);
+    setClusterForm({
+      name: c.name,
+      nome_empresa: c.nome_empresa || '',
+      cnpj: c.cnpj || '',
+      cost_center_id: c.cost_center_id || '',
+    });
+    setClusterDialog(true);
+  };
 
   const saveCluster = async () => {
-    const empresaId = clusterForm.empresa_id || null;
-    let costCenter = clusterForm.cost_center || null;
-    if (empresaId) {
-      const emp = empresas.find(e => e.id === empresaId);
-      if (emp?.centro_custo_id) {
-        const cc = centrosCusto.find(c => c.id === emp.centro_custo_id);
-        if (cc) costCenter = cc.codigo;
-      }
-    }
-    await mutations.saveCluster({ name: clusterForm.name, cost_center: costCenter, empresa_id: empresaId }, editingCluster);
+    await mutations.saveCluster({
+      name: clusterForm.name,
+      nome_empresa: clusterForm.nome_empresa.trim() || null,
+      cnpj: clusterForm.cnpj.trim() || null,
+      cost_center_id: clusterForm.cost_center_id || null,
+    }, editingCluster);
     setClusterDialog(false);
   };
 
