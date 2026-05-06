@@ -260,14 +260,12 @@ export default function EstruturaManager() {
                     <Network className="h-5 w-5 text-teal-600 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="font-medium text-slate-900">{cluster.name}</div>
-                      {cluster.empresa_id && (
+                      {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
                         <div className="text-xs text-slate-500">
-                          Empresa: {empresas.find(e => e.id === cluster.empresa_id)?.nome || '—'}
-                          {getEmpresaCcLabel(cluster.empresa_id) && ` • CC: ${getEmpresaCcLabel(cluster.empresa_id)}`}
+                          {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
+                          {cluster.cnpj && <> • CNPJ: {cluster.cnpj}</>}
+                          {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
                         </div>
-                      )}
-                      {!cluster.empresa_id && cluster.cost_center && (
-                        <div className="text-xs text-slate-500">Centro de Custo: {cluster.cost_center}</div>
                       )}
                     </div>
                     <Badge variant="secondary" className="mr-2">{clusterAreas.length} áreas</Badge>
