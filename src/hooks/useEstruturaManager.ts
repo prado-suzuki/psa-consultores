@@ -44,13 +44,7 @@ export interface EquipeMembro {
   user_id: string;
 }
 
-export interface EmpresaFat {
-  id: string;
-  nome: string;
-  cnpj: string | null;
-  centro_custo_id: string | null;
-  is_active: boolean;
-}
+// (EmpresaFat removida — empresas agora vivem dentro de estrutura_clusters)
 
 export interface CentroCusto {
   id: string;
