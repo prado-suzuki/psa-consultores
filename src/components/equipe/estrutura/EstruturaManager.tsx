@@ -342,6 +342,27 @@ export default function EstruturaManager() {
                                       </div>
                                     </div>
 
+                                    {/* Gestor (1 por equipe) */}
+                                    <div className="flex items-center gap-2">
+                                      <Label className="text-xs text-slate-600 shrink-0">Gestor:</Label>
+                                      <Select
+                                        value={equipe.gestor_id || '_none'}
+                                        onValueChange={(val) => handleSetEquipeGestor(equipe.id, val === '_none' ? null : val)}
+                                      >
+                                        <SelectTrigger className="h-7 text-xs max-w-[220px]">
+                                          <SelectValue placeholder="Selecionar gestor..." />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="_none" className="text-xs">Nenhum</SelectItem>
+                                          {liderProfiles.map(p => (
+                                            <SelectItem key={p.id} value={p.id} className="text-xs">
+                                              {profileLabel(p)}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+
                                     {/* Members */}
                                     <div className="flex flex-wrap gap-1.5">
                                       {equipeMembros.map(m => {
