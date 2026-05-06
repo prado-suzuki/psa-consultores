@@ -371,7 +371,7 @@ export const useUpdateOrgProject = () => {
       toast.success('Projeto atualizado');
     },
     onError: (error) => {
-      toast.error('Erro ao atualizar: ' + error.message);
+      toast.error(formatProjectError(error, 'update'));
     },
   });
 };
