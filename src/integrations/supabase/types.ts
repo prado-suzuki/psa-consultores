@@ -1223,41 +1223,6 @@ export type Database = {
         }
         Relationships: []
       }
-      empresas_faturamento: {
-        Row: {
-          centro_custo_id: string | null
-          cnpj: string | null
-          created_at: string | null
-          id: string
-          is_active: boolean | null
-          nome: string
-        }
-        Insert: {
-          centro_custo_id?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          nome: string
-        }
-        Update: {
-          centro_custo_id?: string | null
-          cnpj?: string | null
-          created_at?: string | null
-          id?: string
-          is_active?: boolean | null
-          nome?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "empresas_faturamento_centro_custo_id_fkey"
-            columns: ["centro_custo_id"]
-            isOneToOne: false
-            referencedRelation: "centros_custo"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       estrutura_area_lideres: {
         Row: {
           area_id: string
@@ -1354,38 +1319,41 @@ export type Database = {
       }
       estrutura_clusters: {
         Row: {
-          cost_center: string | null
+          cnpj: string | null
+          cost_center_id: string | null
           created_at: string
-          empresa_id: string | null
           id: string
           is_active: boolean
           name: string
+          nome_empresa: string | null
           updated_at: string
         }
         Insert: {
-          cost_center?: string | null
+          cnpj?: string | null
+          cost_center_id?: string | null
           created_at?: string
-          empresa_id?: string | null
           id?: string
           is_active?: boolean
           name: string
+          nome_empresa?: string | null
           updated_at?: string
         }
         Update: {
-          cost_center?: string | null
+          cnpj?: string | null
+          cost_center_id?: string | null
           created_at?: string
-          empresa_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
+          nome_empresa?: string | null
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "estrutura_clusters_empresa_id_fkey"
-            columns: ["empresa_id"]
+            foreignKeyName: "estrutura_clusters_cost_center_id_fkey"
+            columns: ["cost_center_id"]
             isOneToOne: false
-            referencedRelation: "empresas_faturamento"
+            referencedRelation: "centros_custo"
             referencedColumns: ["id"]
           },
         ]
