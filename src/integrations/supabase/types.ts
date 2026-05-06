@@ -2229,6 +2229,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           end_date: string | null
+          equipe_id: string | null
           estrutura_area_id: string | null
           external_client_id: string | null
           id: string
@@ -2248,6 +2249,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          equipe_id?: string | null
           estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
@@ -2267,6 +2269,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           end_date?: string | null
+          equipe_id?: string | null
           estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
@@ -2293,6 +2296,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
           },
           {
