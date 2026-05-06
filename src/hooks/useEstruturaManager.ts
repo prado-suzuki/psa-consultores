@@ -282,7 +282,7 @@ export const useEstruturaMutations = () => {
   return {
     saveCluster, deleteCluster,
     saveArea, deleteArea,
-    setAreaLider,
+    setEquipeGestor,
     saveEquipe, deleteEquipe,
     addMembro, removeMembro,
     invalidateAll,
