@@ -281,7 +281,7 @@ export const useCreateOrgProject = () => {
       toast.success('Projeto criado com sucesso');
     },
     onError: (error) => {
-      toast.error('Erro ao criar projeto: ' + error.message);
+      toast.error(formatProjectError(error, 'create'));
     },
   });
 };
