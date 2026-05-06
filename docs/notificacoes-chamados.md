@@ -33,14 +33,14 @@ Lógica:
 
 ### Resolução dinâmica de gestores
 
-A função `getGestorRecipients` busca automaticamente os líderes da **Área Fiscal** (`estrutura_areas.name = 'Área Fiscal'`) através da tabela `estrutura_area_lideres`. Isso significa que:
-- Alterar o líder da Área Fiscal no EstruturaManager reflete automaticamente nas notificações
-- Apenas líderes da Área Fiscal recebem notificações de gestor (não todas as áreas TAX)
+A função `getGestorRecipients` busca automaticamente os **gestores** das equipes ativas da **Área Fiscal** (`estrutura_areas.name = 'Área Fiscal'`) através do campo `estrutura_equipes.gestor_id`. Isso significa que:
+- Alterar o gestor de uma equipe da Área Fiscal no EstruturaManager reflete automaticamente nas notificações
+- Apenas gestores das equipes da Área Fiscal recebem notificações de gestor (não todas as áreas TAX)
 
 Fluxo da query:
 1. `estrutura_areas` → filtra por `name = 'Área Fiscal'` e `is_active = true`
-2. `estrutura_area_lideres` → busca `user_id` dos líderes dessas áreas
-3. `profiles` → busca o e-mail de cada líder
+2. `estrutura_equipes` → busca `gestor_id` das equipes ativas dessas áreas (não nulo)
+3. `profiles` → busca o e-mail de cada gestor
 
 ### Workflow n8n
 
