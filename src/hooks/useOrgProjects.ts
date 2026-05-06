@@ -4,6 +4,33 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 
+// ── Helpers ────────────────────────────────────────────────────────────
+function formatProjectError(error: any, action: 'create' | 'update' | 'delete'): string {
+  const msg = (error?.message || '').toLowerCase();
+  const isRls =
+    error?.code === '42501' ||
+    msg.includes('row-level security') ||
+    msg.includes('row level security') ||
+    msg.includes('permission denied') ||
+    msg.includes('violates row');
+
+  if (isRls) {
+    switch (action) {
+      case 'create':
+        return 'Sem permissão para criar projetos. Apenas usuários com perfil Sublíder, Líder ou Admin podem criar projetos. Solicite acesso à liderança.';
+      case 'update':
+        return 'Sem permissão para editar este projeto. É necessário ser membro do projeto ou ter perfil Sublíder ou superior.';
+      case 'delete':
+        return 'Sem permissão para excluir este projeto. Apenas o criador ou um Líder/Admin pode excluir.';
+    }
+  }
+  const fallback =
+    action === 'create' ? 'Erro ao criar projeto'
+    : action === 'update' ? 'Erro ao atualizar projeto'
+    : 'Erro ao excluir projeto';
+  return `${fallback}: ${error?.message ?? 'erro desconhecido'}`;
+}
+
 // ── Types (org_projects rebuild) ───────────────────────────────────────
 
 export interface OrgProject {
@@ -254,7 +281,7 @@ export const useCreateOrgProject = () => {
       toast.success('Projeto criado com sucesso');
     },
     onError: (error) => {
-      toast.error('Erro ao criar projeto: ' + error.message);
+      toast.error(formatProjectError(error, 'create'));
     },
   });
 };
@@ -344,7 +371,7 @@ export const useUpdateOrgProject = () => {
       toast.success('Projeto atualizado');
     },
     onError: (error) => {
-      toast.error('Erro ao atualizar: ' + error.message);
+      toast.error(formatProjectError(error, 'update'));
     },
   });
 };
@@ -368,7 +395,7 @@ export const useDeleteOrgProject = () => {
       toast.success('Projeto excluído');
     },
     onError: (error) => {
-      toast.error('Erro ao excluir: ' + error.message);
+      toast.error(formatProjectError(error, 'delete'));
     },
   });
 };

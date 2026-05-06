@@ -1,75 +1,55 @@
-## Diagnóstico
+## Objetivo
 
-O chamado "Créditos de IBS e CBS" (criado por Aline Deon em 05/05) ficou **sem `cliente_id`** mesmo com a representante corretamente vinculada ao cliente "Paiol Comercial Agricola".
+Substituir mensagens genéricas de erro do Supabase (ex.: *"new row violates row-level security policy for table org_projects"*) por mensagens amigáveis que expliquem ao usuário o real motivo (falta de permissão) e o caminho (procurar líder/admin).
 
-### Causa raiz
-O fluxo `useCreateTicketCliente` (`src/hooks/useCreateTicket.ts`) faz **duas consultas** para resolver o cliente:
+## Escopo
 
-1. `representante` filtrando por `user_id` → retorna `id_cliente` (✅ funciona, RLS permite `auth.uid() = user_id`).
-2. `cliente` filtrando por esse `id` para "validar" → ❌ **falha silenciosamente**.
+Arquivo único: `src/hooks/useOrgProjects.ts` — três pontos:
+- `useCreateOrgProject` (linha 257)
+- `useUpdateOrgProject` (linha 347)
+- `useDeleteOrgProject` (linha 371)
 
-O RLS atual de `public.cliente` tem **apenas uma política de SELECT**:
-```
-team_select_cliente: has_role_or_higher(auth.uid(), 'team_member')
-```
+## Abordagem
 
-Ou seja, **usuários com role `client`** (como Aline) **não têm permissão de ler `cliente`**. A query retorna `null`, o código entra no `else` (loga warning no console) e o ticket é inserido sem `cliente_id`.
+1. Criar helper local `formatProjectError(error, action)` que detecta erros de RLS via:
+   - `error.code === '42501'`
+   - mensagem contendo `row-level security` / `violates row-level security` / `permission denied`
+   
+2. Para erros de RLS, retornar mensagens contextualizadas:
+   - **Criar:** *"Você não tem permissão para criar projetos. Apenas usuários com perfil Sublíder ou superior podem criar projetos. Solicite acesso à liderança."*
+   - **Atualizar:** *"Você não tem permissão para atualizar este projeto. É necessário ser membro do projeto ou ter perfil Sublíder ou superior."*
+   - **Excluir:** *"Você não tem permissão para excluir este projeto. Apenas o criador ou um Líder pode excluir."*
 
-### Por que tickets antigos da Aline têm `cliente_id`?
-Provavelmente foram criados antes do RLS atual ser aplicado, ou via um caminho de gestão (que usa role com permissão).
+3. Para outros erros, mostrar mensagem genérica + `error.message` original (mantendo comportamento atual).
 
-### Observação extra
-Há **registros duplicados** de Aline em `representante` (dois `id_representante` apontando para o mesmo `id_cliente`, ambos com `excluido=false`). Não é a causa do bug, mas vale limpar.
+4. Substituir os 3 `toast.error(...)` para usar o helper.
 
----
-
-## Plano de correção
-
-Duas opções (escolher uma — recomendo a **A**, que é mais segura):
-
-### Opção A — Eliminar a validação redundante (frontend)
-A consulta no `cliente` é apenas defensiva; a tabela `representante` já é a fonte de verdade do vínculo. Remover essa segunda consulta resolve o problema sem mexer em RLS.
-
-**Arquivo:** `src/hooks/useCreateTicket.ts` (linhas ~181–201)
+## Detalhes técnicos
 
 ```ts
-if (candidateIds.length > 0) {
-  clienteId = candidateIds[0]; // confia no vínculo de representante
+function formatProjectError(error: any, action: 'create' | 'update' | 'delete'): string {
+  const msg = (error?.message || '').toLowerCase();
+  const isRls = error?.code === '42501' || msg.includes('row-level security') || msg.includes('row level security') || msg.includes('permission denied');
+
+  if (isRls) {
+    switch (action) {
+      case 'create': return 'Sem permissão para criar projetos. Apenas Sublíder, Líder ou Admin podem criar. Solicite acesso à liderança.';
+      case 'update': return 'Sem permissão para editar este projeto. É necessário ser membro do projeto ou ter perfil Sublíder ou superior.';
+      case 'delete': return 'Sem permissão para excluir este projeto. Apenas o criador ou um Líder pode excluir.';
+    }
+  }
+  const fallback = { create: 'Erro ao criar projeto', update: 'Erro ao atualizar projeto', delete: 'Erro ao excluir projeto' }[action];
+  return `${fallback}: ${error?.message ?? 'erro desconhecido'}`;
 }
 ```
 
-Mantém o warning para o caso de candidateIds vazio.
-
-### Opção B — Adicionar policy de SELECT no cliente para o próprio cliente
-Permitir que `role=client` leia apenas os registros de `cliente` que ele tenha vínculo via `representante.user_id`. Mais correto conceitualmente, mas exige migration e amplia a superfície de exposição da tabela `cliente`.
-
-```sql
-CREATE POLICY "client_read_own_cliente" ON public.cliente
-FOR SELECT TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.representante r
-    WHERE r.id_cliente = cliente.id
-      AND r.user_id = auth.uid()
-      AND r.excluido = false
-  )
-);
+E nos `onError`:
+```ts
+toast.error(formatProjectError(error, 'create'));
 ```
 
-### Correção do ticket atual
-Após o fix, atualizar o ticket órfão para o cliente correto:
+## Fora de escopo
 
-```sql
-UPDATE tickets
-SET cliente_id = '18cbce75-df5a-486b-8e25-d4939995b955'
-WHERE id = '3938bcc9-aed2-4caa-a42a-08a4328c66dd';
-```
-
-(E rodar o auto-resolve de cluster/área se aplicável.)
-
-### Limpeza opcional
-Remover o registro duplicado de Aline em `representante` (manter apenas o e-mail correto `aline.deon@paiolmt.com.br`).
-
----
-
-**Recomendo Opção A + correção do ticket atual.** Confirma?
+- Não alterar a UI (botões/permissões) — fica para outro plano.
+- Não alterar policies do banco.
+- Padrão pode ser replicado em outros hooks depois, mas este plano cobre apenas `useOrgProjects.ts`.
