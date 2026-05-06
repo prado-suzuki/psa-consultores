@@ -25,17 +25,12 @@ export interface Area {
   cost_center_id: string | null;
 }
 
-export interface AreaLider {
-  id: string;
-  area_id: string;
-  user_id: string;
-}
-
 export interface Equipe {
   id: string;
   area_id: string;
   name: string;
   is_active: boolean;
+  gestor_id: string | null;
 }
 
 export interface EquipeMembro {
