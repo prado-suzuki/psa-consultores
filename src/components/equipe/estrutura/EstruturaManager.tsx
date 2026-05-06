@@ -312,7 +312,7 @@ export default function EstruturaManager() {
                                       const cc = centrosCusto.find(c => c.id === area.cost_center_id);
                                       ccLabel = cc ? `${cc.codigo} - ${cc.nome}` : null;
                                     } else {
-                                      ccLabel = getEmpresaCcLabel(cluster.empresa_id);
+                                      ccLabel = getCcLabel(cluster.cost_center_id);
                                     }
                                     return ccLabel ? (
                                       <Badge variant="secondary" className="text-xs ml-1">{area.cost_center_id ? 'CC:' : 'CC (herdado):'} {ccLabel}</Badge>
