@@ -100,26 +100,12 @@ export function useTeamRolesForProjects() {
   });
 }
 
-/** Membros filtrados por equipes de sublíderes selecionados */
-export function useSubliderTeamMembers(subliderIds: string[], enabled: boolean) {
+/** @deprecated sublider_id removido de estrutura_equipes; mantido como no-op para compatibilidade */
+export function useSubliderTeamMembers(_subliderIds: string[], _enabled: boolean) {
   return useQuery({
-    queryKey: ['sublider-team-members', subliderIds],
-    queryFn: async () => {
-      if (subliderIds.length === 0) return [];
-      const { data: teams, error: tErr } = await supabase
-        .from('estrutura_equipes')
-        .select('id')
-        .in('sublider_id', subliderIds);
-      if (tErr) throw tErr;
-      if (!teams?.length) return [];
-      const { data: members, error: mErr } = await supabase
-        .from('estrutura_equipe_membros')
-        .select('user_id')
-        .in('equipe_id', teams.map(t => t.id));
-      if (mErr) throw mErr;
-      return [...new Set((members || []).map(m => m.user_id))];
-    },
-    enabled,
+    queryKey: ['sublider-team-members-deprecated'],
+    queryFn: async () => [] as string[],
+    enabled: false,
   });
 }
 
