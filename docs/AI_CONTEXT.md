@@ -260,7 +260,7 @@ Roles são armazenadas **exclusivamente** em `public.user_roles` (tabela separad
 
 ```
 Clusters → Áreas → Equipes → Membros
-                 → Líderes (1:1 via estrutura_area_lideres)
+                 → Líderes (1:1 via estrutura_equipes.gestor_id)
 ```
 
 **Tabelas:**
@@ -268,14 +268,14 @@ Clusters → Áreas → Equipes → Membros
 - `estrutura_areas` — áreas de atuação (cluster_id, page_categories[], cost_center_id, color)
 - `estrutura_equipes` — equipes dentro de áreas (area_id, sublider_id)
 - `estrutura_equipe_membros` — membros de equipes (equipe_id, user_id)
-- `estrutura_area_lideres` — líder por área (area_id, user_id; relação 1:1)
+- `estrutura_equipes.gestor_id` — líder por área (area_id, user_id; relação 1:1)
 
 **Conexão Tax ↔ Estrutura:**
 `tax_areas.estrutura_area_id` → `estrutura_areas.id` (FK, ON DELETE SET NULL)
 
 - `cliente_clusters` — associação N:N entre `cliente` e `estrutura_clusters`
 
-Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_area_lideres`.
+Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estrutura_equipes` → `estrutura_equipe_membros` / `estrutura_equipes.gestor_id`.
 
 ---
 
@@ -293,7 +293,7 @@ Caminho de joins: `org_projects` → `tax_areas` → `estrutura_areas` → `estr
 ### 6.2 Tabelas-chave por domínio
 
 **Auth/Org:**
-`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_area_lideres`, `user_invitations` (criada, sem frontend)
+`profiles`, `user_roles`, `user_page_access`, `page_permissions`, `access_change_log`, `gestao_area_password`, `estrutura_clusters`, `estrutura_areas`, `estrutura_equipes`, `estrutura_equipe_membros`, `estrutura_equipes.gestor_id`, `user_invitations` (criada, sem frontend)
 
 **Tax/Fiscal:**
 `org_projects`, `org_project_members`, `tax_areas`, `area_servicos`, `servicos_prestados`, `fiscal_tasks`, `fiscal_task_comments`, `catalog_clients`, `audit_logs`
@@ -476,7 +476,7 @@ Fire-and-forget via Edge Functions (`sync-perdcomp`, `sync-cadastros`). Token de
 
 - Arquitetura: Frontend → Edge Function `notify-ticket` → webhook n8n → Gmail
 - Documento operacional: `docs/notificacoes-chamados.md`
-- O roteamento dos gestores da Área Fiscal é resolvido dinamicamente por `estrutura_areas` + `estrutura_area_lideres`
+- O roteamento dos gestores da Área Fiscal é resolvido dinamicamente por `estrutura_areas` + `estrutura_equipes.gestor_id`
 - Secret relevante: `N8N_WEBHOOK_URL`
 
 
