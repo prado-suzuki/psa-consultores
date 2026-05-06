@@ -134,13 +134,13 @@ export const useEstruturaMutations = () => {
 
   // ─── Cluster ──────────────────────────────────────────────────
   const saveCluster = useCallback(async (
-    form: { name: string; cost_center: string | null; empresa_id: string | null },
+    form: { name: string; nome_empresa: string | null; cnpj: string | null; cost_center_id: string | null },
     editing: Cluster | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
       const { error } = await supabase.from('estrutura_clusters')
-        .update({ name: form.name, cost_center: form.cost_center, empresa_id: form.empresa_id })
+        .update({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster atualizado');
@@ -149,12 +149,14 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
-          empresa_id: { old: editing.empresa_id, new: form.empresa_id },
+          nome_empresa: { old: editing.nome_empresa, new: form.nome_empresa },
+          cnpj: { old: editing.cnpj, new: form.cnpj },
+          cost_center_id: { old: editing.cost_center_id, new: form.cost_center_id },
         },
       });
     } else {
       const { data, error } = await supabase.from('estrutura_clusters')
-        .insert({ name: form.name, cost_center: form.cost_center, empresa_id: form.empresa_id })
+        .insert({ name: form.name, nome_empresa: form.nome_empresa, cnpj: form.cnpj, cost_center_id: form.cost_center_id })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Cluster criado');
