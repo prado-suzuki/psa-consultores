@@ -26,18 +26,25 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area para localizar arquivos do Sistema Publico de Escrituracao Digital, filtrar por contribuinte e periodo, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.",
     landingIcon: Receipt,
+<<<<<<< Updated upstream
     title: "CONSULTA SISTEMA PUBLICO DE ESCRITURACAO DIGITAL",
     subtitle: "Escolha a ferramenta de consulta, download ou analise das escrituracoes digitais.",
     heroEyebrow: "Area SPED",
     heroTitle: "Consulta Sistema Público de Escrituração Digital",
+=======
+    title: "CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE",
+    subtitle: "Ferramentas para consulta, download e analise dos SPEDs fiscais.",
+    heroEyebrow: "",
+    heroTitle: "CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE",
+>>>>>>> Stashed changes
     heroDescription:
-      "Use esta area para consultar arquivos do Sistema Publico de Escrituracao Digital, incluindo Escrituracao Fiscal Digital das Contribuicoes, EFD ICMS/IPI, Escrituracao Contabil Digital e Escrituracao Contabil Fiscal.",
+      "Use esta area para consultar arquivos da Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes), da Escrituracao Fiscal Digital do Imposto sobre Circulacao de Mercadorias e Servicos (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituracao Contabil Digital (ECD) e da Escrituracao Contabil Fiscal (ECF) no Sistema Publico de Escrituracao Digital (SPED).",
     heroIcon: LayoutGrid,
     options: [
       {
         badge: "Fiscal",
         description:
-          "Consulte arquivos da Escrituracao Fiscal Digital das Contribuicoes, revise creditos de PIS e COFINS por periodo e abra a analise detalhada dos blocos e registros.",
+          "Consulte arquivos da Escrituracao Fiscal Digital das Contribuicoes, revise creditos do Programa de Integracao Social (PIS) e da Contribuicao para o Financiamento da Seguridade Social (COFINS) por periodo e abra a analise detalhada dos blocos e registros.",
         highlights: [
           "Busca por cliente, contribuinte e periodo",
           "Download individual ou em lote",
@@ -54,7 +61,7 @@ export const DEV_HUBS: Record<
           "Consulte arquivos da Escrituracao Fiscal Digital do ICMS e do IPI, filtre por filial, acompanhe os valores apurados no periodo e exporte os arquivos selecionados.",
         highlights: [
           "Filtro adicional por filial",
-          "Leitura de ICMS e ICMS ST apurados",
+          "Leitura de ICMS e de ICMS por Substituicao Tributaria (ICMS ST) apurados",
           "Download, selecao em lote e analise por arquivo",
         ],
         icon: FileText,
@@ -98,18 +105,19 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area do levantamento de credito para parametrizar regras fiscais, apurar contribuicoes, reconciliar bases e revisar registros antes de consolidar o trabalho.",
     landingIcon: Calculator,
-    title: "LEVANTAMENTO PIS/COFINS",
-    subtitle: "Escolha a ferramenta de parametrizacao, apuracao, auditoria ou revisao do levantamento.",
-    heroEyebrow: "Area PIS/COFINS",
+    title:
+      "LEVANTAMENTO PROGRAMA DE INTEGRACAO SOCIAL (PIS) E CONTRIBUICAO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL (COFINS)",
+    subtitle: "Escolha a ferramenta de cadastro de regras, apuracao, analise cruzada e revisao de registros.",
+    heroEyebrow: "",
     heroTitle: "Levantamento PIS/COFINS",
     heroDescription:
-      "Use esta area para parametrizar e revisar creditos de Programa de Integracao Social (PIS) e Contribuicao para o Financiamento da Seguridade Social (COFINS), da regra fiscal ate a revisao final dos registros.",
+      "Use esta area para cadastrar regras, revisar apuracoes, comparar bases e corrigir registros relacionados ao Programa de Integracao Social (PIS) e a Contribuicao para o Financiamento da Seguridade Social (COFINS).",
     heroIcon: LayoutGrid,
     options: [
       {
         badge: "Regras",
         description:
-          "Mantenha a base de regras fiscais por NCM, setor, CST e base legal para definir quando a operacao permite credito das contribuicoes.",
+          "Cadastre a base de regras fiscais por NCM, setor, Codigo de Situacao Tributaria (CST) e base legal para definir quando a operacao permite credito das contribuicoes.",
         highlights: [
           "Cadastro de regras por NCM",
           "Filtro por setor e permissao de credito",
@@ -117,12 +125,12 @@ export const DEV_HUBS: Record<
         ],
         icon: Map,
         path: "/equipe/dev/mapa-ncm-pis-cofins",
-        title: DEV_NAV_LABELS.mapaNCMs,
+        title: "Mapa de Nomenclatura Comum do Mercosul (NCMs)",
       },
       {
         badge: "Apuracao",
         description:
-          "Consolide debitos, creditos, isencoes, exclusoes e rateios por periodo usando Escrituracao Fiscal Digital das Contribuicoes ou balancete importado.",
+          "Consolide debitos, creditos, isencoes, exclusoes e rateios por periodo usando a Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes) ou balancete importado.",
         highlights: [
           "Modo Cliente com EFD ou Prado com Balancete",
           "Abas de resumo, debitos, creditos e apuracao",
@@ -135,7 +143,7 @@ export const DEV_HUBS: Record<
       {
         badge: "Auditoria",
         description:
-          "Cruze balancete, Escrituracao Fiscal Digital das Contribuicoes, EFD ICMS e XMLs para localizar divergencias entre as bases fiscais e contabeis.",
+          "Cruze balancete, Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes), Escrituracao Fiscal Digital do Imposto sobre Circulacao de Mercadorias e Servicos (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI) e arquivos Extensible Markup Language (XML) para localizar divergencias entre as bases fiscais e contabeis.",
         highlights: [
           "Reconcilacao entre bases fiscais e contabeis",
           "Leitura por abas conforme a fonte comparada",
@@ -148,7 +156,7 @@ export const DEV_HUBS: Record<
       {
         badge: "Revisao",
         description:
-          "Revise registros da Escrituracao Fiscal Digital das Contribuicoes cruzando EFD e XML para preparar correcoes rastreaveis antes do ajuste.",
+          "Revise registros da Escrituracao Fiscal Digital das Contribuicoes cruzando a EFD Contribuicoes com arquivos XML para preparar correcoes rastreaveis antes do ajuste.",
         highlights: [
           "Analise por registro e por periodo",
           "Busca por descricao, chave e NCM",
@@ -156,7 +164,7 @@ export const DEV_HUBS: Record<
         ],
         icon: Wrench,
         path: "/equipe/dev/correcoes-sped",
-        title: DEV_NAV_LABELS.revisaoRegistrosEfd,
+        title: "Revisao de Registros da Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes)",
       },
     ],
   },
@@ -166,18 +174,18 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area para apurar saidas, revisar CFOP e substituicao tributaria e auditar a classificacao de produtos usada no processo de diferencial de aliquota.",
     landingIcon: Truck,
-    title: "ANALISE ICMS",
-    subtitle: "Escolha a ferramenta de apuracao ou auditoria das operacoes de ICMS.",
-    heroEyebrow: "Area ICMS",
+    title: "ANALISE DO IMPOSTO SOBRE CIRCULACAO DE MERCADORIAS E SERVICOS (ICMS)",
+    subtitle: "Ferramentas para analise do ICMS das saidas e para analise do diferencial de aliquota (DIFAL).",
+    heroEyebrow: "",
     heroTitle: "Analise ICMS",
     heroDescription:
-      "Use esta area para apurar o Imposto sobre Circulacao de Mercadorias e Servicos (ICMS) nas saidas e validar classificacoes usadas no calculo do diferencial de aliquota (DIFAL).",
+      "Use esta area para analisar as saidas de ICMS e validar classificacoes tributarias usadas no calculo do DIFAL.",
     heroIcon: LayoutGrid,
     options: [
       {
-        badge: "Apuracao",
+        badge: "Analise",
         description:
-          "Analise o Imposto sobre Circulacao de Mercadorias e Servicos das saidas por periodo com visoes de apuracao, CFOP, saidas e saidas com substituicao tributaria.",
+          "Analise as saidas por periodo com visoes de apuracao, Codigo Fiscal de Operacoes e Prestacoes (CFOP), saidas e saidas com substituicao tributaria.",
         highlights: [
           "Abas Apuracao, CFOP, Saidas e Saidas ST",
           "Leitura de apuracao, CFOP e saidas ST",
@@ -188,9 +196,9 @@ export const DEV_HUBS: Record<
         title: DEV_NAV_LABELS.icmsSaidas,
       },
       {
-        badge: "Auditoria",
+        badge: "Analise",
         description:
-          "Classifique produtos por NCM, acompanhe pendencias e validacoes em sessao e sincronize as decisoes tributarias do processo de diferencial de aliquota.",
+          "Classifique produtos por Nomenclatura Comum do Mercosul (NCM), acompanhe pendencias e validacoes em sessao e sincronize as decisoes tributarias do processo de DIFAL.",
         highlights: [
           "Sessao de trabalho com pendencias e validados",
           "Validacao por produto, NCM, CFOP e aliquota",
@@ -209,12 +217,12 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area com entradas separadas para a leitura analitica do painel e para a gestao operacional dos pedidos de restituicao, ressarcimento, reembolso e declaracao de compensacao.",
     landingIcon: BarChart3,
-    title: "PERDCOMP",
-    subtitle: "Escolha abaixo a ferramenta de analise ou a ferramenta operacional.",
-    heroEyebrow: "Area PERDCOMP",
+    title: "PEDIDO ELETRONICO DE RESTITUICAO, RESSARCIMENTO OU REEMBOLSO E DECLARACAO DE COMPENSACAO (PERDCOMP)",
+    subtitle: "Ferramentas para analise e controle do PERDCOMP.",
+    heroEyebrow: "",
     heroTitle: "PERDCOMP",
     heroDescription:
-      "Use esta area para acompanhar e controlar pedidos de restituicao, ressarcimento, reembolso e declaracao de compensacao.",
+      "Use esta area para analisar graficos, indicadores e fazer o controle do Pedido Eletronico de Restituicao, Ressarcimento ou Reembolso e Declaracao de Compensacao (PERDCOMP).",
     heroIcon: LayoutGrid,
     options: [
       {
