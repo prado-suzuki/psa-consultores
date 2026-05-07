@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
@@ -13,8 +13,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DashboardFilters } from '@/components/cliente/DashboardFilters';
-import { useClienteAtual } from '@/hooks/useClienteAtual';
+import { useClientDashboards } from '@/hooks/useClientDashboards';
 
 const statusConfig = {
   planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
@@ -56,24 +57,11 @@ const documentTypeOptions = [
   { value: 'document', label: 'Documento' },
 ];
 
-const LOOKER_REPORT_BASE =
-  'https://datastudio.google.com/embed/reporting/03e90f24-2933-4b35-8650-0f06d4b0b20e/page/p_ilwof7ab2d';
-
-// ID completo do parâmetro inclui o prefixo da data source no Looker Studio.
-const LOOKER_CLIENTE_PARAM_ID = 'ds60.id_cliente_param';
-
-function buildLookerSrc(clienteId: string | null | undefined) {
-  if (!clienteId) return LOOKER_REPORT_BASE;
-  const params = encodeURIComponent(
-    JSON.stringify({ [LOOKER_CLIENTE_PARAM_ID]: clienteId })
-  );
-  return `${LOOKER_REPORT_BASE}?params=${params}`;
-}
-
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { data: clienteAtualId, isLoading: isLoadingClienteAtual } = useClienteAtual();
+  const { data: dashboards = [], isLoading: isLoadingDashboards } = useClientDashboards();
+  const [selectedDashboardId, setSelectedDashboardId] = useState<string>('');
 
   // Filter states for Chamados
   const [ticketStatus, setTicketStatus] = useState<string>('__all__');
@@ -209,6 +197,23 @@ export default function ClienteDashboard() {
   const hasTicketFilters = ticketStatus !== '__all__' || !!ticketDateFrom || !!ticketDateTo;
   const hasProjectFilters = projectStatus !== '__all__' || !!projectDateFrom || !!projectDateTo;
   const hasDocFilters = docType !== '__all__' || !!docDateFrom || !!docDateTo;
+
+  // Auto-select the first dashboard once the list is loaded, or if the
+  // currently selected one disappears from the list.
+  useEffect(() => {
+    if (dashboards.length === 0) {
+      if (selectedDashboardId !== '') setSelectedDashboardId('');
+      return;
+    }
+    if (!dashboards.some((d) => d.id === selectedDashboardId)) {
+      setSelectedDashboardId(dashboards[0].id);
+    }
+  }, [dashboards, selectedDashboardId]);
+
+  const selectedDashboard = useMemo(
+    () => dashboards.find((d) => d.id === selectedDashboardId) ?? null,
+    [dashboards, selectedDashboardId]
+  );
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
@@ -523,27 +528,53 @@ export default function ClienteDashboard() {
 
             {/* Dashboards Tab */}
             <TabsContent value="dashboards" className="flex-1 mt-0">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
-                <p className="text-sm text-muted-foreground">Visualize seus relatórios interativos do Looker Studio</p>
+              <div className="mb-4 flex flex-wrap items-end justify-between gap-4">
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Visualize seus relatórios interativos do Looker Studio
+                  </p>
+                </div>
+                {dashboards.length > 0 && (
+                  <Select
+                    value={selectedDashboardId}
+                    onValueChange={setSelectedDashboardId}
+                  >
+                    <SelectTrigger className="w-[280px] h-9 text-sm bg-background">
+                      <SelectValue placeholder="Selecione um relatório" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-background">
+                      {dashboards.map((d) => (
+                        <SelectItem key={d.id} value={d.id}>
+                          {d.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
               </div>
-              {isLoadingClienteAtual ? (
+              {isLoadingDashboards ? (
                 <Card className="p-8">
                   <Skeleton className="h-[925px] w-full max-w-[1280px]" />
                 </Card>
-              ) : !clienteAtualId ? (
+              ) : dashboards.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">
-                    Não foi possível identificar o cliente vinculado ao seu usuário. Entre em contato com a PSA.
+                    Nenhum dashboard disponível para o seu usuário.
                   </p>
+                </Card>
+              ) : !selectedDashboard ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">Selecione um relatório para visualizar.</p>
                 </Card>
               ) : (
                 <Card className="overflow-auto p-0">
                   <iframe
-                    title="Looker Studio Dashboard"
+                    key={selectedDashboard.id}
+                    title={selectedDashboard.name}
                     width={1280}
                     height={925}
-                    src={buildLookerSrc(clienteAtualId)}
+                    src={selectedDashboard.url}
                     frameBorder={0}
                     style={{ border: 0, display: 'block' }}
                     allowFullScreen
