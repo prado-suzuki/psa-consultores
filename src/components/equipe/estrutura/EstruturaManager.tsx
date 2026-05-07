@@ -89,7 +89,8 @@ export default function EstruturaManager() {
   const { data: liderProfiles = [] } = useProfiles('lider');
   const { data: subliderProfiles = [] } = useProfiles('sublider');
   const { data: memberProfiles = [] } = useProfiles('team_member');
-  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles].filter(
+  const { data: adminProfiles = [] } = useProfiles('admin');
+  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles, ...adminProfiles].filter(
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
