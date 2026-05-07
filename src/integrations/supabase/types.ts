@@ -4975,6 +4975,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_view_org_project: {
+        Args: { _project_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_internal_users: {
         Args: never
         Returns: {
@@ -5045,6 +5049,11 @@ export type Database = {
       is_ticket_assigned_to: {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
+      }
+      user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
+      user_estrutura_equipe_ids: {
+        Args: { _user_id: string }
+        Returns: string[]
       }
     }
     Enums: {
