@@ -1,40 +1,38 @@
-# Visibilidade de projetos (RLS de `org_projects`)
+## Objetivo
 
-## Política atual (SELECT)
-- Admin/Líder: vê **todos** os projetos (via `has_role_or_higher('lider')`).
-- Team member/Sublíder: vê apenas se for membro do projeto, da área do projeto (`is_area_member`), responsável, líder ou criador.
-- Sublíder hoje **não tem** visibilidade ampliada por equipe.
+Na edge function `notify-ticket`, os e-mails que hoje vão para o "gestor" estão sendo enviados para o **líder** das equipes da Área Fiscal (`estrutura_equipes.gestor_id`). O correto é enviar para o **gestor de chamados da área** (`estrutura_areas.gestor_chamados_id`).
 
-## Política desejada
-- **Admin**: continua vendo tudo.
-- **Líder**: vê projetos onde **algum membro** do projeto pertence a uma das **áreas** do líder.
-- **Sublíder**: vê projetos onde **algum membro** do projeto pertence a uma das **equipes** do sublíder.
-- **Membro (team_member)**: vê projetos onde ele próprio está vinculado (`org_project_members`).
-- **Fallback mantido** para todos os internos: `responsible_id`, `leader_id` ou `created_by = auth.uid()` continuam concedendo visibilidade.
+## Payload enviado hoje (sem alteração)
 
-"Área do líder" = áreas em que o usuário aparece via `estrutura_equipe_membros → estrutura_equipes.area_id` ou como `estrutura_equipes.gestor_id`.
-"Equipe do sublíder" = equipes em que o usuário aparece em `estrutura_equipe_membros` ou como `gestor_id`.
+A função continua disparando **um único POST** para `N8N_WEBHOOK_URL` com a mesma estrutura:
 
-## Mudanças (migration)
+- `event_type`
+- `ticket_data`: `id`, `title`, `department`, `priority`, `description`, `cliente_nome`, `cliente_email`, `user_id`, `actor_name`, `replier_role`, `message_preview`, `assigned_to_name`, `dias_atraso`
+- `recipients[]`: `{ email, ticket_url, role }` com `role` ∈ `cliente | responsavel | gestor`
 
-1. Criar função `public.user_estrutura_area_ids(_user_id uuid) RETURNS SETOF uuid` (SECURITY DEFINER, STABLE) — une áreas via membros de equipe e gestores de equipe.
-2. Criar função `public.user_estrutura_equipe_ids(_user_id uuid) RETURNS SETOF uuid` (SECURITY DEFINER, STABLE).
-3. Criar função `public.can_view_org_project(_user_id uuid, _project_id uuid) RETURNS boolean` (SECURITY DEFINER, STABLE) com a lógica:
-   - admin → true
-   - se `is_project_member(_user_id, _project_id)` → true
-   - fallback: `responsible_id`/`leader_id`/`created_by` = `_user_id` (consultado em `org_projects`)
-   - se `has_role('lider')`: existe `org_project_members opm` JOIN estrutura tal que área do membro ∈ `user_estrutura_area_ids(_user_id)`
-   - se `has_role('sublider')`: idem para equipes ∈ `user_estrutura_equipe_ids(_user_id)`
-4. Substituir a policy `rls_org_projects_select` para usar `has_role('admin') OR can_view_org_project(auth.uid(), id)`.
+Nada disso muda — só **quem** recebe na role `gestor`.
 
-As policies de INSERT/UPDATE/DELETE permanecem inalteradas.
+## Mudança técnica
 
-## Impacto no frontend
-- Nenhuma mudança em código React necessária; `useOrgProjects` continua filtrando pelo que o RLS retornar.
-- `useProjectMemberAreas` continua agregando áreas para exibição (não afetado).
+Em `supabase/functions/notify-ticket/index.ts`, refatorar `getGestorRecipients` para:
 
-## Validação após aplicar
-- Logar como líder de uma área X: deve ver projetos cujos membros pertencem a X, mesmo sem `estrutura_area_id` setado no projeto.
-- Logar como sublíder de uma equipe Y: deve ver projetos cujos membros pertencem a Y; não deve ver projetos de outras equipes da mesma área.
-- Logar como team_member: vê apenas projetos em que está em `org_project_members` (ou é responsável/líder/criador).
-- Admin: vê tudo.
+1. Buscar em `estrutura_areas` onde `name = 'Área Fiscal'` AND `is_active = true` AND `gestor_chamados_id IS NOT NULL`.
+2. Coletar os `gestor_chamados_id` distintos.
+3. Buscar `email` em `profiles` para esses IDs.
+4. Montar `recipients` com `role: "gestor"` e `ticket_url = {PUBLISHED_URL}/gestao/chamados/{ticket_id}`.
+
+Remove o passo intermediário que ia para `estrutura_equipes.gestor_id`.
+
+## Eventos afetados
+
+Todos os que hoje incluem gestor: `ticket_created`, `ticket_replied`, `ticket_overdue`, `ticket_resolved`. (`ticket_assigned` não envia para gestor — segue igual.)
+
+## Documentação
+
+Atualizar `docs/notificacoes-chamados.md` na seção "Resolução dinâmica de gestores" e na tabela "Dependências no banco" para refletir que a fonte agora é `estrutura_areas.gestor_chamados_id`.
+
+## Fora de escopo
+
+- Estrutura do payload (mantida).
+- Roles, URLs e demais destinatários (cliente/responsavel) — sem mudança.
+- Outras áreas além de "Área Fiscal" — sem mudança.

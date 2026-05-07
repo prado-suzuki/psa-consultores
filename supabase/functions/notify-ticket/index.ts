@@ -29,24 +29,14 @@ async function getGestorRecipients(
 ): Promise<Recipient[]> {
   const { data: areas } = await supabase
     .from("estrutura_areas")
-    .select("id")
+    .select("gestor_chamados_id")
     .eq("name", "Área Fiscal")
-    .eq("is_active", true);
+    .eq("is_active", true)
+    .not("gestor_chamados_id", "is", null);
 
   if (!areas?.length) return [];
 
-  const areaIds = areas.map((a: { id: string }) => a.id);
-
-  const { data: equipes } = await supabase
-    .from("estrutura_equipes")
-    .select("gestor_id")
-    .in("area_id", areaIds)
-    .eq("is_active", true)
-    .not("gestor_id", "is", null);
-
-  if (!equipes?.length) return [];
-
-  const userIds = [...new Set(equipes.map((e: { gestor_id: string }) => e.gestor_id))];
+  const userIds = [...new Set(areas.map((a: { gestor_chamados_id: string }) => a.gestor_chamados_id))];
 
   const { data: profiles } = await supabase
     .from("profiles")
