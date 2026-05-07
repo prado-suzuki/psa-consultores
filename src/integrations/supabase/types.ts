@@ -1229,6 +1229,7 @@ export type Database = {
           color: string | null
           cost_center_id: string | null
           created_at: string
+          gestor_chamados_id: string | null
           id: string
           is_active: boolean
           name: string
@@ -1240,6 +1241,7 @@ export type Database = {
           color?: string | null
           cost_center_id?: string | null
           created_at?: string
+          gestor_chamados_id?: string | null
           id?: string
           is_active?: boolean
           name: string
@@ -1251,6 +1253,7 @@ export type Database = {
           color?: string | null
           cost_center_id?: string | null
           created_at?: string
+          gestor_chamados_id?: string | null
           id?: string
           is_active?: boolean
           name?: string
@@ -1270,6 +1273,20 @@ export type Database = {
             columns: ["cost_center_id"]
             isOneToOne: false
             referencedRelation: "centros_custo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_areas_gestor_chamados_id_fkey"
+            columns: ["gestor_chamados_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estrutura_areas_gestor_chamados_id_fkey"
+            columns: ["gestor_chamados_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
