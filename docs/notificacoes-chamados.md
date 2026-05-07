@@ -123,7 +123,6 @@ O workflow deve:
 
 | Tabela | Uso |
 |---|---|
-| `estrutura_areas` | Identifica a Área Fiscal pelo nome |
-| `estrutura_equipes` | Mapeia gestor(es) das equipes da área (gestor_id) |
+| `estrutura_areas` | Identifica a Área Fiscal e seu gestor de chamados (`gestor_chamados_id`) |
 | `profiles` | Obtém e-mail dos gestores e dos clientes |
 | `tickets` | Dados do chamado (título, departamento, prioridade, etc.) |
