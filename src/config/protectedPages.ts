@@ -169,7 +169,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/dev/consulta-sped',
-    page_name: 'Area Consulta SPED',
+    page_name: 'Area Consulta Sistema Público de Escrituração Digital',
     page_description: 'Area de acesso as consultas e analises do Sistema Publico de Escrituracao Digital',
     category: 'dev',
     requires_admin: false,
