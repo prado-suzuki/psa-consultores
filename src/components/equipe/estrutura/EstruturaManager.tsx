@@ -263,7 +263,11 @@ export default function EstruturaManager() {
             {clusterAreas.length === 0 ? (
               <p className="text-sm text-slate-400 italic">Nenhuma área neste cluster.</p>
             ) : (
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion
+                type="multiple"
+                className="space-y-2"
+                defaultValue={clusterAreas.length === 1 ? [clusterAreas[0].id] : []}
+              >
                 {clusterAreas.map(area => {
                   const areaEquipes = equipes.filter(e => e.area_id === area.id);
                   // Gestores das equipes da área (substitui o antigo "líder da área")
