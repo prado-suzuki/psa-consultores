@@ -46,12 +46,15 @@ export interface OrgProject {
   external_client_id: string | null;
   contribuinte_id: string | null;
   estrutura_area_id: string | null;
+  equipe_id: string | null;
+  is_multidisciplinar: boolean;
   objective: string | null;
   ordem_servico_id: string | null;
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
   area_ref?: { id: string; name: string } | null;
+  equipe_ref?: { id: string; name: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
   servico_contratado?: string | null;
@@ -74,6 +77,8 @@ export interface OrgProjectFormData {
   external_client_id: string;
   contribuinte_id?: string;
   estrutura_area_id: string;
+  equipe_id: string;
+  is_multidisciplinar: boolean;
   member_ids: string[];
   ordem_servico_id: string;
   servico_id: string;
@@ -99,7 +104,8 @@ export const useOrgProjects = () => {
           *,
           responsible:profiles!org_projects_responsible_id_fkey(id, first_name, last_name),
           leader:profiles!org_projects_leader_id_fkey(id, first_name, last_name),
-          area_ref:estrutura_areas!org_projects_estrutura_area_id_fkey(id, name)
+          area_ref:estrutura_areas!org_projects_estrutura_area_id_fkey(id, name),
+          equipe_ref:estrutura_equipes!org_projects_equipe_id_fkey(id, name)
         `)
         .order('name');
       if (error) throw error;
@@ -162,6 +168,8 @@ export const useOrgProjects = () => {
 
       return (data || []).map(p => ({
         ...p,
+        // is_multidisciplinar ainda ausente do schema tipado gerado — coerce a boolean
+        is_multidisciplinar: !!(p as { is_multidisciplinar?: boolean }).is_multidisciplinar,
         external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
         contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
         servico_contratado: p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null,
@@ -176,7 +184,7 @@ export const useOrgProjectsList = (onlyActive = true) => {
   return useQuery({
     queryKey: ['org-projects-list', onlyActive],
     queryFn: async () => {
-      let query = supabase.from('org_projects').select('id, name, external_client_id, estrutura_area_id').order('name');
+      let query = supabase.from('org_projects').select('id, name, external_client_id, estrutura_area_id, equipe_id').order('name');
       if (onlyActive) query = query.in('status', ['active', 'planned']);
       const { data, error } = await query;
       if (error) throw error;
@@ -256,10 +264,13 @@ export const useCreateOrgProject = () => {
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
+        equipe_id: data.equipe_id || null,
+        is_multidisciplinar: data.is_multidisciplinar,
         ordem_servico_id: data.ordem_servico_id || null,
         servico_id: data.servico_id || null,
         created_by: user?.id || null,
-      }).select('id').single();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
+      } as any).select('id').single();
       if (error) throw error;
 
       // Insert project members
@@ -307,6 +318,8 @@ export const useUpdateOrgProject = () => {
         ['start_date', oldProject.start_date || null, data.start_date || null],
         ['end_date', oldProject.end_date || null, data.end_date || null],
         ['estrutura_area_id', oldProject.estrutura_area_id || null, data.estrutura_area_id || null],
+        ['equipe_id', oldProject.equipe_id || null, data.equipe_id || null],
+        ['is_multidisciplinar', !!oldProject.is_multidisciplinar, !!data.is_multidisciplinar],
         ['description', oldProject.description || null, data.description || null],
         ['responsible_id', oldProject.responsible_id || null, data.responsible_id || null],
         ['leader_id', oldProject.leader_id || null, data.leader_ids[0] || null],
@@ -338,9 +351,12 @@ export const useUpdateOrgProject = () => {
         external_client_id: data.external_client_id || null,
         contribuinte_id: data.contribuinte_id || null,
         estrutura_area_id: data.estrutura_area_id || null,
+        equipe_id: data.equipe_id || null,
+        is_multidisciplinar: data.is_multidisciplinar,
         ordem_servico_id: data.ordem_servico_id || null,
         servico_id: data.servico_id || null,
-      }).eq('id', id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
+      } as any).eq('id', id);
       if (error) throw error;
 
       // Upsert project members + remove stale ones

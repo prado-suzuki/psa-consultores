@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { Plus, Pencil, Trash2, FolderKanban, User, Users, Building2, FileText, Calendar, Check, ChevronsUpDown, UsersRound, Filter, X, ArrowUpDown, ArrowUp, ArrowDown, Crown, ChevronDown, ChevronRight, Layers } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -58,7 +58,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
-import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import {
   useOrgProjects,
   useProjectMembers,
@@ -68,7 +67,11 @@ import {
   useDeleteOrgProject,
   OrgProject,
 } from '@/hooks/useOrgProjects';
-import { useEstruturaArea } from '@/hooks/useEstruturaArea';
+import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
+import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
+import { useTeamMembersByArea } from '@/hooks/useTeamMembersByArea';
+import { useProjectMemberAreas } from '@/hooks/useProjectMemberAreas';
+import { Switch } from '@/components/ui/switch';
 
 const emptyForm = {
   name: '',
@@ -80,6 +83,8 @@ const emptyForm = {
   responsible_id: '',
   external_client_id: '',
   estrutura_area_id: '',
+  equipe_id: '',
+  is_multidisciplinar: false,
   member_ids: [] as string[],
   ordem_servico_id: '',
   servico_id: '',
@@ -96,14 +101,15 @@ const FiscalProjetosCadastro = () => {
   const [filterStatus, setFilterStatus] = useState('');
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'area'>('none');
+  const [groupBy, setGroupBy] = useState<'none' | 'cliente' | 'equipe' | 'area'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const isOpeningEditRef = useRef(false);
 
   // ── Hooks centralizados ──────────────────────────────────────────────
-  const { data: estruturaAreas = [] } = useEstruturaAreas('tax');
+  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory('tax');
   const { data: projects = [], isLoading } = useOrgProjects();
   const { data: projectHours = {} } = useProjectHours();
+  const { data: projectMemberAreas = {} } = useProjectMemberAreas();
 
   // Fetch OS products for listing table (all projects' ordem_servico_id)
   const listingOsIds = useMemo(() => {
@@ -136,8 +142,8 @@ const FiscalProjetosCadastro = () => {
       case 'produto': return project.servico_contratado || '';
       case 'servico': return project.servico_nome || '';
       case 'cliente': return project.external_client?.nome || '';
-      case 'area': return project.area_ref?.name || '';
-      case 'equipe': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
+      case 'equipe': return project.equipe_ref?.name || '';
+      case 'pessoas': return project.responsible ? `${project.responsible.first_name} ${project.responsible.last_name}` : '';
       case 'status': return project.status || '';
       default: return '';
     }
@@ -190,9 +196,18 @@ const FiscalProjetosCadastro = () => {
       if (groupBy === 'cliente') {
         key = p.external_client_id || '__none__';
         label = p.external_client?.nome || 'Sem cliente';
+      } else if (groupBy === 'area') {
+        const memberAreas = projectMemberAreas[p.id];
+        if (memberAreas && memberAreas.names.length > 0) {
+          key = memberAreas.ids.join('|');
+          label = memberAreas.names.join(' + ');
+        } else {
+          key = '__none__';
+          label = 'Sem área';
+        }
       } else {
-        key = p.estrutura_area_id || '__none__';
-        label = p.area_ref?.name || 'Sem área';
+        key = p.equipe_id || '__none__';
+        label = p.equipe_ref?.name || 'Sem equipe';
       }
       if (!map.has(key)) map.set(key, { label, projects: [] });
       map.get(key)!.projects.push(p);
@@ -203,7 +218,7 @@ const FiscalProjetosCadastro = () => {
       if (aIsNone !== bIsNone) return aIsNone ? 1 : -1;
       return a.label.localeCompare(b.label, 'pt-BR');
     });
-  }, [filteredProjects, groupBy]);
+  }, [filteredProjects, groupBy, projectMemberAreas]);
 
   useEffect(() => {
     setCollapsedGroups(new Set());
@@ -222,12 +237,55 @@ const FiscalProjetosCadastro = () => {
   };
   const { data: currentProjectMembers = [] } = useProjectMembers(editingProject?.id);
 
-  const estruturaAreaId = formData.estrutura_area_id || null;
+  const equipeId = formData.equipe_id || null;
 
   const {
-    liderIds: areaLiderIds,
-    memberIds: areaMemberIds,
-  } = useEstruturaArea(estruturaAreaId);
+    equipeInfo,
+    liderIds: equipeLiderIds,
+    memberIds: equipeMemberIds,
+  } = useEstruturaEquipe(equipeId);
+
+  // Auto-derive estrutura_area_id from selected equipe to keep backwards-compat
+  useEffect(() => {
+    const newAreaId = equipeInfo?.area_id || '';
+    if (newAreaId && newAreaId !== formData.estrutura_area_id) {
+      setFormData(prev => ({ ...prev, estrutura_area_id: newAreaId }));
+    }
+  }, [equipeInfo?.area_id]);
+
+  const { data: areaGroupsData } = useTeamMembersByArea();
+  const allAreaGroups = areaGroupsData?.groups || [];
+  const currentUserAreaIds = useMemo(
+    () => areaGroupsData?.currentUserAreaIds || [],
+    [areaGroupsData]
+  );
+
+  const [collapsedAreaGroups, setCollapsedAreaGroups] = useState<Set<string>>(new Set());
+  const collapsedInitializedRef = useRef(false);
+  const [memberSearch, setMemberSearch] = useState('');
+
+  useEffect(() => {
+    if (collapsedInitializedRef.current) return;
+    if (!areaGroupsData || areaGroupsData.groups.length === 0) return;
+    collapsedInitializedRef.current = true;
+    const userSet = new Set(areaGroupsData.currentUserAreaIds);
+    setCollapsedAreaGroups(
+      new Set(
+        areaGroupsData.groups
+          .filter(g => !userSet.has(g.area_id))
+          .map(g => g.area_id)
+      )
+    );
+  }, [areaGroupsData]);
+
+  const toggleAreaGroup = (areaId: string) => {
+    setCollapsedAreaGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(areaId)) next.delete(areaId);
+      else next.add(areaId);
+      return next;
+    });
+  };
 
   const createProject = useCreateOrgProject();
   const updateProject = useUpdateOrgProject();
@@ -339,29 +397,29 @@ const FiscalProjetosCadastro = () => {
     }));
   }, [selectedOsId]);
 
-  // Track previous estrutura_area_id to detect user-driven changes
-  const [prevAreaId, setPrevAreaId] = useState('');
+  // Track previous equipe_id to detect user-driven changes
+  const [prevEquipeId, setPrevEquipeId] = useState('');
 
-  // Clear fields when area changes by user action
+  // Clear fields when equipe changes by user action
   useEffect(() => {
-    if (prevAreaId && formData.estrutura_area_id && prevAreaId !== formData.estrutura_area_id) {
+    if (prevEquipeId && formData.equipe_id && prevEquipeId !== formData.equipe_id) {
       setFormData(prev => ({ ...prev, leader_ids: [], member_ids: [] }));
     }
-    setPrevAreaId(formData.estrutura_area_id);
-  }, [formData.estrutura_area_id]);
+    setPrevEquipeId(formData.equipe_id);
+  }, [formData.equipe_id]);
 
-  // Auto-fill leader when area has exactly 1 leader (only on create)
+  // Auto-fill leader when equipe has exactly 1 gestor (only on create)
   useEffect(() => {
-    if (!estruturaAreaId || editingProject) return;
-    if (areaLiderIds.length === 1) {
+    if (!equipeId || editingProject) return;
+    if (equipeLiderIds.length === 1) {
       setFormData(prev => {
         if (prev.leader_ids.length === 0) {
-          return { ...prev, leader_ids: [areaLiderIds[0]] };
+          return { ...prev, leader_ids: [equipeLiderIds[0]] };
         }
         return prev;
       });
     }
-  }, [estruturaAreaId, areaLiderIds, editingProject]);
+  }, [equipeId, equipeLiderIds, editingProject]);
 
   // When editing, load current members
   useEffect(() => {
@@ -383,17 +441,17 @@ const FiscalProjetosCadastro = () => {
     }
   }, [editingProject, currentProjectMembers, userRoles]);
 
-  // Filtered lists based on roles + area structure
+  // Filtered lists based on roles + equipe structure
   const lideres = useMemo(() => {
     const liderIds = userRoles.filter(r => r.role === 'lider').map(r => r.user_id);
     const allLideres = teamMembers.filter(m => liderIds.includes(m.id));
-    if (estruturaAreaId && areaLiderIds.length > 0) {
+    if (equipeId && equipeLiderIds.length > 0) {
       const selectedSet = new Set(formData.leader_ids);
-      const filtered = allLideres.filter(m => areaLiderIds.includes(m.id) || selectedSet.has(m.id));
+      const filtered = allLideres.filter(m => equipeLiderIds.includes(m.id) || selectedSet.has(m.id));
       return filtered.length > 0 ? filtered : allLideres;
     }
     return allLideres;
-  }, [teamMembers, userRoles, formData.estrutura_area_id, areaLiderIds, formData.leader_ids]);
+  }, [teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids]);
 
   // Executores: only team_member or sublider (never lider/admin)
   const executores = useMemo(() => {
@@ -406,13 +464,13 @@ const FiscalProjetosCadastro = () => {
       if (excludedRoles.has(role)) return false;
       return allowedRoles.has(role);
     });
-    if (estruturaAreaId && areaMemberIds.length > 0) {
-      const areaSet = new Set(areaMemberIds);
-      const filtered = eligible.filter(m => areaSet.has(m.id) || m.id === formData.responsible_id);
+    if (equipeId && equipeMemberIds.length > 0) {
+      const equipeSet = new Set(equipeMemberIds);
+      const filtered = eligible.filter(m => equipeSet.has(m.id) || m.id === formData.responsible_id);
       return filtered.length > 0 ? filtered : eligible;
     }
     return eligible;
-  }, [teamMembers, userRoles, estruturaAreaId, areaMemberIds, formData.responsible_id]);
+  }, [teamMembers, userRoles, equipeId, equipeMemberIds, formData.responsible_id]);
 
   const handleOpenModal = (project?: any) => {
     if (project) {
@@ -429,6 +487,8 @@ const FiscalProjetosCadastro = () => {
         responsible_id: project.responsible_id || '',
         external_client_id: project.external_client_id || '',
         estrutura_area_id: project.estrutura_area_id || '',
+        equipe_id: project.equipe_id || '',
+        is_multidisciplinar: !!project.is_multidisciplinar,
         member_ids: [],
         ordem_servico_id: project.ordem_servico_id || '',
         servico_id: (project as any).servico_id || '',
@@ -459,8 +519,8 @@ const FiscalProjetosCadastro = () => {
       toast.error('Nome é obrigatório');
       return;
     }
-    if (!formData.estrutura_area_id) {
-      toast.error('Selecione a Área');
+    if (!formData.equipe_id) {
+      toast.error('Selecione a Equipe');
       return;
     }
     if (!formData.status) {
@@ -550,8 +610,8 @@ const FiscalProjetosCadastro = () => {
     }
   };
 
-  const getAreaLabel = (project: any) => {
-    if (project.area_ref) return project.area_ref.name;
+  const getEquipeLabel = (project: any) => {
+    if (project.equipe_ref) return project.equipe_ref.name;
     return '-';
   };
 
@@ -559,17 +619,41 @@ const FiscalProjetosCadastro = () => {
     const excludeIds = new Set(formData.leader_ids);
     const selectedSet = new Set(formData.member_ids);
 
-    if (estruturaAreaId) {
-      if (areaMemberIds.length === 0 && selectedSet.size === 0) return [];
+    if (formData.is_multidisciplinar) {
+      // Show all internal users (deduplicated across area groups)
+      const all = new Map<string, { id: string; first_name: string; last_name: string }>();
+      for (const g of allAreaGroups) {
+        for (const m of g.members) all.set(m.id, m);
+      }
+      return [...all.values()].filter(m => !excludeIds.has(m.id));
+    }
+
+    if (equipeId) {
+      if (equipeMemberIds.length === 0 && selectedSet.size === 0) return [];
       return teamMembers.filter(
-        m => !excludeIds.has(m.id) && (areaMemberIds.includes(m.id) || selectedSet.has(m.id))
+        m => !excludeIds.has(m.id) && (equipeMemberIds.includes(m.id) || selectedSet.has(m.id))
       );
     }
 
-    // No area selected — show only already-selected members
+    // No equipe selected — show only already-selected members
     if (selectedSet.size === 0) return [];
     return teamMembers.filter(m => !excludeIds.has(m.id) && selectedSet.has(m.id));
-  }, [teamMembers, formData.leader_ids, formData.member_ids, estruturaAreaId, areaMemberIds]);
+  }, [teamMembers, formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, equipeId, equipeMemberIds, allAreaGroups]);
+
+  // Area groups filtered for the multidisciplinar selector
+  const availableMembersByArea = useMemo(() => {
+    if (!formData.is_multidisciplinar) return [];
+    const excludeIds = new Set(formData.leader_ids);
+    return allAreaGroups
+      .map(g => ({
+        ...g,
+        members: g.members.filter(m => !excludeIds.has(m.id)),
+        equipes: g.equipes
+          .map(e => ({ ...e, members: e.members.filter(m => !excludeIds.has(m.id)) }))
+          .filter(e => e.members.length > 0),
+      }))
+      .filter(g => g.members.length > 0);
+  }, [formData.is_multidisciplinar, formData.leader_ids, allAreaGroups]);
 
   return (
     <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
@@ -636,7 +720,7 @@ const FiscalProjetosCadastro = () => {
             </SelectContent>
           </Select>
 
-          <Select value={groupBy} onValueChange={v => setGroupBy(v as 'none' | 'cliente' | 'area')}>
+          <Select value={groupBy} onValueChange={v => setGroupBy(v as 'none' | 'cliente' | 'equipe' | 'area')}>
             <SelectTrigger className="w-48">
               <Layers className="h-4 w-4 mr-2 text-muted-foreground" />
               <SelectValue placeholder="Agrupar por" />
@@ -644,6 +728,7 @@ const FiscalProjetosCadastro = () => {
             <SelectContent>
               <SelectItem value="none">Sem agrupamento</SelectItem>
               <SelectItem value="cliente">Agrupar por Cliente</SelectItem>
+              <SelectItem value="equipe">Agrupar por Equipe</SelectItem>
               <SelectItem value="area">Agrupar por Área</SelectItem>
             </SelectContent>
           </Select>
@@ -673,11 +758,11 @@ const FiscalProjetosCadastro = () => {
                 <TableHead style={{ width: '11%' }} className="cursor-pointer select-none" onClick={() => handleSort('cliente')}>
                   <div className="flex items-center">Cliente<SortIcon column="cliente" /></div>
                 </TableHead>
-                <TableHead style={{ width: '8%' }} className="cursor-pointer select-none" onClick={() => handleSort('area')}>
-                  <div className="flex items-center">Área<SortIcon column="area" /></div>
-                </TableHead>
-                <TableHead style={{ width: '9%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
+                <TableHead style={{ width: '8%' }} className="cursor-pointer select-none" onClick={() => handleSort('equipe')}>
                   <div className="flex items-center">Equipe<SortIcon column="equipe" /></div>
+                </TableHead>
+                <TableHead style={{ width: '9%' }} className="cursor-pointer select-none" onClick={() => handleSort('pessoas')}>
+                  <div className="flex items-center">Pessoas<SortIcon column="pessoas" /></div>
                 </TableHead>
                 <TableHead style={{ width: '7%' }} className="cursor-pointer select-none whitespace-nowrap" onClick={() => handleSort('status')}>
                   <div className="flex items-center">Status<SortIcon column="status" /></div>
@@ -722,7 +807,7 @@ const FiscalProjetosCadastro = () => {
                   )}
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
-                  <span className="text-sm">{getAreaLabel(project)}</span>
+                  <span className="text-sm">{getEquipeLabel(project)}</span>
                 </TableCell>
                 <TableCell
                   title={[
@@ -1042,20 +1127,30 @@ const FiscalProjetosCadastro = () => {
                   />
                 </div>
 
-                {/* Área + Status */}
+                {/* Equipe + Status */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Área *</Label>
+                    <Label>Equipe *</Label>
                     <Select
-                      value={formData.estrutura_area_id}
-                      onValueChange={(value) => setFormData({ ...formData, estrutura_area_id: value })}
+                      value={formData.equipe_id}
+                      onValueChange={(value) => {
+                        const eq = equipesOptions.find(e => e.id === value);
+                        setFormData(prev => ({
+                          ...prev,
+                          equipe_id: value,
+                          estrutura_area_id: eq?.area_id || prev.estrutura_area_id,
+                        }));
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a área" />
+                        <SelectValue placeholder="Selecione a equipe" />
                       </SelectTrigger>
                       <SelectContent>
-                        {estruturaAreas.map(area => (
-                          <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                        {equipesOptions.map(eq => (
+                          <SelectItem key={eq.id} value={eq.id}>
+                            {eq.name}
+                            {eq.area_name ? <span className="text-xs text-muted-foreground ml-1">— {eq.area_name}</span> : null}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1188,10 +1283,26 @@ const FiscalProjetosCadastro = () => {
                   </Select>
                 </div>
 
+                {/* Toggle Multidisciplinar */}
+                <div className="flex items-center justify-between rounded-md border p-3">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm">Multidisciplinar</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Permite selecionar membros de qualquer equipe, agrupados por área.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.is_multidisciplinar}
+                    onCheckedChange={(checked) =>
+                      setFormData(prev => ({ ...prev, is_multidisciplinar: checked }))
+                    }
+                  />
+                </div>
+
                 <div>
                   <div className="flex items-center justify-between">
                     <Label>Membros do Projeto <span className="text-destructive">*</span></Label>
-                    {estruturaAreaId && areaMemberIds.length > 0 && (
+                    {!formData.is_multidisciplinar && equipeId && equipeMemberIds.length > 0 && (
                       <Button
                         type="button"
                         variant="ghost"
@@ -1199,7 +1310,7 @@ const FiscalProjetosCadastro = () => {
                         className="h-7 text-xs gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
                         onClick={() => {
                           const excludeIds = new Set(formData.leader_ids);
-                          const eligibleIds = areaMemberIds.filter(id => !excludeIds.has(id));
+                          const eligibleIds = equipeMemberIds.filter(id => !excludeIds.has(id));
                           setFormData(prev => ({
                             ...prev,
                             member_ids: [...new Set([...prev.member_ids, ...eligibleIds])],
@@ -1207,17 +1318,17 @@ const FiscalProjetosCadastro = () => {
                         }}
                       >
                         <UsersRound className="h-3.5 w-3.5" />
-                        Incluir todos da área
+                        Incluir todos da equipe
                       </Button>
                     )}
                   </div>
-                  {!estruturaAreaId && formData.member_ids.length === 0 ? (
+                  {!formData.is_multidisciplinar && !equipeId && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Selecione uma área para ver os membros disponíveis.
+                      Selecione uma equipe para ver os membros disponíveis.
                     </p>
-                  ) : estruturaAreaId && areaMemberIds.length === 0 && formData.member_ids.length === 0 ? (
+                  ) : !formData.is_multidisciplinar && equipeId && equipeMemberIds.length === 0 && formData.member_ids.length === 0 ? (
                     <p className="text-xs text-muted-foreground mt-1">
-                      Nenhum membro encontrado na estrutura desta área.
+                      Nenhum membro encontrado nesta equipe.
                     </p>
                   ) : (
                     <Popover>
@@ -1242,37 +1353,126 @@ const FiscalProjetosCadastro = () => {
                       </PopoverTrigger>
                       <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                         <Command>
-                          <CommandInput placeholder="Buscar membro..." />
+                          <CommandInput
+                            placeholder="Buscar membro..."
+                            value={memberSearch}
+                            onValueChange={setMemberSearch}
+                          />
                           <CommandList>
                             <CommandEmpty>Nenhum membro encontrado.</CommandEmpty>
-                            <CommandGroup>
-                              <CommandItem
-                                value="__select_all__"
-                                onSelect={() => {
-                                  const allIds = availableMembers.map(m => m.id);
-                                  const allSelected = allIds.every(id => formData.member_ids.includes(id));
-                                  if (allSelected) {
-                                    const removeIds = new Set(allIds);
-                                    setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
-                                  } else {
-                                    setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...allIds])] }));
-                                  }
-                                }}
-                              >
-                                <Check className={`mr-2 h-4 w-4 ${availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id)) ? 'opacity-100' : 'opacity-0'}`} />
-                                <span className="font-medium">Selecionar todos</span>
-                              </CommandItem>
-                              {availableMembers.map(member => (
+                            {formData.is_multidisciplinar ? (
+                              availableMembersByArea.map(group => {
+                                const hasSearch = memberSearch.trim().length > 0;
+                                const isCollapsed = collapsedAreaGroups.has(group.area_id) && !hasSearch;
+                                const allSelectedInGroup = group.members.length > 0 && group.members.every(m => formData.member_ids.includes(m.id));
+                                return (
+                                  <CommandGroup key={group.area_id}>
+                                    <CommandItem
+                                      value={`__area_header_${group.area_id}__ ${group.area_name} ${group.cluster_name}`}
+                                      onSelect={() => toggleAreaGroup(group.area_id)}
+                                      className="bg-muted/40 data-[selected=true]:bg-muted font-semibold"
+                                    >
+                                      {isCollapsed
+                                        ? <ChevronRight className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
+                                        : <ChevronDown className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />}
+                                      <span className="flex-1 truncate">{group.area_name}</span>
+                                      {group.cluster_name && (
+                                        <span className="ml-2 text-xs font-normal text-muted-foreground truncate">
+                                          {group.cluster_name}
+                                        </span>
+                                      )}
+                                      <Badge variant="secondary" className="ml-2 text-xs">
+                                        {group.members.length}
+                                      </Badge>
+                                    </CommandItem>
+                                    {!isCollapsed && (
+                                      <>
+                                        <CommandItem
+                                          value={`__select_all_area_${group.area_id}__`}
+                                          onSelect={() => {
+                                            const ids = group.members.map(m => m.id);
+                                            const allSelected = ids.every(id => formData.member_ids.includes(id));
+                                            if (allSelected) {
+                                              const removeIds = new Set(ids);
+                                              setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
+                                            } else {
+                                              setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...ids])] }));
+                                            }
+                                          }}
+                                          className="pl-6"
+                                        >
+                                          <Check className={`mr-2 h-4 w-4 ${allSelectedInGroup ? 'opacity-100' : 'opacity-0'}`} />
+                                          <span className="font-medium">Selecionar todos da área</span>
+                                        </CommandItem>
+                                        {hasSearch || group.equipes.length <= 1 ? (
+                                          group.members.map(member => (
+                                            <CommandItem
+                                              key={`${group.area_id}-${member.id}`}
+                                              value={`${member.first_name} ${member.last_name} ${group.area_name}`}
+                                              onSelect={() => handleMemberToggle(member.id)}
+                                              className="pl-6"
+                                            >
+                                              <Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                              {member.first_name} {member.last_name}
+                                            </CommandItem>
+                                          ))
+                                        ) : (
+                                          group.equipes.map((equipe, idx) => (
+                                            <Fragment key={equipe.equipe_id}>
+                                              <div
+                                                className={`px-2 ${idx === 0 ? 'pt-1' : 'pt-2'} pb-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground/70 border-t border-border/40 ${idx === 0 ? 'border-t-0' : ''}`}
+                                              >
+                                                {equipe.equipe_name}
+                                              </div>
+                                              {equipe.members.map(member => (
+                                                <CommandItem
+                                                  key={`${group.area_id}-${equipe.equipe_id}-${member.id}`}
+                                                  value={`${member.first_name} ${member.last_name} ${group.area_name} ${equipe.equipe_name}`}
+                                                  onSelect={() => handleMemberToggle(member.id)}
+                                                  className="pl-6"
+                                                >
+                                                  <Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                                  {member.first_name} {member.last_name}
+                                                </CommandItem>
+                                              ))}
+                                            </Fragment>
+                                          ))
+                                        )}
+                                      </>
+                                    )}
+                                  </CommandGroup>
+                                );
+                              })
+                            ) : (
+                              <CommandGroup>
                                 <CommandItem
-                                  key={member.id}
-                                  value={`${member.first_name} ${member.last_name}`}
-                                  onSelect={() => handleMemberToggle(member.id)}
+                                  value="__select_all__"
+                                  onSelect={() => {
+                                    const allIds = availableMembers.map(m => m.id);
+                                    const allSelected = allIds.every(id => formData.member_ids.includes(id));
+                                    if (allSelected) {
+                                      const removeIds = new Set(allIds);
+                                      setFormData(prev => ({ ...prev, member_ids: prev.member_ids.filter(id => !removeIds.has(id)) }));
+                                    } else {
+                                      setFormData(prev => ({ ...prev, member_ids: [...new Set([...prev.member_ids, ...allIds])] }));
+                                    }
+                                  }}
                                 >
-                                  <Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
-                                  {member.first_name} {member.last_name}
+                                  <Check className={`mr-2 h-4 w-4 ${availableMembers.length > 0 && availableMembers.every(m => formData.member_ids.includes(m.id)) ? 'opacity-100' : 'opacity-0'}`} />
+                                  <span className="font-medium">Selecionar todos</span>
                                 </CommandItem>
-                              ))}
-                            </CommandGroup>
+                                {availableMembers.map(member => (
+                                  <CommandItem
+                                    key={member.id}
+                                    value={`${member.first_name} ${member.last_name}`}
+                                    onSelect={() => handleMemberToggle(member.id)}
+                                  >
+                                    <Check className={`mr-2 h-4 w-4 ${formData.member_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />
+                                    {member.first_name} {member.last_name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            )}
                           </CommandList>
                         </Command>
                       </PopoverContent>
