@@ -30,7 +30,7 @@ async function getGestorRecipients(
   const { data: areas } = await supabase
     .from("estrutura_areas")
     .select("gestor_chamados_id")
-    .eq("name", "Área Fiscal")
+    .eq("name", "Tax")
     .eq("is_active", true)
     .not("gestor_chamados_id", "is", null);
 
