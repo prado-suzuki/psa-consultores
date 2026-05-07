@@ -449,7 +449,7 @@ const FiscalDashboard = () => {
                 onClick={() => { handleClearFilters(); setFilterUrgency('overdue'); }}
                 className="h-7 text-[11px] border-red-200 text-red-700 hover:bg-red-50"
               >
-                🔴 Apenas atrasadas
+                Apenas atrasadas
               </Button>
               <Button
                 size="sm"
@@ -457,7 +457,7 @@ const FiscalDashboard = () => {
                 onClick={() => { handleClearFilters(); setFilterUrgency('next_7'); }}
                 className="h-7 text-[11px] border-amber-200 text-amber-700 hover:bg-amber-50"
               >
-                📅 Próximos 7 dias
+                Próximos 7 dias
               </Button>
               <Button
                 size="sm"
@@ -465,7 +465,7 @@ const FiscalDashboard = () => {
                 onClick={() => { handleClearFilters(); setFilterTaskStatus('in_progress'); }}
                 className="h-7 text-[11px] border-blue-200 text-blue-700 hover:bg-blue-50"
               >
-                ⚡ Em progresso
+                Em progresso
               </Button>
               <Button
                 size="sm"
@@ -473,7 +473,7 @@ const FiscalDashboard = () => {
                 onClick={() => { handleClearFilters(); setFilterProjectStatus('active'); setFilterTaskStatus('todo'); }}
                 className="h-7 text-[11px] border-slate-200 text-slate-700 hover:bg-slate-50"
               >
-                📋 Backlog ativo
+                Backlog ativo
               </Button>
             </div>
           </CardContent>
