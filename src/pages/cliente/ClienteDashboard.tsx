@@ -10,10 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare, ArrowLeft, LayoutDashboard } from 'lucide-react';
 import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DashboardFilters } from '@/components/cliente/DashboardFilters';
+import { useClienteAtual } from '@/hooks/useClienteAtual';
 
 const statusConfig = {
   planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
@@ -51,14 +52,28 @@ const projectStatusOptions = [
 ];
 
 const documentTypeOptions = [
-  { value: 'dashboard', label: 'Dashboard' },
   { value: 'report', label: 'Relatório' },
   { value: 'document', label: 'Documento' },
 ];
 
+const LOOKER_REPORT_BASE =
+  'https://datastudio.google.com/embed/reporting/03e90f24-2933-4b35-8650-0f06d4b0b20e/page/p_ilwof7ab2d';
+
+// ID completo do parâmetro inclui o prefixo da data source no Looker Studio.
+const LOOKER_CLIENTE_PARAM_ID = 'ds60.id_cliente_param';
+
+function buildLookerSrc(clienteId: string | null | undefined) {
+  if (!clienteId) return LOOKER_REPORT_BASE;
+  const params = encodeURIComponent(
+    JSON.stringify({ [LOOKER_CLIENTE_PARAM_ID]: clienteId })
+  );
+  return `${LOOKER_REPORT_BASE}?params=${params}`;
+}
+
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const { data: clienteAtualId, isLoading: isLoadingClienteAtual } = useClienteAtual();
 
   // Filter states for Chamados
   const [ticketStatus, setTicketStatus] = useState<string>('__all__');
@@ -222,7 +237,7 @@ export default function ClienteDashboard() {
         <div className="flex-1 flex flex-col">
           {/* Tabs at the top */}
           <Tabs defaultValue="chamados" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-muted mb-6">
+            <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-muted mb-6">
               <TabsTrigger value="chamados" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
                 <FileText className="mr-2 h-4 w-4" />
                 Chamados
@@ -234,6 +249,10 @@ export default function ClienteDashboard() {
               <TabsTrigger value="documents" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Documentos
+              </TabsTrigger>
+              <TabsTrigger value="dashboards" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+                <LayoutDashboard className="mr-2 h-4 w-4" />
+                Dashboards
               </TabsTrigger>
             </TabsList>
 
@@ -498,6 +517,38 @@ export default function ClienteDashboard() {
                       ))}
                     </TableBody>
                   </Table>
+                </Card>
+              )}
+            </TabsContent>
+
+            {/* Dashboards Tab */}
+            <TabsContent value="dashboards" className="flex-1 mt-0">
+              <div className="mb-4">
+                <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
+                <p className="text-sm text-muted-foreground">Visualize seus relatórios interativos do Looker Studio</p>
+              </div>
+              {isLoadingClienteAtual ? (
+                <Card className="p-8">
+                  <Skeleton className="h-[925px] w-full max-w-[1280px]" />
+                </Card>
+              ) : !clienteAtualId ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">
+                    Não foi possível identificar o cliente vinculado ao seu usuário. Entre em contato com a PSA.
+                  </p>
+                </Card>
+              ) : (
+                <Card className="overflow-auto p-0">
+                  <iframe
+                    title="Looker Studio Dashboard"
+                    width={1280}
+                    height={925}
+                    src={buildLookerSrc(clienteAtualId)}
+                    frameBorder={0}
+                    style={{ border: 0, display: 'block' }}
+                    allowFullScreen
+                    sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                  />
                 </Card>
               )}
             </TabsContent>
