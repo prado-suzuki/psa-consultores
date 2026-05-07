@@ -26,17 +26,10 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area para localizar arquivos do Sistema Publico de Escrituracao Digital, filtrar por contribuinte e periodo, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.",
     landingIcon: Receipt,
-<<<<<<< Updated upstream
-    title: "CONSULTA SISTEMA PUBLICO DE ESCRITURACAO DIGITAL",
-    subtitle: "Escolha a ferramenta de consulta, download ou analise das escrituracoes digitais.",
-    heroEyebrow: "Area SPED",
-    heroTitle: "Consulta Sistema Público de Escrituração Digital",
-=======
     title: "CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE",
     subtitle: "Ferramentas para consulta, download e analise dos SPEDs fiscais.",
     heroEyebrow: "",
     heroTitle: "CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE",
->>>>>>> Stashed changes
     heroDescription:
       "Use esta area para consultar arquivos da Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes), da Escrituracao Fiscal Digital do Imposto sobre Circulacao de Mercadorias e Servicos (ICMS) e do Imposto sobre Produtos Industrializados (IPI) (EFD ICMS/IPI), da Escrituracao Contabil Digital (ECD) e da Escrituracao Contabil Fiscal (ECF) no Sistema Publico de Escrituracao Digital (SPED).",
     heroIcon: LayoutGrid,
