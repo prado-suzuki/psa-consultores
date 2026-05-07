@@ -64,7 +64,7 @@ export const useEstruturaAreas = () =>
   useQuery({
     queryKey: ['estrutura-areas'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_areas').select('*').order('name');
+      const { data, error } = await supabase.from('estrutura_areas').select('*').eq('is_active', true).order('name');
       if (error) throw error;
       return data as Area[];
     },
@@ -76,7 +76,7 @@ export const useEstruturaEquipes = () =>
   useQuery({
     queryKey: ['estrutura-equipes'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('estrutura_equipes').select('*').order('name');
+      const { data, error } = await supabase.from('estrutura_equipes').select('*').eq('is_active', true).order('name');
       if (error) throw error;
       return data as Equipe[];
     },

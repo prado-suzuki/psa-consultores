@@ -89,7 +89,8 @@ export default function EstruturaManager() {
   const { data: liderProfiles = [] } = useProfiles('lider');
   const { data: subliderProfiles = [] } = useProfiles('sublider');
   const { data: memberProfiles = [] } = useProfiles('team_member');
-  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles].filter(
+  const { data: adminProfiles = [] } = useProfiles('admin');
+  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles, ...adminProfiles].filter(
     (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
   );
 
@@ -263,7 +264,11 @@ export default function EstruturaManager() {
             {clusterAreas.length === 0 ? (
               <p className="text-sm text-slate-400 italic">Nenhuma área neste cluster.</p>
             ) : (
-              <Accordion type="multiple" className="space-y-2">
+              <Accordion
+                type="multiple"
+                className="space-y-2"
+                defaultValue={clusterAreas.length === 1 ? [clusterAreas[0].id] : []}
+              >
                 {clusterAreas.map(area => {
                   const areaEquipes = equipes.filter(e => e.area_id === area.id);
                   // Gestores das equipes da área (substitui o antigo "líder da área")
