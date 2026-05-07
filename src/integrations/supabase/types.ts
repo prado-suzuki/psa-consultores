@@ -2233,6 +2233,7 @@ export type Database = {
           estrutura_area_id: string | null
           external_client_id: string | null
           id: string
+          is_multidisciplinar: boolean
           leader_id: string | null
           name: string
           objective: string | null
@@ -2253,6 +2254,7 @@ export type Database = {
           estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
+          is_multidisciplinar?: boolean
           leader_id?: string | null
           name: string
           objective?: string | null
@@ -2273,6 +2275,7 @@ export type Database = {
           estrutura_area_id?: string | null
           external_client_id?: string | null
           id?: string
+          is_multidisciplinar?: boolean
           leader_id?: string | null
           name?: string
           objective?: string | null
