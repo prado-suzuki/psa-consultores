@@ -1,38 +1,29 @@
-## Objetivo
+## Causa
 
-Na edge function `notify-ticket`, os e-mails que hoje vão para o "gestor" estão sendo enviados para o **líder** das equipes da Área Fiscal (`estrutura_equipes.gestor_id`). O correto é enviar para o **gestor de chamados da área** (`estrutura_areas.gestor_chamados_id`).
+A chamada `POST /functions/v1/notify-ticket` falha com `Failed to fetch` quando o chamado é criado pelo preview do Lovable (`https://*.lovableproject.com`). O log da edge function mostra apenas `booted` — a função nunca é executada, porque o navegador bloqueia o preflight CORS.
 
-## Payload enviado hoje (sem alteração)
+O helper `supabase/functions/_shared/cors.ts` (`ORIGIN_PATTERNS`) só autoriza `lovable.app`, `lovable.dev`, `psaconsultores.com.br` e localhost. O domínio `lovableproject.com` (usado pelo iframe de preview do editor) não está na whitelist, então `Access-Control-Allow-Origin` não é emitido e o request é abortado antes de chegar ao n8n.
 
-A função continua disparando **um único POST** para `N8N_WEBHOOK_URL` com a mesma estrutura:
+Em produção (`psaconsultores.com.br`) o webhook funciona — o problema só aparece em preview.
 
-- `event_type`
-- `ticket_data`: `id`, `title`, `department`, `priority`, `description`, `cliente_nome`, `cliente_email`, `user_id`, `actor_name`, `replier_role`, `message_preview`, `assigned_to_name`, `dias_atraso`
-- `recipients[]`: `{ email, ticket_url, role }` com `role` ∈ `cliente | responsavel | gestor`
+## Correção
 
-Nada disso muda — só **quem** recebe na role `gestor`.
+Adicionar o padrão de `lovableproject.com` em `ORIGIN_PATTERNS` no `supabase/functions/_shared/cors.ts`:
 
-## Mudança técnica
+```ts
+/^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
+```
 
-Em `supabase/functions/notify-ticket/index.ts`, refatorar `getGestorRecipients` para:
+Isso desbloqueia todas as Edge Functions (notify-ticket, check-ticket-deadlines, etc.) quando chamadas pelo preview, sem afetar produção.
 
-1. Buscar em `estrutura_areas` onde `name = 'Área Fiscal'` AND `is_active = true` AND `gestor_chamados_id IS NOT NULL`.
-2. Coletar os `gestor_chamados_id` distintos.
-3. Buscar `email` em `profiles` para esses IDs.
-4. Montar `recipients` com `role: "gestor"` e `ticket_url = {PUBLISHED_URL}/gestao/chamados/{ticket_id}`.
+## Validação
 
-Remove o passo intermediário que ia para `estrutura_equipes.gestor_id`.
+1. Após deploy, criar um novo chamado pelo preview.
+2. Conferir nos logs da `notify-ticket` que ela foi invocada (não só `booted`).
+3. Verificar no n8n que o webhook chegou com `event_type: "ticket_created"` e `recipients` contendo o gestor da área Tax.
 
-## Eventos afetados
+## Detalhes técnicos
 
-Todos os que hoje incluem gestor: `ticket_created`, `ticket_replied`, `ticket_overdue`, `ticket_resolved`. (`ticket_assigned` não envia para gestor — segue igual.)
-
-## Documentação
-
-Atualizar `docs/notificacoes-chamados.md` na seção "Resolução dinâmica de gestores" e na tabela "Dependências no banco" para refletir que a fonte agora é `estrutura_areas.gestor_chamados_id`.
-
-## Fora de escopo
-
-- Estrutura do payload (mantida).
-- Roles, URLs e demais destinatários (cliente/responsavel) — sem mudança.
-- Outras áreas além de "Área Fiscal" — sem mudança.
+- Arquivo único alterado: `supabase/functions/_shared/cors.ts` (1 linha adicionada na lista `ORIGIN_PATTERNS`).
+- Sem mudanças em `notify-ticket/index.ts` — a lógica de gestor já está correta após a última correção.
+- Sem migrações de DB.
