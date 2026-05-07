@@ -24,7 +24,7 @@ export const useProjectMemberAreas = () => {
         supabase.from('org_project_members').select('project_id, user_id'),
         supabase.from('estrutura_equipe_membros').select('user_id, equipe_id'),
         supabase.from('estrutura_equipes').select('id, area_id, gestor_id'),
-        supabase.from('estrutura_areas').select('id, name'),
+        supabase.from('estrutura_areas').select('id, name').eq('is_active', true),
       ]);
       if (pmErr) throw pmErr;
       if (emErr) throw emErr;
