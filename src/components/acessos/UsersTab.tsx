@@ -4,7 +4,8 @@ import type { AppRole, UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { RefreshCw, Pencil, Trash2, Users } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { RefreshCw, Pencil, Trash2, Users, Search } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
@@ -29,6 +30,7 @@ export const UsersTab = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { data: pages } = usePagePermissions();
@@ -40,10 +42,19 @@ export const UsersTab = () => {
   const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
   const groupedUsers = useMemo(() => {
     if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
+    const normalize = (s: string) =>
+      s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+    const term = normalize(searchTerm.trim());
+    const filtered = term
+      ? users.filter((u) => {
+          const fullName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
+          return normalize(fullName).includes(term);
+        })
+      : users;
     const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
       ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
     const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
-    for (const u of users) {
+    for (const u of filtered) {
       const r = primaryRole(u);
       if (!buckets.has(r)) buckets.set(r, []);
       buckets.get(r)!.push(u);
@@ -57,7 +68,7 @@ export const UsersTab = () => {
         role,
         users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
       }));
-  }, [users]);
+  }, [users, searchTerm]);
 
   return (
     <div className="space-y-4">
@@ -78,11 +89,24 @@ export const UsersTab = () => {
             <CardDescription className="text-slate-500">
               Selecione um usuário para gerenciar acessos
             </CardDescription>
+            <div className="relative mt-2">
+              <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Pesquisar por nome..."
+                className="pl-8 h-9 text-sm bg-white border-slate-200"
+              />
+            </div>
           </CardHeader>
           <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-4">
                 <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
+              </div>
+            ) : groupedUsers.length === 0 ? (
+              <div className="text-center py-6 text-sm text-slate-500">
+                Nenhum usuário encontrado
               </div>
             ) : (
               groupedUsers.map((group) => (
