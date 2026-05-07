@@ -91,7 +91,8 @@ Deno.serve(async (req) => {
       user_metadata: {
         first_name,
         last_name: effectiveLastName,
-        must_change_password: true
+        must_change_password: true,
+        skip_default_role: true
       }
     });
 
