@@ -5,7 +5,7 @@ export const DEV_NAV_LABELS = {
   novaFerramenta: "Nova ferramenta",
   consultaXmls: "Consulta de XMLs",
 
-  // Consulta SPED group
+  // Consulta Sistema Público de Escrituração Digital group
   consultaSped: "Consulta Sistema Público de Escrituração Digital",
   efdContribuicoes: "EFD Contribuições",
   efdIcms: "EFD ICMS",
