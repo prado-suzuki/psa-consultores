@@ -33,14 +33,13 @@ Lógica:
 
 ### Resolução dinâmica de gestores
 
-A função `getGestorRecipients` busca automaticamente os **gestores** das equipes ativas da **Área Fiscal** (`estrutura_areas.name = 'Área Fiscal'`) através do campo `estrutura_equipes.gestor_id`. Isso significa que:
-- Alterar o gestor de uma equipe da Área Fiscal no EstruturaManager reflete automaticamente nas notificações
-- Apenas gestores das equipes da Área Fiscal recebem notificações de gestor (não todas as áreas TAX)
+A função `getGestorRecipients` busca o **gestor de chamados** das áreas ativas chamadas **Área Fiscal** (`estrutura_areas.name = 'Área Fiscal'`) através do campo `estrutura_areas.gestor_chamados_id`. Isso significa que:
+- Alterar o gestor de chamados da Área Fiscal reflete automaticamente nas notificações
+- Apenas o gestor de chamados da Área Fiscal recebe notificações de gestor (não líderes de equipe nem outras áreas)
 
 Fluxo da query:
-1. `estrutura_areas` → filtra por `name = 'Área Fiscal'` e `is_active = true`
-2. `estrutura_equipes` → busca `gestor_id` das equipes ativas dessas áreas (não nulo)
-3. `profiles` → busca o e-mail de cada gestor
+1. `estrutura_areas` → filtra por `name = 'Área Fiscal'`, `is_active = true` e `gestor_chamados_id` não nulo
+2. `profiles` → busca o e-mail de cada gestor de chamados
 
 ### Workflow n8n
 
@@ -124,7 +123,6 @@ O workflow deve:
 
 | Tabela | Uso |
 |---|---|
-| `estrutura_areas` | Identifica a Área Fiscal pelo nome |
-| `estrutura_equipes` | Mapeia gestor(es) das equipes da área (gestor_id) |
+| `estrutura_areas` | Identifica a Área Fiscal e seu gestor de chamados (`gestor_chamados_id`) |
 | `profiles` | Obtém e-mail dos gestores e dos clientes |
 | `tickets` | Dados do chamado (título, departamento, prioridade, etc.) |
