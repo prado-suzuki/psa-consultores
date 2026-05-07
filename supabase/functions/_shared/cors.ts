@@ -40,6 +40,7 @@ const ORIGIN_PATTERNS: RegExp[] = [
   /^https:\/\/psaconsultores\.com\.br$/,
   /^https:\/\/[a-z0-9-]+\.lovable\.app$/,
   /^https:\/\/[a-z0-9-]+\.lovable\.dev$/,
+  /^https:\/\/[a-z0-9-]+\.lovableproject\.com$/,
   /^http:\/\/localhost(?::\d+)?$/,
   /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
 ];
