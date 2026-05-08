@@ -95,6 +95,7 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
+import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -213,6 +214,7 @@ const App = () => (
 
               {/* Board Routes */}
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
+              <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />

@@ -412,6 +412,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/board/relatorios',
+    page_name: 'Board - Relatórios BI',
+    page_description: 'Dashboard Looker Studio incorporado',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/board/performance',
     page_name: 'Performance',
     page_description: 'Painel executivo consolidado de performance',

@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   CheckCircle,
   FileText,
+  FileBarChart,
   User,
   LogOut,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ interface BoardLayoutProps {
   title: string;
   subtitle?: string;
   headerActions?: React.ReactNode;
+  noPadding?: boolean;
 }
 
 interface NavItem {
@@ -60,6 +62,7 @@ const buildNavItems = (
   pendingDecisions: number,
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
+  { icon: FileBarChart, label: 'Relatorios BI', path: '/equipe/board/relatorios' },
   ...(canPerformance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
@@ -84,13 +87,15 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
     else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
+  } else if (pathname.includes('/relatorios')) {
+    segments.push({ label: 'Relatorios BI', path: '/equipe/board/relatorios' });
   } else if (pathname.includes('/dashboard')) {
     segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
   }
   return segments;
 };
 
-export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardLayoutProps) => {
+export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
   const { user, isAdmin, isLider, signOut } = useAuth();
 
   const handleSignOut = async () => {
@@ -422,7 +427,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions }: BoardL
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-[22px] md:p-6 lg:p-6" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+          <div className={`${noPadding ? '' : 'p-[22px] md:p-6 lg:p-6'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
             {children}
           </div>
         </div>
