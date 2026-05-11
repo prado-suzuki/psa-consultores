@@ -180,10 +180,12 @@ export function DcompFormModal({
   const temDistribuicao = distribuicoes.length > 0;
   const temTributoNaoSelecionado = distribuicoes.some((l) => !l.tributo);
   const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
+  const temCompetenciaInvalida = distribuicoes.some((l) => !isCompetenciaValida(l.competencia || ''));
   const distribuicoesValidas =
     temDistribuicao &&
     !temTributoNaoSelecionado &&
     !temValorZero &&
+    !temCompetenciaInvalida &&
     somaIgual;
 
   // Carrega distribuições existentes em modo edição
