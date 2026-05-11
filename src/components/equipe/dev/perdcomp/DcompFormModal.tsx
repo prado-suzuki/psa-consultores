@@ -479,8 +479,12 @@ export function DcompFormModal({
 
   const onSubmit = (data: DcompFormData) => {
     if (!distribuicoesValidas) return;
-    if (isEditing) updateMutation.mutate(data);
-    else createMutation.mutate(data);
+    const derived = {
+      ...data,
+      mes_ano_exercicio: data.dt_envio ? data.dt_envio.substring(0, 7) : '',
+    };
+    if (isEditing) updateMutation.mutate(derived);
+    else createMutation.mutate(derived);
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
