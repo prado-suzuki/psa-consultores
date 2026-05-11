@@ -1152,6 +1152,47 @@ export type Database = {
         }
         Relationships: []
       }
+      distribuicao_dcomp: {
+        Row: {
+          atualizado_em: string
+          atualizado_por: string | null
+          criado_em: string
+          criado_por: string | null
+          id: string
+          nr_documento: string
+          tributo: string
+          valor_tributo: number
+        }
+        Insert: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nr_documento: string
+          tributo: string
+          valor_tributo?: number
+        }
+        Update: {
+          atualizado_em?: string
+          atualizado_por?: string | null
+          criado_em?: string
+          criado_por?: string | null
+          id?: string
+          nr_documento?: string
+          tributo?: string
+          valor_tributo?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribuicao_dcomp_nr_documento_fkey"
+            columns: ["nr_documento"]
+            isOneToOne: false
+            referencedRelation: "dcomp"
+            referencedColumns: ["nr_documento"]
+          },
+        ]
+      }
       distribuicao_receita: {
         Row: {
           created_at: string | null
