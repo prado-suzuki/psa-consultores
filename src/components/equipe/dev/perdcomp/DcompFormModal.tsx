@@ -308,7 +308,8 @@ export function DcompFormModal({
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
-  const mesAnoFromForm = form.watch('mes_ano_exercicio');
+  const dtEnvio = form.watch('dt_envio');
+  const mesAnoFromForm = dtEnvio ? dtEnvio.substring(0, 7) : '';
 
   const addLinha = (tributo: string) => {
     setDistribuicoes((prev) => [
