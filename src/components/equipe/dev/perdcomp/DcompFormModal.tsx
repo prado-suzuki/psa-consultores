@@ -195,10 +195,15 @@ export function DcompFormModal({
       if (!editData?.nr_documento) return [];
       const { data, error } = await (supabase
         .from('distribuicao_dcomp') as any)
-        .select('id, tributo, valor_tributo')
+        .select('id, tributo, valor_tributo, competencia')
         .eq('nr_documento', editData.nr_documento);
       if (error) throw error;
-      return (data || []) as DistribuicaoLinha[];
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        tributo: r.tributo,
+        valor_tributo: Number(r.valor_tributo) || 0,
+        competencia: r.competencia ? String(r.competencia).substring(0, 7) : '',
+      })) as DistribuicaoLinha[];
     },
     enabled: !!editData?.nr_documento && open,
   });
