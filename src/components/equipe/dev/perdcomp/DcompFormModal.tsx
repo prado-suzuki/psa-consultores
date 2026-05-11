@@ -767,6 +767,8 @@ export function DcompFormModal({
                   ? 'Há tributos que não foram selecionados'
                   : temValorZero
                   ? 'Há tributos com valor zero'
+                  : temCompetenciaInvalida
+                  ? 'Há tributos com competência inválida (use MM/AAAA).'
                   : `A soma dos tributos (${formatCurrencyDisplay(totalRateado)}) deve ser igual ao valor total compensado (${formatCurrencyDisplay(vlrCompensado)}).`}
               </p>
             )}
