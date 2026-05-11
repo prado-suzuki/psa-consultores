@@ -619,25 +619,9 @@ export function DcompFormModal({
             <div className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-between">
                 <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
-                {addOpen ? (
-                  <Select
-                    onValueChange={(v) => addLinha(v)}
-                    value=""
-                  >
-                    <SelectTrigger className="h-8 w-[160px]">
-                      <SelectValue placeholder="Selecione..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {tributosDisponiveis.map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <Button type="button" variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tributo
-                  </Button>
-                )}
+                <Button type="button" variant="outline" size="sm" onClick={() => addLinha('')}>
+                  <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tributo
+                </Button>
               </div>
 
               {distribuicoes.length === 0 && (
@@ -649,9 +633,9 @@ export function DcompFormModal({
                   const k = linha.id || `local-${idx}`;
                   return (
                     <div key={k} className="flex items-center gap-2">
-                      <Select value={linha.tributo} onValueChange={(v) => updateLinhaTributo(idx, v)}>
+                      <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
                         <SelectTrigger className="h-9 w-[130px]">
-                          <SelectValue />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
                           {tributosDisponiveis.map((t) => (
