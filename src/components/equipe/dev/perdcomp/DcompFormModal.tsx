@@ -86,7 +86,32 @@ interface DistribuicaoLinha {
   id?: string;
   tributo: string;
   valor_tributo: number;
+  /** Competência no formato 'yyyy-MM' (UI) ou 'yyyy-MM-dd' (DB). */
+  competencia: string;
 }
+
+/** Converte 'yyyy-MM' ou 'yyyy-MM-dd' para 'MM/AAAA' para exibição. */
+const formatCompetenciaDisplay = (value: string): string => {
+  if (!value) return '';
+  const m = value.match(/^(\d{4})-(\d{2})/);
+  if (m) return `${m[2]}/${m[1]}`;
+  return value;
+};
+
+/** Aplica máscara MM/AAAA enquanto o usuário digita; retorna 'yyyy-MM' quando completo. */
+const parseCompetenciaInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '').slice(0, 6);
+  if (digits.length === 6) {
+    const mm = digits.slice(0, 2);
+    const yyyy = digits.slice(2, 6);
+    return `${yyyy}-${mm}`;
+  }
+  if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
+  return digits;
+};
+
+const isCompetenciaValida = (value: string): boolean =>
+  /^\d{4}-(0[1-9]|1[0-2])$/.test(value) || /^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(value);
 
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
@@ -155,10 +180,12 @@ export function DcompFormModal({
   const temDistribuicao = distribuicoes.length > 0;
   const temTributoNaoSelecionado = distribuicoes.some((l) => !l.tributo);
   const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
+  const temCompetenciaInvalida = distribuicoes.some((l) => !isCompetenciaValida(l.competencia || ''));
   const distribuicoesValidas =
     temDistribuicao &&
     !temTributoNaoSelecionado &&
     !temValorZero &&
+    !temCompetenciaInvalida &&
     somaIgual;
 
   // Carrega distribuições existentes em modo edição
@@ -168,10 +195,15 @@ export function DcompFormModal({
       if (!editData?.nr_documento) return [];
       const { data, error } = await (supabase
         .from('distribuicao_dcomp') as any)
-        .select('id, tributo, valor_tributo')
+        .select('id, tributo, valor_tributo, competencia')
         .eq('nr_documento', editData.nr_documento);
       if (error) throw error;
-      return (data || []) as DistribuicaoLinha[];
+      return ((data || []) as any[]).map((r) => ({
+        id: r.id,
+        tributo: r.tributo,
+        valor_tributo: Number(r.valor_tributo) || 0,
+        competencia: r.competencia ? String(r.competencia).substring(0, 7) : '',
+      })) as DistribuicaoLinha[];
     },
     enabled: !!editData?.nr_documento && open,
   });
@@ -268,13 +300,21 @@ export function DcompFormModal({
         {
           tributo: editData.imposto,
           valor_tributo: Number(editData.vlr_compensado) || 0,
+          competencia: editData.mes_ano_exercicio
+            ? String(editData.mes_ano_exercicio).substring(0, 7)
+            : '',
         },
       ]);
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
+  const mesAnoFromForm = form.watch('mes_ano_exercicio');
+
   const addLinha = (tributo: string) => {
-    setDistribuicoes((prev) => [...prev, { tributo, valor_tributo: 0 }]);
+    setDistribuicoes((prev) => [
+      ...prev,
+      { tributo, valor_tributo: 0, competencia: mesAnoFromForm || '' },
+    ]);
     setAddOpen(false);
   };
 
@@ -286,6 +326,13 @@ export function DcompFormModal({
     const num = parseCurrencyToNumber(raw);
     setDistribuicoes((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, valor_tributo: num } : l)),
+    );
+  };
+
+  const updateLinhaCompetencia = (idx: number, raw: string) => {
+    const parsed = parseCompetenciaInput(raw);
+    setDistribuicoes((prev) =>
+      prev.map((l, i) => (i === idx ? { ...l, competencia: parsed } : l)),
     );
   };
 
@@ -310,6 +357,7 @@ export function DcompFormModal({
       nr_documento: nrDocumento,
       tributo: l.tributo,
       valor_tributo: l.valor_tributo,
+      competencia: normalizeMesAno(l.competencia),
     }));
     if (rows.length > 0) {
       const { error: insErr } = await (supabase.from('distribuicao_dcomp') as any).insert(rows);
@@ -614,10 +662,11 @@ export function DcompFormModal({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <FormLabel className="m-0 w-[130px]">Tributos rateados <RequiredMark /></FormLabel>
-                <FormLabel className="m-0 flex-1">Valor do tributo</FormLabel>
-                <div className="w-9" />
+              <div className="grid grid-cols-[130px_1fr_110px_36px] items-center gap-2">
+                <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
+                <FormLabel className="m-0">Valor do tributo</FormLabel>
+                <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
+                <div />
               </div>
 
               {distribuicoes.length === 0 && (
@@ -628,10 +677,11 @@ export function DcompFormModal({
                 {distribuicoes.map((linha, idx) => {
                   const k = linha.id || `local-${idx}`;
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
+                  const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
                   return (
-                    <div key={k} className="flex items-start gap-2">
+                    <div key={k} className="grid grid-cols-[130px_1fr_110px_36px] items-start gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
-                        <SelectTrigger className="h-9 w-[130px]">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
@@ -640,7 +690,7 @@ export function DcompFormModal({
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex-1">
+                      <div>
                         <Input
                           className={cn("h-9", valorZero && "border-destructive")}
                           type="text"
@@ -651,6 +701,17 @@ export function DcompFormModal({
                         {valorZero && (
                           <p className="mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
                         )}
+                      </div>
+                      <div>
+                        <Input
+                          className={cn("h-9", competenciaInvalida && "border-destructive")}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="MM/AAAA"
+                          maxLength={7}
+                          value={formatCompetenciaDisplay(linha.competencia || '')}
+                          onChange={(e) => updateLinhaCompetencia(idx, e.target.value)}
+                        />
                       </div>
                       <Button
                         type="button"
@@ -706,6 +767,8 @@ export function DcompFormModal({
                   ? 'Há tributos que não foram selecionados'
                   : temValorZero
                   ? 'Há tributos com valor zero'
+                  : temCompetenciaInvalida
+                  ? 'Há tributos com competência inválida (use MM/AAAA).'
                   : `A soma dos tributos (${formatCurrencyDisplay(totalRateado)}) deve ser igual ao valor total compensado (${formatCurrencyDisplay(vlrCompensado)}).`}
               </p>
             )}

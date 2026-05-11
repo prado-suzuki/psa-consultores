@@ -1,0 +1,1 @@
+ALTER TABLE public.distribuicao_dcomp ADD COLUMN IF NOT EXISTS competencia date;
