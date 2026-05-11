@@ -25,7 +25,7 @@ export const BASE_LEGAL: Record<string, BaseLegalEntry> = {
       "Alíquotas do IBS e da CBS reduzidas a zero sobre o fornecimento de produtos hortícolas, frutas e ovos listados no Anexo XV, com classificações NCM/SH.",
   },
   "Seção VI": {
-    artigo: "Art. 180",
+    artigo: "Art. 180 (Monofásico)",
     texto:
       "Vedada a apropriação de créditos sobre aquisições de combustíveis sujeitos à incidência única do IBS e da CBS quando destinadas à distribuição, comercialização ou revenda.",
   },
