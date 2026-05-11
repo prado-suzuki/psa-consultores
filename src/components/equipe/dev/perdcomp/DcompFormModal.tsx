@@ -646,7 +646,7 @@ export function DcompFormModal({
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
                   return (
-                    <div key={k} className="grid grid-cols-[130px_1fr_110px_36px] items-start gap-2">
+                    <div key={k} className="grid grid-cols-[130px_1fr_110px_36px] items-center gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione" />
@@ -657,29 +657,22 @@ export function DcompFormModal({
                           ))}
                         </SelectContent>
                       </Select>
-                      <div>
-                        <Input
-                          className={cn("h-9", valorZero && "border-destructive")}
-                          type="text"
-                          inputMode="numeric"
-                          value={formatCurrencyDisplay(linha.valor_tributo || 0)}
-                          onChange={(e) => updateLinhaValor(idx, e.target.value)}
-                        />
-                        {valorZero && (
-                          <p className="mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
-                        )}
-                      </div>
-                      <div>
-                        <Input
-                          className={cn("h-9", competenciaInvalida && "border-destructive")}
-                          type="text"
-                          inputMode="numeric"
-                          placeholder="MM/AAAA"
-                          maxLength={7}
-                          value={formatCompetenciaDisplay(linha.competencia || '')}
-                          onChange={(e) => updateLinhaCompetencia(idx, e.target.value)}
-                        />
-                      </div>
+                      <Input
+                        className={cn("h-9", valorZero && "border-destructive")}
+                        type="text"
+                        inputMode="numeric"
+                        value={formatCurrencyDisplay(linha.valor_tributo || 0)}
+                        onChange={(e) => updateLinhaValor(idx, e.target.value)}
+                      />
+                      <Input
+                        className={cn("h-9", competenciaInvalida && "border-destructive")}
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="MM/AAAA"
+                        maxLength={7}
+                        value={formatCompetenciaDisplay(linha.competencia || '')}
+                        onChange={(e) => updateLinhaCompetencia(idx, e.target.value)}
+                      />
                       <Button
                         type="button"
                         variant="ghost"
@@ -689,6 +682,9 @@ export function DcompFormModal({
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
+                      {valorZero && (
+                        <p className="col-span-4 -mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
+                      )}
                     </div>
                   );
                 })}
