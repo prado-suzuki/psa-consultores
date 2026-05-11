@@ -635,7 +635,7 @@ export function DcompFormModal({
                         className="h-9 flex-1"
                         type="text"
                         inputMode="numeric"
-                        value={linhaDisplay[k] ?? formatCurrencyDisplay(linha.valor_tributo || 0)}
+                        value={formatCurrencyDisplay(linha.valor_tributo || 0)}
                         onChange={(e) => updateLinhaValor(idx, e.target.value)}
                       />
                       <Button
