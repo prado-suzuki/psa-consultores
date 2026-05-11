@@ -633,9 +633,9 @@ export function DcompFormModal({
                   const k = linha.id || `local-${idx}`;
                   return (
                     <div key={k} className="flex items-center gap-2">
-                      <Select value={linha.tributo} onValueChange={(v) => updateLinhaTributo(idx, v)}>
+                      <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
                         <SelectTrigger className="h-9 w-[130px]">
-                          <SelectValue />
+                          <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
                           {tributosDisponiveis.map((t) => (
