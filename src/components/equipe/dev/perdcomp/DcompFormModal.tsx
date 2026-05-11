@@ -116,7 +116,7 @@ const isCompetenciaValida = (value: string): boolean =>
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
   nr_per_orig: z.string().min(1, 'PER de origem é obrigatório'),
-  mes_ano_exercicio: z.string().min(1, 'Mês/Ano é obrigatório'),
+  mes_ano_exercicio: z.string().optional().default(''),
   dt_envio: z.string().min(1, 'Data de envio é obrigatória'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
@@ -308,7 +308,8 @@ export function DcompFormModal({
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
-  const mesAnoFromForm = form.watch('mes_ano_exercicio');
+  const dtEnvio = form.watch('dt_envio');
+  const mesAnoFromForm = dtEnvio ? dtEnvio.substring(0, 7) : '';
 
   const addLinha = (tributo: string) => {
     setDistribuicoes((prev) => [
@@ -478,8 +479,12 @@ export function DcompFormModal({
 
   const onSubmit = (data: DcompFormData) => {
     if (!distribuicoesValidas) return;
-    if (isEditing) updateMutation.mutate(data);
-    else createMutation.mutate(data);
+    const derived = {
+      ...data,
+      mes_ano_exercicio: data.dt_envio ? data.dt_envio.substring(0, 7) : '',
+    };
+    if (isEditing) updateMutation.mutate(derived);
+    else createMutation.mutate(derived);
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -568,44 +573,6 @@ export function DcompFormModal({
                 )}
               />
             )}
-
-            <FormField
-              control={form.control}
-              name="mes_ano_exercicio"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mês/Ano Exercício <RequiredMark /></FormLabel>
-                  <FormControl>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      placeholder="MM/AAAA"
-                      maxLength={7}
-                      value={field.value ? (() => {
-                        if (/^\d{4}-\d{2}$/.test(field.value)) {
-                          const [y, m] = field.value.split('-');
-                          return `${m}/${y}`;
-                        }
-                        return field.value;
-                      })() : ''}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 6);
-                        let masked = digits;
-                        if (digits.length > 2) masked = digits.slice(0, 2) + '/' + digits.slice(2);
-                        if (digits.length === 6) {
-                          const mm = digits.slice(0, 2);
-                          const yyyy = digits.slice(2, 6);
-                          field.onChange(`${yyyy}-${mm}`);
-                        } else {
-                          field.onChange(masked);
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
 
             <FormField
               control={form.control}
