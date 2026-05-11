@@ -134,27 +134,52 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
               <TableHeader>
                 <TableRow className="bg-slate-50 hover:bg-slate-50">
                   <TableHead>Anexo</TableHead>
-                  <TableHead className="text-right">Faturamento</TableHead>
-                  <TableHead className="text-right">% fat.</TableHead>
                   <TableHead className="text-right">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
-                          Alíq. efetiva
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
-                        Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico
-                        (ex.: Seção VI), a carga DEPOIS pode ser maior que a alíquota efetiva.
-                      </TooltipContent>
-                    </Tooltip>
+                    <HeaderTip label="Faturamento">
+                      Soma do valor bruto das notas fiscais de saída do anexo no período.
+                    </HeaderTip>
                   </TableHead>
-                  <TableHead className="text-right">Redução média</TableHead>
-                  <TableHead className="text-right">Trib. ANTES</TableHead>
-                  <TableHead className="text-right">Trib. DEPOIS</TableHead>
-                  <TableHead className="text-right">Carga DEPOIS</TableHead>
-                  <TableHead className="text-right">NFs</TableHead>
-                  <TableHead className="text-right">Itens</TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="% fat.">
+                      Participação do anexo no faturamento total (Faturamento do anexo ÷ Faturamento total).
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Alíq. efetiva">
+                      Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico
+                      (ex.: Seção VI), a carga DEPOIS pode ser maior que a alíquota efetiva.
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Redução média">
+                      Percentual médio de desconto aplicado sobre a alíquota cheia (27,5%) das notas do anexo.
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Trib. ANTES">
+                      Carga tributária no regime atual: PIS + COFINS + ICMS + IPI das notas do anexo.
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Trib. DEPOIS">
+                      Carga tributária na reforma: IBS + CBS + ICMS monofásico (período de transição).
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Carga DEPOIS">
+                      Carga efetiva pós-reforma: Trib. DEPOIS ÷ Faturamento do anexo.
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="NFs">
+                      Quantidade de notas fiscais de saída agrupadas no anexo.
+                    </HeaderTip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <HeaderTip label="Itens">
+                      Quantidade de itens (linhas de produto) das notas do anexo.
+                    </HeaderTip>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
