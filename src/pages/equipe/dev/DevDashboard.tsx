@@ -58,6 +58,9 @@ const buildHubTools = (hub: (typeof DEV_HUBS)[keyof typeof DEV_HUBS]): ToolEntry
 const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.consultaXmls,
+    landingPath: "/equipe/dev/consulta-xmls",
+    landingDescription: "Busque e visualize documentos fiscais eletronicos",
+    landingIcon: FileCode2,
     tools: [
       {
         name: DEV_NAV_LABELS.consultaXmls,
@@ -91,6 +94,9 @@ const toolGroups: ToolGroup[] = [
   },
   {
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
+    landingPath: "/equipe/dev/calculadora-ibs-cbs",
+    landingDescription: "Simulador de calculo da reforma tributaria",
+    landingIcon: Percent,
     tools: [
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
@@ -109,6 +115,9 @@ const toolGroups: ToolGroup[] = [
   },
   {
     label: DEV_NAV_LABELS.controleBalancetes,
+    landingPath: "/equipe/dev/controle-balancetes",
+    landingDescription: "Upload e gestao de balancetes contabeis",
+    landingIcon: Scale,
     tools: [
       {
         name: DEV_NAV_LABELS.controleBalancetes,
@@ -253,12 +262,12 @@ const DevDashboard = () => {
             </div>
           </div>
 
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {filteredGroups.map((group) => {
               const LandingIcon = group.landingIcon ?? LayoutGrid;
 
               return (
-                <section key={group.label}>
+                <section key={group.label} className="flex flex-col">
                   <div className="mb-3 flex items-center gap-2">
                     <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{group.label}</h3>
                     <span className="h-px flex-1 bg-slate-200" />
@@ -268,38 +277,60 @@ const DevDashboard = () => {
                   </div>
 
                   {group.landingPath && !selectedToolPath ? (
+                    (() => {
+                      const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
+                      const singletonSopUrl = isSingleton ? group.tools[0].sopUrl : undefined;
+
+                      return (
                     <button
                       type="button"
                       onClick={() => navigate(group.landingPath!)}
-                      className="group w-full rounded-2xl border border-teal-900/20 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-900 p-6 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-300/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                      className="group flex h-full w-full flex-col rounded-2xl border border-teal-900/20 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-900 p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-300/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
                     >
-                      <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                        <div className="max-w-2xl">
-                          <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-teal-200">
-                            <LandingIcon className="h-6 w-6" />
-                          </div>
-                          <h4 className="text-2xl font-semibold tracking-tight">{group.label}</h4>
-                          <p className="mt-2 text-sm leading-relaxed text-white/75">{group.landingDescription}</p>
-                          <div className="mt-5 flex flex-wrap gap-2">
-                            {group.tools.map((tool) => (
-                              <span
-                                key={tool.path}
-                                className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-medium text-white/90"
-                              >
-                                {tool.name}
-                              </span>
-                            ))}
-                          </div>
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-teal-200">
+                        <LandingIcon className="h-5 w-5" />
+                      </div>
+                      <h4 className="text-lg font-semibold tracking-tight">{group.label}</h4>
+                      <p className="mt-1.5 text-xs leading-relaxed text-white/75">{group.landingDescription}</p>
+                      {!isSingleton && (
+                        <div className="mt-4 flex flex-wrap gap-1.5">
+                          {group.tools.map((tool) => (
+                            <span
+                              key={tool.path}
+                              className="rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/90"
+                            >
+                              {tool.name}
+                            </span>
+                          ))}
                         </div>
+                      )}
 
-                        <div className="flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 shadow-sm transition-transform group-hover:translate-x-1">
-                          Abrir central
-                          <ArrowRight className="h-4 w-4" />
-                        </div>
+                      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+                        {singletonSopUrl ? (
+                          <a
+                            href={singletonSopUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(event) => event.stopPropagation()}
+                            className="inline-flex items-center gap-1 text-[11px] font-medium text-white/70 hover:text-white"
+                          >
+                            <BookOpen className="h-3 w-3" />
+                            Manual
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        ) : (
+                          <span />
+                        )}
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition-transform group-hover:translate-x-1">
+                          {isSingleton ? "Abrir" : "Abrir central"}
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </span>
                       </div>
                     </button>
+                      );
+                    })()
                   ) : (
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3">
                       {group.tools.map((tool) => {
                         const Icon = tool.icon;
 
