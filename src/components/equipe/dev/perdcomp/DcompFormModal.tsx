@@ -121,7 +121,7 @@ export function DcompFormModal({
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
   const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
   const [distribuicoes, setDistribuicoes] = useState<DistribuicaoLinha[]>([]);
-  const [linhaDisplay, setLinhaDisplay] = useState<Record<string, string>>({});
+  
   const [addOpen, setAddOpen] = useState(false);
 
   const form = useForm<DcompFormData>({
@@ -270,16 +270,6 @@ export function DcompFormModal({
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
-  // Sincroniza display monetário das linhas
-  useEffect(() => {
-    const next: Record<string, string> = {};
-    distribuicoes.forEach((l, i) => {
-      const k = l.id || `local-${i}`;
-      next[k] = formatCurrencyDisplay(l.valor_tributo || 0);
-    });
-    setLinhaDisplay(next);
-  }, [distribuicoes.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const addLinha = (tributo: string) => {
     setDistribuicoes((prev) => [...prev, { tributo, valor_tributo: 0 }]);
     setAddOpen(false);
@@ -294,8 +284,6 @@ export function DcompFormModal({
     setDistribuicoes((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, valor_tributo: num } : l)),
     );
-    const k = distribuicoes[idx]?.id || `local-${idx}`;
-    setLinhaDisplay((prev) => ({ ...prev, [k]: formatCurrencyDisplay(num) }));
   };
 
   const removerLinha = (idx: number) => {
@@ -647,7 +635,7 @@ export function DcompFormModal({
                         className="h-9 flex-1"
                         type="text"
                         inputMode="numeric"
-                        value={linhaDisplay[k] ?? formatCurrencyDisplay(linha.valor_tributo || 0)}
+                        value={formatCurrencyDisplay(linha.valor_tributo || 0)}
                         onChange={(e) => updateLinhaValor(idx, e.target.value)}
                       />
                       <Button
