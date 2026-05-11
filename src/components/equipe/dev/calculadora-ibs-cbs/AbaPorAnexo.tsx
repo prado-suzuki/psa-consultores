@@ -191,20 +191,8 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                         {fmtBRL(a.tributoDepois)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
-                        <Badge
-                          variant="secondary"
-                          className={`${
-                            a.cargaPct > 0.05
-                              ? "bg-rose-100 text-rose-700"
-                              : a.cargaPct > 0.001
-                                ? "bg-amber-100 text-amber-700"
-                                : "bg-emerald-100 text-emerald-700"
-                          }`}
-                        >
-                          <span className="inline-flex items-center gap-1">
-                            {a.cargaPct > 0.0001 ? "▲" : a.cargaPct < -0.0001 ? "▼" : "▬"}
-                            {fmtPct(a.cargaPct).replace("%", "").trim()}
-                          </span>
+                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium">
+                          {fmtPct(a.cargaPct)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(a.qtdNFs)}</TableCell>
