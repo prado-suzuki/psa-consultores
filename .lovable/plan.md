@@ -1,65 +1,35 @@
-# Ajustes na tabela "Apuração por anexo" (Calculadora IBS/CBS)
+## Objetivo
 
-## Contexto
-
-Auditoria das colunas mostrou duas inconsistências semânticas:
-
-1. A coluna apresentada como **"Δ carga"** (com triângulo) na verdade calcula `tributoDepois ÷ faturamento`, ou seja, é a **carga tributária DEPOIS** da reforma — não uma variação. O título e o ícone induzem o usuário ao erro.
-2. A coluna **"Alíq. média"** usa `aliq_ibs_cbs` do CSV, que segundo a investigação do mock já é a **alíquota efetiva** (= `ibs_cbs_base × (1 − reducao_aliq)`). O CSV traz separadamente a alíquota **nominal** em `ibs_cbs_base` (sempre 27,5%) mas ela é ignorada. Por isso "Alíq média × (1−Redução média) = Carga DEPOIS" sempre bate, e a coluna Alíq. média acaba sendo redundante.
-
-Demais colunas validadas com os números do print e estão corretas (Faturamento, % fat., Trib. ANTES, Trib. DEPOIS, NFs, Itens).
+No modal Novo/Editar DCOMP, alinhar os títulos do bloco de rateio, adicionar uma coluna **Competência** (MM/AAAA) por linha de tributo, e persistir esse campo na tabela `distribuicao_dcomp`.
 
 ## Mudanças
 
-### 1. Coluna "% carga" → "Carga DEPOIS"
+### 1. Banco — `distribuicao_dcomp`
+Adicionar coluna `competencia` (`date`, nullable) para armazenar a competência por linha de tributo (1º dia do mês, igual ao padrão usado em `mes_ano_exercicio`). Sem mudança de RLS — políticas atuais já cobrem.
 
-Arquivo: `src/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo.tsx`
+### 2. Modal `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`
 
-- Trocar título da coluna de **"Δ carga"** para **"Carga DEPOIS"**.
-- Remover o triângulo (▲/▼/▬) — não é variação.
-- Voltar a exibir o percentual puro (`fmtPct(a.cargaPct)` sem o split do "%").
-- Neutralizar a paleta de cores do badge: hoje vermelho/âmbar/verde sugere "alta = ruim". Trocar para uma única cor neutra (slate) ou manter um leve degradê só para dar densidade visual, sem juízo de valor (slate-50 / slate-100 / slate-200).
+**Tipo `DistribuicaoLinha`**: incluir `competencia?: string` (formato `yyyy-MM-dd` ou `yyyy-MM`).
 
-### 2. Coluna "Alíq. média" → "Alíq. efetiva"
+**Header de colunas (linhas 617-621)**: reescrever como grid de 4 colunas alinhadas (Tributo · Valor · Competência · ação remover), usando `grid grid-cols-[130px_1fr_120px_36px] items-center gap-2` para garantir mesma altura de baseline entre os títulos. Adicionar label "Competência" com `RequiredMark`.
 
-Arquivo: `src/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo.tsx`
+**Linhas de tributo (628-666)**: trocar `flex` por o mesmo `grid grid-cols-[130px_1fr_120px_36px]` e adicionar terceira célula com `<Input>` MM/AAAA reutilizando exatamente a máscara/parse do campo `mes_ano_exercicio` (linhas 536-554). Mantém validação visual (border-destructive se vazia).
 
-- Renomear cabeçalho para **"Alíq. efetiva"** — fica honesto sobre o que está sendo mostrado (já vem do CSV pós-redução).
-- Sem mudança de cálculo: continua `Σ(aliq_ibs_cbs × valor) ÷ Σ(valor)` em `calc.ts`.
-- Adicionar tooltip no cabeçalho explicando: *"Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico (ex.: Seção VI), a carga DEPOIS pode ser maior que a alíquota efetiva."*
+**Query de leitura (165-177)**: adicionar `competencia` ao `select`.
 
-### 3. Limpeza do CSV de exportação (opcional, escopo desta correção)
+**Validação `distribuicoesValidas`**: incluir `temCompetenciaVazia` (alguma linha sem competência válida no formato `yyyy-MM`); mensagem amigável no bloco de erros (linhas 701-711).
 
-Renomear a coluna do export `Carga_pct` se existir para `Carga_DEPOIS_pct` para manter consistência.
+**`persistirDistribuicoes` (303-318)**: incluir `competencia: normalizeMesAno(l.competencia)` no insert.
 
-## Detalhes técnicos
+**Fallback edição antiga (262-274)**: ao gerar a linha única default, usar `editData.mes_ano_exercicio` como competência inicial.
 
-```text
-Antes (errado):
-  Header: "Δ carga"
-  Conteúdo: "▲ 6,12" com badge vermelho
-  Significado real: tributoDepois / faturamento  (carga DEPOIS, não variação)
+**Helpers**: pequenas funções `formatCompetenciaDisplay` / `parseCompetenciaInput` para evitar duplicação inline.
 
-Depois:
-  Header: "Carga DEPOIS"
-  Conteúdo: "6,12%" com badge neutro
-  Significado claro
-```
+### 3. Hook de leitura/exibição
+A tabela "Lançamentos DCOMP" no detalhe do PER não exibe competência por linha, então não há ajuste obrigatório fora do modal. Sem mudança no `useAuditLog` (mutações já são logadas no fluxo do DCOMP).
 
-```text
-Antes:
-  Header: "Alíq. média"
-  Mostra: alíquota efetiva (já reduzida)  → confunde com "Redução média" ao lado
-
-Depois:
-  Header: "Alíq. efetiva" (+ tooltip)
-  Mantém o mesmo número, só esclarece que é pós-redução
-```
-
-Sem alteração em `calc.ts`, `types.ts` ou no CSV mock — toda a mudança é cosmética/de rótulos no componente `AbaPorAnexo.tsx`.
-
-## Fora de escopo
-
-- Não tocar nas abas "Resumo" e "Por Produto".
-- Não recalcular nada no `useApuracaoIbsCbs`.
-- Não introduzir coluna nova de variação real (Δ pp = depois − antes) nesta rodada — pode ser proposta futura caso queira comparar.
+## Sequência de execução
+1. Migration: `ALTER TABLE public.distribuicao_dcomp ADD COLUMN competencia date;`
+2. Aguardar aprovação da migration.
+3. Atualizar `DcompFormModal.tsx` (UI + validação + persistência + leitura para edição).
+4. Verificar build.

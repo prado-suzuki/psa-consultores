@@ -1156,6 +1156,7 @@ export type Database = {
         Row: {
           atualizado_em: string
           atualizado_por: string | null
+          competencia: string | null
           criado_em: string
           criado_por: string | null
           id: string
@@ -1166,6 +1167,7 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           atualizado_por?: string | null
+          competencia?: string | null
           criado_em?: string
           criado_por?: string | null
           id?: string
@@ -1176,6 +1178,7 @@ export type Database = {
         Update: {
           atualizado_em?: string
           atualizado_por?: string | null
+          competencia?: string | null
           criado_em?: string
           criado_por?: string | null
           id?: string
