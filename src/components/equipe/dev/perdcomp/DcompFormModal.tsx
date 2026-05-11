@@ -116,7 +116,7 @@ const isCompetenciaValida = (value: string): boolean =>
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
   nr_per_orig: z.string().min(1, 'PER de origem é obrigatório'),
-  mes_ano_exercicio: z.string().min(1, 'Mês/Ano é obrigatório'),
+  mes_ano_exercicio: z.string().optional().default(''),
   dt_envio: z.string().min(1, 'Data de envio é obrigatória'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
