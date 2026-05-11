@@ -50,6 +50,21 @@ const BASE_LEGAL: Record<string, { artigo: string; texto: string }> = {
   },
 };
 
+function HeaderTip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+          {label}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+        {children}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
 interface AbaPorAnexoProps {
   filtros: ApuracaoFiltros;
 }
