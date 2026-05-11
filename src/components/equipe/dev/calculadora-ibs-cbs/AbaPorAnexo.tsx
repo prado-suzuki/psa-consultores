@@ -189,7 +189,10 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                                 : "bg-emerald-100 text-emerald-700"
                           }`}
                         >
-                          {fmtPct(a.cargaPct)}
+                          <span className="inline-flex items-center gap-1">
+                            {a.cargaPct > 0.0001 ? "▲" : a.cargaPct < -0.0001 ? "▼" : "▬"}
+                            {fmtPct(a.cargaPct).replace("%", "").trim()}
+                          </span>
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtInt(a.qtdNFs)}</TableCell>
