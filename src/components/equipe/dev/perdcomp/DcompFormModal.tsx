@@ -300,13 +300,21 @@ export function DcompFormModal({
         {
           tributo: editData.imposto,
           valor_tributo: Number(editData.vlr_compensado) || 0,
+          competencia: editData.mes_ano_exercicio
+            ? String(editData.mes_ano_exercicio).substring(0, 7)
+            : '',
         },
       ]);
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
+  const mesAnoFromForm = form.watch('mes_ano_exercicio');
+
   const addLinha = (tributo: string) => {
-    setDistribuicoes((prev) => [...prev, { tributo, valor_tributo: 0 }]);
+    setDistribuicoes((prev) => [
+      ...prev,
+      { tributo, valor_tributo: 0, competencia: mesAnoFromForm || '' },
+    ]);
     setAddOpen(false);
   };
 
@@ -318,6 +326,13 @@ export function DcompFormModal({
     const num = parseCurrencyToNumber(raw);
     setDistribuicoes((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, valor_tributo: num } : l)),
+    );
+  };
+
+  const updateLinhaCompetencia = (idx: number, raw: string) => {
+    const parsed = parseCompetenciaInput(raw);
+    setDistribuicoes((prev) =>
+      prev.map((l, i) => (i === idx ? { ...l, competencia: parsed } : l)),
     );
   };
 
