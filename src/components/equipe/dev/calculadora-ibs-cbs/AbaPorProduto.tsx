@@ -317,7 +317,7 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-slate-900 line-clamp-1">{p.xProdExemplo}</p>
+                          <p className="font-medium text-slate-900 line-clamp-1" title={p.xProdExemplo}>{p.xProdExemplo}</p>
                           <p className="text-xs text-slate-500">
                             {p.produtosDistintos === 1
                               ? "1 produto distinto"
