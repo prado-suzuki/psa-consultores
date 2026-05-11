@@ -229,24 +229,62 @@ export function DcompFormModal({
         nr_dcomp_ret: data.nr_dcomp_ret ? stripToDigits(data.nr_dcomp_ret) : null,
         porcentagem_psa: data.porcentagem_psa ?? null,
       };
+
+      // Verifica se já existe registro com mesma PK (inclusive soft-deletado)
+      const { data: existing, error: checkError } = await (supabase
+        .from('dcomp') as any)
+        .select('nr_documento, excluido')
+        .eq('nr_documento', record.nr_documento)
+        .maybeSingle();
+      if (checkError) throw checkError;
+
+      if (existing) {
+        const isSoftDeleted = existing.excluido !== null && existing.excluido !== '';
+        if (!isSoftDeleted) {
+          throw new Error('Já existe um DCOMP ativo com este número. Edite-o em vez de criar um novo.');
+        }
+        // Reativa o registro soft-deletado preservando a PK original
+        const { error: updateError } = await (supabase
+          .from('dcomp') as any)
+          .update({
+            nr_per_orig: record.nr_per_orig,
+            mes_ano_exercicio: record.mes_ano_exercicio,
+            dt_envio: record.dt_envio,
+            imposto: record.imposto,
+            tp_credito: record.tp_credito,
+            vlr_compensado: record.vlr_compensado,
+            nr_dcomp_ret: record.nr_dcomp_ret,
+            porcentagem_psa: record.porcentagem_psa,
+            excluido: null,
+            nr_cancelamento: null,
+          })
+          .eq('nr_documento', record.nr_documento);
+        if (updateError) throw updateError;
+        return { ...record, __reactivated: true };
+      }
+
       const { error } = await supabase.from('dcomp').insert([record]);
       if (error) throw error;
       return record;
     },
-    onSuccess: (record) => {
+    onSuccess: (record: any) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
       queryClient.invalidateQueries({ queryKey: ['per-detail'] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
-      toast.success('DCOMP criado com sucesso!');
+      toast.success(record?.__reactivated ? 'DCOMP reativado com os novos dados.' : 'DCOMP criado com sucesso!');
       clear();
       onOpenChange(false);
 
-      syncPerdcompToDW({ dcomp: [record] });
+      const { __reactivated, ...clean } = record;
+      syncPerdcompToDW({ dcomp: [clean] });
     },
     onError: (error: any) => {
-      toast.error(`Erro ao criar DCOMP: ${error.message}`);
+      const msg = error?.code === '23505'
+        ? 'Já existe um DCOMP com este número. Verifique e tente novamente.'
+        : (error?.message || 'Erro desconhecido');
+      toast.error(`Erro ao criar DCOMP: ${msg}`);
     },
   });
 
