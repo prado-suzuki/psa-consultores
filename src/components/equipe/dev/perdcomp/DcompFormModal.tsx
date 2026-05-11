@@ -662,10 +662,11 @@ export function DcompFormModal({
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
-                <FormLabel className="m-0 w-[130px]">Tributos rateados <RequiredMark /></FormLabel>
-                <FormLabel className="m-0 flex-1">Valor do tributo</FormLabel>
-                <div className="w-9" />
+              <div className="grid grid-cols-[130px_1fr_110px_36px] items-center gap-2">
+                <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
+                <FormLabel className="m-0">Valor do tributo</FormLabel>
+                <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
+                <div />
               </div>
 
               {distribuicoes.length === 0 && (
@@ -676,10 +677,11 @@ export function DcompFormModal({
                 {distribuicoes.map((linha, idx) => {
                   const k = linha.id || `local-${idx}`;
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
+                  const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
                   return (
-                    <div key={k} className="flex items-start gap-2">
+                    <div key={k} className="grid grid-cols-[130px_1fr_110px_36px] items-start gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
-                        <SelectTrigger className="h-9 w-[130px]">
+                        <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
@@ -688,7 +690,7 @@ export function DcompFormModal({
                           ))}
                         </SelectContent>
                       </Select>
-                      <div className="flex-1">
+                      <div>
                         <Input
                           className={cn("h-9", valorZero && "border-destructive")}
                           type="text"
@@ -699,6 +701,17 @@ export function DcompFormModal({
                         {valorZero && (
                           <p className="mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
                         )}
+                      </div>
+                      <div>
+                        <Input
+                          className={cn("h-9", competenciaInvalida && "border-destructive")}
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="MM/AAAA"
+                          maxLength={7}
+                          value={formatCompetenciaDisplay(linha.competencia || '')}
+                          onChange={(e) => updateLinhaCompetencia(idx, e.target.value)}
+                        />
                       </div>
                       <Button
                         type="button"
