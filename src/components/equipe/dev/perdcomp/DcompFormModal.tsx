@@ -153,10 +153,13 @@ export function DcompFormModal({
   );
   const somaIgual = toCents(totalRateado) === toCents(vlrCompensado);
   const temDistribuicao = distribuicoes.length > 0;
+  const temTributoNaoSelecionado = distribuicoes.some((l) => !l.tributo);
+  const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
   const distribuicoesValidas =
     temDistribuicao &&
-    somaIgual &&
-    distribuicoes.every((l) => l.tributo && l.valor_tributo >= 0);
+    !temTributoNaoSelecionado &&
+    !temValorZero &&
+    somaIgual;
 
   // Carrega distribuições existentes em modo edição
   const { data: distribuicoesExistentes = [] } = useQuery({
