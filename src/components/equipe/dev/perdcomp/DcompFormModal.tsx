@@ -153,10 +153,13 @@ export function DcompFormModal({
   );
   const somaIgual = toCents(totalRateado) === toCents(vlrCompensado);
   const temDistribuicao = distribuicoes.length > 0;
+  const temTributoNaoSelecionado = distribuicoes.some((l) => !l.tributo);
+  const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
   const distribuicoesValidas =
     temDistribuicao &&
-    somaIgual &&
-    distribuicoes.every((l) => l.tributo && l.valor_tributo >= 0);
+    !temTributoNaoSelecionado &&
+    !temValorZero &&
+    somaIgual;
 
   // Carrega distribuições existentes em modo edição
   const { data: distribuicoesExistentes = [] } = useQuery({
@@ -605,11 +608,16 @@ export function DcompFormModal({
 
             {/* Rateio de tributos */}
             <div className="space-y-2 rounded-md border p-3">
-              <div className="flex items-center justify-between">
-                <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
+              <div className="flex items-center justify-end">
                 <Button type="button" variant="outline" size="sm" onClick={() => addLinha('')}>
                   <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tributo
                 </Button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <FormLabel className="m-0 w-[130px]">Tributos rateados <RequiredMark /></FormLabel>
+                <FormLabel className="m-0 flex-1">Valor do tributo</FormLabel>
+                <div className="w-9" />
               </div>
 
               {distribuicoes.length === 0 && (
@@ -619,8 +627,9 @@ export function DcompFormModal({
               <div className="space-y-2">
                 {distribuicoes.map((linha, idx) => {
                   const k = linha.id || `local-${idx}`;
+                  const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   return (
-                    <div key={k} className="flex items-center gap-2">
+                    <div key={k} className="flex items-start gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
                         <SelectTrigger className="h-9 w-[130px]">
                           <SelectValue placeholder="Selecione" />
@@ -631,13 +640,18 @@ export function DcompFormModal({
                           ))}
                         </SelectContent>
                       </Select>
-                      <Input
-                        className="h-9 flex-1"
-                        type="text"
-                        inputMode="numeric"
-                        value={formatCurrencyDisplay(linha.valor_tributo || 0)}
-                        onChange={(e) => updateLinhaValor(idx, e.target.value)}
-                      />
+                      <div className="flex-1">
+                        <Input
+                          className={cn("h-9", valorZero && "border-destructive")}
+                          type="text"
+                          inputMode="numeric"
+                          value={formatCurrencyDisplay(linha.valor_tributo || 0)}
+                          onChange={(e) => updateLinhaValor(idx, e.target.value)}
+                        />
+                        {valorZero && (
+                          <p className="mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
+                        )}
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -688,6 +702,10 @@ export function DcompFormModal({
               <p className="text-sm text-destructive">
                 {!temDistribuicao
                   ? 'Adicione ao menos um tributo rateado.'
+                  : temTributoNaoSelecionado
+                  ? 'Há tributos que não foram selecionados'
+                  : temValorZero
+                  ? 'Há tributos com valor zero'
                   : `A soma dos tributos (${formatCurrencyDisplay(totalRateado)}) deve ser igual ao valor total compensado (${formatCurrencyDisplay(vlrCompensado)}).`}
               </p>
             )}
