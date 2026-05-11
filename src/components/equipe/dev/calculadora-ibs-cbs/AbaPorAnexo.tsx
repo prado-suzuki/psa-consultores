@@ -19,36 +19,9 @@ import { AlertTriangle } from "lucide-react";
 import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
 import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
 import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from "@/lib/ibs-cbs/formatters";
+import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
 
 const PALETA = ["#0D9488", "#65A30D", "#F2810A", "#3478F5", "#6B46E8", "#0A9BB5", "#E0404A"];
-
-const BASE_LEGAL: Record<string, { artigo: string; texto: string }> = {
-  "Anexo I": {
-    artigo: "Art. 125",
-    texto:
-      "Alíquotas do IBS e da CBS reduzidas a zero sobre vendas de produtos destinados à alimentação humana listados no Anexo I (Cesta Básica Nacional de Alimentos), conforme EC 132/2023.",
-  },
-  "Anexo VII": {
-    artigo: "Art. 135",
-    texto:
-      "Alíquotas do IBS e da CBS reduzidas em 60% sobre o fornecimento de alimentos destinados ao consumo humano listados no Anexo VII, com classificações NCM/SH.",
-  },
-  "Anexo IX": {
-    artigo: "Art. 138",
-    texto:
-      "Alíquotas do IBS e da CBS reduzidas em 60% sobre o fornecimento de insumos agropecuários e aquícolas listados no Anexo IX, com classificações NCM/SH e NBS.",
-  },
-  "Anexo XV": {
-    artigo: "Art. 148",
-    texto:
-      "Alíquotas do IBS e da CBS reduzidas a zero sobre o fornecimento de produtos hortícolas, frutas e ovos listados no Anexo XV, com classificações NCM/SH.",
-  },
-  "Seção VI": {
-    artigo: "Art. 180",
-    texto:
-      "Vedada a apropriação de créditos sobre aquisições de combustíveis sujeitos à incidência única do IBS e da CBS quando destinadas à distribuição, comercialização ou revenda.",
-  },
-};
 
 function HeaderTip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -232,7 +205,7 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                               <div className="font-semibold mb-1">
                                 {a.anexo} — {base.artigo}
                               </div>
-                              <div className="text-slate-900">{base.texto}</div>
+                              <div className="text-slate-900 whitespace-pre-line">{base.texto}</div>
                             </TooltipContent>
                           </Tooltip>
                         ) : (

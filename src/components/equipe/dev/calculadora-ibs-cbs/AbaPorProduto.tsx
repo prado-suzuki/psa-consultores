@@ -5,7 +5,7 @@ import {
   ResponsiveContainer,
   Scatter,
   ScatterChart,
-  Tooltip,
+  Tooltip as ChartTooltip,
   XAxis,
   YAxis,
   ZAxis,
@@ -18,10 +18,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
 import type { AgregadoProduto, ApuracaoFiltros } from "@/lib/ibs-cbs/types";
 import { exportToCsv } from "@/lib/ibs-cbs/calc";
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from "@/lib/ibs-cbs/formatters";
+import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
 
 const PALETA: Record<string, string> = {
   "Anexo I": "#0D9488",
@@ -202,7 +204,7 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
                   width={50}
                 />
                 <ZAxis type="number" dataKey="z" range={[20, 280]} />
-                <Tooltip
+                <ChartTooltip
                   cursor={{ strokeDasharray: "3 3" }}
                   contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
                   content={({ active, payload }) => {
@@ -326,15 +328,34 @@ export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="secondary"
-                          style={{
-                            background: `${corDoAnexo(p.anexo)}20`,
-                            color: corDoAnexo(p.anexo),
-                          }}
-                        >
-                          {p.anexo}
-                        </Badge>
+                        {(() => {
+                          const base = BASE_LEGAL[p.anexo];
+                          const badge = (
+                            <Badge
+                              variant="secondary"
+                              style={{
+                                background: `${corDoAnexo(p.anexo)}20`,
+                                color: corDoAnexo(p.anexo),
+                              }}
+                            >
+                              {p.anexo}
+                            </Badge>
+                          );
+                          if (!base) return badge;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="inline-block cursor-help">{badge}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" className="max-w-sm text-xs leading-relaxed">
+                                <div className="font-semibold mb-1">
+                                  {p.anexo} — {base.artigo}
+                                </div>
+                                <div className="text-slate-900 whitespace-pre-line">{base.texto}</div>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtNum(p.qtd)}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(p.faturamento)}</TableCell>
