@@ -121,7 +121,7 @@ export function DcompFormModal({
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
   const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
   const [distribuicoes, setDistribuicoes] = useState<DistribuicaoLinha[]>([]);
-  const [linhaDisplay, setLinhaDisplay] = useState<Record<string, string>>({});
+  
   const [addOpen, setAddOpen] = useState(false);
 
   const form = useForm<DcompFormData>({
