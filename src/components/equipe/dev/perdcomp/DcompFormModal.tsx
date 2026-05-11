@@ -270,16 +270,6 @@ export function DcompFormModal({
     }
   }, [distribuicoesExistentes, isEditing, editData]);
 
-  // Sincroniza display monetário das linhas
-  useEffect(() => {
-    const next: Record<string, string> = {};
-    distribuicoes.forEach((l, i) => {
-      const k = l.id || `local-${i}`;
-      next[k] = formatCurrencyDisplay(l.valor_tributo || 0);
-    });
-    setLinhaDisplay(next);
-  }, [distribuicoes.length]); // eslint-disable-line react-hooks/exhaustive-deps
-
   const addLinha = (tributo: string) => {
     setDistribuicoes((prev) => [...prev, { tributo, valor_tributo: 0 }]);
     setAddOpen(false);
@@ -294,8 +284,6 @@ export function DcompFormModal({
     setDistribuicoes((prev) =>
       prev.map((l, i) => (i === idx ? { ...l, valor_tributo: num } : l)),
     );
-    const k = distribuicoes[idx]?.id || `local-${idx}`;
-    setLinhaDisplay((prev) => ({ ...prev, [k]: formatCurrencyDisplay(num) }));
   };
 
   const removerLinha = (idx: number) => {
