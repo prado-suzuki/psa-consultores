@@ -485,28 +485,37 @@ const FiscalDashboard = () => {
             label="Projetos Ativos"
             value={activeProjects}
             icon={<FolderKanban className="h-3.5 w-3.5" />}
-            variation={totalProjects > 0 ? { value: Math.round((activeProjects / totalProjects) * 100), label: 'do portfólio' } : undefined}
+            variation={
+              totalProjects > 0
+                ? { label: `${Math.round((activeProjects / totalProjects) * 100)}% do portfólio` }
+                : { label: 'sem projetos cadastrados' }
+            }
             loading={isLoading}
           />
           <KpiHero
             label="Taxa de Conclusão"
             value={`${completionRate}%`}
             icon={<CheckCircle className="h-3.5 w-3.5" />}
-            variation={completionRate > 0 ? { value: completionRate, label: 'tarefas concluídas' } : undefined}
+            variation={{ label: `${doneTasks} de ${totalTasks} tarefas concluídas` }}
             loading={isLoading}
           />
           <KpiHero
             label="Tarefas Atrasadas"
             value={overdueTasks.length}
             icon={<AlertCircle className="h-3.5 w-3.5" />}
-            variation={overdueTasks.length > 0 ? { value: -overdueTasks.length, label: 'requerem ação' } : undefined}
+            variation={{ label: overdueTasks.length > 0 ? 'requerem ação imediata' : 'nenhuma pendência' }}
             loading={isLoading}
           />
           <KpiHero
             label="Horas Planejadas"
             value={`${totalEstHours.toFixed(0)}h`}
             icon={<Clock className="h-3.5 w-3.5" />}
-            variation={totalTasks > 0 ? { value: Math.round(totalEstHours / totalTasks), label: 'h média/tarefa' } : undefined}
+            variation={{
+              label:
+                totalTasks > 0
+                  ? `${Math.round(totalEstHours / totalTasks)}h em média por tarefa`
+                  : 'sem tarefas planejadas',
+            }}
             variant="solid"
             loading={isLoading}
           />

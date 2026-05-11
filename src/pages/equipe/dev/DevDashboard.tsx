@@ -29,6 +29,7 @@ import {
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 import { KpiHero, HatchedBar, HeroBanner, type HatchedBarSegment } from "@/components/dashboard/momentum";
+import { useToolsCounts } from "@/hooks/useToolsCounts";
 
 interface ToolEntry {
   name: string;
@@ -132,6 +133,7 @@ const toolGroups: ToolGroup[] = [
 const DevDashboard = () => {
   const navigate = useNavigate();
   const [selectedToolPath, setSelectedToolPath] = useState<string>("");
+  const { data: toolsCounts, isLoading: isLoadingTools } = useToolsCounts();
 
   const filteredGroups = useMemo(() => {
     if (!selectedToolPath) return toolGroups;
@@ -172,29 +174,30 @@ const DevDashboard = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <KpiHero
-            label="Ferramentas Ativas"
+            label="Ferramentas no Catalogo"
             value={totalTools}
             icon={<Cpu className="h-3.5 w-3.5" />}
-            variation={{ value: totalTools, label: "aplicacoes disponiveis" }}
+            variation={{ label: "disponiveis para a equipe" }}
           />
           <KpiHero
-            label="Categorias"
+            label="Areas Funcionais"
             value={totalCategories}
             icon={<LayoutGrid className="h-3.5 w-3.5" />}
-            variation={{ value: totalCategories, label: "grupos funcionais" }}
+            variation={{ label: "frentes de atuacao" }}
           />
           <KpiHero
             label="Cobertura de Manuais"
             value={`${sopCoverage}%`}
             icon={<BookOpen className="h-3.5 w-3.5" />}
-            variation={{ value: sopCoverage, label: `${totalWithSop} de ${totalTools} com SOP` }}
+            variation={{ label: `${totalWithSop} de ${totalTools} com manual SOP` }}
           />
           <KpiHero
-            label="Proximas Releases"
-            value="3"
+            label="Em Desenvolvimento"
+            value={toolsCounts?.inDevelopment ?? 0}
             icon={<Rocket className="h-3.5 w-3.5" />}
             variant="solid"
-            variation={{ value: 1, label: "em desenvolvimento" }}
+            variation={{ label: "novas ferramentas em construcao" }}
+            loading={isLoadingTools}
           />
         </div>
 

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface KpiHeroProps {
   label: string;
   value: string | number;
-  variation?: { value: number; label: string };
+  variation?: { value?: number; label: string };
   icon?: ReactNode;
   onRefresh?: () => void;
   onViewAll?: () => void;
@@ -30,8 +30,9 @@ export function KpiHero({
   loading = false,
 }: KpiHeroProps) {
   const isSolid = variant === 'solid';
-  const trendUp = variation && variation.value > 0;
-  const trendDown = variation && variation.value < 0;
+  const hasTrendValue = variation?.value !== undefined;
+  const trendUp = hasTrendValue && (variation!.value as number) > 0;
+  const trendDown = hasTrendValue && (variation!.value as number) < 0;
 
   return (
     <div
@@ -117,8 +118,13 @@ export function KpiHero({
                 : 'text-slate-500'
             )}
           >
-            {trendUp ? '+' : ''}
-            {variation.value}% {variation.label}
+            {hasTrendValue && (
+              <>
+                {trendUp ? '+' : ''}
+                {variation.value}%{' '}
+              </>
+            )}
+            {variation.label}
           </span>
         </div>
       )}
