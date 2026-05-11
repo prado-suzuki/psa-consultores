@@ -357,6 +357,7 @@ export function DcompFormModal({
       nr_documento: nrDocumento,
       tributo: l.tributo,
       valor_tributo: l.valor_tributo,
+      competencia: normalizeMesAno(l.competencia),
     }));
     if (rows.length > 0) {
       const { error: insErr } = await (supabase.from('distribuicao_dcomp') as any).insert(rows);
