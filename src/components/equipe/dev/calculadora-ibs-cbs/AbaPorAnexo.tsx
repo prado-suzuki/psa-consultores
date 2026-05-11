@@ -113,11 +113,23 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                   <TableHead>Anexo</TableHead>
                   <TableHead className="text-right">Faturamento</TableHead>
                   <TableHead className="text-right">% fat.</TableHead>
-                  <TableHead className="text-right">Alíq. média</TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+                          Alíq. efetiva
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs text-xs leading-relaxed">
+                        Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico
+                        (ex.: Seção VI), a carga DEPOIS pode ser maior que a alíquota efetiva.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   <TableHead className="text-right">Redução média</TableHead>
                   <TableHead className="text-right">Trib. ANTES</TableHead>
                   <TableHead className="text-right">Trib. DEPOIS</TableHead>
-                  <TableHead className="text-right">Δ carga</TableHead>
+                  <TableHead className="text-right">Carga DEPOIS</TableHead>
                   <TableHead className="text-right">NFs</TableHead>
                   <TableHead className="text-right">Itens</TableHead>
                 </TableRow>
