@@ -1442,6 +1442,135 @@ const EquipeProjetos = () => {
                           className="bg-white border-gray-300 text-gray-900"
                         />
                       </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Cliente PSA</Label>
+                          <Select
+                            value={editProject.external_client_id || ''}
+                            onValueChange={(v) => {
+                              const client = externalClients.find(c => c.id === v);
+                              setEditProject({
+                                ...editProject,
+                                external_client_id: v,
+                                client_name: client?.nome || editProject.client_name,
+                              });
+                            }}
+                          >
+                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                              <SelectValue placeholder="Selecione o cliente" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                              {externalClients.map((client) => (
+                                <SelectItem key={client.id} value={client.id}>
+                                  {client.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Líder Interno</Label>
+                          <Select
+                            value={editProject.leader_id || ''}
+                            onValueChange={(v) => setEditProject({ ...editProject, leader_id: v })}
+                          >
+                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                              <SelectValue placeholder="Selecione o líder" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                              {teamMembers.map((member) => (
+                                <SelectItem key={member.id} value={member.id}>
+                                  {member.first_name} {member.last_name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Área</Label>
+                          <Select
+                            value={editProject.area || ''}
+                            onValueChange={(v) => setEditProject({ ...editProject, area: v })}
+                          >
+                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                              <SelectValue placeholder="Selecione a área" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-gray-200">
+                              {PROJECT_AREAS.map((area) => (
+                                <SelectItem key={area.value} value={area.value}>
+                                  {area.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Produto/Serviço</Label>
+                          <Input
+                            value={editProject.product_service || ''}
+                            onChange={(e) => setEditProject({ ...editProject, product_service: e.target.value })}
+                            placeholder="Ex: Auditoria Fiscal, BI"
+                            className="bg-white border-gray-300 text-gray-900"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Frente do Projeto</Label>
+                        <Select
+                          value={editProject.project_front || ''}
+                          onValueChange={(v) => setEditProject({ ...editProject, project_front: v })}
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                            <SelectValue placeholder="Selecione a frente" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-gray-200">
+                            {PROJECT_FRONTS.map((front) => (
+                              <SelectItem key={front.value} value={front.value}>
+                                {front.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Justificativa do Projeto</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {JUSTIFICATION_TYPES.map((jt) => (
+                            <div
+                              key={jt.value}
+                              className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                                editProject.justification_type === jt.value
+                                  ? 'border-primary bg-primary/10'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => setEditProject({ ...editProject, justification_type: jt.value })}
+                            >
+                              <div className="font-medium text-sm">{jt.label}</div>
+                              <div className="text-xs text-muted-foreground">{jt.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {editProject.justification_type && (
+                        <div className="space-y-2">
+                          <Label className="text-gray-700">Detalhamento da Justificativa</Label>
+                          <Textarea
+                            value={editProject.justification_detail || ''}
+                            onChange={(e) => setEditProject({ ...editProject, justification_detail: e.target.value })}
+                            placeholder="Descreva o impacto esperado, métricas, economia estimada..."
+                            rows={3}
+                            className="bg-white border-gray-300 text-gray-900"
+                          />
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label className="text-gray-700">Descrição</Label>
                         <Textarea
@@ -1451,14 +1580,7 @@ const EquipeProjetos = () => {
                           rows={3}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Cliente</Label>
-                        <Input
-                          value={editProject.client_name}
-                          onChange={(e) => setEditProject({ ...editProject, client_name: e.target.value })}
-                          className="bg-white border-gray-300 text-gray-900"
-                        />
-                      </div>
+
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-gray-700">Data Início</Label>
@@ -1479,6 +1601,7 @@ const EquipeProjetos = () => {
                           />
                         </div>
                       </div>
+
                       <div className="space-y-2">
                         <Label className="text-gray-700">Status</Label>
                         <Select value={editProject.status} onValueChange={(value) => setEditProject({ ...editProject, status: value })}>
