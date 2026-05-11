@@ -86,7 +86,32 @@ interface DistribuicaoLinha {
   id?: string;
   tributo: string;
   valor_tributo: number;
+  /** Competência no formato 'yyyy-MM' (UI) ou 'yyyy-MM-dd' (DB). */
+  competencia: string;
 }
+
+/** Converte 'yyyy-MM' ou 'yyyy-MM-dd' para 'MM/AAAA' para exibição. */
+const formatCompetenciaDisplay = (value: string): string => {
+  if (!value) return '';
+  const m = value.match(/^(\d{4})-(\d{2})/);
+  if (m) return `${m[2]}/${m[1]}`;
+  return value;
+};
+
+/** Aplica máscara MM/AAAA enquanto o usuário digita; retorna 'yyyy-MM' quando completo. */
+const parseCompetenciaInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '').slice(0, 6);
+  if (digits.length === 6) {
+    const mm = digits.slice(0, 2);
+    const yyyy = digits.slice(2, 6);
+    return `${yyyy}-${mm}`;
+  }
+  if (digits.length > 2) return digits.slice(0, 2) + '/' + digits.slice(2);
+  return digits;
+};
+
+const isCompetenciaValida = (value: string): boolean =>
+  /^\d{4}-(0[1-9]|1[0-2])$/.test(value) || /^\d{4}-(0[1-9]|1[0-2])-\d{2}$/.test(value);
 
 const dcompSchema = z.object({
   nr_documento: z.string().min(1, 'Número do documento é obrigatório'),
