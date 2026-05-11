@@ -1,43 +1,35 @@
-## Causa raiz
+## Problema
+No modal de detalhe do projeto (`/equipe/projetos`), ao clicar em **Editar** o formulário só expõe: Nome, Descrição, Cliente (texto livre), Datas e Status. Os demais campos preenchidos na criação ficam inacessíveis para edição:
 
-O erro `duplicate key value violates unique constraint "dcomp_pkey"` ocorre porque já existe na tabela `public.dcomp` um registro com exatamente o mesmo `nr_documento` (`401329420313042513190760`), mas ele está **soft-deletado** (`excluido = 'E'`).
+- Cliente PSA (`external_client_id`)
+- Líder Interno (`leader_id`)
+- Área (`area`)
+- Produto/Serviço (`product_service`)
+- Frente do Projeto (`project_front`)
+- Justificativa do Projeto (`justification_type` + `justification_detail`)
 
-Detalhes verificados no banco:
-- A PK de `dcomp` é `nr_documento` (não composta).
-- Padrão do projeto: leituras filtram `excluido` ≠ preenchido, então o DCOMP excluído não aparece na UI nem nas listas de "DCOMPs existentes" do `DcompFormModal.tsx` (linha ~140, `.or('excluido.is.null,excluido.eq.')`).
-- O usuário, sem ver o registro, tenta criar de novo. O `INSERT` em `DcompFormModal.tsx` (mutação `createMutation`) bate diretamente na PK e estoura o erro do Postgres, traduzido pela `toast` como "duplicate key…".
+## Causa
+Em `src/pages/equipe/EquipeProjetos.tsx` (bloco `isEditMode` ~linhas 1435-1495) o JSX do modo edição é uma versão reduzida do modal de criação (~linhas 970-1200). Os campos existem no estado `editProject` (já populado em linhas 414-431) e em `handleUpdateProject`, mas não foram renderizados.
 
-Ou seja: não é um bug de digitação nem de PER duplicado — é colisão com um DCOMP previamente excluído logicamente que continua ocupando a chave primária.
+## Correção (apenas frontend)
+Reorganizar o bloco de edição para espelhar o modal de criação, na mesma ordem visual:
 
-## Estratégia de correção
+1. Nome do Projeto *
+2. Linha 2 colunas: **Cliente PSA** (Select com `externalClients`) | **Líder Interno** (Select com `teamMembers`)
+3. Linha 2 colunas: **Área** (Select com `PROJECT_AREAS`) | **Produto/Serviço** (Input)
+4. **Frente do Projeto** (Select)
+5. **Justificativa do Projeto** (grid de cards selecionáveis com `justification_type` + textarea opcional `justification_detail` se já existir no create — replicar o mesmo componente)
+6. Descrição (Textarea)
+7. Datas Início / Fim
+8. Status (mantém)
+9. Footer: Excluir / Cancelar / Salvar Alterações (mantém)
 
-Em vez de bloquear o usuário, tratar o caso de forma transparente: ao detectar que o `nr_documento` informado já existe **somente como soft-delete**, **reativar** o registro com os novos dados (UPSERT seletivo, mantendo o UUID/PK original — em linha com o padrão do projeto "no delete-reinsert / preserve original UUIDs").
+Todos os handlers usam `setEditProject({ ...editProject, campo: valor })`. Nenhuma mudança em `handleUpdateProject`, banco, RLS ou hooks.
 
-Quando existir um registro **vigente** (não excluído) com o mesmo número, manter o bloqueio, mas com mensagem clara.
+Substituir o input livre "Cliente" (texto) pelo Select de `external_client_id`, mantendo `client_name` sincronizado automaticamente (ou removendo do payload de update se já vier do `external_client_id`) — alinhar com o que `handleCreateProject` faz hoje para consistência.
 
-### Mudanças propostas
-
-1. `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` — `createMutation`:
-   - Antes do `INSERT`, fazer `SELECT nr_documento, excluido FROM dcomp WHERE nr_documento = :digits LIMIT 1`.
-   - Se não existir → `INSERT` normal (fluxo atual).
-   - Se existir e `excluido` estiver vazio/null → abortar com toast: "Já existe um DCOMP ativo com este número. Edite-o em vez de criar um novo."
-   - Se existir e `excluido` estiver preenchido (soft-delete) → fazer `UPDATE` setando todos os campos do form **e** `excluido = null`, `nr_cancelamento = null`, atualizando `dt_envio`, `imposto`, `vlr_compensado`, etc. (mantém o UUID/PK original, conforme padrão `no-delete-reinsert-standard`). Toast: "DCOMP reativado com os novos dados."
-   - Disparar `syncPerdcompToDW` com o registro reativado (igual ao fluxo atual).
-   - Invalidar as mesmas queries já invalidadas hoje.
-   - Registrar a operação via `useAuditLog` com `action: 'updated'` e diff dos campos relevantes (entity_type `dcomp`).
-
-2. Tradução de erro genérico: caso ainda assim caia em `23505` (race condition), interceptar `error.code === '23505'` no `onError` e mostrar mensagem amigável ("Já existe um DCOMP com este número. Verifique e tente novamente.") em vez do texto bruto do Postgres.
-
-3. Sem alterações de schema/migration, sem mexer em RLS, sem mudar a lógica de soft-delete existente.
-
-### Verificação
-
-- Reproduzir o cenário do print (usar mesmo `nr_documento` já excluído) e confirmar que o registro é reativado sem erro.
-- Tentar criar com um `nr_documento` de um DCOMP **ativo** e confirmar a nova mensagem de bloqueio.
-- Conferir no log de auditoria a entrada `updated` com o diff.
-
-## Detalhes técnicos
-
-- A coluna `excluido` em `dcomp` é texto (no registro encontrado vale `'E'`, não boolean) — manter tratamento `IS NULL OR = ''` para "vigente".
-- Continuar passando `nr_documento` por `stripToDigits` antes de qualquer query/mutação.
-- Não mudar a query `dcomps-existentes` (lista de retificação): ela deve continuar ignorando excluídos.
+## Verificação
+1. Criar projeto preenchendo todos os campos.
+2. Abrir o projeto, clicar **Editar** → todos os campos aparecem com valores carregados.
+3. Alterar cada campo e salvar → persistência confirmada na listagem e ao reabrir.
+4. Auditoria (`useAuditLog`) registra diff dos novos campos editados.
