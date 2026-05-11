@@ -117,7 +117,7 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                   <TableHead className="text-right">Redução média</TableHead>
                   <TableHead className="text-right">Trib. ANTES</TableHead>
                   <TableHead className="text-right">Trib. DEPOIS</TableHead>
-                  <TableHead className="text-right">% carga</TableHead>
+                  <TableHead className="text-right">Δ carga</TableHead>
                   <TableHead className="text-right">NFs</TableHead>
                   <TableHead className="text-right">Itens</TableHead>
                 </TableRow>
