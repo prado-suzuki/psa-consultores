@@ -79,6 +79,8 @@ interface Process {
   sop_before_content?: string | null;
   last_ai_sync?: string | null;
   catalog_client?: CatalogClient | null;
+  equipe_id?: string | null;
+  equipe?: { id: string; name: string; area: { id: string; name: string } | null } | null;
   linked_projects?: LinkedProject[];
 }
 
