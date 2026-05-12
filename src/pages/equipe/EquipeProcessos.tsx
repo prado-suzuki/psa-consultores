@@ -79,6 +79,8 @@ interface Process {
   sop_before_content?: string | null;
   last_ai_sync?: string | null;
   catalog_client?: CatalogClient | null;
+  equipe_id?: string | null;
+  equipe?: { id: string; name: string; area: { id: string; name: string } | null } | null;
   linked_projects?: LinkedProject[];
 }
 
@@ -375,6 +377,7 @@ const EquipeProcessos = () => {
         .select(`
           *,
           catalog_client:catalog_clients!client_id(id, name, responsible, color, is_active),
+          equipe:estrutura_equipes!processes_equipe_id_fkey(id, name, area:estrutura_areas!estrutura_equipes_area_id_fkey(id, name)),
           project_processes(
             id,
             impact_type,
@@ -658,12 +661,19 @@ const EquipeProcessos = () => {
      }
    };
 
-  // Helper to get client badge
+  // Helper to render badge of equipe (estrutura organizacional). Fallback: catalog_client e por fim area legado.
   const getClientBadge = (process: Process) => {
+    if (process.equipe?.name) {
+      return (
+        <Badge variant="outline" className="text-xs">
+          {process.equipe.name}
+        </Badge>
+      );
+    }
     const client = process.catalog_client || catalogClients.find(c => c.id === process.client_id);
     if (client) {
       return (
-        <Badge 
+        <Badge
           style={{ backgroundColor: `${client.color}20`, color: client.color, borderColor: client.color }}
           className="border text-xs"
         >
