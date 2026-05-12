@@ -40,6 +40,8 @@ import type { EFDArquivo, BlocoRegistro, EFDTipo } from '@/types/efd';
 interface EFDExportDialogProps {
   arquivo: EFDArquivo;
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
+  /** UUID do contribuinte (usado na rota da API) */
+  idContribuinte: string;
   disabled?: boolean;
   tipo?: EFDTipo;
   /** Tipo de perfil de exportação (separação por ferramenta) */
@@ -63,9 +65,10 @@ interface JobStatus {
   file_name?: string;
 }
 
-export function EFDExportDialog({ 
-  arquivo, 
+export function EFDExportDialog({
+  arquivo,
   blocosDisponiveis,
+  idContribuinte,
   disabled,
   tipo = 'contribuicoes',
   profileType,
@@ -397,7 +400,7 @@ export function EFDExportDialog({
       const registrosCodigos = Array.from(selectedRegistros).map(r => r.replace('REG_', ''));
       
       const exportUrl = getApiUrl(
-        `/api/v1/efd/${tipo}/${arquivo.CNPJ}/${arquivo.ID_ARQUIVO}/exportar`
+        `/api/v1/efd/${tipo}/${idContribuinte}/${arquivo.ID_ARQUIVO}/exportar`
       );
       
       const startResponse = await fetchWithAuth(exportUrl, {

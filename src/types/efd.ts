@@ -45,7 +45,7 @@ export interface BlocoRegistro {
 
 // Resposta da API de Overview (lista de arquivos)
 export interface EFDOverview {
-  cnpj: string;
+  id_contribuinte: string;
   blocos_disponiveis: Record<string, BlocoRegistro[]>; // ex: "0": [...], "C": [...]
   arquivos: EFDArquivo[];
 }

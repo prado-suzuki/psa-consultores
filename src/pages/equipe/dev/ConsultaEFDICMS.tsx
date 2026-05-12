@@ -180,9 +180,9 @@ const ConsultaEFDICMS = () => {
     error: errorOverview,
     refetch: refetchOverview 
   } = useEFDOverview({
-    enabled: searchTriggered && !!cnpjContribuinte,
-    cnpj: cnpjContribuinte,
-    tipo: 'icms', // Usar dados mockados do Storage
+    enabled: searchTriggered && !!selectedContribuinte,
+    idContribuinte: selectedContribuinte,
+    tipo: 'icms',
   });
 
   // Interface para opções de filial
@@ -321,13 +321,13 @@ const ConsultaEFDICMS = () => {
 
   // Handler para baixar todos os arquivos (ZIP)
   const handleDownloadAll = async () => {
-    if (!cnpjContribuinte) return;
-    
+    if (!selectedContribuinte) return;
+
     setDownloadingAll(true);
-    
+
     try {
       // Montar URL com query params opcionais
-      const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${cnpjContribuinte}`));
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${selectedContribuinte}`));
       if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
       if (dataFim) url.searchParams.set('data_fim', dataFim);
       
@@ -704,7 +704,7 @@ const ConsultaEFDICMS = () => {
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {/* Header com Dropdown de Filial + CNPJ */}
-        {overview?.cnpj && (
+        {overview && cnpjContribuinte && (
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               {/* Lado Esquerdo - Dropdown de Filial + CNPJ */}
@@ -747,9 +747,9 @@ const ConsultaEFDICMS = () => {
                   {/* CNPJ em tamanho menor */}
                   <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     CNPJ: {formatCNPJ(
-                      selectedFilial !== 'todas' && filialSelecionada 
-                        ? filialSelecionada.cnpjCompleto 
-                        : overview.cnpj
+                      selectedFilial !== 'todas' && filialSelecionada
+                        ? filialSelecionada.cnpjCompleto
+                        : cnpjContribuinte
                     )}
                   </span>
                 </div>
@@ -950,6 +950,7 @@ const ConsultaEFDICMS = () => {
                             arquivo={arquivo}
                             blocosDisponiveis={blocosDisponiveis}
                             tipo="icms"
+                            idContribuinte={selectedContribuinte}
                           />
 
                           <ButtonTooltip text={TOOLTIPS.analisar}>
@@ -990,7 +991,7 @@ const ConsultaEFDICMS = () => {
         onOpenChange={setAnalysisModalOpen}
         arquivo={selectedArquivo}
         blocosDisponiveis={blocosDisponiveis}
-        cnpj={overview?.cnpj || ''}
+        idContribuinte={selectedContribuinte}
         tipo="icms"
       />
 
@@ -1001,6 +1002,7 @@ const ConsultaEFDICMS = () => {
           blocosDisponiveis={blocosDisponiveis}
           tipo="icms"
           profileType="efd_icms"
+          idContribuinte={selectedContribuinte}
           externalOpen={exportDialogOpen}
           onExternalOpenChange={setExportDialogOpen}
           hideTrigger

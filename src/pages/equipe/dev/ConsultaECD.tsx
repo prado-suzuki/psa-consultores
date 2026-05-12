@@ -170,8 +170,8 @@ const ConsultaECD = () => {
     error: errorOverview,
     refetch: refetchOverview
   } = useEFDOverview({
-    enabled: searchTriggered && !!cnpjContribuinte,
-    cnpj: cnpjContribuinte,
+    enabled: searchTriggered && !!selectedContribuinte,
+    idContribuinte: selectedContribuinte,
     tipo: 'ecd',
   });
 
@@ -231,10 +231,10 @@ const ConsultaECD = () => {
   };
 
   const handleDownloadAll = async () => {
-    if (!cnpjContribuinte) return;
+    if (!selectedContribuinte) return;
     setDownloadingAll(true);
     try {
-      const url = new URL(getApiUrl(`/api/v1/query/download/efd/ecd/${cnpjContribuinte}`));
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/ecd/${selectedContribuinte}`));
       if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
       if (dataFim) url.searchParams.set('data_fim', dataFim);
       const response = await fetchWithAuth(url.toString(), {}, 60000);
@@ -445,14 +445,14 @@ const ConsultaECD = () => {
 
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
-        {overview?.cnpj && (
+        {overview && cnpjContribuinte && (
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Building2 className="h-5 w-5 text-primary" />
                 <div className="flex flex-col">
                   <span className="text-sm font-bold text-slate-800 dark:text-white">Escrituração Contábil Digital</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">CNPJ: {formatCNPJ(overview.cnpj)}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">CNPJ: {formatCNPJ(cnpjContribuinte)}</span>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetchOverview()} disabled={loadingOverview}>
                   {loadingOverview ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -533,7 +533,7 @@ const ConsultaECD = () => {
                               {downloadingTxt === arquivo.ID_ARQUIVO ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
                             </Button>
                           </ButtonTooltip>
-                          <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecd" />
+                          <EFDExportDialog arquivo={arquivo} blocosDisponiveis={blocosDisponiveis} tipo="ecd" idContribuinte={selectedContribuinte} />
                           <ButtonTooltip text={TOOLTIPS.analisar}>
                             <Button size="sm" onClick={() => handleAnalisar(arquivo)} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
                               <BarChart3 className="h-4 w-4 mr-1" />Analisar
@@ -556,9 +556,9 @@ const ConsultaECD = () => {
         </CardContent>
       </Card>
 
-      <EFDAnalysisModal open={analysisModalOpen} onOpenChange={setAnalysisModalOpen} arquivo={selectedArquivo} blocosDisponiveis={blocosDisponiveis} cnpj={overview?.cnpj || ''} tipo="ecd" />
+      <EFDAnalysisModal open={analysisModalOpen} onOpenChange={setAnalysisModalOpen} arquivo={selectedArquivo} blocosDisponiveis={blocosDisponiveis} idContribuinte={selectedContribuinte} tipo="ecd" />
       {arquivoParaExportar && (
-        <EFDExportDialog arquivo={arquivoParaExportar} blocosDisponiveis={blocosDisponiveis} tipo="ecd" profileType="efd_ecd" externalOpen={exportDialogOpen} onExternalOpenChange={setExportDialogOpen} hideTrigger />
+        <EFDExportDialog arquivo={arquivoParaExportar} blocosDisponiveis={blocosDisponiveis} tipo="ecd" profileType="efd_ecd" idContribuinte={selectedContribuinte} externalOpen={exportDialogOpen} onExternalOpenChange={setExportDialogOpen} hideTrigger />
       )}
       </TooltipProvider>
     </DevLayout>

@@ -6,7 +6,7 @@ import type { EFDOverview, EFDDetail, EFDTipo } from '@/types/efd';
 // Parâmetros para busca de overview (lista de arquivos)
 interface UseEFDOverviewParams {
   enabled?: boolean;
-  cnpj: string;              // CNPJ do contribuinte (obrigatório, apenas números)
+  idContribuinte: string;    // UUID do contribuinte (obrigatório)
   uf?: string;               // Filtro opcional
   indAtiv?: number;          // Filtro opcional
   dataInicio?: string;       // DT_INI (YYYY-MM-DD)
@@ -16,7 +16,7 @@ interface UseEFDOverviewParams {
 
 // Parâmetros para busca de detalhes (registros de um arquivo)
 interface UseEFDDetailParams {
-  cnpj: string;              // CNPJ do contribuinte
+  idContribuinte: string;    // UUID do contribuinte
   idArquivo: string;         // ID do arquivo
   registro: string;          // Código do registro (ex: "REG_C100")
   page?: number;             // Página (default: 1)
@@ -33,20 +33,20 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
     queryKey: [
       'efd-overview',
       tipo,
-      params?.cnpj,
+      params?.idContribuinte,
       params?.uf,
       params?.indAtiv,
       params?.dataInicio,
       params?.dataFim,
     ],
     queryFn: async (): Promise<EFDOverview> => {
-      if (!params?.cnpj) {
-        throw new Error('CNPJ é obrigatório');
+      if (!params?.idContribuinte) {
+        throw new Error('idContribuinte é obrigatório');
       }
 
-      // Rota dinâmica: /api/v1/efd/{tipo}/{cnpj}
-      const url = new URL(getApiUrl(`/api/v1/efd/${tipo}/${params.cnpj}`));
-      
+      // Rota dinâmica: /api/v1/efd/{tipo}/{id_contribuinte}
+      const url = new URL(getApiUrl(`/api/v1/efd/${tipo}/${params.idContribuinte}`));
+
       if (params.uf) {
         url.searchParams.set('UF', params.uf);
       }
@@ -58,15 +58,15 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
       // após receber todos os arquivos do contribuinte.
 
       const response = await fetchWithAuth(url.toString());
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || `Erro ${response.status}: Falha ao buscar dados EFD`);
       }
-      
+
       return response.json();
     },
-    enabled: (params?.enabled ?? true) && !!params?.cnpj,
+    enabled: (params?.enabled ?? true) && !!params?.idContribuinte,
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });
@@ -80,7 +80,7 @@ export function useEFDDetail(params?: UseEFDDetailParams) {
     queryKey: [
       'efd-detail',
       tipo,
-      params?.cnpj,
+      params?.idContribuinte,
       params?.idArquivo,
       params?.registro,
       params?.page,
@@ -88,14 +88,14 @@ export function useEFDDetail(params?: UseEFDDetailParams) {
       params?.filters,
     ],
     queryFn: async (): Promise<EFDDetail> => {
-      if (!params?.cnpj || !params?.idArquivo || !params?.registro) {
-        throw new Error('CNPJ, ID do arquivo e registro são obrigatórios');
+      if (!params?.idContribuinte || !params?.idArquivo || !params?.registro) {
+        throw new Error('idContribuinte, ID do arquivo e registro são obrigatórios');
       }
 
-      // Rota dinâmica: /api/v1/efd/{tipo}/{cnpj}/{id_arquivo}/registro/{codigo}
+      // Rota dinâmica: /api/v1/efd/{tipo}/{id_contribuinte}/{id_arquivo}/registro/{codigo}
       const url = new URL(
         getApiUrl(
-          `/api/v1/efd/${tipo}/${params.cnpj}/${params.idArquivo}/registro/${params.registro}`
+          `/api/v1/efd/${tipo}/${params.idContribuinte}/${params.idArquivo}/registro/${params.registro}`
         )
       );
 
@@ -113,15 +113,15 @@ export function useEFDDetail(params?: UseEFDDetailParams) {
       }
 
       const response = await fetchWithAuth(url.toString());
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || `Erro ${response.status}: Falha ao buscar detalhes`);
       }
-      
+
       return response.json();
     },
-    enabled: !!params?.cnpj && !!params?.idArquivo && !!params?.registro,
+    enabled: !!params?.idContribuinte && !!params?.idArquivo && !!params?.registro,
     staleTime: 5 * 60 * 1000,
     retry: 2,
   });

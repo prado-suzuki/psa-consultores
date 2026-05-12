@@ -174,8 +174,8 @@ const ConsultaEFD = () => {
     error: errorOverview,
     refetch: refetchOverview 
   } = useEFDOverview({
-    enabled: searchTriggered && !!cnpjContribuinte,
-    cnpj: cnpjContribuinte,
+    enabled: searchTriggered && !!selectedContribuinte,
+    idContribuinte: selectedContribuinte,
     // Não passa dataInicio/dataFim pois a API faz filtro de igualdade exata
   });
 
@@ -308,13 +308,13 @@ const ConsultaEFD = () => {
 
   // Handler para baixar todos os arquivos (ZIP)
   const handleDownloadAll = async () => {
-    if (!cnpjContribuinte) return;
-    
+    if (!selectedContribuinte) return;
+
     setDownloadingAll(true);
-    
+
     try {
       // Montar URL com query params opcionais
-      const url = new URL(getApiUrl(`/api/v1/query/download/efd/contribuicoes/${cnpjContribuinte}`));
+      const url = new URL(getApiUrl(`/api/v1/query/download/efd/contribuicoes/${selectedContribuinte}`));
       if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
       if (dataFim) url.searchParams.set('data_fim', dataFim);
       
@@ -560,13 +560,13 @@ const ConsultaEFD = () => {
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {/* Header com CNPJ e Botão Baixar Todos */}
-        {overview?.cnpj && (
+        {overview && cnpjContribuinte && (
           <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 flex items-center justify-between border-b border-slate-200 dark:border-slate-700">
             {/* Lado Esquerdo - CNPJ */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300">
                 <Building2 className="h-5 w-5 text-primary" />
-                CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(overview.cnpj)}</span>
+                CNPJ: <span className="text-slate-900 dark:text-white">{formatCNPJ(cnpjContribuinte)}</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -722,6 +722,7 @@ const ConsultaEFD = () => {
                           <EFDExportDialog
                             arquivo={arquivo}
                             blocosDisponiveis={blocosDisponiveis}
+                            idContribuinte={selectedContribuinte}
                           />
 
                           <ButtonTooltip text={TOOLTIPS.analisar}>
@@ -762,7 +763,7 @@ const ConsultaEFD = () => {
         onOpenChange={setAnalysisModalOpen}
         arquivo={selectedArquivo}
         blocosDisponiveis={blocosDisponiveis}
-        cnpj={overview?.cnpj || ''}
+        idContribuinte={selectedContribuinte}
       />
       </TooltipProvider>
     </DevLayout>

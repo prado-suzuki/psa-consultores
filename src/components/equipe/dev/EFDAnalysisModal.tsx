@@ -15,7 +15,7 @@ interface EFDAnalysisModalProps {
   onOpenChange: (open: boolean) => void;
   arquivo: EFDArquivo | null;
   blocosDisponiveis: Record<string, BlocoRegistro[]>;
-  cnpj: string;
+  idContribuinte: string;
   tipo?: EFDTipo;
 }
 
@@ -24,7 +24,7 @@ export function EFDAnalysisModal({
   onOpenChange,
   arquivo,
   blocosDisponiveis,
-  cnpj,
+  idContribuinte,
   tipo = 'contribuicoes',
 }: EFDAnalysisModalProps) {
   const [selectedRegistro, setSelectedRegistro] = useState<string>('');
@@ -55,8 +55,8 @@ export function EFDAnalysisModal({
     data: detail, 
     isLoading: loadingDetail 
   } = useEFDDetail(
-    arquivo && selectedRegistro ? {
-      cnpj: cnpj || arquivo.CNPJ,
+    arquivo && selectedRegistro && idContribuinte ? {
+      idContribuinte,
       idArquivo: arquivo.ID_ARQUIVO,
       registro: selectedRegistro,
       page: currentPage,
