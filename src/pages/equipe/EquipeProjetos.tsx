@@ -108,16 +108,6 @@ interface TeamMember {
   last_name: string;
 }
 
-// Project areas for Digital Rotina
-const PROJECT_AREAS = [
-  { value: 'fiscal', label: 'Fiscal' },
-  { value: 'consultoria', label: 'Consultoria' },
-  { value: 'fixos', label: 'Fixos' },
-  { value: 'transversal', label: 'Transversal' },
-  { value: 'administrativo', label: 'Administrativo' },
-  { value: 'ti', label: 'TI' }
-];
-
 // Project fronts/categories
 const PROJECT_FRONTS = [
   { value: 'processo', label: 'Melhoria de Processo' },
@@ -150,13 +140,6 @@ const PROCESS_STAGES = [
   { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
   { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' }
 ];
-
-// Helper to extract area from description
-const extractArea = (description: string | null): string => {
-  if (!description) return 'Sem área';
-  const match = description.match(/Área:\s*([^|]+)/);
-  return match ? match[1].trim() : 'Sem área';
-};
 
 // Helper to extract priority from description
 const extractPriority = (description: string | null): string => {
