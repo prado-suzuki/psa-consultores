@@ -1656,7 +1656,7 @@ const EquipeProjetos = () => {
                     <div className="space-y-4">
                       <div className="flex flex-wrap gap-2">
                         {getStatusBadge(selectedProject.status)}
-                        {getAreaBadge(extractArea(selectedProject.description))}
+                        {getAreaBadge(equipeById(selectedProject.equipe_id)?.area_name ?? selectedProject.area ?? '')}
                         {getPriorityBadge(extractPriority(selectedProject.description))}
                       </div>
 
