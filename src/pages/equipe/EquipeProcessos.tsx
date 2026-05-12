@@ -661,12 +661,19 @@ const EquipeProcessos = () => {
      }
    };
 
-  // Helper to get client badge
+  // Helper to render badge of equipe (estrutura organizacional). Fallback: catalog_client e por fim area legado.
   const getClientBadge = (process: Process) => {
+    if (process.equipe?.name) {
+      return (
+        <Badge variant="outline" className="text-xs">
+          {process.equipe.name}
+        </Badge>
+      );
+    }
     const client = process.catalog_client || catalogClients.find(c => c.id === process.client_id);
     if (client) {
       return (
-        <Badge 
+        <Badge
           style={{ backgroundColor: `${client.color}20`, color: client.color, borderColor: client.color }}
           className="border text-xs"
         >
