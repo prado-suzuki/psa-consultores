@@ -1,113 +1,67 @@
+## Avaliação do plano
 
-# Renomear `fiscal_tasks` → `org_tasks` e `fiscal_task_comments` → `org_task_comments`
+Verifiquei o estado atual e o plano é **viável e seguro**. Resultado das checagens:
 
-Escopo completo: renomear no banco + renomear hooks, tipos, query keys e arquivos no código, mantendo todas as funcionalidades intactas. Nenhuma mudança comportamental.
+**Arquivos** (existem, prontos para aplicar):
+- `supabase/migrations/20260512120000_process_code_autogen.sql` (70 linhas)
+- `supabase/migrations/20260512130000_process_scenarios.sql` (182 linhas)
+- `supabase/migrations/20260512140000_processes_equipe_fk.sql` (48 linhas)
+- `supabase/functions/calculate-process-roi/index.ts` — já contém o refactor `mode='compute'` / `mode='persist'` com `per_unit/per_month/per_year`, `avg_hourly_cost_implementation` e `hours_per_month` parametrizáveis. Só falta redeploy.
 
-## 1. Migration única no banco
+**Banco** (nada aplicado ainda — confirmado via `information_schema` / `pg_proc` / `pg_type`):
+- `processes.equipe_id` → não existe
+- `process_scenarios` → não existe
+- `generate_process_code()` → não existe
+- enum `scenario_kind` → não existe
 
-Renomeia tabelas, índices, constraints (PK/FK), trigger e policies RLS — sem migrar dados (apenas DDL).
+**Pré-requisitos das migrations** (todos OK):
+- `processes.client_id` ✓, `processes.code` ✓, `processes.area` ✓ (preservado)
+- `catalog_clients.name` ✓ (preservado, usado no backfill)
+- `estrutura_equipes.name` ✓ (usado no backfill)
+- `public.projects` ✓ (FK em `process_scenarios.project_id`)
+- `public.process_improvements` ✓ (FK em `process_scenarios.improvement_id`)
 
+Nenhum conflito de nome de FK/índice/trigger detectado. As migrations são idempotentes (`IF NOT EXISTS`, `DROP TRIGGER IF EXISTS`, `DO $$ ... duplicate_object`).
+
+---
+
+## Plano de execução
+
+### Passo 1 — Aplicar migration A: `generate_process_code()` + trigger + índice único parcial
+Roda o SQL de `20260512120000_process_code_autogen.sql` via `supabase--migration`.
+
+### Passo 2 — Aplicar migration B: enums + `process_scenarios` + RLS + 2 triggers
+Roda o SQL de `20260512130000_process_scenarios.sql`. Cria os 4 enums, a tabela com FKs para `processes`, `process_improvements`, `projects`, `profiles`, RLS para `admin/team_member/lider/sublider`, e os triggers `set_scenario_updated_at` + `freeze_scenario_parameters`.
+
+### Passo 3 — Aplicar migration C: `processes.equipe_id` + backfill
+Roda o SQL de `20260512140000_processes_equipe_fk.sql`. Adiciona FK opcional para `estrutura_equipes`, índice, e executa o backfill case-insensitive via `LIKE` entre `catalog_clients.name` e `estrutura_equipes.name`. Não toca em `catalog_clients` nem em `processes.area`.
+
+### Passo 4 — Redeploy da edge function
+`supabase--deploy_edge_functions(["calculate-process-roi"])`.
+
+### Passo 5 — Validação automatizada
+Executa via `supabase--read_query`:
 ```sql
--- Tabelas
-ALTER TABLE public.fiscal_tasks RENAME TO org_tasks;
-ALTER TABLE public.fiscal_task_comments RENAME TO org_task_comments;
-
--- Índices
-ALTER INDEX fiscal_tasks_pkey RENAME TO org_tasks_pkey;
-ALTER INDEX fiscal_task_comments_pkey RENAME TO org_task_comments_pkey;
-ALTER INDEX idx_fiscal_tasks_project_id RENAME TO idx_org_tasks_project_id;
-ALTER INDEX idx_fiscal_tasks_client_id RENAME TO idx_org_tasks_client_id;
-
--- FKs (9 no total)
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_parent_task_id_fkey TO org_tasks_parent_task_id_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_assigned_to_fkey TO org_tasks_assigned_to_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_created_by_fkey TO org_tasks_created_by_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_project_id_fkey TO org_tasks_project_id_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_client_id_fkey TO org_tasks_client_id_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_contribuinte_id_fkey TO org_tasks_contribuinte_id_fkey;
-ALTER TABLE public.org_tasks
-  RENAME CONSTRAINT fiscal_tasks_categoria_id_fkey TO org_tasks_categoria_id_fkey;
-ALTER TABLE public.org_task_comments
-  RENAME CONSTRAINT fiscal_task_comments_task_id_fkey TO org_task_comments_task_id_fkey;
-ALTER TABLE public.org_task_comments
-  RENAME CONSTRAINT fiscal_task_comments_user_id_fkey TO org_task_comments_user_id_fkey;
-
--- Trigger
-ALTER TRIGGER update_fiscal_tasks_updated_at ON public.org_tasks
-  RENAME TO update_org_tasks_updated_at;
-
--- Policies RLS (8 policies)
-ALTER POLICY rls_fiscal_tasks_select ON public.org_tasks RENAME TO rls_org_tasks_select;
-ALTER POLICY rls_fiscal_tasks_insert ON public.org_tasks RENAME TO rls_org_tasks_insert;
-ALTER POLICY rls_fiscal_tasks_update ON public.org_tasks RENAME TO rls_org_tasks_update;
-ALTER POLICY rls_fiscal_tasks_delete ON public.org_tasks RENAME TO rls_org_tasks_delete;
-ALTER POLICY rls_fiscal_task_comments_insert ON public.org_task_comments RENAME TO rls_org_task_comments_insert;
-ALTER POLICY rls_fiscal_task_comments_update ON public.org_task_comments RENAME TO rls_org_task_comments_update;
-ALTER POLICY rls_fiscal_task_comments_delete ON public.org_task_comments RENAME TO rls_org_task_comments_delete;
-ALTER POLICY "Team members can view fiscal task comments" ON public.org_task_comments
-  RENAME TO "Team members can view org task comments";
+SELECT
+  (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='processes' AND column_name='equipe_id'),
+  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name='process_scenarios'),
+  (SELECT COUNT(*) FROM pg_proc WHERE proname='generate_process_code'),
+  (SELECT COUNT(*) FROM processes WHERE equipe_id IS NOT NULL);
 ```
+Espera-se `1, 1, 1, >=0` (o backfill pode retornar 0 se nenhum nome de cluster casar — não é erro).
 
-Sem realtime publication, sem views, sem dados a migrar.
+E testa a function via `supabase--curl_edge_functions` com:
+```json
+{"mode":"compute","scenario_payload":{"baseline_time_hours":10,"improved_time_hours":4,"baseline_volume":100,"baseline_people_involved":2,"improved_volume":100,"improved_people_involved":2,"implementation_hours":20,"baseline_cost_monthly":5000,"improved_cost_monthly":2000}}
+```
+Resultado esperado: `200` com `success:true`, `mode:"compute"` e bloco `results.views` populado.
 
-## 2. Renomear hook + tipos (raiz)
+### Cuidados respeitados
+- `catalog_clients` e `processes.area` permanecem intocados.
+- Migrations já versionadas não são alteradas; aplico exatamente o SQL existente.
+- Se qualquer passo falhar, reporto a mensagem exata do Postgres antes de propor fix.
 
-- `src/hooks/useFiscalTasks.ts` → `src/hooks/useOrgTasks.ts`
-  - Tipos: `FiscalTask` → `OrgTask`, `FiscalTaskStatus` → `OrgTaskStatus`, `FiscalTaskPriority` → `OrgTaskPriority`, `FiscalTaskCategory` → `OrgTaskCategory`, `FiscalRecurrenceType` → `OrgRecurrenceType`, `FiscalTaskComment` → `OrgTaskComment`, `CreateFiscalTaskInput` → `CreateOrgTaskInput`.
-  - Hooks: `useFiscalTasks` → `useOrgTasks`, `useCreateFiscalTask` → `useCreateOrgTask`, `useUpdateFiscalTask` → `useUpdateOrgTask`, `useDeleteFiscalTask` → `useDeleteOrgTask`, `useReassignFiscalTask` → `useReassignOrgTask`, `useFiscalTaskComments` → `useOrgTaskComments`, `useCreateFiscalTaskComment` → `useCreateOrgTaskComment`.
-  - Strings: `.from('fiscal_tasks')` → `.from('org_tasks')`, `.from('fiscal_task_comments')` → `.from('org_task_comments')`.
-  - Query keys: `['fiscal-tasks', ...]` → `['org-tasks', ...]`, `['fiscal-task-comments', ...]` → `['org-task-comments', ...]`.
+### Observação fora de escopo (não vou tocar agora)
+A function `gerar-sintese-executiva/index.ts` está com bug pré-existente (usa `corsHeaders` sem declarar — só importa `buildCorsHeaders`). Isso já está quebrado independentemente deste plano e não bloqueia nada aqui. Posso corrigir depois se quiser.
 
-## 3. Atualizar consumidores (cascata de imports)
-
-Atualizar imports e usos de tipos/hooks em:
-- `src/lib/taskStatusColors.ts`
-- `src/pages/equipe/fiscal/FiscalDemandasTarefas.tsx`
-- `src/components/equipe/fiscal/tasks/`:
-  - `ReassignModal.tsx`, `TaskCalendar.tsx`, `TaskCard.tsx`, `TaskFilters.tsx`, `TaskFutureView.tsx`, `TaskGantt.tsx`, `TaskKanban.tsx`, `TaskModal.tsx`, `TaskTable.tsx`, `TaskTodayView.tsx`
-
-Em cada um: substituir `from '@/hooks/useFiscalTasks'` por `from '@/hooks/useOrgTasks'` e renomear identificadores (`FiscalTask`→`OrgTask`, etc.). Nenhuma lógica muda.
-
-## 4. Atualizar outros hooks/componentes que consultam as tabelas direto
-
-Apenas trocar a string da tabela:
-- `src/hooks/useFiscalDashboardData.ts` — `'fiscal_tasks'` → `'org_tasks'`
-- `src/hooks/useOrgProjects.ts` — `'fiscal_tasks'` + comentário
-- `src/hooks/usePerformanceData.ts` — 4 ocorrências de `'fiscal_tasks'`
-- `src/components/equipe/audit/AuditLogTable.tsx` — `'fiscal_tasks'`
-- `src/pages/equipe/board/BoardDashboard.tsx` — `'fiscal_tasks'`
-
-## 5. Edge functions
-
-- `supabase/functions/delete-team-member/index.ts` — entradas `'fiscal_tasks'` e `'fiscal_task_comments'` no array de cleanup.
-- `supabase/functions/dw-query/index.ts` — allowlist de tabelas.
-- `supabase/functions/gerar-sintese-executiva/index.ts` — query.
-- Redeploy das 3 funções.
-
-## 6. Tipos auto-gerados
-
-`src/integrations/supabase/types.ts` é regenerado automaticamente após a migration — não editar manualmente.
-
-## 7. Ordem de execução (sem janela de quebra)
-
-1. Aplicar a migration (passo 1).
-2. Aplicar todos os edits de código + renames de arquivo (passos 2–5) num único deploy.
-3. Redeployar as 3 edge functions.
-4. Smoke test: abrir Tarefas Fiscal, criar/editar/comentar uma tarefa, abrir Board Dashboard, abrir Performance, abrir Audit log.
-
-## Detalhes técnicos
-
-- `entity_type` em `audit_logs` continua usando `'task'`/`'subtask'` — sem migração de dados.
-- Sem mudança de comportamento, RLS, validações ou contratos de API.
-- Nenhuma referência a `fiscal_task` em `protectedPages.ts`, rotas ou storage buckets.
-- A coluna `categoria_id` (FK para `fiscal_tasks_categoria_id_fkey`) sugere que existe uma tabela `fiscal_task_categorias` ou similar — **não está no escopo deste plano** (apenas as 2 tabelas pedidas).
-
-## Riscos
-
-- Baixo. Renomeação puramente cosmética + DDL atômico no Postgres. Se a migration aplicar e o deploy de código atrasar, o app fica indisponível na tela de Tarefas/Board até o deploy concluir (Lovable aplica os dois juntos).
+Posso aplicar?
