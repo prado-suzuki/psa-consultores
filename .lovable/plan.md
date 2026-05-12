@@ -1,67 +1,60 @@
-## Avaliação do plano
 
-Verifiquei o estado atual e o plano é **viável e seguro**. Resultado das checagens:
+# Coluna "Área" puxando de estrutura_equipes (e limpeza de fontes legadas)
 
-**Arquivos** (existem, prontos para aplicar):
-- `supabase/migrations/20260512120000_process_code_autogen.sql` (70 linhas)
-- `supabase/migrations/20260512130000_process_scenarios.sql` (182 linhas)
-- `supabase/migrations/20260512140000_processes_equipe_fk.sql` (48 linhas)
-- `supabase/functions/calculate-process-roi/index.ts` — já contém o refactor `mode='compute'` / `mode='persist'` com `per_unit/per_month/per_year`, `avg_hourly_cost_implementation` e `hours_per_month` parametrizáveis. Só falta redeploy.
+A coluna/filtro "Área" em `/equipe/projetos` (e variantes em `/equipe/processos`) hoje vem de fontes erradas: lista hardcoded `PROJECT_AREAS`, regex `extractArea(description)` e `catalog_clients.name`. Vamos centralizar tudo em `estrutura_equipes` + `estrutura_areas` (mesma fonte de `/equipe/acessos`).
 
-**Banco** (nada aplicado ainda — confirmado via `information_schema` / `pg_proc` / `pg_type`):
-- `processes.equipe_id` → não existe
-- `process_scenarios` → não existe
-- `generate_process_code()` → não existe
-- enum `scenario_kind` → não existe
+## 1. Banco
 
-**Pré-requisitos das migrations** (todos OK):
-- `processes.client_id` ✓, `processes.code` ✓, `processes.area` ✓ (preservado)
-- `catalog_clients.name` ✓ (preservado, usado no backfill)
-- `estrutura_equipes.name` ✓ (usado no backfill)
-- `public.projects` ✓ (FK em `process_scenarios.project_id`)
-- `public.process_improvements` ✓ (FK em `process_scenarios.improvement_id`)
+Migration única:
+- `ALTER TABLE projects ADD COLUMN equipe_id uuid REFERENCES estrutura_equipes(id)` (nullable).
+- Índice em `projects.equipe_id`.
+- Trigger `BEFORE INSERT/UPDATE` em `projects`: quando `equipe_id` for setado, popular `projects.area` (cache) com `estrutura_areas.name` correspondente. Mantém `projects.area` apenas como cache derivado.
+- Backfill (via insert tool, não migration): casar `projects.area` antigo (`'fiscal'`, `'transversal'`, etc.) com `estrutura_areas.name` (`'Área Fiscal'`, etc.) por `LIKE`. Sem match → `equipe_id` fica NULL e o usuário ajusta na UI.
 
-Nenhum conflito de nome de FK/índice/trigger detectado. As migrations são idempotentes (`IF NOT EXISTS`, `DROP TRIGGER IF EXISTS`, `DO $$ ... duplicate_object`).
+`processes.equipe_id` já existe e já está parcialmente preenchido — nenhuma mudança de schema lá.
 
----
+## 2. `/equipe/projetos` — `EquipeProjetos.tsx`
 
-## Plano de execução
+Trocar/remover:
+- ❌ `const PROJECT_AREAS` (linha 109) → remover.
+- ❌ `extractArea(description)` (linha 152) e `extractAreaFromCliente` (306) → remover (não vamos mais ler área de regex em `description`).
+- ❌ `getAreaBadge` / `getAreaBadgeFromClient` baseados em mapa de cores hardcoded (linhas 873-899) → substituir por badge único usando token do design system; nome da área vem do join.
+- ❌ Selects de área no "Novo Projeto" (linha 1035) e "Editar Projeto" (1503) → trocar por **select de Equipe** alimentado por `useEstruturaEquipes`, agrupado por `estrutura_areas.name` (igual ao que `CreateProcessModal` já faz).
+- ❌ Filtro "Todas as áreas" (linha 1227) → passar a listar `estrutura_areas` (9 áreas reais).
+- ❌ Coluna Área das tabelas (linhas 1291, 1341, 1658) → exibir `project.equipe.area.name` via join, com fallback para `projects.area` (cache) quando `equipe_id` for NULL.
+- ❌ Drawer "Adicionar processo" embutido nessa página: já grava `processes.area` como texto livre — trocar para `equipe_id` (mesma fonte do select novo).
 
-### Passo 1 — Aplicar migration A: `generate_process_code()` + trigger + índice único parcial
-Roda o SQL de `20260512120000_process_code_autogen.sql` via `supabase--migration`.
+Mapear estado:
+- `newProject.area` / `editProject.area` → `equipe_id` (uuid). `area` continua sendo gravado pelo trigger automaticamente.
 
-### Passo 2 — Aplicar migration B: enums + `process_scenarios` + RLS + 2 triggers
-Roda o SQL de `20260512130000_process_scenarios.sql`. Cria os 4 enums, a tabela com FKs para `processes`, `process_improvements`, `projects`, `profiles`, RLS para `admin/team_member/lider/sublider`, e os triggers `set_scenario_updated_at` + `freeze_scenario_parameters`.
+## 3. `/equipe/processos` — `EquipeProcessos.tsx`
 
-### Passo 3 — Aplicar migration C: `processes.equipe_id` + backfill
-Roda o SQL de `20260512140000_processes_equipe_fk.sql`. Adiciona FK opcional para `estrutura_equipes`, índice, e executa o backfill case-insensitive via `LIKE` entre `catalog_clients.name` e `estrutura_equipes.name`. Não toca em `catalog_clients` nem em `processes.area`.
+- ❌ `extractAreaFromCliente` (linha 241, 284) → remover (resíduo do importer CSV).
+- ❌ Filtro `areaFilter` (linhas 166, 685, 883) que hoje compara com `clientName` (catalog_clients) → trocar para listar áreas de `estrutura_areas` e filtrar por `processes.equipe.area_id`.
+- A criação via `CreateProcessModal` já usa `equipe_id` correto — nada a fazer ali.
 
-### Passo 4 — Redeploy da edge function
-`supabase--deploy_edge_functions(["calculate-process-roi"])`.
+## 4. Hook compartilhado
 
-### Passo 5 — Validação automatizada
-Executa via `supabase--read_query`:
-```sql
-SELECT
-  (SELECT COUNT(*) FROM information_schema.columns WHERE table_name='processes' AND column_name='equipe_id'),
-  (SELECT COUNT(*) FROM information_schema.tables WHERE table_name='process_scenarios'),
-  (SELECT COUNT(*) FROM pg_proc WHERE proname='generate_process_code'),
-  (SELECT COUNT(*) FROM processes WHERE equipe_id IS NOT NULL);
-```
-Espera-se `1, 1, 1, >=0` (o backfill pode retornar 0 se nenhum nome de cluster casar — não é erro).
+Reuso de `useEstruturaEquipes` (já existe em `src/hooks/`). Se ainda não retorna agrupado por área, criar `useEstruturaEquipesAgrupadas` que devolve `{ areaId, areaName, equipes: [{id, name}] }[]` para alimentar os selects.
 
-E testa a function via `supabase--curl_edge_functions` com:
-```json
-{"mode":"compute","scenario_payload":{"baseline_time_hours":10,"improved_time_hours":4,"baseline_volume":100,"baseline_people_involved":2,"improved_volume":100,"improved_people_involved":2,"implementation_hours":20,"baseline_cost_monthly":5000,"improved_cost_monthly":2000}}
-```
-Resultado esperado: `200` com `success:true`, `mode:"compute"` e bloco `results.views` populado.
+## 5. Tipos
 
-### Cuidados respeitados
-- `catalog_clients` e `processes.area` permanecem intocados.
-- Migrations já versionadas não são alteradas; aplico exatamente o SQL existente.
-- Se qualquer passo falhar, reporto a mensagem exata do Postgres antes de propor fix.
+`src/integrations/supabase/types.ts` regenerado automaticamente após a migration (campo `projects.equipe_id` aparece). Nenhuma edição manual.
 
-### Observação fora de escopo (não vou tocar agora)
-A function `gerar-sintese-executiva/index.ts` está com bug pré-existente (usa `corsHeaders` sem declarar — só importa `buildCorsHeaders`). Isso já está quebrado independentemente deste plano e não bloqueia nada aqui. Posso corrigir depois se quiser.
+## Fora do escopo desta rodada
 
-Posso aplicar?
+- `processes.area` text continua existindo como cache (já é populado parcialmente). Deprecação fica para outra leva.
+- `org_projects` não é tocado.
+- `catalog_clients` não é renomeado/removido.
+- `generate_process_code()` segue derivando sigla de `catalog_clients` — ok.
+- `EquipeDashboard`, `BoardDashboard`, `ImpactDashboard`, `usePerformanceData`, `useAuditLog` usam `.area` mas em contextos não relacionados a esta troca (auditoria, dashboards agregados) — não mexer agora.
+
+## Resumo das remoções
+
+| Arquivo | Remover/Trocar |
+|---|---|
+| `EquipeProjetos.tsx` | `PROJECT_AREAS`, `extractArea`, `extractAreaFromCliente`, `getAreaBadge*` hardcoded, 2 selects de área, filtro |
+| `EquipeProcessos.tsx` | `extractAreaFromCliente`, filtro `areaFilter` baseado em catalog_clients |
+| `projects` (DB) | +`equipe_id`, +trigger sync `area` |
+
+Após aprovação: rodo a migration, faço o backfill via insert tool, edito os 2 arquivos, e valido na preview.

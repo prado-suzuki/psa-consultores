@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
+import { useEstruturaEquipesAll } from '@/hooks/useEstruturaEquipesAll';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +52,7 @@ interface Project {
   external_client_id: string | null;
   leader_id: string | null;
   area: string | null;
+  equipe_id: string | null;
   product_service: string | null;
   project_front: string | null;
   justification_type: string | null;
@@ -77,6 +79,7 @@ interface Process {
   code?: string | null;
   description: string | null;
   area: string | null;
+  equipe_id: string | null;
   stage: string;
   priority: string | null;
   frequency: string | null;
@@ -104,16 +107,6 @@ interface TeamMember {
   first_name: string;
   last_name: string;
 }
-
-// Project areas for Digital Rotina
-const PROJECT_AREAS = [
-  { value: 'fiscal', label: 'Fiscal' },
-  { value: 'consultoria', label: 'Consultoria' },
-  { value: 'fixos', label: 'Fixos' },
-  { value: 'transversal', label: 'Transversal' },
-  { value: 'administrativo', label: 'Administrativo' },
-  { value: 'ti', label: 'TI' }
-];
 
 // Project fronts/categories
 const PROJECT_FRONTS = [
@@ -147,13 +140,6 @@ const PROCESS_STAGES = [
   { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
   { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' }
 ];
-
-// Helper to extract area from description
-const extractArea = (description: string | null): string => {
-  if (!description) return 'Sem área';
-  const match = description.match(/Área:\s*([^|]+)/);
-  return match ? match[1].trim() : 'Sem área';
-};
 
 // Helper to extract priority from description
 const extractPriority = (description: string | null): string => {
@@ -191,19 +177,27 @@ const EquipeProjetos = () => {
   const [loadingProcesses, setLoadingProcesses] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
-  
+
+  // Estrutura organizacional (fonte única de áreas/equipes — mesma de /equipe/acessos)
+  const { data: estrutura } = useEstruturaEquipesAll();
+  const equipesList = estrutura?.equipes ?? [];
+  const areasList = estrutura?.areas ?? [];
+  const groupedEquipes = estrutura?.grouped ?? [];
+  const equipeById = (id: string | null | undefined) =>
+    id ? equipesList.find((e) => e.id === id) ?? null : null;
+
   // Import state
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
-  
+
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
     client_name: '',
     external_client_id: '',
     leader_id: '',
-    area: '',
+    equipe_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -217,7 +211,7 @@ const EquipeProjetos = () => {
     client_name: '',
     external_client_id: '',
     leader_id: '',
-    area: '',
+    equipe_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -229,7 +223,7 @@ const EquipeProjetos = () => {
   const [newProcess, setNewProcess] = useState({
     name: '',
     description: '',
-    area: '',
+    equipe_id: '',
     stage: 'discovery',
     priority: 'medium',
     frequency: '',
@@ -239,7 +233,7 @@ const EquipeProjetos = () => {
   const [editProcess, setEditProcess] = useState({
     name: '',
     description: '',
-    area: '',
+    equipe_id: '',
     stage: '',
     priority: '',
     frequency: '',
@@ -419,7 +413,7 @@ const EquipeProjetos = () => {
         client_name: selectedProject.client_name || '',
         external_client_id: selectedProject.external_client_id || '',
         leader_id: selectedProject.leader_id || '',
-        area: selectedProject.area || '',
+        equipe_id: selectedProject.equipe_id || '',
         product_service: selectedProject.product_service || '',
         project_front: selectedProject.project_front || '',
         justification_type: selectedProject.justification_type || '',
@@ -446,7 +440,7 @@ const EquipeProjetos = () => {
       setEditProcess({
         name: selectedProcess.name,
         description: selectedProcess.description || '',
-        area: selectedProcess.area || '',
+        equipe_id: selectedProcess.equipe_id || '',
         stage: selectedProcess.stage,
         priority: selectedProcess.priority || 'medium',
         frequency: selectedProcess.frequency || '',
@@ -560,11 +554,15 @@ const EquipeProjetos = () => {
     return catalogClients.find(c => c.id === clientId);
   };
 
-  // Filter projects by client_id or fallback to description extraction
+  // Filter projects pela área da equipe selecionada (ou fallback ao cache projects.area)
   const filteredProjects = projects.filter(project => {
-    const clientInfo = getClientInfo(project.client_id);
-    const projectArea = clientInfo?.name || extractArea(project.description);
-    const matchesArea = areaFilter === 'all' || projectArea === areaFilter;
+    const eq = equipeById(project.equipe_id);
+    const matchesArea =
+      areaFilter === 'all' ||
+      eq?.area_id === areaFilter ||
+      // fallback: projetos sem equipe mas com cache de área pelo nome
+      (!eq && (project.area ?? '').toLowerCase() ===
+        (areasList.find(a => a.id === areaFilter)?.name ?? '').toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesArea && matchesStatus;
   });
@@ -579,7 +577,7 @@ const EquipeProjetos = () => {
         client_name: newProject.client_name || null,
         external_client_id: newProject.external_client_id || null,
         leader_id: newProject.leader_id || null,
-        area: newProject.area || null,
+        equipe_id: newProject.equipe_id || null,
         product_service: newProject.product_service || null,
         project_front: newProject.project_front || null,
         justification_type: newProject.justification_type || null,
@@ -604,7 +602,7 @@ const EquipeProjetos = () => {
         client_name: '', 
         external_client_id: '',
         leader_id: '',
-        area: '',
+        equipe_id: '',
         product_service: '',
         project_front: '',
         justification_type: '',
@@ -635,7 +633,7 @@ const EquipeProjetos = () => {
           client_name: editProject.client_name || null,
           external_client_id: editProject.external_client_id || null,
           leader_id: editProject.leader_id || null,
-          area: editProject.area || null,
+          equipe_id: editProject.equipe_id || null,
           product_service: editProject.product_service || null,
           project_front: editProject.project_front || null,
           justification_type: editProject.justification_type || null,
@@ -702,7 +700,7 @@ const EquipeProjetos = () => {
       const { error } = await supabase.from('processes').insert({
         name: newProcess.name,
         description: newProcess.description || null,
-        area: newProcess.area || null,
+        equipe_id: newProcess.equipe_id || null,
         stage: newProcess.stage,
         priority: newProcess.priority || null,
         frequency: newProcess.frequency || null,
@@ -720,7 +718,7 @@ const EquipeProjetos = () => {
       });
 
       setIsProcessDialogOpen(false);
-      setNewProcess({ name: '', description: '', area: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
+      setNewProcess({ name: '', description: '', equipe_id: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
       fetchProcesses();
     } catch (error) {
       console.error('Error creating process:', error);
@@ -741,7 +739,7 @@ const EquipeProjetos = () => {
         .update({
           name: editProcess.name,
           description: editProcess.description || null,
-          area: editProcess.area || null,
+          equipe_id: editProcess.equipe_id || null,
           stage: editProcess.stage,
           priority: editProcess.priority || null,
           frequency: editProcess.frequency || null,
@@ -1023,19 +1021,22 @@ const EquipeProjetos = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="area">Área</Label>
+                    <Label htmlFor="equipe">Equipe responsável</Label>
                     <Select 
-                      value={newProject.area} 
-                      onValueChange={(v) => setNewProject({ ...newProject, area: v })}
+                      value={newProject.equipe_id} 
+                      onValueChange={(v) => setNewProject({ ...newProject, equipe_id: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a área" />
+                        <SelectValue placeholder="Selecione a equipe" />
                       </SelectTrigger>
                       <SelectContent>
-                        {PROJECT_AREAS.map((area) => (
-                          <SelectItem key={area.value} value={area.value}>
-                            {area.label}
-                          </SelectItem>
+                        {groupedEquipes.map((g) => (
+                          <div key={g.area.id}>
+                            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
+                            {g.equipes.map((eq) => (
+                              <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                            ))}
+                          </div>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1288,7 +1289,7 @@ const EquipeProjetos = () => {
                       onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
                     >
                       <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
-                      <TableCell>{getAreaBadge(extractArea(project.description))}</TableCell>
+                      <TableCell>{getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}</TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell>{getPriorityBadge(extractPriority(project.description))}</TableCell>
                       <TableCell className="text-gray-600 text-sm">{extractPhase(project.description)}</TableCell>
@@ -1338,7 +1339,7 @@ const EquipeProjetos = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {getAreaBadge(extractArea(project.description))}
+                      {getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}
                       {getPriorityBadge(extractPriority(project.description))}
                     </div>
                     
