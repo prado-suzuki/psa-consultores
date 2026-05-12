@@ -718,7 +718,7 @@ const EquipeProjetos = () => {
       });
 
       setIsProcessDialogOpen(false);
-      setNewProcess({ name: '', description: '', area: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
+      setNewProcess({ name: '', description: '', equipe_id: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
       fetchProcesses();
     } catch (error) {
       console.error('Error creating process:', error);
