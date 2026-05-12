@@ -142,15 +142,20 @@ export function useProcessMapping() {
       const equipeIds = Array.from(
         new Set((processData ?? []).map((p: any) => p.equipe_id).filter(Boolean))
       ) as string[];
-      const equipesMap = new Map<string, { id: string; name: string }>();
+      const equipesMap = new Map<string, { id: string; name: string; area_id: string | null; area_name: string | null }>();
       if (equipeIds.length > 0) {
         try {
           const { data: eqData } = await (supabase as any)
             .from('estrutura_equipes')
-            .select('id, name')
+            .select('id, name, area_id, area:estrutura_areas!estrutura_equipes_area_id_fkey(id, name)')
             .in('id', equipeIds);
           for (const eq of (eqData as any[]) ?? []) {
-            equipesMap.set(eq.id, { id: eq.id, name: eq.name });
+            equipesMap.set(eq.id, {
+              id: eq.id,
+              name: eq.name,
+              area_id: eq.area_id ?? null,
+              area_name: eq.area?.name ?? null,
+            });
           }
         } catch {
           // ignora — fallback será catalog_client
