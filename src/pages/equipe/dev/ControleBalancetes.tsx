@@ -17,7 +17,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info } from 'lucide-react';
+import { Filter, Search, Eraser, Plus, FileSpreadsheet, Download, FileDown, Loader2, Info, Trash2 } from 'lucide-react';
 import { UploadBalanceteModal } from '@/components/equipe/dev/balancete/UploadBalanceteModal';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -68,9 +68,10 @@ const ControleBalancetes = () => {
   const [balancetes, setBalancetes] = useState<Balancete[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
-  const [downloading, setDownloading] = useState<Record<string, 'download' | 'export' | null>>({});
+  const [downloading, setDownloading] = useState<Record<string, 'download' | 'export' | 'delete' | null>>({});
   const [confirmDownload, setConfirmDownload] = useState<string | null>(null);
   const [confirmExport, setConfirmExport] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const allSelected = useMemo(() => balancetes.length > 0 && balancetes.every(b => selectedIds.has(b.id)), [balancetes, selectedIds]);
@@ -282,6 +283,45 @@ const ControleBalancetes = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    setDownloading((prev) => ({ ...prev, [id]: 'delete' }));
+    try {
+      const response = await fetchWithAuth(getApiUrl(`/api/v1/contabil/balancetes/${id}`), {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const detail = errorData?.detail;
+        const message = typeof detail === 'object' && detail?.error_message
+          ? detail.error_message
+          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
+        throw new Error(message);
+      }
+
+      const data = await response.json().catch(() => ({})) as { file_deleted?: boolean };
+
+      setBalancetes((prev) => prev.filter((b) => b.id !== id));
+      setSelectedIds((prev) => {
+        if (!prev.has(id)) return prev;
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+
+      toast({
+        title: 'Balancete deletado',
+        description: data?.file_deleted === false
+          ? 'Registros removidos, mas o arquivo original pode ter ficado órfão no storage.'
+          : 'Registros e arquivo original removidos com sucesso.',
+      });
+    } catch (err: any) {
+      toast({ title: 'Erro ao deletar balancete', description: err.message, variant: 'destructive' });
+    } finally {
+      setDownloading((prev) => ({ ...prev, [id]: null }));
+    }
+  };
+
   const handleModalClose = (open: boolean) => {
     setModalOpen(open);
     if (!open && contribuinteId && searched) {
@@ -482,6 +522,26 @@ const ControleBalancetes = () => {
                               <TooltipContent>Exportar movimentos (Excel)</TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 rounded-lg hover:bg-red-50"
+                                  disabled={downloading[b.id] === 'delete'}
+                                  onClick={() => setConfirmDelete(b.id)}
+                                >
+                                  {downloading[b.id] === 'delete' ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="h-4 w-4 text-red-600" />
+                                  )}
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Deletar balancete</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -531,6 +591,22 @@ const ControleBalancetes = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction className="bg-blue-600 hover:bg-blue-700" onClick={() => { if (confirmExport) handleBlobDownload(confirmExport, 'export-excel', 'export'); setConfirmExport(null); }}>Exportar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirm Delete */}
+      <AlertDialog open={!!confirmDelete} onOpenChange={() => setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Deletar balancete</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é <strong>irreversível</strong>. Todos os registros deste balancete serão removidos do banco e o arquivo original será apagado do storage. Deseja continuar?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-600 hover:bg-red-700" onClick={() => { if (confirmDelete) handleDelete(confirmDelete); setConfirmDelete(null); }}>Deletar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
