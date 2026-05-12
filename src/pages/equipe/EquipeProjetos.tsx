@@ -554,11 +554,15 @@ const EquipeProjetos = () => {
     return catalogClients.find(c => c.id === clientId);
   };
 
-  // Filter projects by client_id or fallback to description extraction
+  // Filter projects pela área da equipe selecionada (ou fallback ao cache projects.area)
   const filteredProjects = projects.filter(project => {
-    const clientInfo = getClientInfo(project.client_id);
-    const projectArea = clientInfo?.name || extractArea(project.description);
-    const matchesArea = areaFilter === 'all' || projectArea === areaFilter;
+    const eq = equipeById(project.equipe_id);
+    const matchesArea =
+      areaFilter === 'all' ||
+      eq?.area_id === areaFilter ||
+      // fallback: projetos sem equipe mas com cache de área pelo nome
+      (!eq && (project.area ?? '').toLowerCase() ===
+        (areasList.find(a => a.id === areaFilter)?.name ?? '').toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesArea && matchesStatus;
   });
@@ -573,7 +577,7 @@ const EquipeProjetos = () => {
         client_name: newProject.client_name || null,
         external_client_id: newProject.external_client_id || null,
         leader_id: newProject.leader_id || null,
-        area: newProject.area || null,
+        equipe_id: newProject.equipe_id || null,
         product_service: newProject.product_service || null,
         project_front: newProject.project_front || null,
         justification_type: newProject.justification_type || null,
@@ -598,7 +602,7 @@ const EquipeProjetos = () => {
         client_name: '', 
         external_client_id: '',
         leader_id: '',
-        area: '',
+        equipe_id: '',
         product_service: '',
         project_front: '',
         justification_type: '',
