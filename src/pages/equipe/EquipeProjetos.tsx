@@ -1945,13 +1945,25 @@ const EquipeProjetos = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label className="text-gray-700">Área</Label>
-                <Input
-                  value={newProcess.area}
-                  onChange={(e) => setNewProcess({ ...newProcess, area: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
-                  placeholder="Ex: Fiscal"
-                />
+                <Label className="text-gray-700">Equipe responsável</Label>
+                <Select
+                  value={newProcess.equipe_id || ''}
+                  onValueChange={(v) => setNewProcess({ ...newProcess, equipe_id: v })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione a equipe" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    {groupedEquipes.map((g) => (
+                      <div key={g.area.id}>
+                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
+                        {g.equipes.map((eq) => (
+                          <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                        ))}
+                      </div>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="text-gray-700">Estágio</Label>
