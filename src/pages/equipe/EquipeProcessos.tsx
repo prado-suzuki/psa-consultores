@@ -1150,16 +1150,8 @@ const EquipeProcessos = () => {
                         </p>
                       </div>
 
-                      <div>
-                        <Label htmlFor="edit-area">Área (legado, texto livre)</Label>
-                        <Input
-                          id="edit-area"
-                          value={editForm.area}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, area: e.target.value }))}
-                          placeholder="Ex: Fiscal, Consultoria"
-                        />
-                      </div>
-                      
+
+
                       <div>
                         <Label htmlFor="edit-stage">Status / Fase</Label>
                         <Select
