@@ -1021,19 +1021,22 @@ const EquipeProjetos = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="area">Área</Label>
+                    <Label htmlFor="equipe">Equipe responsável</Label>
                     <Select 
-                      value={newProject.area} 
-                      onValueChange={(v) => setNewProject({ ...newProject, area: v })}
+                      value={newProject.equipe_id} 
+                      onValueChange={(v) => setNewProject({ ...newProject, equipe_id: v })}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione a área" />
+                        <SelectValue placeholder="Selecione a equipe" />
                       </SelectTrigger>
                       <SelectContent>
-                        {PROJECT_AREAS.map((area) => (
-                          <SelectItem key={area.value} value={area.value}>
-                            {area.label}
-                          </SelectItem>
+                        {groupedEquipes.map((g) => (
+                          <div key={g.area.id}>
+                            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
+                            {g.equipes.map((eq) => (
+                              <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                            ))}
+                          </div>
                         ))}
                       </SelectContent>
                     </Select>
