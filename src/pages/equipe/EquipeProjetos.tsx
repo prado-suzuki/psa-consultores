@@ -1492,19 +1492,22 @@ const EquipeProjetos = () => {
 
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-gray-700">Área</Label>
+                          <Label className="text-gray-700">Equipe responsável</Label>
                           <Select
-                            value={editProject.area || ''}
-                            onValueChange={(v) => setEditProject({ ...editProject, area: v })}
+                            value={editProject.equipe_id || ''}
+                            onValueChange={(v) => setEditProject({ ...editProject, equipe_id: v })}
                           >
                             <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                              <SelectValue placeholder="Selecione a área" />
+                              <SelectValue placeholder="Selecione a equipe" />
                             </SelectTrigger>
                             <SelectContent className="bg-white border-gray-200">
-                              {PROJECT_AREAS.map((area) => (
-                                <SelectItem key={area.value} value={area.value}>
-                                  {area.label}
-                                </SelectItem>
+                              {groupedEquipes.map((g) => (
+                                <div key={g.area.id}>
+                                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
+                                  {g.equipes.map((eq) => (
+                                    <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                                  ))}
+                                </div>
                               ))}
                             </SelectContent>
                           </Select>
