@@ -413,7 +413,7 @@ const EquipeProjetos = () => {
         client_name: selectedProject.client_name || '',
         external_client_id: selectedProject.external_client_id || '',
         leader_id: selectedProject.leader_id || '',
-        area: selectedProject.area || '',
+        equipe_id: selectedProject.equipe_id || '',
         product_service: selectedProject.product_service || '',
         project_front: selectedProject.project_front || '',
         justification_type: selectedProject.justification_type || '',
