@@ -440,7 +440,7 @@ const EquipeProjetos = () => {
       setEditProcess({
         name: selectedProcess.name,
         description: selectedProcess.description || '',
-        area: selectedProcess.area || '',
+        equipe_id: selectedProcess.equipe_id || '',
         stage: selectedProcess.stage,
         priority: selectedProcess.priority || 'medium',
         frequency: selectedProcess.frequency || '',
