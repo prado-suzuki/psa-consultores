@@ -52,6 +52,7 @@ interface Project {
   external_client_id: string | null;
   leader_id: string | null;
   area: string | null;
+  equipe_id: string | null;
   product_service: string | null;
   project_front: string | null;
   justification_type: string | null;
@@ -78,6 +79,7 @@ interface Process {
   code?: string | null;
   description: string | null;
   area: string | null;
+  equipe_id: string | null;
   stage: string;
   priority: string | null;
   frequency: string | null;
