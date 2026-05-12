@@ -142,15 +142,20 @@ export function useProcessMapping() {
       const equipeIds = Array.from(
         new Set((processData ?? []).map((p: any) => p.equipe_id).filter(Boolean))
       ) as string[];
-      const equipesMap = new Map<string, { id: string; name: string }>();
+      const equipesMap = new Map<string, { id: string; name: string; area_id: string | null; area_name: string | null }>();
       if (equipeIds.length > 0) {
         try {
           const { data: eqData } = await (supabase as any)
             .from('estrutura_equipes')
-            .select('id, name')
+            .select('id, name, area_id, area:estrutura_areas!estrutura_equipes_area_id_fkey(id, name)')
             .in('id', equipeIds);
           for (const eq of (eqData as any[]) ?? []) {
-            equipesMap.set(eq.id, { id: eq.id, name: eq.name });
+            equipesMap.set(eq.id, {
+              id: eq.id,
+              name: eq.name,
+              area_id: eq.area_id ?? null,
+              area_name: eq.area?.name ?? null,
+            });
           }
         } catch {
           // ignora — fallback será catalog_client
@@ -209,10 +214,13 @@ export function useProcessMapping() {
           ? { id: p.catalog_client.id, name: p.catalog_client.name, color: p.catalog_client.color }
           : null;
 
-        // Equipe prevalece quando existe; senão cai pra catalog_client; senão "Sem equipe"
-        const display_group_id = equipe?.id ?? catalog?.id ?? '__no_group__';
-        const display_group_name = equipe?.name ?? catalog?.name ?? p.area ?? 'Sem equipe';
-        const display_group_color = catalog?.color ?? '#94a3b8';
+        // Agrupamento por ÁREA da estrutura organizacional (estrutura_areas via equipe).
+        // Fallback: texto legado em processes.area; por fim "Sem área".
+        const areaIdFromEquipe = equipe?.area_id ?? null;
+        const areaNameFromEquipe = equipe?.area_name ?? null;
+        const display_group_id = areaIdFromEquipe ?? (p.area ? `legacy:${p.area}` : '__no_group__');
+        const display_group_name = areaNameFromEquipe ?? p.area ?? 'Sem área';
+        const display_group_color = '#94a3b8';
 
         return {
           id: p.id,
