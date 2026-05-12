@@ -16,7 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle } from "lucide-react";
-import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
+import { useCalculadoraPorAnexo } from "@/hooks/useCalculadoraIbsCbs";
 import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
 import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from "@/lib/ibs-cbs/formatters";
 import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
@@ -40,10 +40,13 @@ function HeaderTip({ label, children }: { label: string; children: React.ReactNo
 
 interface AbaPorAnexoProps {
   filtros: ApuracaoFiltros;
+  idContribuinte: string;
 }
 
-export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
-  const { isLoading, error, porAnexo, totais } = useApuracaoIbsCbs(filtros);
+export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
+  const { isLoading, error, data } = useCalculadoraPorAnexo(idContribuinte, filtros);
+  const porAnexo = useMemo(() => data?.porAnexo ?? [], [data?.porAnexo]);
+  const faturamentoTotal = data?.faturamentoTotal ?? 0;
 
   const barData = useMemo(
     () =>
@@ -214,7 +217,7 @@ export function AbaPorAnexo({ filtros }: AbaPorAnexoProps) {
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtBRL(a.faturamento)}</TableCell>
                       <TableCell className="text-right tabular-nums">
-                        {fmtPct(totais.faturamento > 0 ? a.faturamento / totais.faturamento : 0)}
+                        {fmtPct(faturamentoTotal > 0 ? a.faturamento / faturamentoTotal : 0)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{a.aliqMedia.toFixed(2)}%</TableCell>
                       <TableCell className="text-right tabular-nums">

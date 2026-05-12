@@ -19,8 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tooltip as UITooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertTriangle, Globe, Layers, TrendingDown, TrendingUp } from "lucide-react";
-import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
-import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
+import { useCalculadoraResumo } from "@/hooks/useCalculadoraIbsCbs";
+import type { ApuracaoFiltros, ComposicaoTributosAntes, QuebraNatureza } from "@/lib/ibs-cbs/types";
 import { fmtBRL, fmtBRLCompact, fmtPct, fmtMesAno, fmtPp } from "@/lib/ibs-cbs/formatters";
 
 const CORES = {
@@ -155,10 +155,48 @@ function SegmentoCard({ icon, label, segmento, totalFaturamento, accent, emptyHi
 
 interface AbaResumoProps {
   filtros: ApuracaoFiltros;
+  idContribuinte: string;
 }
 
-export function AbaResumo({ filtros }: AbaResumoProps) {
-  const { isLoading, error, totais, composicaoAntes, porMes, quebra } = useApuracaoIbsCbs(filtros);
+const TOTAIS_VAZIO = {
+  faturamento: 0,
+  tributoAntes: 0,
+  tributoDepois: 0,
+  tributoDepoisIbsCbs: 0,
+  tributoDepoisIcmsMonof: 0,
+  cargaAntesPct: 0,
+  cargaDepoisPct: 0,
+  deltaPp: 0,
+  qtdNotas: 0,
+  qtdItens: 0,
+  aliqNominalMediaTributada: 0,
+  faturamentoTributado: 0,
+};
+
+const COMPOSICAO_VAZIA: ComposicaoTributosAntes = {
+  vICMS: 0,
+  vICMSST: 0,
+  vIPI: 0,
+  vPIS: 0,
+  vPIS_ST: 0,
+  vCOFINS: 0,
+  vCOFINS_ST: 0,
+};
+
+const SEGMENTO_VAZIO = { faturamento: 0, tributoAntes: 0, tributoDepois: 0, qtdItens: 0, qtdNFs: 0 };
+const QUEBRA_VAZIA: QuebraNatureza = {
+  exportacao: SEGMENTO_VAZIO,
+  interno: SEGMENTO_VAZIO,
+  monofasico: SEGMENTO_VAZIO,
+  plurifasico: SEGMENTO_VAZIO,
+};
+
+export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
+  const { isLoading, error, data } = useCalculadoraResumo(idContribuinte, filtros);
+  const totais = data?.totais ?? TOTAIS_VAZIO;
+  const composicaoAntes = data?.composicaoAntes ?? COMPOSICAO_VAZIA;
+  const porMes = useMemo(() => data?.porMes ?? [], [data?.porMes]);
+  const quebra = data?.quebra ?? QUEBRA_VAZIA;
 
   const composicaoData = useMemo(() => {
     const labels: Record<keyof typeof composicaoAntes, string> = {

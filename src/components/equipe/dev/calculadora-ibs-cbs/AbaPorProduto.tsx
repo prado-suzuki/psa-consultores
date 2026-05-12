@@ -19,9 +19,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useApuracaoIbsCbs } from "@/hooks/useApuracaoIbsCbs";
+import { useCalculadoraPorProduto } from "@/hooks/useCalculadoraIbsCbs";
 import type { AgregadoProduto, ApuracaoFiltros } from "@/lib/ibs-cbs/types";
-import { exportToCsv } from "@/lib/ibs-cbs/calc";
+import { exportToCsv } from "@/lib/ibs-cbs/export";
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from "@/lib/ibs-cbs/formatters";
 import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
 
@@ -42,10 +42,12 @@ type SortKey = keyof Pick<
 
 interface AbaPorProdutoProps {
   filtros: ApuracaoFiltros;
+  idContribuinte: string;
 }
 
-export function AbaPorProduto({ filtros }: AbaPorProdutoProps) {
-  const { isLoading, error, porProduto } = useApuracaoIbsCbs(filtros);
+export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
+  const { isLoading, error, data } = useCalculadoraPorProduto(idContribuinte, filtros);
+  const porProduto = useMemo(() => data?.porProduto ?? [], [data?.porProduto]);
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("faturamento");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");

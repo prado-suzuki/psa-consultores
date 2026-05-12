@@ -9,12 +9,13 @@ import {
 } from "@/components/ui/month-range-picker";
 import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
 
-interface FiltrosMockProps {
+interface FiltrosCalculadoraProps {
   filtros: ApuracaoFiltros;
   onChange: (next: ApuracaoFiltros) => void;
   ufsDisponiveis: string[];
   anexosDisponiveis: string[];
-  periodo: { min: string; max: string };
+  periodo: { min: string | null; max: string | null };
+  disabled?: boolean;
 }
 
 function periodoToRange(filtros: ApuracaoFiltros): MonthRange | null {
@@ -42,9 +43,10 @@ interface MultiSelectProps {
   selected: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-function MultiSelect({ label, options, selected, onChange, placeholder = "Todos" }: MultiSelectProps) {
+function MultiSelect({ label, options, selected, onChange, placeholder = "Todos", disabled }: MultiSelectProps) {
   const toggle = (opt: string) => {
     onChange(selected.includes(opt) ? selected.filter((o) => o !== opt) : [...selected, opt]);
   };
@@ -61,6 +63,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          disabled={disabled}
           className="w-full h-11 justify-between bg-white dark:bg-slate-800 font-normal"
         >
           <span className="truncate text-left">{display}</span>
@@ -115,15 +118,22 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
   );
 }
 
-export function FiltrosMock({ filtros, onChange, ufsDisponiveis, anexosDisponiveis, periodo }: FiltrosMockProps) {
+export function FiltrosCalculadora({
+  filtros,
+  onChange,
+  ufsDisponiveis,
+  anexosDisponiveis,
+  periodo,
+  disabled,
+}: FiltrosCalculadoraProps) {
   const range = periodoToRange(filtros);
   const minYear = periodo.min ? Number(periodo.min.slice(0, 4)) : 2020;
   const maxYear = periodo.max ? Number(periodo.max.slice(0, 4)) : new Date().getFullYear();
 
   const handleReset = () => {
     onChange({
-      inicio: periodo.min || undefined,
-      fim: periodo.max || undefined,
+      inicio: periodo.min ?? undefined,
+      fim: periodo.max ?? undefined,
       ufs: [],
       anexos: [],
     });
@@ -159,6 +169,7 @@ export function FiltrosMock({ filtros, onChange, ufsDisponiveis, anexosDisponive
               minYear={minYear}
               maxYear={maxYear}
               placeholder="Selecione o período"
+              disabled={disabled}
             />
           </div>
           <div className="md:col-span-3">
@@ -171,6 +182,7 @@ export function FiltrosMock({ filtros, onChange, ufsDisponiveis, anexosDisponive
               selected={filtros.ufs}
               onChange={(next) => onChange({ ...filtros, ufs: next })}
               placeholder="Todas"
+              disabled={disabled}
             />
           </div>
           <div className="md:col-span-3">
@@ -183,12 +195,14 @@ export function FiltrosMock({ filtros, onChange, ufsDisponiveis, anexosDisponive
               selected={filtros.anexos}
               onChange={(next) => onChange({ ...filtros, anexos: next })}
               placeholder="Todos"
+              disabled={disabled}
             />
           </div>
           <div className="md:col-span-1 flex items-end">
             <Button
               variant="ghost"
               onClick={handleReset}
+              disabled={disabled}
               className="h-11 w-full text-slate-500 hover:text-red-600"
               title="Restaurar filtros padrão"
             >
