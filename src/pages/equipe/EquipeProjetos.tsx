@@ -1289,7 +1289,7 @@ const EquipeProjetos = () => {
                       onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
                     >
                       <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
-                      <TableCell>{getAreaBadge(extractArea(project.description))}</TableCell>
+                      <TableCell>{getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}</TableCell>
                       <TableCell>{getStatusBadge(project.status)}</TableCell>
                       <TableCell>{getPriorityBadge(extractPriority(project.description))}</TableCell>
                       <TableCell className="text-gray-600 text-sm">{extractPhase(project.description)}</TableCell>
