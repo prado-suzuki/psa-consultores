@@ -41,11 +41,11 @@ import {
 } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { 
-  FiscalTask, 
-  CreateFiscalTaskInput,
- useCreateFiscalTask,
- useUpdateFiscalTask
-} from '@/hooks/useFiscalTasks';
+  OrgTask, 
+  CreateOrgTaskInput,
+ useCreateOrgTask,
+ useUpdateOrgTask
+} from '@/hooks/useOrgTasks';
 import { useExternalClients, useContribuintes } from '@/hooks/useTaxReferenceData';
 
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -73,9 +73,9 @@ type TaskFormValues = z.infer<typeof taskSchema>;
 interface TaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  task?: FiscalTask | null;
+  task?: OrgTask | null;
   teamMembers: { id: string; name: string }[];
-  parentTasks?: FiscalTask[];
+  parentTasks?: OrgTask[];
   defaultParentId?: string | null;
 }
 
@@ -88,8 +88,8 @@ export const TaskModal = ({
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
-  const createTask = useCreateFiscalTask();
-  const updateTask = useUpdateFiscalTask();
+  const createTask = useCreateOrgTask();
+  const updateTask = useUpdateOrgTask();
   const isEditing = !!task;
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
@@ -257,7 +257,7 @@ export const TaskModal = ({
   };
 
   const onSubmit = async (values: TaskFormValues) => {
-    const input: CreateFiscalTaskInput = {
+    const input: CreateOrgTaskInput = {
       title: values.title,
       description: values.description,
       status: values.status,

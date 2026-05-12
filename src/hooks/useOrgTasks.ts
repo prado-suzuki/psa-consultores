@@ -4,25 +4,25 @@
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
  
-export type FiscalTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
-export type FiscalTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
-export type FiscalTaskCategory = 'task' | 'fixed_event';
-export type FiscalRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
+export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+export type OrgTaskCategory = 'task' | 'fixed_event';
+export type OrgRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
  
-export interface FiscalTask {
+export interface OrgTask {
    id: string;
    title: string;
    description: string | null;
-   status: FiscalTaskStatus;
-   priority: FiscalTaskPriority;
+   status: OrgTaskStatus;
+   priority: OrgTaskPriority;
    assigned_to: string | null;
    assigned_to_name: string | null;
    created_by: string | null;
    due_date: string | null;
    due_time: string | null;
    is_recurring: boolean;
-   recurrence_type: FiscalRecurrenceType | null;
-   category: FiscalTaskCategory;
+   recurrence_type: OrgRecurrenceType | null;
+   category: OrgTaskCategory;
    tags: string[];
    
    estimated_hours: number | null;
@@ -39,7 +39,7 @@ export interface FiscalTask {
    contribuinte?: { id: string; nome_razao_social: string } | null;
  }
  
- export interface FiscalTaskComment {
+ export interface OrgTaskComment {
    id: string;
    task_id: string;
    user_id: string | null;
@@ -52,8 +52,8 @@ export interface FiscalTask {
 export interface TaskFilters {
   search?: string;
   assignedTo?: string | 'mine' | 'all';
-  status?: FiscalTaskStatus[];
-  priority?: FiscalTaskPriority[];
+  status?: OrgTaskStatus[];
+  priority?: OrgTaskPriority[];
   projectId?: string;
   clientId?: string;
   contribuinteId?: string;
@@ -61,19 +61,19 @@ export interface TaskFilters {
   endDate?: string;
 }
  
- export interface CreateFiscalTaskInput {
+ export interface CreateOrgTaskInput {
    title: string;
    description?: string;
-   status?: FiscalTaskStatus;
-   priority?: FiscalTaskPriority;
+   status?: OrgTaskStatus;
+   priority?: OrgTaskPriority;
    assigned_to?: string;
    assigned_to_name?: string;
     due_date?: string;
     due_time?: string;
     start_date?: string;
    is_recurring?: boolean;
-   recurrence_type?: FiscalRecurrenceType;
-   category?: FiscalTaskCategory;
+   recurrence_type?: OrgRecurrenceType;
+   category?: OrgTaskCategory;
    tags?: string[];
    estimated_hours?: number;
    parent_task_id?: string;
@@ -82,14 +82,14 @@ export interface TaskFilters {
     contribuinte_id?: string;
  }
  
- export const useFiscalTasks = (filters?: TaskFilters) => {
+ export const useOrgTasks = (filters?: TaskFilters) => {
    const { user } = useAuth();
  
    return useQuery({
-     queryKey: ['fiscal-tasks', filters],
+     queryKey: ['org-tasks', filters],
      queryFn: async () => {
        let query = supabase
-         .from('fiscal_tasks')
+         .from('org_tasks')
           .select(`
              *,
              project:org_projects(id, name),
@@ -139,7 +139,7 @@ export interface TaskFilters {
         let allTasks = (data || []).map(t => ({
           ...t,
           parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
-        })) as FiscalTask[];
+        })) as OrgTask[];
 
         // Client-side assignedTo filter: shows parent tasks that have matching subtasks
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
@@ -163,15 +163,15 @@ export interface TaskFilters {
    });
  };
  
- export const useCreateFiscalTask = () => {
+ export const useCreateOrgTask = () => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
    const { logAction } = useAuditLog();
 
    return useMutation({
-     mutationFn: async (input: CreateFiscalTaskInput) => {
+     mutationFn: async (input: CreateOrgTaskInput) => {
        const { data, error } = await supabase
-         .from('fiscal_tasks')
+         .from('org_tasks')
          .insert({
            ...input,
            created_by: user?.id,
@@ -189,7 +189,7 @@ export interface TaskFilters {
        return data;
      },
      onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
        toast.success('Tarefa criada com sucesso');
      },
      onError: (error) => {
@@ -198,17 +198,17 @@ export interface TaskFilters {
    });
  };
  
- export const useUpdateFiscalTask = () => {
+ export const useUpdateOrgTask = () => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();
 
    return useMutation({
-     mutationFn: async ({ id, ...updates }: Partial<FiscalTask> & { id: string }) => {
+     mutationFn: async ({ id, ...updates }: Partial<OrgTask> & { id: string }) => {
        // Fetch current state for diff
-       const { data: current } = await supabase.from('fiscal_tasks').select('*').eq('id', id).single();
+       const { data: current } = await supabase.from('org_tasks').select('*').eq('id', id).single();
 
         const { data, error } = await supabase
-          .from('fiscal_tasks')
+          .from('org_tasks')
           .update(updates)
           .eq('id', id)
           .select()
@@ -249,7 +249,7 @@ export interface TaskFilters {
          return data || current;
      },
      onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
        toast.success('Tarefa atualizada');
      },
      onError: (error) => {
@@ -258,17 +258,17 @@ export interface TaskFilters {
    });
  };
  
- export const useDeleteFiscalTask = () => {
+ export const useDeleteOrgTask = () => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();
 
    return useMutation({
      mutationFn: async (id: string) => {
        // Get task info for audit log
-       const { data: task } = await supabase.from('fiscal_tasks').select('title, parent_task_id').eq('id', id).single();
+       const { data: task } = await supabase.from('org_tasks').select('title, parent_task_id').eq('id', id).single();
 
        const { error } = await supabase
-         .from('fiscal_tasks')
+         .from('org_tasks')
          .delete()
          .eq('id', id);
 
@@ -280,7 +280,7 @@ export interface TaskFilters {
        });
      },
      onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
        toast.success('Tarefa excluída');
      },
      onError: (error) => {
@@ -289,7 +289,7 @@ export interface TaskFilters {
    });
  };
  
- export const useReassignFiscalTask = () => {
+ export const useReassignOrgTask = () => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
  
@@ -303,13 +303,13 @@ export interface TaskFilters {
      }) => {
         // Fetch current task to get old assignee and title
         const { data: currentTask } = await supabase
-          .from('fiscal_tasks')
+          .from('org_tasks')
           .select('title, assigned_to, assigned_to_name, parent_task_id')
           .eq('id', taskId)
           .single();
 
         const { error: updateError } = await supabase
-          .from('fiscal_tasks')
+          .from('org_tasks')
           .update({
             assigned_to: newAssigneeId,
             assigned_to_name: newAssigneeName,
@@ -319,7 +319,7 @@ export interface TaskFilters {
         if (updateError) throw updateError;
 
         const { error: commentError } = await supabase
-          .from('fiscal_task_comments')
+          .from('org_task_comments')
           .insert({
             task_id: taskId,
             user_id: user?.id,
@@ -348,7 +348,7 @@ export interface TaskFilters {
         }
      },
      onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['fiscal-tasks'] });
+       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
        toast.success('Tarefa reatribuída com sucesso');
      },
      onError: (error) => {
@@ -357,31 +357,31 @@ export interface TaskFilters {
    });
  };
  
- export const useFiscalTaskComments = (taskId: string) => {
+ export const useOrgTaskComments = (taskId: string) => {
    return useQuery({
-     queryKey: ['fiscal-task-comments', taskId],
+     queryKey: ['org-task-comments', taskId],
      queryFn: async () => {
        const { data, error } = await supabase
-         .from('fiscal_task_comments')
+         .from('org_task_comments')
          .select('*')
          .eq('task_id', taskId)
          .order('created_at', { ascending: false });
  
        if (error) throw error;
-       return data as FiscalTaskComment[];
+       return data as OrgTaskComment[];
      },
      enabled: !!taskId,
    });
  };
  
- export const useCreateFiscalTaskComment = () => {
+ export const useCreateOrgTaskComment = () => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
  
    return useMutation({
      mutationFn: async ({ taskId, comment, userName }: { taskId: string; comment: string; userName: string }) => {
        const { data, error } = await supabase
-         .from('fiscal_task_comments')
+         .from('org_task_comments')
          .insert({
            task_id: taskId,
            user_id: user?.id,
@@ -396,7 +396,7 @@ export interface TaskFilters {
        return data;
      },
      onSuccess: (_, variables) => {
-       queryClient.invalidateQueries({ queryKey: ['fiscal-task-comments', variables.taskId] });
+       queryClient.invalidateQueries({ queryKey: ['org-task-comments', variables.taskId] });
        toast.success('Comentário adicionado');
      },
      onError: (error) => {
@@ -406,7 +406,7 @@ export interface TaskFilters {
  };
  
  export const useTaskStatusCounts = () => {
-   const { data: tasks } = useFiscalTasks();
+   const { data: tasks } = useOrgTasks();
  
    const counts = {
      backlog: 0,

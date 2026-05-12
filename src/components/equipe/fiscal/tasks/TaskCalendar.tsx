@@ -7,15 +7,15 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { FiscalTask } from '@/hooks/useFiscalTasks';
+import { OrgTask } from '@/hooks/useOrgTasks';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { Badge } from '@/components/ui/badge';
 
 interface TaskCalendarProps {
-  tasks: FiscalTask[];
-  onEdit: (task: FiscalTask) => void;
+  tasks: OrgTask[];
+  onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
-  onReassign: (task: FiscalTask) => void;
+  onReassign: (task: OrgTask) => void;
 }
 
 export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalendarProps) => {

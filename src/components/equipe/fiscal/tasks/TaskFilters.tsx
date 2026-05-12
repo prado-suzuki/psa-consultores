@@ -19,9 +19,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { 
   TaskFilters as TaskFiltersType,
-  FiscalTaskStatus,
-  FiscalTaskPriority,
-} from '@/hooks/useFiscalTasks';
+  OrgTaskStatus,
+  OrgTaskPriority,
+} from '@/hooks/useOrgTasks';
 import { useExternalClients, useContribuintes } from '@/hooks/useTaxReferenceData';
 
 
@@ -32,7 +32,7 @@ interface TaskFiltersProps {
   projects?: { id: string; name: string }[];
 }
 
-const statusOptions: { value: FiscalTaskStatus; label: string }[] = [
+const statusOptions: { value: OrgTaskStatus; label: string }[] = [
   { value: 'backlog', label: 'Backlog' },
   { value: 'waiting_client', label: 'Pendente Cliente' },
   { value: 'todo', label: 'A Fazer' },
@@ -41,7 +41,7 @@ const statusOptions: { value: FiscalTaskStatus; label: string }[] = [
   { value: 'done', label: 'Concluído' },
 ];
 
-const priorityOptions: { value: FiscalTaskPriority; label: string }[] = [
+const priorityOptions: { value: OrgTaskPriority; label: string }[] = [
   { value: 'urgent', label: 'Urgente' },
   { value: 'high', label: 'Alta' },
   { value: 'medium', label: 'Média' },
@@ -84,7 +84,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
     onFiltersChange({ ...filters, contribuinteId: value === 'all' ? undefined : value });
   };
 
-  const toggleStatusFilter = (status: FiscalTaskStatus) => {
+  const toggleStatusFilter = (status: OrgTaskStatus) => {
     const current = filters.status || [];
     const updated = current.includes(status)
       ? current.filter(s => s !== status)
@@ -92,7 +92,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
     onFiltersChange({ ...filters, status: updated.length > 0 ? updated : undefined });
   };
 
-  const togglePriorityFilter = (priority: FiscalTaskPriority) => {
+  const togglePriorityFilter = (priority: OrgTaskPriority) => {
     const current = filters.priority || [];
     const updated = current.includes(priority)
       ? current.filter(p => p !== priority)
@@ -103,9 +103,9 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
 
   const removeFilter = (type: keyof TaskFiltersType, value?: string) => {
     if (type === 'status' && value) {
-      toggleStatusFilter(value as FiscalTaskStatus);
+      toggleStatusFilter(value as OrgTaskStatus);
     } else if (type === 'priority' && value) {
-      togglePriorityFilter(value as FiscalTaskPriority);
+      togglePriorityFilter(value as OrgTaskPriority);
     } else if (type === 'clientId') {
       onFiltersChange({ ...filters, clientId: undefined, contribuinteId: undefined });
     } else {

@@ -224,13 +224,13 @@ export const useProjectServicos = (projectId: string | undefined) => {
   });
 };
 
-/** Aggregated estimated hours per project from fiscal_tasks */
+/** Aggregated estimated hours per project from org_tasks */
 export const useProjectHours = () => {
   return useQuery({
     queryKey: ['fiscal-project-hours'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('fiscal_tasks')
+        .from('org_tasks')
         .select('project_id, estimated_hours');
       if (error) throw error;
       const map: Record<string, number> = {};

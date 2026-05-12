@@ -63,7 +63,7 @@ const BoardDashboard = () => {
     queryFn: async () => {
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const { data: tasks } = await supabase.from('fiscal_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
+      const { data: tasks } = await supabase.from('org_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
       return (tasks ?? []) as any[];
     },
     staleTime: 5 * 60 * 1000,

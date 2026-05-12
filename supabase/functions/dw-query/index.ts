@@ -9,10 +9,10 @@ const ALLOWED_TABLES = [
   'distribuicao_receita', 'servicos_prestados', 'produto_segmento',
   'produto_servico', 'setor_cliente', 'centros_custo',
   'estrutura_clusters',
-  'cliente_clusters', 'org_projects', 'fiscal_tasks',
+  'cliente_clusters', 'org_projects', 'org_tasks',
   'project_work_packages', 'estrutura_areas',
   'estrutura_equipe_membros', 'estrutura_equipes',
-  'fiscal_task_comments', 'profiles', 'org_project_members',
+  'org_task_comments', 'profiles', 'org_project_members',
 ] as const
 type AllowedTable = typeof ALLOWED_TABLES[number]
 

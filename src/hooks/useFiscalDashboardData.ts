@@ -47,7 +47,7 @@ export function useFiscalDashTasks() {
     queryKey: ['fiscal-dash-tasks'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('fiscal_tasks')
+        .from('org_tasks')
         .select('id, title, status, project_id, client_id, contribuinte_id, assigned_to, assigned_to_name, estimated_hours, due_date')
         .is('parent_task_id', null);
       if (error) throw error;

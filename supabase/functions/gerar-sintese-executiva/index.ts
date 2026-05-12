@@ -47,7 +47,7 @@ serve(async (req) => {
     // Fetch data for synthesis
     const [projectsRes, tasksRes, cicloRes, metasRes, improvementsRes] = await Promise.all([
       adminClient.from("org_projects").select("id, name, status, start_date, end_date, area_name").eq("is_active", true),
-      adminClient.from("fiscal_tasks").select("id, status, category, created_at").neq("status", "done").limit(200),
+      adminClient.from("org_tasks").select("id, status, category, created_at").neq("status", "done").limit(200),
       adminClient.from("ciclos_avaliacao").select("*").eq("status", "em_andamento").limit(1),
       adminClient.from("metas").select("progresso_atual, nivel, status").eq("nivel", "individual"),
       adminClient.from("process_improvements").select("id, total_savings_monthly, status"),

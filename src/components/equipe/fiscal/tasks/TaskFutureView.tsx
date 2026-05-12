@@ -7,14 +7,14 @@
  import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
  import { ChevronDown } from 'lucide-react';
  import { cn } from '@/lib/utils';
- import { FiscalTask } from '@/hooks/useFiscalTasks';
+ import { OrgTask } from '@/hooks/useOrgTasks';
  import { TaskCard } from './TaskCard';
  
  interface TaskFutureViewProps {
-   tasks: FiscalTask[];
-   onEdit: (task: FiscalTask) => void;
+   tasks: OrgTask[];
+   onEdit: (task: OrgTask) => void;
    onDelete: (taskId: string) => void;
-   onReassign: (task: FiscalTask) => void;
+   onReassign: (task: OrgTask) => void;
  }
  
  export const TaskFutureView = ({ tasks, onEdit, onDelete, onReassign }: TaskFutureViewProps) => {
@@ -29,7 +29,7 @@
    }, [tasks, today]);
  
    const weekGroups = useMemo(() => {
-     const groups: { label: string; start: Date; end: Date; tasks: FiscalTask[] }[] = [];
+     const groups: { label: string; start: Date; end: Date; tasks: OrgTask[] }[] = [];
      
      for (let i = 0; i < 12; i++) {
        const weekStart = startOfWeek(addWeeks(today, i), { weekStartsOn: 0 });

@@ -99,7 +99,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
           cliente:cliente!org_projects_external_client_id_fkey(nome),
           area:estrutura_areas!org_projects_estrutura_area_id_fkey(name, color)
         `).eq('is_active', true),
-        supabase.from('fiscal_tasks').select('id, status, due_date, project_id, assigned_to, updated_at'),
+        supabase.from('org_tasks').select('id, status, due_date, project_id, assigned_to, updated_at'),
         supabase.from('org_project_members').select('project_id, user_id'),
       ]);
 
@@ -223,7 +223,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
     queryKey: ['perf-period-tasks', periodFrom, periodTo],
     queryFn: async () => {
       const { data } = await supabase
-        .from('fiscal_tasks')
+        .from('org_tasks')
         .select('id, status, due_date, assigned_to, updated_at, project_id')
         .gte('updated_at', periodFrom)
         .lte('updated_at', periodTo);
@@ -237,7 +237,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
     queryKey: ['perf-heatmap-tasks', heatmap90From],
     queryFn: async () => {
       const { data } = await supabase
-        .from('fiscal_tasks')
+        .from('org_tasks')
         .select('id, status, due_date, assigned_to, updated_at, project_id')
         .gte('updated_at', heatmap90From);
       return data || [];
@@ -250,7 +250,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
     queryKey: ['perf-last3months-tasks', last3MonthsFrom],
     queryFn: async () => {
       const { data } = await supabase
-        .from('fiscal_tasks')
+        .from('org_tasks')
         .select('id, status, due_date, assigned_to, updated_at, project_id')
         .gte('updated_at', last3MonthsFrom);
       return data || [];

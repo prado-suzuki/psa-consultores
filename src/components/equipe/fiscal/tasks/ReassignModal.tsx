@@ -13,13 +13,13 @@
  import { Avatar, AvatarFallback } from '@/components/ui/avatar';
  import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
  import { ScrollArea } from '@/components/ui/scroll-area';
- import { FiscalTask, useReassignFiscalTask } from '@/hooks/useFiscalTasks';
+ import { OrgTask, useReassignOrgTask } from '@/hooks/useOrgTasks';
  import { useAuth } from '@/contexts/AuthContext';
  
  interface ReassignModalProps {
    open: boolean;
    onOpenChange: (open: boolean) => void;
-   task: FiscalTask | null;
+   task: OrgTask | null;
    teamMembers: { id: string; name: string }[];
  }
  
@@ -31,7 +31,7 @@
  }: ReassignModalProps) => {
    const [selectedMember, setSelectedMember] = useState<string>('');
    const [comment, setComment] = useState('');
-   const reassignTask = useReassignFiscalTask();
+   const reassignTask = useReassignOrgTask();
    const { user } = useAuth();
  
    const getInitials = (name: string) => {
