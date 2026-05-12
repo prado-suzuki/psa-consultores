@@ -1339,7 +1339,7 @@ const EquipeProjetos = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2 mb-3">
-                      {getAreaBadge(extractArea(project.description))}
+                      {getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}
                       {getPriorityBadge(extractPriority(project.description))}
                     </div>
                     
