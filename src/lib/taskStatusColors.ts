@@ -1,7 +1,7 @@
-import type { FiscalTaskStatus } from '@/hooks/useFiscalTasks';
+import type { OrgTaskStatus } from '@/hooks/useOrgTasks';
 
 export interface StatusColorConfig {
-  key: FiscalTaskStatus;
+  key: OrgTaskStatus;
   label: string;
   bg: string;        // bg-{color}-100
   text: string;       // text-{color}-700
@@ -9,7 +9,7 @@ export interface StatusColorConfig {
   combined: string;   // "bg-{x}-100 text-{x}-700" shorthand
 }
 
-export const statusColors: Record<FiscalTaskStatus, StatusColorConfig> = {
+export const statusColors: Record<OrgTaskStatus, StatusColorConfig> = {
   backlog:        { key: 'backlog',        label: 'Backlog',           bg: 'bg-slate-100',   text: 'text-slate-700',   bgSolid: 'bg-slate-400',   combined: 'bg-slate-100 text-slate-700' },
   waiting_client: { key: 'waiting_client', label: 'Pendente Cliente',  bg: 'bg-orange-100',  text: 'text-orange-700',  bgSolid: 'bg-orange-500',  combined: 'bg-orange-100 text-orange-700' },
   todo:           { key: 'todo',           label: 'A Fazer',           bg: 'bg-blue-100',    text: 'text-blue-700',    bgSolid: 'bg-blue-500',    combined: 'bg-blue-100 text-blue-700' },

@@ -28,17 +28,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { FiscalTask } from '@/hooks/useFiscalTasks';
+import { OrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
 
 interface TaskCardProps {
-  task: FiscalTask;
-  onEdit: (task: FiscalTask) => void;
+  task: OrgTask;
+  onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
-  onReassign: (task: FiscalTask) => void;
-  onStatusChange?: (taskId: string, status: FiscalTask['status']) => void;
-  onAddSubtask?: (parentTask: FiscalTask) => void;
-  allTasks?: FiscalTask[];
+  onReassign: (task: OrgTask) => void;
+  onStatusChange?: (taskId: string, status: OrgTask['status']) => void;
+  onAddSubtask?: (parentTask: OrgTask) => void;
+  allTasks?: OrgTask[];
   compact?: boolean;
 }
 

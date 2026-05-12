@@ -1629,215 +1629,6 @@ export type Database = {
           },
         ]
       }
-      fiscal_task_comments: {
-        Row: {
-          comment: string
-          created_at: string | null
-          id: string
-          is_system: boolean | null
-          task_id: string
-          user_id: string | null
-          user_name: string | null
-        }
-        Insert: {
-          comment: string
-          created_at?: string | null
-          id?: string
-          is_system?: boolean | null
-          task_id: string
-          user_id?: string | null
-          user_name?: string | null
-        }
-        Update: {
-          comment?: string
-          created_at?: string | null
-          id?: string
-          is_system?: boolean | null
-          task_id?: string
-          user_id?: string | null
-          user_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fiscal_task_comments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_task_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_task_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      fiscal_tasks: {
-        Row: {
-          assigned_to: string | null
-          assigned_to_name: string | null
-          category: Database["public"]["Enums"]["fiscal_task_category"]
-          client_id: string | null
-          contribuinte_id: string | null
-          created_at: string | null
-          created_by: string | null
-          department:
-            | Database["public"]["Enums"]["fiscal_task_department"]
-            | null
-          description: string | null
-          due_date: string | null
-          due_time: string | null
-          estimated_hours: number | null
-          id: string
-          is_recurring: boolean | null
-          parent_task_id: string | null
-          priority: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id: string | null
-          recurrence_type:
-            | Database["public"]["Enums"]["fiscal_recurrence_type"]
-            | null
-          servico_id: string | null
-          start_date: string | null
-          status: Database["public"]["Enums"]["fiscal_task_status"]
-          tags: string[] | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          assigned_to?: string | null
-          assigned_to_name?: string | null
-          category?: Database["public"]["Enums"]["fiscal_task_category"]
-          client_id?: string | null
-          contribuinte_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          department?:
-            | Database["public"]["Enums"]["fiscal_task_department"]
-            | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          estimated_hours?: number | null
-          id?: string
-          is_recurring?: boolean | null
-          parent_task_id?: string | null
-          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
-          recurrence_type?:
-            | Database["public"]["Enums"]["fiscal_recurrence_type"]
-            | null
-          servico_id?: string | null
-          start_date?: string | null
-          status?: Database["public"]["Enums"]["fiscal_task_status"]
-          tags?: string[] | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          assigned_to?: string | null
-          assigned_to_name?: string | null
-          category?: Database["public"]["Enums"]["fiscal_task_category"]
-          client_id?: string | null
-          contribuinte_id?: string | null
-          created_at?: string | null
-          created_by?: string | null
-          department?:
-            | Database["public"]["Enums"]["fiscal_task_department"]
-            | null
-          description?: string | null
-          due_date?: string | null
-          due_time?: string | null
-          estimated_hours?: number | null
-          id?: string
-          is_recurring?: boolean | null
-          parent_task_id?: string | null
-          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
-          recurrence_type?:
-            | Database["public"]["Enums"]["fiscal_recurrence_type"]
-            | null
-          servico_id?: string | null
-          start_date?: string | null
-          status?: Database["public"]["Enums"]["fiscal_task_status"]
-          tags?: string[] | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fiscal_tasks_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_categoria_id_fkey"
-            columns: ["servico_id"]
-            isOneToOne: false
-            referencedRelation: "servicos_prestados"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "cliente"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_contribuinte_id_fkey"
-            columns: ["contribuinte_id"]
-            isOneToOne: false
-            referencedRelation: "contribuinte"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_parent_task_id_fkey"
-            columns: ["parent_task_id"]
-            isOneToOne: false
-            referencedRelation: "fiscal_tasks"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fiscal_tasks_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "org_projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       improvement_savings_details: {
         Row: {
           cost_after: number | null
@@ -2494,6 +2285,215 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_task_comments: {
+        Row: {
+          comment: string
+          created_at: string | null
+          id: string
+          is_system: boolean | null
+          task_id: string
+          user_id: string | null
+          user_name: string | null
+        }
+        Insert: {
+          comment: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          task_id: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Update: {
+          comment?: string
+          created_at?: string | null
+          id?: string
+          is_system?: boolean | null
+          task_id?: string
+          user_id?: string | null
+          user_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_task_comments_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "org_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_task_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_task_comments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_tasks: {
+        Row: {
+          assigned_to: string | null
+          assigned_to_name: string | null
+          category: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id: string | null
+          contribuinte_id: string | null
+          created_at: string | null
+          created_by: string | null
+          department:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description: string | null
+          due_date: string | null
+          due_time: string | null
+          estimated_hours: number | null
+          id: string
+          is_recurring: boolean | null
+          parent_task_id: string | null
+          priority: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id: string | null
+          recurrence_type:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          servico_id: string | null
+          start_date: string | null
+          status: Database["public"]["Enums"]["fiscal_task_status"]
+          tags: string[] | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id?: string | null
+          contribuinte_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department?:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id?: string | null
+          recurrence_type?:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          servico_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          tags?: string[] | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          assigned_to_name?: string | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
+          client_id?: string | null
+          contribuinte_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          department?:
+            | Database["public"]["Enums"]["fiscal_task_department"]
+            | null
+          description?: string | null
+          due_date?: string | null
+          due_time?: string | null
+          estimated_hours?: number | null
+          id?: string
+          is_recurring?: boolean | null
+          parent_task_id?: string | null
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
+          project_id?: string | null
+          recurrence_type?:
+            | Database["public"]["Enums"]["fiscal_recurrence_type"]
+            | null
+          servico_id?: string | null
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          tags?: string[] | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_categoria_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_parent_task_id_fkey"
+            columns: ["parent_task_id"]
+            isOneToOne: false
+            referencedRelation: "org_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
             referencedColumns: ["id"]
           },
         ]

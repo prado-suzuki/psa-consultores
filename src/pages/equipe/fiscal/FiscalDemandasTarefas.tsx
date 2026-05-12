@@ -5,11 +5,11 @@
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
  import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
  import { 
-   useFiscalTasks, 
-   useDeleteFiscalTask,
-   FiscalTask,
+   useOrgTasks, 
+   useDeleteOrgTask,
+   OrgTask,
    TaskFilters as TaskFiltersType
- } from '@/hooks/useFiscalTasks';
+ } from '@/hooks/useOrgTasks';
  import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
  import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
  import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -35,19 +35,19 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
    const [filters, setFilters] = useState<TaskFiltersType>({});
    const [activeView, setActiveView] = useState('calendar');
    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-   const [selectedTask, setSelectedTask] = useState<FiscalTask | null>(null);
+   const [selectedTask, setSelectedTask] = useState<OrgTask | null>(null);
    const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
-   const [taskToReassign, setTaskToReassign] = useState<FiscalTask | null>(null);
+   const [taskToReassign, setTaskToReassign] = useState<OrgTask | null>(null);
    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
  
-   const { data: tasks = [], isLoading } = useFiscalTasks(filters);
-   const deleteTask = useDeleteFiscalTask();
+   const { data: tasks = [], isLoading } = useOrgTasks(filters);
+   const deleteTask = useDeleteOrgTask();
  
   const { data: taxClusterId } = useClusterIdByPageCategory('tax');
   const { data: teamMembers = [] } = useTeamMembersForTasks(taxClusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
  
-  const handleEditTask = (task: FiscalTask) => {
+  const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
     setDefaultParentId(null);
     setIsTaskModalOpen(true);
@@ -64,7 +64,7 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
      }
    };
  
-   const handleReassignTask = (task: FiscalTask) => {
+   const handleReassignTask = (task: OrgTask) => {
      setTaskToReassign(task);
      setIsReassignModalOpen(true);
    };
@@ -77,7 +77,7 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
     setIsTaskModalOpen(true);
   };
 
-  const handleAddSubtask = (parentTask: FiscalTask) => {
+  const handleAddSubtask = (parentTask: OrgTask) => {
     setSelectedTask(null);
     setDefaultParentId(parentTask.id);
     setIsTaskModalOpen(true);

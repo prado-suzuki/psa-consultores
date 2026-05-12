@@ -6,11 +6,11 @@ import { parseDate } from '@/lib/dateUtils';
  import { Checkbox } from '@/components/ui/checkbox';
  import { Badge } from '@/components/ui/badge';
  import { cn } from '@/lib/utils';
- import { FiscalTask, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
+ import { OrgTask, useUpdateOrgTask } from '@/hooks/useOrgTasks';
  
  interface TaskTodayViewProps {
-   tasks: FiscalTask[];
-   onEdit: (task: FiscalTask) => void;
+   tasks: OrgTask[];
+   onEdit: (task: OrgTask) => void;
  }
  
  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
@@ -30,7 +30,7 @@ import { parseDate } from '@/lib/dateUtils';
  };
  
  export const TaskTodayView = ({ tasks, onEdit }: TaskTodayViewProps) => {
-   const updateTask = useUpdateFiscalTask();
+   const updateTask = useUpdateOrgTask();
  
    const todayTasks = tasks
      .filter(task => task.due_date && isToday(parseDate(task.due_date)))
@@ -39,7 +39,7 @@ import { parseDate } from '@/lib/dateUtils';
    const pendingTasks = todayTasks.filter(t => t.status !== 'done');
    const completedTasks = todayTasks.filter(t => t.status === 'done');
  
-   const handleToggleComplete = (task: FiscalTask) => {
+   const handleToggleComplete = (task: OrgTask) => {
      const newStatus = task.status === 'done' ? 'todo' : 'done';
      updateTask.mutate({ id: task.id, status: newStatus });
    };

@@ -2,18 +2,18 @@ import { useMemo, useState } from 'react';
 import { format, eachDayOfInterval, differenceInDays, isSameDay, addDays, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
-import { FiscalTask, FiscalTaskStatus } from '@/hooks/useFiscalTasks';
+import { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
 import { Card, CardContent } from '@/components/ui/card';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface TaskGanttProps {
-  tasks: FiscalTask[];
-  onEdit: (task: FiscalTask) => void;
+  tasks: OrgTask[];
+  onEdit: (task: OrgTask) => void;
 }
 
-const getBarColor = (status: FiscalTaskStatus) => {
+const getBarColor = (status: OrgTaskStatus) => {
   const cfg = statusColors[status];
   return cfg?.bgSolid || 'bg-gray-400';
 };

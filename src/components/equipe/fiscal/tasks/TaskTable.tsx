@@ -28,15 +28,15 @@ import { parseDate } from '@/lib/dateUtils';
    DropdownMenuTrigger,
  } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { FiscalTask, FiscalTaskStatus, FiscalTaskPriority, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
+import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
  
 interface TaskTableProps {
-  tasks: FiscalTask[];
-  onEdit: (task: FiscalTask) => void;
+  tasks: OrgTask[];
+  onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
-  onReassign: (task: FiscalTask) => void;
-  onAddSubtask?: (parentTask: FiscalTask) => void;
+  onReassign: (task: OrgTask) => void;
+  onAddSubtask?: (parentTask: OrgTask) => void;
 }
  
  const priorityColors = {
@@ -55,12 +55,12 @@ interface TaskTableProps {
  
 const statusLabels = Object.fromEntries(
   Object.entries(statusColors).map(([k, v]) => [k, v.label])
-) as Record<FiscalTaskStatus, string>;
+) as Record<OrgTaskStatus, string>;
  
  
  export const TaskTable = ({ tasks, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-   const updateTask = useUpdateFiscalTask();
+   const updateTask = useUpdateOrgTask();
  
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) => tasks.filter(t => t.parent_task_id === parentId);
@@ -77,11 +77,11 @@ const statusLabels = Object.fromEntries(
      });
    };
  
-   const handleStatusChange = (taskId: string, status: FiscalTaskStatus) => {
+   const handleStatusChange = (taskId: string, status: OrgTaskStatus) => {
      updateTask.mutate({ id: taskId, status });
    };
  
-   const handlePriorityChange = (taskId: string, priority: FiscalTaskPriority) => {
+   const handlePriorityChange = (taskId: string, priority: OrgTaskPriority) => {
      updateTask.mutate({ id: taskId, priority });
    };
  
@@ -90,7 +90,7 @@ const statusLabels = Object.fromEntries(
      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
    };
  
-   const renderTaskRow = (task: FiscalTask, isSubtask = false) => {
+   const renderTaskRow = (task: OrgTask, isSubtask = false) => {
      const subtasks = getSubtasks(task.id);
      const hasSubtasks = subtasks.length > 0;
      const isExpanded = expandedTasks.has(task.id);
@@ -136,7 +136,7 @@ const statusLabels = Object.fromEntries(
             <TableCell>
               <Select
                 value={task.status}
-                onValueChange={(value) => handleStatusChange(task.id, value as FiscalTaskStatus)}
+                onValueChange={(value) => handleStatusChange(task.id, value as OrgTaskStatus)}
               >
                 <SelectTrigger className="h-8 w-36">
                   <span className={cn(
@@ -149,7 +149,7 @@ const statusLabels = Object.fromEntries(
                 <SelectContent>
                   {Object.entries(statusLabels).map(([value, label]) => (
                     <SelectItem key={value} value={value}>
-                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", statusColors[value as FiscalTaskStatus].combined)}>
+                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", statusColors[value as OrgTaskStatus].combined)}>
                         {label}
                       </span>
                     </SelectItem>
@@ -160,7 +160,7 @@ const statusLabels = Object.fromEntries(
            <TableCell>
              <Select
                value={task.priority}
-               onValueChange={(value) => handlePriorityChange(task.id, value as FiscalTaskPriority)}
+               onValueChange={(value) => handlePriorityChange(task.id, value as OrgTaskPriority)}
              >
                <SelectTrigger className="h-8 w-28">
                  <SelectValue />

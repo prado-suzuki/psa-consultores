@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronRight, ChevronDown, Building2 } from 'lucide-react';
-import { FiscalTask, FiscalTaskStatus, useUpdateFiscalTask } from '@/hooks/useFiscalTasks';
+import { OrgTask, OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -11,14 +11,14 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { statusList } from '@/lib/taskStatusColors';
 
 interface TaskKanbanProps {
-  tasks: FiscalTask[];
-  onEdit: (task: FiscalTask) => void;
+  tasks: OrgTask[];
+  onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
-  onReassign: (task: FiscalTask) => void;
+  onReassign: (task: OrgTask) => void;
 }
 
-interface HierarchicalFiscalTask extends FiscalTask {
-  subtasks: FiscalTask[];
+interface HierarchicalOrgTask extends OrgTask {
+  subtasks: OrgTask[];
   subtaskCount: number;
   completedSubtasks: number;
 }
@@ -30,11 +30,11 @@ const columns = statusList.map(s => ({
 }));
 
 export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanProps) => {
-  const [draggedTask, setDraggedTask] = useState<FiscalTask | null>(null);
+  const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const updateTask = useUpdateFiscalTask();
+  const updateTask = useUpdateOrgTask();
 
-  const subtasksByParent: Record<string, FiscalTask[]> = {};
+  const subtasksByParent: Record<string, OrgTask[]> = {};
   tasks.filter(t => t.parent_task_id).forEach(t => {
     if (t.parent_task_id) {
       if (!subtasksByParent[t.parent_task_id]) subtasksByParent[t.parent_task_id] = [];
@@ -44,7 +44,7 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
 
   const parentTasks = tasks.filter(t => !t.parent_task_id);
 
-  const getHierarchicalByStatus = (status: FiscalTaskStatus): HierarchicalFiscalTask[] => {
+  const getHierarchicalByStatus = (status: OrgTaskStatus): HierarchicalOrgTask[] => {
     return parentTasks
       .filter(t => t.status === status)
       .map(t => ({
@@ -65,13 +65,13 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
     });
   };
 
-  const toggleSubtaskComplete = (subtask: FiscalTask, e: React.MouseEvent) => {
+  const toggleSubtaskComplete = (subtask: OrgTask, e: React.MouseEvent) => {
     e.stopPropagation();
-    const newStatus: FiscalTaskStatus = subtask.status === 'done' ? 'todo' : 'done';
+    const newStatus: OrgTaskStatus = subtask.status === 'done' ? 'todo' : 'done';
     updateTask.mutate({ id: subtask.id, status: newStatus });
   };
 
-  const handleDragStart = (e: React.DragEvent, task: FiscalTask) => {
+  const handleDragStart = (e: React.DragEvent, task: OrgTask) => {
     setDraggedTask(task);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -81,7 +81,7 @@ export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanPr
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: FiscalTaskStatus) => {
+  const handleDrop = (e: React.DragEvent, newStatus: OrgTaskStatus) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== newStatus) {
       updateTask.mutate({ id: draggedTask.id, status: newStatus });
