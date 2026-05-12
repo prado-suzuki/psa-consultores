@@ -739,7 +739,7 @@ const EquipeProjetos = () => {
         .update({
           name: editProcess.name,
           description: editProcess.description || null,
-          area: editProcess.area || null,
+          equipe_id: editProcess.equipe_id || null,
           stage: editProcess.stage,
           priority: editProcess.priority || null,
           frequency: editProcess.frequency || null,
