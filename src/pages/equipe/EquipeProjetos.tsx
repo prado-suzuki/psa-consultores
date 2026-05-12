@@ -700,7 +700,7 @@ const EquipeProjetos = () => {
       const { error } = await supabase.from('processes').insert({
         name: newProcess.name,
         description: newProcess.description || null,
-        area: newProcess.area || null,
+        equipe_id: newProcess.equipe_id || null,
         stage: newProcess.stage,
         priority: newProcess.priority || null,
         frequency: newProcess.frequency || null,
