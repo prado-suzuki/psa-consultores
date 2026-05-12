@@ -214,10 +214,13 @@ export function useProcessMapping() {
           ? { id: p.catalog_client.id, name: p.catalog_client.name, color: p.catalog_client.color }
           : null;
 
-        // Equipe prevalece quando existe; senão cai pra catalog_client; senão "Sem equipe"
-        const display_group_id = equipe?.id ?? catalog?.id ?? '__no_group__';
-        const display_group_name = equipe?.name ?? catalog?.name ?? p.area ?? 'Sem equipe';
-        const display_group_color = catalog?.color ?? '#94a3b8';
+        // Agrupamento por ÁREA da estrutura organizacional (estrutura_areas via equipe).
+        // Fallback: texto legado em processes.area; por fim "Sem área".
+        const areaIdFromEquipe = equipe?.area_id ?? null;
+        const areaNameFromEquipe = equipe?.area_name ?? null;
+        const display_group_id = areaIdFromEquipe ?? (p.area ? `legacy:${p.area}` : '__no_group__');
+        const display_group_name = areaNameFromEquipe ?? p.area ?? 'Sem área';
+        const display_group_color = '#94a3b8';
 
         return {
           id: p.id,
