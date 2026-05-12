@@ -633,7 +633,7 @@ const EquipeProjetos = () => {
           client_name: editProject.client_name || null,
           external_client_id: editProject.external_client_id || null,
           leader_id: editProject.leader_id || null,
-          area: editProject.area || null,
+          equipe_id: editProject.equipe_id || null,
           product_service: editProject.product_service || null,
           project_front: editProject.project_front || null,
           justification_type: editProject.justification_type || null,
