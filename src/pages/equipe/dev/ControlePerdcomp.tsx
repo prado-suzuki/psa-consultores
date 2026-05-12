@@ -432,11 +432,15 @@ export default function ControlePerdcomp() {
       const taxa = selicPerMap[per.nr_per];
       if (!taxa) continue;
 
-      const { valorCorrigido, fator } = applySelicCorrection(per.vlr_credito, taxa.vlr_acumulado_dec);
+      const totalComp = dcompTotalMap[per.nr_per] || 0;
+      const valRessarcido = (per as any).vlr_ressarcido || 0;
+      const saldo = normalizeCurrencyZero(per.vlr_credito - totalComp - valRessarcido);
+
+      const { valorCorrigido, fator } = applySelicCorrection(saldo, taxa.vlr_acumulado_dec);
       map[per.nr_per] = { valorCorrigido, fator };
     }
     return map;
-  }, [selicPerMap, filteredPerData]);
+  }, [selicPerMap, filteredPerData, dcompTotalMap]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { BOARD_REPORTS } from '@/config/boardReports';
@@ -19,19 +19,13 @@ const BoardRelatorios = () => {
     return BOARD_REPORTS.find((report) => report.id === reportParam) ?? BOARD_REPORTS[0];
   }, [reportParam]);
 
-  useEffect(() => {
-    if (!selectedReport || reportParam === selectedReport.id) return;
-
-    const nextParams = new URLSearchParams(searchParams);
-    nextParams.set('relatorio', selectedReport.id);
-    setSearchParams(nextParams, { replace: true });
-  }, [reportParam, searchParams, selectedReport, setSearchParams]);
-
   const handleReportChange = (reportId: string) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('relatorio', reportId);
     setSearchParams(nextParams, { replace: true });
   };
+
+  const iframeUrl = selectedReport.embedUrl;
 
   if (!selectedReport) {
     return (
@@ -57,19 +51,25 @@ const BoardRelatorios = () => {
         >
           Relatórios BI
         </h1>
-        <div className="mt-3 w-[220px]">
-          <Select value={selectedReport.id} onValueChange={handleReportChange}>
-            <SelectTrigger className="h-9 rounded-full border bg-white/90 px-3 text-left text-sm shadow-none focus:ring-2 focus:ring-ring focus:ring-offset-0">
-              <SelectValue placeholder="Selecione um relatório" />
-            </SelectTrigger>
-            <SelectContent>
-              {BOARD_REPORTS.map((report) => (
-                <SelectItem key={report.id} value={report.id}>
-                  {report.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <div className="min-w-0">
+            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--board-t2)' }}>
+              Utilize para alternar entre relatórios
+            </label>
+            <Select value={selectedReport.id} onValueChange={handleReportChange}>
+              <SelectTrigger className="w-[340px] h-10 rounded-full border bg-white/90 px-3 text-left text-sm shadow-none focus:ring-2 focus:ring-ring focus:ring-offset-0">
+                <SelectValue placeholder="Selecione um relatório" />
+              </SelectTrigger>
+              <SelectContent>
+                {BOARD_REPORTS.map((report) => (
+                  <SelectItem key={report.id} value={report.id}>
+                    {report.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -78,7 +78,7 @@ const BoardRelatorios = () => {
           key={selectedReport.id}
           width="1280"
           height="925"
-          src={selectedReport.embedUrl}
+          src={iframeUrl}
           title={selectedReport.label}
           frameBorder={0}
           style={{ border: 0 }}
