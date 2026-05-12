@@ -3286,6 +3286,7 @@ export type Database = {
           created_by: string | null
           description: string | null
           document_path: string | null
+          equipe_id: string | null
           evaluation_period_days: number | null
           financial_impact: string | null
           formatted_content: string | null
@@ -3323,6 +3324,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          equipe_id?: string | null
           evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
@@ -3360,6 +3362,7 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          equipe_id?: string | null
           evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
@@ -3392,6 +3395,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_equipe_id_fkey"
+            columns: ["equipe_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
           },
           {
