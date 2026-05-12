@@ -106,16 +106,18 @@ export function EFDAnalysisModal({
 
   if (!arquivo) return null;
 
-  // Configuração de totais baseado no tipo
-  const totaisConfig = tipo === 'icms' 
+  // Configuração de totais baseado no tipo (ECD/ECF não exibem totais)
+  const totaisConfig = tipo === 'icms'
     ? [
         { label: 'Total ICMS', value: arquivo.icms_a_recolher },
         { label: 'Total ICMS ST', value: arquivo.icms_st_a_recolher },
       ]
-    : [
+    : tipo === 'contribuicoes'
+    ? [
         { label: 'Total PIS', value: arquivo.pis_devido },
         { label: 'Total COFINS', value: arquivo.cofins_devido },
-      ];
+      ]
+    : [];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -154,18 +156,20 @@ export function EFDAnalysisModal({
           
           <div className="flex items-center gap-6">
             {/* Totais dinâmicos (PIS/COFINS ou ICMS/ICMS-ST) */}
-            <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 dark:border-slate-700 pr-6 h-12">
-              {totaisConfig.map((total, index) => (
-                <div key={index} className="text-right">
-                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
-                    {total.label}
-                  </p>
-                  <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
-                    {formatCurrency(total.value)}
-                  </p>
-                </div>
-              ))}
-            </div>
+            {totaisConfig.length > 0 && (
+              <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 dark:border-slate-700 pr-6 h-12">
+                {totaisConfig.map((total, index) => (
+                  <div key={index} className="text-right">
+                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                      {total.label}
+                    </p>
+                    <p className="text-lg font-mono font-bold text-slate-800 dark:text-white">
+                      {formatCurrency(total.value)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
             
             <Button
               variant="ghost"
