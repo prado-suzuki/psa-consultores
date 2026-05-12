@@ -49,6 +49,7 @@ interface Balancete {
   periodo_inicio: string;
   periodo_fim: string;
   adicionado_por: string;
+  descricao: string;
   created_at: string;
   qtd_linhas?: number;
   total_linhas?: number;
@@ -454,12 +455,11 @@ const ControleBalancetes = () => {
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" />
                   </TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-12">#</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Início</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Período Fim</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500">Adicionado por</TableHead>
-                  
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center">Ações</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-[340px] max-w-[340px]">Descrição</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Início</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Fim</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-72 whitespace-nowrap">Adicionado por</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center w-36">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -476,7 +476,20 @@ const ControleBalancetes = () => {
                       <TableCell>
                         <Checkbox checked={selectedIds.has(b.id)} onCheckedChange={() => handleToggleItem(b.id)} aria-label={`Selecionar balancete ${index + 1}`} />
                       </TableCell>
-                      <TableCell className="text-slate-400 font-medium">{index + 1}</TableCell>
+                      <TableCell className="text-slate-700 w-[340px] max-w-[340px]">
+                        {b.descricao ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="block truncate cursor-help">{b.descricao}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-[360px] whitespace-pre-wrap break-words">
+                                {b.descricao}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : '-'}
+                      </TableCell>
                       <TableCell className="text-slate-700">{formatDate(b.periodo_inicio)}</TableCell>
                       <TableCell className="text-slate-700">{formatDate(b.periodo_fim)}</TableCell>
                       <TableCell className="text-slate-700">{b.adicionado_por || '-'}</TableCell>

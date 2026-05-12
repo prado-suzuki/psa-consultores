@@ -17,7 +17,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { MonthRangePicker, monthRangeToDateStrings, type MonthRange } from '@/components/ui/month-range-picker';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Upload, Loader2, AlertCircle, FileSpreadsheet, X } from 'lucide-react';
+
+const DESCRICAO_MAX = 500;
 
 const ALLOWED_EXTENSIONS = ['.xlsx', '.xls'];
 
@@ -44,6 +47,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     try { const s = localStorage.getItem(STORAGE_KEY); return s ? JSON.parse(s).contribuinteId || '' : ''; } catch { return ''; }
   });
   const [periodo, setPeriodo] = useState<MonthRange | null>(null);
+  const [descricao, setDescricao] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
@@ -175,6 +179,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
 
   const resetForm = () => {
     setPeriodo(null);
+    setDescricao('');
     setFile(null);
     setDetalhamento(null);
     setShowDetalhamentoPrompt(false);
@@ -188,7 +193,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   };
 
   const handleSubmit = async () => {
-    if (!contribuinteId || !periodo || !file || detalhamento === null) {
+    if (!contribuinteId || !periodo || !file || detalhamento === null || !descricao.trim()) {
       toast({ title: 'Preencha todos os campos', variant: 'destructive' });
       return;
     }
@@ -202,6 +207,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
       formData.append('periodo_fim', dates.end);
       formData.append('adicionado_por', user?.email || '');
       formData.append('detalhamento', String(detalhamento));
+      formData.append('descricao', descricao.trim());
       formData.append('file', file);
 
       const response = await fetchWithAuth(getApiUrl('/api/v1/contabil/balancetes'), {
@@ -230,7 +236,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
     }
   };
 
-  const isValid = contribuinteId && periodo && file && detalhamento !== null;
+  const isValid = contribuinteId && periodo && file && detalhamento !== null && descricao.trim().length > 0;
 
   return (
     <>
@@ -361,6 +367,24 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
               <Label className="text-sm font-medium text-slate-600">Período</Label>
               <MonthRangePicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
             </div>
+
+            {/* Descrição */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="descricao-balancete" className="text-sm font-medium text-slate-600">
+                  Descrição <span className="text-red-500">*</span>
+                </Label>
+                <span className="text-[11px] text-slate-400">{descricao.length}/{DESCRICAO_MAX}</span>
+              </div>
+              <Textarea
+                id="descricao-balancete"
+                value={descricao}
+                onChange={(e) => setDescricao(e.target.value.slice(0, DESCRICAO_MAX))}
+                placeholder="Ex.: Balancete janeiro/2025 - revisado"
+                rows={3}
+                className="resize-none rounded-lg border-slate-200"
+              />
+            </div>
           </div>
         </div>
 
@@ -383,6 +407,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
             <div className="space-y-1 text-sm text-muted-foreground">
               <p><strong>Contribuinte:</strong> {contribuintes?.find(c => c.id === contribuinteId)?.nome_razao_social}</p>
               {periodo && <p><strong>Período:</strong> {`${String(periodo.start.month + 1).padStart(2, '0')}/${periodo.start.year} — ${String(periodo.end.month + 1).padStart(2, '0')}/${periodo.end.year}`}</p>}
+              {descricao.trim() && <p><strong>Descrição:</strong> {descricao.trim()}</p>}
               {file && <p><strong>Arquivo:</strong> {file.name}</p>}
             </div>
           </AlertDialogDescription>
