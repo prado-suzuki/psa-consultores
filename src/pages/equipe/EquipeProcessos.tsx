@@ -375,6 +375,7 @@ const EquipeProcessos = () => {
         .select(`
           *,
           catalog_client:catalog_clients!client_id(id, name, responsible, color, is_active),
+          equipe:estrutura_equipes!processes_equipe_id_fkey(id, name, area:estrutura_areas!estrutura_equipes_area_id_fkey(id, name)),
           project_processes(
             id,
             impact_type,
