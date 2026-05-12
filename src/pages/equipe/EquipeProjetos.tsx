@@ -177,19 +177,27 @@ const EquipeProjetos = () => {
   const [loadingProcesses, setLoadingProcesses] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
-  
+
+  // Estrutura organizacional (fonte única de áreas/equipes — mesma de /equipe/acessos)
+  const { data: estrutura } = useEstruturaEquipesAll();
+  const equipesList = estrutura?.equipes ?? [];
+  const areasList = estrutura?.areas ?? [];
+  const groupedEquipes = estrutura?.grouped ?? [];
+  const equipeById = (id: string | null | undefined) =>
+    id ? equipesList.find((e) => e.id === id) ?? null : null;
+
   // Import state
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [importData, setImportData] = useState<any[]>([]);
   const [importing, setImporting] = useState(false);
-  
+
   const [newProject, setNewProject] = useState({
     name: '',
     description: '',
     client_name: '',
     external_client_id: '',
     leader_id: '',
-    area: '',
+    equipe_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -203,7 +211,7 @@ const EquipeProjetos = () => {
     client_name: '',
     external_client_id: '',
     leader_id: '',
-    area: '',
+    equipe_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -215,7 +223,7 @@ const EquipeProjetos = () => {
   const [newProcess, setNewProcess] = useState({
     name: '',
     description: '',
-    area: '',
+    equipe_id: '',
     stage: 'discovery',
     priority: 'medium',
     frequency: '',
@@ -225,7 +233,7 @@ const EquipeProjetos = () => {
   const [editProcess, setEditProcess] = useState({
     name: '',
     description: '',
-    area: '',
+    equipe_id: '',
     stage: '',
     priority: '',
     frequency: '',
