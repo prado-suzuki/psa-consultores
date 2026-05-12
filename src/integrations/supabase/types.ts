@@ -3084,6 +3084,118 @@ export type Database = {
           },
         ]
       }
+      process_scenarios: {
+        Row: {
+          computed_metrics: Json | null
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          improvement_id: string | null
+          is_locked: boolean
+          locked_fields: string[]
+          name: string
+          notes: string | null
+          parameters: Json
+          parent_scenario_id: string | null
+          process_id: string
+          project_id: string | null
+          scenario_kind: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type: Database["public"]["Enums"]["scenario_type"]
+          status: Database["public"]["Enums"]["scenario_status"]
+          unit_basis: Database["public"]["Enums"]["scenario_unit_basis"]
+          updated_at: string
+          varied_field: string
+        }
+        Insert: {
+          computed_metrics?: Json | null
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          improvement_id?: string | null
+          is_locked?: boolean
+          locked_fields?: string[]
+          name: string
+          notes?: string | null
+          parameters: Json
+          parent_scenario_id?: string | null
+          process_id: string
+          project_id?: string | null
+          scenario_kind: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          status?: Database["public"]["Enums"]["scenario_status"]
+          unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
+          updated_at?: string
+          varied_field: string
+        }
+        Update: {
+          computed_metrics?: Json | null
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          improvement_id?: string | null
+          is_locked?: boolean
+          locked_fields?: string[]
+          name?: string
+          notes?: string | null
+          parameters?: Json
+          parent_scenario_id?: string | null
+          process_id?: string
+          project_id?: string | null
+          scenario_kind?: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          status?: Database["public"]["Enums"]["scenario_status"]
+          unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
+          updated_at?: string
+          varied_field?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "process_scenarios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_scenarios_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_scenarios_improvement_id_fkey"
+            columns: ["improvement_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_scenarios_parent_scenario_id_fkey"
+            columns: ["parent_scenario_id"]
+            isOneToOne: false
+            referencedRelation: "process_scenarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_scenarios_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "process_scenarios_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       process_stages: {
         Row: {
           automation_level: string | null
@@ -4769,6 +4881,15 @@ export type Database = {
         | "in_progress"
         | "review"
         | "done"
+      scenario_kind: "scale" | "efficiency" | "investment"
+      scenario_status:
+        | "draft"
+        | "analyzing"
+        | "approved"
+        | "promoted"
+        | "archived"
+      scenario_type: "baseline" | "variant" | "target"
+      scenario_unit_basis: "per_unit" | "per_month" | "per_year"
       task_priority: "low" | "medium" | "high" | "urgent"
       task_status: "backlog" | "to_do" | "in_progress" | "review" | "done"
       work_cluster: "database" | "frontend" | "management"
@@ -4957,6 +5078,16 @@ export const Constants = {
         "review",
         "done",
       ],
+      scenario_kind: ["scale", "efficiency", "investment"],
+      scenario_status: [
+        "draft",
+        "analyzing",
+        "approved",
+        "promoted",
+        "archived",
+      ],
+      scenario_type: ["baseline", "variant", "target"],
+      scenario_unit_basis: ["per_unit", "per_month", "per_year"],
       task_priority: ["low", "medium", "high", "urgent"],
       task_status: ["backlog", "to_do", "in_progress", "review", "done"],
       work_cluster: ["database", "frontend", "management"],
