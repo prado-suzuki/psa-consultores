@@ -51,6 +51,7 @@ import EquipeRotinas from "./pages/equipe/EquipeRotinas";
 import EquipeTarefas from "./pages/equipe/EquipeTarefas";
 import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
+import EquipeMapeamento from "./pages/equipe/EquipeMapeamento";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
 import EquipeBacklog from "./pages/equipe/EquipeBacklog";
 import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
@@ -159,6 +160,7 @@ const App = () => (
               <Route path="/equipe/tarefas" element={<PageAccessGate pagePath="/equipe/tarefas"><EquipeTarefas /></PageAccessGate>} />
               <Route path="/equipe/tarefas/nova" element={<PageAccessGate pagePath="/equipe/tarefas/nova"><EquipeNovaTarefa /></PageAccessGate>} />
 
+              <Route path="/equipe/mapeamento" element={<PageAccessGate pagePath="/equipe/mapeamento"><EquipeMapeamento /></PageAccessGate>} />
               <Route path="/equipe/processos" element={<PageAccessGate pagePath="/equipe/processos"><EquipeProcessos /></PageAccessGate>} />
               <Route path="/equipe/projetos" element={<PageAccessGate pagePath="/equipe/projetos"><EquipeProjetos /></PageAccessGate>} />
               <Route path="/equipe/biblioteca" element={<PageAccessGate pagePath="/equipe/biblioteca"><EquipeBiblioteca /></PageAccessGate>} />

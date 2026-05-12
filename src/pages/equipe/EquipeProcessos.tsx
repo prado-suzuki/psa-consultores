@@ -41,8 +41,10 @@ import {
   TrendingUp,
   DollarSign,
   AlertTriangle,
-  History
+  History,
+  GitBranch
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -155,6 +157,7 @@ const AUTOMATION_LEVELS = [
 
 const EquipeProcessos = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
@@ -174,12 +177,14 @@ const EquipeProcessos = () => {
     name: '',
     description: '',
     area: '',
+    equipe_id: '',
     stage: '',
     priority: '',
     frequency: '',
     volume_month: '',
     financial_impact: ''
   });
+  const [equipes, setEquipes] = useState<Array<{ id: string; name: string }>>([]);
 
   // Import state
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
@@ -463,12 +468,24 @@ const EquipeProcessos = () => {
       name: selectedProcess.name || '',
       description: selectedProcess.description || '',
       area: selectedProcess.area || '',
+      equipe_id: (selectedProcess as any).equipe_id || '',
       stage: selectedProcess.stage || '',
       priority: selectedProcess.priority || '',
       frequency: selectedProcess.frequency || '',
       volume_month: selectedProcess.volume_month?.toString() || '',
       financial_impact: selectedProcess.financial_impact || ''
     });
+    // Carrega equipes para o select (lazy: só quando entra em edição)
+    if (equipes.length === 0) {
+      (supabase as any)
+        .from('estrutura_equipes')
+        .select('id, name')
+        .eq('is_active', true)
+        .order('name')
+        .then(({ data }: any) => {
+          if (data) setEquipes(data);
+        });
+    }
     setIsEditing(true);
   };
 
@@ -482,10 +499,11 @@ const EquipeProcessos = () => {
     try {
       setSaving(true);
       
-      const updates = {
+      const updates: any = {
         name: editForm.name.trim(),
         description: editForm.description.trim() || null,
         area: editForm.area.trim() || null,
+        equipe_id: editForm.equipe_id || null,
         stage: editForm.stage,
         priority: editForm.priority || null,
         frequency: editForm.frequency.trim() || null,
@@ -1066,6 +1084,24 @@ const EquipeProcessos = () => {
                         <p className="text-gray-900 mt-1">{selectedProcess.description}</p>
                       </div>
                     )}
+
+                    <div className="pt-3 border-t flex flex-wrap gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/equipe/mapeamento?tab=cenarios&processId=${selectedProcess.id}&action=new-scenario`)}
+                      >
+                        <GitBranch className="h-4 w-4 mr-2" />
+                        Gerar variante (cenário)
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/equipe/mapeamento?tab=cenarios&processId=${selectedProcess.id}`)}
+                      >
+                        Ver cenários deste processo
+                      </Button>
+                    </div>
                   </>
                 )}
                 
@@ -1095,7 +1131,27 @@ const EquipeProcessos = () => {
                     
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="edit-area">Área</Label>
+                        <Label htmlFor="edit-equipe">Equipe responsável</Label>
+                        <Select
+                          value={editForm.equipe_id}
+                          onValueChange={(value) => setEditForm(prev => ({ ...prev, equipe_id: value }))}
+                        >
+                          <SelectTrigger id="edit-equipe">
+                            <SelectValue placeholder="Selecione a equipe" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {equipes.map(eq => (
+                              <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Estrutura formal da equipe (substitui o campo "Área" livre).
+                        </p>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="edit-area">Área (legado, texto livre)</Label>
                         <Input
                           id="edit-area"
                           value={editForm.area}
@@ -1105,9 +1161,9 @@ const EquipeProcessos = () => {
                       </div>
                       
                       <div>
-                        <Label htmlFor="edit-stage">Fase</Label>
-                        <Select 
-                          value={editForm.stage} 
+                        <Label htmlFor="edit-stage">Status / Fase</Label>
+                        <Select
+                          value={editForm.stage}
                           onValueChange={(value) => setEditForm(prev => ({ ...prev, stage: value }))}
                         >
                           <SelectTrigger id="edit-stage">
@@ -1121,6 +1177,9 @@ const EquipeProcessos = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Descoberta = Não Iniciado · Mapeamento/Análise/Melhoria/Automação = Em Andamento · Concluído = Concluído
+                        </p>
                       </div>
                       
                       <div>

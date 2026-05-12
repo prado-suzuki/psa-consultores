@@ -25,7 +25,8 @@ import {
    User,
    FileBarChart,
    RefreshCw,
-   Sparkles
+   Sparkles,
+   Map
 } from 'lucide-react';
 
 interface EquipeLayoutProps {
@@ -59,6 +60,7 @@ const navItems: NavItem[] = [
     label: 'Projetos',
     path: '/equipe/projetos',
     children: [
+      { icon: Map, label: 'Mapeamento', path: '/equipe/mapeamento' },
       { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
       { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },

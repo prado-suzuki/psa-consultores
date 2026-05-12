@@ -84,6 +84,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/mapeamento',
+    page_name: 'Mapeamento de Processos',
+    page_description: 'Visão consolidada de processos, áreas e cenários de ROI',
+    category: 'geral',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/processos',
     page_name: 'Processos',
     page_description: 'Gestão de processos internos',

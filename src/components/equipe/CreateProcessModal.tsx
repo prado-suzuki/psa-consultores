@@ -27,6 +27,11 @@ interface CatalogClient {
   color: string;
 }
 
+interface EstruturaEquipe {
+  id: string;
+  name: string;
+}
+
 interface TeamMemberInput {
   job_role_id: string;
   hours_allocated: number;
@@ -69,13 +74,14 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
   const [loading, setLoading] = useState(false);
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
   const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
+  const [equipes, setEquipes] = useState<EstruturaEquipe[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMemberInput[]>([]);
-  
+
   const [form, setForm] = useState({
-    code: '',
     name: '',
     description: '',
     client_id: '',
+    equipe_id: '',
     area: '',
     stage: 'mapping',
     priority: 'medium',
@@ -100,6 +106,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
     if (open) {
       fetchJobRoles();
       fetchCatalogClients();
+      fetchEquipes();
       // Restore draft
       const saved = restoreDraft();
       if (saved) {
@@ -108,6 +115,15 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
       }
     }
   }, [open]);
+
+  const fetchEquipes = async () => {
+    const { data } = await (supabase as any)
+      .from('estrutura_equipes')
+      .select('id, name')
+      .eq('is_active', true)
+      .order('name');
+    if (data) setEquipes(data as EstruturaEquipe[]);
+  };
 
   const fetchJobRoles = async () => {
     const { data } = await supabase
@@ -156,12 +172,6 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
     return teamMembers.reduce((total, member) => total + (member.hours_allocated || 0), 0);
   };
 
-  const generateCode = () => {
-    const prefix = form.area ? form.area.substring(0, 3).toUpperCase() : 'GER';
-    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `PROC-${prefix}-${random}`;
-  };
-
   const handleSave = async () => {
     if (!form.name.trim()) {
       toast({
@@ -174,37 +184,17 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
     setLoading(true);
     try {
-      // Verificar duplicação por código
-      if (form.code) {
-        const { data: existing } = await supabase
-          .from('processes')
-          .select('id')
-          .eq('code', form.code)
-          .maybeSingle();
-        
-        if (existing) {
-          toast({
-            title: "Código duplicado",
-            description: "Já existe um processo com esse código. O código foi regenerado.",
-            variant: "destructive"
-          });
-          setForm({ ...form, code: generateCode() });
-          setLoading(false);
-          return;
-        }
-      }
-
       // Calcular custos
       const cost_monthly = calculateMonthlyCost();
       const time_spent_hours = calculateTotalHours() || form.time_spent_hours;
 
-      const { data: process, error } = await supabase
+      const { data: process, error } = await (supabase as any)
         .from('processes')
         .insert({
-          code: form.code || generateCode(),
           name: form.name.trim(),
           description: form.description.trim() || null,
           client_id: form.client_id || null,
+          equipe_id: form.equipe_id || null,
           area: form.area || null,
           stage: form.stage,
           priority: form.priority,
@@ -232,10 +222,10 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
       // Reset form
       setForm({
-        code: '',
         name: '',
         description: '',
         client_id: '',
+        equipe_id: '',
         area: '',
         stage: 'mapping',
         priority: 'medium',
@@ -277,28 +267,16 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
         <div className="space-y-6">
           {/* Informações Básicas */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Código</Label>
-              <div className="flex gap-2">
-                <Input
-                  value={form.code}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="PROC-XXX-000"
-                />
-                <Button variant="outline" size="sm" onClick={() => setForm({ ...form, code: generateCode() })}>
-                  Gerar
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Nome do Processo <RequiredMark /></Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Nome do processo"
-              />
-            </div>
+          <div className="space-y-2">
+            <Label>Nome do Processo <RequiredMark /></Label>
+            <Input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              placeholder="Nome do processo"
+            />
+            <p className="text-xs text-muted-foreground">
+              O código (PROC-SIGLA-NNN) é gerado automaticamente a partir da área selecionada.
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -313,21 +291,18 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
           <div className="grid grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label>Área/Cliente</Label>
+              <Label>Equipe responsável</Label>
               <Select
-                value={form.client_id}
-                onValueChange={(v) => {
-                  const client = catalogClients.find(c => c.id === v);
-                  setForm({ ...form, client_id: v, area: client?.name || '' });
-                }}
+                value={form.equipe_id}
+                onValueChange={(v) => setForm({ ...form, equipe_id: v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecionar" />
+                  <SelectValue placeholder="Selecionar equipe" />
                 </SelectTrigger>
                 <SelectContent>
-                  {catalogClients.map(client => (
-                    <SelectItem key={client.id} value={client.id}>
-                      {client.name}
+                  {equipes.map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>
+                      {eq.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
