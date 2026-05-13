@@ -8,12 +8,13 @@ import { Filter } from "lucide-react";
 import { AbaResumo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaResumo";
 import { AbaPorAnexo } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaPorAnexo";
 import { AbaPorProduto } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaPorProduto";
+import { AbaPorEstado } from "@/components/equipe/dev/calculadora-ibs-cbs/AbaPorEstado";
 import { FiltrosCalculadora } from "@/components/equipe/dev/calculadora-ibs-cbs/FiltrosCalculadora";
 import { useCalculadoraFiltros } from "@/hooks/useCalculadoraIbsCbs";
 import { useClientesList, useContribuintesByCliente } from "@/hooks/useDevClients";
 import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
 
-const TABS = ["resumo", "anexo", "produto"] as const;
+const TABS = ["resumo", "anexo", "produto", "estado"] as const;
 type TabKey = (typeof TABS)[number];
 
 const CalculadoraIbsCbs = () => {
@@ -129,10 +130,11 @@ const CalculadoraIbsCbs = () => {
       </Card>
 
       <Tabs value={tab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3 mb-6">
+        <TabsList className="grid w-full max-w-3xl grid-cols-4 mb-6">
           <TabsTrigger value="resumo">Resumo</TabsTrigger>
           <TabsTrigger value="anexo">Por Anexo</TabsTrigger>
           <TabsTrigger value="produto">Por Produto</TabsTrigger>
+          <TabsTrigger value="estado">Por Estado</TabsTrigger>
         </TabsList>
 
         <FiltrosCalculadora
@@ -160,6 +162,9 @@ const CalculadoraIbsCbs = () => {
             </TabsContent>
             <TabsContent value="produto" className="mt-0">
               <AbaPorProduto filtros={filtros} idContribuinte={contribuinteId} />
+            </TabsContent>
+            <TabsContent value="estado" className="mt-0">
+              <AbaPorEstado filtros={filtros} />
             </TabsContent>
           </>
         )}

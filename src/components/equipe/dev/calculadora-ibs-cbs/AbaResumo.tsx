@@ -22,6 +22,13 @@ import { AlertTriangle, Globe, Layers, TrendingDown, TrendingUp } from "lucide-r
 import { useCalculadoraResumo } from "@/hooks/useCalculadoraIbsCbs";
 import type { ApuracaoFiltros, ComposicaoTributosAntes, QuebraNatureza } from "@/lib/ibs-cbs/types";
 import { fmtBRL, fmtBRLCompact, fmtPct, fmtMesAno, fmtPp } from "@/lib/ibs-cbs/formatters";
+import {
+  NotasMetodologicas,
+  NOTA_TRIBUTO_ANTES,
+  NOTA_TRIBUTO_DEPOIS,
+  NOTA_BASE_SAIDAS,
+  NOTA_PERIODO_TRANSICAO,
+} from "./NotasMetodologicas";
 
 const CORES = {
   antes: "#F2810A",
@@ -484,6 +491,35 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           )}
         </CardContent>
       </Card>
+
+      <NotasMetodologicas
+        notas={[
+          NOTA_TRIBUTO_ANTES,
+          NOTA_TRIBUTO_DEPOIS,
+          {
+            titulo: "ICMS monofásico (transição)",
+            texto: (
+              <>
+                Para itens monofásicos (combustíveis, lubrificantes), o backend aplica{" "}
+                <strong>ICMS provisório</strong> enquanto as alíquotas efetivas de IBS/CBS não são
+                definidas. Esse valor é somado ao IBS/CBS na visualização "Tributos DEPOIS".
+              </>
+            ),
+          },
+          {
+            titulo: "Quebra por natureza",
+            texto: (
+              <>
+                <strong>Exportações</strong> = CFOP iniciada em 7 ou UF destino "EX".{" "}
+                <strong>Monofásicos</strong> = itens marcados como tal no XML. As categorias podem
+                se sobrepor (uma exportação pode ser monofásica).
+              </>
+            ),
+          },
+          NOTA_PERIODO_TRANSICAO,
+          NOTA_BASE_SAIDAS,
+        ]}
+      />
     </div>
   );
 }
