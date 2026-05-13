@@ -30,6 +30,8 @@ export interface QuebraSegmento {
   faturamento: number;
   tributoAntes: number;
   tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
   qtdItens: number;
   qtdNFs: number;
 }
@@ -56,6 +58,8 @@ export interface AgregadoMes {
   faturamento: number;
   tributoAntes: number;
   tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
 }
 
 export interface CalculadoraResumoResponse {
@@ -70,9 +74,12 @@ export interface AgregadoAnexo {
   faturamento: number;
   tributoAntes: number;
   tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
   aliqMedia: number;
   reducaoMedia: number;
   cargaPct: number;
+  cargaPctIbsCbs: number;
   qtdItens: number;
   qtdNFs: number;
 }
@@ -92,6 +99,8 @@ export interface AgregadoProduto {
   aliqIbsCbs: number;
   tributoAntes: number;
   tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
   deltaRs: number;
   deltaPp: number;
   qtdNFs: number;

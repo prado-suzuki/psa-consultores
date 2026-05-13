@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState } from 'react';
 import {
   CartesianGrid,
   Cell,
@@ -9,36 +9,65 @@ import {
   XAxis,
   YAxis,
   ZAxis,
-} from "recharts";
-import { ArrowDown, ArrowUp, ArrowUpDown, Download, Globe, Layers, Search, AlertTriangle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useCalculadoraPorProduto } from "@/hooks/useCalculadoraIbsCbs";
-import type { AgregadoProduto, ApuracaoFiltros } from "@/lib/ibs-cbs/types";
-import { exportToCsv } from "@/lib/ibs-cbs/export";
-import { fmtBRL, fmtInt, fmtNum, fmtPp } from "@/lib/ibs-cbs/formatters";
-import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
+} from 'recharts';
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Download,
+  Globe,
+  Layers,
+  Search,
+  AlertTriangle,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useCalculadoraPorProduto } from '@/hooks/useCalculadoraIbsCbs';
+import type { AgregadoProduto, ApuracaoFiltros } from '@/lib/ibs-cbs/types';
+import { exportToCsv } from '@/lib/ibs-cbs/export';
+import { fmtBRL, fmtInt, fmtNum, fmtPp } from '@/lib/ibs-cbs/formatters';
+import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
 
 const PALETA: Record<string, string> = {
-  "Anexo I": "#0D9488",
-  "Anexo IX": "#65A30D",
-  "Anexo XV": "#F2810A",
-  "Sem anexo": "#94A3B8",
+  'Anexo I': '#0D9488',
+  'Anexo IX': '#65A30D',
+  'Anexo XV': '#F2810A',
+  'Sem anexo': '#94A3B8',
 };
-const corDoAnexo = (a: string, fallback = "#3478F5") => PALETA[a] ?? fallback;
+const corDoAnexo = (a: string, fallback = '#3478F5') => PALETA[a] ?? fallback;
 
 const PAGE_SIZE = 25;
 
 type SortKey = keyof Pick<
   AgregadoProduto,
-  "faturamento" | "qtd" | "tributoAntes" | "tributoDepois" | "deltaRs" | "deltaPp" | "aliqIbsCbs"
+  'faturamento' | 'qtd' | 'tributoAntes' | 'tributoDepois' | 'deltaRs' | 'deltaPp' | 'aliqIbsCbs'
 >;
+
+function getTributoDepoisIbsCbs(produto: AgregadoProduto) {
+  return produto.tributoDepoisIbsCbs;
+}
+
+function getDeltaRsIbsCbs(produto: AgregadoProduto) {
+  return getTributoDepoisIbsCbs(produto) - produto.tributoAntes;
+}
+
+function getDeltaPpIbsCbs(produto: AgregadoProduto) {
+  if (produto.faturamento <= 0) return 0;
+  return (getDeltaRsIbsCbs(produto) / produto.faturamento) * 100;
+}
 
 interface AbaPorProdutoProps {
   filtros: ApuracaoFiltros;
@@ -48,26 +77,40 @@ interface AbaPorProdutoProps {
 export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
   const { isLoading, error, data } = useCalculadoraPorProduto(idContribuinte, filtros);
   const porProduto = useMemo(() => data?.porProduto ?? [], [data?.porProduto]);
-  const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState<SortKey>("faturamento");
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [search, setSearch] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('faturamento');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [page, setPage] = useState(1);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return porProduto;
     return porProduto.filter(
-      (p) => p.ncm.toLowerCase().includes(q) || p.xProdExemplo.toLowerCase().includes(q)
+      (p) => p.ncm.toLowerCase().includes(q) || p.xProdExemplo.toLowerCase().includes(q),
     );
   }, [porProduto, search]);
 
   const sorted = useMemo(() => {
     const copy = [...filtered];
     copy.sort((a, b) => {
-      const av = a[sortKey];
-      const bv = b[sortKey];
-      const diff = (av as number) - (bv as number);
-      return sortDir === "asc" ? diff : -diff;
+      const av =
+        sortKey === 'tributoDepois'
+          ? getTributoDepoisIbsCbs(a)
+          : sortKey === 'deltaRs'
+            ? getDeltaRsIbsCbs(a)
+            : sortKey === 'deltaPp'
+              ? getDeltaPpIbsCbs(a)
+              : (a[sortKey] as number);
+      const bv =
+        sortKey === 'tributoDepois'
+          ? getTributoDepoisIbsCbs(b)
+          : sortKey === 'deltaRs'
+            ? getDeltaRsIbsCbs(b)
+            : sortKey === 'deltaPp'
+              ? getDeltaPpIbsCbs(b)
+              : (b[sortKey] as number);
+      const diff = av - bv;
+      return sortDir === 'asc' ? diff : -diff;
     });
     return copy;
   }, [filtered, sortKey, sortDir]);
@@ -77,17 +120,17 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
   const pageRows = sorted.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
   const toggleSort = (k: SortKey) => {
-    if (sortKey === k) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    if (sortKey === k) setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
     else {
       setSortKey(k);
-      setSortDir("desc");
+      setSortDir('desc');
     }
     setPage(1);
   };
 
   const sortIcon = (k: SortKey) => {
     if (sortKey !== k) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
-    return sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+    return sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
   };
 
   const handleExport = () => {
@@ -101,12 +144,12 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         Faturamento: p.faturamento.toFixed(2),
         Aliq_IBS_CBS_pct: p.aliqIbsCbs.toFixed(2),
         Tributo_antes: p.tributoAntes.toFixed(2),
-        Tributo_depois: p.tributoDepois.toFixed(2),
-        Delta_RS: p.deltaRs.toFixed(2),
-        Delta_pp: p.deltaPp.toFixed(2),
+        Tributo_depois: getTributoDepoisIbsCbs(p).toFixed(2),
+        Delta_RS: getDeltaRsIbsCbs(p).toFixed(2),
+        Delta_pp: getDeltaPpIbsCbs(p).toFixed(2),
         NFs: p.qtdNFs,
       })),
-      `ibs-cbs-por-ncm-${new Date().toISOString().slice(0, 10)}.csv`
+      `ibs-cbs-por-ncm-${new Date().toISOString().slice(0, 10)}.csv`,
     );
   };
 
@@ -114,14 +157,14 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
     () =>
       sorted.slice(0, 200).map((p) => ({
         x: p.faturamento,
-        y: p.deltaPp,
+        y: getDeltaPpIbsCbs(p),
         z: Math.max(20, Math.min(280, Math.sqrt(p.faturamento) / 6)),
         anexo: p.anexo,
         produto: p.xProdExemplo,
         ncm: p.ncm,
         fill: corDoAnexo(p.anexo),
       })),
-    [sorted]
+    [sorted],
   );
 
   const legendaAnexos = useMemo(() => {
@@ -155,7 +198,8 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
       <Alert className="bg-amber-50 border-amber-200">
         <AlertTriangle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-900 text-xs">
-          Comparativo por produto (NCM × xProd). Cálculo sobre saídas — Δ é variação na carga sobre faturamento.
+          Comparativo por produto (NCM × xProd). Cálculo sobre saídas — a coluna DEPOIS considera
+          apenas IBS/CBS.
         </AlertDescription>
       </Alert>
 
@@ -192,7 +236,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                   type="number"
                   dataKey="x"
                   name="Faturamento"
-                  tickFormatter={(v) => fmtBRL(v).replace("R$ ", "R$ ")}
+                  tickFormatter={(v) => fmtBRL(v).replace('R$ ', 'R$ ')}
                   stroke="#7A8899"
                   fontSize={11}
                 />
@@ -207,14 +251,16 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                 />
                 <ZAxis type="number" dataKey="z" range={[20, 280]} />
                 <ChartTooltip
-                  cursor={{ strokeDasharray: "3 3" }}
-                  contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
+                  cursor={{ strokeDasharray: '3 3' }}
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E4E9F0' }}
                   content={({ active, payload }) => {
                     if (!active || !payload || payload.length === 0) return null;
                     const d = payload[0].payload;
                     return (
                       <div className="bg-white border border-slate-200 rounded-lg shadow-md p-3 text-xs">
-                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">{d.produto}</p>
+                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">
+                          {d.produto}
+                        </p>
                         <p className="text-slate-500 font-mono">NCM {d.ncm}</p>
                         <span
                           className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
@@ -283,26 +329,59 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                   </TableHead>
                   <TableHead className="min-w-[260px]">Produto (exemplo)</TableHead>
                   <TableHead>Anexo</TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("qtd")}>
-                    <span className="inline-flex items-center gap-1">Qtd {sortIcon("qtd")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('qtd')}
+                  >
+                    <span className="inline-flex items-center gap-1">Qtd {sortIcon('qtd')}</span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("faturamento")}>
-                    <span className="inline-flex items-center gap-1">Faturamento {sortIcon("faturamento")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('faturamento')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Faturamento {sortIcon('faturamento')}
+                    </span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("aliqIbsCbs")}>
-                    <span className="inline-flex items-center gap-1">Alíq IBS/CBS {sortIcon("aliqIbsCbs")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('aliqIbsCbs')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Alíq IBS/CBS {sortIcon('aliqIbsCbs')}
+                    </span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("tributoAntes")}>
-                    <span className="inline-flex items-center gap-1">Trib. ANTES {sortIcon("tributoAntes")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('tributoAntes')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Trib. ANTES {sortIcon('tributoAntes')}
+                    </span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("tributoDepois")}>
-                    <span className="inline-flex items-center gap-1">Trib. DEPOIS {sortIcon("tributoDepois")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('tributoDepois')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Trib. DEPOIS {sortIcon('tributoDepois')}
+                    </span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("deltaRs")}>
-                    <span className="inline-flex items-center gap-1">Δ R$ {sortIcon("deltaRs")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('deltaRs')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Δ R$ {sortIcon('deltaRs')}
+                    </span>
                   </TableHead>
-                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("deltaPp")}>
-                    <span className="inline-flex items-center gap-1">Δ pp {sortIcon("deltaPp")}</span>
+                  <TableHead
+                    className="text-right cursor-pointer select-none"
+                    onClick={() => toggleSort('deltaPp')}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Δ pp {sortIcon('deltaPp')}
+                    </span>
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -321,10 +400,15 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-slate-900 line-clamp-1" title={p.xProdExemplo}>{p.xProdExemplo}</p>
+                          <p
+                            className="font-medium text-slate-900 line-clamp-1"
+                            title={p.xProdExemplo}
+                          >
+                            {p.xProdExemplo}
+                          </p>
                           <p className="text-xs text-slate-500">
                             {p.produtosDistintos === 1
-                              ? "1 produto distinto"
+                              ? '1 produto distinto'
                               : `${fmtInt(p.produtosDistintos)} produtos distintos`}
                           </p>
                         </div>
@@ -349,31 +433,44 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                               <TooltipTrigger asChild>
                                 <span className="inline-block cursor-help">{badge}</span>
                               </TooltipTrigger>
-                              <TooltipContent side="right" className="max-w-sm text-xs leading-relaxed">
+                              <TooltipContent
+                                side="right"
+                                className="max-w-sm text-xs leading-relaxed"
+                              >
                                 <div className="font-semibold mb-1">
                                   {p.anexo} — {base.artigo}
                                 </div>
-                                <div className="text-slate-900 whitespace-pre-line">{base.texto}</div>
+                                <div className="text-slate-900 whitespace-pre-line">
+                                  {base.texto}
+                                </div>
                               </TooltipContent>
                             </Tooltip>
                           );
                         })()}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">{fmtNum(p.qtd)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtBRL(p.faturamento)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{p.aliqIbsCbs.toFixed(2)}%</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {fmtBRL(p.faturamento)}
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {p.aliqIbsCbs.toFixed(2)}%
+                      </TableCell>
                       <TableCell className="text-right tabular-nums text-orange-700">
                         {fmtBRL(p.tributoAntes)}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-teal-700 font-medium">
-                        {fmtBRL(p.tributoDepois)}
+                        {fmtBRL(getTributoDepoisIbsCbs(p))}
                       </TableCell>
-                      <TableCell className={`text-right tabular-nums ${p.deltaRs < 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                        {p.deltaRs >= 0 ? "+" : ""}
-                        {fmtBRL(p.deltaRs)}
+                      <TableCell
+                        className={`text-right tabular-nums ${getDeltaRsIbsCbs(p) < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                      >
+                        {getDeltaRsIbsCbs(p) >= 0 ? '+' : ''}
+                        {fmtBRL(getDeltaRsIbsCbs(p))}
                       </TableCell>
-                      <TableCell className={`text-right tabular-nums ${p.deltaPp < 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                        {fmtPp(p.deltaPp)}
+                      <TableCell
+                        className={`text-right tabular-nums ${getDeltaPpIbsCbs(p) < 0 ? 'text-emerald-700' : 'text-rose-700'}`}
+                      >
+                        {fmtPp(getDeltaPpIbsCbs(p))}
                       </TableCell>
                     </TableRow>
                   ))

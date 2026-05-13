@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 import {
   Bar,
   BarChart,
@@ -8,20 +8,27 @@ import {
   Tooltip as ChartTooltip,
   XAxis,
   YAxis,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertTriangle } from "lucide-react";
-import { useCalculadoraPorAnexo } from "@/hooks/useCalculadoraIbsCbs";
-import type { ApuracaoFiltros } from "@/lib/ibs-cbs/types";
-import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from "@/lib/ibs-cbs/formatters";
-import { BASE_LEGAL } from "@/lib/ibs-cbs/baseLegal";
+} from 'recharts';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertTriangle } from 'lucide-react';
+import { useCalculadoraPorAnexo } from '@/hooks/useCalculadoraIbsCbs';
+import type { ApuracaoFiltros } from '@/lib/ibs-cbs/types';
+import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from '@/lib/ibs-cbs/formatters';
+import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
 
-const PALETA = ["#0D9488", "#65A30D", "#F2810A", "#3478F5", "#6B46E8", "#0A9BB5", "#E0404A"];
+const PALETA = ['#0D9488', '#65A30D', '#F2810A', '#3478F5', '#6B46E8', '#0A9BB5', '#E0404A'];
 
 function HeaderTip({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -47,19 +54,30 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
   const { isLoading, error, data } = useCalculadoraPorAnexo(idContribuinte, filtros);
   const porAnexo = useMemo(() => data?.porAnexo ?? [], [data?.porAnexo]);
   const faturamentoTotal = data?.faturamentoTotal ?? 0;
+  const anexoRows = useMemo(
+    () =>
+      porAnexo.map((a) => {
+        return {
+          ...a,
+          tributoDepoisIbsCbs: a.tributoDepoisIbsCbs,
+          cargaDepoisIbsCbs: a.cargaPctIbsCbs,
+        };
+      }),
+    [porAnexo],
+  );
 
   const barData = useMemo(
     () =>
-      porAnexo
-        .filter((a) => a.tributoDepois > 0 || a.faturamento > 0)
+      anexoRows
+        .filter((a) => a.tributoDepoisIbsCbs > 0 || a.faturamento > 0)
         .map((a, i) => ({
           name: a.anexo,
-          tributoDepois: a.tributoDepois,
+          tributoDepois: a.tributoDepoisIbsCbs,
           faturamento: a.faturamento,
           fill: PALETA[i % PALETA.length],
         }))
         .sort((a, b) => b.tributoDepois - a.tributoDepois),
-    [porAnexo]
+    [anexoRows],
   );
 
   if (error) {
@@ -85,8 +103,8 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
       <Alert className="bg-amber-50 border-amber-200">
         <AlertTriangle className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-900 text-xs">
-          Agrupamento por <strong>regra_reducao</strong> (Anexos da LC 214/2025). Cálculo sobre saídas — não considera
-          créditos.
+          Agrupamento por <strong>regra_reducao</strong> (Anexos da LC 214/2025). Cálculo sobre
+          saídas — não considera créditos.
         </AlertDescription>
       </Alert>
 
@@ -102,18 +120,32 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
               <TooltipContent side="right" className="max-w-md text-xs leading-relaxed">
                 <p className="font-semibold mb-1">Como ler esta tabela</p>
                 <p className="mb-1">
-                  As notas de saída são agrupadas pelo anexo da Lei Complementar 214/2025 (regra
-                  de redução de IBS/CBS). "Sem anexo" = operação sob regra geral (alíquota cheia
-                  de 27,5%).
+                  As notas de saída são agrupadas pelo anexo da Lei Complementar 214/2025 (regra de
+                  redução de IBS/CBS). "Sem anexo" = operação sob regra geral (alíquota cheia de
+                  27,5%).
                 </p>
                 <ul className="list-disc pl-4 space-y-0.5">
-                  <li><strong>Faturamento</strong>: Σ valor bruto das notas do anexo.</li>
-                  <li><strong>% fat.</strong>: participação do anexo no faturamento total.</li>
-                  <li><strong>Alíq. efetiva</strong>: alíquota IBS/CBS já após a redução.</li>
-                  <li><strong>Redução média</strong>: % de desconto sobre a alíquota cheia.</li>
-                  <li><strong>Trib. ANTES</strong>: PIS + COFINS + ICMS + IPI atuais.</li>
-                  <li><strong>Trib. DEPOIS</strong>: IBS + CBS + ICMS monofásico (transição).</li>
-                  <li><strong>Carga DEPOIS</strong>: Trib. DEPOIS ÷ Faturamento.</li>
+                  <li>
+                    <strong>Faturamento</strong>: Σ valor bruto das notas do anexo.
+                  </li>
+                  <li>
+                    <strong>% fat.</strong>: participação do anexo no faturamento total.
+                  </li>
+                  <li>
+                    <strong>Alíq. efetiva</strong>: alíquota IBS/CBS já após a redução.
+                  </li>
+                  <li>
+                    <strong>Redução média</strong>: % de desconto sobre a alíquota cheia.
+                  </li>
+                  <li>
+                    <strong>Trib. ANTES</strong>: PIS + COFINS + ICMS + IPI atuais.
+                  </li>
+                  <li>
+                    <strong>Trib. DEPOIS</strong>: somente IBS + CBS.
+                  </li>
+                  <li>
+                    <strong>Carga DEPOIS</strong>: Trib. DEPOIS ÷ Faturamento.
+                  </li>
                 </ul>
               </TooltipContent>
             </Tooltip>
@@ -132,28 +164,31 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                   </TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="% fat.">
-                      Participação do anexo no faturamento total (Faturamento do anexo ÷ Faturamento total).
+                      Participação do anexo no faturamento total (Faturamento do anexo ÷ Faturamento
+                      total).
                     </HeaderTip>
                   </TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Alíq. efetiva">
-                      Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico
-                      (ex.: Seção VI), a carga DEPOIS pode ser maior que a alíquota efetiva.
+                      Alíquota IBS/CBS já após a redução do anexo. Quando há ICMS monofásico (ex.:
+                      Seção VI), o dashboard agora exibe apenas a parcela de IBS/CBS.
                     </HeaderTip>
                   </TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Redução média">
-                      Percentual médio de desconto aplicado sobre a alíquota cheia (27,5%) das notas do anexo.
+                      Percentual médio de desconto aplicado sobre a alíquota cheia (27,5%) das notas
+                      do anexo.
                     </HeaderTip>
                   </TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Trib. ANTES">
-                      Carga tributária no regime atual: PIS + COFINS + ICMS + IPI das notas do anexo.
+                      Carga tributária no regime atual: PIS + COFINS + ICMS + IPI das notas do
+                      anexo.
                     </HeaderTip>
                   </TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Trib. DEPOIS">
-                      Carga tributária na reforma: IBS + CBS + ICMS monofásico (período de transição).
+                      Carga tributária na reforma exibida no dashboard: somente IBS + CBS.
                     </HeaderTip>
                   </TableHead>
                   <TableHead className="text-right">
@@ -181,7 +216,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  porAnexo.map((a, i) => {
+                  anexoRows.map((a, i) => {
                     const base = BASE_LEGAL[a.anexo];
                     const trigger = (
                       <div className="flex items-center gap-2 w-fit">
@@ -191,7 +226,9 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         />
                         <span
                           className={`font-medium ${
-                            base ? "underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help" : ""
+                            base
+                              ? 'underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help'
+                              : ''
                           }`}
                         >
                           {a.anexo}
@@ -199,44 +236,60 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                       </div>
                     );
                     return (
-                    <TableRow key={a.anexo}>
-                      <TableCell>
-                        {base ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-sm text-xs leading-relaxed">
-                              <div className="font-semibold mb-1">
-                                {a.anexo} — {base.artigo}
-                              </div>
-                              <div className="text-slate-900 whitespace-pre-line">{base.texto}</div>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          trigger
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtBRL(a.faturamento)}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {fmtPct(faturamentoTotal > 0 ? a.faturamento / faturamentoTotal : 0)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{a.aliqMedia.toFixed(2)}%</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {(a.reducaoMedia * 100).toFixed(0)}%
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-orange-700">
-                        {fmtBRL(a.tributoAntes)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums text-teal-700 font-medium">
-                        {fmtBRL(a.tributoDepois)}
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        <Badge variant="secondary" className="bg-slate-100 text-slate-700 font-medium">
-                          {fmtPct(a.cargaPct)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(a.qtdNFs)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{fmtInt(a.qtdItens)}</TableCell>
-                    </TableRow>
+                      <TableRow key={a.anexo}>
+                        <TableCell>
+                          {base ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>{trigger}</TooltipTrigger>
+                              <TooltipContent
+                                side="right"
+                                className="max-w-sm text-xs leading-relaxed"
+                              >
+                                <div className="font-semibold mb-1">
+                                  {a.anexo} — {base.artigo}
+                                </div>
+                                <div className="text-slate-900 whitespace-pre-line">
+                                  {base.texto}
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            trigger
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtBRL(a.faturamento)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtPct(faturamentoTotal > 0 ? a.faturamento / faturamentoTotal : 0)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {a.aliqMedia.toFixed(2)}%
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {(a.reducaoMedia * 100).toFixed(0)}%
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-orange-700">
+                          {fmtBRL(a.tributoAntes)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums text-teal-700 font-medium">
+                          {fmtBRL(a.tributoDepoisIbsCbs)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          <Badge
+                            variant="secondary"
+                            className="bg-slate-100 text-slate-700 font-medium"
+                          >
+                            {fmtPct(a.cargaDepoisIbsCbs)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtInt(a.qtdNFs)}
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {fmtInt(a.qtdItens)}
+                        </TableCell>
+                      </TableRow>
                     );
                   })
                 )}
@@ -279,16 +332,18 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                   formatter={(
                     _value: number,
                     _name: unknown,
-                    item: { payload?: { tributoDepois: number; faturamento: number; name: string } },
+                    item: {
+                      payload?: { tributoDepois: number; faturamento: number; name: string };
+                    },
                   ) => {
                     const p = item.payload;
-                    if (!p) return ["", ""];
+                    if (!p) return ['', ''];
                     return [
                       `Trib. depois: ${fmtBRL(p.tributoDepois)} · Fat: ${fmtBRL(p.faturamento)}`,
                       p.name,
                     ];
                   }}
-                  contentStyle={{ borderRadius: 8, border: "1px solid #E4E9F0" }}
+                  contentStyle={{ borderRadius: 8, border: '1px solid #E4E9F0' }}
                 />
                 <Bar dataKey="tributoDepois" maxBarSize={56} radius={[4, 4, 0, 0]}>
                   {barData.map((d, i) => (
