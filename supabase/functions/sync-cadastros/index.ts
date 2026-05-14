@@ -166,8 +166,13 @@ Deno.serve(async (req) => {
     }
 
     // Executar sync em background usando o token do usuário
-    // @ts-ignore - EdgeRuntime é disponível em runtime
-    (globalThis as any).EdgeRuntime?.waitUntil?.(syncWithDW(body, userToken)) || syncWithDW(body, userToken);
+    // @ts-expect-error - EdgeRuntime é disponível em runtime no Deno Deploy
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(syncWithDW(body, userToken));
+    } else {
+      syncWithDW(body, userToken);
+    }
     
     console.log(`[sync-cadastros] Sync iniciado em background para ${body.environment} (user: ${userId})`);
 
