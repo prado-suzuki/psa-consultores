@@ -35,7 +35,7 @@ jobs:
         run: bunx tsc --build --noEmit
 
       - name: Tests
-        run: bun test
+        run: bunx vitest run
 
       - name: Build
         run: bun run build
