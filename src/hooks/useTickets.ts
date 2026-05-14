@@ -267,7 +267,7 @@ export function useTicketMessages(ticketId: string | undefined, enrichAdminProfi
 
       // Enrich admin messages with profile names
       const adminUserIds = [...new Set(data.filter(m => m.is_admin).map(m => m.user_id))];
-      let profilesMap: Record<string, { first_name: string; last_name: string }> = {};
+      const profilesMap: Record<string, { first_name: string; last_name: string }> = {};
 
       if (adminUserIds.length > 0) {
         const { data: profilesData } = await supabase
