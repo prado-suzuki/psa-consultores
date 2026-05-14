@@ -40,6 +40,13 @@ import type { AgregadoProduto, ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { exportToCsv } from '@/lib/ibs-cbs/export';
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from '@/lib/ibs-cbs/formatters';
 import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
+import {
+  NotasMetodologicas,
+  NOTA_TRIBUTO_ANTES,
+  NOTA_TRIBUTO_DEPOIS,
+  NOTA_BASE_SAIDAS,
+  NOTA_SEM_ANEXO,
+} from './NotasMetodologicas';
 
 const PALETA: Record<string, string> = {
   'Anexo I': '#0D9488',
@@ -505,6 +512,47 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
           )}
         </CardContent>
       </Card>
+
+      <NotasMetodologicas
+        notas={[
+          {
+            titulo: "Agrupamento por NCM",
+            texto: (
+              <>
+                Os itens são agrupados pela <strong>NCM (8 dígitos)</strong>, não pelo nome do
+                produto. Um mesmo NCM pode ter vários xProd distintos (variações de embalagem,
+                descrição), refletidos na coluna <strong>"produtos distintos"</strong>.
+              </>
+            ),
+          },
+          {
+            titulo: "Δ pp × Δ R$",
+            texto: (
+              <>
+                <strong>Δ pp</strong> mede a variação <strong>relativa</strong> da carga (em
+                pontos percentuais sobre o faturamento). <strong>Δ R$</strong> mede a variação{" "}
+                <strong>absoluta</strong> em reais. Um NCM pequeno pode ter Δ pp alto mas Δ R$
+                irrelevante — priorize Δ R$ para impacto financeiro real.
+              </>
+            ),
+          },
+          {
+            titulo: 'Coluna "Onde a reforma muda mais"',
+            texto: (
+              <>
+                O scatter plot mostra <strong>faturamento (X)</strong> vs{" "}
+                <strong>Δ pp (Y)</strong>. Pontos no canto superior-direito = produtos de alto
+                volume com aumento de carga (risco). Pontos inferior-direito = alto volume com
+                alívio (vantagem). Tamanho do círculo proporcional ao faturamento.
+              </>
+            ),
+          },
+          NOTA_SEM_ANEXO,
+          NOTA_TRIBUTO_ANTES,
+          NOTA_TRIBUTO_DEPOIS,
+          NOTA_BASE_SAIDAS,
+        ]}
+      />
     </div>
   );
 }

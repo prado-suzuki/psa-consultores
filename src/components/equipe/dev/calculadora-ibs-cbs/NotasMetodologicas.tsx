@@ -32,6 +32,8 @@ export function NotasMetodologicas({ notas }: NotasMetodologicasProps) {
   );
 }
 
+// ── Notas reutilizáveis (padrões) ─────────────────────────────────────────
+
 export const NOTA_TRIBUTO_ANTES: NotaMetodologica = {
   titulo: "Tributo antes",
   texto: (

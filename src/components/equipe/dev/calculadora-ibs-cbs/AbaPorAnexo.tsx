@@ -27,6 +27,13 @@ import { useCalculadoraPorAnexo } from '@/hooks/useCalculadoraIbsCbs';
 import type { ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from '@/lib/ibs-cbs/formatters';
 import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
+import {
+  NotasMetodologicas,
+  NOTA_TRIBUTO_ANTES,
+  NOTA_TRIBUTO_DEPOIS,
+  NOTA_BASE_SAIDAS,
+  NOTA_SEM_ANEXO,
+} from './NotasMetodologicas';
 
 const PALETA = ['#0D9488', '#65A30D', '#F2810A', '#3478F5', '#6B46E8', '#0A9BB5', '#E0404A'];
 
@@ -355,6 +362,36 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
           )}
         </CardContent>
       </Card>
+
+      <NotasMetodologicas
+        notas={[
+          {
+            titulo: "Anexo (regra de redução)",
+            texto: (
+              <>
+                Cada item é classificado pelo backend conforme regras da LC 214/2025: Anexo I
+                (cesta básica — alíquota zero), Anexo IX (defensivos — redução 60%), Anexo XV
+                (alíquota zero específica), entre outros. A coluna <code className="font-mono">
+                regra_reducao</code> do CSV identifica o anexo.
+              </>
+            ),
+          },
+          NOTA_SEM_ANEXO,
+          {
+            titulo: "Alíq. efetiva × Redução média",
+            texto: (
+              <>
+                <strong>Alíq. efetiva</strong> é a alíquota IBS/CBS já após a redução (ex.: 11%
+                para Anexo IX = 27,5% × 0,4). <strong>Redução média</strong> é a % média de
+                desconto aplicada sobre a alíquota cheia (ex.: 60% para Anexo IX).
+              </>
+            ),
+          },
+          NOTA_TRIBUTO_ANTES,
+          NOTA_TRIBUTO_DEPOIS,
+          NOTA_BASE_SAIDAS,
+        ]}
+      />
     </div>
   );
 }
