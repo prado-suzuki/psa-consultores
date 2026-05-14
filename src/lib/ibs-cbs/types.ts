@@ -111,3 +111,41 @@ export interface AgregadoProduto {
 export interface CalculadoraPorProdutoResponse {
   porProduto: AgregadoProduto[];
 }
+
+export type NaturezaDestino = "interno" | "interestadual" | "exportacao";
+
+export interface FatoUfProduto {
+  uf: string;
+  ncm: string;
+  xProd: string;
+  anexo: string;
+  natureza: NaturezaDestino;
+  faturamento: number;
+  tributoAntes: number;
+  tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
+  qtdNFs: number;
+  qtdItens: number;
+}
+
+export interface FatoCliente {
+  nome: string;
+  uf: string;
+  natureza: NaturezaDestino;
+  ncmPrincipal: string;
+  produtoPrincipal: string;
+  anexoPrincipal: string;
+  faturamento: number;
+  tributoAntes: number;
+  tributoDepois: number;
+  tributoDepoisIbsCbs: number;
+  tributoDepoisIcmsMonof: number;
+  qtdNFs: number;
+}
+
+export interface CalculadoraPorUfResponse {
+  fatosPorUfProduto: FatoUfProduto[];
+  clientes: FatoCliente[];
+  totalClientesDistintos: number;
+}

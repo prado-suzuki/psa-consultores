@@ -6,6 +6,7 @@ import type {
   CalculadoraFiltrosResponse,
   CalculadoraPorAnexoResponse,
   CalculadoraPorProdutoResponse,
+  CalculadoraPorUfResponse,
   CalculadoraResumoResponse,
 } from "@/lib/ibs-cbs/types";
 
@@ -93,6 +94,22 @@ export function useCalculadoraPorProduto(idContribuinte: string, filtros: Apurac
       const url = getApiUrl(`/api/v1/calculadora_ibs_cbs/por_produto?${sp.toString()}`);
       const response = await fetchWithAuth(url);
       if (!response.ok) throw await parseError(response, "Por produto");
+      return response.json();
+    },
+    enabled: !!idContribuinte,
+    staleTime: STALE,
+  });
+}
+
+export function useCalculadoraPorUf(idContribuinte: string, filtros: ApuracaoFiltros) {
+  const { fetchWithAuth } = useApiAuth();
+  return useQuery<CalculadoraPorUfResponse>({
+    queryKey: ["calc-ibs-cbs", "por_uf", idContribuinte, filtros],
+    queryFn: async () => {
+      const sp = buildFiltrosParams(idContribuinte, filtros);
+      const url = getApiUrl(`/api/v1/calculadora_ibs_cbs/por_uf?${sp.toString()}`);
+      const response = await fetchWithAuth(url);
+      if (!response.ok) throw await parseError(response, "Por UF");
       return response.json();
     },
     enabled: !!idContribuinte,
