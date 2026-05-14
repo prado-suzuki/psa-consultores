@@ -18,14 +18,14 @@
 
 ---
 
-## Fase 0 — Quick wins (≤30 min) — [ ]
+## Fase 0 — Quick wins (≤30 min) — [x]
 Itens triviais que não geram impacto.
 
-- [ ] `@typescript-eslint/no-require-imports` (1) → `tailwind.config.ts`: trocar `require("tailwindcss-animate")` por `import animate from "tailwindcss-animate"` no topo.
-- [ ] `@typescript-eslint/ban-ts-comment` (2) → trocar `@ts-ignore` por `@ts-expect-error` com descrição.
-- [ ] `@typescript-eslint/no-unused-expressions` (4) → revisar 4 ocorrências; geralmente `cond && fn()` que vira `if (cond) fn()`.
+- [x] `@typescript-eslint/no-require-imports` (1) → `tailwind.config.ts`: trocar `require("tailwindcss-animate")` por `import animate from "tailwindcss-animate"` no topo.
+- [x] `@typescript-eslint/ban-ts-comment` (2) → trocar `@ts-ignore` por `@ts-expect-error` com descrição.
+- [x] `@typescript-eslint/no-unused-expressions` (4) → revisar 4 ocorrências; geralmente `cond && fn()` que vira `if (cond) fn()`.
 
-**Resultado esperado:** -7 warnings.
+**Resultado:** -7 warnings (791 → 784). ✅ Concluída em 14/05/2026.
 
 ---
 

@@ -54,7 +54,8 @@ export function ColumnFilterDropdown({
   const toggleValue = (v: string) =>
     setDraft((prev) => {
       const next = new Set(prev);
-      next.has(v) ? next.delete(v) : next.add(v);
+      if (next.has(v)) next.delete(v);
+      else next.add(v);
       return next;
     });
 

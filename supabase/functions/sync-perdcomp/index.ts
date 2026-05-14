@@ -177,8 +177,13 @@ Deno.serve(async (req) => {
     }
 
     // Fire-and-forget
-    // @ts-ignore
-    (globalThis as any).EdgeRuntime?.waitUntil?.(syncWithDW(body, userToken)) || syncWithDW(body, userToken);
+    // @ts-expect-error - EdgeRuntime é disponível em runtime no Deno Deploy
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(syncWithDW(body, userToken));
+    } else {
+      syncWithDW(body, userToken);
+    }
 
     console.log(`[sync-perdcomp] Sync iniciado em background para ${body.environment} (user: ${userId})`);
 
