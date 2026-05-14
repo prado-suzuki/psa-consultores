@@ -186,21 +186,24 @@ export function ProcessImprovementModal({
  
    const updateSavingsItem = (index: number, updated: SavingsItem, type: 'system' | 'build_vs_buy' | 'other') => {
      switch (type) {
-       case 'system':
+       case 'system': {
          const sysItems = [...systemSavings];
          sysItems[index] = updated;
          setSystemSavings(sysItems);
          break;
-       case 'build_vs_buy':
+       }
+       case 'build_vs_buy': {
          const bvbItems = [...buildVsBuySavings];
          bvbItems[index] = updated;
          setBuildVsBuySavings(bvbItems);
          break;
-       case 'other':
+       }
+       case 'other': {
          const otherItems = [...otherSavings];
          otherItems[index] = updated;
          setOtherSavings(otherItems);
          break;
+       }
      }
    };
  

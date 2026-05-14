@@ -64,7 +64,7 @@ export function usePisCofinsCalculator({ data, tipoApuracao, periodoFechado, ext
     return {
       ...data,
       periodos: data.periodos.map((p) => {
-        let itens = needsFlatten && p.contas
+        const itens = needsFlatten && p.contas
           ? flattenContasToItens(p.contas)
           : [...(p.itens_credito ?? [])];
 

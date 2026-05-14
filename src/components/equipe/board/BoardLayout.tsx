@@ -112,7 +112,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   });
 
   useEffect(() => {
-    try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch {}
+    try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch { /* ignore quota/private mode */ }
   }, [collapsed]);
 
   // Count pending decisions for badge
