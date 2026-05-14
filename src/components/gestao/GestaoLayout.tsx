@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
-import { 
+import {
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -16,6 +16,7 @@ import {
   Users,
   User,
   MessageCircle,
+  BarChart3,
 } from 'lucide-react';
 
 interface GestaoLayoutProps {
@@ -40,6 +41,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   const navItems: NavItem[] = [
     { icon: Newspaper, label: 'Novidades', path: '/gestao' },
     { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
+    { icon: BarChart3, label: 'Dashboard Chamados', path: '/gestao/chamados/dashboard' },
     { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
   ];
 

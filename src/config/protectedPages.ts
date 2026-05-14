@@ -528,6 +528,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/gestao/chamados/dashboard',
+    page_name: 'Dashboard de Chamados',
+    page_description: 'Panorama gerencial de chamados (KPIs, prazos e rankings)',
+    category: 'gestao',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/gestao/contatos',
     page_name: 'Contatos',
     page_description: 'Gerenciar contatos do site',

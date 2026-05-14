@@ -324,3 +324,42 @@ export function useTicketAgents() {
     staleTime: 5 * 60 * 1000, // 5 min cache
   });
 }
+
+// ── useTicketsFirstResponse ───────────────────────────────────
+// First admin response per ticket — alimenta o dashboard (tempo médio de resposta
+// e ranking de responsáveis efetivos pela primeira resposta).
+
+export interface TicketFirstResponse {
+  ticket_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export function useTicketsFirstResponse() {
+  return useQuery({
+    queryKey: ['tickets', 'first-response'],
+    queryFn: async (): Promise<Map<string, TicketFirstResponse>> => {
+      const { data, error } = await supabase
+        .from('ticket_messages')
+        .select('ticket_id, user_id, created_at, is_admin')
+        .eq('is_admin', true)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+
+      const firstByTicket = new Map<string, TicketFirstResponse>();
+      (data || []).forEach((m) => {
+        if (!firstByTicket.has(m.ticket_id)) {
+          firstByTicket.set(m.ticket_id, {
+            ticket_id: m.ticket_id,
+            user_id: m.user_id,
+            created_at: m.created_at,
+          });
+        }
+      });
+
+      return firstByTicket;
+    },
+    staleTime: 60 * 1000, // 1 min cache — dashboard tolera leve atraso
+  });
+}

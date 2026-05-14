@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
@@ -30,7 +30,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2 } from 'lucide-react';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2, BarChart3 } from 'lucide-react';
 import { format, isWithinInterval, subDays, addDays, differenceInCalendarDays, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -96,6 +97,8 @@ export default function GestaoChamados() {
     clustersData.forEach(c => map.set(c.id, c.name));
     return map;
   }, [clustersData]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -485,6 +488,14 @@ export default function GestaoChamados() {
         </Button>
         <Button
           variant="outline"
+          onClick={() => navigate('/gestao/chamados/dashboard')}
+          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+        >
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Dashboard
+        </Button>
+        <Button
+          variant="outline"
           onClick={handleExport}
           className="border-slate-200 text-slate-600 hover:bg-slate-50"
         >
@@ -517,7 +528,8 @@ export default function GestaoChamados() {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
-            <Table>
+            <>
+            <Table containerRef={scrollRef}>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">
@@ -557,7 +569,7 @@ export default function GestaoChamados() {
                     </div>
                   </TableHead>
                   <TableHead>Fechado em</TableHead>
-                  <TableHead>Ações</TableHead>
+                  <TableHead className="sticky right-0 bg-background z-10 border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -660,7 +672,7 @@ export default function GestaoChamados() {
                         ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm')
                         : '—'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="sticky right-0 bg-background z-10 border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">
                       <Button
                         variant="outline"
                         size="sm"
@@ -674,6 +686,8 @@ export default function GestaoChamados() {
                 ))}
               </TableBody>
             </Table>
+            <FloatingScrollbar targetRef={scrollRef} />
+            </>
           )}
         </CardContent>
       </Card>

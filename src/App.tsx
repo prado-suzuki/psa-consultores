@@ -101,6 +101,7 @@ import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
 import GestaoChamados from "./pages/gestao/GestaoChamados";
+import GestaoChamadosDashboard from "./pages/gestao/GestaoChamadosDashboard";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
 import GestaoContatos from "./pages/gestao/GestaoContatos";
 import GestaoAcessos from "./pages/gestao/GestaoAcessos";
@@ -197,6 +198,7 @@ const App = () => (
               {/* Gestão Routes - Protected by access gate (admin or with explicit permission) */}
               <Route path="/gestao" element={<GestaoAccessGate><GestaoNovidades /></GestaoAccessGate>} />
               <Route path="/gestao/chamados" element={<GestaoAccessGate><GestaoChamados /></GestaoAccessGate>} />
+              <Route path="/gestao/chamados/dashboard" element={<GestaoAccessGate><GestaoChamadosDashboard /></GestaoAccessGate>} />
               <Route path="/gestao/chamados/:id" element={<GestaoAccessGate><GestaoDetalhesChamado /></GestaoAccessGate>} />
               <Route path="/gestao/contatos" element={<GestaoAccessGate><GestaoContatos /></GestaoAccessGate>} />
               <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
