@@ -24,6 +24,12 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "warn",
       "@typescript-eslint/ban-ts-comment": "warn",
       "@typescript-eslint/no-require-imports": "warn",
+      "@typescript-eslint/no-unused-expressions": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "no-case-declarations": "warn",
+      "no-empty": "warn",
+      "no-irregular-whitespace": "warn",
+      "prefer-const": "warn",
     },
   },
 );
