@@ -105,6 +105,7 @@ export function ProcessSpreadsheet({ processes }: ProcessSpreadsheetProps) {
       ),
     ].join('\n');
 
+    // eslint-disable-next-line no-irregular-whitespace -- BOM \ufeff necessário para Excel reconhecer UTF-8
     const blob = new Blob([`﻿${csv}`], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

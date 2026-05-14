@@ -107,7 +107,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
           </div>
         );
 
-      case 'daterange':
+      case 'daterange': {
         const dates = (val as string) || '';
         const [from, to] = dates.split('|');
         return (
@@ -118,6 +118,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
             <input type="date" className="v3-fi" value={to || ''} onChange={e => onFilterChange(f.key, `${from || ''}|${e.target.value}`)} aria-label={`${f.label} até`} style={{ padding: '4px 6px' }} />
           </div>
         );
+      }
 
       default:
         return null;
