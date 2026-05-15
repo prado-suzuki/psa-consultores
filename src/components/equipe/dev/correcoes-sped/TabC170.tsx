@@ -18,7 +18,7 @@ import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import type { C170Item, ItemEfd, CampoAlteradoEfd, FlatItemEfd } from '@/types/correcoesSped';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
-import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
+import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
 import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
