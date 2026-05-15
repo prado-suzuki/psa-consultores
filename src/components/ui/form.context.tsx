@@ -1,11 +1,5 @@
 import * as React from "react";
-import {
-  Controller,
-  type ControllerProps,
-  type FieldPath,
-  type FieldValues,
-  useFormContext,
-} from "react-hook-form";
+import { type FieldPath, type FieldValues, useFormContext } from "react-hook-form";
 
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
@@ -25,19 +19,6 @@ type FormItemContextValue = {
 export const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue,
 );
-
-export const FormField = <
-  TFieldValues extends FieldValues = FieldValues,
-  TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
->({
-  ...props
-}: ControllerProps<TFieldValues, TName>) => {
-  return (
-    <FormFieldContext.Provider value={{ name: props.name }}>
-      <Controller {...props} />
-    </FormFieldContext.Provider>
-  );
-};
 
 export const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
