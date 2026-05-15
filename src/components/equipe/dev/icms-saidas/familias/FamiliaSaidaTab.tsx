@@ -38,7 +38,8 @@ import {
   ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS,
   ICMS_T03_COLUMN_TOOLTIPS,
 } from '../tooltipContent';
-import { ButtonTooltip, renderColumnLabel } from '../tooltipHelpers';
+import { ButtonTooltip } from '../tooltipHelpers';
+import { renderColumnLabel } from '../renderColumnLabel';
 
 interface FamiliaSaidaTabProps {
   familia: FamiliaSaida;

@@ -22,13 +22,13 @@ import { AlertTriangle, Globe, Layers, TrendingDown, TrendingUp } from 'lucide-r
 import { useCalculadoraResumo } from '@/hooks/useCalculadoraIbsCbs';
 import type { ApuracaoFiltros, ComposicaoTributosAntes, QuebraNatureza } from '@/lib/ibs-cbs/types';
 import { fmtBRL, fmtBRLCompact, fmtPct, fmtMesAno, fmtPp } from '@/lib/ibs-cbs/formatters';
+import { NotasMetodologicas } from './NotasMetodologicas';
 import {
-  NotasMetodologicas,
   NOTA_TRIBUTO_ANTES,
   NOTA_TRIBUTO_DEPOIS,
   NOTA_BASE_SAIDAS,
   NOTA_PERIODO_TRANSICAO,
-} from './NotasMetodologicas';
+} from './notasMetodologicas.constants';
 
 const CORES = {
   antes: '#F2810A',

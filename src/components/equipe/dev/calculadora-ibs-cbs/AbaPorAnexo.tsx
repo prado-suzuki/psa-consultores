@@ -27,13 +27,13 @@ import { useCalculadoraPorAnexo } from '@/hooks/useCalculadoraIbsCbs';
 import type { ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { fmtBRL, fmtBRLCompact, fmtInt, fmtPct } from '@/lib/ibs-cbs/formatters';
 import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
+import { NotasMetodologicas } from './NotasMetodologicas';
 import {
-  NotasMetodologicas,
   NOTA_TRIBUTO_ANTES,
   NOTA_TRIBUTO_DEPOIS,
   NOTA_BASE_SAIDAS,
   NOTA_SEM_ANEXO,
-} from './NotasMetodologicas';
+} from './notasMetodologicas.constants';
 
 const PALETA = ['#0D9488', '#65A30D', '#F2810A', '#3478F5', '#6B46E8', '#0A9BB5', '#E0404A'];
 

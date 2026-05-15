@@ -2,15 +2,9 @@ import { Info } from "lucide-react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
-// Re-export para compatibilidade com imports legados.
-export { AUDITORIA_TOOLTIPS } from "./tooltipConstants";
-
 /**
  * FieldTooltip — ícone de informação (`<Info>`) ao lado de um label que,
  * ao hover, exibe o texto explicativo (portalizado, com `z-[100]`).
- *
- * Mesmo padrão visual de `ConsultaXMLs.tsx` / `ApuracaoPisCofins.tsx`.
- * Uso: `<Label>Cliente <RequiredMark /> <FieldTooltip text="..." /></Label>`.
  */
 export const FieldTooltip = ({ text }: { text: string }) => (
   <Tooltip>
@@ -29,4 +23,3 @@ export const FieldTooltip = ({ text }: { text: string }) => (
     </TooltipPrimitive.Portal>
   </Tooltip>
 );
-

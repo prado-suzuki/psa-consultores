@@ -20,7 +20,7 @@ import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
-import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
+import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
 import {
   IDENT_BEM_IMOB_OPTIONS,
   IND_UTIL_BEM_IMOB_OPTIONS,

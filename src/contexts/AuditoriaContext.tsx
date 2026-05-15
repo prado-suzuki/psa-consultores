@@ -48,6 +48,7 @@ export const AuditoriaProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuditoriaStore = () => {
   const ctx = useContext(AuditoriaContext);
   if (!ctx) throw new Error('useAuditoriaStore must be used within AuditoriaProvider');
