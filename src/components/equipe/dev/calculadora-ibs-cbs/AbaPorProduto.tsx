@@ -40,13 +40,13 @@ import type { AgregadoProduto, ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { exportToCsv } from '@/lib/ibs-cbs/export';
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from '@/lib/ibs-cbs/formatters';
 import { BASE_LEGAL } from '@/lib/ibs-cbs/baseLegal';
+import { NotasMetodologicas } from './NotasMetodologicas';
 import {
-  NotasMetodologicas,
   NOTA_TRIBUTO_ANTES,
   NOTA_TRIBUTO_DEPOIS,
   NOTA_BASE_SAIDAS,
   NOTA_SEM_ANEXO,
-} from './NotasMetodologicas';
+} from './notasMetodologicas.constants';
 
 const PALETA: Record<string, string> = {
   'Anexo I': '#0D9488',

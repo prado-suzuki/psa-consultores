@@ -31,13 +31,13 @@ import type {
   NaturezaDestino,
 } from "@/lib/ibs-cbs/types";
 import { UfDrillDown } from "./UfDrillDown";
+import { NotasMetodologicas } from "./NotasMetodologicas";
 import {
-  NotasMetodologicas,
   NOTA_TRIBUTO_ANTES,
   NOTA_TRIBUTO_DEPOIS,
   NOTA_BASE_SAIDAS,
   NOTA_SEM_ANEXO,
-} from "./NotasMetodologicas";
+} from "./notasMetodologicas.constants";
 
 const CORES = {
   interno: "#0D9488",
