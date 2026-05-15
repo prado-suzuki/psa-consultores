@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Search, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuditoriaStore } from '@/contexts/AuditoriaContext';
-import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import TablePagination from '@/components/equipe/dev/TablePagination';
+import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
 import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
