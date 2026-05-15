@@ -12,7 +12,8 @@ import TablePagination from '@/components/equipe/dev/TablePagination';
 import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
 import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
-import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+import { FieldTooltip } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+import { AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipConstants';
 import { parseDate } from '@/lib/dateUtils';
 import type { EfdcXmlLote } from '@/types/efdcXml';
 
