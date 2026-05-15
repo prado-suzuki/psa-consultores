@@ -22,7 +22,8 @@ import { AuditoriaProvider, useAuditoriaStore } from '@/contexts/AuditoriaContex
 import BalanceteEfdTab from '@/components/equipe/dev/auditoria/BalanceteEfdTab';
 import EfdcIcmsTab from '@/components/equipe/dev/auditoria/EfdcIcmsTab';
 import EfdcXmlTab from '@/components/equipe/dev/auditoria/EfdcXmlTab';
-import { FieldTooltip, AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+import { FieldTooltip } from '@/components/equipe/dev/auditoria/tooltipHelpers';
+import { AUDITORIA_TOOLTIPS } from '@/components/equipe/dev/auditoria/tooltipConstants';
 import { RequiredMark } from '@/components/ui/required-mark';
 
 const PAGE_DESCRIPTION =

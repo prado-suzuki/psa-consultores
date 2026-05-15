@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
-import { renderColumnLabel } from "./ColumnTooltip";
+import { renderColumnLabel } from "./renderColumnLabel";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
 

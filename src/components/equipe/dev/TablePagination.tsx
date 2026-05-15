@@ -7,6 +7,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from '@/components/ui/pagination';
+import { PAGE_SIZE } from './TablePagination.constants';
 
 interface TablePaginationProps {
   currentPage: number;
@@ -14,8 +15,6 @@ interface TablePaginationProps {
   totalItems: number;
   onPageChange: (page: number) => void;
 }
-
-const PAGE_SIZE = 40;
 
 const TablePagination = ({ currentPage, totalPages, totalItems, onPageChange }: TablePaginationProps) => {
   if (totalPages <= 1) return null;
@@ -74,5 +73,4 @@ const TablePagination = ({ currentPage, totalPages, totalItems, onPageChange }: 
   );
 };
 
-export { PAGE_SIZE };
 export default TablePagination;

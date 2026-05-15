@@ -15,10 +15,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, Check, ChevronsUpDown, Info, Loader2, X } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import TablePagination, { PAGE_SIZE } from '@/components/equipe/dev/TablePagination';
+import TablePagination from '@/components/equipe/dev/TablePagination';
+import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
 import { useRowSelection, applyBatchChange } from '@/components/equipe/dev/correcoes-sped/useRowSelection';
 import { ColumnFilterDropdown } from '@/components/equipe/dev/pis-cofins/ColumnFilterDropdown';
-import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/ColumnTooltip';
+import { renderColumnLabel } from '@/components/equipe/dev/pis-cofins/renderColumnLabel';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
 import {
   IDENT_BEM_IMOB_OPTIONS,

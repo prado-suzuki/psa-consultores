@@ -48,9 +48,6 @@ import {
 import { API_BASE_URL } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 
-// Re-exportar para retrocompatibilidade
-export type { ColumnConfig };
-export { NFE_COLUMNS, CTE_COLUMNS, AVAILABLE_COLUMNS };
 
 interface NFeRecord {
   chave_nfe: string;

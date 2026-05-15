@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { HeaderColumn, HeaderBottomColumn } from "@/hooks/useTableHeaders";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
-import { renderColumnLabel } from "./ColumnTooltip";
+import { renderColumnLabel } from "./renderColumnLabel";
 
 interface DynamicTableHeaderProps {
   stickyConfig: StickyColumnConfig[];
