@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MonthRangePicker, monthRangeToDateStrings, type MonthRange } from '@/components/ui/month-range-picker';
+import { MonthRangePicker, type MonthRange } from '@/components/ui/month-range-picker';
+import { monthRangeToDateStrings } from '@/components/ui/month-range-picker.utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
