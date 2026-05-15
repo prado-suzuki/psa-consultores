@@ -12,7 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { MonthYearPicker, monthYearToDateString } from '@/components/ui/month-year-picker';
+import { MonthYearPicker } from '@/components/ui/month-year-picker';
+import { monthYearToDateString } from '@/components/ui/month-year-picker.utils';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   FileText,
