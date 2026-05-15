@@ -66,8 +66,6 @@ export const ColumnTooltip = ({
   </Tooltip>
 );
 
-export const renderColumnLabel = (label: string, tooltip?: string) =>
-  tooltip ? <ColumnTooltip label={label} text={tooltip} /> : label;
 
 export const ButtonTooltip = ({
   text,

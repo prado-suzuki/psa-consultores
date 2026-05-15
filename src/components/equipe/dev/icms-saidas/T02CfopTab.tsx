@@ -7,7 +7,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { getCfopDescription } from './cfopDescriptions';
 import { ICMS_T02_TOOLTIPS } from './tooltipContent';
-import { renderColumnLabel } from './tooltipHelpers';
+import { renderColumnLabel } from './renderColumnLabel';
 
 interface T02CfopTabProps {
   enabled: boolean;

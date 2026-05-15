@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Calculator } from 'lucide-react';
 import type { T01MatrizRow, T01MatrizSection } from './mocks';
 import { ICMS_T01_TOOLTIPS } from './tooltipContent';
-import { renderColumnLabel } from './tooltipHelpers';
+import { renderColumnLabel } from './renderColumnLabel';
 
 interface T01ApuracaoTabProps {
   enabled: boolean;
