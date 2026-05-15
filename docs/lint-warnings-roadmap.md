@@ -29,17 +29,16 @@ Itens triviais que não geram impacto.
 
 ---
 
-## Fase 1 — `react-refresh/only-export-components` (25) — [ ]
+## Fase 1 — `react-refresh/only-export-components` (25) — [x]
 Arquivos `.tsx` que exportam um componente + utilitários (constants, helpers, contexts). O fast-refresh quebra quando o módulo exporta não-componentes junto.
 
 **Padrão de fix:** mover não-componentes para arquivo irmão (`<Componente>.utils.ts` ou `<Componente>.context.ts`) e re-exportar.
 
-Suspeitos prováveis: `src/components/ui/*` (sidebar, form, toast), `src/contexts/AuthContext.tsx`, `src/contexts/AuditoriaContext.tsx`, `src/components/ErrorBoundary.tsx`.
+- [x] Extraídos: variants UI (`badge`, `button`, `toggle`, `navigation-menu`), contexts (`sidebar.context`, `form.context`), utils de pickers, constants (`TablePagination`, `AUDITORIA_TOOLTIPS`, `SPED_TOOLTIPS`, `notasMetodologicas.constants`, `renderColumnLabel` em `pis-cofins` e `icms-saidas`).
+- [x] `eslint-disable` justificado em 3 casos legítimos: `ui/sidebar.tsx` (shadcn), `contexts/AuditoriaContext.tsx` e `contexts/AuthContext.tsx` (hook + provider co-localizados).
 
-- [ ] Listar os 25 arquivos: `bunx eslint . -f json | jq '.[] | select(.messages[]?.ruleId=="react-refresh/only-export-components") | .filePath'`
-- [ ] Separar utils/contexts em arquivos próprios.
+**Resultado:** -25 warnings (784 → 763). ✅ Concluída em 15/05/2026.
 
-**Resultado esperado:** -25 warnings.
 
 ---
 
