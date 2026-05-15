@@ -41,12 +41,34 @@ interface Profile {
   last_name: string;
 }
 
+interface Project {
+  id: string;
+  name: string;
+}
+
+interface Process {
+  id: string;
+  name: string;
+  project_id: string | null;
+}
+
+interface ProjectProcess {
+  process_id: string;
+  project_id: string;
+}
+
+const UNASSIGNED = '__unassigned__';
+const NONE = '__none__';
+
 export default function EquipeBacklog() {
   const { toast } = useToast();
-  
+
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [processes, setProcesses] = useState<Process[]>([]);
+  const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal de criação/edição
@@ -66,7 +88,11 @@ export default function EquipeBacklog() {
   const [moveData, setMoveData] = useState({
     sprint_id: '',
     assigned_to: '',
-    due_date: ''
+    start_date: '',
+    due_date: '',
+    project_id: '',
+    process_id: '',
+    task_code: '',
   });
   const [moving, setMoving] = useState(false);
 
@@ -106,7 +132,17 @@ export default function EquipeBacklog() {
         .from("profiles_safe")
         .select("id, first_name, last_name");
       setProfiles(profilesData || []);
-      
+
+      // Fetch projects, processes e associações (para alinhar com o form de Nova Tarefa)
+      const [{ data: projectsData }, { data: processesData }, { data: ppData }] = await Promise.all([
+        supabase.from("projects").select("id, name").order("name"),
+        supabase.from("processes").select("id, name, project_id").order("name"),
+        supabase.from("project_processes").select("process_id, project_id"),
+      ]);
+      setProjects(projectsData || []);
+      setProcesses(processesData || []);
+      setProjectProcesses(ppData || []);
+
     } catch (error: any) {
       console.error("Error fetching data:", error);
       toast({ title: "Erro ao carregar dados", description: error.message, variant: "destructive" });
@@ -206,7 +242,11 @@ export default function EquipeBacklog() {
     setMoveData({
       sprint_id: firstSprint?.id || '',
       assigned_to: '',
-      due_date: firstSprint?.end_date || ''
+      start_date: firstSprint?.start_date || '',
+      due_date: firstSprint?.end_date || '',
+      project_id: '',
+      process_id: '',
+      task_code: '',
     });
     setMoveModalOpen(true);
   };
@@ -217,19 +257,29 @@ export default function EquipeBacklog() {
       return;
     }
 
+    if (!moveData.due_date) {
+      toast({ title: "Data de entrega é obrigatória", variant: "destructive" });
+      return;
+    }
+
     try {
       setMoving(true);
 
-      // Criar entregável na sprint selecionada
+      const selectedSprint = sprints.find(s => s.id === moveData.sprint_id);
+
+      // Criar entregável na sprint selecionada (mesmos campos do form Nova Tarefa em sprint)
       const deliverableData = {
         sprint_id: moveData.sprint_id,
         title: movingItem.title,
         description: movingItem.description,
         estimated_hours: movingItem.estimated_hours,
         assigned_to: moveData.assigned_to || null,
+        start_date: moveData.start_date || selectedSprint?.start_date || null,
         due_date: moveData.due_date,
-        start_date: sprints.find(s => s.id === moveData.sprint_id)?.start_date,
-        status: 'pending'
+        status: 'pending',
+        project_id: moveData.project_id || null,
+        process_id: moveData.process_id || null,
+        task_code: moveData.task_code || null,
       };
 
       const { data: newDeliverable, error: deliverableError } = await supabase
@@ -485,7 +535,7 @@ export default function EquipeBacklog() {
 
       {/* Modal de Mover para Sprint */}
       <Dialog open={moveModalOpen} onOpenChange={setMoveModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Mover para Sprint</DialogTitle>
             <DialogDescription className="sr-only">Mover item do backlog para uma sprint</DialogDescription>
@@ -499,16 +549,17 @@ export default function EquipeBacklog() {
                 )}
               </div>
             )}
-            
+
             <div className="space-y-2">
               <Label>Sprint de Destino *</Label>
               <Select value={moveData.sprint_id} onValueChange={(v) => {
                 const sprint = sprints.find(s => s.id === v);
-                setMoveData({ 
-                  ...moveData, 
+                setMoveData(prev => ({
+                  ...prev,
                   sprint_id: v,
-                  due_date: sprint?.end_date || ''
-                });
+                  start_date: sprint?.start_date || '',
+                  due_date: sprint?.end_date || '',
+                }));
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a sprint" />
@@ -524,34 +575,121 @@ export default function EquipeBacklog() {
             </div>
 
             <div className="space-y-2">
-              <Label>Responsável</Label>
-              <Select value={moveData.assigned_to} onValueChange={(v) => setMoveData({ ...moveData, assigned_to: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Não atribuído</SelectItem>
-                  {profiles.map(profile => (
-                    <SelectItem key={profile.id} value={profile.id}>
-                      {profile.first_name} {profile.last_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>ID / Ordem</Label>
+              <Input
+                value={moveData.task_code}
+                onChange={(e) => setMoveData(prev => ({ ...prev, task_code: e.target.value }))}
+                placeholder="Ex: 7.43"
+              />
             </div>
 
-            <div className="space-y-2">
-              <Label>Data de Entrega</Label>
-              <Input
-                type="date"
-                value={moveData.due_date}
-                onChange={(e) => setMoveData({ ...moveData, due_date: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Responsável</Label>
+                <Select
+                  value={moveData.assigned_to || UNASSIGNED}
+                  onValueChange={(v) => setMoveData(prev => ({ ...prev, assigned_to: v === UNASSIGNED ? '' : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={UNASSIGNED}>Não atribuído</SelectItem>
+                    {profiles.map(profile => (
+                      <SelectItem key={profile.id} value={profile.id}>
+                        {profile.first_name} {profile.last_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Horas Estimadas</Label>
+                <Input
+                  value={movingItem?.estimated_hours ? `${movingItem.estimated_hours}h` : '—'}
+                  disabled
+                  className="bg-gray-50 text-gray-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Data Início</Label>
+                <Input
+                  type="date"
+                  value={moveData.start_date}
+                  onChange={(e) => setMoveData(prev => ({ ...prev, start_date: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data Entrega *</Label>
+                <Input
+                  type="date"
+                  value={moveData.due_date}
+                  onChange={(e) => setMoveData(prev => ({ ...prev, due_date: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Projeto</Label>
+                <Select
+                  value={moveData.project_id || NONE}
+                  onValueChange={(v) => setMoveData(prev => ({
+                    ...prev,
+                    project_id: v === NONE ? '' : v,
+                    process_id: '', // reseta processo ao trocar de projeto
+                  }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar projeto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Nenhum</SelectItem>
+                    {projects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Processo</Label>
+                <Select
+                  value={moveData.process_id || NONE}
+                  onValueChange={(v) => setMoveData(prev => ({ ...prev, process_id: v === NONE ? '' : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecionar processo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={NONE}>Nenhum</SelectItem>
+                    {processes
+                      .filter(proc => {
+                        if (!moveData.project_id) return true;
+                        return projectProcesses.some(
+                          pp => pp.process_id === proc.id && pp.project_id === moveData.project_id
+                        );
+                      })
+                      .map(proc => (
+                        <SelectItem key={proc.id} value={proc.id}>
+                          {proc.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setMoveModalOpen(false)}>Cancelar</Button>
-            <Button onClick={moveToSprint} disabled={moving || !moveData.sprint_id}>
+            <Button onClick={moveToSprint} disabled={moving || !moveData.sprint_id || !moveData.due_date}>
               {moving ? 'Movendo...' : 'Mover para Sprint'}
             </Button>
           </DialogFooter>
