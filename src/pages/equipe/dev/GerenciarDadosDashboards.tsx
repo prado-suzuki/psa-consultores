@@ -27,13 +27,6 @@ const GERENCIAR_DADOS_DASHBOARDS: Dashboard[] = [
       'https://datastudio.google.com/embed/reporting/cfed44c5-e7f6-42b2-a6b4-c6399e33d063/page/p_c97l3bpm3d',
     clusterParamNames: ['ds0.cluster_id'],
   },
-  {
-    id: 'controle-uso-envio-documentos-detalhado',
-    label: 'Controle de uso e envio de documentos (Detalhado)',
-    embedUrl:
-      'https://datastudio.google.com/embed/reporting/dc399d74-18be-453b-814f-f124f18fdb18/page/p_c97l3bpm3d',
-    clusterParamNames: ['ds0.cluster_id'],
-  },
 ];
 
 const GerenciarDadosDashboards = () => {

@@ -16,9 +16,9 @@ export const BOARD_REPORTS: BoardReportConfig[] = [
   },
   {
     id: 'controle-uso-envio-documentos',
-    label: 'Dashboard de controle de uso e envio de documentos',
+    label: 'Controle de uso e envio de documentos',
     description: 'Dashboard com metricas de uso do sistema e envio de documentos.',
-    embedUrl: 'https://datastudio.google.com/embed/reporting/dc399d74-18be-453b-814f-f124f18fdb18/page/p_c97l3bpm3d',
+    embedUrl: 'https://datastudio.google.com/embed/reporting/dc399d74-18be-453b-814f-f124f18fdb18/page/p_6t95ihom3d',
     clusterParamNames: ['ds13.cluster_id_param'],
   },
 ];
