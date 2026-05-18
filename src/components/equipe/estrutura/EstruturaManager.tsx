@@ -351,7 +351,7 @@ export default function EstruturaManager() {
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="_none" className="text-xs">Nenhum</SelectItem>
-                                          {liderProfiles.map(p => (
+                                          {gestorCandidates.map(p => (
                                             <SelectItem key={p.id} value={p.id} className="text-xs">
                                               {profileLabel(p)}
                                             </SelectItem>
