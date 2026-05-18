@@ -79,13 +79,12 @@ export default function EstruturaManager() {
   // Mutations from hook
   const mutations = useEstruturaMutations();
 
-  const { data: liderProfiles = [] } = useProfiles('lider');
-  const { data: subliderProfiles = [] } = useProfiles('sublider');
-  const { data: memberProfiles = [] } = useProfiles('team_member');
-  const { data: adminProfiles = [] } = useProfiles('admin');
-  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles, ...adminProfiles].filter(
-    (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
-  );
+  // Candidatos a Gestor: lider ou superior (lider/admin)
+  const { data: gestorCandidates = [] } = useProfilesMinRole('lider');
+  // Candidatos a Membro: team_member ou superior (todos os internos)
+  const { data: memberCandidates = [] } = useProfilesMinRole('team_member');
+  // allProfiles = qualquer interno (memberCandidates já cobre todos os papéis internos pela hierarquia)
+  const allProfiles = memberCandidates;
 
   // Helper para label do CC a partir do id
   const getCcLabel = (ccId: string | null | undefined) => {
