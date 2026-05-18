@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.get_profiles_with_min_role(app_role) FROM PUBLIC, anon;
