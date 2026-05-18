@@ -4047,6 +4047,7 @@ export type Database = {
           id: string
           moved_to_deliverable_id: string | null
           priority: string | null
+          project_id: string | null
           sprint_id: string | null
           status: string | null
           suggested_by: string | null
@@ -4060,6 +4061,7 @@ export type Database = {
           id?: string
           moved_to_deliverable_id?: string | null
           priority?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           status?: string | null
           suggested_by?: string | null
@@ -4073,6 +4075,7 @@ export type Database = {
           id?: string
           moved_to_deliverable_id?: string | null
           priority?: string | null
+          project_id?: string | null
           sprint_id?: string | null
           status?: string | null
           suggested_by?: string | null
@@ -4085,6 +4088,13 @@ export type Database = {
             columns: ["moved_to_deliverable_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sprint_backlog_items_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
           {
