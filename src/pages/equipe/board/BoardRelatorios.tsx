@@ -1,21 +1,15 @@
-import { useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { BoardLayout } from '@/components/equipe/board/BoardLayout';
-import { BOARD_REPORTS } from '@/config/boardReports';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useAuth } from '@/contexts/AuthContext';
-import { useUserEstrutura } from '@/hooks/useUserEstrutura';
-import { buildLookerEmbedUrl } from '@/lib/lookerEmbed';
+import { useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { BoardLayout } from "@/components/equipe/board/BoardLayout";
+import { BOARD_REPORTS } from "@/config/boardReports";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserEstrutura } from "@/hooks/useUserEstrutura";
+import { buildLookerEmbedUrl } from "@/lib/lookerEmbed";
 
 const BoardRelatorios = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const reportParam = searchParams.get('relatorio') ?? '';
+  const reportParam = searchParams.get("relatorio") ?? "";
   const { user } = useAuth();
   const { clusters } = useUserEstrutura(user?.id);
   const clusterId = clusters[0]?.id;
@@ -27,12 +21,13 @@ const BoardRelatorios = () => {
 
   const handleReportChange = (reportId: string) => {
     const nextParams = new URLSearchParams(searchParams);
-    nextParams.set('relatorio', reportId);
+    nextParams.set("relatorio", reportId);
     setSearchParams(nextParams, { replace: true });
   };
 
   const iframeUrl = useMemo(
-    () => (selectedReport ? buildLookerEmbedUrl(selectedReport.embedUrl, selectedReport.clusterParamNames, clusterId) : ''),
+    () =>
+      selectedReport ? buildLookerEmbedUrl(selectedReport.embedUrl, selectedReport.clusterParamNames, clusterId) : "",
     [selectedReport, clusterId],
   );
 
@@ -41,9 +36,9 @@ const BoardRelatorios = () => {
       <BoardLayout title="Dashboards">
         <div
           className="rounded-[20px] border p-8 text-center shadow-sm"
-          style={{ borderColor: 'var(--board-border)', backgroundColor: 'var(--board-card)' }}
+          style={{ borderColor: "var(--board-border)", backgroundColor: "var(--board-card)" }}
         >
-          <p className="text-sm" style={{ color: 'var(--board-t2)' }}>
+          <p className="text-sm" style={{ color: "var(--board-t2)" }}>
             Nenhum relatório foi configurado para esta área.
           </p>
         </div>
@@ -54,16 +49,13 @@ const BoardRelatorios = () => {
   return (
     <BoardLayout title="Dashboards" noPadding>
       <div className="px-[22px] md:px-6 lg:px-6 pt-[22px] md:pt-6 lg:pt-6 mb-5">
-        <h1
-          className="text-[22px] font-semibold tracking-[-0.01em]"
-          style={{ color: 'var(--board-t1)' }}
-        >
+        <h1 className="text-[22px] font-semibold tracking-[-0.01em]" style={{ color: "var(--board-t1)" }}>
           Dashboards
         </h1>
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="min-w-0">
-            <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--board-t2)' }}>
+            <label className="text-xs font-medium mb-1 block" style={{ color: "var(--board-t2)" }}>
               Selecionar Dashboard
             </label>
             <Select value={selectedReport.id} onValueChange={handleReportChange}>
@@ -84,9 +76,9 @@ const BoardRelatorios = () => {
 
       <div className="w-full overflow-auto flex justify-center">
         <iframe
-          key={`${selectedReport.id}-${clusterId ?? 'no-cluster'}`}
-          width="1280"
-          height="925"
+          key={`${selectedReport.id}-${clusterId ?? "no-cluster"}`}
+          width="1440"
+          height="1080"
           src={iframeUrl}
           title={selectedReport.label}
           frameBorder={0}
