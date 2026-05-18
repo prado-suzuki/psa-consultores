@@ -3,6 +3,7 @@ import {
   BookOpen,
   BookText,
   Calculator,
+  Database,
   FileStack,
   FileText,
   GitCompare,
@@ -11,13 +12,14 @@ import {
   Receipt,
   Sparkles,
   Truck,
+  Upload,
   Wrench,
 } from "lucide-react";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
 import type { DevHubDefinition } from "@/types/devHub";
 
 export const DEV_HUBS: Record<
-  "consultaSped" | "levantamentoPisCofins" | "analiseIcms" | "perdcomp",
+  "consultaSped" | "levantamentoPisCofins" | "analiseIcms" | "perdcomp" | "gerenciarDados",
   DevHubDefinition
 > = {
   consultaSped: {
@@ -244,6 +246,48 @@ export const DEV_HUBS: Record<
         path: "/equipe/dev/controle-perdcomp",
         sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp",
         title: DEV_NAV_LABELS.controlePerdcomp,
+      },
+    ],
+  },
+  gerenciarDados: {
+    label: DEV_NAV_LABELS.gerenciarDados,
+    landingPath: "/equipe/dev/gerenciar-dados",
+    landingDescription:
+      "Area para importar, limpar e gerenciar dados das tabelas de cliente e contribuinte e para acompanhar dashboards ligados a essas rotinas.",
+    landingIcon: Database,
+    title: "GERENCIAR DADOS",
+    subtitle: "Ferramentas para carga de dados e analise por dashboards.",
+    heroEyebrow: "",
+    heroTitle: "Gerenciar dados",
+    heroDescription:
+      "Use esta area para realizar a carga de dados das tabelas operacionais e consultar dashboards com indicadores das rotinas de gestao de dados.",
+    heroIcon: LayoutGrid,
+    options: [
+      {
+        badge: "Operacional",
+        description:
+          "Importe ou limpe registros das tabelas de cliente e contribuinte por ambiente, com suporte a templates CSV e carga complementar de PER/DCOMP e chamados.",
+        highlights: [
+          "Importacao via CSV para cliente e contribuinte",
+          "Limpeza por ambiente (Desenvolvimento ou Producao)",
+          "Carga complementar de PER/DCOMP e chamados",
+        ],
+        icon: Upload,
+        path: "/equipe/dev/carregar-dados",
+        title: DEV_NAV_LABELS.carregarDados,
+      },
+      {
+        badge: "Analitico",
+        description:
+          "Acompanhe dashboards com indicadores de uso, envio e faturamento ligados as rotinas de gestao de dados.",
+        highlights: [
+          "Controle de uso e envio de documentos",
+          "Selecao de dashboard por filtro",
+          "Suporte futuro a multiplos dashboards",
+        ],
+        icon: BarChart3,
+        path: "/equipe/dev/gerenciar-dados/dashboards",
+        title: DEV_NAV_LABELS.dashboardsGerenciarDados,
       },
     ],
   },

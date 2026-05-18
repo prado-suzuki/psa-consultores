@@ -13,7 +13,6 @@ import {
   ChevronDown,
   Menu,
   Plus,
-  Database,
   ArrowLeft,
   FileText,
   User,
@@ -80,11 +79,16 @@ const perdcompSubItems: NavItem[] = DEV_HUBS.perdcomp.options.map((option) => ({
   path: option.path,
 }));
 
+const gerenciarDadosSubItems: NavItem[] = DEV_HUBS.gerenciarDados.options.map((option) => ({
+  icon: option.icon,
+  label: option.title,
+  path: option.path,
+}));
+
 const navItemsAfterGroups: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
   { icon: Users, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
-  { icon: Database, label: DEV_NAV_LABELS.gerenciarDados, path: "/equipe/dev/gerenciar-dados" },
 ];
 
 const HubSidebarSection = ({
@@ -173,6 +177,11 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const [perdcompOpen, setPerdcompOpen] = useState(
     () => location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path),
   );
+  const [gerenciarDadosOpen, setGerenciarDadosOpen] = useState(
+    () =>
+      location.pathname === DEV_HUBS.gerenciarDados.landingPath ||
+      gerenciarDadosSubItems.some((item) => location.pathname === item.path),
+  );
 
   const isItemActive = (item: NavItem) =>
     item.path === location.pathname || item.matchPaths?.includes(location.pathname) === true;
@@ -186,6 +195,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
     location.pathname === DEV_HUBS.analiseIcms.landingPath || analiseIcmsSubItems.some((item) => location.pathname === item.path);
   const isPerdcompActive =
     location.pathname === DEV_HUBS.perdcomp.landingPath || perdcompSubItems.some((item) => location.pathname === item.path);
+  const isGerenciarDadosActive =
+    location.pathname === DEV_HUBS.gerenciarDados.landingPath ||
+    gerenciarDadosSubItems.some((item) => location.pathname === item.path);
 
   return (
     <div className="flex min-h-screen w-full bg-slate-50">
@@ -283,6 +295,17 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   {item.label}
                 </Button>
               ))}
+
+              <HubSidebarSection
+                label={DEV_HUBS.gerenciarDados.label}
+                landingPath={DEV_HUBS.gerenciarDados.landingPath}
+                items={gerenciarDadosSubItems}
+                open={gerenciarDadosOpen}
+                onOpenChange={setGerenciarDadosOpen}
+                active={isGerenciarDadosActive}
+                currentPath={location.pathname}
+                navigate={navigate}
+              />
             </nav>
 
             <div className="mt-auto space-y-2 border-t border-slate-200/60 p-4">

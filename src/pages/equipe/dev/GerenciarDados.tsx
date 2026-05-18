@@ -8,11 +8,11 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Upload, 
-  Trash2, 
-  AlertTriangle, 
-  CheckCircle2, 
+import {
+  Upload,
+  Trash2,
+  AlertTriangle,
+  CheckCircle2,
   CheckCircle,
   FileSpreadsheet,
   Database,
@@ -234,8 +234,8 @@ const GerenciarDados = () => {
   };
 
   return (
-    <DevLayout 
-      title="Gerenciar dados" 
+    <DevLayout
+      title="Carregar dados"
       subtitle="Importe ou limpe dados das tabelas cliente e contribuinte"
     >
       <div className="space-y-6 max-w-3xl">

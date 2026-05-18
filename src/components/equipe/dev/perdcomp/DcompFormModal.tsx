@@ -8,6 +8,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits, normalizeProcessNumber } from '@/lib/perdcompUtils';
+import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
+import { useSelicTaxaAt } from '@/hooks/useSelicTaxaAt';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -236,7 +238,7 @@ export function DcompFormModal({
     queryFn: async () => {
       let query = (supabase
         .from('per') as any)
-        .select('nr_per, id_contribuinte, exercicio, tri_exercicio')
+        .select('nr_per, id_contribuinte, exercicio, tri_exercicio, dt_solicitada')
         .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (contribuinteId) query = query.eq('id_contribuinte', contribuinteId);
@@ -309,7 +311,29 @@ export function DcompFormModal({
   }, [distribuicoesExistentes, isEditing, editData]);
 
   const dtEnvio = form.watch('dt_envio');
+  const nrPerOrig = form.watch('nr_per_orig');
   const mesAnoFromForm = dtEnvio ? dtEnvio.substring(0, 7) : '';
+
+  // Rateio Atualizado/Original — depende da dt_envio (carência) e do fator SELIC vigente nessa data
+  const perSelecionado = pers.find((p) => p.nr_per === nrPerOrig);
+  const dtSolicitadaPer = perSelecionado?.dt_solicitada || null;
+
+  const emCarenciaNaDtEnvio =
+    !!dtSolicitadaPer && !!dtEnvio && isWithinGracePeriodAt(dtSolicitadaPer, dtEnvio);
+
+  const { data: selicTaxa } = useSelicTaxaAt(
+    emCarenciaNaDtEnvio ? null : dtSolicitadaPer,
+    emCarenciaNaDtEnvio ? null : dtEnvio,
+  );
+
+  const fatorSelic = useMemo(() => {
+    if (emCarenciaNaDtEnvio || !selicTaxa) return 0;
+    return selicTaxa.vlr_acumulado_dec + 0.01;
+  }, [emCarenciaNaDtEnvio, selicTaxa]);
+
+  const proporcaoOriginal = fatorSelic > 0 ? 1 / (1 + fatorSelic) : 1;
+
+  const round2 = (v: number) => Math.round(v * 100) / 100;
 
   const addLinha = (tributo: string) => {
     setDistribuicoes((prev) => [
@@ -358,6 +382,7 @@ export function DcompFormModal({
       nr_documento: nrDocumento,
       tributo: l.tributo,
       valor_tributo: l.valor_tributo,
+      valor_original: round2(l.valor_tributo * proporcaoOriginal),
       competencia: normalizeMesAno(l.competencia),
     }));
     if (rows.length > 0) {
@@ -629,9 +654,10 @@ export function DcompFormModal({
                 </Button>
               </div>
 
-              <div className="grid grid-cols-[130px_1fr_110px_36px] items-center gap-2">
+              <div className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
                 <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
-                <FormLabel className="m-0">Valor do tributo</FormLabel>
+                <FormLabel className="m-0">Valor Atualizado</FormLabel>
+                <FormLabel className="m-0">Valor Original</FormLabel>
                 <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
                 <div />
               </div>
@@ -645,8 +671,9 @@ export function DcompFormModal({
                   const k = linha.id || `local-${idx}`;
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
+                  const valorOriginalLinha = round2((linha.valor_tributo || 0) * proporcaoOriginal);
                   return (
-                    <div key={k} className="grid grid-cols-[130px_1fr_110px_36px] items-center gap-2">
+                    <div key={k} className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione" />
@@ -663,6 +690,12 @@ export function DcompFormModal({
                         inputMode="numeric"
                         value={formatCurrencyDisplay(linha.valor_tributo || 0)}
                         onChange={(e) => updateLinhaValor(idx, e.target.value)}
+                      />
+                      <Input
+                        className="h-9 bg-muted/40"
+                        readOnly
+                        tabIndex={-1}
+                        value={formatCurrencyDisplay(valorOriginalLinha)}
                       />
                       <Input
                         className={cn("h-9", competenciaInvalida && "border-destructive")}
@@ -683,19 +716,31 @@ export function DcompFormModal({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                       {valorZero && (
-                        <p className="col-span-4 -mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
+                        <p className="col-span-5 -mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
                       )}
                     </div>
                   );
                 })}
               </div>
 
-              <div className="flex items-center justify-between pt-1 text-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
                 <span className="text-muted-foreground">
                   Total rateado: <strong className={cn(somaIgual ? 'text-emerald-600' : 'text-destructive')}>
                     {formatCurrencyDisplay(totalRateado)}
                   </strong>
                   {' / '}Compensado: <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>
+                </span>
+                <span className="text-muted-foreground">
+                  {fatorSelic > 0 ? (
+                    <>
+                      Total Original: <strong>{formatCurrencyDisplay(round2(totalRateado * proporcaoOriginal))}</strong>
+                      {' · '}Fator SELIC: <strong>{fatorSelic.toFixed(6)}</strong>
+                    </>
+                  ) : emCarenciaNaDtEnvio ? (
+                    <>Em carência — sem parcela SELIC</>
+                  ) : (
+                    <>Fator SELIC indisponível</>
+                  )}
                 </span>
               </div>
             </div>

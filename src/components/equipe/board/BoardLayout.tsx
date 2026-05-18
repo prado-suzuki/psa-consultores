@@ -62,7 +62,7 @@ const buildNavItems = (
   pendingDecisions: number,
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
-  { icon: FileBarChart, label: 'Relatorios BI', path: '/equipe/board/relatorios' },
+  { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
   ...(canPerformance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
@@ -88,7 +88,7 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
   } else if (pathname.includes('/relatorios')) {
-    segments.push({ label: 'Relatorios BI', path: '/equipe/board/relatorios' });
+    segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
   } else if (pathname.includes('/dashboard')) {
     segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
   }

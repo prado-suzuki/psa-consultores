@@ -258,32 +258,49 @@ export default function ControlePerdcomp() {
   const [isSearchingByProcess, setIsSearchingByProcess] = useState(false);
 
   const handleSearch = async () => {
-    if (processoFilter && (!clienteId || !contribuinteId)) {
+    // Process number search is global: ignore selected cliente/contribuinte and
+    // re-point the selectors to whatever owns the matched PER/DCOMP.
+    if (processoFilter) {
       const filterDigits = processoFilter.replace(/\D/g, '');
       if (!filterDigits) {
-        const missing: string[] = [];
-        if (!clienteId) missing.push("Cliente");
-        if (!contribuinteId) missing.push("Contribuinte");
-        toast.error("Preenchimento obrigatório", {
-          description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
-        });
+        toast.error("Número de processo inválido");
         return;
       }
+
       setIsSearchingByProcess(true);
       try {
         const { data: matchedPers } = await supabase
           .from("per")
-          .select("id_contribuinte, nr_per")
+          .select("id_contribuinte")
           .like("nr_per", `%${filterDigits}%`)
           .or('excluido.is.null,excluido.eq.')
           .limit(1);
 
-        if (!matchedPers || matchedPers.length === 0) {
-          toast.error("Nenhum PER encontrado com esse número");
+        let contribId: string | null = matchedPers?.[0]?.id_contribuinte ?? null;
+
+        if (!contribId) {
+          const { data: matchedDcomps } = await supabase
+            .from("dcomp")
+            .select("nr_per_orig")
+            .like("nr_documento", `%${filterDigits}%`)
+            .or('excluido.is.null,excluido.eq.')
+            .limit(1);
+
+          if (matchedDcomps?.[0]?.nr_per_orig) {
+            const { data: per } = await supabase
+              .from("per")
+              .select("id_contribuinte")
+              .eq("nr_per", matchedDcomps[0].nr_per_orig)
+              .maybeSingle();
+            contribId = per?.id_contribuinte ?? null;
+          }
+        }
+
+        if (!contribId) {
+          toast.error("Nenhum PER ou DCOMP encontrado com esse número");
           return;
         }
 
-        const contribId = matchedPers[0].id_contribuinte;
         const { data: contrib } = await supabase
           .from("contribuinte")
           .select("cliente_id")

@@ -69,6 +69,8 @@ import ConsultaEFDICMS from "./pages/equipe/dev/ConsultaEFDICMS";
 import ConsultaECD from "./pages/equipe/dev/ConsultaECD";
 import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
+import GerenciarDadosHub from "./pages/equipe/dev/GerenciarDadosHub";
+import GerenciarDadosDashboards from "./pages/equipe/dev/GerenciarDadosDashboards";
 import AnaliseIcmsHub from "./pages/equipe/dev/AnaliseIcmsHub";
 import PerdcompHub from "./pages/equipe/dev/PerdcompHub";
 import PerdcompDashboard from "./pages/equipe/dev/PerdcompDashboard";
@@ -176,7 +178,9 @@ const App = () => (
               <Route path="/equipe/dev/consulta-efd-icms" element={<PageAccessGate pagePath="/equipe/dev/consulta-efd-icms"><ConsultaEFDICMS /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-ecd" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecd"><ConsultaECD /></PageAccessGate>} />
               <Route path="/equipe/dev/consulta-ecf" element={<PageAccessGate pagePath="/equipe/dev/consulta-ecf"><ConsultaECF /></PageAccessGate>} />
-              <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDados /></PageAccessGate>} />
+              <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDadosHub /></PageAccessGate>} />
+              <Route path="/equipe/dev/carregar-dados" element={<PageAccessGate pagePath="/equipe/dev/carregar-dados"><GerenciarDados /></PageAccessGate>} />
+              <Route path="/equipe/dev/gerenciar-dados/dashboards" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/dashboards"><GerenciarDadosDashboards /></PageAccessGate>} />
               <Route path="/equipe/dev/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp" element={<PageAccessGate pagePath="/equipe/dev/perdcomp"><PerdcompHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/dev/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />

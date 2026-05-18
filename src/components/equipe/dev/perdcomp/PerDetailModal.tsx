@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { normalizeCurrencyZero, normalizeProcessNumber } from '@/lib/perdcompUtils';
-import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon } from 'lucide-react';
+import { applySelicCorrection, isWithinGracePeriod } from '@/lib/selicCalculator';
+import { useSelicTaxaAt } from '@/hooks/useSelicTaxaAt';
+import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon, FileSpreadsheet } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -54,6 +56,7 @@ interface PerData {
   tp_credito: string;
   vlr_credito: number;
   vlr_ressarcido?: number | null;
+  vlr_ressarcido_original?: number | null;
   nr_proc_ret?: string | null;
   excluido?: string | null;
   nr_cancelamento?: string | null;
@@ -170,6 +173,9 @@ export function PerDetailModal({
   const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
+  // Filtro de tipo de tributo na tabela de DCOMPs
+  const [tributoFiltro, setTributoFiltro] = useState<string>('__todos__');
+
   // Query para dados atualizados do PER (refetch após mutations)
   const { data: perAtualizado } = useQuery({
     queryKey: ['per-detail', per?.nr_per],
@@ -187,8 +193,9 @@ export function PerDetailModal({
   });
 
   // Usar dados atualizados com fallback para prop
-  const perAtual = perAtualizado || per;
-  const vlrRessarcido = (perAtual as any)?.vlr_ressarcido || 0;
+  // Cast único: vlr_ressarcido_original é coluna nova (migration via Lovable) ainda não refletida nos types.
+  const perAtual = (perAtualizado || per) as (PerData & { vlr_ressarcido?: number | null; vlr_ressarcido_original?: number | null }) | null;
+  const vlrRessarcido = perAtual?.vlr_ressarcido || 0;
   const perPago = vlrRessarcido > 0;
 
   // Query DCOMPs vinculados ao PER — filter out soft-deleted
@@ -249,6 +256,118 @@ export function PerDetailModal({
     );
   }, [perAtual, dcompsVigentes, vlrRessarcido]);
 
+  // Distribuições do rateio para todas as DCOMPs vigentes — alimenta filtro de tributo
+  const dcompsVigentesNrDocs = useMemo(
+    () => dcompsVigentes.map((d) => d.nr_documento),
+    [dcompsVigentes],
+  );
+
+  const { data: distribuicoesPorDcomp = [] } = useQuery<Array<{
+    nr_documento: string;
+    tributo: string;
+    valor_tributo: number;
+    valor_original: number | null;
+    competencia: string | null;
+  }>>({
+    queryKey: ['per-distribuicoes', per?.nr_per, dcompsVigentesNrDocs.join(',')],
+    queryFn: async () => {
+      if (dcompsVigentesNrDocs.length === 0) return [];
+      const { data, error } = await (supabase
+        .from('distribuicao_dcomp') as any)
+        .select('nr_documento, tributo, valor_tributo, valor_original, competencia')
+        .in('nr_documento', dcompsVigentesNrDocs);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open && dcompsVigentesNrDocs.length > 0,
+  });
+
+  // Tributos distintos para o filtro
+  const tributosDisponiveis = useMemo(() => {
+    const set = new Set<string>();
+    for (const linha of distribuicoesPorDcomp) {
+      if (linha.tributo) set.add(linha.tributo);
+    }
+    return Array.from(set).sort();
+  }, [distribuicoesPorDcomp]);
+
+  // Agrupa distribuições por nr_documento → tributo → soma valor_tributo
+  const valorPorDcompTributo = useMemo(() => {
+    const map: Record<string, Record<string, number>> = {};
+    for (const linha of distribuicoesPorDcomp) {
+      const doc = linha.nr_documento;
+      const trib = linha.tributo;
+      if (!map[doc]) map[doc] = {};
+      map[doc][trib] = (map[doc][trib] || 0) + Number(linha.valor_tributo || 0);
+    }
+    return map;
+  }, [distribuicoesPorDcomp]);
+
+  // DCOMPs após aplicação do filtro de tributo
+  const dcompsExibidos = useMemo(() => {
+    if (tributoFiltro === '__todos__') {
+      return dcompsVigentes.map((d) => ({
+        dcomp: d,
+        valorExibido: d.vlr_compensado || 0,
+        tributoExibido: d.imposto,
+      }));
+    }
+    return dcompsVigentes
+      .filter((d) => {
+        const tribsDoDcomp = valorPorDcompTributo[d.nr_documento] || {};
+        return Object.prototype.hasOwnProperty.call(tribsDoDcomp, tributoFiltro);
+      })
+      .map((d) => ({
+        dcomp: d,
+        valorExibido: valorPorDcompTributo[d.nr_documento]?.[tributoFiltro] || 0,
+        tributoExibido: tributoFiltro,
+      }));
+  }, [dcompsVigentes, tributoFiltro, valorPorDcompTributo]);
+
+  // SELIC: fator vigente até hoje para este PER, com +1% mês corrente embutido
+  const hojeStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+  const { data: selicTaxaAtual } = useSelicTaxaAt(
+    perAtual?.dt_solicitada,
+    hojeStr,
+  );
+  const emCarencia = perAtual?.dt_solicitada
+    ? isWithinGracePeriod(perAtual.dt_solicitada)
+    : true;
+  const valorAtualizadoSelic = useMemo(() => {
+    if (emCarencia || !selicTaxaAtual) return null;
+    const { valorCorrigido, fator } = applySelicCorrection(
+      saldoRestante,
+      selicTaxaAtual.vlr_acumulado_dec,
+    );
+    return { valorCorrigido, fator };
+  }, [emCarencia, selicTaxaAtual, saldoRestante]);
+
+  // SELIC: fator vigente na data do ressarcimento informada — para rateio Atualizado/Original
+  const { data: selicTaxaRessarcimento } = useSelicTaxaAt(
+    perAtual?.dt_solicitada,
+    ressarcimentoData || null,
+  );
+  const fatorRessarcimento = useMemo(() => {
+    if (!ressarcimentoData || !perAtual?.dt_solicitada) return 0;
+    // Carência calculada na data do pagamento, não hoje
+    const dt = new Date(perAtual.dt_solicitada + 'T00:00:00');
+    dt.setDate(dt.getDate() + 360);
+    const ref = new Date(ressarcimentoData + 'T00:00:00');
+    if (dt > ref) return 0;
+    if (!selicTaxaRessarcimento) return 0;
+    return selicTaxaRessarcimento.vlr_acumulado_dec + 0.01;
+  }, [ressarcimentoData, perAtual?.dt_solicitada, selicTaxaRessarcimento]);
+
+  const ressarcimentoValorNumerico = useMemo(() => {
+    const digits = ressarcimentoValor.replace(/\D/g, '');
+    return parseInt(digits || '0', 10) / 100;
+  }, [ressarcimentoValor]);
+
+  const ressarcimentoValorOriginal = useMemo(() => {
+    if (fatorRessarcimento <= 0) return ressarcimentoValorNumerico;
+    return ressarcimentoValorNumerico / (1 + fatorRessarcimento);
+  }, [fatorRessarcimento, ressarcimentoValorNumerico]);
+
   // Mutation para atualizar situação
   const updateSituacaoMutation = useMutation({
     mutationFn: async (situacao: string) => {
@@ -276,11 +395,15 @@ export function PerDetailModal({
 
   // Mutation para salvar ressarcimento
   const ressarcimentoMutation = useMutation({
-    mutationFn: async ({ valor, dataPagamento, percentual }: { valor: number; dataPagamento: string; percentual: number | null }) => {
-      // Update per.vlr_ressarcido + porcentagem_psa
+    mutationFn: async ({ valor, valorOriginal, dataPagamento, percentual }: { valor: number; valorOriginal: number; dataPagamento: string; percentual: number | null }) => {
+      // Update per.vlr_ressarcido + porcentagem_psa + vlr_ressarcido_original (rateio Atualizado/Original congelado)
       const { error: perError } = await (supabase
         .from('per') as any)
-        .update({ vlr_ressarcido: valor, porcentagem_psa: percentual })
+        .update({
+          vlr_ressarcido: valor,
+          vlr_ressarcido_original: Math.round(valorOriginal * 100) / 100,
+          porcentagem_psa: percentual,
+        })
         .eq('nr_per', per?.nr_per);
       if (perError) throw perError;
 
@@ -364,8 +487,7 @@ export function PerDetailModal({
   };
 
   const handleSaveRessarcimento = () => {
-    const digits = ressarcimentoValor.replace(/\D/g, '');
-    const valor = parseInt(digits || '0', 10) / 100;
+    const valor = ressarcimentoValorNumerico;
     if (valor <= 0) {
       toast.error('Informe um valor válido');
       return;
@@ -379,7 +501,12 @@ export function PerDetailModal({
       toast.error('Percentual não pode ser maior que 100%');
       return;
     }
-    ressarcimentoMutation.mutate({ valor, dataPagamento: ressarcimentoData, percentual });
+    ressarcimentoMutation.mutate({
+      valor,
+      valorOriginal: ressarcimentoValorOriginal,
+      dataPagamento: ressarcimentoData,
+      percentual,
+    });
   };
 
   if (!per) return null;
@@ -441,14 +568,30 @@ export function PerDetailModal({
                   </p>
                   <p className={cn(
                     "text-lg font-mono font-bold",
-                    saldoRestante > 0 
-                      ? "text-green-600 dark:text-green-400" 
-                      : saldoRestante < 0 
-                        ? "text-red-600 dark:text-red-400" 
+                    saldoRestante > 0
+                      ? "text-green-600 dark:text-green-400"
+                      : saldoRestante < 0
+                        ? "text-red-600 dark:text-red-400"
                         : "text-slate-800 dark:text-white"
                   )}>
                     {formatCurrency(saldoRestante)}
                   </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                    Valor Atualizado SELIC
+                  </p>
+                  {emCarencia ? (
+                    <p className="text-lg font-mono font-bold text-slate-400 dark:text-slate-500">
+                      Em carência
+                    </p>
+                  ) : valorAtualizadoSelic ? (
+                    <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
+                      {formatCurrency(valorAtualizadoSelic.valorCorrigido)}
+                    </p>
+                  ) : (
+                    <p className="text-lg font-mono font-bold text-slate-400">—</p>
+                  )}
                 </div>
               </div>
               
@@ -585,13 +728,21 @@ export function PerDetailModal({
                         <h5 className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
                           Ressarcimento Registrado
                         </h5>
-                        <div className="flex items-center gap-4 mt-1">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
                           <div>
-                            <span className="text-[10px] text-green-600 dark:text-green-400">Valor Ressarcido</span>
+                            <span className="text-[10px] text-green-600 dark:text-green-400">Valor Atualizado</span>
                             <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
                               {formatCurrency(vlrRessarcido)}
                             </p>
                           </div>
+                          {perAtual?.vlr_ressarcido_original != null && (
+                            <div>
+                              <span className="text-[10px] text-green-600 dark:text-green-400">Valor Original</span>
+                              <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                                {formatCurrency(perAtual.vlr_ressarcido_original)}
+                              </p>
+                            </div>
+                          )}
                           {(() => {
                             const sitComPagamento = situacoes.find((s: any) => s.dt_pagamento);
                             return sitComPagamento ? (
@@ -620,11 +771,35 @@ export function PerDetailModal({
                     Lançamentos PER
                   </h4>
                   <Badge variant="secondary" className="text-xs">
-                    {dcompsVigentes.length} registro{dcompsVigentes.length !== 1 ? 's' : ''}
+                    {dcompsExibidos.length} registro{dcompsExibidos.length !== 1 ? 's' : ''}
                   </Badge>
+                  <div className="flex items-center gap-2">
+                    <Label className="text-xs text-muted-foreground whitespace-nowrap">Tipo Tributo:</Label>
+                    <Select value={tributoFiltro} onValueChange={setTributoFiltro}>
+                      <SelectTrigger className="h-8 w-[140px] text-xs">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__todos__">Todos</SelectItem>
+                        {tributosDisponiveis.map((t) => (
+                          <SelectItem key={t} value={t}>
+                            {t}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                
+
                 <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => toast.info('Exportação em desenvolvimento')}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />
+                    Exportar Planilha
+                  </Button>
                   {perPago && (
                     <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1">
                       <CheckCircle2 className="h-4 w-4 mr-1" />
@@ -666,14 +841,16 @@ export function PerDetailModal({
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {dcompsVigentes.length === 0 ? (
+                      {dcompsExibidos.length === 0 ? (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                            Nenhum DCOMP vinculado a este PER
+                            {tributoFiltro === '__todos__'
+                              ? 'Nenhum DCOMP vinculado a este PER'
+                              : `Nenhum DCOMP com ${tributoFiltro} no rateio`}
                           </TableCell>
                         </TableRow>
                       ) : (
-                        dcompsVigentes.map((dcomp: any) => {
+                        dcompsExibidos.map(({ dcomp, valorExibido, tributoExibido }) => {
                           const originalDoc = findOriginalDcomp(dcomp.nr_documento, dcomps);
                           const isRetificacao = !!dcomp.nr_dcomp_ret;
 
@@ -693,9 +870,9 @@ export function PerDetailModal({
                               </TableCell>
                               <TableCell>{dcomp.mes_ano_exercicio}</TableCell>
                               <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
-                              <TableCell>{dcomp.imposto}</TableCell>
+                              <TableCell>{tributoExibido}</TableCell>
                               <TableCell className="text-right font-mono">
-                                {formatCurrency(dcomp.vlr_compensado)}
+                                {formatCurrency(valorExibido)}
                               </TableCell>
                               <TableCell>
                                 <div className="flex gap-1">
@@ -776,7 +953,7 @@ export function PerDetailModal({
           </AlertDialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Valor Ressarcido (R$)</Label>
+              <Label>Valor Atualizado (R$)</Label>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -803,6 +980,27 @@ export function PerDetailModal({
                 </PopoverContent>
               </Popover>
             </div>
+            {ressarcimentoData && ressarcimentoValorNumerico > 0 && (
+              <div className="rounded-md border bg-slate-50 dark:bg-slate-800/50 p-3 text-sm">
+                {fatorRessarcimento > 0 ? (
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Valor Original (calculado)</p>
+                      <p className="font-mono font-bold text-slate-800 dark:text-white">
+                        {formatCurrency(ressarcimentoValorOriginal)}
+                      </p>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      Fator SELIC: {fatorRessarcimento.toFixed(6)}
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Em carência — sem parcela SELIC (Valor Original = Valor Atualizado)
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Percentual Aplicado (%)</Label>
               <Input

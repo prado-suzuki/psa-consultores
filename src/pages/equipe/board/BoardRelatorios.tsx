@@ -9,10 +9,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserEstrutura } from '@/hooks/useUserEstrutura';
+import { buildLookerEmbedUrl } from '@/lib/lookerEmbed';
 
 const BoardRelatorios = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const reportParam = searchParams.get('relatorio') ?? '';
+  const { user } = useAuth();
+  const { clusters } = useUserEstrutura(user?.id);
+  const clusterId = clusters[0]?.id;
 
   const selectedReport = useMemo(() => {
     if (BOARD_REPORTS.length === 0) return null;
@@ -25,11 +31,14 @@ const BoardRelatorios = () => {
     setSearchParams(nextParams, { replace: true });
   };
 
-  const iframeUrl = selectedReport.embedUrl;
+  const iframeUrl = useMemo(
+    () => (selectedReport ? buildLookerEmbedUrl(selectedReport.embedUrl, selectedReport.clusterParamNames, clusterId) : ''),
+    [selectedReport, clusterId],
+  );
 
   if (!selectedReport) {
     return (
-      <BoardLayout title="Relatórios BI">
+      <BoardLayout title="Dashboards">
         <div
           className="rounded-[20px] border p-8 text-center shadow-sm"
           style={{ borderColor: 'var(--board-border)', backgroundColor: 'var(--board-card)' }}
@@ -43,23 +52,23 @@ const BoardRelatorios = () => {
   }
 
   return (
-    <BoardLayout title="Relatórios BI" noPadding>
+    <BoardLayout title="Dashboards" noPadding>
       <div className="px-[22px] md:px-6 lg:px-6 pt-[22px] md:pt-6 lg:pt-6 mb-5">
         <h1
           className="text-[22px] font-semibold tracking-[-0.01em]"
           style={{ color: 'var(--board-t1)' }}
         >
-          Relatórios BI
+          Dashboards
         </h1>
 
         <div className="mt-3 flex flex-wrap items-end gap-3">
           <div className="min-w-0">
             <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--board-t2)' }}>
-              Utilize para alternar entre relatórios
+              Selecionar Dashboard
             </label>
             <Select value={selectedReport.id} onValueChange={handleReportChange}>
               <SelectTrigger className="w-[340px] h-10 rounded-full border bg-white/90 px-3 text-left text-sm shadow-none focus:ring-2 focus:ring-ring focus:ring-offset-0">
-                <SelectValue placeholder="Selecione um relatório" />
+                <SelectValue placeholder="Selecione um dashboard" />
               </SelectTrigger>
               <SelectContent>
                 {BOARD_REPORTS.map((report) => (
@@ -75,7 +84,7 @@ const BoardRelatorios = () => {
 
       <div className="w-full overflow-auto flex justify-center">
         <iframe
-          key={selectedReport.id}
+          key={`${selectedReport.id}-${clusterId ?? 'no-cluster'}`}
           width="1280"
           height="925"
           src={iframeUrl}

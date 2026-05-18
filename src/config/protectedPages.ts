@@ -218,7 +218,23 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/dev/gerenciar-dados',
     page_name: 'Gerenciar Dados',
-    page_description: 'Gerenciamento de dados',
+    page_description: 'Hub de gerenciamento de dados (carga + relatorios BI)',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/carregar-dados',
+    page_name: 'Carregar dados',
+    page_description: 'Importacao e limpeza de dados das tabelas de cliente e contribuinte',
+    category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/dev/gerenciar-dados/dashboards',
+    page_name: 'Dashboards - Gerenciar dados',
+    page_description: 'Dashboards ligados a gestao de dados',
     category: 'dev',
     requires_admin: false,
     requires_team_member: true,
@@ -421,7 +437,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/board/relatorios',
-    page_name: 'Board - Relatórios BI',
+    page_name: 'Board - Dashboards',
     page_description: 'Dashboard Looker Studio incorporado',
     category: 'board',
     requires_admin: false,
