@@ -39,22 +39,15 @@ const colorPresets = [
 ];
 
 // ─── Data hooks ─────────────────────────────────────────────────────────
-function useProfiles(role: 'admin' | 'client' | 'lider' | 'sublider' | 'team_member') {
+// Lista todos os perfis com papel >= minimumRole (hierarquia oficial: team_member < sublider < lider < admin)
+function useProfilesMinRole(minimumRole: 'team_member' | 'sublider' | 'lider' | 'admin') {
   return useQuery({
-    queryKey: ['profiles-by-role', role],
+    queryKey: ['profiles-min-role', minimumRole],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', role);
+        .rpc('get_profiles_with_min_role', { _minimum_role: minimumRole });
       if (error) throw error;
-      if (!data?.length) return [] as Profile[];
-      const ids = data.map(r => r.user_id);
-      const { data: profiles, error: pErr } = await supabase
-        .rpc('get_profiles_with_email' as any)
-        .in('id', ids);
-      if (pErr) throw pErr;
-      return (profiles || []) as Profile[];
+      return (data || []) as Profile[];
     },
   });
 }
