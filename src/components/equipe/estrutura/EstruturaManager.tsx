@@ -39,22 +39,15 @@ const colorPresets = [
 ];
 
 // ─── Data hooks ─────────────────────────────────────────────────────────
-function useProfiles(role: 'admin' | 'client' | 'lider' | 'sublider' | 'team_member') {
+// Lista todos os perfis com papel >= minimumRole (hierarquia oficial: team_member < sublider < lider < admin)
+function useProfilesMinRole(minimumRole: 'team_member' | 'sublider' | 'lider' | 'admin') {
   return useQuery({
-    queryKey: ['profiles-by-role', role],
+    queryKey: ['profiles-min-role', minimumRole],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .eq('role', role);
+        .rpc('get_profiles_with_min_role', { _minimum_role: minimumRole });
       if (error) throw error;
-      if (!data?.length) return [] as Profile[];
-      const ids = data.map(r => r.user_id);
-      const { data: profiles, error: pErr } = await supabase
-        .rpc('get_profiles_with_email' as any)
-        .in('id', ids);
-      if (pErr) throw pErr;
-      return (profiles || []) as Profile[];
+      return (data || []) as Profile[];
     },
   });
 }
@@ -86,13 +79,12 @@ export default function EstruturaManager() {
   // Mutations from hook
   const mutations = useEstruturaMutations();
 
-  const { data: liderProfiles = [] } = useProfiles('lider');
-  const { data: subliderProfiles = [] } = useProfiles('sublider');
-  const { data: memberProfiles = [] } = useProfiles('team_member');
-  const { data: adminProfiles = [] } = useProfiles('admin');
-  const allProfiles = [...liderProfiles, ...subliderProfiles, ...memberProfiles, ...adminProfiles].filter(
-    (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
-  );
+  // Candidatos a Gestor: lider ou superior (lider/admin)
+  const { data: gestorCandidates = [] } = useProfilesMinRole('lider');
+  // Candidatos a Membro: team_member ou superior (todos os internos)
+  const { data: memberCandidates = [] } = useProfilesMinRole('team_member');
+  // allProfiles = qualquer interno (memberCandidates já cobre todos os papéis internos pela hierarquia)
+  const allProfiles = memberCandidates;
 
   // Helper para label do CC a partir do id
   const getCcLabel = (ccId: string | null | undefined) => {
@@ -327,11 +319,8 @@ export default function EstruturaManager() {
                             <div className="space-y-2">
                               {areaEquipes.map(equipe => {
                                 const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
-                                const allMembroIds = new Set(membros.map(m => m.user_id));
-                                const eligibleProfiles = [...memberProfiles, ...subliderProfiles].filter(
-                                  (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
-                                );
-                                const availableMembers = eligibleProfiles.filter(p => !allMembroIds.has(p.id));
+                                const equipeMembroIds = new Set(equipeMembros.map(m => m.user_id));
+                                const availableMembers = memberCandidates.filter(p => !equipeMembroIds.has(p.id));
 
                                 return (
                                   <div key={equipe.id} className="rounded border border-slate-200 bg-white p-3 space-y-2">
@@ -362,7 +351,7 @@ export default function EstruturaManager() {
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="_none" className="text-xs">Nenhum</SelectItem>
-                                          {liderProfiles.map(p => (
+                                          {gestorCandidates.map(p => (
                                             <SelectItem key={p.id} value={p.id} className="text-xs">
                                               {profileLabel(p)}
                                             </SelectItem>
@@ -387,20 +376,21 @@ export default function EstruturaManager() {
                                     </div>
 
                                     {/* Add member */}
-                                    {availableMembers.length > 0 && (
-                                      <Select onValueChange={(val) => handleAddMembro(equipe.id, val)}>
-                                        <SelectTrigger className="h-7 text-xs max-w-[220px]">
-                                          <SelectValue placeholder="+ Adicionar membro..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {availableMembers.map(p => (
-                                            <SelectItem key={p.id} value={p.id} className="text-xs">
-                                              {profileLabel(p)}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    )}
+                                    <Select
+                                      onValueChange={(val) => handleAddMembro(equipe.id, val)}
+                                      disabled={availableMembers.length === 0}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs max-w-[220px]">
+                                        <SelectValue placeholder={availableMembers.length === 0 ? 'Todos os elegíveis já são membros' : '+ Adicionar membro...'} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableMembers.map(p => (
+                                          <SelectItem key={p.id} value={p.id} className="text-xs">
+                                            {profileLabel(p)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 );
                               })}

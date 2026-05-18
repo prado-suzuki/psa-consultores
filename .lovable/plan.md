@@ -1,38 +1,52 @@
-## Diagnóstico: produtos aparecem em branco em /equipe/acessos
+## Problema
 
-### O que já sabemos (não é latência)
+Em `/equipe/acessos` → Cadastros Estrutura, os selects de **Gestor** e **Membro** filtram por role exata:
 
-Conferi o banco diretamente:
+- `EstruturaManager.tsx:365` → Gestor usa só `liderProfiles` (role = `lider`). Admins ficam de fora.
+- `EstruturaManager.tsx:331` → Membro usa `memberProfiles ∪ subliderProfiles` (apenas roles exatas). Líderes e admins ficam de fora.
 
-- A tabela `produto_segmento` tem **19 linhas, todas com `codigo`, `nome`, `is_active=true` e `cluster_id` preenchidos** (ADA, ADJ, AF, CC, CHA, CS, CT, DC, DS, DT, LCP, LCT, LT, OTS, PT, PTR, RCP, RCT, RT).
-- A tabela tem RLS habilitada com duas policies corretas (`authenticated` lê tudo; `team_member+` faz CRUD).
-- **Não há grants de coluna restringindo campos** (`information_schema.column_privileges` vazio).
-- A UI já está mostrando **19 linhas** — ou seja, o request **chegou e voltou rápido** (não é latência, não é RLS bloqueando linhas).
-- Esses mesmos 19 produtos aparecem **corretamente** na aba "Produto × Serviço", lado esquerdo (ADA — Apoio em defesas administrativas, etc.). Mesma tabela, mesma sessão.
+Além disso, o filtro `allMembroIds` (linha 330) remove qualquer pessoa que já seja membro de **qualquer** equipe, o que junto com o `availableMembers.length > 0` (linha 390) faz o select de adicionar membro sumir.
 
-Conclusão: **não é latência nem permissão de banco.** O payload está chegando, mas a aba `Produto/Segmento` está renderizando com `codigo`/`nome`/`is_active` "esvaziados" no cliente.
+A função SQL `public.has_role_or_higher(_user_id, _minimum_role)` já existe com a hierarquia:
+`team_member < sublider < lider < admin`.
 
-### Hipóteses prováveis (em ordem)
+## Plano
 
-1. **Resposta crua do PostgREST está vindo sem os campos esperados** por causa do embed `estrutura_clusters(name)` — se a FK entre `produto_segmento.cluster_id` e `estrutura_clusters.id` não estiver declarada no schema cache do PostgREST, ele pode devolver 200 com objetos parciais em vez de erro. Precisamos ver a resposta real no Network.
-2. **Cache stale do React Query** preenchido por outro lugar do app com objetos `{ id }` apenas (algum `setQueryData(['produto_segmento'], ...)`). Pouco provável — `rg` só achou o próprio hook usando essa key.
-3. **Falha silenciosa do embed** — `estrutura_clusters(name)` pode estar fazendo PostgREST devolver os 19 ids mas null nos demais por race/serialização. Repete em todos os campos = improvável, mas vale conferir.
+### 1. Backend — novo RPC `get_profiles_with_min_role`
 
-### Plano de investigação (passos curtos, sem mudar código de produção)
+Criar função `SECURITY DEFINER` que retorna `id, first_name, last_name, email` dos usuários cujo `has_role_or_higher(user_id, _minimum_role)` é verdadeiro. Reaproveita a hierarquia oficial e evita duplicar a regra no frontend.
 
-1. **Olhar a resposta real do Network no preview** da rota `/equipe/acessos` → aba Produto/Segmento. Eu uso a ferramenta de network logs para pegar o request `GET .../produto_segmento?select=...` e ver o JSON que volta — isso resolve a dúvida em 1 minuto.
-2. Em paralelo, **logar o resultado do hook**: adiciono temporariamente `logger.debug('produto_segmento', { data })` dentro do `queryFn` em `src/hooks/useCategorias.ts` para imprimir no console do preview o array que o React Query está guardando.
-3. **Confirmar a FK** `produto_segmento.cluster_id → estrutura_clusters.id` no Postgres (se faltar, o embed degrada). Se faltar, crio migração para adicionar a FK e o problema desaparece.
+```sql
+CREATE OR REPLACE FUNCTION public.get_profiles_with_min_role(_minimum_role app_role)
+RETURNS TABLE (id uuid, first_name text, last_name text, email text)
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT p.id, p.first_name, p.last_name, u.email::text
+  FROM public.profiles p
+  JOIN auth.users u ON u.id = p.id
+  WHERE public.has_role_or_higher(p.id, _minimum_role)
+$$;
+GRANT EXECUTE ON FUNCTION public.get_profiles_with_min_role(app_role) TO authenticated;
+```
 
-### Plano de correção (decidido após o passo 1)
+### 2. Frontend — `EstruturaManager.tsx`
 
-- **Se a FK estiver faltando** → criar migração `ALTER TABLE produto_segmento ADD CONSTRAINT ... FOREIGN KEY (cluster_id) REFERENCES estrutura_clusters(id) ON DELETE SET NULL;` e regenerar types.
-- **Se for cache do React Query** → identificar quem está fazendo `setQueryData` errado e remover.
-- **Se for outra coisa** → ajustar o `select(...)` para não depender do embed (já temos os 19 itens vindo direto da tabela).
+- Substituir os `useProfiles('lider' | 'sublider' | 'team_member')` por dois hooks novos:
+  - `useProfilesMinRole('team_member')` → candidatos a **Membro**.
+  - `useProfilesMinRole('lider')` → candidatos a **Gestor**.
+- Remover `memberProfiles`/`subliderProfiles`/`liderProfiles` separados e a deduplicação manual.
+- No bloco do select de membros (linhas 329-334), trocar o filtro de "todas as equipes" por **apenas a equipe atual**, e renderizar o select sempre (desabilitado/placeholder quando lista vazia):
+  ```ts
+  const equipeMembroIds = new Set(equipeMembros.map(m => m.user_id));
+  const availableMembers = memberCandidates.filter(p => !equipeMembroIds.has(p.id));
+  ```
+- Select de Gestor (linha 365) passa a iterar `gestorCandidates` (≥ lider).
 
-### Detalhes técnicos
+### 3. Sem mudanças em RLS, types ou outros componentes
 
-- Hook: `src/hooks/useCategorias.ts` → `useProdutoSegmentoList`
-- Componente: `src/components/equipe/ProdutoSegmentoTab.tsx` (renderiza `item.codigo || '—'` e `item.nome || '(sem nome)'`, daí o fallback visível).
-- Query: `from('produto_segmento').select('id, codigo, nome, is_active, cluster_id, estrutura_clusters(name)').order('codigo')`.
-- Quero começar pelo passo 1 do plano (Network) — em ~1 minuto eu confirmo a causa e te volto com o fix exato.
+`profiles_safe`/`get_profiles_with_email` continuam intactos. Tipos do Supabase serão regenerados automaticamente após a migração.
+
+## Arquivos
+
+- nova migração SQL: `get_profiles_with_min_role`
+- `src/components/equipe/estrutura/EstruturaManager.tsx` (hook `useProfiles`, blocos de cálculo de elegíveis, selects de gestor e membro)

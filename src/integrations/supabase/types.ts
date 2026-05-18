@@ -4856,6 +4856,15 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_profiles_with_min_role: {
+        Args: { _minimum_role: Database["public"]["Enums"]["app_role"] }
+        Returns: {
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
