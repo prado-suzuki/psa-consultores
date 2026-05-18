@@ -319,11 +319,8 @@ export default function EstruturaManager() {
                             <div className="space-y-2">
                               {areaEquipes.map(equipe => {
                                 const equipeMembros = membros.filter(m => m.equipe_id === equipe.id);
-                                const allMembroIds = new Set(membros.map(m => m.user_id));
-                                const eligibleProfiles = [...memberProfiles, ...subliderProfiles].filter(
-                                  (p, i, arr) => arr.findIndex(x => x.id === p.id) === i
-                                );
-                                const availableMembers = eligibleProfiles.filter(p => !allMembroIds.has(p.id));
+                                const equipeMembroIds = new Set(equipeMembros.map(m => m.user_id));
+                                const availableMembers = memberCandidates.filter(p => !equipeMembroIds.has(p.id));
 
                                 return (
                                   <div key={equipe.id} className="rounded border border-slate-200 bg-white p-3 space-y-2">
