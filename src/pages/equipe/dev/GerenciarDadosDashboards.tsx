@@ -62,7 +62,7 @@ const GerenciarDadosDashboards = () => {
           <iframe
             key={`${selectedDashboard.id}-${clusterId ?? "no-cluster"}`}
             width="1280"
-            height="960"
+            height="980"
             src={iframeUrl}
             title={selectedDashboard.label}
             frameBorder={0}
