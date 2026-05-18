@@ -1,94 +1,105 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Plus, FileText, LogOut, FolderKanban, BarChart3, Download, ExternalLink, MessageSquare, ArrowLeft, LayoutDashboard } from 'lucide-react';
-import { format, isAfter, isBefore, startOfDay, endOfDay } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DashboardFilters } from '@/components/cliente/DashboardFilters';
-import { useClientDashboards } from '@/hooks/useClientDashboards';
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Plus,
+  FileText,
+  LogOut,
+  FolderKanban,
+  BarChart3,
+  Download,
+  ExternalLink,
+  MessageSquare,
+  ArrowLeft,
+  LayoutDashboard,
+} from "lucide-react";
+import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DashboardFilters } from "@/components/cliente/DashboardFilters";
+import { useClientDashboards } from "@/hooks/useClientDashboards";
 
 const statusConfig = {
-  planning: { label: 'Planejamento', className: 'bg-slate-100 text-slate-700 hover:bg-slate-100' },
-  active: { label: 'Em Andamento', className: 'bg-teal-100 text-teal-700 hover:bg-teal-100' },
-  on_hold: { label: 'Em Pausa', className: 'bg-amber-100 text-amber-700 hover:bg-amber-100' },
-  completed: { label: 'Concluído', className: 'bg-emerald-100 text-emerald-700 hover:bg-emerald-100' },
+  planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
+  active: { label: "Em Andamento", className: "bg-teal-100 text-teal-700 hover:bg-teal-100" },
+  on_hold: { label: "Em Pausa", className: "bg-amber-100 text-amber-700 hover:bg-amber-100" },
+  completed: { label: "Concluído", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" },
 } as const;
 
 const ticketStatusColors: Record<string, string> = {
-  aberto: 'bg-blue-100 text-blue-700',
-  em_andamento: 'bg-amber-100 text-amber-700',
-  resolvido: 'bg-emerald-100 text-emerald-700',
-  fechado: 'bg-slate-100 text-slate-700',
+  aberto: "bg-blue-100 text-blue-700",
+  em_andamento: "bg-amber-100 text-amber-700",
+  resolvido: "bg-emerald-100 text-emerald-700",
+  fechado: "bg-slate-100 text-slate-700",
 };
 
 const ticketStatusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
+  aberto: "Aberto",
+  em_andamento: "Em Andamento",
+  resolvido: "Resolvido",
+  fechado: "Fechado",
 };
 
 const ticketStatusOptions = [
-  { value: 'aberto', label: 'Aberto' },
-  { value: 'em_andamento', label: 'Em Andamento' },
-  { value: 'resolvido', label: 'Resolvido' },
-  { value: 'fechado', label: 'Fechado' },
+  { value: "aberto", label: "Aberto" },
+  { value: "em_andamento", label: "Em Andamento" },
+  { value: "resolvido", label: "Resolvido" },
+  { value: "fechado", label: "Fechado" },
 ];
 
 const projectStatusOptions = [
-  { value: 'planning', label: 'Planejamento' },
-  { value: 'active', label: 'Em Andamento' },
-  { value: 'on_hold', label: 'Em Pausa' },
-  { value: 'completed', label: 'Concluído' },
+  { value: "planning", label: "Planejamento" },
+  { value: "active", label: "Em Andamento" },
+  { value: "on_hold", label: "Em Pausa" },
+  { value: "completed", label: "Concluído" },
 ];
 
 const documentTypeOptions = [
-  { value: 'report', label: 'Relatório' },
-  { value: 'document', label: 'Documento' },
+  { value: "report", label: "Relatório" },
+  { value: "document", label: "Documento" },
 ];
 
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: dashboards = [], isLoading: isLoadingDashboards } = useClientDashboards();
-  const [selectedDashboardId, setSelectedDashboardId] = useState<string>('');
+  const [selectedDashboardId, setSelectedDashboardId] = useState<string>("");
 
   // Filter states for Chamados
-  const [ticketStatus, setTicketStatus] = useState<string>('__all__');
+  const [ticketStatus, setTicketStatus] = useState<string>("__all__");
   const [ticketDateFrom, setTicketDateFrom] = useState<Date | undefined>();
   const [ticketDateTo, setTicketDateTo] = useState<Date | undefined>();
 
   // Filter states for Projetos
-  const [projectStatus, setProjectStatus] = useState<string>('__all__');
+  const [projectStatus, setProjectStatus] = useState<string>("__all__");
   const [projectDateFrom, setProjectDateFrom] = useState<Date | undefined>();
   const [projectDateTo, setProjectDateTo] = useState<Date | undefined>();
 
   // Filter states for Documentos
-  const [docType, setDocType] = useState<string>('__all__');
+  const [docType, setDocType] = useState<string>("__all__");
   const [docDateFrom, setDocDateFrom] = useState<Date | undefined>();
   const [docDateTo, setDocDateTo] = useState<Date | undefined>();
 
   // Fetch tickets for this client
   const { data: tickets = [], isLoading: isLoadingTickets } = useQuery({
-    queryKey: ['client-tickets', user?.id],
+    queryKey: ["client-tickets", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('tickets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
+        .from("tickets")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data || [];
     },
@@ -97,12 +108,13 @@ export default function ClienteDashboard() {
 
   // Fetch visible projects for this client
   const { data: visibleProjects, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ['client-visible-projects', user?.id],
+    queryKey: ["client-visible-projects", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('client_visible_projects')
-        .select(`
+        .from("client_visible_projects")
+        .select(
+          `
           id,
           visible_since,
           notes,
@@ -114,9 +126,10 @@ export default function ClienteDashboard() {
             start_date,
             end_date
           )
-        `)
-        .eq('user_id', user.id);
-      
+        `,
+        )
+        .eq("user_id", user.id);
+
       if (error) throw error;
       return data || [];
     },
@@ -125,15 +138,15 @@ export default function ClienteDashboard() {
 
   // Fetch documents for this client
   const { data: clientDocuments, isLoading: isLoadingDocuments } = useQuery({
-    queryKey: ['client-documents', user?.id],
+    queryKey: ["client-documents", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       const { data, error } = await supabase
-        .from('client_documents')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
+        .from("client_documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (error) throw error;
       return data || [];
     },
@@ -142,24 +155,29 @@ export default function ClienteDashboard() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate("/");
   };
 
   // Calculate progress based on project status
   const getProjectProgress = (status: string | null) => {
     switch (status) {
-      case 'planning': return 10;
-      case 'active': return 50;
-      case 'on_hold': return 30;
-      case 'completed': return 100;
-      default: return 0;
+      case "planning":
+        return 10;
+      case "active":
+        return 50;
+      case "on_hold":
+        return 30;
+      case "completed":
+        return 100;
+      default:
+        return 0;
     }
   };
 
   // Filter tickets
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
-      if (ticketStatus !== '__all__' && ticket.status !== ticketStatus) return false;
+      if (ticketStatus !== "__all__" && ticket.status !== ticketStatus) return false;
       const createdAt = new Date(ticket.created_at);
       if (ticketDateFrom && isBefore(createdAt, startOfDay(ticketDateFrom))) return false;
       if (ticketDateTo && isAfter(createdAt, endOfDay(ticketDateTo))) return false;
@@ -173,7 +191,7 @@ export default function ClienteDashboard() {
     return visibleProjects.filter((item) => {
       const project = item.projects;
       if (!project) return false;
-      if (projectStatus !== '__all__' && project.status !== projectStatus) return false;
+      if (projectStatus !== "__all__" && project.status !== projectStatus) return false;
       const startDate = project.start_date ? new Date(project.start_date) : null;
       if (projectDateFrom && startDate && isBefore(startDate, startOfDay(projectDateFrom))) return false;
       if (projectDateTo && startDate && isAfter(startDate, endOfDay(projectDateTo))) return false;
@@ -185,7 +203,7 @@ export default function ClienteDashboard() {
   const filteredDocuments = useMemo(() => {
     if (!clientDocuments) return [];
     return clientDocuments.filter((doc) => {
-      if (docType !== '__all__' && doc.document_type !== docType) return false;
+      if (docType !== "__all__" && doc.document_type !== docType) return false;
       const createdAt = doc.created_at ? new Date(doc.created_at) : null;
       if (docDateFrom && createdAt && isBefore(createdAt, startOfDay(docDateFrom))) return false;
       if (docDateTo && createdAt && isAfter(createdAt, endOfDay(docDateTo))) return false;
@@ -194,15 +212,15 @@ export default function ClienteDashboard() {
   }, [clientDocuments, docType, docDateFrom, docDateTo]);
 
   // Check for active filters
-  const hasTicketFilters = ticketStatus !== '__all__' || !!ticketDateFrom || !!ticketDateTo;
-  const hasProjectFilters = projectStatus !== '__all__' || !!projectDateFrom || !!projectDateTo;
-  const hasDocFilters = docType !== '__all__' || !!docDateFrom || !!docDateTo;
+  const hasTicketFilters = ticketStatus !== "__all__" || !!ticketDateFrom || !!ticketDateTo;
+  const hasProjectFilters = projectStatus !== "__all__" || !!projectDateFrom || !!projectDateTo;
+  const hasDocFilters = docType !== "__all__" || !!docDateFrom || !!docDateTo;
 
   // Auto-select the first dashboard once the list is loaded, or if the
   // currently selected one disappears from the list.
   useEffect(() => {
     if (dashboards.length === 0) {
-      if (selectedDashboardId !== '') setSelectedDashboardId('');
+      if (selectedDashboardId !== "") setSelectedDashboardId("");
       return;
     }
     if (!dashboards.some((d) => d.id === selectedDashboardId)) {
@@ -212,7 +230,7 @@ export default function ClienteDashboard() {
 
   const selectedDashboard = useMemo(
     () => dashboards.find((d) => d.id === selectedDashboardId) ?? null,
-    [dashboards, selectedDashboardId]
+    [dashboards, selectedDashboardId],
   );
 
   return (
@@ -225,7 +243,7 @@ export default function ClienteDashboard() {
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => navigate('/')}>
+            <Button variant="ghost" onClick={() => navigate("/")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao site
             </Button>
@@ -243,19 +261,31 @@ export default function ClienteDashboard() {
           {/* Tabs at the top */}
           <Tabs defaultValue="chamados" className="flex-1 flex flex-col">
             <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-muted mb-6">
-              <TabsTrigger value="chamados" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+              <TabsTrigger
+                value="chamados"
+                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+              >
                 <FileText className="mr-2 h-4 w-4" />
                 Chamados
               </TabsTrigger>
-              <TabsTrigger value="projects" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+              <TabsTrigger
+                value="projects"
+                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+              >
                 <FolderKanban className="mr-2 h-4 w-4" />
                 Projetos
               </TabsTrigger>
-              <TabsTrigger value="documents" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+              <TabsTrigger
+                value="documents"
+                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+              >
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Documentos
               </TabsTrigger>
-              <TabsTrigger value="dashboards" className="data-[state=active]:bg-background data-[state=active]:text-teal-700">
+              <TabsTrigger
+                value="dashboards"
+                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+              >
                 <LayoutDashboard className="mr-2 h-4 w-4" />
                 Dashboards
               </TabsTrigger>
@@ -269,7 +299,11 @@ export default function ClienteDashboard() {
                   <h2 className="text-lg font-semibold text-foreground">Meus Chamados</h2>
                   <p className="text-sm text-muted-foreground">Acompanhe o status das suas solicitações</p>
                 </div>
-                <Button size="sm" onClick={() => navigate('/cliente/novo-chamado')} className="bg-teal-600 hover:bg-teal-700 text-white">
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/cliente/novo-chamado")}
+                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Abrir Chamado
                 </Button>
@@ -286,7 +320,7 @@ export default function ClienteDashboard() {
                 onDateFromChange={setTicketDateFrom}
                 onDateToChange={setTicketDateTo}
                 onClearFilters={() => {
-                  setTicketStatus('__all__');
+                  setTicketStatus("__all__");
                   setTicketDateFrom(undefined);
                   setTicketDateTo(undefined);
                 }}
@@ -312,9 +346,9 @@ export default function ClienteDashboard() {
               ) : filteredTickets.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">
-                    {tickets.length === 0 
-                      ? 'Você ainda não criou nenhum chamado.' 
-                      : 'Nenhum chamado corresponde aos filtros selecionados.'}
+                    {tickets.length === 0
+                      ? "Você ainda não criou nenhum chamado."
+                      : "Nenhum chamado corresponde aos filtros selecionados."}
                   </p>
                 </Card>
               ) : (
@@ -333,7 +367,7 @@ export default function ClienteDashboard() {
                             {format(new Date(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
-                        <Badge className={ticketStatusColors[ticket.status] || 'bg-slate-100 text-slate-700'}>
+                        <Badge className={ticketStatusColors[ticket.status] || "bg-slate-100 text-slate-700"}>
                           {ticketStatusLabels[ticket.status] || ticket.status}
                         </Badge>
                       </div>
@@ -356,7 +390,7 @@ export default function ClienteDashboard() {
                 onDateFromChange={setProjectDateFrom}
                 onDateToChange={setProjectDateTo}
                 onClearFilters={() => {
-                  setProjectStatus('__all__');
+                  setProjectStatus("__all__");
                   setProjectDateFrom(undefined);
                   setProjectDateTo(undefined);
                 }}
@@ -380,9 +414,9 @@ export default function ClienteDashboard() {
               ) : filteredProjects.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">
-                    {!visibleProjects || visibleProjects.length === 0 
-                      ? 'Nenhum projeto atribuído no momento.' 
-                      : 'Nenhum projeto corresponde aos filtros selecionados.'}
+                    {!visibleProjects || visibleProjects.length === 0
+                      ? "Nenhum projeto atribuído no momento."
+                      : "Nenhum projeto corresponde aos filtros selecionados."}
                   </p>
                 </Card>
               ) : (
@@ -390,21 +424,21 @@ export default function ClienteDashboard() {
                   {filteredProjects.map((item) => {
                     const project = item.projects;
                     if (!project) return null;
-                    
-                    const status = (project.status as keyof typeof statusConfig) || 'planning';
+
+                    const status = (project.status as keyof typeof statusConfig) || "planning";
                     const progress = getProjectProgress(project.status);
-                    
+
                     return (
                       <Card key={item.id} className="overflow-hidden">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <CardTitle className="text-lg">{project.name}</CardTitle>
                             <Badge className={statusConfig[status]?.className || statusConfig.planning.className}>
-                              {statusConfig[status]?.label || 'Em Planejamento'}
+                              {statusConfig[status]?.label || "Em Planejamento"}
                             </Badge>
                           </div>
                           <CardDescription className="mt-2">
-                            {project.description || 'Sem descrição disponível'}
+                            {project.description || "Sem descrição disponível"}
                           </CardDescription>
                         </CardHeader>
                         <CardContent>
@@ -436,7 +470,7 @@ export default function ClienteDashboard() {
                 onDateFromChange={setDocDateFrom}
                 onDateToChange={setDocDateTo}
                 onClearFilters={() => {
-                  setDocType('__all__');
+                  setDocType("__all__");
                   setDocDateFrom(undefined);
                   setDocDateTo(undefined);
                 }}
@@ -458,9 +492,9 @@ export default function ClienteDashboard() {
               ) : filteredDocuments.length === 0 ? (
                 <Card className="p-8 text-center">
                   <p className="text-muted-foreground">
-                    {!clientDocuments || clientDocuments.length === 0 
-                      ? 'Nenhum documento disponível no momento.' 
-                      : 'Nenhum documento corresponde aos filtros selecionados.'}
+                    {!clientDocuments || clientDocuments.length === 0
+                      ? "Nenhum documento disponível no momento."
+                      : "Nenhum documento corresponde aos filtros selecionados."}
                   </p>
                 </Card>
               ) : (
@@ -479,7 +513,7 @@ export default function ClienteDashboard() {
                         <TableRow key={doc.id}>
                           <TableCell>
                             <div className="flex items-center">
-                              {doc.document_type === 'dashboard' ? (
+                              {doc.document_type === "dashboard" ? (
                                 <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
                                   <BarChart3 className="h-4 w-4 text-teal-600" />
                                 </div>
@@ -492,15 +526,15 @@ export default function ClienteDashboard() {
                           </TableCell>
                           <TableCell className="font-medium">{doc.name}</TableCell>
                           <TableCell className="hidden md:table-cell text-muted-foreground">
-                            {doc.description || '-'}
+                            {doc.description || "-"}
                           </TableCell>
                           <TableCell className="text-right">
-                            {doc.document_type === 'dashboard' ? (
+                            {doc.document_type === "dashboard" ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 className="border-teal-600 text-teal-600 hover:bg-teal-50"
-                                onClick={() => doc.url && window.open(doc.url, '_blank')}
+                                onClick={() => doc.url && window.open(doc.url, "_blank")}
                                 disabled={!doc.url}
                               >
                                 <ExternalLink className="mr-1 h-3 w-3" />
@@ -536,10 +570,7 @@ export default function ClienteDashboard() {
                   </p>
                 </div>
                 {dashboards.length > 0 && (
-                  <Select
-                    value={selectedDashboardId}
-                    onValueChange={setSelectedDashboardId}
-                  >
+                  <Select value={selectedDashboardId} onValueChange={setSelectedDashboardId}>
                     <SelectTrigger className="w-[280px] h-9 text-sm bg-background">
                       <SelectValue placeholder="Selecione um relatório" />
                     </SelectTrigger>
@@ -559,9 +590,7 @@ export default function ClienteDashboard() {
                 </Card>
               ) : dashboards.length === 0 ? (
                 <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    Nenhum dashboard disponível para o seu usuário.
-                  </p>
+                  <p className="text-muted-foreground">Nenhum dashboard disponível para o seu usuário.</p>
                 </Card>
               ) : !selectedDashboard ? (
                 <Card className="p-8 text-center">
@@ -572,11 +601,11 @@ export default function ClienteDashboard() {
                   <iframe
                     key={selectedDashboard.id}
                     title={selectedDashboard.name}
-                    width={1280}
-                    height={925}
+                    width={1440}
+                    height={1080}
                     src={selectedDashboard.url}
                     frameBorder={0}
-                    style={{ border: 0, display: 'block' }}
+                    style={{ border: 0, display: "block" }}
                     allowFullScreen
                     sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
                   />
