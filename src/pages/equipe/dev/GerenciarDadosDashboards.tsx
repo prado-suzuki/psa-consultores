@@ -61,8 +61,8 @@ const GerenciarDadosDashboards = () => {
         <div className="w-full overflow-auto flex justify-center">
           <iframe
             key={`${selectedDashboard.id}-${clusterId ?? "no-cluster"}`}
-            width="1280"
-            height="980"
+            width="1440"
+            height="1080"
             src={iframeUrl}
             title={selectedDashboard.label}
             frameBorder={0}
