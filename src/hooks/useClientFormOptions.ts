@@ -43,8 +43,11 @@ export const useClientFormOptions = () => {
     },
   });
 
+  // NOTE: queryKey precisa ser distinta do hook ['produto_segmento'] usado em
+  // useCategorias.ts — caso contrário o React Query dedupa e contamina o
+  // cache da aba Cadastro de Categorias com objetos { value, label } sem id/codigo/nome.
   const { data: produtoSegmentoOptions = [] } = useQuery({
-    queryKey: ["produto_segmento"],
+    queryKey: ["produto_segmento_options"],
     queryFn: async () => {
       const { data } = await supabase.from("produto_segmento").select("id, codigo, nome, is_active").eq("is_active", true).order("codigo");
       return (data || []).map((p: any) => ({ value: p.codigo, label: `${p.codigo} - ${p.nome}` }));
