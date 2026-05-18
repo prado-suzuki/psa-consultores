@@ -24,6 +24,7 @@ interface BacklogItem {
   suggested_by: string | null;
   status: string;
   moved_to_deliverable_id: string | null;
+  project_id: string | null;
   created_at: string;
 }
 
@@ -78,7 +79,8 @@ export default function EquipeBacklog() {
     title: '',
     description: '',
     priority: 'medium',
-    estimated_hours: ''
+    estimated_hours: '',
+    project_id: ''
   });
   const [saving, setSaving] = useState(false);
 
@@ -117,7 +119,7 @@ export default function EquipeBacklog() {
         .order("created_at", { ascending: false });
       
       if (backlogError) throw backlogError;
-      setBacklogItems(backlogData || []);
+      setBacklogItems((backlogData || []) as unknown as BacklogItem[]);
 
       // Fetch active sprints
       const { data: sprintsData } = await supabase
@@ -158,7 +160,8 @@ export default function EquipeBacklog() {
         title: item.title,
         description: item.description || '',
         priority: item.priority,
-        estimated_hours: item.estimated_hours?.toString() || ''
+        estimated_hours: item.estimated_hours?.toString() || '',
+        project_id: item.project_id || ''
       });
     } else {
       setEditingItem(null);
@@ -166,7 +169,8 @@ export default function EquipeBacklog() {
         title: '',
         description: '',
         priority: 'medium',
-        estimated_hours: ''
+        estimated_hours: '',
+        project_id: ''
       });
     }
     setFormModalOpen(true);
@@ -186,29 +190,33 @@ export default function EquipeBacklog() {
         description: formData.description || null,
         priority: formData.priority,
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
-        sprint_id: null // Backlog global, sem sprint
+        sprint_id: null, // Backlog global, sem sprint
+        project_id: formData.project_id || null,
       };
+
+      // project_id é coluna nova: types.ts (autogerado) ainda não a conhece até Lovable regerar.
+      const itemPayload = itemData as typeof itemData & Record<string, unknown>;
 
       if (editingItem) {
         const { error } = await supabase
           .from("sprint_backlog_items")
-          .update(itemData)
+          .update(itemPayload)
           .eq("id", editingItem.id);
         if (error) throw error;
-        
-        setBacklogItems(prev => 
+
+        setBacklogItems(prev =>
           prev.map(item => item.id === editingItem.id ? { ...item, ...itemData } : item)
         );
         toast({ title: "Item atualizado" });
       } else {
         const { data, error } = await supabase
           .from("sprint_backlog_items")
-          .insert(itemData)
+          .insert(itemPayload)
           .select()
           .single();
         if (error) throw error;
-        
-        setBacklogItems(prev => [data, ...prev]);
+
+        setBacklogItems(prev => [data as BacklogItem, ...prev]);
         toast({ title: "Item adicionado ao backlog" });
       }
       
@@ -410,6 +418,11 @@ export default function EquipeBacklog() {
                               {item.estimated_hours}h estimadas
                             </span>
                           )}
+                          {item.project_id && (
+                            <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
+                              {projects.find(p => p.id === item.project_id)?.name || 'Projeto'}
+                            </span>
+                          )}
                           <span>Criado em {format(new Date(item.created_at), "dd/MM/yyyy")}</span>
                         </div>
                       </div>
@@ -522,6 +535,25 @@ export default function EquipeBacklog() {
                   placeholder="Ex: 4"
                 />
               </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="project">Projeto</Label>
+              <Select
+                value={formData.project_id || NONE}
+                onValueChange={(v) => setFormData({ ...formData, project_id: v === NONE ? '' : v })}
+              >
+                <SelectTrigger id="project">
+                  <SelectValue placeholder="Selecionar projeto (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhum</SelectItem>
+                  {projects.map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>

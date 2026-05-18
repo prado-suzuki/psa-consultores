@@ -35,7 +35,6 @@ import {
   Pencil,
   Trash2,
   ListTodo,
-  User,
   Workflow,
   ArrowRight,
   Upload,
@@ -68,9 +67,8 @@ interface BacklogTask {
   description: string | null;
   status: string;
   priority: string;
-  cluster: string;
   estimated_hours: number | null;
-  assigned_to: string | null;
+  created_at: string;
 }
 
 interface Process {
@@ -480,16 +478,20 @@ const EquipeProjetos = () => {
   };
 
   const fetchBacklogTasks = async () => {
+    if (!selectedProject) return;
     setLoadingBacklog(true);
     try {
+      // project_id é coluna nova em sprint_backlog_items; types.ts (autogerado) só verá após Lovable regerar.
       const { data, error } = await supabase
-        .from('tasks')
-        .select('id, title, description, status, priority, cluster, estimated_hours, assigned_to')
+        .from('sprint_backlog_items')
+        .select('id, title, description, status, priority, estimated_hours, created_at')
+        .filter('project_id', 'eq', selectedProject.id)
         .is('sprint_id', null)
+        .neq('status', 'moved_to_sprint')
         .order('created_at', { ascending: false });
-      
+
       if (error) throw error;
-      setBacklogTasks(data || []);
+      setBacklogTasks((data || []) as BacklogTask[]);
     } catch (error) {
       console.error('Error fetching backlog tasks:', error);
     } finally {
@@ -1851,15 +1853,15 @@ const EquipeProjetos = () => {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-gray-500">
-                        Tarefas sem sprint vinculada
+                        Itens do backlog vinculados a este projeto
                       </p>
                       <Button
                         size="sm"
                         className="bg-primary hover:bg-primary/90"
-                        onClick={() => { setSelectedProject(null); navigate('/equipe/tarefas/nova'); }}
+                        onClick={() => { setSelectedProject(null); navigate('/equipe/backlog'); }}
                       >
                         <Plus className="h-4 w-4 mr-1" />
-                        Nova Tarefa
+                        Novo Item
                       </Button>
                     </div>
 
@@ -1878,16 +1880,9 @@ const EquipeProjetos = () => {
                                   {task.description && (
                                     <p className="text-sm text-gray-500 truncate">{task.description}</p>
                                   )}
-                                  {task.assigned_to && (
-                                    <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                                      <User className="h-3 w-3" />
-                                      {getMemberName(task.assigned_to)}
-                                    </div>
-                                  )}
                                 </div>
                                 <div className="flex items-center gap-2 ml-4">
                                   {getPriorityBadge(task.priority)}
-                                  {getClusterBadge(task.cluster)}
                                   {task.estimated_hours && (
                                     <Badge variant="outline" className="text-xs">
                                       <Clock className="h-3 w-3 mr-1" />
@@ -1905,7 +1900,7 @@ const EquipeProjetos = () => {
                         <ListTodo className="h-10 w-10 text-gray-400 mx-auto mb-3" />
                         <h4 className="text-gray-900 font-medium mb-1">Backlog vazio</h4>
                         <p className="text-sm text-gray-500">
-                          Nenhuma tarefa sem sprint vinculada
+                          Nenhum item de backlog vinculado a este projeto
                         </p>
                       </div>
                     )}
