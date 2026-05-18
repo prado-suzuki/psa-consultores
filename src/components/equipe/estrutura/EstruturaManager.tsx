@@ -376,20 +376,21 @@ export default function EstruturaManager() {
                                     </div>
 
                                     {/* Add member */}
-                                    {availableMembers.length > 0 && (
-                                      <Select onValueChange={(val) => handleAddMembro(equipe.id, val)}>
-                                        <SelectTrigger className="h-7 text-xs max-w-[220px]">
-                                          <SelectValue placeholder="+ Adicionar membro..." />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {availableMembers.map(p => (
-                                            <SelectItem key={p.id} value={p.id} className="text-xs">
-                                              {profileLabel(p)}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    )}
+                                    <Select
+                                      onValueChange={(val) => handleAddMembro(equipe.id, val)}
+                                      disabled={availableMembers.length === 0}
+                                    >
+                                      <SelectTrigger className="h-7 text-xs max-w-[220px]">
+                                        <SelectValue placeholder={availableMembers.length === 0 ? 'Todos os elegíveis já são membros' : '+ Adicionar membro...'} />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {availableMembers.map(p => (
+                                          <SelectItem key={p.id} value={p.id} className="text-xs">
+                                            {profileLabel(p)}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
                                   </div>
                                 );
                               })}
