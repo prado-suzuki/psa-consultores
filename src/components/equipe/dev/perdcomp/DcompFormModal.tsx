@@ -90,6 +90,8 @@ interface DistribuicaoLinha {
   valor_tributo: number;
   /** Competência no formato 'yyyy-MM' (UI) ou 'yyyy-MM-dd' (DB). */
   competencia: string;
+  /** Valor original (sem SELIC) congelado no banco. NULL = legado. */
+  valor_original?: number | null;
 }
 
 /** Converte 'yyyy-MM' ou 'yyyy-MM-dd' para 'MM/AAAA' para exibição. */
