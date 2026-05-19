@@ -77,6 +77,7 @@ export interface TaskFilters {
    category?: OrgTaskCategory;
    tags?: string[];
    estimated_hours?: number;
+   actual_hours?: number | null;
    parent_task_id?: string;
   project_id?: string;
    client_id?: string;
