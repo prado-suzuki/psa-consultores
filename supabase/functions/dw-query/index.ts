@@ -13,6 +13,7 @@ const ALLOWED_TABLES = [
   'project_work_packages', 'estrutura_areas',
   'estrutura_equipe_membros', 'estrutura_equipes',
   'org_task_comments', 'profiles', 'org_project_members',
+  'tickets', 'distribuicao_dcomp',
 ] as const
 type AllowedTable = typeof ALLOWED_TABLES[number]
 
