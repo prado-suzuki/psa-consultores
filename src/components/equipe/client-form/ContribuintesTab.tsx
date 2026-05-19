@@ -152,6 +152,7 @@ export default function ContribuintesTab({
     setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
     setEditingEntityId(null);
     setEditingEntityData(null);
+    setEditDuplicate(null);
     toast.success("Contribuinte atualizado");
   };
 
