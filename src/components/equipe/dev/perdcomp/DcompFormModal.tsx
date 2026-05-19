@@ -385,13 +385,29 @@ export function DcompFormModal({
       .delete()
       .eq('nr_documento', nrDocumento);
     if (delErr) throw delErr;
-    const rows = distribuicoes.map((l) => ({
-      nr_documento: nrDocumento,
-      tributo: l.tributo,
-      valor_tributo: l.valor_tributo,
-      valor_original: round2(l.valor_tributo * proporcaoOriginal),
-      competencia: normalizeMesAno(l.competencia),
-    }));
+    const rows = distribuicoes.map((l) => {
+      const linhaOriginal = isEditing && l.id
+        ? distribuicoesExistentes.find((o) => o.id === l.id)
+        : undefined;
+      const valorTributoMudou = linhaOriginal
+        ? toCents(linhaOriginal.valor_tributo) !== toCents(l.valor_tributo)
+        : true; // linha nova → recalcular
+      const preservar =
+        isEditing &&
+        !dtEnvioMudou &&
+        !valorTributoMudou &&
+        l.valor_original != null;
+      const valor_original_final = preservar
+        ? (l.valor_original as number)
+        : round2(l.valor_tributo * proporcaoOriginal);
+      return {
+        nr_documento: nrDocumento,
+        tributo: l.tributo,
+        valor_tributo: l.valor_tributo,
+        valor_original: valor_original_final,
+        competencia: normalizeMesAno(l.competencia),
+      };
+    });
     if (rows.length > 0) {
       const { error: insErr } = await (supabase.from('distribuicao_dcomp') as any).insert(rows);
       if (insErr) throw insErr;
