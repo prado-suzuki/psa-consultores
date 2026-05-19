@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
@@ -17,6 +17,7 @@ import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
+import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
