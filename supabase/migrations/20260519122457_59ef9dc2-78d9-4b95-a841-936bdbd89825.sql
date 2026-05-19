@@ -1,0 +1,1 @@
+ALTER TABLE public.org_tasks ADD COLUMN IF NOT EXISTS actual_hours numeric NULL;
