@@ -2343,6 +2343,7 @@ export type Database = {
       }
       org_tasks: {
         Row: {
+          actual_hours: number | null
           assigned_to: string | null
           assigned_to_name: string | null
           category: Database["public"]["Enums"]["fiscal_task_category"]
@@ -2373,6 +2374,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
           assigned_to?: string | null
           assigned_to_name?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]
@@ -2403,6 +2405,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
           assigned_to?: string | null
           assigned_to_name?: string | null
           category?: Database["public"]["Enums"]["fiscal_task_category"]

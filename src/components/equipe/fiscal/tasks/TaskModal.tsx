@@ -66,6 +66,18 @@ const taskSchema = z.object({
   client_id: z.string().min(1, 'Cliente é obrigatório'),
   contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
+  actual_hours: z.union([z.coerce.number(), z.literal('')]).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.status === 'done') {
+    const n = typeof data.actual_hours === 'number' ? data.actual_hours : Number(data.actual_hours);
+    if (!n || isNaN(n) || n <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['actual_hours'],
+        message: 'Informe as horas realizadas',
+      });
+    }
+  }
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
@@ -221,6 +233,7 @@ export const TaskModal = ({
         client_id: task.client_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
+        actual_hours: (task as any).actual_hours ?? '',
       });
     } else {
       isResettingRef.current = true;
@@ -271,6 +284,9 @@ export const TaskModal = ({
       client_id: values.client_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: values.estimated_hours,
+      actual_hours: values.status === 'done' && values.actual_hours !== '' && values.actual_hours != null
+        ? Number(values.actual_hours)
+        : null,
     };
 
     try {
@@ -552,27 +568,58 @@ export const TaskModal = ({
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="estimated_hours"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horas estimadas <RequiredMark /></FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.5"
-                        min="0"
-                        placeholder="Ex: 4"
-                        {...field}
-                        value={field.value ?? ''}
-                        onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="estimated_hours"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Horas estimadas <RequiredMark /></FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.5"
+                          min="0"
+                          placeholder="Ex: 4"
+                          {...field}
+                          value={field.value ?? ''}
+                          onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="actual_hours"
+                  render={({ field }) => {
+                    const isDone = form.watch('status') === 'done';
+                    return (
+                      <FormItem>
+                        <FormLabel>
+                          Horas realizadas {isDone && <RequiredMark />}
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.5"
+                            min="0"
+                            placeholder={isDone ? 'Ex: 4' : 'Disponível ao concluir'}
+                            disabled={!isDone}
+                            {...field}
+                            value={field.value ?? ''}
+                            onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
+
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
