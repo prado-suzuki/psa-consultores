@@ -142,18 +142,6 @@ export default function ContribuintesTab({
       );
       return;
     }
-    const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
-    if (!cpfDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
-    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
-    if (!editingEntityData.cep?.trim()) { toast.error("CEP é obrigatório"); return; }
-    if (!editingEntityData.logradouro?.trim()) { toast.error("Logradouro é obrigatório"); return; }
-    if (!editingEntityData.bairro?.trim()) { toast.error("Bairro é obrigatório"); return; }
-    if (!editingEntityData.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
-    if (!editingEntityData.uf?.trim() || editingEntityData.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
-    if (editingEntityData.tipo_pessoa === "PJ") {
-      if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
-      if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
-    }
     // Validar IEs do contribuinte em edição
     const ieKey = editingEntityData._dbId || String(editingEntityId);
     const editingIEs = inscricoesMap[ieKey] || [];
