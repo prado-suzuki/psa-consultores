@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, AlertCircle } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -568,57 +568,82 @@ export const TaskModal = ({
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="estimated_hours"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Horas estimadas <RequiredMark /></FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.5"
-                          min="0"
-                          placeholder="Ex: 4"
-                          {...field}
-                          value={field.value ?? ''}
-                          onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              {(() => {
+                const isDone = form.watch('status') === 'done';
+                const actualHoursValue = form.watch('actual_hours');
+                const actualHoursError = form.formState.errors.actual_hours;
+                const needsAttention = isDone && (!actualHoursValue || actualHoursError);
 
-                <FormField
-                  control={form.control}
-                  name="actual_hours"
-                  render={({ field }) => {
-                    const isDone = form.watch('status') === 'done';
-                    return (
-                      <FormItem>
-                        <FormLabel>
-                          Horas realizadas {isDone && <RequiredMark />}
-                        </FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.5"
-                            min="0"
-                            placeholder={isDone ? 'Ex: 4' : 'Disponível ao concluir'}
-                            disabled={!isDone}
-                            {...field}
-                            value={field.value ?? ''}
-                            onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    );
-                  }}
-                />
-              </div>
+                return (
+                  <div
+                    className={cn(
+                      'rounded-md transition-all',
+                      needsAttention && 'border-2 border-amber-400 bg-amber-50 p-3 dark:bg-amber-950/20 dark:border-amber-500',
+                    )}
+                  >
+                    {isDone && (
+                      <div className="flex items-start gap-2 mb-3 text-sm text-amber-800 dark:text-amber-200">
+                        <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                        <span>
+                          Tarefa concluída — informe as <strong>horas realizadas</strong> para conseguir salvar.
+                        </span>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="estimated_hours"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Horas estimadas <RequiredMark /></FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                placeholder="Ex: 4"
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="actual_hours"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className={cn(needsAttention && 'text-amber-900 dark:text-amber-100 font-semibold')}>
+                              Horas realizadas {isDone && <RequiredMark />}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                step="0.5"
+                                min="0"
+                                placeholder={isDone ? 'Ex: 4' : 'Disponível ao concluir'}
+                                disabled={!isDone}
+                                autoFocus={isDone && !actualHoursValue}
+                                className={cn(
+                                  needsAttention && 'border-amber-500 ring-2 ring-amber-300 focus-visible:ring-amber-400 bg-white dark:bg-background',
+                                )}
+                                {...field}
+                                value={field.value ?? ''}
+                                onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
 
 
               <div className="grid grid-cols-2 gap-4">
