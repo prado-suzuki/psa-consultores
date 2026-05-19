@@ -171,7 +171,7 @@ export default function ContribuintesTab({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  const addEntity = () => {
+  const addEntity = async () => {
     if (!draftEntity.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
     const cpfCnpjDigits = (draftEntity.cpf_cnpj || "").replace(/\D/g, "");
     if (!cpfCnpjDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
@@ -190,6 +190,18 @@ export default function ContribuintesTab({
       if (!draftEntity.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
     }
 
+    // Bloqueio: contribuinte duplicado
+    const dup = await runDuplicateCheck(draftEntity.cpf_cnpj || "");
+    setDraftDuplicate(dup);
+    if (dup?.found) {
+      toast.error(
+        dup.isLocal
+          ? "Contribuinte já cadastrado neste cliente"
+          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
+      );
+      return;
+    }
+
     const newEntityId = Date.now() + Math.random();
     setEntities([...entities, { ...draftEntity, _id: newEntityId } as DraftEntity]);
     if (draftInscricoes.length > 0) {
@@ -202,6 +214,7 @@ export default function ContribuintesTab({
       simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "",
       bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "",
     });
+    setDraftDuplicate(null);
   };
 
   return (
