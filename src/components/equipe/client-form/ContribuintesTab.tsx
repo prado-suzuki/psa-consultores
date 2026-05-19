@@ -49,9 +49,57 @@ export default function ContribuintesTab({
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
 
-  const handleCnpjBlur = (value: string) => cnpjLookup(value, setDraftEntity);
+  type DupState = { found: true; isLocal: boolean; clienteName?: string | null } | null;
+  const [draftDuplicate, setDraftDuplicate] = useState<DupState>(null);
+  const [editDuplicate, setEditDuplicate] = useState<DupState>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const checkDuplicate = useContribuinteDuplicateCheck();
+
+  const findLocalDuplicate = (digits: string, ignoreLocalId?: number) => {
+    if (digits.length !== 11 && digits.length !== 14) return false;
+    return entities.some(
+      (e) => e._id !== ignoreLocalId && (e.cpf_cnpj || "").replace(/\D/g, "") === digits,
+    );
+  };
+
+  const runDuplicateCheck = async (
+    rawValue: string,
+    ignoreLocalId?: number,
+    ignoreDbId?: string,
+  ): Promise<DupState> => {
+    const digits = (rawValue || "").replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 14) return null;
+    if (findLocalDuplicate(digits, ignoreLocalId)) {
+      return { found: true, isLocal: true };
+    }
+    try {
+      setCheckingDuplicate(true);
+      const dup = await checkDuplicate(digits, ignoreDbId);
+      if (dup) return { found: true, isLocal: false, clienteName: dup.cliente_nome };
+      return null;
+    } catch (err) {
+      console.error("Erro ao verificar duplicidade de contribuinte:", err);
+      return null;
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
+
+  const handleCnpjBlur = async (value: string) => {
+    await cnpjLookup(value, setDraftEntity);
+    const dup = await runDuplicateCheck(value);
+    setDraftDuplicate(dup);
+  };
   const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
-  const handleInlineCnpjBlur = (value: string) => cnpjLookup(value, setEditingEntityData as any);
+  const handleInlineCnpjBlur = async (value: string) => {
+    await cnpjLookup(value, setEditingEntityData as any);
+    const dup = await runDuplicateCheck(
+      value,
+      editingEntityId ?? undefined,
+      editingEntityData?._dbId,
+    );
+    setEditDuplicate(dup);
+  };
   const handleInlineCepBlur = (value: string) => cepLookup(value, setEditingEntityData as any);
 
   const startEditEntity = (ent: DraftEntity) => {
