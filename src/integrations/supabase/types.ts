@@ -3489,9 +3489,12 @@ export type Database = {
           company: string | null
           created_at: string | null
           email: string | null
+          first_access_at: string | null
+          first_access_done: boolean | null
           first_name: string
           id: string
           last_name: string | null
+          last_sign_in_at: string | null
           phone: string | null
           updated_at: string | null
         }
@@ -3499,9 +3502,12 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           email?: string | null
+          first_access_at?: string | null
+          first_access_done?: boolean | null
           first_name: string
           id: string
           last_name?: string | null
+          last_sign_in_at?: string | null
           phone?: string | null
           updated_at?: string | null
         }
@@ -3509,9 +3515,12 @@ export type Database = {
           company?: string | null
           created_at?: string | null
           email?: string | null
+          first_access_at?: string | null
+          first_access_done?: boolean | null
           first_name?: string
           id?: string
           last_name?: string | null
+          last_sign_in_at?: string | null
           phone?: string | null
           updated_at?: string | null
         }
@@ -4548,6 +4557,7 @@ export type Database = {
       tickets: {
         Row: {
           activity_status: string | null
+          assigned_at: string | null
           assigned_to: string | null
           cliente_id: string | null
           closed_at: string | null
@@ -4566,6 +4576,7 @@ export type Database = {
         }
         Insert: {
           activity_status?: string | null
+          assigned_at?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
           closed_at?: string | null
@@ -4584,6 +4595,7 @@ export type Database = {
         }
         Update: {
           activity_status?: string | null
+          assigned_at?: string | null
           assigned_to?: string | null
           cliente_id?: string | null
           closed_at?: string | null

@@ -1,29 +1,38 @@
-## Objetivo
+# Plano: Espelhar dados de acesso e capturar atribuição de tickets
 
-No modal de tarefas em `/equipe/tax/projetos/tarefas`, exibir o campo **Horas realizadas** ao lado de **Horas estimadas**. O campo só fica editável quando o status da tarefa for **Concluído**; nos demais status, aparece desabilitado.
+Aplicar 2 migrações idempotentes no Supabase para alimentar o dashboard externo de BigQuery. Sem Edge Functions, sem alterar schema `auth`, sem mexer em RLS.
 
-## Mudanças
+## Migração 1 — `profiles`: primeiro acesso + último login
 
-### 1. Banco (migration)
-- `ALTER TABLE public.org_tasks ADD COLUMN actual_hours numeric NULL;`
-- Sem CHECK constraint, sem mudança de RLS.
+**Schema (`public.profiles`)**
+- `first_access_done BOOLEAN DEFAULT FALSE`
+- `first_access_at TIMESTAMPTZ`
+- `last_sign_in_at TIMESTAMPTZ`
+- Índice `idx_profiles_first_access_done` em `(first_access_done)`
 
-### 2. `src/hooks/useOrgTasks.ts`
-- Adicionar `actual_hours: number | null` em `OrgTask`.
-- Adicionar `actual_hours?: number | null` em `CreateOrgTaskInput`.
-- Mutations apenas espalham o payload; quando status sai de `done`, enviar `actual_hours: null`.
+**Função `public.sync_profile_access_state()`** (SECURITY DEFINER, `search_path=public`)
+- Quando `must_change_password` muda de `TRUE` → `FALSE`/ausente: marca `first_access_done = TRUE` e seta `first_access_at = COALESCE(first_access_at, NOW())`.
+- Quando `NEW.last_sign_in_at IS DISTINCT FROM OLD.last_sign_in_at`: copia para `profiles.last_sign_in_at`.
 
-### 3. `src/components/equipe/fiscal/tasks/TaskModal.tsx`
-- Zod: `actual_hours: z.coerce.number().positive().optional().nullable()` + `superRefine` exigindo `> 0` quando `status === 'done'`.
-- Converter o bloco atual do `estimated_hours` (linhas 555–575) em `<div className="grid grid-cols-2 gap-4">` com dois `FormField`:
-  - **Horas estimadas** (igual hoje, obrigatório).
-  - **Horas realizadas** — sempre visível; `disabled={form.watch('status') !== 'done'}`; placeholder "Disponível ao concluir"; asterisco vermelho só aparece quando status = Concluído.
-- No `onSubmit`: `actual_hours: values.status === 'done' ? values.actual_hours : null`.
-- No `useEffect` de reset: `actual_hours: (task as any).actual_hours ?? ''`.
+**Trigger** `trg_sync_profile_access_state` — `AFTER UPDATE ON auth.users FOR EACH ROW`.
 
-### 4. Sem mudanças
-`TaskTable`, `TaskKanban`, `TaskCalendar`, `TaskGantt`, KPIs — escopo só do modal.
+**Backfill** lendo `auth.users.raw_user_meta_data->>'must_change_password'`, `last_sign_in_at`, `created_at` conforme spec.
 
-## Resultado
+## Migração 2 — `tickets`: momento de atribuição
 
-Linha com dois campos lado a lado: **Horas estimadas** (sempre obrigatório) e **Horas realizadas** (cinza/desabilitado até o usuário marcar como Concluído; aí vira obrigatório).
+**Schema (`public.tickets`)**
+- `assigned_at TIMESTAMPTZ`
+
+**Backfill** conservador: `assigned_at = created_at` onde `assigned_to IS NOT NULL AND assigned_at IS NULL`.
+
+**Função `public.capture_ticket_assignment()`** (plpgsql)
+- `BEFORE UPDATE OF assigned_to`: se `NEW.assigned_to IS NOT NULL`, mudou em relação a `OLD.assigned_to`, e `NEW.assigned_at IS NULL` → seta `NEW.assigned_at = NOW()`.
+
+**Trigger** `trg_capture_ticket_assignment` — `BEFORE UPDATE OF assigned_to ON public.tickets FOR EACH ROW`.
+
+## Garantias
+
+- Idempotência: `ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, `DROP TRIGGER IF EXISTS` antes de `CREATE TRIGGER`.
+- Sem mudanças em RLS de `profiles` ou `tickets`.
+- Nenhum arquivo de código (`src/integrations/supabase/*`, `supabase/config.toml`, `components.json`) será tocado — apenas SQL via migrations.
+- `src/integrations/supabase/types.ts` será regenerado automaticamente após aprovação das migrações.
