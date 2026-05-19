@@ -284,6 +284,9 @@ export const TaskModal = ({
       client_id: values.client_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: values.estimated_hours,
+      actual_hours: values.status === 'done' && values.actual_hours !== '' && values.actual_hours != null
+        ? Number(values.actual_hours)
+        : null,
     };
 
     try {
