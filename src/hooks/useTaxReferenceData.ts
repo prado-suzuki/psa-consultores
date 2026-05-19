@@ -116,13 +116,27 @@ export function useExternalClients(editingClientId?: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cliente')
-        .select('id, nome, setor_cliente')
+        .select('id, nome')
         .eq('ativo', true)
         .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
-      return data as ExternalClient[];
+      const list = (data as { id: string; nome: string }[]).map(c => ({ ...c, setor_cliente: null as string | null }));
+
+      const ids = list.map(c => c.id);
+      if (ids.length > 0) {
+        const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
+          .select('id_cliente, setor_cliente')
+          .in('id_cliente', ids);
+        const byId = new Map<string, string | null>(
+          ((viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null }>)
+            .map(r => [r.id_cliente, r.setor_cliente])
+        );
+        for (const c of list) c.setor_cliente = byId.get(c.id) ?? null;
+      }
+
+      return list as ExternalClient[];
     },
   });
 }

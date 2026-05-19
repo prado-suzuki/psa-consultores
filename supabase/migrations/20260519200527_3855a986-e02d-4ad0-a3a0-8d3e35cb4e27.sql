@@ -1,0 +1,1 @@
+ALTER VIEW public.cliente_setor_regiao_atual SET (security_invoker = true);

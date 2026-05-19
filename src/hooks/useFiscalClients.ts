@@ -30,7 +30,22 @@ export function useFiscalClientsList() {
         .order('nome');
 
       if (error) throw error;
-      return data as Cliente[];
+      const list = (data || []) as Cliente[];
+
+      // Enrich setor_cliente vindo da OS mais recente
+      const ids = list.map(c => c.id);
+      if (ids.length > 0) {
+        const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
+          .select('id_cliente, setor_cliente')
+          .in('id_cliente', ids);
+        const byId = new Map<string, string | null>(
+          ((viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null }>)
+            .map(r => [r.id_cliente, r.setor_cliente])
+        );
+        for (const c of list) c.setor_cliente = byId.get(c.id) ?? null;
+      }
+
+      return list;
     },
   });
 }

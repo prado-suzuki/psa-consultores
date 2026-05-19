@@ -16,7 +16,6 @@ interface Cliente {
   nome: string
   fixo: string | null
   telefone: string | null
-  setor_cliente: string | null
   municipio: string | null
   uf: string | null
   ativo: boolean | null
