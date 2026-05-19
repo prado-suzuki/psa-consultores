@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2 } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
@@ -17,6 +17,7 @@ import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
+import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -48,20 +49,70 @@ export default function ContribuintesTab({
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
 
-  const handleCnpjBlur = (value: string) => cnpjLookup(value, setDraftEntity);
+  type DupState = { found: true; isLocal: boolean; clienteName?: string | null } | null;
+  const [draftDuplicate, setDraftDuplicate] = useState<DupState>(null);
+  const [editDuplicate, setEditDuplicate] = useState<DupState>(null);
+  const [checkingDuplicate, setCheckingDuplicate] = useState(false);
+  const checkDuplicate = useContribuinteDuplicateCheck();
+
+  const findLocalDuplicate = (digits: string, ignoreLocalId?: number) => {
+    if (digits.length !== 11 && digits.length !== 14) return false;
+    return entities.some(
+      (e) => e._id !== ignoreLocalId && (e.cpf_cnpj || "").replace(/\D/g, "") === digits,
+    );
+  };
+
+  const runDuplicateCheck = async (
+    rawValue: string,
+    ignoreLocalId?: number,
+    ignoreDbId?: string,
+  ): Promise<DupState> => {
+    const digits = (rawValue || "").replace(/\D/g, "");
+    if (digits.length !== 11 && digits.length !== 14) return null;
+    if (findLocalDuplicate(digits, ignoreLocalId)) {
+      return { found: true, isLocal: true };
+    }
+    try {
+      setCheckingDuplicate(true);
+      const dup = await checkDuplicate(digits, ignoreDbId);
+      if (dup) return { found: true, isLocal: false, clienteName: dup.cliente_nome };
+      return null;
+    } catch (err) {
+      console.error("Erro ao verificar duplicidade de contribuinte:", err);
+      return null;
+    } finally {
+      setCheckingDuplicate(false);
+    }
+  };
+
+  const handleCnpjBlur = async (value: string) => {
+    await cnpjLookup(value, setDraftEntity);
+    const dup = await runDuplicateCheck(value);
+    setDraftDuplicate(dup);
+  };
   const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
-  const handleInlineCnpjBlur = (value: string) => cnpjLookup(value, setEditingEntityData as any);
+  const handleInlineCnpjBlur = async (value: string) => {
+    await cnpjLookup(value, setEditingEntityData as any);
+    const dup = await runDuplicateCheck(
+      value,
+      editingEntityId ?? undefined,
+      editingEntityData?._dbId,
+    );
+    setEditDuplicate(dup);
+  };
   const handleInlineCepBlur = (value: string) => cepLookup(value, setEditingEntityData as any);
 
   const startEditEntity = (ent: DraftEntity) => {
     setEditingEntityId(ent._id);
     setEditingEntityData({ ...ent });
+    setEditDuplicate(null);
   };
   const cancelEditEntity = () => {
     setEditingEntityId(null);
     setEditingEntityData(null);
+    setEditDuplicate(null);
   };
-  const saveEditEntity = () => {
+  const saveEditEntity = async () => {
     if (!editingEntityData || editingEntityId == null) return;
     if (!editingEntityData.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
     const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
@@ -76,6 +127,21 @@ export default function ContribuintesTab({
       if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
       if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
     }
+    // Bloqueio: contribuinte duplicado
+    const dup = await runDuplicateCheck(
+      editingEntityData.cpf_cnpj || "",
+      editingEntityId,
+      editingEntityData._dbId,
+    );
+    setEditDuplicate(dup);
+    if (dup?.found) {
+      toast.error(
+        dup.isLocal
+          ? "Contribuinte já cadastrado neste cliente"
+          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
+      );
+      return;
+    }
     // Validar IEs do contribuinte em edição
     const ieKey = editingEntityData._dbId || String(editingEntityId);
     const editingIEs = inscricoesMap[ieKey] || [];
@@ -86,6 +152,7 @@ export default function ContribuintesTab({
     setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
     setEditingEntityId(null);
     setEditingEntityData(null);
+    setEditDuplicate(null);
     toast.success("Contribuinte atualizado");
   };
 
@@ -104,7 +171,7 @@ export default function ContribuintesTab({
     toast.success("Endereço copiado do primeiro contribuinte");
   };
 
-  const addEntity = () => {
+  const addEntity = async () => {
     if (!draftEntity.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
     const cpfCnpjDigits = (draftEntity.cpf_cnpj || "").replace(/\D/g, "");
     if (!cpfCnpjDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
@@ -123,6 +190,18 @@ export default function ContribuintesTab({
       if (!draftEntity.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
     }
 
+    // Bloqueio: contribuinte duplicado
+    const dup = await runDuplicateCheck(draftEntity.cpf_cnpj || "");
+    setDraftDuplicate(dup);
+    if (dup?.found) {
+      toast.error(
+        dup.isLocal
+          ? "Contribuinte já cadastrado neste cliente"
+          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
+      );
+      return;
+    }
+
     const newEntityId = Date.now() + Math.random();
     setEntities([...entities, { ...draftEntity, _id: newEntityId } as DraftEntity]);
     if (draftInscricoes.length > 0) {
@@ -135,6 +214,7 @@ export default function ContribuintesTab({
       simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "",
       bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "",
     });
+    setDraftDuplicate(null);
   };
 
   return (
@@ -267,9 +347,23 @@ export default function ContribuintesTab({
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative">
-                              <Input value={ed.cpf_cnpj || ""} onChange={(e) => setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || "PJ") })} onBlur={(e) => handleInlineCnpjBlur(e.target.value)} className="font-mono pr-8 h-8" />
-                              {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                              <Input
+                                value={ed.cpf_cnpj || ""}
+                                onChange={(e) => { setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || "PJ") }); setEditDuplicate(null); }}
+                                onBlur={(e) => handleInlineCnpjBlur(e.target.value)}
+                                aria-invalid={editDuplicate?.found || undefined}
+                                className={cn("font-mono pr-8 h-8", editDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
+                              />
+                              {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
+                            {editDuplicate?.found && (
+                              <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
+                                <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                                <span>
+                                  Contribuinte já cadastrado{editDuplicate.isLocal ? " neste cliente" : ` no cliente "${editDuplicate.clienteName ?? "—"}"`}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {/* Razão Social */}
@@ -454,9 +548,24 @@ export default function ContribuintesTab({
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative">
-                    <Input value={draftEntity.cpf_cnpj || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") })} onBlur={(e) => handleCnpjBlur(e.target.value)} placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"} className="font-mono pr-8 h-8" />
-                    {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Input
+                      value={draftEntity.cpf_cnpj || ""}
+                      onChange={(e) => { setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") }); setDraftDuplicate(null); }}
+                      onBlur={(e) => handleCnpjBlur(e.target.value)}
+                      placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"}
+                      aria-invalid={draftDuplicate?.found || undefined}
+                      className={cn("font-mono pr-8 h-8", draftDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
+                    />
+                    {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                   </div>
+                  {draftDuplicate?.found && (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        Contribuinte já cadastrado{draftDuplicate.isLocal ? " neste cliente" : ` no cliente "${draftDuplicate.clienteName ?? "—"}"`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* Razão Social */}
