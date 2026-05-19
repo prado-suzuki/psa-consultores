@@ -46,7 +46,7 @@ export const useClientesList = (filters?: { ativo?: boolean; search?: string }) 
       if (filters?.search) query = query.ilike('nome', `%${filters.search}%`);
       const { data, error } = await query;
       if (error) throw error;
-      const list = (data || []) as ClienteListItem[];
+      const list = ((data || []) as unknown as ClienteListItem[]).map(c => ({ ...c, setor_cliente: null as string | null, regiao: null as string | null }));
 
       // Enrich setor_cliente / regiao a partir da OS mais recente (view)
       const ids = list.map(c => c.id);

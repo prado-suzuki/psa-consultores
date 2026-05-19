@@ -149,6 +149,8 @@ ALTER TABLE public.cliente
 - [x] `sync-cadastros/index.ts` — `setor_cliente` removido da interface `Cliente`.
 - [x] `useSaveClientTransaction.ts:542` — `setor_cliente_id` adicionado ao audit `osFields`.
 
-### Fase 2 — PENDENTE
+### Fase 2 — CONCLUÍDA ✅
 
-Aguardando validação em produção da Fase 1 antes do DROP.
+- [x] Bloco `DO $$` com `RAISE NOTICE` listou os clientes com perda antes do DROP.
+- [x] `ALTER TABLE public.cliente DROP COLUMN regiao, setor_cliente, setor_cliente_id` executado.
+- [x] `types.ts` regenerado; hooks `useDevClients`/`useFiscalClients` ajustados (cast `unknown` + default `null`) já que essas colunas não existem mais em `cliente`.

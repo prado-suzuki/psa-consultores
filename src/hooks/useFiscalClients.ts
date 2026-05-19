@@ -30,7 +30,7 @@ export function useFiscalClientsList() {
         .order('nome');
 
       if (error) throw error;
-      const list = (data || []) as Cliente[];
+      const list = ((data || []) as unknown as Cliente[]).map(c => ({ ...c, setor_cliente: null as string | null }));
 
       // Enrich setor_cliente vindo da OS mais recente
       const ids = list.map(c => c.id);
