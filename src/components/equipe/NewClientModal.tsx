@@ -258,7 +258,7 @@ export default function NewClientModal({
 
                 <ScrollArea className="flex-1">
                   <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
-                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} setoresCliente={setoresCliente} allClusters={allClusters} />
+                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} allClusters={allClusters} />
                   </TabsContent>
 
                   <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
@@ -289,6 +289,7 @@ export default function NewClientModal({
                       produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                       allClusters={allClusters}
                       CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
+                      setoresCliente={setoresCliente}
                     />
                   </TabsContent>
 

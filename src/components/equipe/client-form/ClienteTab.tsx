@@ -9,12 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ChevronsUpDown } from "lucide-react";
 import type { defaultClientData } from "./constants";
 
-interface SetorCliente {
-  id: string;
-  nome: string;
-  sigla: string;
-}
-
 interface ClusterOption {
   id: string;
   name: string;
@@ -24,11 +18,10 @@ export interface ClienteTabProps {
   clientData: typeof defaultClientData;
   setClientData: React.Dispatch<React.SetStateAction<typeof defaultClientData>>;
   isReadOnly: boolean;
-  setoresCliente: SetorCliente[];
   allClusters?: ClusterOption[];
 }
 
-export default function ClienteTab({ clientData, setClientData, isReadOnly, setoresCliente, allClusters = [] }: ClienteTabProps) {
+export default function ClienteTab({ clientData, setClientData, isReadOnly, allClusters = [] }: ClienteTabProps) {
   const selectedClusters = allClusters.filter(c => clientData.cluster_ids.includes(c.id));
 
   const toggleCluster = (clusterId: string) => {
@@ -170,72 +163,6 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, seto
           </Popover>
         </div>
 
-        {/* 5. Área do Negócio */}
-        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-            Área do negócio *
-          </Label>
-          <Select
-            disabled={isReadOnly}
-            value={clientData.setor_cliente_id || "__none__"}
-            onValueChange={(v) => {
-              if (v === "__none__") {
-                setClientData({ ...clientData, setor_cliente_id: "", setor_cliente: "" });
-              } else {
-                const setor = setoresCliente.find(s => s.id === v);
-                setClientData({
-                  ...clientData,
-                  setor_cliente_id: v,
-                  setor_cliente: setor?.sigla || "",
-                });
-              }
-            }}
-          >
-            <SelectTrigger className="flex-1 h-8">
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Selecione...</SelectItem>
-              {setoresCliente.map((setor) => (
-                <SelectItem key={setor.id} value={setor.id}>
-                  {setor.sigla} - {setor.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* 6. Região */}
-        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-            Região *
-          </Label>
-          <Select
-            disabled={isReadOnly}
-            value={clientData.regiao || "__none__"}
-            onValueChange={(v) => setClientData({ ...clientData, regiao: v === "__none__" ? "" : v })}
-          >
-            <SelectTrigger className="flex-1 h-8">
-              <SelectValue placeholder="Selecione..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Selecione...</SelectItem>
-              <SelectItem value="BRA">BRA - Bahia, Goiás, Distrito Federal</SelectItem>
-              <SelectItem value="3NO">3NO - BR-163 Norte</SelectItem>
-              <SelectItem value="3SU">
-                3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS
-              </SelectItem>
-              <SelectItem value="PAR">
-                PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia
-              </SelectItem>
-              <SelectItem value="CBA">CBA - Baixada Cuiabana</SelectItem>
-              <SelectItem value="RAO">
-                RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo
-              </SelectItem>
-              <SelectItem value="MPT">MPT - Mapito, BR-010, Pará</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </div>
     </section>
   );

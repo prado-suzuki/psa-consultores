@@ -42,9 +42,6 @@ interface ClientDataShape {
   telefone: string;
   municipio: string;
   uf: string;
-  setor_cliente: string;
-  setor_cliente_id: string;
-  regiao: string;
   cluster_ids: string[];
 }
 
@@ -89,20 +86,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       return;
     }
 
-    if (!clientData.setor_cliente) {
-      toast.error("Área do negócio é obrigatória");
-      return;
-    }
-    if (!clientData.regiao) {
-      toast.error("Região é obrigatória");
-      return;
-    }
-
     // --- Pre-validation: empresa (cluster_id), distribuicao_receita UUIDs and percentage sums ---
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     for (const c of contracts) {
       if (!c.cluster_id) {
         toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Empresa/Faturamento`);
+        return;
+      }
+      if (!c.setor_cliente_id) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Área do Negócio`);
+        return;
+      }
+      if (!c.regiao) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Região`);
         return;
       }
       if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
@@ -139,11 +135,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     setSaving(true);
     let createdClienteId: string | null = null;
     try {
-      // Dual-write: gravar setor_cliente_id (UUID) e setor_cliente (sigla) para compatibilidade
-      const setorSigla = clientData.setor_cliente_id
-        ? setoresCliente.find(s => s.id === clientData.setor_cliente_id)?.sigla || clientData.setor_cliente || null
-        : clientData.setor_cliente || null;
-
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -152,9 +143,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         telefone: clientData.telefone.trim() || null,
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
-        setor_cliente: setorSigla,
-        setor_cliente_id: clientData.setor_cliente_id || null,
-        regiao: clientData.regiao || null,
         ambiente: currentAmbiente,
       };
 
@@ -383,19 +371,28 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // --- Persistir ordens de serviço (update ou insert) + distribuicao_receita + produtos_contratados ---
-      const buildOsFields = (c: DraftOrdemServico) => ({
-        id_cliente: clienteId,
-        numero_os: c.ordem_servico || null,
-        data_emissao: c.data_emissao || null,
-        data_inicio: c.data_inicio_projeto || null,
-        data_fim: c.data_fim_projeto || null,
-        valor_projeto: c.valor_projeto || 0,
-        valor_reembolso_km: c.valor_reembolso_km || 0,
-        valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
-        situacao: c.situacao_projeto || "em_andamento",
-        observacoes: c.observacoes_projeto || null,
-        cluster_id: c.cluster_id || null,
-      });
+      const buildOsFields = (c: DraftOrdemServico) => {
+        // Dual-write: gravar setor_cliente_id (UUID) e setor_cliente (sigla) para compatibilidade
+        const setorSigla = c.setor_cliente_id
+          ? setoresCliente.find(s => s.id === c.setor_cliente_id)?.sigla || c.setor_cliente || null
+          : c.setor_cliente || null;
+        return {
+          id_cliente: clienteId,
+          numero_os: c.ordem_servico || null,
+          data_emissao: c.data_emissao || null,
+          data_inicio: c.data_inicio_projeto || null,
+          data_fim: c.data_fim_projeto || null,
+          valor_projeto: c.valor_projeto || 0,
+          valor_reembolso_km: c.valor_reembolso_km || 0,
+          valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
+          situacao: c.situacao_projeto || "em_andamento",
+          observacoes: c.observacoes_projeto || null,
+          cluster_id: c.cluster_id || null,
+          setor_cliente: setorSigla,
+          setor_cliente_id: c.setor_cliente_id || null,
+          regiao: c.regiao || null,
+        };
+      };
 
       for (const c of contracts) {
         let osId = c._dbId;
@@ -521,14 +518,12 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             nome: clienteResult.nome,
             fixo: clienteResult.fixo,
             telefone: clienteResult.telefone,
-            setor_cliente: clienteResult.setor_cliente,
             municipio: clienteResult.municipio,
             uf: clienteResult.uf,
             ativo: clienteResult.ativo,
             categoria: (clienteResult as any).categoria ?? null,
             created_at: clienteResult.created_at,
             updated_at: clienteResult.updated_at,
-            regiao: (clienteResult as any).regiao ?? null,
           },
         ],
       });
@@ -541,10 +536,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
       // ─── Audit logs with granular changed_fields ─────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
-      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'setor_cliente', 'regiao'];
+      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf'];
       const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
       const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
-      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id'];
+      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'regiao'];
 
       const snap = isEditing ? originalSnapshot : null;
 

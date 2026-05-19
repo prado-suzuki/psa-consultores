@@ -22,6 +22,27 @@ import { RequiredMark } from "@/components/ui/required-mark";
 
 type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
 
+interface SetorCliente {
+  id: string;
+  nome: string;
+  sigla: string;
+}
+
+const REGIAO_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "BRA", label: "BRA - Bahia, Goiás, Distrito Federal" },
+  { value: "3NO", label: "3NO - BR-163 Norte" },
+  { value: "3SU", label: "3SU - BR-163 Sul, Vale do Araguaia, Serra da Petrovina, Norte do MS" },
+  { value: "PAR", label: "PAR - Chapadão do Parecis, região sucroalcooleira, Rondônia" },
+  { value: "CBA", label: "CBA - Baixada Cuiabana" },
+  { value: "RAO", label: "RAO - Sul do MS, Paraná, SC, Cerrado Mineiro, São Paulo" },
+  { value: "MPT", label: "MPT - Mapito, BR-010, Pará" },
+];
+
+function getRegiaoLabel(value: string | undefined): string {
+  if (!value) return "—";
+  return REGIAO_OPTIONS.find(o => o.value === value)?.label || value;
+}
+
 export interface ContratosTabProps {
   contracts: DraftOrdemServico[];
   setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
@@ -31,6 +52,7 @@ export interface ContratosTabProps {
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
   allClusters: Array<{ id: string; name: string }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; codigo: string; nome: string; label: string }>;
+  setoresCliente: SetorCliente[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -214,7 +236,15 @@ export default function ContratosTab({
   draftContract, setDraftContract,
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
+  setoresCliente,
 }: ContratosTabProps) {
+  const setorById = (id: string) => setoresCliente.find(s => s.id === id);
+  const setorLabel = (id: string | undefined, sigla: string | undefined) => {
+    if (!id && !sigla) return "—";
+    const s = id ? setorById(id) : undefined;
+    if (s) return `${s.sigla} - ${s.nome}`;
+    return sigla || "—";
+  };
   const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
   const [editingContractData, setEditingContractData] = useState<Partial<DraftOrdemServico> | null>(null);
@@ -265,6 +295,14 @@ export default function ContratosTab({
       toast.error("Selecione a Empresa/Faturamento");
       return;
     }
+    if (!editingContractData.setor_cliente_id) {
+      toast.error("Selecione a Área do Negócio");
+      return;
+    }
+    if (!editingContractData.regiao) {
+      toast.error("Selecione a Região");
+      return;
+    }
     if (!editingContractData.produtos_contratados || editingContractData.produtos_contratados.length === 0) {
       toast.error("Adicione ao menos um Produto Contratado");
       return;
@@ -278,6 +316,14 @@ export default function ContratosTab({
   const addContract = async () => {
     if (!draftContract.cluster_id) {
       toast.error("Selecione a Empresa/Faturamento");
+      return;
+    }
+    if (!draftContract.setor_cliente_id) {
+      toast.error("Selecione a Área do Negócio");
+      return;
+    }
+    if (!draftContract.regiao) {
+      toast.error("Selecione a Região");
       return;
     }
     if (!draftContract.produtos_contratados || draftContract.produtos_contratados.length === 0) {
@@ -350,6 +396,8 @@ export default function ContratosTab({
                         <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
                         <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
                         <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
+                        <FieldPair label="Área do Negócio" value={setorLabel(cont.setor_cliente_id, cont.setor_cliente)} />
+                        <FieldPair label="Região" value={getRegiaoLabel(cont.regiao)} />
                         <div className="col-span-2 grid grid-cols-2 gap-4">
                           <FieldPair label="Reembolso por KM" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
                           <FieldPair label="Reembolso Refeição" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
@@ -399,6 +447,47 @@ export default function ContratosTab({
                             <Select value={ec.situacao_projeto || "em_andamento"} onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v })}>
                               <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                               <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
+                          <div className="mt-1">
+                            <Select
+                              value={ec.setor_cliente_id || "__none__"}
+                              onValueChange={(v) => {
+                                if (v === "__none__") {
+                                  setEditingContractData({ ...ec, setor_cliente_id: "", setor_cliente: "" });
+                                } else {
+                                  const setor = setoresCliente.find(s => s.id === v);
+                                  setEditingContractData({ ...ec, setor_cliente_id: v, setor_cliente: setor?.sigla || "" });
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {setoresCliente.map((setor) => (
+                                  <SelectItem key={setor.id} value={setor.id}>{setor.sigla} - {setor.nome}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Região<RequiredMark /></Label>
+                          <div className="mt-1">
+                            <Select
+                              value={ec.regiao || "__none__"}
+                              onValueChange={(v) => setEditingContractData({ ...ec, regiao: v === "__none__" ? "" : v })}
+                            >
+                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">Selecione...</SelectItem>
+                                {REGIAO_OPTIONS.map(opt => (
+                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                                ))}
+                              </SelectContent>
                             </Select>
                           </div>
                         </div>
@@ -476,6 +565,47 @@ export default function ContratosTab({
                   <Select value={draftContract.situacao_projeto} onValueChange={(v) => setDraftContract(prev => ({ ...prev, situacao_projeto: v }))}>
                     <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
+                <div className="mt-1">
+                  <Select
+                    value={draftContract.setor_cliente_id || "__none__"}
+                    onValueChange={(v) => {
+                      if (v === "__none__") {
+                        setDraftContract(prev => ({ ...prev, setor_cliente_id: "", setor_cliente: "" }));
+                      } else {
+                        const setor = setoresCliente.find(s => s.id === v);
+                        setDraftContract(prev => ({ ...prev, setor_cliente_id: v, setor_cliente: setor?.sigla || "" }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Selecione...</SelectItem>
+                      {setoresCliente.map((setor) => (
+                        <SelectItem key={setor.id} value={setor.id}>{setor.sigla} - {setor.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs font-semibold uppercase text-muted-foreground">Região<RequiredMark /></Label>
+                <div className="mt-1">
+                  <Select
+                    value={draftContract.regiao || "__none__"}
+                    onValueChange={(v) => setDraftContract(prev => ({ ...prev, regiao: v === "__none__" ? "" : v }))}
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Selecione...</SelectItem>
+                      {REGIAO_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
               </div>

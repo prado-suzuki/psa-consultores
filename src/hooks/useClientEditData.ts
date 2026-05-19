@@ -16,9 +16,6 @@ interface ClientDataShape {
   telefone: string;
   municipio: string;
   uf: string;
-  setor_cliente: string;
-  setor_cliente_id: string;
-  regiao: string;
   cluster_ids: string[];
 }
 
@@ -60,9 +57,6 @@ export const useClientEditData = (
             telefone: cli.telefone || "",
             municipio: cli.municipio || "",
             uf: cli.uf || "",
-            setor_cliente: cli.setor_cliente || "",
-            setor_cliente_id: (cli as any).setor_cliente_id || "",
-            regiao: (cli as any).regiao || "",
             cluster_ids: [],
           };
 
@@ -211,6 +205,9 @@ export const useClientEditData = (
               produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
               cluster_id: os.cluster_id || "",
+              setor_cliente: os.setor_cliente || "",
+              setor_cliente_id: os.setor_cliente_id || "",
+              regiao: os.regiao || "",
             }));
           setters.setContracts(mappedContracts);
 
