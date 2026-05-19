@@ -317,6 +317,10 @@ export function DcompFormModal({
   const nrPerOrig = form.watch('nr_per_orig');
   const mesAnoFromForm = dtEnvio ? dtEnvio.substring(0, 7) : '';
 
+  // Snapshot do dt_envio originalmente gravado, para detectar mudança em modo edição.
+  const dtEnvioOriginal = editData?.dt_envio ?? null;
+  const dtEnvioMudou = isEditing && !!dtEnvioOriginal && dtEnvio !== dtEnvioOriginal;
+
   // Rateio Atualizado/Original — depende da dt_envio (carência) e do fator SELIC vigente nessa data
   const perSelecionado = pers.find((p) => p.nr_per === nrPerOrig);
   const dtSolicitadaPer = perSelecionado?.dt_solicitada || null;
