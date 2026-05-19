@@ -233,6 +233,7 @@ export const TaskModal = ({
         client_id: task.client_id || undefined,
         contribuinte_id: task.contribuinte_id || undefined,
         estimated_hours: (task as any).estimated_hours ?? '',
+        actual_hours: (task as any).actual_hours ?? '',
       });
     } else {
       isResettingRef.current = true;
