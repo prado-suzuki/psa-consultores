@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
@@ -8,7 +8,7 @@ import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAre
 import { useAssignTicket } from '@/hooks/useTicketMutations';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -22,7 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip } from 'lucide-react';
+import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
+import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
 import { isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isTodayBrazil } from '@/lib/dateUtils';
@@ -139,6 +140,8 @@ export default function EquipeChamados() {
     clustersData.forEach(c => map.set(c.id, c.name));
     return map;
   }, [clustersData]);
+
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
@@ -322,6 +325,13 @@ export default function EquipeChamados() {
     return filtered;
   }, [tickets, filters, sortColumn, sortDirection, mostrarUrgentes]);
 
+  const stats = {
+    total: tickets.length,
+    abertos: tickets.filter(t => t.status === 'aberto').length,
+    emAndamento: tickets.filter(t => t.status === 'em_andamento').length,
+    resolvidos: tickets.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
+  };
+
   const resetFilters = () => {
     setFilters({
       periodo: 'todas',
@@ -335,33 +345,82 @@ export default function EquipeChamados() {
   };
 
   return (
-    <div className="min-h-screen bg-[hsl(210_20%_98%)]">
-      <header className="bg-background border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate('/equipe')}>
+    <div className="min-h-screen bg-slate-50">
+      <header className="h-16 border-b border-slate-200/60 bg-white flex items-center px-6">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate('/equipe')}
+            className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar à Seleção de Área
+            Voltar
           </Button>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-12">
-        <div className="max-w-[1400px] mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">
               {canAssignTickets ? 'Gestão de Chamados' : 'Meus Chamados Atribuídos'}
             </h1>
-            <p className="text-muted-foreground mt-2">
-              {canAssignTickets 
+            <p className="text-sm text-slate-500">
+              {canAssignTickets
                 ? 'Visualize todos os chamados e atribua responsáveis'
                 : 'Visualize e responda os chamados atribuídos a você'}
             </p>
           </div>
+        </div>
+      </header>
+
+      <main className="p-6">
+        <div>
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Total</CardDescription>
+                  <MessageSquare className="h-4 w-4 text-gray-400" />
+                </div>
+                <CardTitle className="text-3xl">{stats.total}</CardTitle>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Abertos</CardDescription>
+                  <AlertTriangle className="h-4 w-4 text-blue-400" />
+                </div>
+                <CardTitle className="text-3xl text-blue-600">{stats.abertos}</CardTitle>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Em Andamento</CardDescription>
+                  <Clock className="h-4 w-4 text-yellow-400" />
+                </div>
+                <CardTitle className="text-3xl text-yellow-600">{stats.emAndamento}</CardTitle>
+              </CardHeader>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardDescription>Resolvidos</CardDescription>
+                  <CheckCircle className="h-4 w-4 text-green-400" />
+                </div>
+                <CardTitle className="text-3xl text-green-600">{stats.resolvidos}</CardTitle>
+              </CardHeader>
+            </Card>
+          </div>
 
           {/* Card de Filtros */}
-          <Card className="p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">Filtros</h3>
-            
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="text-base">Filtros</CardTitle>
+            </CardHeader>
+            <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
               <div className="space-y-2">
                 <Label>Período</Label>
@@ -495,6 +554,7 @@ export default function EquipeChamados() {
                 {filteredAndSortedTickets.length} de {tickets.length} chamados
               </div>
             </div>
+            </CardContent>
           </Card>
 
           {loading ? (
@@ -510,13 +570,19 @@ export default function EquipeChamados() {
               </p>
             </Card>
           ) : (
-            <Card className="overflow-hidden">
-              <div className="overflow-x-auto">
-                <Table>
+            <Card>
+              <CardHeader>
+                <CardTitle>Chamados</CardTitle>
+                <CardDescription>
+                  {filteredAndSortedTickets.length} chamado(s) encontrado(s)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table containerRef={scrollRef}>
                   <TableHeader>
-                    <TableRow className="bg-muted/50">
+                    <TableRow>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('status')}
                       >
                         <div className="flex items-center">
@@ -525,7 +591,7 @@ export default function EquipeChamados() {
                         </div>
                       </TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors min-w-[200px]"
+                        className="cursor-pointer min-w-[200px]"
                         onClick={() => handleSort('title')}
                       >
                         <div className="flex items-center">
@@ -534,7 +600,7 @@ export default function EquipeChamados() {
                         </div>
                       </TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('id')}
                       >
                         <div className="flex items-center">
@@ -543,7 +609,7 @@ export default function EquipeChamados() {
                         </div>
                       </TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('department')}
                       >
                         <div className="flex items-center">
@@ -554,7 +620,7 @@ export default function EquipeChamados() {
                       <TableHead>Área</TableHead>
                       <TableHead>Cluster</TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('created_by')}
                       >
                         <div className="flex items-center">
@@ -564,7 +630,7 @@ export default function EquipeChamados() {
                       </TableHead>
                       <TableHead>Cliente</TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('updated_at')}
                       >
                         <div className="flex items-center">
@@ -573,7 +639,7 @@ export default function EquipeChamados() {
                         </div>
                       </TableHead>
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('prazo')}
                       >
                         <div className="flex items-center">
@@ -585,7 +651,7 @@ export default function EquipeChamados() {
                         <TableHead>Responsável</TableHead>
                       )}
                       <TableHead 
-                        className="cursor-pointer hover:bg-muted/70 transition-colors"
+                        className="cursor-pointer"
                         onClick={() => handleSort('activity_status')}
                       >
                         <div className="flex items-center">
@@ -596,11 +662,8 @@ export default function EquipeChamados() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredAndSortedTickets.map((ticket, index) => (
-                      <TableRow 
-                        key={ticket.id}
-                        className={index % 2 === 0 ? 'bg-background' : 'bg-muted/30'}
-                      >
+                    {filteredAndSortedTickets.map((ticket) => (
+                      <TableRow key={ticket.id}>
                         <TableCell>
                           <Badge className={statusColors[ticket.status]}>
                             {statusLabels[ticket.status] || ticket.status}
@@ -759,7 +822,8 @@ export default function EquipeChamados() {
                     ))}
                   </TableBody>
                 </Table>
-              </div>
+                <FloatingScrollbar targetRef={scrollRef} />
+              </CardContent>
             </Card>
           )}
         </div>
