@@ -247,7 +247,7 @@ const GerenciarDados = () => {
           <AlertDescription>
             <p className="mb-2">Use <strong>;</strong> (ponto e vírgula) como separador.</p>
             <p className="text-xs text-muted-foreground">
-              <strong>Cliente:</strong> nome, ativo, fixo, telefone, setor_cliente, municipio, uf
+              <strong>Cliente:</strong> nome, ativo, fixo, telefone, municipio, uf
             </p>
             <p className="text-xs text-muted-foreground">
               <strong>Contribuinte:</strong> cliente (nome do cliente), nome_razao_social, tipo_pessoa, cpf_cnpj, inscricao_estadual, cod_cnae, setor, simples_nacional
@@ -419,9 +419,9 @@ const GerenciarDados = () => {
           <CardContent>
             {selectedTable === 'cliente' ? (
               <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
-{`nome;ativo;fixo;telefone;setor_cliente;municipio;uf
-Empresa ABC;true;1112223333;11999998888;Comércio;São Paulo;SP
-Indústria XYZ;true;;11988887777;Indústria;Campinas;SP`}
+{`nome;ativo;fixo;telefone;municipio;uf
+Empresa ABC;true;1112223333;11999998888;São Paulo;SP
+Indústria XYZ;true;;11988887777;Campinas;SP`}
               </pre>
             ) : (
               <pre className="p-4 bg-muted rounded-lg text-xs overflow-x-auto">
