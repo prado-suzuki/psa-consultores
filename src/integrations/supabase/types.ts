@@ -486,9 +486,6 @@ export type Database = {
           id: string
           municipio: string | null
           nome: string
-          regiao: string | null
-          setor_cliente: string | null
-          setor_cliente_id: string | null
           telefone: string | null
           uf: string | null
           updated_at: string
@@ -503,9 +500,6 @@ export type Database = {
           id?: string
           municipio?: string | null
           nome: string
-          regiao?: string | null
-          setor_cliente?: string | null
-          setor_cliente_id?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string
@@ -520,22 +514,11 @@ export type Database = {
           id?: string
           municipio?: string | null
           nome?: string
-          regiao?: string | null
-          setor_cliente?: string | null
-          setor_cliente_id?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "cliente_setor_cliente_id_fkey"
-            columns: ["setor_cliente_id"]
-            isOneToOne: false
-            referencedRelation: "setor_cliente"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       cliente_clusters: {
         Row: {
