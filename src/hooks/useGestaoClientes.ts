@@ -137,9 +137,10 @@ export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: b
       const { data, error } = await clienteQuery.order('nome');
       if (error) throw error;
 
-      // Enrich with cluster names
+      // Enrich with cluster names + setor_cliente vindo da OS mais recente
       const clienteIds = (data || []).map((c) => c.id);
       const clusterMap: Record<string, string[]> = {};
+      const setorMap: Record<string, string | null> = {};
       if (clienteIds.length > 0) {
         const { data: ccRows } = await supabase
           .from('cliente_clusters')
@@ -153,10 +154,18 @@ export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: b
             if (cname) clusterMap[cid].push(cname);
           }
         }
+
+        const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
+          .select('id_cliente, setor_cliente')
+          .in('id_cliente', clienteIds);
+        for (const row of (viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null }>) {
+          setorMap[row.id_cliente] = row.setor_cliente;
+        }
       }
 
       return (data || []).map((c) => ({
         ...c,
+        setor_cliente: setorMap[c.id] ?? null,
         _clusters: clusterMap[c.id] || [],
       })) as ClienteFiltrado[];
     },

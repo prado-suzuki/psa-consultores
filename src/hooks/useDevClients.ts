@@ -46,7 +46,26 @@ export const useClientesList = (filters?: { ativo?: boolean; search?: string }) 
       if (filters?.search) query = query.ilike('nome', `%${filters.search}%`);
       const { data, error } = await query;
       if (error) throw error;
-      return (data || []) as ClienteListItem[];
+      const list = (data || []) as ClienteListItem[];
+
+      // Enrich setor_cliente / regiao a partir da OS mais recente (view)
+      const ids = list.map(c => c.id);
+      if (ids.length > 0) {
+        const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
+          .select('id_cliente, setor_cliente, regiao')
+          .in('id_cliente', ids);
+        const byId = new Map<string, { setor_cliente: string | null; regiao: string | null }>(
+          ((viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null; regiao: string | null }>)
+            .map(r => [r.id_cliente, { setor_cliente: r.setor_cliente, regiao: r.regiao }])
+        );
+        for (const c of list) {
+          const v = byId.get(c.id);
+          c.setor_cliente = v?.setor_cliente ?? null;
+          c.regiao = v?.regiao ?? null;
+        }
+      }
+
+      return list;
     },
   });
 };
@@ -77,22 +96,35 @@ export const useExternalClients = (editingClientId?: string | null) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('cliente')
-        .select('id, nome, setor_cliente')
+        .select('id, nome')
         .eq('ativo', true)
         .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
         .order('nome');
       if (error) throw error;
-      const list = data as { id: string; nome: string; setor_cliente: string | null }[];
+      const list = (data as { id: string; nome: string }[]).map(c => ({ ...c, setor_cliente: null as string | null }));
 
       // If editing a client not in the active list, fetch it individually
       if (editingClientId && !list.some(c => c.id === editingClientId)) {
         const { data: extra } = await supabase
           .from('cliente')
-          .select('id, nome, setor_cliente')
+          .select('id, nome')
           .eq('id', editingClientId)
           .maybeSingle();
-        if (extra) list.push(extra as typeof list[0]);
+        if (extra) list.push({ ...(extra as { id: string; nome: string }), setor_cliente: null });
+      }
+
+      // Enrich setor_cliente via view (OS mais recente)
+      const ids = list.map(c => c.id);
+      if (ids.length > 0) {
+        const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
+          .select('id_cliente, setor_cliente')
+          .in('id_cliente', ids);
+        const byId = new Map<string, string | null>(
+          ((viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null }>)
+            .map(r => [r.id_cliente, r.setor_cliente])
+        );
+        for (const c of list) c.setor_cliente = byId.get(c.id) ?? null;
       }
 
       return list;
