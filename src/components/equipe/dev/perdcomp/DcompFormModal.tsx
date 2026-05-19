@@ -694,7 +694,22 @@ export function DcompFormModal({
                   const k = linha.id || `local-${idx}`;
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
-                  const valorOriginalLinha = round2((linha.valor_tributo || 0) * proporcaoOriginal);
+                  const linhaOriginalUI = isEditing && linha.id
+                    ? distribuicoesExistentes.find((o) => o.id === linha.id)
+                    : undefined;
+                  const valorTributoMudouUI = linhaOriginalUI
+                    ? toCents(linhaOriginalUI.valor_tributo) !== toCents(linha.valor_tributo || 0)
+                    : true;
+                  const preservadoUI =
+                    isEditing &&
+                    linha.valor_original != null &&
+                    !dtEnvioMudou &&
+                    !valorTributoMudouUI;
+                  const valorOriginalLinha = preservadoUI
+                    ? (linha.valor_original as number)
+                    : round2((linha.valor_tributo || 0) * proporcaoOriginal);
+                  const exibirValorOriginal =
+                    isEditing && linha.valor_original == null && !valorTributoMudouUI && !dtEnvioMudou;
                   return (
                     <div key={k} className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
@@ -718,8 +733,9 @@ export function DcompFormModal({
                         className="h-9 bg-muted/40"
                         readOnly
                         tabIndex={-1}
-                        value={formatCurrencyDisplay(valorOriginalLinha)}
+                        value={exibirValorOriginal ? '—' : formatCurrencyDisplay(valorOriginalLinha)}
                       />
+
                       <Input
                         className={cn("h-9", competenciaInvalida && "border-destructive")}
                         type="text"
