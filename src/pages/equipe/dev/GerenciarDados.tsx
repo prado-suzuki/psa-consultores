@@ -97,7 +97,6 @@ const GerenciarDados = () => {
           ativo: row.ativo?.toLowerCase() === 'true' || row.ativo === '1' || true,
           fixo: row.fixo || undefined,
           telefone: row.telefone || row.phone || undefined,
-          setor_cliente: row.setor_cliente || row.setor || undefined,
           municipio: row.municipio || row.cidade || undefined,
           uf: row.uf || row.estado || undefined,
           ambiente: selectedAmbiente,
