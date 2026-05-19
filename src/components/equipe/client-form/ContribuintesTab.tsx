@@ -105,14 +105,43 @@ export default function ContribuintesTab({
   const startEditEntity = (ent: DraftEntity) => {
     setEditingEntityId(ent._id);
     setEditingEntityData({ ...ent });
+    setEditDuplicate(null);
   };
   const cancelEditEntity = () => {
     setEditingEntityId(null);
     setEditingEntityData(null);
+    setEditDuplicate(null);
   };
-  const saveEditEntity = () => {
+  const saveEditEntity = async () => {
     if (!editingEntityData || editingEntityId == null) return;
     if (!editingEntityData.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
+    const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
+    if (!cpfDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
+    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
+    if (!editingEntityData.cep?.trim()) { toast.error("CEP é obrigatório"); return; }
+    if (!editingEntityData.logradouro?.trim()) { toast.error("Logradouro é obrigatório"); return; }
+    if (!editingEntityData.bairro?.trim()) { toast.error("Bairro é obrigatório"); return; }
+    if (!editingEntityData.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
+    if (!editingEntityData.uf?.trim() || editingEntityData.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
+    if (editingEntityData.tipo_pessoa === "PJ") {
+      if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
+      if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
+    }
+    // Bloqueio: contribuinte duplicado
+    const dup = await runDuplicateCheck(
+      editingEntityData.cpf_cnpj || "",
+      editingEntityId,
+      editingEntityData._dbId,
+    );
+    setEditDuplicate(dup);
+    if (dup?.found) {
+      toast.error(
+        dup.isLocal
+          ? "Contribuinte já cadastrado neste cliente"
+          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
+      );
+      return;
+    }
     const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
     if (!cpfDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
     if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
