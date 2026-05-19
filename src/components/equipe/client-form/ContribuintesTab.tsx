@@ -548,9 +548,24 @@ export default function ContribuintesTab({
                 <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
                 <div className="flex-1">
                   <div className="relative">
-                    <Input value={draftEntity.cpf_cnpj || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") })} onBlur={(e) => handleCnpjBlur(e.target.value)} placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"} className="font-mono pr-8 h-8" />
-                    {cnpjLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
+                    <Input
+                      value={draftEntity.cpf_cnpj || ""}
+                      onChange={(e) => { setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") }); setDraftDuplicate(null); }}
+                      onBlur={(e) => handleCnpjBlur(e.target.value)}
+                      placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"}
+                      aria-invalid={draftDuplicate?.found || undefined}
+                      className={cn("font-mono pr-8 h-8", draftDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
+                    />
+                    {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                   </div>
+                  {draftDuplicate?.found && (
+                    <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        Contribuinte já cadastrado{draftDuplicate.isLocal ? " neste cliente" : ` no cliente "${draftDuplicate.clienteName ?? "—"}"`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* Razão Social */}
