@@ -66,6 +66,18 @@ const taskSchema = z.object({
   client_id: z.string().min(1, 'Cliente é obrigatório'),
   contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
   estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
+  actual_hours: z.union([z.coerce.number(), z.literal('')]).optional().nullable(),
+}).superRefine((data, ctx) => {
+  if (data.status === 'done') {
+    const n = typeof data.actual_hours === 'number' ? data.actual_hours : Number(data.actual_hours);
+    if (!n || isNaN(n) || n <= 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['actual_hours'],
+        message: 'Informe as horas realizadas',
+      });
+    }
+  }
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
