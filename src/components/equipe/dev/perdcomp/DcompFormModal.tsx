@@ -90,6 +90,8 @@ interface DistribuicaoLinha {
   valor_tributo: number;
   /** Competência no formato 'yyyy-MM' (UI) ou 'yyyy-MM-dd' (DB). */
   competencia: string;
+  /** Valor original (sem SELIC) congelado no banco. NULL = legado. */
+  valor_original?: number | null;
 }
 
 /** Converte 'yyyy-MM' ou 'yyyy-MM-dd' para 'MM/AAAA' para exibição. */
@@ -197,7 +199,7 @@ export function DcompFormModal({
       if (!editData?.nr_documento) return [];
       const { data, error } = await (supabase
         .from('distribuicao_dcomp') as any)
-        .select('id, tributo, valor_tributo, competencia')
+        .select('id, tributo, valor_tributo, competencia, valor_original')
         .eq('nr_documento', editData.nr_documento);
       if (error) throw error;
       return ((data || []) as any[]).map((r) => ({
@@ -205,6 +207,7 @@ export function DcompFormModal({
         tributo: r.tributo,
         valor_tributo: Number(r.valor_tributo) || 0,
         competencia: r.competencia ? String(r.competencia).substring(0, 7) : '',
+        valor_original: r.valor_original != null ? Number(r.valor_original) : null,
       })) as DistribuicaoLinha[];
     },
     enabled: !!editData?.nr_documento && open,
@@ -314,6 +317,10 @@ export function DcompFormModal({
   const nrPerOrig = form.watch('nr_per_orig');
   const mesAnoFromForm = dtEnvio ? dtEnvio.substring(0, 7) : '';
 
+  // Snapshot do dt_envio originalmente gravado, para detectar mudança em modo edição.
+  const dtEnvioOriginal = editData?.dt_envio ?? null;
+  const dtEnvioMudou = isEditing && !!dtEnvioOriginal && dtEnvio !== dtEnvioOriginal;
+
   // Rateio Atualizado/Original — depende da dt_envio (carência) e do fator SELIC vigente nessa data
   const perSelecionado = pers.find((p) => p.nr_per === nrPerOrig);
   const dtSolicitadaPer = perSelecionado?.dt_solicitada || null;
@@ -378,13 +385,29 @@ export function DcompFormModal({
       .delete()
       .eq('nr_documento', nrDocumento);
     if (delErr) throw delErr;
-    const rows = distribuicoes.map((l) => ({
-      nr_documento: nrDocumento,
-      tributo: l.tributo,
-      valor_tributo: l.valor_tributo,
-      valor_original: round2(l.valor_tributo * proporcaoOriginal),
-      competencia: normalizeMesAno(l.competencia),
-    }));
+    const rows = distribuicoes.map((l) => {
+      const linhaOriginal = isEditing && l.id
+        ? distribuicoesExistentes.find((o) => o.id === l.id)
+        : undefined;
+      const valorTributoMudou = linhaOriginal
+        ? toCents(linhaOriginal.valor_tributo) !== toCents(l.valor_tributo)
+        : true; // linha nova → recalcular
+      const preservar =
+        isEditing &&
+        !dtEnvioMudou &&
+        !valorTributoMudou &&
+        l.valor_original != null;
+      const valor_original_final = preservar
+        ? (l.valor_original as number)
+        : round2(l.valor_tributo * proporcaoOriginal);
+      return {
+        nr_documento: nrDocumento,
+        tributo: l.tributo,
+        valor_tributo: l.valor_tributo,
+        valor_original: valor_original_final,
+        competencia: normalizeMesAno(l.competencia),
+      };
+    });
     if (rows.length > 0) {
       const { error: insErr } = await (supabase.from('distribuicao_dcomp') as any).insert(rows);
       if (insErr) throw insErr;
@@ -671,7 +694,22 @@ export function DcompFormModal({
                   const k = linha.id || `local-${idx}`;
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
-                  const valorOriginalLinha = round2((linha.valor_tributo || 0) * proporcaoOriginal);
+                  const linhaOriginalUI = isEditing && linha.id
+                    ? distribuicoesExistentes.find((o) => o.id === linha.id)
+                    : undefined;
+                  const valorTributoMudouUI = linhaOriginalUI
+                    ? toCents(linhaOriginalUI.valor_tributo) !== toCents(linha.valor_tributo || 0)
+                    : true;
+                  const preservadoUI =
+                    isEditing &&
+                    linha.valor_original != null &&
+                    !dtEnvioMudou &&
+                    !valorTributoMudouUI;
+                  const valorOriginalLinha = preservadoUI
+                    ? (linha.valor_original as number)
+                    : round2((linha.valor_tributo || 0) * proporcaoOriginal);
+                  const exibirValorOriginal =
+                    isEditing && linha.valor_original == null && !valorTributoMudouUI && !dtEnvioMudou;
                   return (
                     <div key={k} className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
                       <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
@@ -695,8 +733,9 @@ export function DcompFormModal({
                         className="h-9 bg-muted/40"
                         readOnly
                         tabIndex={-1}
-                        value={formatCurrencyDisplay(valorOriginalLinha)}
+                        value={exibirValorOriginal ? '—' : formatCurrencyDisplay(valorOriginalLinha)}
                       />
+
                       <Input
                         className={cn("h-9", competenciaInvalida && "border-destructive")}
                         type="text"

@@ -1,38 +1,74 @@
-# Plano: Espelhar dados de acesso e capturar atribuição de tickets
+## Objetivo
 
-Aplicar 2 migrações idempotentes no Supabase para alimentar o dashboard externo de BigQuery. Sem Edge Functions, sem alterar schema `auth`, sem mexer em RLS.
+1. Adicionar colunas `valor_original` em `distribuicao_dcomp` e `vlr_ressarcido_original` em `per` (NULL, sem backfill).
+2. Em `DcompFormModal.tsx`, congelar `valor_original` por linha em modo edição, recalculando somente quando `dt_envio` ou `valor_tributo` da linha mudarem.
 
-## Migração 1 — `profiles`: primeiro acesso + último login
+## Parte 1 — Migration
 
-**Schema (`public.profiles`)**
-- `first_access_done BOOLEAN DEFAULT FALSE`
-- `first_access_at TIMESTAMPTZ`
-- `last_sign_in_at TIMESTAMPTZ`
-- Índice `idx_profiles_first_access_done` em `(first_access_done)`
+```sql
+ALTER TABLE public.distribuicao_dcomp
+  ADD COLUMN IF NOT EXISTS valor_original NUMERIC(18,2) NULL;
 
-**Função `public.sync_profile_access_state()`** (SECURITY DEFINER, `search_path=public`)
-- Quando `must_change_password` muda de `TRUE` → `FALSE`/ausente: marca `first_access_done = TRUE` e seta `first_access_at = COALESCE(first_access_at, NOW())`.
-- Quando `NEW.last_sign_in_at IS DISTINCT FROM OLD.last_sign_in_at`: copia para `profiles.last_sign_in_at`.
+ALTER TABLE public.per
+  ADD COLUMN IF NOT EXISTS vlr_ressarcido_original NUMERIC(18,2) NULL;
+```
 
-**Trigger** `trg_sync_profile_access_state` — `AFTER UPDATE ON auth.users FOR EACH ROW`.
+- Nullable, sem CHECK / trigger / view / RLS / backfill.
+- `src/integrations/supabase/types.ts` é regenerado automaticamente após aplicar.
 
-**Backfill** lendo `auth.users.raw_user_meta_data->>'must_change_password'`, `last_sign_in_at`, `created_at` conforme spec.
+## Parte 2 — `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`
 
-## Migração 2 — `tickets`: momento de atribuição
+### Tipo (linha 87)
+- `DistribuicaoLinha`: adicionar `valor_original?: number | null`.
 
-**Schema (`public.tickets`)**
-- `assigned_at TIMESTAMPTZ`
+### Query `dcomp-distribuicoes` (linha 194)
+- Incluir `valor_original` no `SELECT`.
+- No mapping: `valor_original: r.valor_original != null ? Number(r.valor_original) : null`.
 
-**Backfill** conservador: `assigned_at = created_at` onde `assigned_to IS NOT NULL AND assigned_at IS NULL`.
+### Snapshot do `dt_envio` original
+- Novo `useMemo` `dtEnvioOriginal = editData?.dt_envio ?? null` (somente em modo edição).
+- Comparar com `form.watch('dt_envio')` para detectar mudança de data.
 
-**Função `public.capture_ticket_assignment()`** (plpgsql)
-- `BEFORE UPDATE OF assigned_to`: se `NEW.assigned_to IS NOT NULL`, mudou em relação a `OLD.assigned_to`, e `NEW.assigned_at IS NULL` → seta `NEW.assigned_at = NOW()`.
+### `persistirDistribuicoes` (linha 375)
+- Manter o padrão atual de delete+insert (escopo pedido pelo usuário: "Linhas inalteradas mantêm o valor_original do banco intacto no reinsert").
+- Para cada linha, calcular `valor_original_final`:
+  ```
+  const dtEnvioMudou = isEditing && dtEnvioOriginal && form.getValues('dt_envio') !== dtEnvioOriginal;
+  const linhaOriginal = isEditing
+    ? distribuicoesExistentes.find(o => o.id === l.id)
+    : undefined;
+  const valorTributoMudou = linhaOriginal
+    ? toCents(linhaOriginal.valor_tributo) !== toCents(l.valor_tributo)
+    : true; // linha nova → recalcular
+  const preservar =
+    isEditing &&
+    !dtEnvioMudou &&
+    !valorTributoMudou &&
+    l.valor_original != null;
+  const valor_original_final = preservar
+    ? l.valor_original
+    : round2(l.valor_tributo * proporcaoOriginal);
+  ```
+- Modo criação (`!isEditing`): sempre recalcula (comportamento atual).
 
-**Trigger** `trg_capture_ticket_assignment` — `BEFORE UPDATE OF assigned_to ON public.tickets FOR EACH ROW`.
+### Coluna "Valor Original" (linha 660 / render linha 674)
+- Calcular por linha:
+  ```
+  const preservadoUI = isEditing &&
+    linha.valor_original != null &&
+    !dtEnvioMudou &&
+    (linhaOriginalUI ? toCents(linhaOriginalUI.valor_tributo) === toCents(linha.valor_tributo) : false);
+  const valorExibir = preservadoUI ? linha.valor_original : round2((linha.valor_tributo || 0) * proporcaoOriginal);
+  ```
+- Legadas (`valor_original == null`) sem alteração: exibir "—".
 
-## Garantias
+### Seed do estado (linha 298)
+- `setDistribuicoes(distribuicoesExistentes)` já vai carregar `valor_original` (após inclusão no mapping). Sem outras mudanças.
 
-- Idempotência: `ADD COLUMN IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, `DROP TRIGGER IF EXISTS` antes de `CREATE TRIGGER`.
-- Sem mudanças em RLS de `profiles` ou `tickets`.
-- Nenhum arquivo de código (`src/integrations/supabase/*`, `supabase/config.toml`, `components.json`) será tocado — apenas SQL via migrations.
-- `src/integrations/supabase/types.ts` será regenerado automaticamente após aprovação das migrações.
+## Arquivos tocados
+- Migration SQL (nova).
+- `src/components/equipe/dev/perdcomp/DcompFormModal.tsx`.
+- `src/integrations/supabase/types.ts` (regenerado pelo Cloud).
+
+## Não tocar
+- `PerDetailModal.tsx`, `selicCalculator.ts`, `useSelicTaxaAt.ts`.

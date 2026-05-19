@@ -1162,6 +1162,7 @@ export type Database = {
           id: string
           nr_documento: string
           tributo: string
+          valor_original: number | null
           valor_tributo: number
         }
         Insert: {
@@ -1173,6 +1174,7 @@ export type Database = {
           id?: string
           nr_documento: string
           tributo: string
+          valor_original?: number | null
           valor_tributo?: number
         }
         Update: {
@@ -1184,6 +1186,7 @@ export type Database = {
           id?: string
           nr_documento?: string
           tributo?: string
+          valor_original?: number | null
           valor_tributo?: number
         }
         Relationships: [
@@ -2597,6 +2600,7 @@ export type Database = {
           tri_exercicio: number
           vlr_credito: number
           vlr_ressarcido: number | null
+          vlr_ressarcido_original: number | null
         }
         Insert: {
           atualizado_em?: string | null
@@ -2615,6 +2619,7 @@ export type Database = {
           tri_exercicio: number
           vlr_credito: number
           vlr_ressarcido?: number | null
+          vlr_ressarcido_original?: number | null
         }
         Update: {
           atualizado_em?: string | null
@@ -2633,6 +2638,7 @@ export type Database = {
           tri_exercicio?: number
           vlr_credito?: number
           vlr_ressarcido?: number | null
+          vlr_ressarcido_original?: number | null
         }
         Relationships: [
           {
