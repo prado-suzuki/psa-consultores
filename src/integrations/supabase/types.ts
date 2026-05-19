@@ -2055,6 +2055,9 @@ export type Database = {
           id_servico: string | null
           numero_os: string | null
           observacoes: string | null
+          regiao: string | null
+          setor_cliente: string | null
+          setor_cliente_id: string | null
           situacao: string | null
           updated_at: string | null
           valor_projeto: number | null
@@ -2074,6 +2077,9 @@ export type Database = {
           id_servico?: string | null
           numero_os?: string | null
           observacoes?: string | null
+          regiao?: string | null
+          setor_cliente?: string | null
+          setor_cliente_id?: string | null
           situacao?: string | null
           updated_at?: string | null
           valor_projeto?: number | null
@@ -2093,6 +2099,9 @@ export type Database = {
           id_servico?: string | null
           numero_os?: string | null
           observacoes?: string | null
+          regiao?: string | null
+          setor_cliente?: string | null
+          setor_cliente_id?: string | null
           situacao?: string | null
           updated_at?: string | null
           valor_projeto?: number | null
@@ -2119,6 +2128,13 @@ export type Database = {
             columns: ["id_servico"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordem_servico_setor_cliente_id_fkey"
+            columns: ["setor_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "setor_cliente"
             referencedColumns: ["id"]
           },
         ]
@@ -4770,6 +4786,23 @@ export type Database = {
       }
     }
     Views: {
+      cliente_setor_regiao_atual: {
+        Row: {
+          id_cliente: string | null
+          regiao: string | null
+          setor_cliente: string | null
+          setor_cliente_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordem_servico_setor_cliente_id_fkey"
+            columns: ["setor_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "setor_cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       per_with_contribuinte: {
         Row: {
           atualizado_em: string | null
@@ -4855,6 +4888,9 @@ export type Database = {
           id_servico: string | null
           numero_os: string | null
           observacoes: string | null
+          regiao: string | null
+          setor_cliente: string | null
+          setor_cliente_id: string | null
           situacao: string | null
           updated_at: string | null
           valor_projeto: number | null
