@@ -132,3 +132,23 @@ ALTER TABLE public.cliente
 - `src/components/equipe/audit/auditFieldFormatter.ts` (labels seguem válidos)
 - `src/hooks/useSetorCliente.ts` (lê tabela dimensão)
 - Modal de cadastro (`NewClientModal`, `ClienteTab`, `ContratosTab`, `useSaveClientTransaction`, `useClientEditData`, `client-form/constants.ts`, `types/clientForm.ts`) — já adaptado.
+
+---
+
+## Status
+
+### Fase 1 — CONCLUÍDA ✅
+
+- [x] Migration 1a/1b/1c aplicada (colunas + índices + view com `security_invoker=true`).
+- [x] Backfill aplicado (sem sobrescrever valores existentes em OS).
+- [x] `useDevClients.ts` — `useClientesList` e `useExternalClients` enriquecidos via view.
+- [x] `useFiscalClients.ts` — `useFiscalClientsList` enriquecido via view.
+- [x] `useGestaoClientes.ts` — `useClientesFiltrados` enriquecido via view.
+- [x] `useTaxReferenceData.ts` — `useExternalClients` enriquecido via view.
+- [x] `GerenciarDados.tsx` — `setor_cliente` removido do importador CSV (parse, doc, template).
+- [x] `sync-cadastros/index.ts` — `setor_cliente` removido da interface `Cliente`.
+- [x] `useSaveClientTransaction.ts:542` — `setor_cliente_id` adicionado ao audit `osFields`.
+
+### Fase 2 — PENDENTE
+
+Aguardando validação em produção da Fase 1 antes do DROP.
