@@ -752,8 +752,10 @@ export default function ControlePerdcomp() {
                 paginatedData.map((item: any) => {
                   const situacaoInfo = perSituacoesMap[item.nr_per];
                   const totalCompensado = dcompTotalMap[item.nr_per] || 0;
+                  const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalCompensado;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100);
+                  const valorRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valorRessarcido;
+                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalOriginal - valorRessarcidoOriginal) * 100) / 100);
                   const correction = selicCorrectionMap[item.nr_per];
 
                   return (
