@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { usePisCofinsApuracao } from "@/hooks/usePisCofinsApuracao";
 import { usePisCofinsCalculator } from "@/hooks/usePisCofinsCalculator";
+import { usePisCofinsImportStatus } from "@/hooks/usePisCofinsImportStatus";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
 import { ApuracaoDataTable } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import { BalanceteTreeTable } from "@/components/equipe/dev/pis-cofins/BalanceteTreeTable";
@@ -362,6 +363,35 @@ const ApuracaoPisCofins = () => {
 
   const hasData = resultados.length > 0;
 
+  // A apuração só retorna dados se o contribuinte tem AMBOS — EFD Contribuições
+  // e Balancete — importados cobrindo o período consultado. Quando a apuração
+  // volta vazia, checamos cada fonte separadamente para apontar com precisão o
+  // documento ausente.
+  const shouldCheckImports =
+    searchTriggered && !!committedContribuinte && !isLoading && !error && !hasData;
+
+  const { hasEfd, hasBalancete, ready: importsChecked } = usePisCofinsImportStatus({
+    idContribuinte: committedContribuinte,
+    dtIni: committedDataInicio,
+    dtFim: committedDataFim,
+    enabled: shouldCheckImports,
+  });
+
+  const emptyStateMessage = useMemo(() => {
+    const fallback = "Nenhum dado encontrado para os filtros selecionados.";
+    if (!shouldCheckImports || !importsChecked) return fallback;
+    if (!hasEfd && !hasBalancete) {
+      return "Apuração indisponível: nem a EFD Contribuições nem o Balancete deste contribuinte foram importados para o período selecionado. Importe ambos os documentos e refaça a consulta.";
+    }
+    if (!hasEfd) {
+      return "Apuração indisponível: a EFD Contribuições deste contribuinte não foi importada para o período selecionado. Importe o arquivo e refaça a consulta.";
+    }
+    if (!hasBalancete) {
+      return "Apuração indisponível: o Balancete deste contribuinte não foi importado para o período selecionado. Importe o arquivo e refaça a consulta.";
+    }
+    return fallback;
+  }, [shouldCheckImports, importsChecked, hasEfd, hasBalancete]);
+
   // ── Handlers ──
   const handleSearch = () => {
     if (!selectedContribuinte) {
@@ -675,7 +705,14 @@ const ApuracaoPisCofins = () => {
             </div>
           ) : !hasData ? (
             <div className="bg-card rounded-xl shadow-sm p-8 text-center">
-              <p className="text-sm text-muted-foreground">Nenhum dado encontrado para os filtros selecionados.</p>
+              {shouldCheckImports && !importsChecked ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Verificando documentos importados...</span>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">{emptyStateMessage}</p>
+              )}
             </div>
           ) : (
             <>
