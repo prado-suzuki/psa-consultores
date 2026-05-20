@@ -6,6 +6,7 @@ export interface FiscalDashProject {
   name: string;
   status: string | null;
   estrutura_area_id: string | null;
+  equipe_id: string | null;
   external_client_id: string | null;
   contribuinte_id: string | null;
 }
@@ -34,7 +35,7 @@ export function useFiscalDashProjects() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('org_projects')
-        .select('id, name, status, estrutura_area_id, external_client_id, contribuinte_id')
+        .select('id, name, status, estrutura_area_id, equipe_id, external_client_id, contribuinte_id')
         .order('name');
       if (error) throw error;
       return (data ?? []) as FiscalDashProject[];

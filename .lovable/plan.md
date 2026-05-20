@@ -1,156 +1,77 @@
-# Migração em 2 fases: `regiao`/`setor_cliente`/`setor_cliente_id` → `ordem_servico`
+# Correção do bug de duplicação de tributos no DCOMP
 
-## Contexto verificado
+## 1. Causa raiz
 
-- Modal já grava esses 3 campos em `ordem_servico` (`useSaveClientTransaction.ts:391–393`) e lê de OS (`useClientEditData.ts:208–210`).
-- **Colunas ainda NÃO existem em `ordem_servico`** → cadastro/edição de cliente está quebrado até a Fase 1 rodar.
-- Banco: 72 clientes com dados; **19 sem nenhuma OS ativa** (perda controlada no DROP).
-- Nenhuma view/índice/policy em `cliente` referencia essas colunas. DROP é seguro.
+Em `DcompFormModal.persistirDistribuicoes` o save executa:
 
----
-
-## FASE 1 — Não destrutiva (desbloqueia o frontend)
-
-### 1a. Adicionar colunas em `ordem_servico`
-
-```sql
-ALTER TABLE public.ordem_servico
-  ADD COLUMN IF NOT EXISTS regiao           text,
-  ADD COLUMN IF NOT EXISTS setor_cliente    text,
-  ADD COLUMN IF NOT EXISTS setor_cliente_id uuid REFERENCES public.setor_cliente(id);
-
-CREATE INDEX IF NOT EXISTS idx_ordem_servico_regiao           ON public.ordem_servico(regiao);
-CREATE INDEX IF NOT EXISTS idx_ordem_servico_setor_cliente_id ON public.ordem_servico(setor_cliente_id);
+```text
+DELETE FROM distribuicao_dcomp WHERE nr_documento = X
+INSERT INTO distribuicao_dcomp (...) VALUES (linhas atuais)
 ```
 
-### 1b. Backfill OS ← cliente (apenas OS ativas, sem sobrescrever)
+A política de RLS de DELETE (migration `20260511140117_...sql`) exige `lider+`:
 
 ```sql
-UPDATE public.ordem_servico os
-SET regiao           = COALESCE(os.regiao,           c.regiao),
-    setor_cliente    = COALESCE(os.setor_cliente,    c.setor_cliente),
-    setor_cliente_id = COALESCE(os.setor_cliente_id, c.setor_cliente_id)
-FROM public.cliente c
-WHERE os.id_cliente = c.id
-  AND os.excluido = false
-  AND (c.regiao IS NOT NULL OR c.setor_cliente IS NOT NULL OR c.setor_cliente_id IS NOT NULL);
+CREATE POLICY rls_distribuicao_dcomp_delete ON distribuicao_dcomp
+  FOR DELETE USING (has_role_or_higher(auth.uid(), 'lider'::app_role));
 ```
 
-### 1c. View `cliente_setor_regiao_atual` (valor da OS mais recente)
+- INSERT: liberado para `team_member+`.
+- DELETE: somente `lider+`.
+
+Para `team_member`/`sublider`, o DELETE retorna sucesso com 0 linhas afetadas (RLS filtra silenciosamente, sem erro). O INSERT subsequente adiciona uma nova cópia de cada linha → **a cada save o rateio duplica**, mesmo `dcomp.vlr_compensado` ficando correto. Por isso a divergência aparece só no somatório dos tributos do `PerDetailModal`.
+
+## 2. Correção (escopo deste plano)
+
+Atacamos apenas o bug. Backfills, dedup do que já está duplicado e refator para upsert/diff ficam fora deste plano.
+
+### 2.1 Migration — RLS de DELETE/INSERT/UPDATE para `sublider+`
 
 ```sql
-CREATE OR REPLACE VIEW public.cliente_setor_regiao_atual AS
-SELECT DISTINCT ON (os.id_cliente)
-  os.id_cliente,
-  os.setor_cliente,
-  os.setor_cliente_id,
-  os.regiao,
-  os.ambiente
-FROM public.ordem_servico os
-WHERE os.excluido = false
-ORDER BY os.id_cliente, os.data_emissao DESC NULLS LAST, os.created_at DESC;
+DROP POLICY IF EXISTS rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp;
+DROP POLICY IF EXISTS rls_distribuicao_dcomp_insert ON public.distribuicao_dcomp;
+DROP POLICY IF EXISTS rls_distribuicao_dcomp_update ON public.distribuicao_dcomp;
+
+CREATE POLICY rls_distribuicao_dcomp_insert ON public.distribuicao_dcomp
+  FOR INSERT WITH CHECK (has_role_or_higher(auth.uid(), 'sublider'::app_role));
+
+CREATE POLICY rls_distribuicao_dcomp_update ON public.distribuicao_dcomp
+  FOR UPDATE USING (has_role_or_higher(auth.uid(), 'sublider'::app_role))
+  WITH CHECK (has_role_or_higher(auth.uid(), 'sublider'::app_role));
+
+CREATE POLICY rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp
+  FOR DELETE USING (has_role_or_higher(auth.uid(), 'sublider'::app_role));
 ```
 
-### 1d. Refatoração de código (após migration aprovada)
+Assim `sublider`/`lider`/`admin` conseguem criar e deletar (mantendo o delete+insert atual funcionando sem duplicar). `team_member` perde escrita aqui, e isso é tratado na UI.
 
-- `src/hooks/useDevClients.ts` — interface `ClienteListItem` (linhas 17–28) e selects (80, 86, 92): trocar leitura de `cliente.setor_cliente/regiao` por embed da view `cliente_setor_regiao_atual`.
-- `src/hooks/useFiscalClients.ts` — `Cliente.setor_cliente` (linha 10).
-- `src/hooks/useGestaoClientes.ts` — `ClienteFiltrado.setor_cliente` (linha 32) em `useClientesFiltrados`.
-- `src/hooks/useTaxReferenceData.ts:119` — `.select('id, nome, setor_cliente')` → join com view.
-- `src/pages/equipe/fiscal/GestaoClientes.tsx:356` e `src/components/equipe/fiscal/FiscalClients.tsx:92,94` — se os hooks mantiverem o mesmo shape (`setor_cliente` no objeto), o JSX não muda.
-- `src/pages/equipe/dev/GerenciarDados.tsx` — remover `setor_cliente` do importador CSV em 3 pontos: linha 100 (parse), 251 (texto), 423 (template).
-- `supabase/functions/sync-cadastros/index.ts` — remover `setor_cliente: string | null` da interface `Cliente` (~linha 19).
-- `src/hooks/useSaveClientTransaction.ts:542` — adicionar `'setor_cliente_id'` ao array `osFields` (atualmente só tem `setor_cliente` e `regiao`) para o audit log capturar mudanças do UUID.
+### 2.2 Guard no `DcompFormModal`
 
-### Critérios de aceite Fase 1
+Para `team_member` (ou qualquer role abaixo de `sublider`), o modal não pode submeter — caso contrário cairíamos no mesmo bug (DELETE silenciosamente bloqueado pela RLS + INSERT duplicando).
 
-- [ ] OS tem as 3 colunas + 2 índices + view criada.
-- [ ] Backfill aplicado: 100% das OS ativas com cliente-pai populado herdaram valores.
-- [ ] Cadastro/edição de cliente no modal grava e lê sem erro (smoke test em dev).
-- [ ] Listagens em `GestaoClientes` e `FiscalClients` continuam exibindo Área do Negócio / Região (vindas da view).
-- [ ] Importador CSV não menciona mais `setor_cliente`.
-- [ ] `osFields` no audit inclui `setor_cliente_id`.
-- [ ] Edge `sync-cadastros` não exporta mais `setor_cliente`.
-- [ ] `types.ts` regenerado, typecheck verde.
+Comportamento:
 
----
+- Ler do `useAuth` o flag `isSublider || isLider || isAdmin`.
+- Se o usuário **não** atender (ex.: `team_member`), no `onSubmit` exibir `toast.error('Você não tem permissão para editar/excluir este DCOMP')` e abortar antes das mutations.
+- Desabilitar o botão "Salvar" com tooltip equivalente para deixar claro na UI, mas manter a mensagem no submit como salvaguarda.
+- Aplicar o mesmo bloqueio no botão de excluir DCOMP (`SoftDeleteModal`) — coerente com o nível mínimo de escrita.
 
-## FASE 2 — Destrutiva (DROP em `cliente`)
+### 2.3 Não faremos agora
 
-Pré-requisito: Fase 1 estável em produção por pelo menos 1 ciclo de uso (cadastros validados).
+- Deduplicar linhas já duplicadas em `distribuicao_dcomp`.
+- Backfill de `valor_original` para DCOMPs antigos.
+- Backfill de rateio sintético para DCOMPs sem `distribuicao_dcomp`.
+- Refator de `persistirDistribuicoes` para upsert/diff (fica como follow-up recomendado, pois o padrão do projeto proíbe delete+insert).
 
-### 2a. Log dos 19 clientes sem OS (perda explícita aceita)
+## 3. Arquivos
 
-Migration com bloco `DO $$ ... $$` para emitir `RAISE NOTICE` listando IDs/nomes afetados antes do DROP — fica registrado nos logs da migration.
+- `supabase/migrations/<novo>.sql` — ajuste das 3 policies.
+- `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` — guard de role no submit + botão desabilitado + toast.
+- `src/components/equipe/dev/perdcomp/SoftDeleteModal.tsx` — mesmo guard no confirm.
 
-```sql
-DO $$
-DECLARE
-  r RECORD;
-  total int := 0;
-BEGIN
-  FOR r IN
-    SELECT c.id, c.nome, c.regiao, c.setor_cliente, c.setor_cliente_id
-    FROM public.cliente c
-    WHERE (c.regiao IS NOT NULL OR c.setor_cliente IS NOT NULL OR c.setor_cliente_id IS NOT NULL)
-      AND NOT EXISTS (
-        SELECT 1 FROM public.ordem_servico os
-        WHERE os.id_cliente = c.id AND os.excluido = false
-      )
-  LOOP
-    total := total + 1;
-    RAISE NOTICE 'Cliente sem OS — perda no DROP: id=% nome=% regiao=% setor=% setor_id=%',
-      r.id, r.nome, r.regiao, r.setor_cliente, r.setor_cliente_id;
-  END LOOP;
-  RAISE NOTICE 'Total de clientes com perda de dado: %', total;
-END $$;
-```
+## 4. Validação
 
-### 2b. DROP das colunas em `cliente`
-
-```sql
-ALTER TABLE public.cliente
-  DROP COLUMN IF EXISTS regiao,
-  DROP COLUMN IF EXISTS setor_cliente,
-  DROP COLUMN IF EXISTS setor_cliente_id;
-```
-
-### Critérios de aceite Fase 2
-
-- [ ] Lista dos 19 clientes registrada nos logs da migration.
-- [ ] DROP executa sem erro.
-- [ ] `types.ts` regenerado, typecheck verde, nenhuma referência residual a `cliente.setor_cliente|regiao|setor_cliente_id` (rodar `rg` no projeto).
-- [ ] App segue funcional (modal, listagens, importador CSV, sync-cadastros).
-
----
-
-## Fora de escopo (confirmado, não tocar)
-
-- `src/integrations/supabase/types.ts` (autogerado)
-- `src/pages/equipe/dev/CorrecoesSped.tsx:669` (usa `contribuinte.setor_cliente_id`)
-- `supabase/functions/dw-query/index.ts:10` (`'setor_cliente'` é nome de tabela dimensão)
-- `src/components/equipe/audit/auditFieldFormatter.ts` (labels seguem válidos)
-- `src/hooks/useSetorCliente.ts` (lê tabela dimensão)
-- Modal de cadastro (`NewClientModal`, `ClienteTab`, `ContratosTab`, `useSaveClientTransaction`, `useClientEditData`, `client-form/constants.ts`, `types/clientForm.ts`) — já adaptado.
-
----
-
-## Status
-
-### Fase 1 — CONCLUÍDA ✅
-
-- [x] Migration 1a/1b/1c aplicada (colunas + índices + view com `security_invoker=true`).
-- [x] Backfill aplicado (sem sobrescrever valores existentes em OS).
-- [x] `useDevClients.ts` — `useClientesList` e `useExternalClients` enriquecidos via view.
-- [x] `useFiscalClients.ts` — `useFiscalClientsList` enriquecido via view.
-- [x] `useGestaoClientes.ts` — `useClientesFiltrados` enriquecido via view.
-- [x] `useTaxReferenceData.ts` — `useExternalClients` enriquecido via view.
-- [x] `GerenciarDados.tsx` — `setor_cliente` removido do importador CSV (parse, doc, template).
-- [x] `sync-cadastros/index.ts` — `setor_cliente` removido da interface `Cliente`.
-- [x] `useSaveClientTransaction.ts:542` — `setor_cliente_id` adicionado ao audit `osFields`.
-
-### Fase 2 — CONCLUÍDA ✅
-
-- [x] Bloco `DO $$` com `RAISE NOTICE` listou os clientes com perda antes do DROP.
-- [x] `ALTER TABLE public.cliente DROP COLUMN regiao, setor_cliente, setor_cliente_id` executado.
-- [x] `types.ts` regenerado; hooks `useDevClients`/`useFiscalClients` ajustados (cast `unknown` + default `null`) já que essas colunas não existem mais em `cliente`.
+1. `team_member` abrir o modal → "Salvar" desabilitado; tentar submeter (via dev tools) → toast de erro, nada gravado.
+2. `sublider` salvar um DCOMP existente sem alterar → contagem de linhas em `distribuicao_dcomp` para aquele `nr_documento` permanece igual antes/depois.
+3. `sublider` criar novo DCOMP com 2 tributos → exatamente 2 linhas em `distribuicao_dcomp`.
+4. Soma dos `valor_tributo` no `PerDetailModal` = `dcomp.vlr_compensado` após cada save.

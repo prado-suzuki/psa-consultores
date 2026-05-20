@@ -15,6 +15,7 @@ import {
 import { format, differenceInDays, startOfDay, subDays, eachDayOfInterval, addDays } from 'date-fns';
 import { statusList } from '@/lib/taskStatusColors';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
+import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import {
   useFiscalDashProjects,
   useFiscalDashTasks,
@@ -41,6 +42,7 @@ const FiscalDashboard = () => {
   const { data: contribuintes = [] } = useFiscalDashContribuintes();
   const { data: clientNames = [] } = useFiscalDashClientNames();
   const { data: areas = [] } = useEstruturaAreas('tax');
+  const { data: equipes = [] } = useEstruturaEquipesByCategory('tax');
   const { data: members = [] } = useTeamProfilesSafe();
 
   const isLoading = loadingProjects || loadingTasks;
@@ -53,13 +55,13 @@ const FiscalDashboard = () => {
   const [filterTaskStatus, setFilterTaskStatus] = useState<string>(ALL);
   const [filterProjectStatus, setFilterProjectStatus] = useState<string>(ALL);
   const [filterMember, setFilterMember] = useState<string>(ALL);
-  const [filterArea, setFilterArea] = useState<string>(ALL);
+  const [filterEquipe, setFilterEquipe] = useState<string>(ALL);
   const [filterUrgency, setFilterUrgency] = useState<UrgencyFilter>(ALL);
 
   const activeFiltersCount = [
     filterStartDate, filterEndDate,
     filterClient, filterProject, filterTaskStatus, filterProjectStatus,
-    filterMember, filterArea, filterUrgency,
+    filterMember, filterEquipe, filterUrgency,
   ].filter(v => v && v !== ALL).length;
 
   const handleClearFilters = () => {
@@ -70,7 +72,7 @@ const FiscalDashboard = () => {
     setFilterTaskStatus(ALL);
     setFilterProjectStatus(ALL);
     setFilterMember(ALL);
-    setFilterArea(ALL);
+    setFilterEquipe(ALL);
     setFilterUrgency(ALL);
   };
 
@@ -107,10 +109,10 @@ const FiscalDashboard = () => {
     return projects.filter(p => {
       if (filterProjectStatus !== ALL && p.status !== filterProjectStatus) return false;
       if (filterProject !== ALL && p.id !== filterProject) return false;
-      if (filterArea !== ALL && p.estrutura_area_id !== filterArea) return false;
+      if (filterEquipe !== ALL && p.equipe_id !== filterEquipe) return false;
       return true;
     });
-  }, [projects, filterProjectStatus, filterProject, filterArea]);
+  }, [projects, filterProjectStatus, filterProject, filterEquipe]);
 
   const filteredProjectIds = useMemo(
     () => new Set(filteredProjects.map(p => p.id)),
@@ -119,9 +121,9 @@ const FiscalDashboard = () => {
 
   const filteredTasks = useMemo(() => {
     return tasks.filter(t => {
-      // Projeto & derivados (área, status de projeto)
+      // Projeto & derivados (equipe, status de projeto)
       if (filterProject !== ALL && t.project_id !== filterProject) return false;
-      if (filterProjectStatus !== ALL || filterArea !== ALL) {
+      if (filterProjectStatus !== ALL || filterEquipe !== ALL) {
         if (!t.project_id || !filteredProjectIds.has(t.project_id)) return false;
       }
 
@@ -160,7 +162,7 @@ const FiscalDashboard = () => {
     });
   }, [
     tasks, filteredProjectIds, contribuinteToClient, projectMap,
-    filterProject, filterProjectStatus, filterArea, filterClient,
+    filterProject, filterProjectStatus, filterEquipe, filterClient,
     filterTaskStatus, filterMember, filterStartDate, filterEndDate, filterUrgency,
   ]);
 
@@ -302,7 +304,7 @@ const FiscalDashboard = () => {
   const sortedMembers = useMemo(() =>
     [...members].sort((a, b) => (`${a.first_name || ''}`).localeCompare(`${b.first_name || ''}`)),
   [members]);
-  const sortedAreas = useMemo(() => [...areas].sort((a, b) => a.name.localeCompare(b.name)), [areas]);
+  const sortedEquipes = useMemo(() => [...equipes].sort((a, b) => a.name.localeCompare(b.name)), [equipes]);
 
   return (
     <FiscalLayout title="Dashboard" subtitle="Visão geral da área fiscal — atualizado em tempo real">
@@ -430,13 +432,13 @@ const FiscalDashboard = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Área Fiscal</Label>
-                <Select value={filterArea} onValueChange={setFilterArea}>
+                <Label className="text-[11px] text-slate-500">Equipe Fiscal</Label>
+                <Select value={filterEquipe} onValueChange={setFilterEquipe}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={ALL}>Todas as áreas</SelectItem>
-                    {sortedAreas.map(a => (
-                      <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                    <SelectItem value={ALL}>Todas as equipes</SelectItem>
+                    {sortedEquipes.map(e => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
