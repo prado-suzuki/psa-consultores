@@ -747,11 +747,11 @@ export default function ControlePerdcomp() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
-                                  {formatCurrency(correction.valorCorrigido)}
+                                  {formatCurrency(saldo * correction.fator)}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Fator Selic: {correction.fator.toFixed(6)}</p>
+                                <p>Parcela SELIC em R$ — Fator: {correction.fator.toFixed(6)}</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : (
