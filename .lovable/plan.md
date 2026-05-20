@@ -42,20 +42,13 @@ Quando a `dt_envio` estiver dentro da carência (360 dias após `dt_solicitada`)
 
 ### Implementação
 
-Criar uma Edge Function `backfill-dcomp-valor-original` (service role) que:
+Atualização **única** via migration SQL — sem botão, sem hook, sem Edge Function. Daqui pra frente todo DCOMP novo já grava `valor_original` na inserção (lógica já existente no `DcompFormModal`).
 
-1. Lista DCOMPs ativos com pelo menos uma linha `valor_original IS NULL`.
-2. Para cada DCOMP, busca a `dt_solicitada` do PER pai.
-3. Reaproveita o cálculo SELIC já existente (mesma API/regra usada em `useSelicTaxaAt` e `selicCalculator`) para obter o fator vigente em `dt_envio`.
-4. Faz `UPDATE` linha a linha em `distribuicao_dcomp` preenchendo `valor_original` (usando upsert/update seletivo — sem delete+insert).
-5. Retorna um resumo `{ dcomps_processados, linhas_atualizadas, erros }`.
+A migration faz um único `UPDATE` em `distribuicao_dcomp` onde `valor_original IS NULL`, com join em `dcomp` e `per` (filtrando os não excluídos), aplicando:
 
-Gatilho: botão **"Backfill Valor Original"** visível só para admin/líder no header da página `ControlePerdcomp`, com confirmação e toast de progresso. Execução idempotente — rodar várias vezes não altera linhas já preenchidas.
+- Se `dcomp.dt_envio <= per.dt_solicitada + 360 dias` (carência): `valor_original = valor_tributo`.
+- Caso contrário, como o fator SELIC histórico não está armazenado no banco e não há como chamar a API SELIC em SQL, manter `valor_original = valor_tributo` para esses casos legados (mesmo fallback usado hoje na UI quando o fator não está disponível).
 
-## Detalhes técnicos
+Sem mudanças de schema, sem alteração de RLS, sem novos componentes.
 
-- Manter padrão: nenhuma chamada Supabase nova em componente; encapsular em hook (`useBackfillValorOriginal`).
-- Auditar a operação de backfill via `useAuditLog` no acionamento do botão.
-- A Edge Function deve validar JWT (`supabase.auth.getUser()`) e checar `has_role_or_higher(uid, 'lider')`.
-- Não alterar RLS — a função usa service role.
-- Sem mudanças de schema.
+> Observação: se mais à frente o usuário quiser refinar os DCOMPs fora da carência com o fator SELIC histórico real (via API), será necessário um script à parte. Confirmar antes.
