@@ -144,7 +144,8 @@ export function DcompFormModal({
   contribuinteId,
   preSelectedPer,
 }: DcompFormModalProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isLider, isSublider } = useAuth();
+  const canWriteDcomp = isAdmin || isLider || isSublider;
   const queryClient = useQueryClient();
   const isEditing = !!editData;
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
