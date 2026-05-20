@@ -153,7 +153,8 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !canWrite}
+            title={!canWrite ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
           >
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar
