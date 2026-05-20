@@ -247,14 +247,8 @@ export function PerDetailModal({
     return dcomps.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento));
   }, [dcomps, dcompsRetificadosSet]);
 
-  // Calcular saldo restante (baseado apenas em DCOMPs vigentes)
-  const saldoRestante = useMemo(() => {
-    if (!perAtual) return 0;
-    const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    return normalizeCurrencyZero(
-      Math.round(((perAtual as any).vlr_credito - totalCompensado - vlrRessarcido) * 100) / 100,
-    );
-  }, [perAtual, dcompsVigentes, vlrRessarcido]);
+  // saldoRestante é calculado mais abaixo, após carregar distribuicoesPorDcomp,
+  // usando a soma de valor_original (principal) das distribuições — não vlr_compensado (atualizado pela SELIC).
 
   // Distribuições do rateio para todas as DCOMPs vigentes — alimenta filtro de tributo
   const dcompsVigentesNrDocs = useMemo(
