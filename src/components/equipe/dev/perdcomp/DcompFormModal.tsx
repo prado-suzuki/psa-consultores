@@ -545,15 +545,25 @@ export function DcompFormModal({
   const isLoading = createMutation.isPending || updateMutation.isPending;
   const tributosDisponiveis = TRIBUTOS;
 
+  const readOnlyMode = isEditing && !canWriteDcomp;
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar DCOMP' : 'Novo DCOMP'}</DialogTitle>
+          <div className="flex items-start justify-between gap-3 pr-6">
+            <DialogTitle>{isEditing ? 'Editar DCOMP' : 'Novo DCOMP'}</DialogTitle>
+            {readOnlyMode && (
+              <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
+                Você não tem permissão para editar este DCOMP
+              </span>
+            )}
+          </div>
           <DialogDescription className="sr-only">Formulário de DCOMP</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <fieldset disabled={readOnlyMode} className="space-y-4 disabled:opacity-100">
             <FormField
               control={form.control}
               name="nr_documento"
@@ -827,6 +837,8 @@ export function DcompFormModal({
               </p>
             )}
 
+            </fieldset>
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
@@ -834,7 +846,7 @@ export function DcompFormModal({
               <Button
                 type="submit"
                 disabled={isLoading || !distribuicoesValidas || !canWriteDcomp}
-                title={!canWriteDcomp ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
+                title={!canWriteDcomp ? 'Você não tem permissão para editar este DCOMP' : undefined}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Salvar' : 'Criar'}
