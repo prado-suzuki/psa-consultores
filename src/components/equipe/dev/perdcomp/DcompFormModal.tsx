@@ -527,6 +527,10 @@ export function DcompFormModal({
   });
 
   const onSubmit = (data: DcompFormData) => {
+    if (!canWriteDcomp) {
+      toast.error('Você não tem permissão para editar/excluir este DCOMP');
+      return;
+    }
     if (!distribuicoesValidas) return;
     const derived = {
       ...data,
