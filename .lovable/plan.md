@@ -1,77 +1,61 @@
-# Correção do bug de duplicação de tributos no DCOMP
+# Ajustes Controle PERDCOMP
 
-## 1. Causa raiz
+Quatro mudanças, todas no módulo PERDCOMP.
 
-Em `DcompFormModal.persistirDistribuicoes` o save executa:
+## 1. Aviso de permissão no SoftDeleteModal
 
-```text
-DELETE FROM distribuicao_dcomp WHERE nr_documento = X
-INSERT INTO distribuicao_dcomp (...) VALUES (linhas atuais)
+Mesma UX que já foi aplicada no `DcompFormModal`: quando um `team_member` (sem direito de editar/excluir) abrir o modal de Excluir/Cancelar DCOMP, mostrar um badge vermelho no canto superior direito do header, alinhado ao título: **"Você não tem permissão para editar/excluir este DCOMP"**.
+
+- Renderizar o badge apenas quando `!canWrite` (variável já existe no componente).
+- Manter o botão Confirmar desabilitado e o toast já existente como fallback.
+- Aplicar somente para `type === 'dcomp'` (PER segue regra existente).
+
+## 2. Renomear label no DcompFormModal
+
+No grid do rateio de tributos (cabeçalho do bloco), trocar:
+
+- "Valor Atualizado" → **"Valor Utilizado nesta DCOMP"**
+
+Sem mudanças de comportamento, apenas texto. As referências em outros modais (ex.: PerDetailModal/Ressarcimento) **não** são alteradas.
+
+## 3. Coluna VLR.SELIC na tabela principal
+
+Hoje a coluna mostra `saldo × (1 + fator)` (valor total já corrigido). O usuário quer ver apenas a **parcela bruta da SELIC em R$**, ou seja, `saldo × fator`.
+
+- Em `ControlePerdcomp.tsx`, na renderização da célula (linha ~750) trocar `correction.valorCorrigido` por `correction.valorCorrigido - saldo` (equivalente a `saldo × fator`).
+- Ajustar o tooltip para algo como "Parcela SELIC em R$ — Fator: {fator}".
+- Ajustar o total do rodapé (`totals.corrigido`) para somar `valorCorrigido − saldo` em vez de `valorCorrigido`.
+- Atualizar o `getSortValue` da coluna `vlr_corrigido` para usar a mesma fórmula nova.
+- Manter a regra de "Em carência" e estados de loading.
+
+## 4. Backfill de `valor_original` nas distribuições já lançadas
+
+Para todas as linhas em `distribuicao_dcomp` com `valor_original IS NULL` e cujo DCOMP pai não está excluído, calcular e persistir o valor original conforme regra atual da UI:
+
+```
+fatorSelic(dt_envio do DCOMP, dt_solicitada do PER)
+proporcaoOriginal = fatorSelic > 0 ? 1/(1+fatorSelic) : 1
+valor_original    = round2(valor_tributo * proporcaoOriginal)
 ```
 
-A política de RLS de DELETE (migration `20260511140117_...sql`) exige `lider+`:
+Quando a `dt_envio` estiver dentro da carência (360 dias após `dt_solicitada`), `valor_original = valor_tributo`.
 
-```sql
-CREATE POLICY rls_distribuicao_dcomp_delete ON distribuicao_dcomp
-  FOR DELETE USING (has_role_or_higher(auth.uid(), 'lider'::app_role));
-```
+### Implementação
 
-- INSERT: liberado para `team_member+`.
-- DELETE: somente `lider+`.
+Criar uma Edge Function `backfill-dcomp-valor-original` (service role) que:
 
-Para `team_member`/`sublider`, o DELETE retorna sucesso com 0 linhas afetadas (RLS filtra silenciosamente, sem erro). O INSERT subsequente adiciona uma nova cópia de cada linha → **a cada save o rateio duplica**, mesmo `dcomp.vlr_compensado` ficando correto. Por isso a divergência aparece só no somatório dos tributos do `PerDetailModal`.
+1. Lista DCOMPs ativos com pelo menos uma linha `valor_original IS NULL`.
+2. Para cada DCOMP, busca a `dt_solicitada` do PER pai.
+3. Reaproveita o cálculo SELIC já existente (mesma API/regra usada em `useSelicTaxaAt` e `selicCalculator`) para obter o fator vigente em `dt_envio`.
+4. Faz `UPDATE` linha a linha em `distribuicao_dcomp` preenchendo `valor_original` (usando upsert/update seletivo — sem delete+insert).
+5. Retorna um resumo `{ dcomps_processados, linhas_atualizadas, erros }`.
 
-## 2. Correção (escopo deste plano)
+Gatilho: botão **"Backfill Valor Original"** visível só para admin/líder no header da página `ControlePerdcomp`, com confirmação e toast de progresso. Execução idempotente — rodar várias vezes não altera linhas já preenchidas.
 
-Atacamos apenas o bug. Backfills, dedup do que já está duplicado e refator para upsert/diff ficam fora deste plano.
+## Detalhes técnicos
 
-### 2.1 Migration — RLS de DELETE/INSERT/UPDATE para `sublider+`
-
-```sql
-DROP POLICY IF EXISTS rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp;
-DROP POLICY IF EXISTS rls_distribuicao_dcomp_insert ON public.distribuicao_dcomp;
-DROP POLICY IF EXISTS rls_distribuicao_dcomp_update ON public.distribuicao_dcomp;
-
-CREATE POLICY rls_distribuicao_dcomp_insert ON public.distribuicao_dcomp
-  FOR INSERT WITH CHECK (has_role_or_higher(auth.uid(), 'sublider'::app_role));
-
-CREATE POLICY rls_distribuicao_dcomp_update ON public.distribuicao_dcomp
-  FOR UPDATE USING (has_role_or_higher(auth.uid(), 'sublider'::app_role))
-  WITH CHECK (has_role_or_higher(auth.uid(), 'sublider'::app_role));
-
-CREATE POLICY rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp
-  FOR DELETE USING (has_role_or_higher(auth.uid(), 'sublider'::app_role));
-```
-
-Assim `sublider`/`lider`/`admin` conseguem criar e deletar (mantendo o delete+insert atual funcionando sem duplicar). `team_member` perde escrita aqui, e isso é tratado na UI.
-
-### 2.2 Guard no `DcompFormModal`
-
-Para `team_member` (ou qualquer role abaixo de `sublider`), o modal não pode submeter — caso contrário cairíamos no mesmo bug (DELETE silenciosamente bloqueado pela RLS + INSERT duplicando).
-
-Comportamento:
-
-- Ler do `useAuth` o flag `isSublider || isLider || isAdmin`.
-- Se o usuário **não** atender (ex.: `team_member`), no `onSubmit` exibir `toast.error('Você não tem permissão para editar/excluir este DCOMP')` e abortar antes das mutations.
-- Desabilitar o botão "Salvar" com tooltip equivalente para deixar claro na UI, mas manter a mensagem no submit como salvaguarda.
-- Aplicar o mesmo bloqueio no botão de excluir DCOMP (`SoftDeleteModal`) — coerente com o nível mínimo de escrita.
-
-### 2.3 Não faremos agora
-
-- Deduplicar linhas já duplicadas em `distribuicao_dcomp`.
-- Backfill de `valor_original` para DCOMPs antigos.
-- Backfill de rateio sintético para DCOMPs sem `distribuicao_dcomp`.
-- Refator de `persistirDistribuicoes` para upsert/diff (fica como follow-up recomendado, pois o padrão do projeto proíbe delete+insert).
-
-## 3. Arquivos
-
-- `supabase/migrations/<novo>.sql` — ajuste das 3 policies.
-- `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` — guard de role no submit + botão desabilitado + toast.
-- `src/components/equipe/dev/perdcomp/SoftDeleteModal.tsx` — mesmo guard no confirm.
-
-## 4. Validação
-
-1. `team_member` abrir o modal → "Salvar" desabilitado; tentar submeter (via dev tools) → toast de erro, nada gravado.
-2. `sublider` salvar um DCOMP existente sem alterar → contagem de linhas em `distribuicao_dcomp` para aquele `nr_documento` permanece igual antes/depois.
-3. `sublider` criar novo DCOMP com 2 tributos → exatamente 2 linhas em `distribuicao_dcomp`.
-4. Soma dos `valor_tributo` no `PerDetailModal` = `dcomp.vlr_compensado` após cada save.
+- Manter padrão: nenhuma chamada Supabase nova em componente; encapsular em hook (`useBackfillValorOriginal`).
+- Auditar a operação de backfill via `useAuditLog` no acionamento do botão.
+- A Edge Function deve validar JWT (`supabase.auth.getUser()`) e checar `has_role_or_higher(uid, 'lider')`.
+- Não alterar RLS — a função usa service role.
+- Sem mudanças de schema.
