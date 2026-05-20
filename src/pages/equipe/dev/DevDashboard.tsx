@@ -45,6 +45,7 @@ interface ToolGroup {
   landingIcon?: LucideIcon;
   landingPath?: string;
   landingDescription?: string;
+  landingSopUrl?: string;
 }
 
 const buildHubTools = (hub: (typeof DEV_HUBS)[keyof typeof DEV_HUBS]): ToolEntry[] =>
@@ -77,6 +78,7 @@ const toolGroups: ToolGroup[] = [
     landingPath: DEV_HUBS.consultaSped.landingPath,
     landingDescription: DEV_HUBS.consultaSped.landingDescription,
     landingIcon: DEV_HUBS.consultaSped.landingIcon,
+    landingSopUrl: DEV_HUBS.consultaSped.landingSopUrl,
     tools: buildHubTools(DEV_HUBS.consultaSped),
   },
   {
@@ -84,6 +86,7 @@ const toolGroups: ToolGroup[] = [
     landingPath: DEV_HUBS.levantamentoPisCofins.landingPath,
     landingDescription: DEV_HUBS.levantamentoPisCofins.landingDescription,
     landingIcon: DEV_HUBS.levantamentoPisCofins.landingIcon,
+    landingSopUrl: DEV_HUBS.levantamentoPisCofins.landingSopUrl,
     tools: buildHubTools(DEV_HUBS.levantamentoPisCofins),
   },
   {
@@ -91,6 +94,7 @@ const toolGroups: ToolGroup[] = [
     landingPath: DEV_HUBS.analiseIcms.landingPath,
     landingDescription: DEV_HUBS.analiseIcms.landingDescription,
     landingIcon: DEV_HUBS.analiseIcms.landingIcon,
+    landingSopUrl: DEV_HUBS.analiseIcms.landingSopUrl,
     tools: buildHubTools(DEV_HUBS.analiseIcms),
   },
   {
@@ -98,12 +102,14 @@ const toolGroups: ToolGroup[] = [
     landingPath: "/equipe/dev/calculadora-ibs-cbs",
     landingDescription: "Simulador de calculo da reforma tributaria",
     landingIcon: Percent,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     tools: [
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
         description: "Simulador de calculo da reforma tributaria",
         path: "/equipe/dev/calculadora-ibs-cbs",
         icon: Percent,
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
       },
     ],
   },
@@ -112,6 +118,7 @@ const toolGroups: ToolGroup[] = [
     landingPath: DEV_HUBS.perdcomp.landingPath,
     landingDescription: DEV_HUBS.perdcomp.landingDescription,
     landingIcon: DEV_HUBS.perdcomp.landingIcon,
+    landingSopUrl: DEV_HUBS.perdcomp.landingSopUrl,
     tools: buildHubTools(DEV_HUBS.perdcomp),
   },
   {
@@ -119,12 +126,14 @@ const toolGroups: ToolGroup[] = [
     landingPath: "/equipe/dev/controle-balancetes",
     landingDescription: "Upload e gestao de balancetes contabeis",
     landingIcon: Scale,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
     tools: [
       {
         name: DEV_NAV_LABELS.controleBalancetes,
         description: "Upload e gestao de balancetes contabeis",
         path: "/equipe/dev/controle-balancetes",
         icon: Scale,
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
       },
     ],
   },
@@ -282,7 +291,7 @@ const DevDashboard = () => {
                   {group.landingPath && !selectedToolPath ? (
                     (() => {
                       const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
-                      const singletonSopUrl = isSingleton ? group.tools[0].sopUrl : undefined;
+                      const blockSopUrl = group.landingSopUrl ?? (isSingleton ? group.tools[0].sopUrl : undefined);
 
                       return (
                     <button
@@ -309,9 +318,9 @@ const DevDashboard = () => {
                       )}
 
                       <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-                        {singletonSopUrl ? (
+                        {blockSopUrl ? (
                           <a
-                            href={singletonSopUrl}
+                            href={blockSopUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(event) => event.stopPropagation()}

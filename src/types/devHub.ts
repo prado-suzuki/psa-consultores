@@ -21,6 +21,7 @@ export interface DevHubDefinition {
   landingDescription: string;
   landingIcon: LucideIcon;
   landingPath: string;
+  landingSopUrl?: string;
   options: DevHubOption[];
   subtitle: string;
   title: string;

@@ -28,6 +28,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area para localizar arquivos do Sistema Publico de Escrituracao Digital, filtrar por contribuinte e periodo, baixar os arquivos originais e abrir a leitura detalhada de cada entrega.",
     landingIcon: Receipt,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     title: "CONSULTA DOS ARQUIVOS SPEDs DO CLIENTE",
     subtitle: "Ferramentas para consulta, download e analise dos SPEDs fiscais.",
     heroEyebrow: "",
@@ -100,6 +101,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area do levantamento de credito para parametrizar regras fiscais, apurar contribuicoes, reconciliar bases e revisar registros antes de consolidar o trabalho.",
     landingIcon: Calculator,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     title:
       "LEVANTAMENTO PROGRAMA DE INTEGRACAO SOCIAL (PIS) E CONTRIBUICAO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL (COFINS)",
     subtitle: "Escolha a ferramenta de cadastro de regras, apuracao, analise cruzada e revisao de registros.",
@@ -120,6 +122,7 @@ export const DEV_HUBS: Record<
         ],
         icon: Map,
         path: "/equipe/dev/mapa-ncm-pis-cofins",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/mapa-ncm/",
         title: "Mapa de Nomenclatura Comum do Mercosul (NCMs)",
       },
       {
@@ -133,6 +136,7 @@ export const DEV_HUBS: Record<
         ],
         icon: Calculator,
         path: "/equipe/dev/apuracao-pis-cofins",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/apuracao-piscofins/",
         title: DEV_NAV_LABELS.apuracaoTributaria,
       },
       {
@@ -146,6 +150,7 @@ export const DEV_HUBS: Record<
         ],
         icon: GitCompare,
         path: "/equipe/dev/cruzamento-dados",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/analise-cruzada/",
         title: DEV_NAV_LABELS.analiseCruzada,
       },
       {
@@ -159,6 +164,7 @@ export const DEV_HUBS: Record<
         ],
         icon: Wrench,
         path: "/equipe/dev/correcoes-sped",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/correcoes-sped/",
         title: "Revisao de Registros da Escrituracao Fiscal Digital das Contribuicoes (EFD Contribuicoes)",
       },
     ],
@@ -169,6 +175,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area para apurar saidas, revisar CFOP e substituicao tributaria e auditar a classificacao de produtos usada no processo de diferencial de aliquota.",
     landingIcon: Truck,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     title: "ANALISE DO IMPOSTO SOBRE CIRCULACAO DE MERCADORIAS E SERVICOS (ICMS)",
     subtitle: "Ferramentas para analise do ICMS das saidas e para analise do diferencial de aliquota (DIFAL).",
     heroEyebrow: "",
@@ -188,6 +195,7 @@ export const DEV_HUBS: Record<
         ],
         icon: Truck,
         path: "/equipe/dev/apuracao-difal/icms-saidas",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/icms-saidas/",
         title: DEV_NAV_LABELS.icmsSaidas,
       },
       {
@@ -212,6 +220,7 @@ export const DEV_HUBS: Record<
     landingDescription:
       "Area com entradas separadas para a leitura analitica do painel e para a gestao operacional dos pedidos de restituicao, ressarcimento, reembolso e declaracao de compensacao.",
     landingIcon: BarChart3,
+    landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     title: "PEDIDO ELETRONICO DE RESTITUICAO, RESSARCIMENTO OU REEMBOLSO E DECLARACAO DE COMPENSACAO (PERDCOMP)",
     subtitle: "Ferramentas para analise e controle do PERDCOMP.",
     heroEyebrow: "",
@@ -231,6 +240,7 @@ export const DEV_HUBS: Record<
         ],
         icon: BarChart3,
         path: "/equipe/dev/perdcomp/dashboard",
+        sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/dashboard-perdcomp-faturamento/",
         title: DEV_NAV_LABELS.dashboardPerdcomp,
       },
       {
