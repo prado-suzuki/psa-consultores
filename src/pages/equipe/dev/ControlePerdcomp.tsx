@@ -493,15 +493,15 @@ export default function ControlePerdcomp() {
       const taxa = selicPerMap[per.nr_per];
       if (!taxa) continue;
 
-      const totalComp = dcompTotalMap[per.nr_per] || 0;
-      const valRessarcido = (per as any).vlr_ressarcido || 0;
-      const saldo = normalizeCurrencyZero(per.vlr_credito - totalComp - valRessarcido);
+      const totalOriginal = dcompOriginalMap[per.nr_per] ?? (dcompTotalMap[per.nr_per] || 0);
+      const valRessarcido = (per as any).vlr_ressarcido_original ?? (per as any).vlr_ressarcido ?? 0;
+      const saldo = normalizeCurrencyZero(per.vlr_credito - totalOriginal - valRessarcido);
 
       const { valorCorrigido, fator } = applySelicCorrection(saldo, taxa.vlr_acumulado_dec);
       map[per.nr_per] = { valorCorrigido, fator };
     }
     return map;
-  }, [selicPerMap, filteredPerData, dcompTotalMap]);
+  }, [selicPerMap, filteredPerData, dcompTotalMap, dcompOriginalMap]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {
@@ -513,8 +513,10 @@ export default function ControlePerdcomp() {
 
     for (const item of filteredPerData) {
       const totalComp = dcompTotalMap[item.nr_per] || 0;
+      const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalComp;
       const valRessarcido = (item as any).vlr_ressarcido || 0;
-      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalComp - valRessarcido);
+      const valRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valRessarcido;
+      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalOriginal - valRessarcidoOriginal);
       const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
@@ -525,7 +527,7 @@ export default function ControlePerdcomp() {
     }
 
     return { credito, corrigido, compensado, ressarcido, saldo };
-  }, [filteredPerData, dcompTotalMap, selicCorrectionMap]);
+  }, [filteredPerData, dcompTotalMap, dcompOriginalMap, selicCorrectionMap]);
 
   // Sorting
   const getSortValue = (item: any, col: string) => {
