@@ -829,7 +829,11 @@ export function DcompFormModal({
               <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading || !distribuicoesValidas}>
+              <Button
+                type="submit"
+                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp}
+                title={!canWriteDcomp ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Salvar' : 'Criar'}
               </Button>
