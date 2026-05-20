@@ -124,6 +124,17 @@ export function useExternalClients(editingClientId?: string | null) {
       if (error) throw error;
       const list = (data as { id: string; nome: string }[]).map(c => ({ ...c, setor_cliente: null as string | null }));
 
+      // Garante que o cliente em edição apareça mesmo se estiver inativo,
+      // excluído ou em outro ambiente — necessário para edição via deep-link.
+      if (editingClientId && !list.some(c => c.id === editingClientId)) {
+        const { data: editing } = await supabase
+          .from('cliente')
+          .select('id, nome')
+          .eq('id', editingClientId)
+          .maybeSingle();
+        if (editing) list.push({ id: editing.id, nome: editing.nome, setor_cliente: null });
+      }
+
       const ids = list.map(c => c.id);
       if (ids.length > 0) {
         const { data: viewRows } = await (supabase.from('cliente_setor_regiao_atual' as any) as any)
@@ -155,7 +166,18 @@ export function useContribuintes(clientId: string | null, editingContribuinteId?
         .eq('ambiente', currentAmbiente)
         .order('nome_razao_social');
       if (error) throw error;
-      return data as ContribuinteOption[];
+      const list = (data as ContribuinteOption[]) || [];
+      // Garante que o contribuinte em edição apareça mesmo se estiver excluído
+      // ou em outro ambiente — necessário para edição via deep-link.
+      if (editingContribuinteId && !list.some(c => c.id === editingContribuinteId)) {
+        const { data: editing } = await supabase
+          .from('contribuinte')
+          .select('id, nome_razao_social, cpf_cnpj')
+          .eq('id', editingContribuinteId)
+          .maybeSingle();
+        if (editing) list.push(editing as ContribuinteOption);
+      }
+      return list;
     },
     enabled: !!clientId,
   });

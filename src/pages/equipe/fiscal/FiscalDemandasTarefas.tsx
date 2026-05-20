@@ -1,4 +1,5 @@
- import { useState } from 'react';
+ import { useEffect, useState } from 'react';
+ import { useSearchParams } from 'react-router-dom';
  import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart } from 'lucide-react';
  import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
  import { Button } from '@/components/ui/button';
@@ -32,6 +33,8 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
  } from '@/components/ui/alert-dialog';
  
  const FiscalDemandasTarefas = () => {
+   const [searchParams, setSearchParams] = useSearchParams();
+   const deepLinkTaskId = searchParams.get('taskId');
    const [filters, setFilters] = useState<TaskFiltersType>({});
    const [activeView, setActiveView] = useState('calendar');
    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -39,8 +42,10 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
    const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
    const [taskToReassign, setTaskToReassign] = useState<OrgTask | null>(null);
    const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
- 
-   const { data: tasks = [], isLoading } = useOrgTasks(filters);
+   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
+
+   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
+   const { data: tasks = [], isLoading } = useOrgTasks(deepLinkTaskId ? {} : filters);
    const deleteTask = useDeleteOrgTask();
  
   const { data: taxClusterId } = useClusterIdByPageCategory('tax');
@@ -51,6 +56,30 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
     setSelectedTask(task);
     setDefaultParentId(null);
     setIsTaskModalOpen(true);
+  };
+
+  // Abre o modal automaticamente quando a página é aberta com ?taskId=<id>.
+  // Why: linhas da tabela "Tarefas Atrasadas" do FiscalDashboard fazem deep-link para cá.
+  useEffect(() => {
+    if (!deepLinkTaskId || openedDeepLinkId === deepLinkTaskId) return;
+    const task = tasks.find(t => t.id === deepLinkTaskId);
+    if (task) {
+      setSelectedTask(task);
+      setDefaultParentId(null);
+      setIsTaskModalOpen(true);
+      setOpenedDeepLinkId(deepLinkTaskId);
+    }
+  }, [deepLinkTaskId, tasks, openedDeepLinkId]);
+
+  // Ao fechar o modal, remove o ?taskId= da URL para não reabrir em navegação posterior.
+  const handleTaskModalOpenChange = (open: boolean) => {
+    setIsTaskModalOpen(open);
+    if (!open && deepLinkTaskId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('taskId');
+      setSearchParams(next, { replace: true });
+      setOpenedDeepLinkId(null);
+    }
   };
  
    const handleDeleteTask = (taskId: string) => {
@@ -192,7 +221,7 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
        {/* Task Modal */}
         <TaskModal
           open={isTaskModalOpen}
-          onOpenChange={setIsTaskModalOpen}
+          onOpenChange={handleTaskModalOpenChange}
           task={selectedTask}
           teamMembers={teamMembers}
           parentTasks={parentTasks}

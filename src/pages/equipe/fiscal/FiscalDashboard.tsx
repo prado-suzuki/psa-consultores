@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -33,6 +34,7 @@ const ALL = '__ALL__';
 type UrgencyFilter = typeof ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
 const FiscalDashboard = () => {
+  const navigate = useNavigate();
   const { data: projects = [], isLoading: loadingProjects } = useFiscalDashProjects();
   const { data: tasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
   const { data: clients = [] } = useFiscalClientsList();
@@ -233,6 +235,7 @@ const FiscalDashboard = () => {
       .map(t => {
         const cid = resolveTaskClientId(t);
         return {
+          id: t.id,
           title: t.title,
           project: projectMap[t.project_id || '']?.name || '-',
           client: (cid && clientMap[cid]) || '-',
@@ -691,8 +694,13 @@ const FiscalDashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {overdueRows.slice(0, 15).map((r, i) => (
-                        <TableRow key={i}>
+                      {overdueRows.slice(0, 15).map((r) => (
+                        <TableRow
+                          key={r.id}
+                          onClick={() => navigate(`/equipe/tax/projetos/tarefas?taskId=${r.id}`)}
+                          className="cursor-pointer hover:bg-slate-50 transition-colors"
+                          title="Abrir tarefa em Tarefas"
+                        >
                           <TableCell className="text-sm font-medium max-w-[180px] truncate">{r.title}</TableCell>
                           <TableCell className="text-xs text-slate-600 max-w-[120px] truncate">{r.client}</TableCell>
                           <TableCell className="text-xs text-slate-600">{r.responsible}</TableCell>

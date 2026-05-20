@@ -122,7 +122,8 @@ export const TaskModal = ({
   const { data: projects = [] } = useOrgProjectsList(true);
 
   const watchedProjectId = form.watch('project_id') as string | undefined;
-  
+  const watchedClientId = form.watch('client_id') as string | undefined;
+
   const selectedProjectAreaId = useMemo(() => {
     if (!watchedProjectId) return null;
     const proj = projects.find(p => p.id === watchedProjectId);
@@ -133,8 +134,22 @@ export const TaskModal = ({
 
   // ── Queries ────────────────────────────────────────────────────────
 
-  const { data: externalClients = [] } = useExternalClients();
-  const clients = externalClients.map(c => ({ id: c.id, nome: c.nome }));
+  // editingClientId considera tanto o client_id da tarefa quanto o atualmente
+  // no form (pode ser preenchido via Effect B a partir do projeto) — garante
+  // que o item apareça na lista mesmo se inativo/outro ambiente.
+  const { data: externalClients = [] } = useExternalClients(
+    watchedClientId || task?.client_id || null,
+  );
+
+  const clients = useMemo(() => {
+    const list = externalClients.map(c => ({ id: c.id, nome: c.nome }));
+    // Mescla o cliente do join da tarefa, se ainda não estiver na lista
+    // (cobre o caso de cliente inativo/excluído/outro ambiente).
+    if (task?.client && !list.some(c => c.id === task.client!.id)) {
+      list.push({ id: task.client.id, nome: task.client.nome });
+    }
+    return list;
+  }, [externalClients, task?.client?.id, task?.client?.nome]);
 
   // Draft persistence – only active for new tasks (not editing)
   const watchedValues = form.watch();
@@ -146,8 +161,6 @@ export const TaskModal = ({
     user?.id,
   );
 
-  const watchedClientId = form.watch('client_id');
-
   // Filtered team members for Responsável dropdown
   const filteredTeamMembers = useMemo(() => {
     if (!areaMemberIds.length) return teamMembers;
@@ -155,7 +168,7 @@ export const TaskModal = ({
   }, [teamMembers, areaMemberIds]);
 
   // Contribuintes filtered by selected client
-  const { data: contribuintesTask = [] } = useContribuintes(watchedClientId || null);
+  const { data: contribuintesTask = [] } = useContribuintes(watchedClientId || null, task?.contribuinte_id ?? null);
 
   // Clear contribuinte and project when client changes (only on user action, not during reset)
   useEffect(() => {
