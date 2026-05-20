@@ -19,7 +19,7 @@ interface HatchedBarProps {
 /**
  * Barra horizontal segmentada com padrão de hachuras (waffle-style),
  * inspirada no card de distribuição do dashboard Momentum.
- * Mostra tooltip flutuante no segmento dominante.
+ * Mostra tooltip flutuante apenas no segmento sob o cursor.
  */
 export function HatchedBar({
   segments,
@@ -34,13 +34,8 @@ export function HatchedBar({
   // Variantes de tom (do mais saturado ao mais claro)
   const tones = [baseColor, '#14b8a6', '#5eead4', '#99f6e4', '#ccfbf1'];
 
-  // Determine dominant segment for default tooltip
-  const dominantIdx = segments
-    .map((s, i) => ({ i, v: s.value }))
-    .sort((a, b) => b.v - a.v)[0]?.i ?? 0;
-
-  const tooltipIdx = hovered ?? dominantIdx;
-  const tooltipSeg = segments[tooltipIdx];
+  const tooltipIdx = hovered;
+  const tooltipSeg = tooltipIdx !== null ? segments[tooltipIdx] : null;
 
   return (
     <div className={cn('w-full', className)}>
@@ -97,8 +92,8 @@ export function HatchedBar({
           })()}
         </svg>
 
-        {/* Tooltip flutuante sobre segmento dominante / hovered */}
-        {tooltipSeg && tooltipSeg.value > 0 && (
+        {/* Tooltip flutuante sobre segmento hovered */}
+        {tooltipSeg && tooltipIdx !== null && tooltipSeg.value > 0 && (
           <div
             className="absolute -top-9 px-3 py-1.5 bg-slate-900 text-white rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
             style={{
