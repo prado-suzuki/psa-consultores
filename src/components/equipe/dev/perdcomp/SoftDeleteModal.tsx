@@ -26,6 +26,8 @@ interface SoftDeleteModalProps {
 
 export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDeleteModalProps) {
   const queryClient = useQueryClient();
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const canWrite = isAdmin || isLider || isSublider;
   const [action, setAction] = useState<'E' | 'C'>('E');
   const [nrCancelamento, setNrCancelamento] = useState('');
 
