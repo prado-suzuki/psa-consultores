@@ -144,7 +144,8 @@ export function DcompFormModal({
   contribuinteId,
   preSelectedPer,
 }: DcompFormModalProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isLider, isSublider } = useAuth();
+  const canWriteDcomp = isAdmin || isLider || isSublider;
   const queryClient = useQueryClient();
   const isEditing = !!editData;
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
@@ -526,6 +527,10 @@ export function DcompFormModal({
   });
 
   const onSubmit = (data: DcompFormData) => {
+    if (!canWriteDcomp) {
+      toast.error('Você não tem permissão para editar/excluir este DCOMP');
+      return;
+    }
     if (!distribuicoesValidas) return;
     const derived = {
       ...data,
@@ -824,7 +829,11 @@ export function DcompFormModal({
               <Button type="button" variant="outline" onClick={() => { clear(); onOpenChange(false); }}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isLoading || !distribuicoesValidas}>
+              <Button
+                type="submit"
+                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp}
+                title={!canWriteDcomp ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
+              >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Salvar' : 'Criar'}
               </Button>

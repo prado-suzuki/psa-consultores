@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -25,6 +26,8 @@ interface SoftDeleteModalProps {
 
 export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDeleteModalProps) {
   const queryClient = useQueryClient();
+  const { isAdmin, isLider, isSublider } = useAuth();
+  const canWrite = isAdmin || isLider || isSublider;
   const [action, setAction] = useState<'E' | 'C'>('E');
   const [nrCancelamento, setNrCancelamento] = useState('');
 
@@ -87,6 +90,10 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
   };
 
   const handleConfirm = () => {
+    if (!canWrite) {
+      toast.error('Você não tem permissão para editar/excluir este DCOMP');
+      return;
+    }
     mutation.mutate();
   };
 
@@ -146,7 +153,8 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
           <Button
             variant="destructive"
             onClick={handleConfirm}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || !canWrite}
+            title={!canWrite ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
           >
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Confirmar
