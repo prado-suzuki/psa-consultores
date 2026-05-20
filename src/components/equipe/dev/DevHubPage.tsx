@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, ExternalLink } from "lucide-react";
 import { DevLayout } from "@/components/equipe/dev/DevLayout";
 import { HeroBanner } from "@/components/dashboard/momentum";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +66,22 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                   ))}
                 </div>
 
-                <div className="mt-auto flex items-center justify-between border-t border-slate-200 pt-6">
+                <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
+                  {option.sopUrl ? (
+                    <a
+                      href={option.sopUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(event) => event.stopPropagation()}
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 transition-colors hover:text-teal-900"
+                    >
+                      <BookOpen className="h-4 w-4" />
+                      Manual
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : (
+                    <span />
+                  )}
                   <span className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform group-hover:translate-x-1">
                     Abrir
                     <ArrowRight className="h-4 w-4" />

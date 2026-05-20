@@ -291,7 +291,6 @@ const DevDashboard = () => {
                   {group.landingPath && !selectedToolPath ? (
                     (() => {
                       const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
-                      const blockSopUrl = group.landingSopUrl ?? (isSingleton ? group.tools[0].sopUrl : undefined);
 
                       return (
                     <button
@@ -305,34 +304,25 @@ const DevDashboard = () => {
                       <h4 className="text-lg font-semibold tracking-tight">{group.label}</h4>
                       <p className="mt-1.5 text-xs leading-relaxed text-white/75">{group.landingDescription}</p>
                       {!isSingleton && (
-                        <div className="mt-4 flex flex-wrap gap-1.5">
+                        <div className="mt-4 flex flex-wrap gap-2">
                           {group.tools.map((tool) => (
-                            <span
+                            <button
                               key={tool.path}
-                              className="rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-[11px] font-medium text-white/90"
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                navigate(tool.path);
+                              }}
+                              title={`Abrir ${tool.name}`}
+                              className="rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/90 transition-colors hover:border-teal-300/50 hover:bg-white/15 hover:text-white"
                             >
                               {tool.name}
-                            </span>
+                            </button>
                           ))}
                         </div>
                       )}
 
-                      <div className="mt-auto flex items-center justify-between gap-2 pt-4">
-                        {blockSopUrl ? (
-                          <a
-                            href={blockSopUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(event) => event.stopPropagation()}
-                            className="inline-flex items-center gap-1 text-[11px] font-medium text-white/70 hover:text-white"
-                          >
-                            <BookOpen className="h-3 w-3" />
-                            Manual
-                            <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                        ) : (
-                          <span />
-                        )}
+                      <div className="mt-auto flex items-center justify-end pt-4">
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition-transform group-hover:translate-x-1">
                           {isSingleton ? "Abrir" : "Abrir central"}
                           <ArrowRight className="h-3.5 w-3.5" />
