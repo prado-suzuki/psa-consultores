@@ -547,10 +547,15 @@ export default function ControlePerdcomp() {
         return item.vlr_credito;
       case "vlr_compensado":
         return dcompTotalMap[key] || 0;
-      case "saldo":
-        return normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
+      case "saldo": {
+        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
+        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
+        return normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
+      }
       case "vlr_corrigido": {
-        const sld = normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
+        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
+        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
+        const sld = normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
         return sld * (selicCorrectionMap[key]?.fator || 0);
       }
       default:
