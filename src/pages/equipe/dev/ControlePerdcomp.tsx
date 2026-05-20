@@ -681,7 +681,7 @@ export default function ControlePerdcomp() {
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Valor do crédito corrigido pela taxa Selic até a data atual</p>
+                        <p>Parcela bruta da SELIC em R$ (saldo disponível × fator SELIC)</p>
                       </TooltipContent>
                     </Tooltip>
                     <SortIcon col="vlr_corrigido" />
