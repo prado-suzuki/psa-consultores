@@ -474,7 +474,7 @@ export default function ControlePerdcomp() {
       const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
-      corrigido += correction ? correction.valorCorrigido : 0;
+      corrigido += correction ? valSaldo * correction.fator : 0;
       compensado += totalComp;
       ressarcido += valRessarcido;
       saldo += valSaldo;
