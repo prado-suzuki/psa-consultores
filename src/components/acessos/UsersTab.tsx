@@ -34,7 +34,9 @@ export const UsersTab = () => {
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { data: pages } = usePagePermissions();
-  const { data: userAccess } = useUserPageAccess();
+  // Fetch per usuário selecionado: filtra server-side e contorna o cap padrão de
+  // linhas do PostgREST que truncava o select global quando user_page_access cresceu.
+  const { data: userAccess } = useUserPageAccess(selectedUserId);
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 

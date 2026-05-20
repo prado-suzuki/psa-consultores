@@ -41,7 +41,7 @@ interface EditForm {
  */
 export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps) => {
   const { data: pages } = usePagePermissions();
-  const { data: userAccess } = useUserPageAccess();
+  const { data: userAccess } = useUserPageAccess(user?.id ?? null);
   const updateUser = useUpdateTeamMember();
 
   const [form, setForm] = useState<EditForm>({

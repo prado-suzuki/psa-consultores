@@ -11,20 +11,29 @@ export interface UserPageAccessRecord {
 }
 
 /**
- * Lista todos os registros de user_page_access (todos os usuários).
- * Usado no painel de administração para exibir quem tem acesso a quê.
+ * Lista registros de user_page_access.
+ *
+ * - Sem argumento: traz tudo (uso administrativo agregado, ex.: cards de estatísticas).
+ *   Atenção: sujeito ao cap padrão de linhas do PostgREST quando a tabela cresce.
+ * - Com `userId` (string): filtra server-side e devolve só as linhas daquele usuário.
+ *   Use isso em telas que exibem permissões de um único usuário — evita o cap e
+ *   garante que toda a linha do usuário selecionado venha no payload.
+ * - Com `null`: query desabilitada (útil quando nenhum usuário está selecionado).
  */
-export function useUserPageAccess() {
+export function useUserPageAccess(userId?: string | null) {
+  const enabled = userId !== null;
   return useQuery({
-    queryKey: ['user-page-access'],
+    queryKey: ['user-page-access', userId ?? 'all'],
     queryFn: async (): Promise<UserPageAccessRecord[]> => {
-      const { data, error } = await supabase
-        .from('user_page_access')
-        .select('*');
-
+      let query = supabase.from('user_page_access').select('*');
+      if (typeof userId === 'string') {
+        query = query.eq('user_id', userId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as UserPageAccessRecord[];
     },
+    enabled,
     staleTime: 60 * 1000,
   });
 }
