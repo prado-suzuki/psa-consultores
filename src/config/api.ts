@@ -27,11 +27,10 @@ const API_URLS = {
 };
 
 // URL base da API (selecionada automaticamente)
-export const API_BASE_URL = isLocalEnvironment
-  ? API_URLS.local
-  : isProductionEnvironment
-    ? API_URLS.production
-    : API_URLS.development;
+// Em localhost, usamos a API de desenvolvimento (Cloud Run) ao invés da API local na porta 8000.
+export const API_BASE_URL = isProductionEnvironment
+  ? API_URLS.production
+  : API_URLS.development;
 
 // Helper para construir URLs completas
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
