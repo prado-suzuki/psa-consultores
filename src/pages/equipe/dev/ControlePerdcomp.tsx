@@ -503,8 +503,10 @@ export default function ControlePerdcomp() {
         return dcompTotalMap[key] || 0;
       case "saldo":
         return normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
-      case "vlr_corrigido":
-        return selicCorrectionMap[key]?.valorCorrigido || 0;
+      case "vlr_corrigido": {
+        const sld = normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
+        return sld * (selicCorrectionMap[key]?.fator || 0);
+      }
       default:
         return "";
     }
