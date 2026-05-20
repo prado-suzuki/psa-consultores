@@ -90,6 +90,10 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
   };
 
   const handleConfirm = () => {
+    if (!canWrite) {
+      toast.error('Você não tem permissão para editar/excluir este DCOMP');
+      return;
+    }
     mutation.mutate();
   };
 
