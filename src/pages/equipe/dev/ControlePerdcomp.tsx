@@ -357,6 +357,7 @@ export default function ControlePerdcomp() {
   }, [dcompData]);
 
   // Create map of total compensated value per PER (excluding rectified DCOMPs)
+  // Usa vlr_compensado (atualizado pela SELIC na data de envio) — exibido na coluna "Vlr. Compensado".
   const dcompTotalMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const dcomp of dcompData) {
@@ -367,6 +368,49 @@ export default function ControlePerdcomp() {
     }
     return map;
   }, [dcompData, dcompsRetificadosSet]);
+
+  // Lista de nr_documento de DCOMPs vigentes para buscar distribuições (valor_original)
+  const dcompsVigentesNrDocs = useMemo(
+    () => dcompData.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento)).map((d: any) => d.nr_documento),
+    [dcompData, dcompsRetificadosSet],
+  );
+
+  // Query distribuições para somar valor_original por DCOMP (principal consumido do crédito)
+  const { data: distribuicoesData = [] } = useQuery<Array<{
+    nr_documento: string;
+    valor_tributo: number | null;
+    valor_original: number | null;
+  }>>({
+    queryKey: ["perdcomp-distribuicoes", contribuinteId, dcompsVigentesNrDocs.join(",")],
+    queryFn: async () => {
+      if (dcompsVigentesNrDocs.length === 0) return [];
+      const { data, error } = await (supabase
+        .from("distribuicao_dcomp") as any)
+        .select("nr_documento, valor_tributo, valor_original")
+        .in("nr_documento", dcompsVigentesNrDocs);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: searched && dcompsVigentesNrDocs.length > 0,
+  });
+
+  // Map: nr_per_orig → Σ valor_original (fallback valor_tributo) das distribuições das DCOMPs vigentes
+  const dcompOriginalMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    // index nr_documento → nr_per_orig
+    const docToPer: Record<string, string> = {};
+    for (const d of dcompData) {
+      if (dcompsRetificadosSet.has(d.nr_documento)) continue;
+      docToPer[d.nr_documento] = d.nr_per_orig;
+    }
+    for (const linha of distribuicoesData) {
+      const perNum = docToPer[linha.nr_documento];
+      if (!perNum) continue;
+      const valor = Number(linha.valor_original ?? linha.valor_tributo ?? 0);
+      map[perNum] = (map[perNum] || 0) + valor;
+    }
+    return map;
+  }, [distribuicoesData, dcompData, dcompsRetificadosSet]);
 
   // Frontend filtering - hide rectified processes and apply user filters
   const filteredPerData = perData.filter((item: any) => {
