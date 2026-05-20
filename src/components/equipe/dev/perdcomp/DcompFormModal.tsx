@@ -145,9 +145,11 @@ export function DcompFormModal({
   preSelectedPer,
 }: DcompFormModalProps) {
   const { user, isAdmin, isLider, isSublider } = useAuth();
-  const canWriteDcomp = isAdmin || isLider || isSublider;
   const queryClient = useQueryClient();
   const isEditing = !!editData;
+  // Criação liberada para qualquer membro interno (RLS exige team_member+).
+  // Edição/exclusão restritas a sublíder, líder e admin.
+  const canWriteDcomp = isEditing ? (isAdmin || isLider || isSublider) : true;
   const [currencyDisplay, setCurrencyDisplay] = useState('R$ 0,00');
   const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
   const [distribuicoes, setDistribuicoes] = useState<DistribuicaoLinha[]>([]);
