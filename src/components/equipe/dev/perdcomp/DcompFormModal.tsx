@@ -696,7 +696,7 @@ export function DcompFormModal({
 
               <div className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
                 <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
-                <FormLabel className="m-0">Valor Atualizado</FormLabel>
+                <FormLabel className="m-0">Valor Utilizado nesta DCOMP</FormLabel>
                 <FormLabel className="m-0">Valor Original</FormLabel>
                 <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
                 <div />

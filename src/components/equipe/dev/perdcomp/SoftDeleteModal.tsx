@@ -103,7 +103,14 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Excluir / Cancelar {label}</DialogTitle>
+          <div className="flex items-start justify-between gap-3">
+            <DialogTitle>Excluir / Cancelar {label}</DialogTitle>
+            {type === 'dcomp' && !canWrite && (
+              <span className="shrink-0 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
+                Você não tem permissão para editar/excluir este DCOMP
+              </span>
+            )}
+          </div>
           <DialogDescription>
             Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
           </DialogDescription>
