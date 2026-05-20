@@ -1,156 +1,133 @@
-# Migração em 2 fases: `regiao`/`setor_cliente`/`setor_cliente_id` → `ordem_servico`
+# Correção do bug de duplicação de tributos no DCOMP + backfills retroativos
 
-## Contexto verificado
+## 1. Causa raiz da duplicação (bug crítico)
 
-- Modal já grava esses 3 campos em `ordem_servico` (`useSaveClientTransaction.ts:391–393`) e lê de OS (`useClientEditData.ts:208–210`).
-- **Colunas ainda NÃO existem em `ordem_servico`** → cadastro/edição de cliente está quebrado até a Fase 1 rodar.
-- Banco: 72 clientes com dados; **19 sem nenhuma OS ativa** (perda controlada no DROP).
-- Nenhuma view/índice/policy em `cliente` referencia essas colunas. DROP é seguro.
+O fluxo de salvar rateio em `DcompFormModal.persistirDistribuicoes` faz:
 
----
-
-## FASE 1 — Não destrutiva (desbloqueia o frontend)
-
-### 1a. Adicionar colunas em `ordem_servico`
-
-```sql
-ALTER TABLE public.ordem_servico
-  ADD COLUMN IF NOT EXISTS regiao           text,
-  ADD COLUMN IF NOT EXISTS setor_cliente    text,
-  ADD COLUMN IF NOT EXISTS setor_cliente_id uuid REFERENCES public.setor_cliente(id);
-
-CREATE INDEX IF NOT EXISTS idx_ordem_servico_regiao           ON public.ordem_servico(regiao);
-CREATE INDEX IF NOT EXISTS idx_ordem_servico_setor_cliente_id ON public.ordem_servico(setor_cliente_id);
+```text
+DELETE FROM distribuicao_dcomp WHERE nr_documento = X
+INSERT INTO distribuicao_dcomp (...) VALUES (linhas atuais)
 ```
 
-### 1b. Backfill OS ← cliente (apenas OS ativas, sem sobrescrever)
+O problema está na política de RLS criada em `20260511140117_...sql`:
 
 ```sql
-UPDATE public.ordem_servico os
-SET regiao           = COALESCE(os.regiao,           c.regiao),
-    setor_cliente    = COALESCE(os.setor_cliente,    c.setor_cliente),
-    setor_cliente_id = COALESCE(os.setor_cliente_id, c.setor_cliente_id)
-FROM public.cliente c
-WHERE os.id_cliente = c.id
-  AND os.excluido = false
-  AND (c.regiao IS NOT NULL OR c.setor_cliente IS NOT NULL OR c.setor_cliente_id IS NOT NULL);
+CREATE POLICY rls_distribuicao_dcomp_delete ON distribuicao_dcomp
+  FOR DELETE USING (has_role_or_higher(auth.uid(), 'lider'::app_role));
 ```
 
-### 1c. View `cliente_setor_regiao_atual` (valor da OS mais recente)
+- INSERT é permitido a `team_member+`.
+- DELETE só é permitido a `lider+`.
+
+Para usuários `team_member`/`sublider`, o `DELETE` retorna sucesso com 0 linhas afetadas (RLS filtra silenciosamente — não dispara erro). Em seguida o INSERT adiciona uma nova cópia de cada linha. Resultado: **a cada save, o rateio é duplicado** (e o total dos tributos dobra), mesmo o `dcomp.vlr_compensado` permanecendo correto. Por isso a discrepância aparece só no somatório dos tributos exibido no `PerDetailModal`.
+
+## 2. Fase A — Correção do bug
+
+### A.1 Migration — alinhar RLS de DELETE com INSERT/UPDATE
 
 ```sql
-CREATE OR REPLACE VIEW public.cliente_setor_regiao_atual AS
-SELECT DISTINCT ON (os.id_cliente)
-  os.id_cliente,
-  os.setor_cliente,
-  os.setor_cliente_id,
-  os.regiao,
-  os.ambiente
-FROM public.ordem_servico os
-WHERE os.excluido = false
-ORDER BY os.id_cliente, os.data_emissao DESC NULLS LAST, os.created_at DESC;
+DROP POLICY IF EXISTS rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp;
+CREATE POLICY rls_distribuicao_dcomp_delete ON public.distribuicao_dcomp
+  FOR DELETE USING (has_role_or_higher(auth.uid(), 'team_member'::app_role));
 ```
 
-### 1d. Refatoração de código (após migration aprovada)
+### A.2 Refatorar `persistirDistribuicoes` para padrão do projeto (sem delete+insert)
 
-- `src/hooks/useDevClients.ts` — interface `ClienteListItem` (linhas 17–28) e selects (80, 86, 92): trocar leitura de `cliente.setor_cliente/regiao` por embed da view `cliente_setor_regiao_atual`.
-- `src/hooks/useFiscalClients.ts` — `Cliente.setor_cliente` (linha 10).
-- `src/hooks/useGestaoClientes.ts` — `ClienteFiltrado.setor_cliente` (linha 32) em `useClientesFiltrados`.
-- `src/hooks/useTaxReferenceData.ts:119` — `.select('id, nome, setor_cliente')` → join com view.
-- `src/pages/equipe/fiscal/GestaoClientes.tsx:356` e `src/components/equipe/fiscal/FiscalClients.tsx:92,94` — se os hooks mantiverem o mesmo shape (`setor_cliente` no objeto), o JSX não muda.
-- `src/pages/equipe/dev/GerenciarDados.tsx` — remover `setor_cliente` do importador CSV em 3 pontos: linha 100 (parse), 251 (texto), 423 (template).
-- `supabase/functions/sync-cadastros/index.ts` — remover `setor_cliente: string | null` da interface `Cliente` (~linha 19).
-- `src/hooks/useSaveClientTransaction.ts:542` — adicionar `'setor_cliente_id'` ao array `osFields` (atualmente só tem `setor_cliente` e `regiao`) para o audit log capturar mudanças do UUID.
+Memory rule: "Never use delete+insert for updates; strictly use selective update/upsert to preserve original UUIDs". Reescrever para diff:
 
-### Critérios de aceite Fase 1
+- Linhas com `id` existente e ainda presentes em `distribuicoes` → `UPDATE`.
+- Linhas existentes que sumiram → `DELETE` apenas dos `id` removidos.
+- Linhas novas (sem `id`) → `INSERT`.
 
-- [ ] OS tem as 3 colunas + 2 índices + view criada.
-- [ ] Backfill aplicado: 100% das OS ativas com cliente-pai populado herdaram valores.
-- [ ] Cadastro/edição de cliente no modal grava e lê sem erro (smoke test em dev).
-- [ ] Listagens em `GestaoClientes` e `FiscalClients` continuam exibindo Área do Negócio / Região (vindas da view).
-- [ ] Importador CSV não menciona mais `setor_cliente`.
-- [ ] `osFields` no audit inclui `setor_cliente_id`.
-- [ ] Edge `sync-cadastros` não exporta mais `setor_cliente`.
-- [ ] `types.ts` regenerado, typecheck verde.
+Benefícios: preserva `criado_em`/`criado_por`, elimina risco de duplicação mesmo se RLS regredir, e padroniza com o restante do projeto.
 
----
+### A.3 Limpeza dos duplicados já gerados em produção/dev
 
-## FASE 2 — Destrutiva (DROP em `cliente`)
-
-Pré-requisito: Fase 1 estável em produção por pelo menos 1 ciclo de uso (cadastros validados).
-
-### 2a. Log dos 19 clientes sem OS (perda explícita aceita)
-
-Migration com bloco `DO $$ ... $$` para emitir `RAISE NOTICE` listando IDs/nomes afetados antes do DROP — fica registrado nos logs da migration.
+Migration de saneamento que mantém apenas a linha mais recente por (`nr_documento`, `tributo`, `competencia`):
 
 ```sql
-DO $$
-DECLARE
-  r RECORD;
-  total int := 0;
-BEGIN
-  FOR r IN
-    SELECT c.id, c.nome, c.regiao, c.setor_cliente, c.setor_cliente_id
-    FROM public.cliente c
-    WHERE (c.regiao IS NOT NULL OR c.setor_cliente IS NOT NULL OR c.setor_cliente_id IS NOT NULL)
-      AND NOT EXISTS (
-        SELECT 1 FROM public.ordem_servico os
-        WHERE os.id_cliente = c.id AND os.excluido = false
-      )
-  LOOP
-    total := total + 1;
-    RAISE NOTICE 'Cliente sem OS — perda no DROP: id=% nome=% regiao=% setor=% setor_id=%',
-      r.id, r.nome, r.regiao, r.setor_cliente, r.setor_cliente_id;
-  END LOOP;
-  RAISE NOTICE 'Total de clientes com perda de dado: %', total;
-END $$;
+WITH ranked AS (
+  SELECT id, ROW_NUMBER() OVER (
+    PARTITION BY nr_documento, tributo, competencia
+    ORDER BY atualizado_em DESC, criado_em DESC, id
+  ) AS rn
+  FROM public.distribuicao_dcomp
+)
+DELETE FROM public.distribuicao_dcomp
+WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
 ```
 
-### 2b. DROP das colunas em `cliente`
+Antes do DELETE, um `RAISE NOTICE` lista quantas linhas serão removidas por DCOMP, para auditoria.
+
+## 3. Fase B — Backfill retroativo
+
+### B.1 Backfill do rateio (`distribuicao_dcomp`) para DCOMPs antigos
+
+Hoje há 62 DCOMPs ativos e apenas 42 com rateio. Para os 20 sem rateio, criar 1 linha sintética usando `dcomp.imposto` + `dcomp.vlr_compensado` + competência da `dcomp.mes_ano_exercicio`. Isso elimina o "fallback de tela" e torna o filtro por tributo no `PerDetailModal` consistente.
 
 ```sql
-ALTER TABLE public.cliente
-  DROP COLUMN IF EXISTS regiao,
-  DROP COLUMN IF EXISTS setor_cliente,
-  DROP COLUMN IF EXISTS setor_cliente_id;
+INSERT INTO public.distribuicao_dcomp (nr_documento, tributo, valor_tributo, competencia, valor_original)
+SELECT
+  d.nr_documento,
+  d.imposto,
+  d.vlr_compensado,
+  to_date(d.mes_ano_exercicio || '-01', 'YYYY-MM-DD'),
+  NULL
+FROM public.dcomp d
+LEFT JOIN public.distribuicao_dcomp dd ON dd.nr_documento = d.nr_documento
+WHERE (d.excluido IS NULL OR d.excluido = '')
+  AND d.imposto IS NOT NULL
+  AND d.vlr_compensado IS NOT NULL
+  AND dd.id IS NULL;
 ```
 
-### Critérios de aceite Fase 2
+Pergunta de validação antes de rodar: confirmar que `dcomp.imposto` para os 20 registros está populado e bate com o tributo real (eles foram preenchidos manualmente no cadastro antigo, então a expectativa é que sim — vamos listar e mostrar antes do INSERT).
 
-- [ ] Lista dos 19 clientes registrada nos logs da migration.
-- [ ] DROP executa sem erro.
-- [ ] `types.ts` regenerado, typecheck verde, nenhuma referência residual a `cliente.setor_cliente|regiao|setor_cliente_id` (rodar `rg` no projeto).
-- [ ] App segue funcional (modal, listagens, importador CSV, sync-cadastros).
+### B.2 Backfill de `valor_original`
 
----
+Hoje 53 linhas, apenas 6 com `valor_original`. Para as outras 47, o valor histórico precisa do fator SELIC vigente entre `per.dt_solicitada` e `dcomp.dt_envio`, que vive na API externa (`/api/v1/selic`) — não dá para resolver só em SQL.
 
-## Fora de escopo (confirmado, não tocar)
+Estratégia: **edge function admin one-off** `backfill-valor-original-dcomp`:
 
-- `src/integrations/supabase/types.ts` (autogerado)
-- `src/pages/equipe/dev/CorrecoesSped.tsx:669` (usa `contribuinte.setor_cliente_id`)
-- `supabase/functions/dw-query/index.ts:10` (`'setor_cliente'` é nome de tabela dimensão)
-- `src/components/equipe/audit/auditFieldFormatter.ts` (labels seguem válidos)
-- `src/hooks/useSetorCliente.ts` (lê tabela dimensão)
-- Modal de cadastro (`NewClientModal`, `ClienteTab`, `ContratosTab`, `useSaveClientTransaction`, `useClientEditData`, `client-form/constants.ts`, `types/clientForm.ts`) — já adaptado.
+1. Seleciona `distribuicao_dcomp` com `valor_original IS NULL`, join com `dcomp` + `per` para pegar `dt_envio` e `dt_solicitada`.
+2. Para cada linha, chama `/api/v1/selic?data_inicio=dt_solicitada&data_fim=dt_envio` (com `DW_SYNC_TOKEN` / auth do usuário admin que disparou).
+3. Aplica a mesma fórmula do modal:
+   - `fator = vlr_acumulado_dec + 0.01` se fora da carência, senão `0`.
+   - `proporcaoOriginal = fator > 0 ? 1 / (1 + fator) : 1`.
+   - `valor_original = round2(valor_tributo * proporcaoOriginal)`.
+4. `UPDATE distribuicao_dcomp SET valor_original = ... WHERE id = ...`.
+5. Logar por DCOMP: nr_documento, tributo, fator, valor_tributo, valor_original.
 
----
+Acionada via botão "Backfill valor_original" oculto atrás de `has_role('admin')` em `ControlePerdcomp.tsx` (ou rota dev). Idempotente: só toca em linhas com `valor_original IS NULL`.
 
-## Status
+Alternativa mais leve, se aceitável: rodar o mesmo loop direto no client (admin), reaproveitando `useSelicTaxaAt`, sem criar edge function. Decidir em B.3.
 
-### Fase 1 — CONCLUÍDA ✅
+### B.3 Decisão necessária
 
-- [x] Migration 1a/1b/1c aplicada (colunas + índices + view com `security_invoker=true`).
-- [x] Backfill aplicado (sem sobrescrever valores existentes em OS).
-- [x] `useDevClients.ts` — `useClientesList` e `useExternalClients` enriquecidos via view.
-- [x] `useFiscalClients.ts` — `useFiscalClientsList` enriquecido via view.
-- [x] `useGestaoClientes.ts` — `useClientesFiltrados` enriquecido via view.
-- [x] `useTaxReferenceData.ts` — `useExternalClients` enriquecido via view.
-- [x] `GerenciarDados.tsx` — `setor_cliente` removido do importador CSV (parse, doc, template).
-- [x] `sync-cadastros/index.ts` — `setor_cliente` removido da interface `Cliente`.
-- [x] `useSaveClientTransaction.ts:542` — `setor_cliente_id` adicionado ao audit `osFields`.
+Qual abordagem para o backfill de `valor_original`?
 
-### Fase 2 — CONCLUÍDA ✅
+- **(A) Edge function admin one-off** — auditável, reaproveitável, roda em batch sem depender de janela aberta.
+- **(B) Script client-side em página dev/admin** — mais simples, não precisa deploy extra, mas exige usuário ficar com a aba aberta.
 
-- [x] Bloco `DO $$` com `RAISE NOTICE` listou os clientes com perda antes do DROP.
-- [x] `ALTER TABLE public.cliente DROP COLUMN regiao, setor_cliente, setor_cliente_id` executado.
-- [x] `types.ts` regenerado; hooks `useDevClients`/`useFiscalClients` ajustados (cast `unknown` + default `null`) já que essas colunas não existem mais em `cliente`.
+Default sugerido: **B** (script client-side em `ControlePerdcomp` atrás de role admin), por ser pontual e usar hooks já existentes.
+
+## 4. Detalhes técnicos
+
+### Arquivos alterados
+
+- `supabase/migrations/<novo>.sql` — A.1 (RLS) + A.3 (dedup) + B.1 (rateio sintético).
+- `src/components/equipe/dev/perdcomp/DcompFormModal.tsx` — refator de `persistirDistribuicoes` para upsert/diff (A.2).
+- `src/pages/equipe/dev/ControlePerdcomp.tsx` — botão admin "Backfill valor_original" (B.2/B.3 opção B) **ou** nova edge function (opção A).
+
+### Validação pós-deploy
+
+1. Logar como `team_member`, abrir um DCOMP, salvar sem alterar → contar linhas em `distribuicao_dcomp` antes/depois (deve ficar igual).
+2. Conferir `PerDetailModal`: soma dos tributos por DCOMP = `vlr_compensado` do DCOMP.
+3. Após B.1: todos os DCOMPs ativos com pelo menos 1 linha em `distribuicao_dcomp`.
+4. Após B.2: `SELECT count(*) FROM distribuicao_dcomp WHERE valor_original IS NULL` = 0 (para linhas com SELIC disponível).
+
+## 5. Ordem de execução
+
+1. Fase A.1 + A.2 + A.3 numa única leva (corrige o bug e limpa o estrago).
+2. Fase B.1 (rateio sintético) — migration imediatamente depois.
+3. Fase B.3 — confirmar abordagem A ou B → implementar B.2.
