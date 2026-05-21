@@ -278,19 +278,14 @@ export function CargaPerdcompCSV() {
         nr_per_orig: nrPerOrig,
         mes_ano_exercicio: mesAnoExercicio,
         dt_envio: dtEnvio,
-        imposto: row.imposto?.trim() || "",
-        tp_credito: row.tp_credito?.trim() || "",
         vlr_compensado: parseNumber(row.vlr_compensado),
       };
-
-      const porcentagemPsa = row.porcentagem_psa ? parseNumber(row.porcentagem_psa) : null;
 
       dcompsToInsert.push({
         ...dcompData,
         nr_documento: stripToDigits(dcompData.nr_documento),
         nr_per_orig: stripToDigits(dcompData.nr_per_orig),
         criado_por: userId,
-        porcentagem_psa: porcentagemPsa,
       });
     }
 
