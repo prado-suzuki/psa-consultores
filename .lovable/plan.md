@@ -1,43 +1,83 @@
-# Reset dos dados de teste do Controle PERDCOMP
+# Correção: sublíder não consegue excluir tarefa (e "volta" depois)
 
-## Objetivo
+## Diagnóstico
 
-Apagar **todos os registros** (hard delete, sem usar `excluido`) das tabelas do módulo PERDCOMP, mantendo a estrutura intacta.
+Dois problemas independentes, ambos confirmados:
 
-## Tabelas afetadas
-
-- `distribuicao_dcomp` (filha de `dcomp`)
-- `dcomp` (filha de `per`)
-- `per_situacao` (filha de `per`)
-- `per` (raiz)
-
-## Ordem de execução
-
-Para respeitar as FKs, deletar de baixo para cima:
+### 1. RLS bloqueia DELETE para sublíder
+Política atual em `public.org_tasks`:
 
 ```text
-1. DELETE FROM distribuicao_dcomp;
-2. DELETE FROM dcomp;
-3. DELETE FROM per_situacao;
-4. DELETE FROM per;
+rls_org_tasks_delete (DELETE):
+  has_role_or_higher(auth.uid(), 'lider') OR created_by = auth.uid()
 ```
 
-Tudo executado em uma única transação via tool `supabase--insert`. Sem `TRUNCATE`, sem desabilitar constraints — a ordem acima é suficiente.
+Ou seja, só **líder/admin** ou **o criador** da tarefa podem excluir. Sublíder que não criou a tarefa é silenciosamente barrado pelo RLS. Isso é inconsistente com `INSERT` e `UPDATE` da mesma tabela, que já liberam sublíder:
 
-## Validação pós-execução
+```text
+rls_org_tasks_update:
+  has_role_or_higher(auth.uid(), 'sublider') OR (team_member AND project member)
+```
+
+A tarefa "teste" não foi criada pelo sublíder → DELETE negado pelo Postgres com 0 linhas afetadas.
+
+### 2. Hook reporta sucesso mesmo quando RLS bloqueia
+`useDeleteOrgTask` em `src/hooks/useOrgTasks.ts` (linhas 263–292):
+
+```ts
+const { error } = await supabase.from('org_tasks').delete().eq('id', id);
+if (error) throw error;
+// → mostra toast "Tarefa excluída"
+```
+
+Quando o RLS bloqueia um DELETE, o PostgREST **não retorna erro** — retorna 0 linhas afetadas. Resultado: o usuário vê toast de sucesso, a lista é invalidada, e a tarefa "volta a aparecer" no refetch. Foi exatamente o sintoma relatado.
+
+## Correções
+
+### A. Migração de RLS — alinhar DELETE com UPDATE
+
+Recriar a policy `rls_org_tasks_delete` permitindo:
+- admin / líder (já contemplado por `has_role_or_higher`)
+- sublíder
+- team_member que seja criador OU membro do projeto da tarefa
 
 ```sql
-SELECT
-  (SELECT count(*) FROM per) AS per,
-  (SELECT count(*) FROM per_situacao) AS per_situacao,
-  (SELECT count(*) FROM dcomp) AS dcomp,
-  (SELECT count(*) FROM distribuicao_dcomp) AS distribuicao_dcomp;
+DROP POLICY rls_org_tasks_delete ON public.org_tasks;
+
+CREATE POLICY rls_org_tasks_delete ON public.org_tasks
+FOR DELETE TO authenticated
+USING (
+  has_role_or_higher(auth.uid(), 'sublider'::app_role)
+  OR (
+    has_role_or_higher(auth.uid(), 'team_member'::app_role)
+    AND (
+      created_by = auth.uid()
+      OR (project_id IS NOT NULL AND is_project_member(auth.uid(), project_id))
+    )
+  )
+);
 ```
 
-Todos devem retornar `0`.
+### B. Detectar DELETE silencioso no hook
 
-## Observações
+Em `src/hooks/useOrgTasks.ts`, ajustar `useDeleteOrgTask` para usar `.select()` e validar a contagem retornada. Se vier vazio, lançar erro explícito ("Sem permissão para excluir esta tarefa") — assim o usuário recebe toast de erro real em vez de falso sucesso, mesmo que no futuro outra policy volte a bloquear.
 
-- Operação **irreversível** — não há soft delete envolvido.
-- Não afeta `grupo_tributo` nem `codigo_receita` (catálogo RFB permanece).
-- Apaga dados de **todos os ambientes** (dev e prod), pois o `DELETE` não filtra por `ambiente`. Se quiser limitar a um ambiente, me avise antes de aprovar.
+```ts
+const { data, error } = await supabase
+  .from('org_tasks')
+  .delete()
+  .eq('id', id)
+  .select('id');
+
+if (error) throw error;
+if (!data || data.length === 0) {
+  throw new Error('Você não tem permissão para excluir esta tarefa.');
+}
+```
+
+## Escopo
+
+- 1 migração SQL (substituição da policy de DELETE de `org_tasks`).
+- 1 edição em `src/hooks/useOrgTasks.ts` (função `useDeleteOrgTask`).
+
+Sem mudanças de UI, sem mexer em outras tabelas/hooks.
