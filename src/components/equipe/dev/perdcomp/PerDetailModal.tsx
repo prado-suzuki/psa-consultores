@@ -170,7 +170,7 @@ export function PerDetailModal({
   const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
-  const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
+  
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
   // Filtro de tipo de tributo na tabela de DCOMPs
@@ -421,14 +421,14 @@ export function PerDetailModal({
 
   // Mutation para salvar ressarcimento
   const ressarcimentoMutation = useMutation({
-    mutationFn: async ({ valor, valorOriginal, dataPagamento, percentual }: { valor: number; valorOriginal: number; dataPagamento: string; percentual: number | null }) => {
-      // Update per.vlr_ressarcido + porcentagem_psa + vlr_ressarcido_original (rateio Atualizado/Original congelado)
+    mutationFn: async ({ valor, valorOriginal, dataPagamento }: { valor: number; valorOriginal: number; dataPagamento: string }) => {
+      // Update per.vlr_ressarcido + vlr_ressarcido_original (rateio Atualizado/Original congelado).
+      // porcentagem_psa NÃO é tocado aqui — vem do cadastro do PER (PerFormModal).
       const { error: perError } = await (supabase
         .from('per') as any)
         .update({
           vlr_ressarcido: valor,
           vlr_ressarcido_original: Math.round(valorOriginal * 100) / 100,
-          porcentagem_psa: percentual,
         })
         .eq('nr_per', per?.nr_per);
       if (perError) throw perError;
@@ -457,7 +457,7 @@ export function PerDetailModal({
       setRessarcimentoOpen(false);
       setRessarcimentoValor('');
       setRessarcimentoData('');
-      setRessarcimentoPercentual('');
+      
 
       if (per) {
         syncPerdcompToDW({
@@ -522,16 +522,10 @@ export function PerDetailModal({
       toast.error('Informe a data do pagamento');
       return;
     }
-    const percentual = ressarcimentoPercentual ? parseFloat(ressarcimentoPercentual) : null;
-    if (percentual !== null && percentual > 100) {
-      toast.error('Percentual não pode ser maior que 100%');
-      return;
-    }
     ressarcimentoMutation.mutate({
       valor,
       valorOriginal: ressarcimentoValorOriginal,
       dataPagamento: ressarcimentoData,
-      percentual,
     });
   };
 
@@ -1042,21 +1036,6 @@ export function PerDetailModal({
                 )}
               </div>
             )}
-            <div className="space-y-2">
-              <Label>Percentual Aplicado (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="Ex: 15.00"
-                value={ressarcimentoPercentual}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) <= 100) setRessarcimentoPercentual(v);
-                }}
-              />
-            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
