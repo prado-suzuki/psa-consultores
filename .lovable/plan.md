@@ -34,28 +34,16 @@ Quando o RLS bloqueia um DELETE, o PostgREST **não retorna erro** — retorna 0
 
 ## Correções
 
-### A. Migração de RLS — alinhar DELETE com UPDATE
+### A. Migração de RLS — sublíder pra cima pode excluir
 
-Recriar a policy `rls_org_tasks_delete` permitindo:
-- admin / líder (já contemplado por `has_role_or_higher`)
-- sublíder
-- team_member que seja criador OU membro do projeto da tarefa
+Recriar a policy `rls_org_tasks_delete` permitindo **sublíder, líder e admin** (via `has_role_or_higher('sublider')`). Team_member e client não excluem tarefas.
 
 ```sql
 DROP POLICY rls_org_tasks_delete ON public.org_tasks;
 
 CREATE POLICY rls_org_tasks_delete ON public.org_tasks
 FOR DELETE TO authenticated
-USING (
-  has_role_or_higher(auth.uid(), 'sublider'::app_role)
-  OR (
-    has_role_or_higher(auth.uid(), 'team_member'::app_role)
-    AND (
-      created_by = auth.uid()
-      OR (project_id IS NOT NULL AND is_project_member(auth.uid(), project_id))
-    )
-  )
-);
+USING (has_role_or_higher(auth.uid(), 'sublider'::app_role));
 ```
 
 ### B. Detectar DELETE silencioso no hook
