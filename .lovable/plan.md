@@ -1,50 +1,50 @@
-# Recalcular Saldo Disponível do PER
+# Tabelas de Grupos de Tributo e Códigos de Receita (RFB)
 
-## Problema
+Criar duas tabelas de catálogo para alimentar campos em cascata (Grupo de Tributo → Código de Receita) em formulários fiscais, populando-as a partir do CSV oficial da RFB anexado.
 
-Hoje o **Saldo Disponível / Saldo Restante do PER** é calculado como:
+## Escopo
 
-```
-saldo = vlr_credito (PER) − Σ dcomp.vlr_compensado (vigentes) − vlr_ressarcido
-```
+- Schema das tabelas + índices + constraint de unicidade composta
+- RLS com leitura para qualquer usuário autenticado, escrita só admin
+- Importação dos 975 registros (após dedup de 1 linha idêntica em MULTA/JUROS 3738-01) cobrindo 23 grupos
+- Sem UI nesta etapa
 
-`dcomp.vlr_compensado` é o valor **atualizado pela SELIC** na data de envio da DCOMP. Logo, o saldo está sendo abatido por valores corrigidos, e não pelo principal de fato consumido do crédito. O correto, agora que `distribuicao_dcomp.valor_original` está populado, é abater pelo somatório do **valor original** de todos os tributos de todas as DCOMPs vigentes daquele PER:
+## Schema
 
-```
-saldo = vlr_credito (PER) − Σ distribuicao_dcomp.valor_original (de todas as DCOMPs vigentes) − vlr_ressarcido_original (quando houver, senão vlr_ressarcido)
-```
+### `public.grupo_tributo`
+- `id` uuid PK
+- `sigla` text NOT NULL UNIQUE — ex.: `COFINS`, `CPRB`, `CP PATRONAL`
+- `denominacao` text NOT NULL — nome completo do grupo
+- `created_at`, `updated_at` timestamptz
 
-## Mudanças
+### `public.codigo_receita`
+- `id` uuid PK
+- `grupo_tributo_id` uuid NOT NULL FK → `grupo_tributo(id)` ON DELETE RESTRICT
+- `codigo` text NOT NULL — formato `XXXX-YY` preservado como texto (hífen e zeros à esquerda mantidos)
+- `denominacao_receita` text NOT NULL
+- `created_at`, `updated_at` timestamptz
+- UNIQUE `(grupo_tributo_id, codigo)` — permite mesmo código em grupos diferentes (ex.: `2985-01` em CP PATRONAL e CPRB)
+- Índice em `grupo_tributo_id` para o lookup em cascata
 
-### 1. `PerDetailModal.tsx` — card "Saldo Restante do PER"
+Trigger `update_updated_at_column()` (já existente) em ambas as tabelas.
 
-Trocar `saldoRestante` para somar `valor_original` das linhas de `distribuicao_dcomp` já carregadas em `distribuicoesPorDcomp` (filtradas aos `dcompsVigentesNrDocs`):
+## RLS
 
-```
-totalOriginalCompensado = Σ linha.valor_original (fallback linha.valor_tributo quando NULL)
-saldoRestante = round2(vlr_credito − totalOriginalCompensado − vlrRessarcidoOriginal)
-```
+Ambas com RLS habilitado:
+- SELECT: qualquer usuário autenticado (`auth.uid() IS NOT NULL`) — catálogo de leitura geral
+- INSERT/UPDATE/DELETE: apenas `has_role(auth.uid(), 'admin')`
 
-Usar `vlr_ressarcido_original` quando existir (já tratado para rateio Atualizado/Original); cair para `vlr_ressarcido` quando não houver. Manter o `normalizeCurrencyZero` e o arredondamento atual.
+## Importação dos dados
 
-Esse mesmo `saldoRestante` alimenta o card "Valor Atualizado SELIC" — não precisa mexer na fórmula SELIC, só na base.
+1. Inserir os 23 grupos distintos em `grupo_tributo` a partir das colunas `Grupo de Tributo` (sigla) e `Denominacao do Grupo de Tributo` (denominação).
+2. Deduplicar o CSV pelo trio `(grupo, codigo, denominacao)` — confirmado: 976 → 975 linhas (1 duplicata exata em `MULTA/JUROS 3738-01`).
+3. Inserir as 975 linhas em `codigo_receita` resolvendo `grupo_tributo_id` via lookup pela sigla.
+4. UTF-8 preservado (acentuação validada no parse).
 
-### 2. `ControlePerdcomp.tsx` — colunas Saldo Disp., Vlr. Selic e totais
+Execução: usar `supabase--migration` para o schema/RLS, e `supabase--insert` para os dados (gerados a partir do CSV em massa, em INSERTs com múltiplos VALUES).
 
-Hoje a tabela usa `dcompTotalMap` (soma de `dcomp.vlr_compensado` por PER). Substituir por um novo mapa `dcompOriginalMap` que soma `valor_original` por `nr_per_orig`:
+## Validações pós-import
 
-- Nova query `useQuery(['perdcomp-distribuicoes', contribuinteId, searched])` em `distribuicao_dcomp` puxando `nr_documento, valor_tributo, valor_original`, restrita aos `nr_documento` dos DCOMPs vigentes (mesma lista usada hoje para `dcompTotalMap`).
-- `dcompOriginalMap[nr_per_orig] = Σ valor_original ?? valor_tributo` por DCOMP vigente.
-- Substituir `dcompTotalMap` por `dcompOriginalMap` no cálculo do `saldo` (linhas 454, 473, 505, 507, 705) — a coluna "Vlr. Compensado" continua mostrando `dcompTotalMap` (atualizado), só o saldo muda de base.
-
-Atualizar `selicCorrectionMap` e `totals.corrigido` para usarem o novo `saldo` (já feito implicitamente quando substituímos `valSaldo`).
-
-### 3. Loading e fallback
-
-Enquanto a query de distribuições não chega, manter o cálculo antigo (fallback para `vlr_compensado`) para não exibir saldo zerado/errado no primeiro render — ou simplesmente exibir loader na coluna.
-
-## Observações
-
-- A coluna "Vlr. Compensado" continua mostrando o valor atualizado (`vlr_compensado` somado por PER) — o usuário entende esse número como "quanto já foi efetivamente compensado em valores correntes".
-- O "Saldo Disp." passa a ser o saldo de principal real do crédito original, coerente com `vlr_credito` que é o principal.
-- Não há mudança de schema, RLS, edge functions nem nada de backend além de uma nova leitura via Supabase.
+- `SELECT count(*) FROM grupo_tributo` = 23
+- `SELECT count(*) FROM codigo_receita` = 975
+- `SELECT codigo, count(*) FROM codigo_receita GROUP BY codigo HAVING count(*) > 1` deve retornar exatamente `2985-01`, `2985-04`, `2985-06`, `2991-01` (compartilhados entre CP PATRONAL e CPRB)
