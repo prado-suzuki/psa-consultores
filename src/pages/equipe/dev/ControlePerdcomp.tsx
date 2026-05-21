@@ -520,7 +520,7 @@ export default function ControlePerdcomp() {
       const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
-      corrigido += correction ? valSaldo * correction.fator : 0;
+      corrigido += correction ? valSaldo * (1 + correction.fator) : 0;
       compensado += totalComp;
       ressarcido += valRessarcido;
       saldo += valSaldo;
@@ -556,7 +556,7 @@ export default function ControlePerdcomp() {
         const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
         const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
         const sld = normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
-        return sld * (selicCorrectionMap[key]?.fator || 0);
+        return sld * (1 + (selicCorrectionMap[key]?.fator || 0));
       }
       default:
         return "";
@@ -728,11 +728,11 @@ export default function ControlePerdcomp() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-help border-b border-dashed border-muted-foreground/50">
-                          Vlr. Selic
+                          Valor Atualizado SELIC
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Parcela bruta da SELIC em R$ (saldo disponível × fator SELIC)</p>
+                        <p>Valor máximo da DCOMP na data atual (saldo disponível + parcela SELIC)</p>
                       </TooltipContent>
                     </Tooltip>
                     <SortIcon col="vlr_corrigido" />
@@ -802,11 +802,11 @@ export default function ControlePerdcomp() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
-                                  {formatCurrency(saldo * correction.fator)}
+                                  {formatCurrency(saldo * (1 + correction.fator))}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Parcela SELIC em R$ — Fator: {correction.fator.toFixed(6)}</p>
+                                <p>Valor Atualizado SELIC — Fator: {correction.fator.toFixed(6)}</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : (

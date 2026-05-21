@@ -340,13 +340,13 @@ export function PerDetailModal({
   const emCarencia = perAtual?.dt_solicitada
     ? isWithinGracePeriod(perAtual.dt_solicitada)
     : true;
-  const valorAtualizadoSelic = useMemo(() => {
+  const vlrSelic = useMemo(() => {
     if (emCarencia || !selicTaxaAtual) return null;
     const { valorCorrigido, fator } = applySelicCorrection(
       saldoRestante,
       selicTaxaAtual.vlr_acumulado_dec,
     );
-    return { valorCorrigido, fator };
+    return { valor: valorCorrigido - saldoRestante, fator };
   }, [emCarencia, selicTaxaAtual, saldoRestante]);
 
   // SELIC: fator vigente na data do ressarcimento informada — para rateio Atualizado/Original
@@ -586,15 +586,15 @@ export function PerDetailModal({
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
-                    Valor Atualizado SELIC
+                    Vlr. Selic
                   </p>
                   {emCarencia ? (
                     <p className="text-lg font-mono font-bold text-slate-400 dark:text-slate-500">
                       Em carência
                     </p>
-                  ) : valorAtualizadoSelic ? (
+                  ) : vlrSelic ? (
                     <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {formatCurrency(valorAtualizadoSelic.valorCorrigido)}
+                      {formatCurrency(vlrSelic.valor)}
                     </p>
                   ) : (
                     <p className="text-lg font-mono font-bold text-slate-400">—</p>
