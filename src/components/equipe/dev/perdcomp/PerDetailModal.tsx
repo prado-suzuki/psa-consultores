@@ -457,7 +457,7 @@ export function PerDetailModal({
       setRessarcimentoOpen(false);
       setRessarcimentoValor('');
       setRessarcimentoData('');
-      setRessarcimentoPercentual('');
+      
 
       if (per) {
         syncPerdcompToDW({
