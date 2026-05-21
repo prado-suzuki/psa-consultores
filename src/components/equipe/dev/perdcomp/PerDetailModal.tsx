@@ -313,11 +313,14 @@ export function PerDetailModal({
   // DCOMPs após aplicação do filtro de tributo
   const dcompsExibidos = useMemo(() => {
     if (tributoFiltro === '__todos__') {
-      return dcompsVigentes.map((d) => ({
-        dcomp: d,
-        valorExibido: d.vlr_compensado || 0,
-        tributoExibido: d.imposto,
-      }));
+      return dcompsVigentes.map((d) => {
+        const tribs = Object.keys(valorPorDcompTributo[d.nr_documento] || {});
+        return {
+          dcomp: d,
+          valorExibido: d.vlr_compensado || 0,
+          tributoExibido: tribs.length > 0 ? tribs.join(', ') : '—',
+        };
+      });
     }
     return dcompsVigentes
       .filter((d) => {
