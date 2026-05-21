@@ -376,8 +376,7 @@ export function CargaPerdcompCSV() {
               <Info className="h-4 w-4" />
               <AlertTitle>Formato CSV - DCOMP</AlertTitle>
               <AlertDescription className="text-xs">
-                <strong>Colunas:</strong> nr_documento, nr_per_orig, mes_ano_exercicio, dt_envio, imposto, tp_credito,
-                vlr_compensado
+                <strong>Colunas:</strong> nr_documento, nr_per_orig, mes_ano_exercicio, dt_envio, vlr_compensado
                 <br />
                 <strong>Separador:</strong> ; (ponto e vírgula) ou TAB
                 <br />
@@ -386,9 +385,9 @@ export function CargaPerdcompCSV() {
             </Alert>
 
             <pre className="p-3 bg-muted rounded-lg text-xs overflow-x-auto">
-              {`nr_documento;nr_per_orig;mes_ano_exercicio;dt_envio;imposto;tp_credito;vlr_compensado
-00452.02945.200226.1.3.18-4556;10010.12345.202401.1.3.18-0001;01/02/2024;15/02/2024;IRPJ;PIS;5000,00
-00452.02945.200226.1.3.18-4557;10010.12345.202401.1.3.18-0001;01/03/2024;15/03/2024;CSLL;PIS;3500,50`}
+              {`nr_documento;nr_per_orig;mes_ano_exercicio;dt_envio;vlr_compensado
+00452.02945.200226.1.3.18-4556;10010.12345.202401.1.3.18-0001;01/02/2024;15/02/2024;5000,00
+00452.02945.200226.1.3.18-4557;10010.12345.202401.1.3.18-0001;01/03/2024;15/03/2024;3500,50`}
             </pre>
           </TabsContent>
         </Tabs>
