@@ -135,6 +135,8 @@ interface DcompFormModalProps {
   editData?: any;
   contribuinteId?: string;
   preSelectedPer?: string;
+  /** Saldo restante (principal) do PER de contexto, já descontadas todas as DCOMPs vigentes (incluindo a editada). */
+  saldoRestantePer?: number;
 }
 
 export function DcompFormModal({
@@ -143,6 +145,7 @@ export function DcompFormModal({
   editData,
   contribuinteId,
   preSelectedPer,
+  saldoRestantePer,
 }: DcompFormModalProps) {
   const { user, isAdmin, isLider, isSublider } = useAuth();
   const queryClient = useQueryClient();
@@ -343,6 +346,28 @@ export function DcompFormModal({
 
   const proporcaoOriginal = fatorSelic > 0 ? 1 / (1 + fatorSelic) : 1;
 
+  // Limite máximo do vlr_compensado: saldo restante (principal) do PER × (1 + fator SELIC na dt_envio).
+  // Em modo edição, somamos de volta o valor_original do DCOMP atual (que já foi descontado do saldo do parent),
+  // pois os novos valores informados substituem os antigos.
+  const valorOriginalDcompAtual = useMemo(() => {
+    if (!isEditing || distribuicoesExistentes.length === 0) return 0;
+    return distribuicoesExistentes.reduce(
+      (s, l) => s + Number(l.valor_original ?? l.valor_tributo ?? 0),
+      0,
+    );
+  }, [isEditing, distribuicoesExistentes]);
+
+  const valorAtualizadoSelicMax = useMemo(() => {
+    // Só aplica quando o PER selecionado bate com o do contexto (saldoRestantePer não vale para outro PER).
+    if (saldoRestantePer == null || nrPerOrig !== preSelectedPer) return null;
+    const principalDisponivel = saldoRestantePer + valorOriginalDcompAtual;
+    return principalDisponivel * (1 + fatorSelic);
+  }, [saldoRestantePer, nrPerOrig, preSelectedPer, valorOriginalDcompAtual, fatorSelic]);
+
+  const vlrCompensadoExcedeMax =
+    valorAtualizadoSelicMax != null &&
+    toCents(vlrCompensado) > toCents(valorAtualizadoSelicMax);
+
   const round2 = (v: number) => Math.round(v * 100) / 100;
 
   const addLinha = (tributo: string) => {
@@ -534,6 +559,7 @@ export function DcompFormModal({
       return;
     }
     if (!distribuicoesValidas) return;
+    if (vlrCompensadoExcedeMax) return;
     const derived = {
       ...data,
       mes_ano_exercicio: data.dt_envio ? data.dt_envio.substring(0, 7) : '',
@@ -682,6 +708,11 @@ export function DcompFormModal({
                     />
                   </FormControl>
                   <FormMessage />
+                  {vlrCompensadoExcedeMax && valorAtualizadoSelicMax != null && (
+                    <p className="text-sm text-destructive">
+                      O valor compensado ({formatCurrencyDisplay(vlrCompensado)}) ultrapassa o Valor Atualizado SELIC do PER ({formatCurrencyDisplay(valorAtualizadoSelicMax)}).
+                    </p>
+                  )}
                 </FormItem>
               )}
             />
@@ -845,7 +876,7 @@ export function DcompFormModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp}
+                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp || vlrCompensadoExcedeMax}
                 title={!canWriteDcomp ? 'Você não tem permissão para editar este DCOMP' : undefined}
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

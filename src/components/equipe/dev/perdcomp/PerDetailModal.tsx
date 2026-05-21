@@ -247,14 +247,8 @@ export function PerDetailModal({
     return dcomps.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento));
   }, [dcomps, dcompsRetificadosSet]);
 
-  // Calcular saldo restante (baseado apenas em DCOMPs vigentes)
-  const saldoRestante = useMemo(() => {
-    if (!perAtual) return 0;
-    const totalCompensado = dcompsVigentes.reduce((sum: number, d: any) => sum + (d.vlr_compensado || 0), 0);
-    return normalizeCurrencyZero(
-      Math.round(((perAtual as any).vlr_credito - totalCompensado - vlrRessarcido) * 100) / 100,
-    );
-  }, [perAtual, dcompsVigentes, vlrRessarcido]);
+  // saldoRestante é calculado mais abaixo, após carregar distribuicoesPorDcomp,
+  // usando a soma de valor_original (principal) das distribuições — não vlr_compensado (atualizado pela SELIC).
 
   // Distribuições do rateio para todas as DCOMPs vigentes — alimenta filtro de tributo
   const dcompsVigentesNrDocs = useMemo(
@@ -303,6 +297,19 @@ export function PerDetailModal({
     return map;
   }, [distribuicoesPorDcomp]);
 
+  // Saldo restante: vlr_credito − Σ valor_original (todas distribuições das DCOMPs vigentes) − ressarcido (original quando houver)
+  const saldoRestante = useMemo(() => {
+    if (!perAtual) return 0;
+    const vigentesSet = new Set(dcompsVigentesNrDocs);
+    const totalOriginalCompensado = distribuicoesPorDcomp
+      .filter((l) => vigentesSet.has(l.nr_documento))
+      .reduce((sum, l) => sum + Number(l.valor_original ?? l.valor_tributo ?? 0), 0);
+    const ressarcidoBase = (perAtual as any).vlr_ressarcido_original ?? vlrRessarcido;
+    return normalizeCurrencyZero(
+      Math.round(((perAtual as any).vlr_credito - totalOriginalCompensado - ressarcidoBase) * 100) / 100,
+    );
+  }, [perAtual, distribuicoesPorDcomp, dcompsVigentesNrDocs, vlrRessarcido]);
+
   // DCOMPs após aplicação do filtro de tributo
   const dcompsExibidos = useMemo(() => {
     if (tributoFiltro === '__todos__') {
@@ -333,13 +340,13 @@ export function PerDetailModal({
   const emCarencia = perAtual?.dt_solicitada
     ? isWithinGracePeriod(perAtual.dt_solicitada)
     : true;
-  const valorAtualizadoSelic = useMemo(() => {
+  const vlrSelic = useMemo(() => {
     if (emCarencia || !selicTaxaAtual) return null;
     const { valorCorrigido, fator } = applySelicCorrection(
       saldoRestante,
       selicTaxaAtual.vlr_acumulado_dec,
     );
-    return { valorCorrigido, fator };
+    return { valor: valorCorrigido - saldoRestante, fator };
   }, [emCarencia, selicTaxaAtual, saldoRestante]);
 
   // SELIC: fator vigente na data do ressarcimento informada — para rateio Atualizado/Original
@@ -579,15 +586,15 @@ export function PerDetailModal({
                 </div>
                 <div className="text-right">
                   <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
-                    Valor Atualizado SELIC
+                    Vlr. Selic
                   </p>
                   {emCarencia ? (
                     <p className="text-lg font-mono font-bold text-slate-400 dark:text-slate-500">
                       Em carência
                     </p>
-                  ) : valorAtualizadoSelic ? (
+                  ) : vlrSelic ? (
                     <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
-                      {formatCurrency(valorAtualizadoSelic.valorCorrigido)}
+                      {formatCurrency(vlrSelic.valor)}
                     </p>
                   ) : (
                     <p className="text-lg font-mono font-bold text-slate-400">—</p>
@@ -940,6 +947,7 @@ export function PerDetailModal({
         editData={editDcompData}
         contribuinteId={contribuinteId}
         preSelectedPer={per?.nr_per}
+        saldoRestantePer={saldoRestante}
       />
 
       {/* Dialog de Ressarcimento */}

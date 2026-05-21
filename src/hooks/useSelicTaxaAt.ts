@@ -1,13 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
+import { getSelicEndDate, isWithinGracePeriodAt } from '@/lib/selicCalculator';
 import type { SelicTaxa } from '@/hooks/useSelicData';
 
 /**
  * Busca a taxa SELIC acumulada vigente em uma data de referência específica.
  * Diferente de useSelicDataPerPer (que mira o dia atual), este aceita data arbitrária —
  * usado quando precisamos do fator vigente na dt_envio de uma DCOMP ou dt_pagamento de um ressarcimento.
+ *
+ * A linha buscada é a do mês do fim da carência (dt_solicitada + 360 dias). O `vlr_acumulado_dec`
+ * dessa linha representa a SELIC acumulada do fim da carência até o mês anterior à `dtReferencia`;
+ * somando-se o +1% do mês corrente em `applySelicCorrection`, obtém-se o fator total.
  */
 export function useSelicTaxaAt(
   dtSolicitada: string | null | undefined,
@@ -33,11 +37,21 @@ export function useSelicTaxaAt(
       const taxas: SelicTaxa[] = data.taxas || [];
       if (taxas.length === 0) return null;
 
-      const refMonth = dtReferencia.substring(0, 7);
+      const endMonth = getSelicEndDate(dtSolicitada).substring(0, 7);
       const found = taxas.find(
-        (t) => t.data_atualizacao.substring(0, 7) === refMonth,
+        (t) => t.data_atualizacao.substring(0, 7) === endMonth,
       );
-      return found || taxas[taxas.length - 1] || null;
+      if (found) return found;
+      // Edge: dtReferencia no mesmo mês do fim da carência — sem acumulado anterior,
+      // apenas +1% do mês corrente (somado em applySelicCorrection).
+      return {
+        data: '',
+        valor: 0,
+        valor_decimal: 0,
+        valor_acumulado: 0,
+        vlr_acumulado_dec: 0,
+        data_atualizacao: `${endMonth}-01`,
+      };
     },
     enabled: !!dtSolicitada && !!dtReferencia && !emCarencia,
     staleTime: 24 * 60 * 60 * 1000,

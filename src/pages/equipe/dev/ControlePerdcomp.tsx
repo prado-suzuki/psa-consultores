@@ -357,6 +357,7 @@ export default function ControlePerdcomp() {
   }, [dcompData]);
 
   // Create map of total compensated value per PER (excluding rectified DCOMPs)
+  // Usa vlr_compensado (atualizado pela SELIC na data de envio) — exibido na coluna "Vlr. Compensado".
   const dcompTotalMap = useMemo(() => {
     const map: Record<string, number> = {};
     for (const dcomp of dcompData) {
@@ -367,6 +368,49 @@ export default function ControlePerdcomp() {
     }
     return map;
   }, [dcompData, dcompsRetificadosSet]);
+
+  // Lista de nr_documento de DCOMPs vigentes para buscar distribuições (valor_original)
+  const dcompsVigentesNrDocs = useMemo(
+    () => dcompData.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento)).map((d: any) => d.nr_documento),
+    [dcompData, dcompsRetificadosSet],
+  );
+
+  // Query distribuições para somar valor_original por DCOMP (principal consumido do crédito)
+  const { data: distribuicoesData = [] } = useQuery<Array<{
+    nr_documento: string;
+    valor_tributo: number | null;
+    valor_original: number | null;
+  }>>({
+    queryKey: ["perdcomp-distribuicoes", contribuinteId, dcompsVigentesNrDocs.join(",")],
+    queryFn: async () => {
+      if (dcompsVigentesNrDocs.length === 0) return [];
+      const { data, error } = await (supabase
+        .from("distribuicao_dcomp") as any)
+        .select("nr_documento, valor_tributo, valor_original")
+        .in("nr_documento", dcompsVigentesNrDocs);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: searched && dcompsVigentesNrDocs.length > 0,
+  });
+
+  // Map: nr_per_orig → Σ valor_original (fallback valor_tributo) das distribuições das DCOMPs vigentes
+  const dcompOriginalMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    // index nr_documento → nr_per_orig
+    const docToPer: Record<string, string> = {};
+    for (const d of dcompData) {
+      if (dcompsRetificadosSet.has(d.nr_documento)) continue;
+      docToPer[d.nr_documento] = d.nr_per_orig;
+    }
+    for (const linha of distribuicoesData) {
+      const perNum = docToPer[linha.nr_documento];
+      if (!perNum) continue;
+      const valor = Number(linha.valor_original ?? linha.valor_tributo ?? 0);
+      map[perNum] = (map[perNum] || 0) + valor;
+    }
+    return map;
+  }, [distribuicoesData, dcompData, dcompsRetificadosSet]);
 
   // Frontend filtering - hide rectified processes and apply user filters
   const filteredPerData = perData.filter((item: any) => {
@@ -449,15 +493,15 @@ export default function ControlePerdcomp() {
       const taxa = selicPerMap[per.nr_per];
       if (!taxa) continue;
 
-      const totalComp = dcompTotalMap[per.nr_per] || 0;
-      const valRessarcido = (per as any).vlr_ressarcido || 0;
-      const saldo = normalizeCurrencyZero(per.vlr_credito - totalComp - valRessarcido);
+      const totalOriginal = dcompOriginalMap[per.nr_per] ?? (dcompTotalMap[per.nr_per] || 0);
+      const valRessarcido = (per as any).vlr_ressarcido_original ?? (per as any).vlr_ressarcido ?? 0;
+      const saldo = normalizeCurrencyZero(per.vlr_credito - totalOriginal - valRessarcido);
 
       const { valorCorrigido, fator } = applySelicCorrection(saldo, taxa.vlr_acumulado_dec);
       map[per.nr_per] = { valorCorrigido, fator };
     }
     return map;
-  }, [selicPerMap, filteredPerData, dcompTotalMap]);
+  }, [selicPerMap, filteredPerData, dcompTotalMap, dcompOriginalMap]);
 
   // Calculate totals for footer
   const totals = useMemo(() => {
@@ -469,19 +513,21 @@ export default function ControlePerdcomp() {
 
     for (const item of filteredPerData) {
       const totalComp = dcompTotalMap[item.nr_per] || 0;
+      const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalComp;
       const valRessarcido = (item as any).vlr_ressarcido || 0;
-      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalComp - valRessarcido);
+      const valRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valRessarcido;
+      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalOriginal - valRessarcidoOriginal);
       const correction = selicCorrectionMap[item.nr_per];
 
       credito += item.vlr_credito;
-      corrigido += correction ? valSaldo * correction.fator : 0;
+      corrigido += correction ? valSaldo * (1 + correction.fator) : 0;
       compensado += totalComp;
       ressarcido += valRessarcido;
       saldo += valSaldo;
     }
 
     return { credito, corrigido, compensado, ressarcido, saldo };
-  }, [filteredPerData, dcompTotalMap, selicCorrectionMap]);
+  }, [filteredPerData, dcompTotalMap, dcompOriginalMap, selicCorrectionMap]);
 
   // Sorting
   const getSortValue = (item: any, col: string) => {
@@ -501,11 +547,16 @@ export default function ControlePerdcomp() {
         return item.vlr_credito;
       case "vlr_compensado":
         return dcompTotalMap[key] || 0;
-      case "saldo":
-        return normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
+      case "saldo": {
+        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
+        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
+        return normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
+      }
       case "vlr_corrigido": {
-        const sld = normalizeCurrencyZero(item.vlr_credito - (dcompTotalMap[key] || 0) - ((item as any).vlr_ressarcido || 0));
-        return sld * (selicCorrectionMap[key]?.fator || 0);
+        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
+        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
+        const sld = normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
+        return sld * (1 + (selicCorrectionMap[key]?.fator || 0));
       }
       default:
         return "";
@@ -677,11 +728,11 @@ export default function ControlePerdcomp() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-help border-b border-dashed border-muted-foreground/50">
-                          Vlr. Selic
+                          Valor Atualizado SELIC
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Parcela bruta da SELIC em R$ (saldo disponível × fator SELIC)</p>
+                        <p>Valor máximo da DCOMP na data atual (saldo disponível + parcela SELIC)</p>
                       </TooltipContent>
                     </Tooltip>
                     <SortIcon col="vlr_corrigido" />
@@ -701,8 +752,10 @@ export default function ControlePerdcomp() {
                 paginatedData.map((item: any) => {
                   const situacaoInfo = perSituacoesMap[item.nr_per];
                   const totalCompensado = dcompTotalMap[item.nr_per] || 0;
+                  const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalCompensado;
                   const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalCompensado - valorRessarcido) * 100) / 100);
+                  const valorRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valorRessarcido;
+                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalOriginal - valorRessarcidoOriginal) * 100) / 100);
                   const correction = selicCorrectionMap[item.nr_per];
 
                   return (
@@ -749,11 +802,11 @@ export default function ControlePerdcomp() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
-                                  {formatCurrency(saldo * correction.fator)}
+                                  {formatCurrency(saldo * (1 + correction.fator))}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Parcela SELIC em R$ — Fator: {correction.fator.toFixed(6)}</p>
+                                <p>Valor Atualizado SELIC — Fator: {correction.fator.toFixed(6)}</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : (
