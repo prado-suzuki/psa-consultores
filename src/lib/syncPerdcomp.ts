@@ -30,11 +30,8 @@ interface DcompSync {
   nr_per_orig: string;
   mes_ano_exercicio: string;
   dt_envio: string;
-  imposto: string;
-  tp_credito: string;
   vlr_compensado: number;
   nr_dcomp_ret?: string | null;
-  porcentagem_psa?: number | null;
   excluido?: string | null;
   nr_cancelamento?: string | null;
 }
