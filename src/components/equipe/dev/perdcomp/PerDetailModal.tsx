@@ -947,6 +947,7 @@ export function PerDetailModal({
         editData={editDcompData}
         contribuinteId={contribuinteId}
         preSelectedPer={per?.nr_per}
+        saldoRestantePer={saldoRestante}
       />
 
       {/* Dialog de Ressarcimento */}
