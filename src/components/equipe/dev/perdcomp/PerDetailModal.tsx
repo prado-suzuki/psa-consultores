@@ -1042,21 +1042,6 @@ export function PerDetailModal({
                 )}
               </div>
             )}
-            <div className="space-y-2">
-              <Label>Percentual Aplicado (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="Ex: 15.00"
-                value={ressarcimentoPercentual}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) <= 100) setRessarcimentoPercentual(v);
-                }}
-              />
-            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
