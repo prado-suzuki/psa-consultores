@@ -1,37 +1,43 @@
-# Remover "Percentual Aplicado (%)" do modal de Ressarcimento
+# Reset dos dados de teste do Controle PERDCOMP
 
-## Contexto
+## Objetivo
 
-O popover de **Registrar Ressarcimento** (dentro do `PerDetailModal`) hoje pede `Percentual Aplicado (%)` e grava em `per.porcentagem_psa`. Esse mesmo campo já é preenchido no **Modal Novo PER** (`PerFormModal`), também em `per.porcentagem_psa`.
+Apagar **todos os registros** (hard delete, sem usar `excluido`) das tabelas do módulo PERDCOMP, mantendo a estrutura intacta.
 
-Resultado: registrar um ressarcimento sobrescreve o percentual definido no cadastro do PER.
+## Tabelas afetadas
 
-A solicitação é manter o percentual apenas no cadastro do PER e removê-lo do fluxo de ressarcimento.
+- `distribuicao_dcomp` (filha de `dcomp`)
+- `dcomp` (filha de `per`)
+- `per_situacao` (filha de `per`)
+- `per` (raiz)
 
-## Importante sobre "remover das tabelas"
+## Ordem de execução
 
-Não há colunas separadas: **PerFormModal e o ressarcimento gravam na MESMA coluna** `per.porcentagem_psa`. Como o cadastro do PER continua usando essa coluna, ela **não pode ser dropada**. A limpeza necessária é só remover a escrita feita pelo fluxo de ressarcimento.
+Para respeitar as FKs, deletar de baixo para cima:
 
-(`dcomp.porcentagem_psa` já foi removida em migration anterior — não há coluna duplicada para limpar.)
+```text
+1. DELETE FROM distribuicao_dcomp;
+2. DELETE FROM dcomp;
+3. DELETE FROM per_situacao;
+4. DELETE FROM per;
+```
 
-## Mudanças (frontend apenas)
+Tudo executado em uma única transação via tool `supabase--insert`. Sem `TRUNCATE`, sem desabilitar constraints — a ordem acima é suficiente.
 
-`src/components/equipe/dev/perdcomp/PerDetailModal.tsx`:
+## Validação pós-execução
 
-1. Remover o input `Percentual Aplicado (%)` do popover de ressarcimento (linhas ~1046-1058).
-2. Remover o state `ressarcimentoPercentual` / `setRessarcimentoPercentual` (linha 173) e seu reset no `onSuccess` (linha 460).
-3. Remover o parâmetro `percentual` da `ressarcimentoMutation` (linhas 424, 431, 530-534).
-4. Remover o campo `porcentagem_psa` do `.update()` em `per` dentro da mutation (linha 431) — assim o percentual definido no cadastro do PER é preservado.
-5. Remover a validação `percentual > 100` no `handleSaveRessarcimento` (linhas 525-529).
+```sql
+SELECT
+  (SELECT count(*) FROM per) AS per,
+  (SELECT count(*) FROM per_situacao) AS per_situacao,
+  (SELECT count(*) FROM dcomp) AS dcomp,
+  (SELECT count(*) FROM distribuicao_dcomp) AS distribuicao_dcomp;
+```
 
-## Não muda
+Todos devem retornar `0`.
 
-- `per.porcentagem_psa` permanece na tabela (alimentado pelo PerFormModal e exibido em `ControlePerdcomp.tsx` linha 777).
-- `PerFormModal.tsx`, `CargaPerdcompCSV.tsx`, `DcompFormModal.tsx` (que apenas lê), `sync-perdcomp` edge function — sem alteração.
-- Sem migration.
+## Observações
 
-## Validação
-
-- Abrir um PER existente com `porcentagem_psa` setado.
-- Registrar um ressarcimento; conferir que `porcentagem_psa` no banco continua igual ao valor original.
-- Confirmar que o popover de ressarcimento não tem mais o campo de percentual.
+- Operação **irreversível** — não há soft delete envolvido.
+- Não afeta `grupo_tributo` nem `codigo_receita` (catálogo RFB permanece).
+- Apaga dados de **todos os ambientes** (dev e prod), pois o `DELETE` não filtra por `ambiente`. Se quiser limitar a um ambiente, me avise antes de aprovar.
