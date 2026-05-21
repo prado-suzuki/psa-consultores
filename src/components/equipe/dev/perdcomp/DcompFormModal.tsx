@@ -614,9 +614,9 @@ export function DcompFormModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-6">
+          <div className="flex items-start justify-between gap-3 pr-10">
             <DialogTitle>{isEditing ? 'Editar DCOMP' : 'Novo DCOMP'}</DialogTitle>
             <div className="flex items-center gap-2">
               {readOnlyMode && (
