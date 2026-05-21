@@ -522,16 +522,10 @@ export function PerDetailModal({
       toast.error('Informe a data do pagamento');
       return;
     }
-    const percentual = ressarcimentoPercentual ? parseFloat(ressarcimentoPercentual) : null;
-    if (percentual !== null && percentual > 100) {
-      toast.error('Percentual não pode ser maior que 100%');
-      return;
-    }
     ressarcimentoMutation.mutate({
       valor,
       valorOriginal: ressarcimentoValorOriginal,
       dataPagamento: ressarcimentoData,
-      percentual,
     });
   };
 
