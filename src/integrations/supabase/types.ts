@@ -940,14 +940,11 @@ export type Database = {
           criado_por: string | null
           dt_envio: string
           excluido: string | null
-          imposto: string
           mes_ano_exercicio: string
           nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
-          porcentagem_psa: number | null
-          tp_credito: string
           vlr_compensado: number
         }
         Insert: {
@@ -957,14 +954,11 @@ export type Database = {
           criado_por?: string | null
           dt_envio: string
           excluido?: string | null
-          imposto: string
           mes_ano_exercicio: string
           nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
-          porcentagem_psa?: number | null
-          tp_credito: string
           vlr_compensado: number
         }
         Update: {
@@ -974,14 +968,11 @@ export type Database = {
           criado_por?: string | null
           dt_envio?: string
           excluido?: string | null
-          imposto?: string
           mes_ano_exercicio?: string
           nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
-          porcentagem_psa?: number | null
-          tp_credito?: string
           vlr_compensado?: number
         }
         Relationships: [
