@@ -579,7 +579,13 @@ const ControleBalancetes = () => {
         </CardContent>
       </Card>
 
-      <UploadBalanceteModal open={modalOpen} onOpenChange={handleModalClose} />
+      <UploadBalanceteModal
+        open={modalOpen}
+        onOpenChange={handleModalClose}
+        prefillData={searched && !loading && balancetes.length === 0
+          ? { clienteId, contribuinteId, periodo }
+          : null}
+      />
 
       {/* Confirm Download */}
       <AlertDialog open={!!confirmDownload} onOpenChange={() => setConfirmDownload(null)}>

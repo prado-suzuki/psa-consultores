@@ -33,11 +33,16 @@ function isValidFile(file: File): boolean {
 interface UploadBalanceteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  prefillData?: {
+    clienteId: string;
+    contribuinteId: string;
+    periodo: MonthRange | null;
+  } | null;
 }
 
 const STORAGE_KEY = 'last-balancete-upload';
 
-export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModalProps) => {
+export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: UploadBalanceteModalProps) => {
   const { user } = useAuth();
   const { fetchWithAuth } = useApiAuth();
 
@@ -57,6 +62,19 @@ export const UploadBalanceteModal = ({ open, onOpenChange }: UploadBalanceteModa
   const [dragging, setDragging] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prefillDataRef = useRef(prefillData);
+  prefillDataRef.current = prefillData;
+
+  // Pré-preenche os campos a partir dos filtros de busca quando o modal abre
+  // (usado quando a consulta não retornou balancetes e o usuário decide cadastrar)
+  useEffect(() => {
+    if (!open) return;
+    const p = prefillDataRef.current;
+    if (!p) return;
+    if (p.clienteId) setClienteId(p.clienteId);
+    if (p.contribuinteId) setContribuinteId(p.contribuinteId);
+    if (p.periodo) setPeriodo(p.periodo);
+  }, [open]);
 
   // Fetch clientes
   const { data: clientes } = useQuery({
