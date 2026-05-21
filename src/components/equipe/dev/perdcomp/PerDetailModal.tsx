@@ -421,14 +421,14 @@ export function PerDetailModal({
 
   // Mutation para salvar ressarcimento
   const ressarcimentoMutation = useMutation({
-    mutationFn: async ({ valor, valorOriginal, dataPagamento, percentual }: { valor: number; valorOriginal: number; dataPagamento: string; percentual: number | null }) => {
-      // Update per.vlr_ressarcido + porcentagem_psa + vlr_ressarcido_original (rateio Atualizado/Original congelado)
+    mutationFn: async ({ valor, valorOriginal, dataPagamento }: { valor: number; valorOriginal: number; dataPagamento: string }) => {
+      // Update per.vlr_ressarcido + vlr_ressarcido_original (rateio Atualizado/Original congelado).
+      // porcentagem_psa NÃO é tocado aqui — vem do cadastro do PER (PerFormModal).
       const { error: perError } = await (supabase
         .from('per') as any)
         .update({
           vlr_ressarcido: valor,
           vlr_ressarcido_original: Math.round(valorOriginal * 100) / 100,
-          porcentagem_psa: percentual,
         })
         .eq('nr_per', per?.nr_per);
       if (perError) throw perError;
