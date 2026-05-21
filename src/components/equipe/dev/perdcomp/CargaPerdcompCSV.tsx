@@ -32,8 +32,6 @@ interface ParsedDcomp {
   nr_per_orig: string;
   mes_ano_exercicio: string;
   dt_envio: string;
-  imposto: string;
-  tp_credito: string;
   vlr_compensado: number;
   excluido?: string;
   nr_cancelamento?: string;
