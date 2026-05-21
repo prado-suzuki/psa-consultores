@@ -170,7 +170,7 @@ export function PerDetailModal({
   const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
-  const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
+  
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
   // Filtro de tipo de tributo na tabela de DCOMPs
