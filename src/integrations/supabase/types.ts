@@ -556,6 +556,41 @@ export type Database = {
           },
         ]
       }
+      codigo_receita: {
+        Row: {
+          codigo: string
+          created_at: string
+          denominacao_receita: string
+          grupo_tributo_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          denominacao_receita: string
+          grupo_tributo_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          denominacao_receita?: string
+          grupo_tributo_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codigo_receita_grupo_tributo_id_fkey"
+            columns: ["grupo_tributo_id"]
+            isOneToOne: false
+            referencedRelation: "grupo_tributo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comentarios_avaliacao: {
         Row: {
           autor_id: string
@@ -1614,6 +1649,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      grupo_tributo: {
+        Row: {
+          created_at: string
+          denominacao: string
+          id: string
+          sigla: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          denominacao: string
+          id?: string
+          sigla: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          denominacao?: string
+          id?: string
+          sigla?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       improvement_savings_details: {
         Row: {
