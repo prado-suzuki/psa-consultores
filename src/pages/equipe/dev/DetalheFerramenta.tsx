@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Trash2, Play, Pause, Code2 } from 'lucide-react';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+
 
 const areas = [
   { id: 'digital', label: 'Digital' },
@@ -76,6 +78,8 @@ const DetalheFerramenta = () => {
 
   const updateTool = useMutation({
     mutationFn: async () => {
+      await assertCanPerform('tools', 'update', id as string);
+
       const { error: toolError } = await supabase
         .from('tools')
         .update({
@@ -129,6 +133,8 @@ const DetalheFerramenta = () => {
 
   const deleteTool = useMutation({
     mutationFn: async () => {
+      await assertCanPerform('tools', 'delete', id as string);
+
       const { error } = await supabase
         .from('tools')
         .delete()
@@ -136,6 +142,7 @@ const DetalheFerramenta = () => {
 
       if (error) throw error;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tools'] });
       toast({

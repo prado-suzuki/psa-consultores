@@ -3999,6 +3999,24 @@ export type Database = {
           },
         ]
       }
+      rls_precheck_allowed_tables: {
+        Row: {
+          allowed_ops: string[]
+          created_at: string
+          table_name: string
+        }
+        Insert: {
+          allowed_ops?: string[]
+          created_at?: string
+          table_name: string
+        }
+        Update: {
+          allowed_ops?: string[]
+          created_at?: string
+          table_name?: string
+        }
+        Relationships: []
+      }
       routines: {
         Row: {
           assigned_to: string | null
@@ -4914,6 +4932,10 @@ export type Database = {
       }
     }
     Functions: {
+      can_perform: {
+        Args: { p_id: string; p_op: string; p_table: string }
+        Returns: Json
+      }
       can_view_org_project: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
