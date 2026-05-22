@@ -449,10 +449,13 @@ export default function EquipeSprintDetalhes() {
       // Primeiro, excluir anexos do storage e da tabela
       const { data: attachmentsToDelete } = await supabase
         .from('deliverable_attachments')
-        .select('file_path')
+        .select('id, file_path')
         .eq('deliverable_id', editingDeliverable.id);
 
       if (attachmentsToDelete && attachmentsToDelete.length > 0) {
+        // Precheck antes de mexer no storage — delete é em lote, amostra um id
+        await assertCanPerform('deliverable_attachments', 'delete', attachmentsToDelete[0].id);
+
         await supabase.storage
           .from('deliverable-attachments')
           .remove(attachmentsToDelete.map(a => a.file_path));

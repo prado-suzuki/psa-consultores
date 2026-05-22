@@ -20,6 +20,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 interface Deliverable {
   id: string;
@@ -502,6 +503,9 @@ const EquipeKanban = () => {
   // Deletar arquivo
   const deleteFile = async (attachment: Attachment) => {
     try {
+      // Precheck antes do storage — evita perder o arquivo se RLS bloquear o delete na tabela
+      await assertCanPerform('deliverable_attachments', 'delete', attachment.id);
+
       await supabase.storage
         .from('deliverable-attachments')
         .remove([attachment.file_path]);
@@ -513,9 +517,9 @@ const EquipeKanban = () => {
 
       setAttachments(attachments.filter(a => a.id !== attachment.id));
       toast.success('Arquivo removido');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting file:', error);
-      toast.error('Erro ao remover arquivo');
+      toast.error(error?.message || 'Erro ao remover arquivo');
     }
   };
 
@@ -529,10 +533,13 @@ const EquipeKanban = () => {
       // Primeiro, excluir anexos do storage e da tabela
       const { data: attachmentsToDelete } = await supabase
         .from('deliverable_attachments')
-        .select('file_path')
+        .select('id, file_path')
         .eq('deliverable_id', selectedDeliverable.id);
 
       if (attachmentsToDelete && attachmentsToDelete.length > 0) {
+        // Precheck antes de mexer no storage — delete em lote, amostra um id
+        await assertCanPerform('deliverable_attachments', 'delete', attachmentsToDelete[0].id);
+
         await supabase.storage
           .from('deliverable-attachments')
           .remove(attachmentsToDelete.map(a => a.file_path));
