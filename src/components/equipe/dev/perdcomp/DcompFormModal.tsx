@@ -206,7 +206,6 @@ export function DcompFormModal({
   const somaIgual = toCents(totalRateado) === toCents(vlrCompensado);
   const temDistribuicao = distribuicoes.length > 0;
   const temGrupoNaoSelecionado = distribuicoes.some((l) => !l.grupo_tributo_id);
-  const temCodigoNaoSelecionado = distribuicoes.some((l) => !l.codigo_receita_id);
   const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
   const temCompetenciaInvalida = distribuicoes.some((l) => !isCompetenciaValida(l.competencia || ''));
   const distribuicoesValidas =
