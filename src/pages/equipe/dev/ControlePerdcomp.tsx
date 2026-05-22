@@ -470,7 +470,11 @@ export default function ControlePerdcomp() {
   }, [dbSituacoes]);
 
   // Fetch Selic rates individually per PER (each PER has its own data_fim)
-  const { data: selicPerMap = {}, isLoading: selicLoading } = useSelicDataPerPer(
+  const {
+    data: selicPerMap = {},
+    isLoading: selicLoading,
+    error: selicError,
+  } = useSelicDataPerPer(
     filteredPerData
       .filter((p: any) => p.dt_solicitada)
       .map((p: any) => ({
@@ -478,6 +482,12 @@ export default function ControlePerdcomp() {
         dt_solicitada: p.dt_solicitada,
       })),
   );
+
+  useEffect(() => {
+    if (selicError) {
+      toast.error(`SELIC indisponível: ${(selicError as Error).message}`);
+    }
+  }, [selicError]);
 
   // Pre-calculate corrected values for all filtered PERs
   const selicCorrectionMap = useMemo(() => {
@@ -814,6 +824,18 @@ export default function ControlePerdcomp() {
                           )
                         ) : selicLoading ? (
                           <Loader2 className="h-3 w-3 animate-spin ml-auto" />
+                        ) : selicError ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="inline-flex items-center gap-1 text-destructive cursor-help">
+                                <AlertCircle className="h-3 w-3" />
+                                <span>—</span>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>SELIC indisponível: {(selicError as Error).message}</p>
+                            </TooltipContent>
+                          </Tooltip>
                         ) : (
                           <span className="text-muted-foreground">-</span>
                         )}

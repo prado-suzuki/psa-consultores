@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { normalizeCurrencyZero, normalizeProcessNumber } from '@/lib/perdcompUtils';
-import { applySelicCorrection, isWithinGracePeriod } from '@/lib/selicCalculator';
+import { applySelicCorrection, isWithinGracePeriod, isWithinGracePeriodAt } from '@/lib/selicCalculator';
 import { useSelicTaxaAt } from '@/hooks/useSelicTaxaAt';
 import { X, FileText, Plus, Pencil, Trash2, Loader2, History, ArrowRight, DollarSign, CheckCircle2, CalendarIcon, FileSpreadsheet } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
@@ -352,10 +352,11 @@ export function PerDetailModal({
 
   // SELIC: fator vigente até hoje para este PER, com +1% mês corrente embutido
   const hojeStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
-  const { data: selicTaxaAtual } = useSelicTaxaAt(
-    perAtual?.dt_solicitada,
-    hojeStr,
-  );
+  const {
+    data: selicTaxaAtual,
+    error: selicAtualError,
+    isLoading: selicAtualLoading,
+  } = useSelicTaxaAt(perAtual?.dt_solicitada, hojeStr);
   const emCarencia = perAtual?.dt_solicitada
     ? isWithinGracePeriod(perAtual.dt_solicitada)
     : true;
@@ -368,21 +369,35 @@ export function PerDetailModal({
     return { valor: valorCorrigido - saldoRestante, fator };
   }, [emCarencia, selicTaxaAtual, saldoRestante]);
 
+  const selicAtualIndisponivel =
+    !!perAtual?.dt_solicitada && !emCarencia && !selicAtualLoading && !selicTaxaAtual;
+
   // SELIC: fator vigente na data do ressarcimento informada — para rateio Atualizado/Original
-  const { data: selicTaxaRessarcimento } = useSelicTaxaAt(
+  const emCarenciaRess =
+    !!perAtual?.dt_solicitada && !!ressarcimentoData
+      ? isWithinGracePeriodAt(perAtual.dt_solicitada, ressarcimentoData)
+      : true;
+  const {
+    data: selicTaxaRessarcimento,
+    error: selicRessError,
+    isLoading: selicRessLoading,
+  } = useSelicTaxaAt(
     perAtual?.dt_solicitada,
     ressarcimentoData || null,
   );
   const fatorRessarcimento = useMemo(() => {
     if (!ressarcimentoData || !perAtual?.dt_solicitada) return 0;
-    // Carência calculada na data do pagamento, não hoje
-    const dt = new Date(perAtual.dt_solicitada + 'T00:00:00');
-    dt.setDate(dt.getDate() + 360);
-    const ref = new Date(ressarcimentoData + 'T00:00:00');
-    if (dt > ref) return 0;
+    if (emCarenciaRess) return 0;
     if (!selicTaxaRessarcimento) return 0;
-    return selicTaxaRessarcimento.vlr_acumulado_dec + 0.01;
-  }, [ressarcimentoData, perAtual?.dt_solicitada, selicTaxaRessarcimento]);
+    return Math.max(0, selicTaxaRessarcimento.vlr_acumulado_dec) + 0.01;
+  }, [ressarcimentoData, perAtual?.dt_solicitada, emCarenciaRess, selicTaxaRessarcimento]);
+
+  const selicRessIndisponivel =
+    !!perAtual?.dt_solicitada &&
+    !!ressarcimentoData &&
+    !emCarenciaRess &&
+    !selicRessLoading &&
+    !selicTaxaRessarcimento;
 
   const ressarcimentoValorNumerico = useMemo(() => {
     const digits = ressarcimentoValor.replace(/\D/g, '');
@@ -608,6 +623,13 @@ export function PerDetailModal({
                   ) : vlrSelic ? (
                     <p className="text-lg font-mono font-bold text-blue-600 dark:text-blue-400">
                       {formatCurrency(vlrSelic.valor)}
+                    </p>
+                  ) : selicAtualIndisponivel ? (
+                    <p
+                      className="text-sm font-bold text-destructive max-w-[200px] truncate"
+                      title={selicAtualError?.message ?? 'SELIC indisponível'}
+                    >
+                      SELIC indisponível
                     </p>
                   ) : (
                     <p className="text-lg font-mono font-bold text-slate-400">—</p>
@@ -1017,7 +1039,11 @@ export function PerDetailModal({
             </div>
             {ressarcimentoData && ressarcimentoValorNumerico > 0 && (
               <div className="rounded-md border bg-slate-50 dark:bg-slate-800/50 p-3 text-sm">
-                {fatorRessarcimento > 0 ? (
+                {selicRessIndisponivel ? (
+                  <p className="text-xs text-destructive">
+                    SELIC indisponível: {selicRessError?.message ?? 'sem dados da API'}
+                  </p>
+                ) : fatorRessarcimento > 0 ? (
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-xs text-muted-foreground">Valor Original (calculado)</p>
@@ -1041,7 +1067,7 @@ export function PerDetailModal({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleSaveRessarcimento}
-              disabled={ressarcimentoMutation.isPending}
+              disabled={ressarcimentoMutation.isPending || selicRessIndisponivel}
             >
               {ressarcimentoMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Salvar

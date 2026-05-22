@@ -370,15 +370,29 @@ export function DcompFormModal({
   const emCarenciaNaDtEnvio =
     !!dtSolicitadaPer && !!dtEnvio && isWithinGracePeriodAt(dtSolicitadaPer, dtEnvio);
 
-  const { data: selicTaxa } = useSelicTaxaAt(
+  const {
+    data: selicTaxa,
+    error: selicError,
+    isLoading: selicLoading,
+  } = useSelicTaxaAt(
     emCarenciaNaDtEnvio ? null : dtSolicitadaPer,
     emCarenciaNaDtEnvio ? null : dtEnvio,
   );
 
-  const fatorSelic = useMemo(() => {
-    if (emCarenciaNaDtEnvio || !selicTaxa) return 0;
-    return selicTaxa.vlr_acumulado_dec + 0.01;
+  const fatorSelicRaw = useMemo(() => {
+    if (emCarenciaNaDtEnvio) return 0;
+    if (!selicTaxa) return null;
+    return Math.max(0, selicTaxa.vlr_acumulado_dec) + 0.01;
   }, [emCarenciaNaDtEnvio, selicTaxa]);
+
+  const fatorSelic = fatorSelicRaw ?? 0;
+
+  const selicIndisponivel =
+    !!dtSolicitadaPer &&
+    !!dtEnvio &&
+    !emCarenciaNaDtEnvio &&
+    !selicLoading &&
+    fatorSelicRaw === null;
 
   const proporcaoOriginal = fatorSelic > 0 ? 1 / (1 + fatorSelic) : 1;
 
@@ -881,16 +895,20 @@ export function DcompFormModal({
                   {' / '}Compensado: <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>
                 </span>
                 <span className="text-muted-foreground">
-                  {fatorSelic > 0 ? (
+                  {emCarenciaNaDtEnvio ? (
+                    <>Em carência — sem parcela SELIC</>
+                  ) : selicIndisponivel ? (
+                    <span className="text-destructive">
+                      SELIC indisponível: {selicError?.message ?? 'sem dados da API'}
+                    </span>
+                  ) : selicLoading ? (
+                    <>Carregando SELIC…</>
+                  ) : fatorSelic > 0 ? (
                     <>
                       Total Original: <strong>{formatCurrencyDisplay(round2(totalRateado * proporcaoOriginal))}</strong>
                       {' · '}Fator SELIC: <strong>{fatorSelic.toFixed(6)}</strong>
                     </>
-                  ) : emCarenciaNaDtEnvio ? (
-                    <>Em carência — sem parcela SELIC</>
-                  ) : (
-                    <>Fator SELIC indisponível</>
-                  )}
+                  ) : null}
                 </span>
               </div>
             </div>
@@ -917,8 +935,14 @@ export function DcompFormModal({
               </Button>
               <Button
                 type="submit"
-                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp || vlrCompensadoExcedeMax}
-                title={!canWriteDcomp ? 'Você não tem permissão para editar este DCOMP' : undefined}
+                disabled={isLoading || !distribuicoesValidas || !canWriteDcomp || vlrCompensadoExcedeMax || selicIndisponivel}
+                title={
+                  !canWriteDcomp
+                    ? 'Você não tem permissão para editar este DCOMP'
+                    : selicIndisponivel
+                    ? 'Fator SELIC indisponível — não é possível calcular o rateio Atualizado/Original'
+                    : undefined
+                }
               >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Salvar' : 'Criar'}
