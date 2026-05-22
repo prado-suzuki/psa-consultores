@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
+const MANAGEMENT_URL = "https://psaconsultores.com.br";
 
 const departmentLabels: Record<string, string> = {
   contabilidade: "Contabilidade/Societário",
@@ -30,7 +31,6 @@ async function getGestorRecipients(
   const { data: areas } = await supabase
     .from("estrutura_areas")
     .select("gestor_chamados_id")
-    .eq("name", "Tax")
     .eq("is_active", true)
     .not("gestor_chamados_id", "is", null);
 
@@ -45,7 +45,7 @@ async function getGestorRecipients(
 
   if (!profiles?.length) return [];
 
-  const gestorUrl = `${PUBLISHED_URL}/gestao/chamados/${ticketId}`;
+  const gestorUrl = `${MANAGEMENT_URL}/gestao/chamados/${ticketId}`;
 
   return profiles
     .filter((p: { email: string | null }) => p.email)

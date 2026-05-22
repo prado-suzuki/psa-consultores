@@ -1,17 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import { getSelicEndDate, isWithinGracePeriodAt } from '@/lib/selicCalculator';
+import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
 import type { SelicTaxa } from '@/hooks/useSelicData';
 
 /**
- * Busca a taxa SELIC acumulada vigente em uma data de referência específica.
- * Diferente de useSelicDataPerPer (que mira o dia atual), este aceita data arbitrária —
- * usado quando precisamos do fator vigente na dt_envio de uma DCOMP ou dt_pagamento de um ressarcimento.
+ * Busca a taxa SELIC vigente para um PER em uma data de referência específica.
  *
- * A linha buscada é a do mês do fim da carência (dt_solicitada + 360 dias). O `vlr_acumulado_dec`
- * dessa linha representa a SELIC acumulada do fim da carência até o mês anterior à `dtReferencia`;
- * somando-se o +1% do mês corrente em `applySelicCorrection`, obtém-se o fator total.
+ * Contrato da API `/api/v1/selic`: cada linha tem `data_atualizacao` (mês de
+ * competência) e `vlr_acumulado_dec`, que é a SELIC acumulada do mês daquela
+ * linha em diante até o último mês cadastrado no banco (valor global —
+ * independente de data_inicio/data_fim).
+ *
+ * Para a correção de um PER, a linha correta é aquela cujo
+ * `data_atualizacao = mês(dt_solicitada)`. O +1% fixo do mês de referência
+ * é somado em `applySelicCorrection`.
+ *
+ * Sem fallback silencioso: erro da API, taxas vazias ou ausência da linha
+ * do mês de início → throw, propagado como `error` pelo React Query.
  */
 export function useSelicTaxaAt(
   dtSolicitada: string | null | undefined,
@@ -22,39 +28,44 @@ export function useSelicTaxaAt(
   const emCarencia =
     !!dtSolicitada && !!dtReferencia && isWithinGracePeriodAt(dtSolicitada, dtReferencia);
 
-  return useQuery<SelicTaxa | null>({
+  return useQuery<SelicTaxa>({
     queryKey: ['selic-taxa-at', dtSolicitada, dtReferencia],
     queryFn: async () => {
-      if (!dtSolicitada || !dtReferencia) return null;
+      if (!dtSolicitada || !dtReferencia) {
+        throw new Error('dtSolicitada e dtReferencia são obrigatórios');
+      }
 
       const url = getApiUrl(
         `/api/v1/selic?data_inicio=${dtSolicitada}&data_fim=${dtReferencia}`,
       );
       const response = await fetchWithAuth(url);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        throw new Error(`API SELIC retornou ${response.status}`);
+      }
 
       const data = await response.json();
       const taxas: SelicTaxa[] = data.taxas || [];
-      if (taxas.length === 0) return null;
+      if (taxas.length === 0) {
+        throw new Error(
+          `API SELIC sem dados para ${dtSolicitada} → ${dtReferencia}`,
+        );
+      }
 
-      const endMonth = getSelicEndDate(dtSolicitada).substring(0, 7);
+      const startMonth = dtSolicitada.substring(0, 7);
       const found = taxas.find(
-        (t) => t.data_atualizacao.substring(0, 7) === endMonth,
+        (t) => t.data_atualizacao.substring(0, 7) === startMonth,
       );
-      if (found) return found;
-      // Edge: dtReferencia no mesmo mês do fim da carência — sem acumulado anterior,
-      // apenas +1% do mês corrente (somado em applySelicCorrection).
-      return {
-        data: '',
-        valor: 0,
-        valor_decimal: 0,
-        valor_acumulado: 0,
-        vlr_acumulado_dec: 0,
-        data_atualizacao: `${endMonth}-01`,
-      };
+      if (!found) {
+        throw new Error(
+          `API SELIC sem linha para data_atualizacao=${startMonth} ` +
+          `(dt_solicitada=${dtSolicitada}). Ambiente provavelmente defasado.`,
+        );
+      }
+      return found;
     },
     enabled: !!dtSolicitada && !!dtReferencia && !emCarencia,
     staleTime: 24 * 60 * 60 * 1000,
     gcTime: 48 * 60 * 60 * 1000,
+    retry: false,
   });
 }
