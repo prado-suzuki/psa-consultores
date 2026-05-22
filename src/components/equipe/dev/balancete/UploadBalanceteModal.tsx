@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -155,6 +156,15 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
   const handleDetalhamentoChoice = async (value: boolean) => {
     setSavingConfig(true);
     try {
+      // Upsert pode virar update — precheck só roda quando já existe linha
+      const { data: existing } = await supabase
+        .from('contribuinte_bal_config')
+        .select('id')
+        .eq('id_contribuinte', contribuinteId)
+        .maybeSingle();
+      if (existing?.id) {
+        await assertCanPerform('contribuinte_bal_config', 'update', existing.id);
+      }
       const { error } = await supabase
         .from('contribuinte_bal_config')
         .upsert(
