@@ -35,8 +35,12 @@ export function useSelicTaxaAt(
         throw new Error('dtSolicitada e dtReferencia são obrigatórios');
       }
 
+      // API filtra por data_atualizacao >= data_inicio (dia exato), e queremos
+      // a linha do mês da dt_solicitada (data_atualizacao = YYYY-MM-01) — normaliza
+      // data_inicio para o 1º dia do mês.
+      const dataInicioApi = `${dtSolicitada.substring(0, 7)}-01`;
       const url = getApiUrl(
-        `/api/v1/selic?data_inicio=${dtSolicitada}&data_fim=${dtReferencia}`,
+        `/api/v1/selic?data_inicio=${dataInicioApi}&data_fim=${dtReferencia}`,
       );
       const response = await fetchWithAuth(url);
       if (!response.ok) {

@@ -47,8 +47,12 @@ export function useSelicDataPerPer(pers: PerInput[]) {
         }
       }
 
-      const url = getApiUrl(`/api/v1/selic?data_inicio=${oldestDtSolicitada}&data_fim=${hoje}`);
-      console.log(`[Selic] 1 chamada cobrindo ${oldestDtSolicitada} ate ${hoje} (${eligiblePers.length} PERs)`);
+      // API filtra por data_atualizacao >= data_inicio (dia exato); normaliza
+      // para o 1º dia do mês para garantir que a linha do mês da dt_solicitada
+      // mais antiga seja retornada.
+      const dataInicioApi = `${oldestDtSolicitada.substring(0, 7)}-01`;
+      const url = getApiUrl(`/api/v1/selic?data_inicio=${dataInicioApi}&data_fim=${hoje}`);
+      console.log(`[Selic] 1 chamada cobrindo ${dataInicioApi} ate ${hoje} (${eligiblePers.length} PERs)`);
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
