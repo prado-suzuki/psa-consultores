@@ -6,6 +6,7 @@ import { AREA_CATEGORIES_MAP, ALL_AREA_CATEGORIES } from '@/config/areaCategorie
 import { useSyncUserAreaAccess } from './useUserPageAccess';
 import type { AppRole } from './useUsersWithRoles';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
+import { assertCanPerform } from './useRlsPrecheck';
 
 export interface CreateTeamMemberInput {
   first_name: string;
@@ -135,6 +136,7 @@ export function useUpdateTeamMember() {
       const { userId, first_name, last_name, email, roles, areas } = input;
 
       // 1. Update profile
+      await assertCanPerform('profiles', 'update', userId);
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ first_name, last_name, email })
