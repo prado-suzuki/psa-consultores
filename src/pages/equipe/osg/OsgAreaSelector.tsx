@@ -2,11 +2,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Briefcase, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
 import logo from '@/assets/logo-psa.png';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
+import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 
 interface AreaCard {
   id: string;
@@ -29,16 +30,16 @@ const OsgAreaSelector = () => {
       label: 'OSG Projects',
       description: 'Gestão de projetos, auditoria e operações da área OSG',
       path: '/equipe/osg/dashboard',
-      color: 'from-orange-500 to-amber-500',
+      color: 'from-[#0a1024] to-[#141a36] ring-1 ring-[#c49a6c]/30',
       category: 'osg',
-      iconNode: <Briefcase className="h-6 w-6 text-white" />,
+      iconNode: <OsgProjectsIcon size={46} className="rounded-md" />,
     },
     {
       id: 'work',
       label: 'OSG Work',
       description: 'Ferramentas e aplicações desenvolvidas para a área OSG',
       path: '/equipe/osg/work',
-      color: 'from-[#0a1024] to-[#141a36] ring-1 ring-[#c49a6c]/30',
+      color: 'from-[#141a36] to-[#0a1024] ring-1 ring-[#c49a6c]/30',
       category: 'osg',
       iconNode: <OsgWorkIcon size={46} className="rounded-md" />,
     },
