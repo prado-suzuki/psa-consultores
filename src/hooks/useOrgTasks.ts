@@ -269,12 +269,21 @@ export interface TaskFilters {
        // Get task info for audit log
        const { data: task } = await supabase.from('org_tasks').select('title, parent_task_id').eq('id', id).single();
 
-       const { error } = await supabase
+       // `.select()` permite detectar o caso em que a RLS bloqueia silenciosamente
+       // (sem erro, mas 0 linhas afetadas) — ex.: usuário não é líder nem criador.
+       const { data: deleted, error } = await supabase
          .from('org_tasks')
          .delete()
-         .eq('id', id);
+         .eq('id', id)
+         .select('id');
 
        if (error) throw error;
+
+       if (!deleted || deleted.length === 0) {
+         throw new Error(
+           'Você não tem permissão para excluir esta tarefa. Apenas o criador da tarefa ou um líder pode excluí-la — contate um líder da equipe.'
+         );
+       }
 
        await logAction({
          area: 'tax', entity_type: task?.parent_task_id ? 'subtask' : 'task',

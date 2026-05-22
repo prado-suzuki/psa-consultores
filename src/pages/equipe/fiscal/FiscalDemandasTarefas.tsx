@@ -1,12 +1,14 @@
  import { useEffect, useState } from 'react';
  import { useSearchParams } from 'react-router-dom';
  import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart } from 'lucide-react';
+ import { toast } from 'sonner';
  import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
  import { Button } from '@/components/ui/button';
  import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+ import { useAuth } from '@/contexts/AuthContext';
  import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
- import { 
-   useOrgTasks, 
+ import {
+   useOrgTasks,
    useDeleteOrgTask,
    OrgTask,
    TaskFilters as TaskFiltersType
@@ -35,6 +37,7 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
  const FiscalDemandasTarefas = () => {
    const [searchParams, setSearchParams] = useSearchParams();
    const deepLinkTaskId = searchParams.get('taskId');
+   const { user, isAdmin, isLider } = useAuth();
    const [filters, setFilters] = useState<TaskFiltersType>({});
    const [activeView, setActiveView] = useState('calendar');
    const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -83,6 +86,15 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
   };
  
    const handleDeleteTask = (taskId: string) => {
+     // Espelha a RLS rls_org_tasks_delete: somente líder (ou superior) ou o criador podem excluir.
+     const task = tasks.find(t => t.id === taskId);
+     const canDelete = isAdmin || isLider || (!!task && !!user && task.created_by === user.id);
+     if (!canDelete) {
+       toast.error('Você não tem permissão para excluir esta tarefa.', {
+         description: 'Apenas o criador da tarefa ou um líder pode excluí-la. Contate um líder da equipe para solicitar a exclusão.',
+       });
+       return;
+     }
      setTaskToDelete(taskId);
    };
  
