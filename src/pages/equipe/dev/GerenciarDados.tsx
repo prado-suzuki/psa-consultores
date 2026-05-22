@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -190,6 +191,16 @@ const GerenciarDados = () => {
     try {
       // Para limpar clientes, precisamos deletar contribuintes primeiro (FK)
       if (selectedTable === 'cliente') {
+        // Precheck: como o delete é em lote, amostra um id pra rodar can_perform
+        const { data: sample } = await supabase
+          .from('contribuinte')
+          .select('id')
+          .eq('ambiente', selectedAmbiente)
+          .limit(1)
+          .maybeSingle();
+        if (sample?.id) {
+          await assertCanPerform('contribuinte', 'delete', sample.id);
+        }
         const { error: contribError } = await supabase
           .from('contribuinte')
           .delete()
