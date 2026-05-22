@@ -23,6 +23,9 @@ export async function canPerform(
     p_id: id,
   });
 
+  // eslint-disable-next-line no-console
+  console.log('[canPerform]', { table, op, id, data, error });
+
   if (error) {
     return {
       allowed: false,
