@@ -32,16 +32,11 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
         <rect x="6" y="6" width="500" height="500" rx="58" ry="58" fill="none" stroke="#cbd5e1" strokeWidth="1.5" opacity="0.6" />
 
         <g clipPath="url(#roundedSquareLight)">
-          {/* Dunas de Arrakis — tons terrosos claros */}
+          {/* Duna de fundo — tons terrosos claros */}
           <path
             d="M -20 440 C 60 440, 80 380, 140 380 C 200 380, 220 300, 310 300 C 380 300, 400 360, 450 370 C 490 378, 520 400, 540 420 L 540 540 L -20 540 Z"
             fill="#d4a574"
             opacity="0.35"
-          />
-          <path
-            d="M -20 475 C 40 475, 70 435, 130 435 C 190 435, 210 365, 290 365 C 350 365, 380 415, 430 425 C 470 432, 510 445, 540 465 L 540 540 L -20 540 Z"
-            fill="#b08d6e"
-            opacity="0.5"
           />
 
           {/* Olhos do Maker (Spice blue) */}
@@ -99,6 +94,13 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
             Work
           </text>
 
+          {/* Duna escura em primeiro plano — passa na frente do hexágono */}
+          <path
+            d="M -20 475 C 40 475, 70 435, 130 435 C 190 435, 210 365, 290 365 C 350 365, 380 415, 430 425 C 470 432, 510 445, 540 465 L 540 540 L -20 540 Z"
+            fill="#b08d6e"
+            opacity="0.85"
+          />
+
           {/* Brilho no topo do selo */}
           <circle cx="256" cy="40" r="9" fill="#0d9488" opacity="0.12" />
           <circle cx="256" cy="40" r="2.5" fill="#0d9488" opacity="0.5" />
@@ -114,16 +116,11 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
         <rect x="6" y="6" width="500" height="500" rx="58" ry="58" fill="none" stroke="#141a36" strokeWidth="1.5" opacity="0.6" />
 
         <g clipPath="url(#roundedSquareDark)">
-          {/* Dunas de Arrakis — tons âmbar suaves */}
+          {/* Duna de fundo — tons âmbar suaves */}
           <path
             d="M -20 440 C 60 440, 80 380, 140 380 C 200 380, 220 300, 310 300 C 380 300, 400 360, 450 370 C 490 378, 520 400, 540 420 L 540 540 L -20 540 Z"
             fill="#c49a6c"
             opacity="0.25"
-          />
-          <path
-            d="M -20 475 C 40 475, 70 435, 130 435 C 190 435, 210 365, 290 365 C 350 365, 380 415, 430 425 C 470 432, 510 445, 540 465 L 540 540 L -20 540 Z"
-            fill="#a0785a"
-            opacity="0.4"
           />
 
           {/* Olhos do Maker (Spice blue) */}
@@ -180,6 +177,13 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
           >
             Work
           </text>
+
+          {/* Duna escura em primeiro plano — passa na frente do hexágono */}
+          <path
+            d="M -20 475 C 40 475, 70 435, 130 435 C 190 435, 210 365, 290 365 C 350 365, 380 415, 430 425 C 470 432, 510 445, 540 465 L 540 540 L -20 540 Z"
+            fill="#7a5a42"
+            opacity="0.85"
+          />
 
           {/* Brilho no topo do selo */}
           <circle cx="256" cy="40" r="9" fill="#00bfa5" opacity="0.1" />

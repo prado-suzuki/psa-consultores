@@ -88,7 +88,7 @@ const OsgAreaSelector = () => {
                 onClick={() => navigate(area.path)}
               >
                 <CardHeader className="pb-2">
-                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${area.color} flex items-center justify-center mb-3 overflow-hidden`}>
+                  <div className={`dark w-12 h-12 rounded-lg bg-gradient-to-br ${area.color} flex items-center justify-center mb-3 overflow-hidden`}>
                     {area.iconNode}
                   </div>
                   <CardTitle className="text-white flex items-center justify-between">
