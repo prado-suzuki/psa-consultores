@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from './useAuditLog';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from './useRlsPrecheck';
 
 export interface ComentarioAvaliacao {
   id: string;
@@ -81,6 +82,7 @@ export const useUpdateComentario = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<ComentarioAvaliacao> & { id: string }) => {
+      await assertCanPerform('comentarios_avaliacao', 'update', id);
       const { data, error } = await supabase.from(TABLE).update({ ...updates, updated_at: new Date().toISOString() }).eq('id', id).select().single();
       if (error) throw error;
       return data as unknown as ComentarioAvaliacao;
@@ -89,7 +91,7 @@ export const useUpdateComentario = () => {
       qc.invalidateQueries({ queryKey: ['comentarios_avaliacao'] });
       logAction({ area: 'cadastros', entity_type: 'feedback', entity_id: data.id, entity_name: `Comentario ${data.tipo}`, action: 'updated' });
     },
-    onError: () => toast({ title: 'Erro ao atualizar comentario', variant: 'destructive' }),
+    onError: (error: Error) => toast({ title: 'Erro ao atualizar comentario', description: error.message, variant: 'destructive' }),
   });
 };
 
@@ -98,6 +100,7 @@ export const useMarkComentarioRead = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      await assertCanPerform('comentarios_avaliacao', 'update', id);
       const { error } = await supabase.from(TABLE).update({ lido: true, lido_em: new Date().toISOString() }).eq('id', id);
       if (error) throw error;
     },
@@ -105,5 +108,6 @@ export const useMarkComentarioRead = () => {
       qc.invalidateQueries({ queryKey: ['comentarios_avaliacao'] });
       qc.invalidateQueries({ queryKey: ['unread_comments_count'] });
     },
+    onError: (error: Error) => toast({ title: 'Erro ao marcar como lido', description: error.message, variant: 'destructive' }),
   });
 };
