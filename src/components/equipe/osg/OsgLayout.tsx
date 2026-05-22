@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   Briefcase,
   LogOut,
   ChevronLeft,
@@ -10,7 +10,7 @@ import {
   Menu,
   ArrowLeft,
   User,
-  Shield
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +24,7 @@ interface OsgLayoutProps {
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
   const handleSignOut = async () => {
@@ -102,10 +103,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             </div>
           )}
           
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-orange-600 transition-colors`}
-            onClick={() => navigate('/equipe')}
+            onClick={() => navigate('/equipe/osg')}
             title={collapsed ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
