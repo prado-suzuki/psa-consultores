@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { computeFieldDiff } from '@/lib/diffUtils';
 
 // ── useUpdateTicketRouting ────────────────────────────────────
@@ -364,7 +365,16 @@ export function useDeleteTickets() {
         }
       }
 
-      // 2. Delete attachment records
+      // 2. Delete attachment records — precheck em uma linha amostrada, RLS de delete é admin-only e uniforme
+      const { data: sampleAttachment } = await supabase
+        .from('ticket_attachments')
+        .select('id')
+        .in('ticket_id', ticketIds)
+        .limit(1)
+        .maybeSingle();
+      if (sampleAttachment?.id) {
+        await assertCanPerform('ticket_attachments', 'delete', sampleAttachment.id);
+      }
       await supabase
         .from('ticket_attachments')
         .delete()
