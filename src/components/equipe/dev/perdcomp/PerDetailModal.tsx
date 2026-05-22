@@ -350,10 +350,10 @@ export function PerDetailModal({
       }));
   }, [dcompsVigentes, tributoFiltro, valorPorDcompTributo]);
 
-  // SELIC: fator vigente até hoje para este PER, com +1% mês corrente embutido
+  // SELIC: fator vigente até hoje para este PER (carência 1 ano + acumulado mensal + 1% corrente)
   const hojeStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
   const {
-    data: selicTaxaAtual,
+    data: selicResultAtual,
     error: selicAtualError,
     isLoading: selicAtualLoading,
   } = useSelicTaxaAt(perAtual?.dt_solicitada, hojeStr);
@@ -361,16 +361,16 @@ export function PerDetailModal({
     ? isWithinGracePeriod(perAtual.dt_solicitada)
     : true;
   const vlrSelic = useMemo(() => {
-    if (emCarencia || !selicTaxaAtual) return null;
+    if (emCarencia || !selicResultAtual) return null;
     const { valorCorrigido, fator } = applySelicCorrection(
       saldoRestante,
-      selicTaxaAtual.vlr_acumulado_dec,
+      selicResultAtual.fator,
     );
     return { valor: valorCorrigido - saldoRestante, fator };
-  }, [emCarencia, selicTaxaAtual, saldoRestante]);
+  }, [emCarencia, selicResultAtual, saldoRestante]);
 
   const selicAtualIndisponivel =
-    !!perAtual?.dt_solicitada && !emCarencia && !selicAtualLoading && !selicTaxaAtual;
+    !!perAtual?.dt_solicitada && !emCarencia && !selicAtualLoading && !selicResultAtual;
 
   // SELIC: fator vigente na data do ressarcimento informada — para rateio Atualizado/Original
   const emCarenciaRess =
@@ -378,7 +378,7 @@ export function PerDetailModal({
       ? isWithinGracePeriodAt(perAtual.dt_solicitada, ressarcimentoData)
       : true;
   const {
-    data: selicTaxaRessarcimento,
+    data: selicResultRess,
     error: selicRessError,
     isLoading: selicRessLoading,
   } = useSelicTaxaAt(
@@ -388,16 +388,16 @@ export function PerDetailModal({
   const fatorRessarcimento = useMemo(() => {
     if (!ressarcimentoData || !perAtual?.dt_solicitada) return 0;
     if (emCarenciaRess) return 0;
-    if (!selicTaxaRessarcimento) return 0;
-    return Math.max(0, selicTaxaRessarcimento.vlr_acumulado_dec) + 0.01;
-  }, [ressarcimentoData, perAtual?.dt_solicitada, emCarenciaRess, selicTaxaRessarcimento]);
+    if (!selicResultRess) return 0;
+    return Math.max(0, selicResultRess.fator);
+  }, [ressarcimentoData, perAtual?.dt_solicitada, emCarenciaRess, selicResultRess]);
 
   const selicRessIndisponivel =
     !!perAtual?.dt_solicitada &&
     !!ressarcimentoData &&
     !emCarenciaRess &&
     !selicRessLoading &&
-    !selicTaxaRessarcimento;
+    !selicResultRess;
 
   const ressarcimentoValorNumerico = useMemo(() => {
     const digits = ressarcimentoValor.replace(/\D/g, '');

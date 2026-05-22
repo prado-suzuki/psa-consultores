@@ -500,14 +500,14 @@ export default function ControlePerdcomp() {
         continue;
       }
 
-      const taxa = selicPerMap[per.nr_per];
-      if (!taxa) continue;
+      const selicResult = selicPerMap[per.nr_per];
+      if (!selicResult) continue;
 
       const totalOriginal = dcompOriginalMap[per.nr_per] ?? (dcompTotalMap[per.nr_per] || 0);
       const valRessarcido = (per as any).vlr_ressarcido_original ?? (per as any).vlr_ressarcido ?? 0;
       const saldo = normalizeCurrencyZero(per.vlr_credito - totalOriginal - valRessarcido);
 
-      const { valorCorrigido, fator } = applySelicCorrection(saldo, taxa.vlr_acumulado_dec);
+      const { valorCorrigido, fator } = applySelicCorrection(saldo, selicResult.fator);
       map[per.nr_per] = { valorCorrigido, fator };
     }
     return map;
