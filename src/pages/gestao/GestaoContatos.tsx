@@ -30,6 +30,7 @@ import {
 import { Search, Eye, Mail, Phone, Building2, Calendar, User, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 
 interface Contato {
   id: string;
@@ -154,6 +155,7 @@ const GestaoContatos = () => {
 
     setIsSaving(true);
     try {
+      await assertCanPerform("contatos", "update", selectedContato.id);
       const { error } = await supabase
         .from("contatos")
         .update({
@@ -172,10 +174,11 @@ const GestaoContatos = () => {
 
       setIsDialogOpen(false);
       fetchContatos();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error updating contato:", error);
       toast({
         title: "Erro ao salvar",
+        description: error?.message,
         variant: "destructive",
       });
     } finally {
