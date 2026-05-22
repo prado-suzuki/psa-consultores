@@ -76,6 +76,8 @@ const DetalheFerramenta = () => {
 
   const updateTool = useMutation({
     mutationFn: async () => {
+      await assertCanPerform('tools', 'update', id as string);
+
       const { error: toolError } = await supabase
         .from('tools')
         .update({
@@ -129,6 +131,8 @@ const DetalheFerramenta = () => {
 
   const deleteTool = useMutation({
     mutationFn: async () => {
+      await assertCanPerform('tools', 'delete', id as string);
+
       const { error } = await supabase
         .from('tools')
         .delete()
@@ -136,6 +140,7 @@ const DetalheFerramenta = () => {
 
       if (error) throw error;
     },
+
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tools'] });
       toast({
