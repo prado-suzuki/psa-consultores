@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Save, Trash2, Play, Pause, Code2 } from 'lucide-react';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+
 
 const areas = [
   { id: 'digital', label: 'Digital' },
