@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 export type FamiliaCorrecao = 'acucar' | 'etanol_interestado' | 'biodiesel';
 
@@ -139,6 +140,7 @@ export function useDeleteCorrecaoIcms() {
 
   return useMutation({
     mutationFn: async (row: CorrecaoIcmsRow) => {
+      await assertCanPerform('correcoes_icms', 'update', row.id);
       const { error } = await supabase
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .from(TABLE as any)
