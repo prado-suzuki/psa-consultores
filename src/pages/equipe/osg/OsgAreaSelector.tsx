@@ -6,7 +6,7 @@ import { ArrowLeft, Briefcase, ChevronRight } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
 import logo from '@/assets/logo-psa.png';
-import osgIcon from '@/assets/osg-icon.svg';
+import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 
 interface AreaCard {
   id: string;
@@ -38,15 +38,9 @@ const OsgAreaSelector = () => {
       label: 'OSG Work',
       description: 'Ferramentas e aplicações desenvolvidas para a área OSG',
       path: '/equipe/osg/work',
-      color: 'from-amber-100 to-orange-200',
+      color: 'from-[#0a1024] to-[#141a36] ring-1 ring-[#c49a6c]/30',
       category: 'osg',
-      iconNode: (
-        <img
-          src={osgIcon}
-          alt="OSG Work"
-          className="h-12 w-12 rounded-md object-cover"
-        />
-      ),
+      iconNode: <OsgWorkIcon size={46} className="rounded-md" />,
     },
   ];
 
