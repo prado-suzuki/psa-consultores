@@ -39,6 +39,7 @@ import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 interface AreaInterna {
   id: string;
@@ -167,6 +168,7 @@ const EquipeControleAcessos = () => {
         estrutura_area_id: cadastroForm.estrutura_area_id || null,
       };
       if (editingArea) {
+        await assertCanPerform('catalog_clients', 'update', editingArea.id);
         const { error } = await supabase.from('catalog_clients').update(payload).eq('id', editingArea.id);
         if (error) throw error;
         toast.success('Área atualizada');
@@ -179,31 +181,33 @@ const EquipeControleAcessos = () => {
       fetchCadastros();
     } catch (error: any) {
       if (error.code === '23505') toast.error('Já existe uma área com esse nome');
-      else toast.error('Erro ao salvar');
+      else toast.error(error?.message || 'Erro ao salvar');
     }
   };
 
   const handleToggleCadastroActive = async (area: AreaInterna) => {
     try {
+      await assertCanPerform('catalog_clients', 'update', area.id);
       const { error } = await supabase.from('catalog_clients').update({ is_active: !area.is_active }).eq('id', area.id);
       if (error) throw error;
       toast.success(area.is_active ? 'Área desativada' : 'Área ativada');
       fetchCadastros();
-    } catch {
-      toast.error('Erro ao alterar status');
+    } catch (error: any) {
+      toast.error(error?.message || 'Erro ao alterar status');
     }
   };
 
   const handleDeleteCadastro = async (area: AreaInterna) => {
     if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
     try {
+      await assertCanPerform('catalog_clients', 'delete', area.id);
       const { error } = await supabase.from('catalog_clients').delete().eq('id', area.id);
       if (error) throw error;
       toast.success('Área excluída');
       fetchCadastros();
     } catch (error: any) {
       if (error.code === '23503') toast.error('Não é possível excluir: existem projetos ou processos vinculados');
-      else toast.error('Erro ao excluir');
+      else toast.error(error?.message || 'Erro ao excluir');
     }
   };
 
