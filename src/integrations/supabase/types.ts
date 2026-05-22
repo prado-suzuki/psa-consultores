@@ -556,6 +556,41 @@ export type Database = {
           },
         ]
       }
+      codigo_receita: {
+        Row: {
+          codigo: string
+          created_at: string
+          denominacao_receita: string
+          grupo_tributo_id: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          codigo: string
+          created_at?: string
+          denominacao_receita: string
+          grupo_tributo_id: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          denominacao_receita?: string
+          grupo_tributo_id?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "codigo_receita_grupo_tributo_id_fkey"
+            columns: ["grupo_tributo_id"]
+            isOneToOne: false
+            referencedRelation: "grupo_tributo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comentarios_avaliacao: {
         Row: {
           autor_id: string
@@ -905,14 +940,11 @@ export type Database = {
           criado_por: string | null
           dt_envio: string
           excluido: string | null
-          imposto: string
           mes_ano_exercicio: string
           nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
-          porcentagem_psa: number | null
-          tp_credito: string
           vlr_compensado: number
         }
         Insert: {
@@ -922,14 +954,11 @@ export type Database = {
           criado_por?: string | null
           dt_envio: string
           excluido?: string | null
-          imposto: string
           mes_ano_exercicio: string
           nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
-          porcentagem_psa?: number | null
-          tp_credito: string
           vlr_compensado: number
         }
         Update: {
@@ -939,14 +968,11 @@ export type Database = {
           criado_por?: string | null
           dt_envio?: string
           excluido?: string | null
-          imposto?: string
           mes_ano_exercicio?: string
           nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
-          porcentagem_psa?: number | null
-          tp_credito?: string
           vlr_compensado?: number
         }
         Relationships: [
@@ -1139,9 +1165,11 @@ export type Database = {
         Row: {
           atualizado_em: string
           atualizado_por: string | null
+          codigo_receita_id: string | null
           competencia: string | null
           criado_em: string
           criado_por: string | null
+          grupo_tributo_id: string | null
           id: string
           nr_documento: string
           tributo: string
@@ -1151,9 +1179,11 @@ export type Database = {
         Insert: {
           atualizado_em?: string
           atualizado_por?: string | null
+          codigo_receita_id?: string | null
           competencia?: string | null
           criado_em?: string
           criado_por?: string | null
+          grupo_tributo_id?: string | null
           id?: string
           nr_documento: string
           tributo: string
@@ -1163,9 +1193,11 @@ export type Database = {
         Update: {
           atualizado_em?: string
           atualizado_por?: string | null
+          codigo_receita_id?: string | null
           competencia?: string | null
           criado_em?: string
           criado_por?: string | null
+          grupo_tributo_id?: string | null
           id?: string
           nr_documento?: string
           tributo?: string
@@ -1173,6 +1205,20 @@ export type Database = {
           valor_tributo?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "distribuicao_dcomp_codigo_receita_id_fkey"
+            columns: ["codigo_receita_id"]
+            isOneToOne: false
+            referencedRelation: "codigo_receita"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribuicao_dcomp_grupo_tributo_id_fkey"
+            columns: ["grupo_tributo_id"]
+            isOneToOne: false
+            referencedRelation: "grupo_tributo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "distribuicao_dcomp_nr_documento_fkey"
             columns: ["nr_documento"]
@@ -1614,6 +1660,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      grupo_tributo: {
+        Row: {
+          created_at: string
+          denominacao: string
+          id: string
+          sigla: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          denominacao: string
+          id?: string
+          sigla: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          denominacao?: string
+          id?: string
+          sigla?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       improvement_savings_details: {
         Row: {

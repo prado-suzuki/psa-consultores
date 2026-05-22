@@ -10,6 +10,11 @@ import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits, normalizeProcessNumber } from '@/lib/perdcompUtils';
 import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
 import { useSelicTaxaAt } from '@/hooks/useSelicTaxaAt';
+import {
+  useGruposTributo,
+  useCodigosReceita,
+  findGrupoIdPorSiglaLegado,
+} from '@/hooks/useCatalogoTributos';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -43,8 +48,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { RequiredMark } from '@/components/ui/required-mark';
-
-const TRIBUTOS = ['PIS', 'COFINS', 'IPI', 'INSS', 'IRRF', 'IRPJ', 'CSLL', 'CSRF'] as const;
 
 const normalizeMesAno = (value: string): string => {
   if (!value) return '';
@@ -86,7 +89,10 @@ const toCents = (n: number) => Math.round(n * 100);
 
 interface DistribuicaoLinha {
   id?: string;
-  tributo: string;
+  /** FK → grupo_tributo.id (catálogo RFB). Substitui o antigo campo `tributo` (sigla flat). */
+  grupo_tributo_id: string | null;
+  /** FK → codigo_receita.id (catálogo RFB). Sub-campo dependente do grupo. */
+  codigo_receita_id: string | null;
   valor_tributo: number;
   /** Competência no formato 'yyyy-MM' (UI) ou 'yyyy-MM-dd' (DB). */
   competencia: string;
@@ -124,7 +130,6 @@ const dcompSchema = z.object({
   dt_envio: z.string().min(1, 'Data de envio é obrigatória'),
   vlr_compensado: z.coerce.number().min(0, 'Valor deve ser positivo'),
   nr_dcomp_ret: z.string().nullable().optional(),
-  porcentagem_psa: z.coerce.number().min(0).max(100).nullable().optional(),
 });
 
 type DcompFormData = z.infer<typeof dcompSchema>;
@@ -157,18 +162,16 @@ export function DcompFormModal({
   const [dtEnvioPopoverOpen, setDtEnvioPopoverOpen] = useState(false);
   const [distribuicoes, setDistribuicoes] = useState<DistribuicaoLinha[]>([]);
   
-  const [addOpen, setAddOpen] = useState(false);
 
   const form = useForm<DcompFormData>({
     resolver: zodResolver(dcompSchema),
     defaultValues: {
       nr_documento: '',
-      nr_per_orig: '',
+      nr_per_orig: preSelectedPer || '',
       mes_ano_exercicio: '',
       dt_envio: new Date().toISOString().split('T')[0],
       vlr_compensado: 0,
       nr_dcomp_ret: null,
-      porcentagem_psa: null,
     },
   });
 
@@ -181,6 +184,20 @@ export function DcompFormModal({
     user?.id,
   );
 
+  // Catálogo RFB: grupos de tributo e códigos de receita.
+  const { data: grupos = [] } = useGruposTributo();
+  const { data: codigos = [] } = useCodigosReceita();
+
+  // Índice códigos por grupo, para popular o select dependente em O(1).
+  const codigosPorGrupo = useMemo(() => {
+    const map: Record<string, typeof codigos> = {};
+    for (const c of codigos) {
+      if (!map[c.grupo_tributo_id]) map[c.grupo_tributo_id] = [];
+      map[c.grupo_tributo_id].push(c);
+    }
+    return map;
+  }, [codigos]);
+
   const vlrCompensado = form.watch('vlr_compensado') || 0;
   const totalRateado = useMemo(
     () => distribuicoes.reduce((acc, l) => acc + (l.valor_tributo || 0), 0),
@@ -188,33 +205,38 @@ export function DcompFormModal({
   );
   const somaIgual = toCents(totalRateado) === toCents(vlrCompensado);
   const temDistribuicao = distribuicoes.length > 0;
-  const temTributoNaoSelecionado = distribuicoes.some((l) => !l.tributo);
+  const temGrupoNaoSelecionado = distribuicoes.some((l) => !l.grupo_tributo_id);
   const temValorZero = distribuicoes.some((l) => toCents(l.valor_tributo || 0) === 0);
   const temCompetenciaInvalida = distribuicoes.some((l) => !isCompetenciaValida(l.competencia || ''));
   const distribuicoesValidas =
     temDistribuicao &&
-    !temTributoNaoSelecionado &&
+    !temGrupoNaoSelecionado &&
     !temValorZero &&
     !temCompetenciaInvalida &&
     somaIgual;
 
-  // Carrega distribuições existentes em modo edição
+  // Carrega distribuições existentes em modo edição.
+  // Mantém o campo legado `tributo` no retorno raw para fazer best-effort de mapeamento
+  // (legacy → grupo_tributo_id) no useEffect de hidratação abaixo, quando o catálogo já carregou.
   const { data: distribuicoesExistentes = [] } = useQuery({
     queryKey: ['dcomp-distribuicoes', editData?.nr_documento],
     queryFn: async () => {
       if (!editData?.nr_documento) return [];
       const { data, error } = await (supabase
         .from('distribuicao_dcomp') as any)
-        .select('id, tributo, valor_tributo, competencia, valor_original')
+        .select('id, tributo, grupo_tributo_id, codigo_receita_id, valor_tributo, competencia, valor_original')
         .eq('nr_documento', editData.nr_documento);
       if (error) throw error;
       return ((data || []) as any[]).map((r) => ({
         id: r.id,
-        tributo: r.tributo,
+        // legacy sigla (pode vir nulo nos registros novos)
+        _legacyTributo: r.tributo as string | null,
+        grupo_tributo_id: (r.grupo_tributo_id as string | null) ?? null,
+        codigo_receita_id: (r.codigo_receita_id as string | null) ?? null,
         valor_tributo: Number(r.valor_tributo) || 0,
         competencia: r.competencia ? String(r.competencia).substring(0, 7) : '',
         valor_original: r.valor_original != null ? Number(r.valor_original) : null,
-      })) as DistribuicaoLinha[];
+      }));
     },
     enabled: !!editData?.nr_documento && open,
   });
@@ -225,7 +247,7 @@ export function DcompFormModal({
       if (!preSelectedPer) return [];
       const { data, error } = await (supabase
         .from('dcomp') as any)
-        .select('nr_documento, mes_ano_exercicio, imposto, nr_dcomp_ret')
+        .select('nr_documento, mes_ano_exercicio, nr_dcomp_ret')
         .eq('nr_per_orig', preSelectedPer)
         .or('excluido.is.null,excluido.eq.')
         .order('dt_envio', { ascending: false });
@@ -247,7 +269,7 @@ export function DcompFormModal({
     queryFn: async () => {
       let query = (supabase
         .from('per') as any)
-        .select('nr_per, id_contribuinte, exercicio, tri_exercicio, dt_solicitada')
+        .select('nr_per, id_contribuinte, exercicio, tri_exercicio, dt_solicitada, tp_credito, porcentagem_psa')
         .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (contribuinteId) query = query.eq('id_contribuinte', contribuinteId);
@@ -267,7 +289,6 @@ export function DcompFormModal({
         dt_envio: editData.dt_envio,
         vlr_compensado: editData.vlr_compensado,
         nr_dcomp_ret: editData.nr_dcomp_ret || null,
-        porcentagem_psa: editData.porcentagem_psa ?? null,
       });
       setCurrencyDisplay(formatCurrencyDisplay(editData.vlr_compensado || 0));
     } else if (open) {
@@ -280,7 +301,6 @@ export function DcompFormModal({
           dt_envio: saved.dt_envio || new Date().toISOString().split('T')[0],
           vlr_compensado: saved.vlr_compensado || 0,
           nr_dcomp_ret: saved.nr_dcomp_ret ?? null,
-          porcentagem_psa: saved.porcentagem_psa ?? null,
         });
         setCurrencyDisplay(formatCurrencyDisplay(saved.vlr_compensado || 0));
         if (Array.isArray(saved.distribuicoes)) setDistribuicoes(saved.distribuicoes);
@@ -292,7 +312,6 @@ export function DcompFormModal({
           dt_envio: new Date().toISOString().split('T')[0],
           vlr_compensado: 0,
           nr_dcomp_ret: null,
-          porcentagem_psa: null,
         });
         setCurrencyDisplay('R$ 0,00');
         setDistribuicoes([]);
@@ -301,15 +320,28 @@ export function DcompFormModal({
   }, [editData, open]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Após carregar do banco, popula distribuicoes em edição.
+  // Para registros legados (sem grupo_tributo_id), tenta inferir o grupo a partir da sigla antiga
+  // (campo `tributo`). O usuário precisa selecionar o código de receita manualmente.
   // Fallback: se DCOMP antigo (sem rateio), cria 1 linha com imposto+vlr_compensado.
   useEffect(() => {
     if (!isEditing) return;
     if (distribuicoesExistentes.length > 0) {
-      setDistribuicoes(distribuicoesExistentes);
+      setDistribuicoes(
+        distribuicoesExistentes.map((r: any) => ({
+          id: r.id,
+          grupo_tributo_id:
+            r.grupo_tributo_id ?? findGrupoIdPorSiglaLegado(r._legacyTributo, grupos),
+          codigo_receita_id: r.codigo_receita_id ?? null,
+          valor_tributo: r.valor_tributo,
+          competencia: r.competencia,
+          valor_original: r.valor_original,
+        })),
+      );
     } else if (editData?.imposto) {
       setDistribuicoes([
         {
-          tributo: editData.imposto,
+          grupo_tributo_id: findGrupoIdPorSiglaLegado(editData.imposto, grupos),
+          codigo_receita_id: null,
           valor_tributo: Number(editData.vlr_compensado) || 0,
           competencia: editData.mes_ano_exercicio
             ? String(editData.mes_ano_exercicio).substring(0, 7)
@@ -317,7 +349,7 @@ export function DcompFormModal({
         },
       ]);
     }
-  }, [distribuicoesExistentes, isEditing, editData]);
+  }, [distribuicoesExistentes, isEditing, editData, grupos]);
 
   const dtEnvio = form.watch('dt_envio');
   const nrPerOrig = form.watch('nr_per_orig');
@@ -328,8 +360,12 @@ export function DcompFormModal({
   const dtEnvioMudou = isEditing && !!dtEnvioOriginal && dtEnvio !== dtEnvioOriginal;
 
   // Rateio Atualizado/Original — depende da dt_envio (carência) e do fator SELIC vigente nessa data
-  const perSelecionado = pers.find((p) => p.nr_per === nrPerOrig);
+  const perSelecionado = pers.find((p: any) => p.nr_per === nrPerOrig);
   const dtSolicitadaPer = perSelecionado?.dt_solicitada || null;
+  const tpCreditoPer = (perSelecionado as any)?.tp_credito || '';
+  const triExercicioPer = (perSelecionado as any)?.tri_exercicio ?? null;
+  const exercicioPer = (perSelecionado as any)?.exercicio ?? null;
+  const porcentagemPsaPer = Number((perSelecionado as any)?.porcentagem_psa ?? 0);
 
   const emCarenciaNaDtEnvio =
     !!dtSolicitadaPer && !!dtEnvio && isWithinGracePeriodAt(dtSolicitadaPer, dtEnvio);
@@ -370,16 +406,31 @@ export function DcompFormModal({
 
   const round2 = (v: number) => Math.round(v * 100) / 100;
 
-  const addLinha = (tributo: string) => {
+  const addLinha = () => {
     setDistribuicoes((prev) => [
       ...prev,
-      { tributo, valor_tributo: 0, competencia: mesAnoFromForm || '' },
+      {
+        grupo_tributo_id: null,
+        codigo_receita_id: null,
+        valor_tributo: 0,
+        competencia: mesAnoFromForm || '',
+      },
     ]);
-    setAddOpen(false);
   };
 
-  const updateLinhaTributo = (idx: number, tributo: string) => {
-    setDistribuicoes((prev) => prev.map((l, i) => (i === idx ? { ...l, tributo } : l)));
+  const updateLinhaGrupo = (idx: number, grupo_tributo_id: string) => {
+    // Trocar de grupo invalida o código atual (pode não pertencer ao novo grupo).
+    setDistribuicoes((prev) =>
+      prev.map((l, i) =>
+        i === idx ? { ...l, grupo_tributo_id, codigo_receita_id: null } : l,
+      ),
+    );
+  };
+
+  const updateLinhaCodigo = (idx: number, codigo_receita_id: string) => {
+    setDistribuicoes((prev) =>
+      prev.map((l, i) => (i === idx ? { ...l, codigo_receita_id } : l)),
+    );
   };
 
   const updateLinhaValor = (idx: number, raw: string) => {
@@ -400,12 +451,6 @@ export function DcompFormModal({
     setDistribuicoes((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const tributoDominante = useMemo(() => {
-    if (distribuicoes.length === 0) return '';
-    return distribuicoes.reduce((max, l) =>
-      l.valor_tributo > max.valor_tributo ? l : max,
-    ).tributo;
-  }, [distribuicoes]);
 
   const persistirDistribuicoes = async (nrDocumento: string) => {
     // Substitui totalmente: tabela sem soft-delete e rateio é overwrite.
@@ -415,7 +460,7 @@ export function DcompFormModal({
     if (delErr) throw delErr;
     const rows = distribuicoes.map((l) => {
       const linhaOriginal = isEditing && l.id
-        ? distribuicoesExistentes.find((o) => o.id === l.id)
+        ? distribuicoesExistentes.find((o: any) => o.id === l.id)
         : undefined;
       const valorTributoMudou = linhaOriginal
         ? toCents(linhaOriginal.valor_tributo) !== toCents(l.valor_tributo)
@@ -428,9 +473,13 @@ export function DcompFormModal({
       const valor_original_final = preservar
         ? (l.valor_original as number)
         : round2(l.valor_tributo * proporcaoOriginal);
+      // snapshot da sigla do grupo no campo legado `tributo` para compat com PerDetailModal/filtros.
+      const grupo = grupos.find((g) => g.id === l.grupo_tributo_id);
       return {
         nr_documento: nrDocumento,
-        tributo: l.tributo,
+        tributo: grupo?.sigla ?? '',
+        grupo_tributo_id: l.grupo_tributo_id,
+        codigo_receita_id: l.codigo_receita_id,
         valor_tributo: l.valor_tributo,
         valor_original: valor_original_final,
         competencia: normalizeMesAno(l.competencia),
@@ -444,17 +493,13 @@ export function DcompFormModal({
 
   const createMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
-      const imposto = tributoDominante;
       const record = {
         nr_documento: stripToDigits(data.nr_documento),
         nr_per_orig: stripToDigits(data.nr_per_orig),
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
-        imposto,
-        tp_credito: imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: data.nr_dcomp_ret ? stripToDigits(data.nr_dcomp_ret) : null,
-        porcentagem_psa: data.porcentagem_psa ?? null,
       };
 
       const { data: existing, error: checkError } = await (supabase
@@ -475,11 +520,8 @@ export function DcompFormModal({
             nr_per_orig: record.nr_per_orig,
             mes_ano_exercicio: record.mes_ano_exercicio,
             dt_envio: record.dt_envio,
-            imposto: record.imposto,
-            tp_credito: record.tp_credito,
             vlr_compensado: record.vlr_compensado,
             nr_dcomp_ret: record.nr_dcomp_ret,
-            porcentagem_psa: record.porcentagem_psa,
             excluido: null,
             nr_cancelamento: null,
           })
@@ -487,7 +529,7 @@ export function DcompFormModal({
         if (updateError) throw updateError;
         reactivated = true;
       } else {
-        const { error } = await supabase.from('dcomp').insert([record]);
+        const { error } = await (supabase.from('dcomp') as any).insert([record]);
         if (error) throw error;
       }
 
@@ -517,19 +559,15 @@ export function DcompFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: DcompFormData) => {
-      const imposto = tributoDominante;
       const record = {
         nr_per_orig: stripToDigits(data.nr_per_orig),
         mes_ano_exercicio: normalizeMesAno(data.mes_ano_exercicio),
         dt_envio: data.dt_envio,
-        imposto,
-        tp_credito: imposto,
         vlr_compensado: data.vlr_compensado,
         nr_dcomp_ret: data.nr_dcomp_ret ? stripToDigits(data.nr_dcomp_ret) : null,
-        porcentagem_psa: data.porcentagem_psa ?? null,
       };
-      const { error } = await supabase
-        .from('dcomp')
+      const { error } = await (supabase
+        .from('dcomp') as any)
         .update(record)
         .eq('nr_documento', editData?.nr_documento);
       if (error) throw error;
@@ -569,21 +607,29 @@ export function DcompFormModal({
   };
 
   const isLoading = createMutation.isPending || updateMutation.isPending;
-  const tributosDisponiveis = TRIBUTOS;
 
   const readOnlyMode = isEditing && !canWriteDcomp;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between gap-3 pr-6">
+          <div className="flex items-start justify-between gap-3 pr-10">
             <DialogTitle>{isEditing ? 'Editar DCOMP' : 'Novo DCOMP'}</DialogTitle>
-            {readOnlyMode && (
-              <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
-                Você não tem permissão para editar este DCOMP
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {readOnlyMode && (
+                <span className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive">
+                  Você não tem permissão para editar este DCOMP
+                </span>
+              )}
+              {perSelecionado && (tpCreditoPer || triExercicioPer != null) && (
+                <span className="rounded-md border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                  {tpCreditoPer}
+                  {tpCreditoPer && triExercicioPer != null && exercicioPer != null ? ' · ' : ''}
+                  {triExercicioPer != null && exercicioPer != null ? `${triExercicioPer}T/${exercicioPer}` : ''}
+                </span>
+              )}
+            </div>
           </div>
           <DialogDescription className="sr-only">Formulário de DCOMP</DialogDescription>
         </DialogHeader>
@@ -609,31 +655,6 @@ export function DcompFormModal({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="nr_per_orig"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>PER de Origem <RequiredMark /></FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o PER" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {pers.map((per: any) => (
-                        <SelectItem key={per.nr_per} value={per.nr_per}>
-                          {per.nr_per} ({per.exercicio}/{per.tri_exercicio}T)
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {!isEditing && dcompsVigentesParaRetificar.length > 0 && (
               <FormField
                 control={form.control}
@@ -654,7 +675,7 @@ export function DcompFormModal({
                         <SelectItem value="__none__">Nenhum (original)</SelectItem>
                         {dcompsVigentesParaRetificar.map((dcomp) => (
                           <SelectItem key={dcomp.nr_documento} value={dcomp.nr_documento}>
-                            {normalizeProcessNumber(dcomp.nr_documento)} ({dcomp.imposto} - {dcomp.mes_ano_exercicio})
+                            {normalizeProcessNumber(dcomp.nr_documento)} ({dcomp.mes_ano_exercicio})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -708,6 +729,14 @@ export function DcompFormModal({
                     />
                   </FormControl>
                   <FormMessage />
+                  {porcentagemPsaPer > 0 && vlrCompensado > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Valor PSA ({porcentagemPsaPer.toFixed(2).replace('.', ',')}%):{' '}
+                      <strong className="font-mono text-foreground">
+                        {formatCurrencyDisplay(vlrCompensado * porcentagemPsaPer / 100)}
+                      </strong>
+                    </p>
+                  )}
                   {vlrCompensadoExcedeMax && valorAtualizadoSelicMax != null && (
                     <p className="text-sm text-destructive">
                       O valor compensado ({formatCurrencyDisplay(vlrCompensado)}) ultrapassa o Valor Atualizado SELIC do PER ({formatCurrencyDisplay(valorAtualizadoSelicMax)}).
@@ -720,13 +749,14 @@ export function DcompFormModal({
             {/* Rateio de tributos */}
             <div className="space-y-2 rounded-md border p-3">
               <div className="flex items-center justify-end">
-                <Button type="button" variant="outline" size="sm" onClick={() => addLinha('')}>
+                <Button type="button" variant="outline" size="sm" onClick={addLinha}>
                   <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tributo
                 </Button>
               </div>
 
-              <div className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
-                <FormLabel className="m-0">Tributos rateados <RequiredMark /></FormLabel>
+              <div className="grid grid-cols-[150px_180px_1fr_1fr_110px_36px] items-center gap-2">
+                <FormLabel className="m-0">Grupo de Tributo <RequiredMark /></FormLabel>
+                <FormLabel className="m-0">Código de Receita</FormLabel>
                 <FormLabel className="m-0">Valor Utilizado nesta DCOMP</FormLabel>
                 <FormLabel className="m-0">Valor Original</FormLabel>
                 <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
@@ -743,7 +773,7 @@ export function DcompFormModal({
                   const valorZero = toCents(linha.valor_tributo || 0) === 0;
                   const competenciaInvalida = !isCompetenciaValida(linha.competencia || '');
                   const linhaOriginalUI = isEditing && linha.id
-                    ? distribuicoesExistentes.find((o) => o.id === linha.id)
+                    ? distribuicoesExistentes.find((o: any) => o.id === linha.id)
                     : undefined;
                   const valorTributoMudouUI = linhaOriginalUI
                     ? toCents(linhaOriginalUI.valor_tributo) !== toCents(linha.valor_tributo || 0)
@@ -758,15 +788,43 @@ export function DcompFormModal({
                     : round2((linha.valor_tributo || 0) * proporcaoOriginal);
                   const exibirValorOriginal =
                     isEditing && linha.valor_original == null && !valorTributoMudouUI && !dtEnvioMudou;
+                  const codigosDisponiveis = linha.grupo_tributo_id
+                    ? codigosPorGrupo[linha.grupo_tributo_id] || []
+                    : [];
+                  const codigoSelecionado = codigosDisponiveis.find((c) => c.id === linha.codigo_receita_id);
                   return (
-                    <div key={k} className="grid grid-cols-[130px_1fr_1fr_110px_36px] items-center gap-2">
-                      <Select value={linha.tributo || undefined} onValueChange={(v) => updateLinhaTributo(idx, v)}>
+                    <div key={k} className="grid grid-cols-[150px_180px_1fr_1fr_110px_36px] items-center gap-2">
+                      <Select
+                        value={linha.grupo_tributo_id || undefined}
+                        onValueChange={(v) => updateLinhaGrupo(idx, v)}
+                      >
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione" />
                         </SelectTrigger>
                         <SelectContent>
-                          {tributosDisponiveis.map((t) => (
-                            <SelectItem key={t} value={t}>{t}</SelectItem>
+                          {grupos.map((g) => (
+                            <SelectItem key={g.id} value={g.id} title={g.denominacao}>
+                              {g.sigla}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={linha.codigo_receita_id || undefined}
+                        onValueChange={(v) => updateLinhaCodigo(idx, v)}
+                        disabled={!linha.grupo_tributo_id}
+                      >
+                        <SelectTrigger
+                          className="h-9"
+                          title={codigoSelecionado?.denominacao_receita}
+                        >
+                          <SelectValue placeholder={linha.grupo_tributo_id ? 'Selecione' : '—'} />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {codigosDisponiveis.map((c) => (
+                            <SelectItem key={c.id} value={c.id} title={c.denominacao_receita}>
+                              {c.codigo}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -803,7 +861,12 @@ export function DcompFormModal({
                         <Trash2 className="h-4 w-4" />
                       </Button>
                       {valorZero && (
-                        <p className="col-span-5 -mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
+                        <p className="col-span-6 -mt-1 text-xs text-destructive">O valor do tributo não pode ser zero</p>
+                      )}
+                      {codigoSelecionado && (
+                        <p className="col-span-6 -mt-1 text-xs text-muted-foreground truncate" title={codigoSelecionado.denominacao_receita}>
+                          {codigoSelecionado.denominacao_receita}
+                        </p>
                       )}
                     </div>
                   );
@@ -832,34 +895,12 @@ export function DcompFormModal({
               </div>
             </div>
 
-            <FormField
-              control={form.control}
-              name="porcentagem_psa"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Percentual Aplicado (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      max="100"
-                      placeholder="Ex: 15.00"
-                      value={field.value ?? ''}
-                      onChange={(e) => field.onChange(e.target.value ? Math.min(Number(e.target.value), 100) : null)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             {!distribuicoesValidas && (
               <p className="text-sm text-destructive">
                 {!temDistribuicao
                   ? 'Adicione ao menos um tributo rateado.'
-                  : temTributoNaoSelecionado
-                  ? 'Há tributos que não foram selecionados'
+                  : temGrupoNaoSelecionado
+                  ? 'Há linhas sem Grupo de Tributo selecionado'
                   : temValorZero
                   ? 'Há tributos com valor zero'
                   : temCompetenciaInvalida

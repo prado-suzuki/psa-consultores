@@ -170,7 +170,7 @@ export function PerDetailModal({
   const [ressarcimentoOpen, setRessarcimentoOpen] = useState(false);
   const [ressarcimentoValor, setRessarcimentoValor] = useState('');
   const [ressarcimentoData, setRessarcimentoData] = useState('');
-  const [ressarcimentoPercentual, setRessarcimentoPercentual] = useState('');
+  
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
   // Filtro de tipo de tributo na tabela de DCOMPs
@@ -310,14 +310,32 @@ export function PerDetailModal({
     );
   }, [perAtual, distribuicoesPorDcomp, dcompsVigentesNrDocs, vlrRessarcido]);
 
-  // DCOMPs após aplicação do filtro de tributo
+  // DCOMPs após aplicação do filtro de tributo.
+  // Para o modo "todos", quando o DCOMP tem múltiplos tributos no rateio, exibimos o de maior valor
+  // seguido de "..." e passamos a lista completa em `tributosTodos` para uso em tooltip.
   const dcompsExibidos = useMemo(() => {
     if (tributoFiltro === '__todos__') {
-      return dcompsVigentes.map((d) => ({
-        dcomp: d,
-        valorExibido: d.vlr_compensado || 0,
-        tributoExibido: d.imposto,
-      }));
+      return dcompsVigentes.map((d) => {
+        const tribs = valorPorDcompTributo[d.nr_documento] || {};
+        const entries = Object.entries(tribs).filter(([t]) => !!t);
+        let tributoExibido = '—';
+        let tributosTodos: Array<{ tributo: string; valor: number }> | undefined;
+        if (entries.length === 1) {
+          tributoExibido = entries[0][0];
+        } else if (entries.length > 1) {
+          const ordenados = entries
+            .map(([tributo, valor]) => ({ tributo, valor: Number(valor) || 0 }))
+            .sort((a, b) => b.valor - a.valor);
+          tributoExibido = `${ordenados[0].tributo}...`;
+          tributosTodos = ordenados;
+        }
+        return {
+          dcomp: d,
+          valorExibido: d.vlr_compensado || 0,
+          tributoExibido,
+          tributosTodos,
+        };
+      });
     }
     return dcompsVigentes
       .filter((d) => {
@@ -328,6 +346,7 @@ export function PerDetailModal({
         dcomp: d,
         valorExibido: valorPorDcompTributo[d.nr_documento]?.[tributoFiltro] || 0,
         tributoExibido: tributoFiltro,
+        tributosTodos: undefined as Array<{ tributo: string; valor: number }> | undefined,
       }));
   }, [dcompsVigentes, tributoFiltro, valorPorDcompTributo]);
 
@@ -402,14 +421,14 @@ export function PerDetailModal({
 
   // Mutation para salvar ressarcimento
   const ressarcimentoMutation = useMutation({
-    mutationFn: async ({ valor, valorOriginal, dataPagamento, percentual }: { valor: number; valorOriginal: number; dataPagamento: string; percentual: number | null }) => {
-      // Update per.vlr_ressarcido + porcentagem_psa + vlr_ressarcido_original (rateio Atualizado/Original congelado)
+    mutationFn: async ({ valor, valorOriginal, dataPagamento }: { valor: number; valorOriginal: number; dataPagamento: string }) => {
+      // Update per.vlr_ressarcido + vlr_ressarcido_original (rateio Atualizado/Original congelado).
+      // porcentagem_psa NÃO é tocado aqui — vem do cadastro do PER (PerFormModal).
       const { error: perError } = await (supabase
         .from('per') as any)
         .update({
           vlr_ressarcido: valor,
           vlr_ressarcido_original: Math.round(valorOriginal * 100) / 100,
-          porcentagem_psa: percentual,
         })
         .eq('nr_per', per?.nr_per);
       if (perError) throw perError;
@@ -438,7 +457,7 @@ export function PerDetailModal({
       setRessarcimentoOpen(false);
       setRessarcimentoValor('');
       setRessarcimentoData('');
-      setRessarcimentoPercentual('');
+      
 
       if (per) {
         syncPerdcompToDW({
@@ -503,16 +522,10 @@ export function PerDetailModal({
       toast.error('Informe a data do pagamento');
       return;
     }
-    const percentual = ressarcimentoPercentual ? parseFloat(ressarcimentoPercentual) : null;
-    if (percentual !== null && percentual > 100) {
-      toast.error('Percentual não pode ser maior que 100%');
-      return;
-    }
     ressarcimentoMutation.mutate({
       valor,
       valorOriginal: ressarcimentoValorOriginal,
       dataPagamento: ressarcimentoData,
-      percentual,
     });
   };
 
@@ -857,9 +870,12 @@ export function PerDetailModal({
                           </TableCell>
                         </TableRow>
                       ) : (
-                        dcompsExibidos.map(({ dcomp, valorExibido, tributoExibido }) => {
+                        dcompsExibidos.map(({ dcomp, valorExibido, tributoExibido, tributosTodos }) => {
                           const originalDoc = findOriginalDcomp(dcomp.nr_documento, dcomps);
                           const isRetificacao = !!dcomp.nr_dcomp_ret;
+                          const tooltipTodos = tributosTodos
+                            ?.map((t) => `${t.tributo}: ${formatCurrency(t.valor)}`)
+                            .join('\n');
 
                           return (
                             <TableRow key={dcomp.nr_documento}>
@@ -877,7 +893,18 @@ export function PerDetailModal({
                               </TableCell>
                               <TableCell>{dcomp.mes_ano_exercicio}</TableCell>
                               <TableCell>{formatDate(dcomp.dt_envio)}</TableCell>
-                              <TableCell>{tributoExibido}</TableCell>
+                              <TableCell>
+                                {tooltipTodos ? (
+                                  <span
+                                    className="cursor-help border-b border-dashed border-muted-foreground/50"
+                                    title={tooltipTodos}
+                                  >
+                                    {tributoExibido}
+                                  </span>
+                                ) : (
+                                  tributoExibido
+                                )}
+                              </TableCell>
                               <TableCell className="text-right font-mono">
                                 {formatCurrency(valorExibido)}
                               </TableCell>
@@ -1009,21 +1036,6 @@ export function PerDetailModal({
                 )}
               </div>
             )}
-            <div className="space-y-2">
-              <Label>Percentual Aplicado (%)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                max="100"
-                placeholder="Ex: 15.00"
-                value={ressarcimentoPercentual}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  if (v === '' || Number(v) <= 100) setRessarcimentoPercentual(v);
-                }}
-              />
-            </div>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

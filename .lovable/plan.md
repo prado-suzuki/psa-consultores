@@ -1,50 +1,71 @@
-# Recalcular Saldo Disponível do PER
+# Correção: sublíder não consegue excluir tarefa (e "volta" depois)
 
-## Problema
+## Diagnóstico
 
-Hoje o **Saldo Disponível / Saldo Restante do PER** é calculado como:
+Dois problemas independentes, ambos confirmados:
 
-```
-saldo = vlr_credito (PER) − Σ dcomp.vlr_compensado (vigentes) − vlr_ressarcido
-```
+### 1. RLS bloqueia DELETE para sublíder
+Política atual em `public.org_tasks`:
 
-`dcomp.vlr_compensado` é o valor **atualizado pela SELIC** na data de envio da DCOMP. Logo, o saldo está sendo abatido por valores corrigidos, e não pelo principal de fato consumido do crédito. O correto, agora que `distribuicao_dcomp.valor_original` está populado, é abater pelo somatório do **valor original** de todos os tributos de todas as DCOMPs vigentes daquele PER:
-
-```
-saldo = vlr_credito (PER) − Σ distribuicao_dcomp.valor_original (de todas as DCOMPs vigentes) − vlr_ressarcido_original (quando houver, senão vlr_ressarcido)
+```text
+rls_org_tasks_delete (DELETE):
+  has_role_or_higher(auth.uid(), 'lider') OR created_by = auth.uid()
 ```
 
-## Mudanças
+Ou seja, só **líder/admin** ou **o criador** da tarefa podem excluir. Sublíder que não criou a tarefa é silenciosamente barrado pelo RLS. Isso é inconsistente com `INSERT` e `UPDATE` da mesma tabela, que já liberam sublíder:
 
-### 1. `PerDetailModal.tsx` — card "Saldo Restante do PER"
-
-Trocar `saldoRestante` para somar `valor_original` das linhas de `distribuicao_dcomp` já carregadas em `distribuicoesPorDcomp` (filtradas aos `dcompsVigentesNrDocs`):
-
-```
-totalOriginalCompensado = Σ linha.valor_original (fallback linha.valor_tributo quando NULL)
-saldoRestante = round2(vlr_credito − totalOriginalCompensado − vlrRessarcidoOriginal)
+```text
+rls_org_tasks_update:
+  has_role_or_higher(auth.uid(), 'sublider') OR (team_member AND project member)
 ```
 
-Usar `vlr_ressarcido_original` quando existir (já tratado para rateio Atualizado/Original); cair para `vlr_ressarcido` quando não houver. Manter o `normalizeCurrencyZero` e o arredondamento atual.
+A tarefa "teste" não foi criada pelo sublíder → DELETE negado pelo Postgres com 0 linhas afetadas.
 
-Esse mesmo `saldoRestante` alimenta o card "Valor Atualizado SELIC" — não precisa mexer na fórmula SELIC, só na base.
+### 2. Hook reporta sucesso mesmo quando RLS bloqueia
+`useDeleteOrgTask` em `src/hooks/useOrgTasks.ts` (linhas 263–292):
 
-### 2. `ControlePerdcomp.tsx` — colunas Saldo Disp., Vlr. Selic e totais
+```ts
+const { error } = await supabase.from('org_tasks').delete().eq('id', id);
+if (error) throw error;
+// → mostra toast "Tarefa excluída"
+```
 
-Hoje a tabela usa `dcompTotalMap` (soma de `dcomp.vlr_compensado` por PER). Substituir por um novo mapa `dcompOriginalMap` que soma `valor_original` por `nr_per_orig`:
+Quando o RLS bloqueia um DELETE, o PostgREST **não retorna erro** — retorna 0 linhas afetadas. Resultado: o usuário vê toast de sucesso, a lista é invalidada, e a tarefa "volta a aparecer" no refetch. Foi exatamente o sintoma relatado.
 
-- Nova query `useQuery(['perdcomp-distribuicoes', contribuinteId, searched])` em `distribuicao_dcomp` puxando `nr_documento, valor_tributo, valor_original`, restrita aos `nr_documento` dos DCOMPs vigentes (mesma lista usada hoje para `dcompTotalMap`).
-- `dcompOriginalMap[nr_per_orig] = Σ valor_original ?? valor_tributo` por DCOMP vigente.
-- Substituir `dcompTotalMap` por `dcompOriginalMap` no cálculo do `saldo` (linhas 454, 473, 505, 507, 705) — a coluna "Vlr. Compensado" continua mostrando `dcompTotalMap` (atualizado), só o saldo muda de base.
+## Correções
 
-Atualizar `selicCorrectionMap` e `totals.corrigido` para usarem o novo `saldo` (já feito implicitamente quando substituímos `valSaldo`).
+### A. Migração de RLS — sublíder pra cima pode excluir
 
-### 3. Loading e fallback
+Recriar a policy `rls_org_tasks_delete` permitindo **sublíder, líder e admin** (via `has_role_or_higher('sublider')`). Team_member e client não excluem tarefas.
 
-Enquanto a query de distribuições não chega, manter o cálculo antigo (fallback para `vlr_compensado`) para não exibir saldo zerado/errado no primeiro render — ou simplesmente exibir loader na coluna.
+```sql
+DROP POLICY rls_org_tasks_delete ON public.org_tasks;
 
-## Observações
+CREATE POLICY rls_org_tasks_delete ON public.org_tasks
+FOR DELETE TO authenticated
+USING (has_role_or_higher(auth.uid(), 'sublider'::app_role));
+```
 
-- A coluna "Vlr. Compensado" continua mostrando o valor atualizado (`vlr_compensado` somado por PER) — o usuário entende esse número como "quanto já foi efetivamente compensado em valores correntes".
-- O "Saldo Disp." passa a ser o saldo de principal real do crédito original, coerente com `vlr_credito` que é o principal.
-- Não há mudança de schema, RLS, edge functions nem nada de backend além de uma nova leitura via Supabase.
+### B. Detectar DELETE silencioso no hook
+
+Em `src/hooks/useOrgTasks.ts`, ajustar `useDeleteOrgTask` para usar `.select()` e validar a contagem retornada. Se vier vazio, lançar erro explícito ("Sem permissão para excluir esta tarefa") — assim o usuário recebe toast de erro real em vez de falso sucesso, mesmo que no futuro outra policy volte a bloquear.
+
+```ts
+const { data, error } = await supabase
+  .from('org_tasks')
+  .delete()
+  .eq('id', id)
+  .select('id');
+
+if (error) throw error;
+if (!data || data.length === 0) {
+  throw new Error('Você não tem permissão para excluir esta tarefa.');
+}
+```
+
+## Escopo
+
+- 1 migração SQL (substituição da policy de DELETE de `org_tasks`).
+- 1 edição em `src/hooks/useOrgTasks.ts` (função `useDeleteOrgTask`).
+
+Sem mudanças de UI, sem mexer em outras tabelas/hooks.
