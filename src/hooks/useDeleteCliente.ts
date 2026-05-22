@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 interface DeleteClienteParams {
   id: string;
@@ -12,6 +13,7 @@ export function useDeleteCliente() {
 
   return useMutation({
     mutationFn: async ({ id }: DeleteClienteParams) => {
+      await assertCanPerform('cliente', 'update', id);
       const { error } = await supabase
         .from('cliente')
         .update({ excluido: true })
