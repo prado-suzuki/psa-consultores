@@ -24,6 +24,7 @@ import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazi
 import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
 import { SprintCalendar } from "@/components/sprint/SprintCalendar";
 import { SprintHoursDashboard } from "@/components/sprint/SprintHoursDashboard";
+import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 
 interface Sprint {
   id: string;
