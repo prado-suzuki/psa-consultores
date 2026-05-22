@@ -212,7 +212,6 @@ export function DcompFormModal({
   const distribuicoesValidas =
     temDistribuicao &&
     !temGrupoNaoSelecionado &&
-    !temCodigoNaoSelecionado &&
     !temValorZero &&
     !temCompetenciaInvalida &&
     somaIgual;
@@ -758,7 +757,7 @@ export function DcompFormModal({
 
               <div className="grid grid-cols-[150px_180px_1fr_1fr_110px_36px] items-center gap-2">
                 <FormLabel className="m-0">Grupo de Tributo <RequiredMark /></FormLabel>
-                <FormLabel className="m-0">Código de Receita <RequiredMark /></FormLabel>
+                <FormLabel className="m-0">Código de Receita</FormLabel>
                 <FormLabel className="m-0">Valor Utilizado nesta DCOMP</FormLabel>
                 <FormLabel className="m-0">Valor Original</FormLabel>
                 <FormLabel className="m-0">Competência <RequiredMark /></FormLabel>
@@ -903,8 +902,6 @@ export function DcompFormModal({
                   ? 'Adicione ao menos um tributo rateado.'
                   : temGrupoNaoSelecionado
                   ? 'Há linhas sem Grupo de Tributo selecionado'
-                  : temCodigoNaoSelecionado
-                  ? 'Há linhas sem Código de Receita selecionado'
                   : temValorZero
                   ? 'Há tributos com valor zero'
                   : temCompetenciaInvalida
