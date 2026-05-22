@@ -440,6 +440,11 @@ export default function EquipeSprintDetalhes() {
     try {
       setDeleting(true);
 
+      // Pré-checagem de permissão (RLS) — evita erro silencioso quando o
+      // usuário não tem permissão para excluir o entregável.
+      await assertCanPerform('sprint_deliverables', 'delete', editingDeliverable.id);
+
+
       // Primeiro, excluir anexos do storage e da tabela
       const { data: attachmentsToDelete } = await supabase
         .from('deliverable_attachments')
