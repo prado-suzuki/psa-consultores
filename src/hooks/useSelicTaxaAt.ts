@@ -1,23 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
-import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
+import {
+  computeSelicFator,
+  getStartAccumulationMonth,
+  isWithinGracePeriodAt,
+  prevMonth,
+} from '@/lib/selicCalculator';
 import type { SelicTaxa } from '@/hooks/useSelicData';
 
+export interface SelicFatorResult {
+  fator: number;
+  acumulado: number;
+  mesesContabilizados: string[];
+}
+
 /**
- * Busca a taxa SELIC vigente para um PER em uma data de referência específica.
+ * Calcula o fator SELIC vigente entre dt_solicitada e dt_referência seguindo a
+ * regra RFB: carência de 1 ano sem SELIC, depois soma das taxas mensais dos
+ * meses CHEIOS após o fim da carência até o mês anterior à referência, mais
+ * 1% fixo do mês de referência.
  *
- * Contrato da API `/api/v1/selic`: cada linha tem `data_atualizacao` (mês de
- * competência) e `vlr_acumulado_dec`, que é a SELIC acumulada do mês daquela
- * linha em diante até o último mês cadastrado no banco (valor global —
- * independente de data_inicio/data_fim).
+ * - Em carência (referência <= fim-carência) → fator = 0.
+ * - Logo após o fim da carência (sem nenhum mês cheio completo) → fator = 1%
+ *   (apenas a parcela fixa do mês corrente).
  *
- * Para a correção de um PER, a linha correta é aquela cujo
- * `data_atualizacao = mês(dt_solicitada)`. O +1% fixo do mês de referência
- * é somado em `applySelicCorrection`.
- *
- * Sem fallback silencioso: erro da API, taxas vazias ou ausência da linha
- * do mês de início → throw, propagado como `error` pelo React Query.
+ * Sem fallback: se a API SELIC retornar erro ou faltar a linha de algum mês
+ * necessário para o cálculo, o erro é propagado pelo React Query.
  */
 export function useSelicTaxaAt(
   dtSolicitada: string | null | undefined,
@@ -28,19 +37,31 @@ export function useSelicTaxaAt(
   const emCarencia =
     !!dtSolicitada && !!dtReferencia && isWithinGracePeriodAt(dtSolicitada, dtReferencia);
 
-  return useQuery<SelicTaxa>({
-    queryKey: ['selic-taxa-at', dtSolicitada, dtReferencia],
+  return useQuery<SelicFatorResult>({
+    queryKey: ['selic-fator-at', dtSolicitada, dtReferencia],
     queryFn: async () => {
       if (!dtSolicitada || !dtReferencia) {
         throw new Error('dtSolicitada e dtReferencia são obrigatórios');
       }
 
-      // API filtra por data_atualizacao >= data_inicio (dia exato), e queremos
-      // a linha do mês da dt_solicitada (data_atualizacao = YYYY-MM-01) — normaliza
-      // data_inicio para o 1º dia do mês.
-      const dataInicioApi = `${dtSolicitada.substring(0, 7)}-01`;
+      // Faixa de meses cheios a contabilizar.
+      const startAccMonth = getStartAccumulationMonth(dtSolicitada);
+      const refMonth = dtReferencia.substring(0, 7);
+      const endAccMonth = prevMonth(refMonth);
+
+      // Se não há meses cheios para contabilizar, fator = 1% (mês corrente).
+      if (startAccMonth > endAccMonth) {
+        return { fator: 0.01, acumulado: 0, mesesContabilizados: [] };
+      }
+
+      // A linha da API que tem o valor mensal aplicado ao mês X é a
+      // data_atualizacao = (X-1). Logo, intervalo de data_atualizacao a buscar:
+      const apiStartMonth = prevMonth(startAccMonth);
+
+      // A API filtra data_atualizacao >= data_inicio (dia exato), por isso
+      // enviamos sempre o 1º dia do mês inicial.
       const url = getApiUrl(
-        `/api/v1/selic?data_inicio=${dataInicioApi}&data_fim=${dtReferencia}`,
+        `/api/v1/selic?data_inicio=${apiStartMonth}-01&data_fim=${dtReferencia}`,
       );
       const response = await fetchWithAuth(url);
       if (!response.ok) {
@@ -49,23 +70,13 @@ export function useSelicTaxaAt(
 
       const data = await response.json();
       const taxas: SelicTaxa[] = data.taxas || [];
-      if (taxas.length === 0) {
-        throw new Error(
-          `API SELIC sem dados para ${dtSolicitada} → ${dtReferencia}`,
-        );
+
+      const ratesByMonth: Record<string, number> = {};
+      for (const t of taxas) {
+        ratesByMonth[t.data_atualizacao.substring(0, 7)] = t.valor_decimal;
       }
 
-      const startMonth = dtSolicitada.substring(0, 7);
-      const found = taxas.find(
-        (t) => t.data_atualizacao.substring(0, 7) === startMonth,
-      );
-      if (!found) {
-        throw new Error(
-          `API SELIC sem linha para data_atualizacao=${startMonth} ` +
-          `(dt_solicitada=${dtSolicitada}). Ambiente provavelmente defasado.`,
-        );
-      }
-      return found;
+      return computeSelicFator(dtSolicitada, dtReferencia, ratesByMonth);
     },
     enabled: !!dtSolicitada && !!dtReferencia && !emCarencia,
     staleTime: 24 * 60 * 60 * 1000,

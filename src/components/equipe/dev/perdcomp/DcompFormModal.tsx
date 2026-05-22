@@ -371,7 +371,7 @@ export function DcompFormModal({
     !!dtSolicitadaPer && !!dtEnvio && isWithinGracePeriodAt(dtSolicitadaPer, dtEnvio);
 
   const {
-    data: selicTaxa,
+    data: selicResult,
     error: selicError,
     isLoading: selicLoading,
   } = useSelicTaxaAt(
@@ -381,9 +381,9 @@ export function DcompFormModal({
 
   const fatorSelicRaw = useMemo(() => {
     if (emCarenciaNaDtEnvio) return 0;
-    if (!selicTaxa) return null;
-    return Math.max(0, selicTaxa.vlr_acumulado_dec) + 0.01;
-  }, [emCarenciaNaDtEnvio, selicTaxa]);
+    if (!selicResult) return null;
+    return Math.max(0, selicResult.fator);
+  }, [emCarenciaNaDtEnvio, selicResult]);
 
   const fatorSelic = fatorSelicRaw ?? 0;
 
