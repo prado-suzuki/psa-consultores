@@ -756,6 +756,46 @@ export function DcompFormModal({
                       O valor compensado ({formatCurrencyDisplay(vlrCompensado)}) ultrapassa o Valor Atualizado SELIC do PER ({formatCurrencyDisplay(valorAtualizadoSelicMax)}).
                     </p>
                   )}
+                  {/* Decomposição do Valor Compensado: parte original (sai do saldo) + atualização SELIC. */}
+                  {dtSolicitadaPer && dtEnvio && vlrCompensado > 0 && (() => {
+                    const valorOriginalTotal = vlrCompensado * proporcaoOriginal;
+                    const parcelaSelic = vlrCompensado - valorOriginalTotal;
+                    return (
+                      <div className="mt-2 rounded-md border bg-muted/30 p-2 text-xs">
+                        {emCarenciaNaDtEnvio ? (
+                          <p className="text-muted-foreground">
+                            Em carência na data de envio ({format(new Date(dtEnvio + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}) — sem parcela SELIC.
+                            {' '}Valor Original = Valor Compensado = <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>.
+                          </p>
+                        ) : selicLoading ? (
+                          <p className="text-muted-foreground">Calculando SELIC para a data de envio…</p>
+                        ) : selicIndisponivel ? (
+                          <p className="text-destructive">
+                            SELIC indisponível: {selicError?.message ?? 'sem dados da API'}
+                          </p>
+                        ) : fatorSelic > 0 ? (
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
+                            <span>
+                              Fator SELIC ({format(new Date(dtEnvio + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR })}):{' '}
+                              <strong className="text-foreground">{(fatorSelic * 100).toFixed(4)}%</strong>
+                            </span>
+                            <span>
+                              Atualização SELIC desta DCOMP:{' '}
+                              <strong className="text-blue-600 dark:text-blue-400">
+                                {formatCurrencyDisplay(parcelaSelic)}
+                              </strong>
+                            </span>
+                            <span>
+                              Valor Original (sai do saldo):{' '}
+                              <strong className="text-foreground">
+                                {formatCurrencyDisplay(valorOriginalTotal)}
+                              </strong>
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                 </FormItem>
               )}
             />
@@ -889,27 +929,18 @@ export function DcompFormModal({
 
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
                 <span className="text-muted-foreground">
-                  Total rateado: <strong className={cn(somaIgual ? 'text-emerald-600' : 'text-destructive')}>
+                  Soma Valor Utilizado:{' '}
+                  <strong className={cn(somaIgual ? 'text-emerald-600' : 'text-destructive')}>
                     {formatCurrencyDisplay(totalRateado)}
                   </strong>
-                  {' / '}Compensado: <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>
+                  {' / '}Valor Compensado: <strong>{formatCurrencyDisplay(vlrCompensado)}</strong>
                 </span>
-                <span className="text-muted-foreground">
-                  {emCarenciaNaDtEnvio ? (
-                    <>Em carência — sem parcela SELIC</>
-                  ) : selicIndisponivel ? (
-                    <span className="text-destructive">
-                      SELIC indisponível: {selicError?.message ?? 'sem dados da API'}
-                    </span>
-                  ) : selicLoading ? (
-                    <>Carregando SELIC…</>
-                  ) : fatorSelic > 0 ? (
-                    <>
-                      Total Original: <strong>{formatCurrencyDisplay(round2(totalRateado * proporcaoOriginal))}</strong>
-                      {' · '}Fator SELIC: <strong>{fatorSelic.toFixed(6)}</strong>
-                    </>
-                  ) : null}
-                </span>
+                {!emCarenciaNaDtEnvio && fatorSelic > 0 && (
+                  <span className="text-muted-foreground">
+                    Soma Valor Original:{' '}
+                    <strong>{formatCurrencyDisplay(round2(totalRateado * proporcaoOriginal))}</strong>
+                  </span>
+                )}
               </div>
             </div>
 
@@ -923,7 +954,7 @@ export function DcompFormModal({
                   ? 'Há tributos com valor zero'
                   : temCompetenciaInvalida
                   ? 'Há tributos com competência inválida (use MM/AAAA).'
-                  : `A soma dos tributos (${formatCurrencyDisplay(totalRateado)}) deve ser igual ao valor total compensado (${formatCurrencyDisplay(vlrCompensado)}).`}
+                  : `A soma do Valor Utilizado das linhas (${formatCurrencyDisplay(totalRateado)}) deve ser igual ao Valor Compensado total (${formatCurrencyDisplay(vlrCompensado)}).`}
               </p>
             )}
 
