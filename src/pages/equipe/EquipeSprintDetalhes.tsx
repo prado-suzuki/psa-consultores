@@ -24,6 +24,7 @@ import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazi
 import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
 import { SprintCalendar } from "@/components/sprint/SprintCalendar";
 import { SprintHoursDashboard } from "@/components/sprint/SprintHoursDashboard";
+import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 
 interface Sprint {
   id: string;
@@ -439,6 +440,11 @@ export default function EquipeSprintDetalhes() {
 
     try {
       setDeleting(true);
+
+      // Pré-checagem de permissão (RLS) — evita erro silencioso quando o
+      // usuário não tem permissão para excluir o entregável.
+      await assertCanPerform('sprint_deliverables', 'delete', editingDeliverable.id);
+
 
       // Primeiro, excluir anexos do storage e da tabela
       const { data: attachmentsToDelete } = await supabase
