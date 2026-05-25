@@ -244,7 +244,14 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const currentDbIds = ies.filter(ie => ie._dbId).map(ie => ie._dbId!);
           const removedIds = (existingIEs || []).map((r: any) => r.id).filter((id: string) => !currentDbIds.includes(id));
           if (removedIds.length > 0) {
+            // Precheck do delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
+            await assertCanPerform('inscricao_contribuinte', 'delete', removedIds[0]);
             await (supabase as any).from("inscricao_contribuinte").delete().in("id", removedIds);
+          }
+          // Precheck do update uma única vez antes do loop — se houver pelo menos uma IE existente.
+          const firstUpdateIe = ies.find(ie => ie._dbId);
+          if (firstUpdateIe?._dbId) {
+            await assertCanPerform('inscricao_contribuinte', 'update', firstUpdateIe._dbId);
           }
           for (const ie of ies) {
             const iePayload = {
