@@ -35,7 +35,7 @@ export const ALL_AREA_CATEGORIES: string[] = Object.values(AREA_CATEGORIES_MAP).
 export const AREA_ROUTES: Record<AreaKey, string> = {
   digital: '/equipe/digital',
   tax: '/equipe/tax/dashboard',
-  osg: '/equipe/osg/dashboard',
+  osg: '/equipe/osg',
   controle_site: '/gestao',
   board: '/equipe/board/dashboard',
 };

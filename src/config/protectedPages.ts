@@ -409,8 +409,16 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/osg/dashboard',
-    page_name: 'OSG Dashboard',
-    page_description: 'Painel principal da área OSG',
+    page_name: 'OSG Projects',
+    page_description: 'Painel principal de projetos da área OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work',
+    page_name: 'OSG Work',
+    page_description: 'Ferramentas e aplicações desenvolvidas para a área OSG',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
