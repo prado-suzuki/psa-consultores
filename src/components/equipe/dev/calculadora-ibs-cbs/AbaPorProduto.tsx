@@ -35,7 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCalculadoraPorProduto } from '@/hooks/useCalculadoraIbsCbs';
+import { useCalculadoraPorProduto, useCalculadoraResumo } from '@/hooks/useCalculadoraIbsCbs';
 import type { AgregadoProduto, ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { exportToCsv } from '@/lib/ibs-cbs/export';
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from '@/lib/ibs-cbs/formatters';
@@ -83,7 +83,20 @@ interface AbaPorProdutoProps {
 
 export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
   const { isLoading, error, data } = useCalculadoraPorProduto(idContribuinte, filtros);
+  const { data: resumoData } = useCalculadoraResumo(idContribuinte, filtros);
   const porProduto = useMemo(() => data?.porProduto ?? [], [data?.porProduto]);
+
+  const fatoresComposicao = useMemo(() => {
+    const c = resumoData?.composicaoAntes;
+    const total = resumoData?.totais?.tributoAntes ?? 0;
+    if (!c || total <= 0) return null;
+    return {
+      icms: ((c.vICMS ?? 0) + (c.vICMSST ?? 0)) / total,
+      ipi: (c.vIPI ?? 0) / total,
+      pis: ((c.vPIS ?? 0) + (c.vPIS_ST ?? 0)) / total,
+      cofins: ((c.vCOFINS ?? 0) + (c.vCOFINS_ST ?? 0)) / total,
+    };
+  }, [resumoData]);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('faturamento');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
@@ -463,7 +476,55 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                         {p.aliqIbsCbs.toFixed(2)}%
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-orange-700">
-                        {fmtBRL(p.tributoAntes)}
+                        {fatoresComposicao ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help underline decoration-dotted decoration-orange-300 underline-offset-4">
+                                {fmtBRL(p.tributoAntes)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="text-xs p-3 max-w-[280px]">
+                              <div className="font-semibold text-slate-800 mb-1.5">
+                                Composição estimada — Trib. ANTES
+                              </div>
+                              <table className="w-full text-xs">
+                                <tbody>
+                                  {[
+                                    { label: 'ICMS (próprio + ST)', fator: fatoresComposicao.icms },
+                                    { label: 'IPI', fator: fatoresComposicao.ipi },
+                                    { label: 'PIS (próprio + ST)', fator: fatoresComposicao.pis },
+                                    { label: 'COFINS (próprio + ST)', fator: fatoresComposicao.cofins },
+                                  ].map((linha) => {
+                                    const valor = p.tributoAntes * linha.fator;
+                                    return (
+                                      <tr key={linha.label}>
+                                        <td className="pr-3 text-slate-600">{linha.label}</td>
+                                        <td className="text-right tabular-nums text-slate-500 pr-2">
+                                          {(linha.fator * 100).toFixed(1)}%
+                                        </td>
+                                        <td className="text-right tabular-nums text-slate-900 font-medium">
+                                          {fmtBRL(valor)}
+                                        </td>
+                                      </tr>
+                                    );
+                                  })}
+                                  <tr className="border-t border-slate-200">
+                                    <td className="pr-3 pt-1 text-slate-700 font-semibold">Total</td>
+                                    <td className="pt-1" />
+                                    <td className="pt-1 text-right tabular-nums text-orange-700 font-semibold">
+                                      {fmtBRL(p.tributoAntes)}
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                              <p className="mt-2 text-[10px] text-slate-500 leading-snug">
+                                Composição estimada por rateio proporcional sobre o total do período.
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
+                          fmtBRL(p.tributoAntes)
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums text-teal-700 font-medium">
                         {fmtBRL(getTributoDepoisIbsCbs(p))}
