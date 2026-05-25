@@ -93,6 +93,16 @@ const DetalheFerramenta = () => {
       if (toolError) throw toolError;
 
       // Update area access - delete existing and insert new
+      // Precheck do delete em lote — amostra um id antes pra rodar can_perform.
+      const { data: sampleAccess } = await supabase
+        .from('tool_area_access')
+        .select('id')
+        .eq('tool_id', id)
+        .limit(1)
+        .maybeSingle();
+      if (sampleAccess?.id) {
+        await assertCanPerform('tool_area_access', 'delete', sampleAccess.id);
+      }
       await supabase
         .from('tool_area_access')
         .delete()
