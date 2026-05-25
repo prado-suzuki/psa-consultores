@@ -515,13 +515,14 @@ const EquipeProcessos = () => {
         financial_impact: editForm.financial_impact.trim() || null
       };
 
+      await assertCanPerform('processes', 'update', selectedProcess.id);
       const { error } = await supabase
         .from('processes')
         .update(updates)
         .eq('id', selectedProcess.id);
 
       if (error) throw error;
-      
+
       // Update local state
       setProcesses(prev => 
         prev.map(p => p.id === selectedProcess.id ? { ...p, ...updates } : p)
@@ -573,6 +574,7 @@ const EquipeProcessos = () => {
         .eq('process_id', selectedProcess.id);
       
       // Delete the process
+      await assertCanPerform('processes', 'delete', selectedProcess.id);
       const { error } = await supabase
         .from('processes')
         .delete()

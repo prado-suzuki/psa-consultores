@@ -1,5 +1,6 @@
  import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -380,6 +381,7 @@ export function ProcessImprovementModal({
       }
 
       // Atualizar tabela processes com os dados "DEPOIS" como novo baseline
+      await assertCanPerform('processes', 'update', processId);
       const { error: updateProcessError } = await supabase
         .from('processes')
         .update({

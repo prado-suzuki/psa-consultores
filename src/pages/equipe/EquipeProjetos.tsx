@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { currentAmbiente } from '@/config/api';
 import { useEstruturaEquipesAll } from '@/hooks/useEstruturaEquipesAll';
 
@@ -736,6 +737,7 @@ const EquipeProjetos = () => {
     if (!selectedProcess) return;
 
     try {
+      await assertCanPerform('processes', 'update', selectedProcess.id);
       const { error } = await supabase
         .from('processes')
         .update({
@@ -773,6 +775,7 @@ const EquipeProjetos = () => {
     if (!selectedProcess) return;
 
     try {
+      await assertCanPerform('processes', 'delete', selectedProcess.id);
       const { error } = await supabase
         .from('processes')
         .delete()
@@ -802,6 +805,7 @@ const EquipeProjetos = () => {
     if (currentIndex < PROCESS_STAGES.length - 1) {
       const nextStage = PROCESS_STAGES[currentIndex + 1].value;
       try {
+        await assertCanPerform('processes', 'update', process.id);
         await supabase
           .from('processes')
           .update({ stage: nextStage })
