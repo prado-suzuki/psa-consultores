@@ -341,6 +341,7 @@ export const useUpdateOrgProject = () => {
       }
 
       // Update project
+      await assertCanPerform('org_projects', 'update', id);
       const { error } = await supabase.from('org_projects').update({
         name: data.name,
         description: data.description || null,
@@ -420,6 +421,7 @@ export const useDeleteOrgProject = () => {
 
   return useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await assertCanPerform('org_projects', 'delete', id);
       const { error } = await supabase.from('org_projects').delete().eq('id', id);
       if (error) throw error;
 
