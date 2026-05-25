@@ -488,6 +488,7 @@ export default function EquipeSprintDetalhes() {
 
   const updateMetric = async (metricId: string, newValue: number) => {
     try {
+      await assertCanPerform('sprint_metrics', 'update', metricId);
       const { error } = await supabase
         .from("sprint_metrics")
         .update({ current_value: newValue })
