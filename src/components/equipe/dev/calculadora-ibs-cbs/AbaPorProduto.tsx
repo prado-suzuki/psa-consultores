@@ -35,7 +35,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useCalculadoraPorProduto } from '@/hooks/useCalculadoraIbsCbs';
+import { useCalculadoraPorProduto, useCalculadoraResumo } from '@/hooks/useCalculadoraIbsCbs';
 import type { AgregadoProduto, ApuracaoFiltros } from '@/lib/ibs-cbs/types';
 import { exportToCsv } from '@/lib/ibs-cbs/export';
 import { fmtBRL, fmtInt, fmtNum, fmtPp } from '@/lib/ibs-cbs/formatters';
