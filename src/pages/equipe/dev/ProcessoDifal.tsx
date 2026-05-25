@@ -27,6 +27,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { currentAmbiente } from "@/config/api";
 import { API_BASE_URL } from "@/config/api";
 import { cn } from "@/lib/utils";
+import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -709,6 +710,13 @@ const ProcessoDifal = () => {
         .eq("sessao_id", activeSessaoId);
 
       if (fetchError) throw fetchError;
+
+      // 1.1 Precheck do delete em difal_decisao — roda antes da API externa (passo 3)
+      // e antes do UPDATE em difal_sessao (passo 4) pra não deixar estado inconsistente.
+      // Allowlist tem DELETE como lider+; sample uma linha pra rodar can_perform.
+      if (decisoes && decisoes.length > 0) {
+        await assertCanPerform('difal_decisao', 'delete', decisoes[0].id);
+      }
 
       // 2. Montar payload para API de sync
       // Para cada decisão de NCM, encontrar todos os produtos com esse NCM

@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RlsPrecheckResult } from '@/lib/rlsMessages';
 import { rlsMessage } from '@/lib/rlsMessages';
 
-export type PrecheckTable = 'tools' | 'tool_area_access' | 'sprint_backlog_items' | 'sprint_deliverables' | 'catalog_clients' | 'cliente' | 'comentarios_avaliacao' | 'contatos' | 'contribuinte' | 'contribuinte_bal_config' | 'ticket_attachments' | 'correcoes_icms' | 'profiles' | 'deliverable_attachments';
+export type PrecheckTable = 'tools' | 'tool_area_access' | 'sprint_backlog_items' | 'sprint_deliverables' | 'catalog_clients' | 'cliente' | 'comentarios_avaliacao' | 'contatos' | 'contribuinte' | 'contribuinte_bal_config' | 'ticket_attachments' | 'correcoes_icms' | 'profiles' | 'deliverable_attachments' | 'difal_decisao';
 export type PrecheckOp = 'update' | 'delete';
 
 /**

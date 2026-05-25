@@ -10,6 +10,7 @@ import { useApiAuth } from '@/hooks/useApiAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { API_BASE_URL } from '@/config/api';
 import { cn } from '@/lib/utils';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import {
   DifalGroupedItem,
   NCMRegrasResponse,
@@ -100,6 +101,17 @@ export const DifalAuditModal = ({
     setIsSaving(true);
 
     try {
+      // Upsert pode virar update — precheck só roda quando já existe linha
+      const { data: existing } = await supabase
+        .from('difal_decisao')
+        .select('id')
+        .eq('sessao_id', sessaoId)
+        .eq('cod_ncm', group.cod_ncm)
+        .maybeSingle();
+      if (existing?.id) {
+        await assertCanPerform('difal_decisao', 'update', existing.id);
+      }
+
       // Salvar decisão em difal_decisao (Supabase)
       const { error } = await supabase
         .from('difal_decisao')
