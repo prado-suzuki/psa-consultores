@@ -154,6 +154,19 @@ export function useUpdateTeamMember() {
       const rolesToAdd = roles.filter(r => !currentRoleNames.includes(r));
       const rolesToRemove = currentRoleNames.filter(r => !roles.includes(r));
 
+      // Precheck do delete em user_roles uma única vez antes do loop —
+      // RLS uniforme (admin only), basta uma linha pra cobrir todas as iterações.
+      if (rolesToRemove.length > 0) {
+        const { data: sampleRole } = await supabase
+          .from('user_roles')
+          .select('id')
+          .eq('user_id', userId)
+          .eq('role', rolesToRemove[0] as AppRole)
+          .maybeSingle();
+        if (sampleRole?.id) {
+          await assertCanPerform('user_roles', 'delete', sampleRole.id);
+        }
+      }
       for (const role of rolesToRemove) {
         const { error } = await supabase
           .from('user_roles')

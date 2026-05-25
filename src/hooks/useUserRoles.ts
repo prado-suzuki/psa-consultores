@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import type { AppRole } from './useUsersWithRoles';
 
 /**
@@ -38,6 +39,15 @@ export function useRemoveUserRole() {
 
   return useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole | string }) => {
+      const { data: sample } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('role', role as AppRole)
+        .maybeSingle();
+      if (sample?.id) {
+        await assertCanPerform('user_roles', 'delete', sample.id);
+      }
       const { error } = await supabase
         .from('user_roles')
         .delete()

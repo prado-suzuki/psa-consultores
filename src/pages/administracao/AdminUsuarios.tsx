@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminLayout } from '@/components/administracao/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -115,6 +116,16 @@ const AdminUsuarios = () => {
 
   const removeRole = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' | 'lider' }) => {
+      // UNIQUE(user_id, role) garante 0 ou 1 linha — sample acha o id real pro precheck.
+      const { data: sample } = await supabase
+        .from('user_roles')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('role', role)
+        .maybeSingle();
+      if (sample?.id) {
+        await assertCanPerform('user_roles', 'delete', sample.id);
+      }
       const { error } = await supabase
         .from('user_roles')
         .delete()
