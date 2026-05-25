@@ -1,5 +1,6 @@
  import { useState } from 'react';
  import { supabase } from '@/integrations/supabase/client';
+ import { assertCanPerform } from '@/hooks/useRlsPrecheck';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -77,6 +78,7 @@
  
      setSaving(true);
      try {
+       await assertCanPerform('process_stages', 'update', stage.id);
        const { error } = await supabase
          .from('process_stages')
          .update({
@@ -114,6 +116,7 @@
    const handleDelete = async () => {
      setDeleting(true);
      try {
+       await assertCanPerform('process_stages', 'delete', stage.id);
        const { error } = await supabase
          .from('process_stages')
          .delete()

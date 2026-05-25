@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -550,7 +551,16 @@ const EquipeProcessos = () => {
     try {
       setSaving(true);
       
-      // Delete related process_stages first
+      // Delete related process_stages first — precheck em uma linha amostrada
+      const { data: sampleStage } = await supabase
+        .from('process_stages')
+        .select('id')
+        .eq('process_id', selectedProcess.id)
+        .limit(1)
+        .maybeSingle();
+      if (sampleStage?.id) {
+        await assertCanPerform('process_stages', 'delete', sampleStage.id);
+      }
       await supabase
         .from('process_stages')
         .delete()
