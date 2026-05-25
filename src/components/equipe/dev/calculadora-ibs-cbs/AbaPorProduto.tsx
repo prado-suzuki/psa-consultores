@@ -492,8 +492,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                   {[
                                     { label: 'ICMS (próprio + ST)', fator: fatoresComposicao.icms },
                                     { label: 'IPI', fator: fatoresComposicao.ipi },
-                                    { label: 'PIS (próprio + ST)', fator: fatoresComposicao.pis },
-                                    { label: 'COFINS (próprio + ST)', fator: fatoresComposicao.cofins },
+                                    { label: 'PIS/COFINS (próprio + ST)', fator: fatoresComposicao.pisCofins },
                                   ].map((linha) => {
                                     const valor = p.tributoAntes * linha.fator;
                                     return (
