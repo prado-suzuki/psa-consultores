@@ -98,6 +98,7 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
+import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
@@ -222,6 +223,7 @@ const App = () => (
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
               <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
               <Route path="/equipe/osg/work" element={<PageAccessGate pagePath="/equipe/osg/work"><OsgWorkDashboard /></PageAccessGate>} />
+              <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 
               {/* Board Routes */}

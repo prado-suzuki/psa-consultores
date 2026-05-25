@@ -424,6 +424,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/quadro-societario',
+    page_name: 'Quadro Societário',
+    page_description: 'CRUD de pessoas (PF/PJ) e vínculos de parentesco por cliente',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/auditoria',
     page_name: 'Auditoria OSG',
     page_description: 'Histórico de alterações em projetos e tarefas OSG',
