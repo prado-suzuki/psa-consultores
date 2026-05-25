@@ -34,7 +34,7 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
         <g clipPath="url(#projRoundedSquareLight)">
           {/* Sombra do selo */}
           <path
-            d="M 256 60 L 404 144 L 404 328 L 256 412 L 108 328 L 108 144 Z"
+            d="M 256 40 L 443 148 L 443 364 L 256 472 L 69 364 L 69 148 Z"
             fill="#0a1024"
             opacity="0.12"
             transform="translate(0, 5)"
@@ -42,7 +42,7 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
 
           {/* Selo hexagonal/diamante expandido */}
           <path
-            d="M 256 60 L 404 144 L 404 328 L 256 412 L 108 328 L 108 144 Z"
+            d="M 256 40 L 443 148 L 443 364 L 256 472 L 69 364 L 69 148 Z"
             fill="#141a36"
             stroke="#c49a6c"
             strokeWidth="2.5"
@@ -51,36 +51,24 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
 
           {/* Borda interna decorativa */}
           <path
-            d="M 256 78 L 388 154 L 388 318 L 256 394 L 124 318 L 124 154 Z"
+            d="M 256 60 L 425 158 L 425 354 L 256 452 L 87 354 L 87 158 Z"
             fill="none"
             stroke="#c49a6c"
             strokeWidth="1.5"
             opacity="0.4"
           />
 
-          {/* Texto OSG — CENTRALIZADO NO HEXÁGONO */}
-          <text
-            x="256"
-            y="228"
-            fontFamily="Georgia, 'Times New Roman', serif"
-            fontSize="72"
-            fontWeight="bold"
-            fill="#f1f5f9"
-            textAnchor="middle"
-            dominantBaseline="central"
-            letterSpacing="2"
-          >
-            OSG
-          </text>
-
-          {/* Gráfico de projetos — 3 barras verticais crescentes */}
-          <rect x="220" y="290" width="14" height="28" rx="3" fill="#c49a6c" opacity="0.9" />
-          <rect x="242" y="278" width="14" height="40" rx="3" fill="#c49a6c" opacity="0.9" />
-          <rect x="264" y="266" width="14" height="52" rx="3" fill="#c49a6c" opacity="0.9" />
+          {/* Ícone de projetos (sitemap) — CENTRALIZADO NO HEXÁGONO */}
+          <g transform="translate(122, 148) scale(0.42)">
+            <path
+              d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z"
+              fill="#f1f5f9"
+            />
+          </g>
 
           {/* Brilho no topo do selo */}
-          <circle cx="256" cy="60" r="9" fill="#0d9488" opacity="0.12" />
-          <circle cx="256" cy="60" r="2.5" fill="#0d9488" opacity="0.5" />
+          <circle cx="256" cy="40" r="9" fill="#0d9488" opacity="0.12" />
+          <circle cx="256" cy="40" r="2.5" fill="#0d9488" opacity="0.5" />
         </g>
       </g>
 
@@ -95,7 +83,7 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
         <g clipPath="url(#projRoundedSquareDark)">
           {/* Sombra do selo */}
           <path
-            d="M 256 60 L 404 144 L 404 328 L 256 412 L 108 328 L 108 144 Z"
+            d="M 256 40 L 443 148 L 443 364 L 256 472 L 69 364 L 69 148 Z"
             fill="#000000"
             opacity="0.35"
             transform="translate(0, 5)"
@@ -103,7 +91,7 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
 
           {/* Selo hexagonal/diamante expandido */}
           <path
-            d="M 256 60 L 404 144 L 404 328 L 256 412 L 108 328 L 108 144 Z"
+            d="M 256 40 L 443 148 L 443 364 L 256 472 L 69 364 L 69 148 Z"
             fill="#141a36"
             stroke="#c49a6c"
             strokeWidth="2.5"
@@ -112,36 +100,24 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
 
           {/* Borda interna decorativa */}
           <path
-            d="M 256 78 L 388 154 L 388 318 L 256 394 L 124 318 L 124 154 Z"
+            d="M 256 60 L 425 158 L 425 354 L 256 452 L 87 354 L 87 158 Z"
             fill="none"
             stroke="#c49a6c"
             strokeWidth="1.5"
             opacity="0.35"
           />
 
-          {/* Texto OSG — CENTRALIZADO NO HEXÁGONO */}
-          <text
-            x="256"
-            y="228"
-            fontFamily="Georgia, 'Times New Roman', serif"
-            fontSize="72"
-            fontWeight="bold"
-            fill="#e2e8f0"
-            textAnchor="middle"
-            dominantBaseline="central"
-            letterSpacing="2"
-          >
-            OSG
-          </text>
-
-          {/* Gráfico de projetos — 3 barras verticais crescentes */}
-          <rect x="220" y="290" width="14" height="28" rx="3" fill="#c49a6c" opacity="0.85" />
-          <rect x="242" y="278" width="14" height="40" rx="3" fill="#c49a6c" opacity="0.85" />
-          <rect x="264" y="266" width="14" height="52" rx="3" fill="#c49a6c" opacity="0.85" />
+          {/* Ícone de projetos (sitemap) — CENTRALIZADO NO HEXÁGONO */}
+          <g transform="translate(122, 148) scale(0.42)">
+            <path
+              d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z"
+              fill="#e2e8f0"
+            />
+          </g>
 
           {/* Brilho no topo do selo */}
-          <circle cx="256" cy="60" r="9" fill="#00bfa5" opacity="0.1" />
-          <circle cx="256" cy="60" r="2.5" fill="#00bfa5" opacity="0.45" />
+          <circle cx="256" cy="40" r="9" fill="#00bfa5" opacity="0.1" />
+          <circle cx="256" cy="40" r="2.5" fill="#00bfa5" opacity="0.45" />
         </g>
       </g>
     </svg>

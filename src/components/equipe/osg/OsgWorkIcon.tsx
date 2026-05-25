@@ -79,20 +79,16 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
             opacity="0.4"
           />
 
-          {/* Texto Work — CENTRALIZADO NO HEXÁGONO */}
-          <text
-            x="256"
-            y="256"
-            fontFamily="Georgia, 'Times New Roman', serif"
-            fontSize="92"
-            fontWeight="bold"
-            fill="#f1f5f9"
-            textAnchor="middle"
-            dominantBaseline="central"
-            letterSpacing="2"
-          >
-            Work
-          </text>
+          {/* Sísifo empurrando a pedra — CENTRALIZADO NO HEXÁGONO */}
+          <image
+            href="/osg-work-sisyphus.png"
+            x="116"
+            y="116"
+            width="280"
+            height="280"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ filter: 'invert(1)' }}
+          />
 
           {/* Duna escura em primeiro plano — passa na frente do hexágono */}
           <path
@@ -163,20 +159,16 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
             opacity="0.35"
           />
 
-          {/* Texto Work — CENTRALIZADO NO HEXÁGONO */}
-          <text
-            x="256"
-            y="256"
-            fontFamily="Georgia, 'Times New Roman', serif"
-            fontSize="92"
-            fontWeight="bold"
-            fill="#e2e8f0"
-            textAnchor="middle"
-            dominantBaseline="central"
-            letterSpacing="2"
-          >
-            Work
-          </text>
+          {/* Sísifo empurrando a pedra — CENTRALIZADO NO HEXÁGONO */}
+          <image
+            href="/osg-work-sisyphus.png"
+            x="116"
+            y="116"
+            width="280"
+            height="280"
+            preserveAspectRatio="xMidYMid meet"
+            style={{ filter: 'invert(1)' }}
+          />
 
           {/* Duna escura em primeiro plano — passa na frente do hexágono */}
           <path
