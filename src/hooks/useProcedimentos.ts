@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { toast } from 'sonner';
 
 export interface Procedimento {
@@ -135,6 +136,7 @@ export function useUpdateProcedimento() {
       id: string;
       updates: Partial<Procedimento>;
     }) => {
+      await assertCanPerform('procedimentos', 'update', id);
       const { error } = await supabase
         .from('procedimentos' as any)
         .update(updates as any)
@@ -166,6 +168,7 @@ export function useConfirmProcedimento() {
 
   return useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Procedimento> }) => {
+      await assertCanPerform('procedimentos', 'update', id);
       const { error } = await supabase
         .from('procedimentos' as any)
         .update({
@@ -203,6 +206,7 @@ export function useRetryProcedimento() {
   return useMutation({
     mutationFn: async (id: string) => {
       // Reset status
+      await assertCanPerform('procedimentos', 'update', id);
       await supabase
         .from('procedimentos' as any)
         .update({ status_geracao: 'processando', erro_mensagem: null } as any)
@@ -244,6 +248,9 @@ export function useDeleteProcedimento() {
 
   return useMutation({
     mutationFn: async (proc: Procedimento) => {
+      // Precheck antes do storage — evita arquivos órfãos se RLS bloquear o delete da tabela
+      await assertCanPerform('procedimentos', 'delete', proc.id);
+
       // Delete cover from storage if exists
       if (proc.ai_cover_url) {
         await supabase.storage.from('sop-documents').remove([proc.ai_cover_url]);
