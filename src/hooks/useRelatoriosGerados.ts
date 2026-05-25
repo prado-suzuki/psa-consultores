@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 export interface RelatorioGerado {
   id: string;
@@ -75,6 +76,7 @@ export const useUpdateRelatorio = () => {
 
   return useMutation({
     mutationFn: async ({ id, ...updates }: Partial<RelatorioGerado> & { id: string }) => {
+      await assertCanPerform('relatorios_gerados', 'update', id);
       const { data, error } = await supabase.from(TABLE).update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data as unknown as RelatorioGerado;
@@ -83,5 +85,6 @@ export const useUpdateRelatorio = () => {
       qc.invalidateQueries({ queryKey: ['relatorios_gerados'] });
       qc.invalidateQueries({ queryKey: ['cached_sintese_executiva'] });
     },
+    onError: (error: Error) => toast({ title: 'Erro ao atualizar relatorio', description: error.message, variant: 'destructive' }),
   });
 };

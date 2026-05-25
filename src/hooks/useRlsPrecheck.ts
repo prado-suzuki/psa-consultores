@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RlsPrecheckResult } from '@/lib/rlsMessages';
 import { rlsMessage } from '@/lib/rlsMessages';
 
-export type PrecheckTable = 'tools' | 'tool_area_access' | 'sprint_backlog_items' | 'sprint_deliverables' | 'catalog_clients' | 'cliente' | 'comentarios_avaliacao' | 'contatos' | 'contribuinte' | 'contribuinte_bal_config' | 'ticket_attachments' | 'correcoes_icms' | 'profiles' | 'deliverable_attachments' | 'difal_decisao' | 'difal_sessao' | 'distribuicao_dcomp' | 'distribuicao_receita' | 'export_profiles' | 'inscricao_contribuinte' | 'novidades' | 'ordem_servico' | 'org_project_members' | 'org_projects' | 'org_tasks' | 'per_situacao' | 'pis_cofins_regra' | 'procedimentos' | 'process_stages' | 'processes' | 'project_documents' | 'project_processes' | 'projects';
+export type PrecheckTable = 'tools' | 'tool_area_access' | 'sprint_backlog_items' | 'sprint_deliverables' | 'catalog_clients' | 'cliente' | 'comentarios_avaliacao' | 'contatos' | 'contribuinte' | 'contribuinte_bal_config' | 'ticket_attachments' | 'correcoes_icms' | 'profiles' | 'deliverable_attachments' | 'difal_decisao' | 'difal_sessao' | 'distribuicao_dcomp' | 'distribuicao_receita' | 'export_profiles' | 'inscricao_contribuinte' | 'novidades' | 'ordem_servico' | 'org_project_members' | 'org_projects' | 'org_tasks' | 'per_situacao' | 'pis_cofins_regra' | 'procedimentos' | 'process_stages' | 'processes' | 'project_documents' | 'project_processes' | 'projects' | 'relatorios_gerados';
 export type PrecheckOp = 'update' | 'delete';
 
 /**
