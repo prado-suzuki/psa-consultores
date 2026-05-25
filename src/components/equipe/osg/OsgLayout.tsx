@@ -14,6 +14,8 @@ import {
   Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
+import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 
 interface OsgLayoutProps {
   children: React.ReactNode;
@@ -32,6 +34,21 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     await signOut();
     navigate('/');
   };
+
+  const isWork = location.pathname.startsWith('/equipe/osg/work');
+  const isProjects = location.pathname.startsWith('/equipe/osg/dashboard');
+
+  const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
+  const areaSubtitle = isWork
+    ? 'Ferramentas OSG'
+    : isProjects
+      ? 'Projetos OSG'
+      : 'Área OSG';
+  const AreaIcon = isWork
+    ? <OsgWorkIcon size={40} className="h-full w-full block" />
+    : isProjects
+      ? <OsgProjectsIcon size={40} className="h-full w-full block" />
+      : <Briefcase className="h-5 w-5 text-orange-600" />;
 
   return (
     <div className="min-h-screen bg-slate-50 flex w-full">
@@ -54,18 +71,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         <div className="p-6 border-b border-slate-200/60">
           {collapsed ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
-                <Briefcase className="h-5 w-5 text-orange-600" />
+              <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center overflow-hidden">
+                {AreaIcon}
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center flex-shrink-0">
-                <Briefcase className="h-5 w-5 text-orange-600" />
+              <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {AreaIcon}
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900 text-lg">OSG</h2>
-                <p className="text-xs text-slate-500">Área OSG</p>
+                <h2 className="font-semibold text-slate-900 text-lg">{areaLabel}</h2>
+                <p className="text-xs text-slate-500">{areaSubtitle}</p>
               </div>
             </div>
           )}
