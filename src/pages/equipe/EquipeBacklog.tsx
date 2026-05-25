@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
@@ -198,6 +199,7 @@ export default function EquipeBacklog() {
       const itemPayload = itemData as typeof itemData & Record<string, unknown>;
 
       if (editingItem) {
+        await assertCanPerform('sprint_backlog_items', 'update', editingItem.id);
         const { error } = await supabase
           .from("sprint_backlog_items")
           .update(itemPayload)
@@ -231,6 +233,7 @@ export default function EquipeBacklog() {
 
   const deleteItem = async (itemId: string) => {
     try {
+      await assertCanPerform('sprint_backlog_items', 'delete', itemId);
       const { error } = await supabase
         .from("sprint_backlog_items")
         .delete()
@@ -299,10 +302,11 @@ export default function EquipeBacklog() {
       if (deliverableError) throw deliverableError;
 
       // Atualizar status do item do backlog
+      await assertCanPerform('sprint_backlog_items', 'update', movingItem.id);
       const { error: backlogError } = await supabase
         .from("sprint_backlog_items")
-        .update({ 
-          status: 'moved_to_sprint', 
+        .update({
+          status: 'moved_to_sprint',
           moved_to_deliverable_id: newDeliverable.id,
           sprint_id: moveData.sprint_id
         })
