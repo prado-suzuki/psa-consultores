@@ -66,6 +66,7 @@ export function useUpdateTicketRouting() {
         next.estrutura_area_id = null;
       }
 
+      await assertCanPerform('tickets', 'update', params.ticketId);
       const { error } = await supabase
         .from('tickets')
         .update({
@@ -124,6 +125,7 @@ export function useAssignTicket() {
       agentId: string | null;
       agentName?: string | null;
     }) => {
+      await assertCanPerform('tickets', 'update', ticketId);
       const { error } = await supabase
         .from('tickets')
         .update({ assigned_to: agentId })
@@ -172,6 +174,7 @@ export function useUpdateTicketStatus() {
       newStatus: string;
       actorName?: string;
     }) => {
+      await assertCanPerform('tickets', 'update', ticketId);
       const { error } = await supabase
         .from('tickets')
         .update({ status: newStatus })
@@ -216,6 +219,7 @@ export function useUpdateTicketDeadline() {
       ticketId: string;
       deadline: string | null;
     }) => {
+      await assertCanPerform('tickets', 'update', ticketId);
       const { error } = await supabase
         .from('tickets')
         .update({ deadline } as any)
@@ -267,6 +271,7 @@ export function useSendTicketMessage() {
         updatePayload.updated_at = new Date().toISOString();
       }
 
+      await assertCanPerform('tickets', 'update', ticketId);
       await supabase
         .from('tickets')
         .update(updatePayload)
@@ -395,7 +400,8 @@ export function useDeleteTickets() {
         .delete()
         .in('ticket_id', ticketIds);
 
-      // 4. Delete tickets
+      // 4. Delete tickets — precheck no primeiro id, RLS uniforme (admin only)
+      await assertCanPerform('tickets', 'delete', ticketIds[0]);
       const { error } = await supabase
         .from('tickets')
         .delete()
