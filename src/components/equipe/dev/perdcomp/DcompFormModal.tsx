@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits, normalizeProcessNumber } from '@/lib/perdcompUtils';
 import { isWithinGracePeriodAt } from '@/lib/selicCalculator';
@@ -468,6 +469,15 @@ export function DcompFormModal({
 
   const persistirDistribuicoes = async (nrDocumento: string) => {
     // Substitui totalmente: tabela sem soft-delete e rateio é overwrite.
+    // Precheck do delete em lote — amostra um id antes pra rodar can_perform.
+    const { data: sample } = await (supabase.from('distribuicao_dcomp') as any)
+      .select('id')
+      .eq('nr_documento', nrDocumento)
+      .limit(1)
+      .maybeSingle();
+    if (sample?.id) {
+      await assertCanPerform('distribuicao_dcomp', 'delete', sample.id);
+    }
     const { error: delErr } = await (supabase.from('distribuicao_dcomp') as any)
       .delete()
       .eq('nr_documento', nrDocumento);
