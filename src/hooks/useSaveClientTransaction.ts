@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
@@ -407,6 +408,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
         // Persist distribuicao_receita: soft-delete old then insert new
         if (osId) {
+          // Precheck do soft-delete em lote — amostra um id antes pra rodar can_perform.
+          // RLS exige sublider+ pra update; sem isso o update silenciosamente afeta 0 rows.
+          const { data: sampleDist } = await (supabase.from("distribuicao_receita" as any) as any)
+            .select("id")
+            .eq("id_ordem_servico", osId)
+            .eq("excluido", false)
+            .limit(1)
+            .maybeSingle();
+          if (sampleDist?.id) {
+            await assertCanPerform('distribuicao_receita', 'update', sampleDist.id);
+          }
           await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
           if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
             const distPayload = c.distribuicao_receita
