@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits } from '@/lib/perdcompUtils';
 import { toast } from 'sonner';
@@ -169,6 +170,9 @@ export function SituacaoFormModal({
         updateData.dt_pagamento = data.dt_pagamento;
       } else {
         updateData.dt_pagamento = null;
+      }
+      if (editData?.id) {
+        await assertCanPerform('per_situacao', 'update', editData.id);
       }
       const { data: result, error } = await supabase
         .from('per_situacao')
