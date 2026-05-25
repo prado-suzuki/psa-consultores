@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -126,6 +127,7 @@ const GestaoNovidades = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
+      await assertCanPerform('novidades', 'update', id);
       const { error } = await supabase.from('novidades').update({
         categoria: data.categoria,
         titulo: data.titulo,
@@ -147,13 +149,14 @@ const GestaoNovidades = () => {
       toast({ title: 'Novidade atualizada com sucesso!' });
       resetForm();
     },
-    onError: () => {
-      toast({ title: 'Erro ao atualizar novidade', variant: 'destructive' });
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar novidade', description: error.message, variant: 'destructive' });
     },
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
+      await assertCanPerform('novidades', 'delete', id);
       const { error } = await supabase.from('novidades').delete().eq('id', id);
       if (error) throw error;
     },
@@ -161,19 +164,23 @@ const GestaoNovidades = () => {
       queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
       toast({ title: 'Novidade excluída com sucesso!' });
     },
-    onError: () => {
-      toast({ title: 'Erro ao excluir novidade', variant: 'destructive' });
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao excluir novidade', description: error.message, variant: 'destructive' });
     },
   });
 
   const toggleAtivoMutation = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
+      await assertCanPerform('novidades', 'update', id);
       const { error } = await supabase.from('novidades').update({ ativo }).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
       toast({ title: 'Status atualizado!' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao alterar status', description: error.message, variant: 'destructive' });
     },
   });
 
