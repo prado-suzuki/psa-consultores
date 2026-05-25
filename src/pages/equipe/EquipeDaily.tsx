@@ -30,7 +30,8 @@ import {
   FileSpreadsheet,
   X,
   FolderOpen,
-  Zap
+  Zap,
+  Copy
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -81,6 +82,7 @@ const EquipeDaily = () => {
   const [loading, setLoading] = useState(true);
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [copyingYesterday, setCopyingYesterday] = useState(false);
   const [form, setForm] = useState({
     did_yesterday: '',
     will_do_today: '',
@@ -341,6 +343,44 @@ const EquipeDaily = () => {
     }
   };
 
+  const handleCopyFromYesterday = async () => {
+    if (!user || copyingYesterday) return;
+    setCopyingYesterday(true);
+    try {
+      const { data, error } = await supabase
+        .from('daily_standups')
+        .select('will_do_today, date')
+        .eq('user_id', user.id)
+        .lt('date', today)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data || !data.will_do_today?.trim()) {
+        toast({
+          title: 'Nada para copiar',
+          description: 'Não encontramos um daily anterior com plano preenchido.',
+          variant: 'destructive'
+        });
+        return;
+      }
+
+      setForm((prev) => ({ ...prev, did_yesterday: data.will_do_today || '' }));
+      const dateLabel = new Date(data.date + 'T12:00:00').toLocaleDateString('pt-BR');
+      toast({
+        title: 'Plano trazido',
+        description: `Copiado do daily de ${dateLabel} (sobrescreve o que estava em "ontem").`
+      });
+    } catch (err) {
+      console.error('Error copying from yesterday:', err);
+      toast({ title: 'Erro', description: 'Não foi possível trazer o plano anterior.', variant: 'destructive' });
+    } finally {
+      setCopyingYesterday(false);
+    }
+  };
+
   const handleEdit = (standup: DailyStandup) => {
     setEditingStandup(standup);
     setEditForm({
@@ -501,105 +541,140 @@ const EquipeDaily = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2">
-                  <Users className="h-4 w-4 text-gray-500" />
-                  Membro da equipe
-                </Label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Selecione o membro" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.first_name} {member.last_name}
-                        {member.id === user?.id && ' (você)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-              </Select>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
+                💡 <strong>Trabalhou numa rotina recorrente?</strong> Comece o texto de
+                {' '}<em>O que fiz ontem</em> com{' '}
+                <code className="bg-white px-1 py-0.5 rounded border border-blue-200 text-blue-700">[ROTINA]</code>{' '}
+                seguido do nome. Ex:{' '}
+                <code className="bg-white px-1 py-0.5 rounded border border-blue-200 text-blue-700">[ROTINA] Atualizar PSA Faturamento</code>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <fieldset className="space-y-3 border border-gray-200 rounded-lg p-3">
+                  <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+                    Quem e quando
+                  </legend>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <Users className="h-4 w-4 text-gray-500" />
+                      Membro da equipe
+                    </Label>
+                    <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione o membro" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        {teamMembers.map((member) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.first_name} {member.last_name}
+                            {member.id === user?.id && ' (você)'}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <Target className="h-4 w-4 text-gray-500" />
+                      Sprint
+                    </Label>
+                    <Select value={form.sprint_id} onValueChange={(value) => setForm({ ...form, sprint_id: value })}>
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione a sprint" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        {sprints.map((sprint) => (
+                          <SelectItem key={sprint.id} value={sprint.id}>
+                            {sprint.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </fieldset>
+
+                <fieldset className="space-y-3 border border-gray-200 rounded-lg p-3">
+                  <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+                    Contexto do trabalho
+                  </legend>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <FolderOpen className="h-4 w-4 text-gray-500" />
+                      Projeto <span className="text-gray-400 text-xs">(opcional)</span>
+                    </Label>
+                    <Select
+                      value={form.project_id}
+                      onValueChange={(value) => setForm({
+                        ...form,
+                        project_id: value === '__none__' ? '' : value,
+                        process_id: ''
+                      })}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione um projeto" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="__none__">Nenhum</SelectItem>
+                        {projects.map((project) => (
+                          <SelectItem key={project.id} value={project.id}>
+                            {project.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-gray-700 flex items-center gap-2">
+                      <Zap className="h-4 w-4 text-gray-500" />
+                      Processo <span className="text-gray-400 text-xs">(opcional)</span>
+                    </Label>
+                    <Select
+                      value={form.process_id}
+                      onValueChange={(value) => setForm({ ...form, process_id: value === '__none__' ? '' : value })}
+                    >
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                        <SelectValue placeholder="Selecione um processo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200">
+                        <SelectItem value="__none__">Nenhum</SelectItem>
+                        {filteredProcesses.map((process) => (
+                          <SelectItem key={process.id} value={process.id}>
+                            {process.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.project_id && (
+                      <p className="text-xs text-gray-500">
+                        Mostrando processos do projeto selecionado
+                      </p>
+                    )}
+                  </div>
+                </fieldset>
               </div>
 
               <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2">
-                  <Target className="h-4 w-4 text-gray-500" />
-                  Sprint
-                </Label>
-                <Select value={form.sprint_id} onValueChange={(value) => setForm({ ...form, sprint_id: value })}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Selecione a sprint" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {sprints.map((sprint) => (
-                      <SelectItem key={sprint.id} value={sprint.id}>
-                        {sprint.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4 text-gray-500" />
-                  Projeto <span className="text-gray-400 text-xs">(opcional)</span>
-                </Label>
-                <Select 
-                  value={form.project_id} 
-                  onValueChange={(value) => setForm({ 
-                    ...form, 
-                    project_id: value === '__none__' ? '' : value,
-                    process_id: ''
-                  })}
-                >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Selecione um projeto" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>
-                        {project.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-gray-500" />
-                  Processo <span className="text-gray-400 text-xs">(opcional)</span>
-                </Label>
-                <Select 
-                  value={form.process_id} 
-                  onValueChange={(value) => setForm({ ...form, process_id: value === '__none__' ? '' : value })}
-                >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Selecione um processo" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {filteredProcesses.map((process) => (
-                      <SelectItem key={process.id} value={process.id}>
-                        {process.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {form.project_id && (
-                  <p className="text-xs text-gray-500">
-                    Mostrando processos do projeto selecionado
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-gray-500" />
-                  O que fiz ontem?
-                </Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-gray-700 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-gray-500" />
+                    O que fiz ontem?
+                  </Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleCopyFromYesterday}
+                    disabled={copyingYesterday}
+                    className="h-8"
+                  >
+                    <Copy className="h-3.5 w-3.5 mr-1.5" />
+                    {copyingYesterday ? 'Buscando...' : 'Trazer plano de ontem'}
+                  </Button>
+                </div>
                 <MarkdownEditor
                   value={form.did_yesterday}
                   onChange={(value) => setForm({ ...form, did_yesterday: value })}
