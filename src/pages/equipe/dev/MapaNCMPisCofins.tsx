@@ -202,7 +202,7 @@ const MapaNCMPisCofins = () => {
           setModalMode(null);
           setSelectedRegra(null);
         },
-        onError: () => toast({ title: 'Erro ao atualizar', variant: 'destructive' }),
+        onError: (error: any) => toast({ title: 'Erro ao atualizar', description: error?.message, variant: 'destructive' }),
       });
     } else if (modalMode === 'create') {
       createRegra.mutate(values, {
@@ -210,7 +210,7 @@ const MapaNCMPisCofins = () => {
           toast({ title: 'Regra criada com sucesso' });
           setModalMode(null);
         },
-        onError: () => toast({ title: 'Erro ao criar', variant: 'destructive' }),
+        onError: (error: any) => toast({ title: 'Erro ao criar', description: error?.message, variant: 'destructive' }),
       });
     }
   };
@@ -222,7 +222,7 @@ const MapaNCMPisCofins = () => {
         toast({ title: 'Regra excluída' });
         setDeleteId(null);
       },
-      onError: () => toast({ title: 'Erro ao excluir', variant: 'destructive' }),
+      onError: (error: any) => toast({ title: 'Erro ao excluir', description: error?.message, variant: 'destructive' }),
     });
   };
 

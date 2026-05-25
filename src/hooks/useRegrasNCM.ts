@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import type { Database } from '@/integrations/supabase/types';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
@@ -52,6 +53,7 @@ export const useRegrasNCM = () => {
 
   const updateRegra = useMutation({
     mutationFn: async ({ id, ...updates }: RegraNCMUpdate & { id: string }) => {
+      await assertCanPerform('pis_cofins_regra', 'update', id);
       const { data, error } = await supabase
         .from('pis_cofins_regra')
         // as any: updated_at/updated_by ainda não tipadas no types.ts gerado
@@ -76,6 +78,7 @@ export const useRegrasNCM = () => {
 
   const deleteRegra = useMutation({
     mutationFn: async (id: string) => {
+      await assertCanPerform('pis_cofins_regra', 'delete', id);
       const { error } = await supabase
         .from('pis_cofins_regra')
         .delete()

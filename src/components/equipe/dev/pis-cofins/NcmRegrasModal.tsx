@@ -12,6 +12,7 @@ import { useRegrasNCM } from '@/hooks/useRegrasNCM';
 import { useSetoresCliente } from '@/hooks/useSetorCliente';
 import { RegraFormSheet } from './RegraFormSheet';
 import type { Database } from '@/integrations/supabase/types';
+import { toast } from 'sonner';
 
 type RegraNCMRow = Database['public']['Tables']['pis_cofins_regra']['Row'];
 type ModalMode = 'view' | 'edit' | 'create';
@@ -170,6 +171,8 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm, setorClienteId }: NcmR
         await updateRegra.mutateAsync({ id: formRegra.id, ...values });
       }
       setFormOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || 'Erro ao salvar regra');
     } finally {
       setIsSubmitting(false);
     }
