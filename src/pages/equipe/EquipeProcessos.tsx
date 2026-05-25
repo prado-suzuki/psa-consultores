@@ -567,7 +567,16 @@ const EquipeProcessos = () => {
         .delete()
         .eq('process_id', selectedProcess.id);
       
-      // Delete related project_processes
+      // Delete related project_processes — precheck em uma linha amostrada
+      const { data: sampleLink } = await supabase
+        .from('project_processes')
+        .select('id')
+        .eq('process_id', selectedProcess.id)
+        .limit(1)
+        .maybeSingle();
+      if (sampleLink?.id) {
+        await assertCanPerform('project_processes', 'delete', sampleLink.id);
+      }
       await supabase
         .from('project_processes')
         .delete()
@@ -647,13 +656,14 @@ const EquipeProcessos = () => {
  
    const removeProjectFromProcess = async (linkId: string) => {
      if (!selectedProcess) return;
- 
+
      try {
+       await assertCanPerform('project_processes', 'delete', linkId);
        const { error } = await supabase
          .from('project_processes')
          .delete()
          .eq('id', linkId);
- 
+
        if (error) throw error;
  
        toast({
