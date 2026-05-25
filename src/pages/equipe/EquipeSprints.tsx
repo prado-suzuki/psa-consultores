@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { Button } from '@/components/ui/button';
  import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -325,6 +326,7 @@ const EquipeSprints = () => {
 
     setSubmitting(true);
     try {
+      await assertCanPerform('sprints', 'update', selectedSprint.id);
       const { error } = await supabase
         .from('sprints')
         .update({
@@ -363,6 +365,7 @@ const EquipeSprints = () => {
     if (!selectedSprint) return;
 
     try {
+      await assertCanPerform('sprints', 'delete', selectedSprint.id);
       const { error } = await supabase
         .from('sprints')
         .delete()
@@ -389,6 +392,7 @@ const EquipeSprints = () => {
 
   const updateSprintStatus = async (sprintId: string, status: string) => {
     try {
+      await assertCanPerform('sprints', 'update', sprintId);
       await supabase
         .from('sprints')
         .update({ status })
