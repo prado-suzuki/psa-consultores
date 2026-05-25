@@ -3,6 +3,7 @@
  import { useAuth } from '@/contexts/AuthContext';
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
+ import { assertCanPerform } from '@/hooks/useRlsPrecheck';
  
 export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -209,6 +210,7 @@ export interface TaskFilters {
        // Fetch current state for diff
        const { data: current } = await supabase.from('org_tasks').select('*').eq('id', id).single();
 
+        await assertCanPerform('org_tasks', 'update', id);
         const { data, error } = await supabase
           .from('org_tasks')
           .update(updates)
@@ -269,6 +271,7 @@ export interface TaskFilters {
        // Get task info for audit log
        const { data: task } = await supabase.from('org_tasks').select('title, parent_task_id').eq('id', id).single();
 
+       await assertCanPerform('org_tasks', 'delete', id);
        // `.select()` permite detectar o caso em que a RLS bloqueia silenciosamente
        // (sem erro, mas 0 linhas afetadas) — ex.: usuário não é líder nem criador.
        const { data: deleted, error } = await supabase
@@ -319,6 +322,7 @@ export interface TaskFilters {
           .eq('id', taskId)
           .single();
 
+        await assertCanPerform('org_tasks', 'update', taskId);
         const { error: updateError } = await supabase
           .from('org_tasks')
           .update({
