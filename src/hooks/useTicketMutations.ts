@@ -380,7 +380,16 @@ export function useDeleteTickets() {
         .delete()
         .in('ticket_id', ticketIds);
 
-      // 3. Delete messages
+      // 3. Delete messages — precheck em uma linha amostrada (delete exige admin)
+      const { data: sampleMessage } = await supabase
+        .from('ticket_messages')
+        .select('id')
+        .in('ticket_id', ticketIds)
+        .limit(1)
+        .maybeSingle();
+      if (sampleMessage?.id) {
+        await assertCanPerform('ticket_messages', 'delete', sampleMessage.id);
+      }
       await supabase
         .from('ticket_messages')
         .delete()
