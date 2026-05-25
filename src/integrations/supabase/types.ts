@@ -2651,6 +2651,85 @@ export type Database = {
         }
         Relationships: []
       }
+      parentesco: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          natureza: string | null
+          parente_pessoa_id: string
+          pessoa_id: string
+          tipo: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          natureza?: string | null
+          parente_pessoa_id: string
+          pessoa_id: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          natureza?: string | null
+          parente_pessoa_id?: string
+          pessoa_id?: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parentesco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parentesco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parentesco_parente_pessoa_id_fkey"
+            columns: ["parente_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parentesco_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parentesco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parentesco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       per: {
         Row: {
           atualizado_em: string | null
@@ -2797,6 +2876,164 @@ export type Database = {
           widgets_ocultos?: string[] | null
         }
         Relationships: []
+      }
+      pessoa: {
+        Row: {
+          cliente_id: string
+          conjuge_id: string | null
+          contribuinte_id: string | null
+          cpf_cnpj: string | null
+          created_at: string
+          created_by: string | null
+          data_constituicao: string | null
+          data_nascimento: string | null
+          denominacao: string
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_complemento: string | null
+          endereco_logradouro: string | null
+          endereco_municipio: string | null
+          endereco_numero: string | null
+          endereco_uf: string | null
+          estado_civil: string | null
+          filiacao_mae: string | null
+          filiacao_pai: string | null
+          id: string
+          junta_comercial_uf: string | null
+          nacionalidade: string | null
+          nire: string | null
+          objeto_social: string | null
+          profissao: string | null
+          regime_bens: string | null
+          rg_numero: string | null
+          rg_orgao_emissor: string | null
+          rg_uf: string | null
+          status_constituicao: string | null
+          tipo_pessoa: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          conjuge_id?: string | null
+          contribuinte_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_constituicao?: string | null
+          data_nascimento?: string | null
+          denominacao: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          estado_civil?: string | null
+          filiacao_mae?: string | null
+          filiacao_pai?: string | null
+          id?: string
+          junta_comercial_uf?: string | null
+          nacionalidade?: string | null
+          nire?: string | null
+          objeto_social?: string | null
+          profissao?: string | null
+          regime_bens?: string | null
+          rg_numero?: string | null
+          rg_orgao_emissor?: string | null
+          rg_uf?: string | null
+          status_constituicao?: string | null
+          tipo_pessoa: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          conjuge_id?: string | null
+          contribuinte_id?: string | null
+          cpf_cnpj?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_constituicao?: string | null
+          data_nascimento?: string | null
+          denominacao?: string
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_municipio?: string | null
+          endereco_numero?: string | null
+          endereco_uf?: string | null
+          estado_civil?: string | null
+          filiacao_mae?: string | null
+          filiacao_pai?: string | null
+          id?: string
+          junta_comercial_uf?: string | null
+          nacionalidade?: string | null
+          nire?: string | null
+          objeto_social?: string | null
+          profissao?: string | null
+          regime_bens?: string | null
+          rg_numero?: string | null
+          rg_orgao_emissor?: string | null
+          rg_uf?: string | null
+          status_constituicao?: string | null
+          tipo_pessoa?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pessoa_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_conjuge_id_fkey"
+            columns: ["conjuge_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pis_cofins_class: {
         Row: {
