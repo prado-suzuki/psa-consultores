@@ -184,6 +184,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
         const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
+          // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
+          await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
           await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
         }
       } else {
@@ -401,6 +403,12 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           regiao: c.regiao || null,
         };
       };
+
+      // Precheck do update uma única vez antes do loop — se houver pelo menos uma OS existente.
+      const firstUpdateOs = contracts.find(c => c._dbId);
+      if (firstUpdateOs?._dbId) {
+        await assertCanPerform('ordem_servico', 'update', firstUpdateOs._dbId);
+      }
 
       for (const c of contracts) {
         let osId = c._dbId;
