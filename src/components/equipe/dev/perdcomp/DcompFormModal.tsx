@@ -371,6 +371,8 @@ export function DcompFormModal({
   const emCarenciaNaDtEnvio =
     !!dtSolicitadaPer && !!dtEnvio && isWithinGracePeriodAt(dtSolicitadaPer, dtEnvio);
 
+  // Fator SELIC na dt_envio do DCOMP — usado para decompor Valor Utilizado em
+  // Valor Original (que sai do saldo do PER) + Atualização SELIC desta DCOMP.
   const {
     data: selicResult,
     error: selicError,
@@ -397,23 +399,25 @@ export function DcompFormModal({
 
   const proporcaoOriginal = fatorSelic > 0 ? 1 / (1 + fatorSelic) : 1;
 
-  // Limite máximo do vlr_compensado: saldo restante (principal) do PER × (1 + fator SELIC na dt_envio).
-  // Em modo edição, somamos de volta o valor_original do DCOMP atual (que já foi descontado do saldo do parent),
-  // pois os novos valores informados substituem os antigos.
-  const valorOriginalDcompAtual = useMemo(() => {
-    if (!isEditing || distribuicoesExistentes.length === 0) return 0;
-    return distribuicoesExistentes.reduce(
-      (s, l) => s + Number(l.valor_original ?? l.valor_tributo ?? 0),
-      0,
-    );
-  }, [isEditing, distribuicoesExistentes]);
+  // Fator SELIC vigente HOJE — usado para o teto do Valor Compensado, que deve
+  // bater com o "Valor Atualizado SELIC" do PER exibido no header e na tabela
+  // principal (saldo restante × (1 + fator de hoje)).
+  const hojeStr = useMemo(() => format(new Date(), 'yyyy-MM-dd'), []);
+  const emCarenciaHoje =
+    !!dtSolicitadaPer && isWithinGracePeriodAt(dtSolicitadaPer, hojeStr);
+  const { data: selicResultHoje } = useSelicTaxaAt(
+    emCarenciaHoje ? null : dtSolicitadaPer,
+    emCarenciaHoje ? null : hojeStr,
+  );
+  const fatorSelicHoje = emCarenciaHoje
+    ? 0
+    : Math.max(0, selicResultHoje?.fator ?? 0);
 
   const valorAtualizadoSelicMax = useMemo(() => {
     // Só aplica quando o PER selecionado bate com o do contexto (saldoRestantePer não vale para outro PER).
     if (saldoRestantePer == null || nrPerOrig !== preSelectedPer) return null;
-    const principalDisponivel = saldoRestantePer + valorOriginalDcompAtual;
-    return principalDisponivel * (1 + fatorSelic);
-  }, [saldoRestantePer, nrPerOrig, preSelectedPer, valorOriginalDcompAtual, fatorSelic]);
+    return saldoRestantePer * (1 + fatorSelicHoje);
+  }, [saldoRestantePer, nrPerOrig, preSelectedPer, fatorSelicHoje]);
 
   const vlrCompensadoExcedeMax =
     valorAtualizadoSelicMax != null &&
