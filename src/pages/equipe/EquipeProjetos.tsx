@@ -628,6 +628,7 @@ const EquipeProjetos = () => {
     if (!selectedProject) return;
 
     try {
+      await assertCanPerform('projects', 'update', selectedProject.id);
       const { error } = await supabase
         .from('projects')
         .update({
@@ -671,6 +672,7 @@ const EquipeProjetos = () => {
     if (!selectedProject) return;
 
     try {
+      await assertCanPerform('projects', 'delete', selectedProject.id);
       const { error } = await supabase
         .from('projects')
         .delete()
@@ -824,6 +826,7 @@ const EquipeProjetos = () => {
 
   const updateProjectStatus = async (projectId: string, status: string) => {
     try {
+      await assertCanPerform('projects', 'update', projectId);
       await supabase
         .from('projects')
         .update({ status })
