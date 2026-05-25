@@ -83,7 +83,20 @@ interface AbaPorProdutoProps {
 
 export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
   const { isLoading, error, data } = useCalculadoraPorProduto(idContribuinte, filtros);
+  const { data: resumoData } = useCalculadoraResumo(idContribuinte, filtros);
   const porProduto = useMemo(() => data?.porProduto ?? [], [data?.porProduto]);
+
+  const fatoresComposicao = useMemo(() => {
+    const c = resumoData?.composicaoAntes;
+    const total = resumoData?.totais?.tributoAntes ?? 0;
+    if (!c || total <= 0) return null;
+    return {
+      icms: ((c.vICMS ?? 0) + (c.vICMSST ?? 0)) / total,
+      ipi: (c.vIPI ?? 0) / total,
+      pis: ((c.vPIS ?? 0) + (c.vPIS_ST ?? 0)) / total,
+      cofins: ((c.vCOFINS ?? 0) + (c.vCOFINS_ST ?? 0)) / total,
+    };
+  }, [resumoData]);
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('faturamento');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
