@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { toast } from 'sonner';
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -362,6 +363,16 @@ export const useUpdateOrgProject = () => {
       // Upsert project members + remove stale ones
       const members = buildMembersList(id, data);
       if (members.length > 0) {
+        // Upsert pode virar update — precheck só roda quando já existe linha pro projeto.
+        const { data: sampleMember } = await supabase
+          .from('org_project_members')
+          .select('id')
+          .eq('project_id', id)
+          .limit(1)
+          .maybeSingle();
+        if (sampleMember?.id) {
+          await assertCanPerform('org_project_members', 'update', sampleMember.id);
+        }
         const { error: mErr } = await supabase.from('org_project_members').upsert(members, { onConflict: 'project_id,user_id' });
         if (mErr) throw mErr;
       }
@@ -369,6 +380,17 @@ export const useUpdateOrgProject = () => {
       const oldMemberUserIds = oldMembers.map(m => m.user_id);
       const removedMembers = oldMemberUserIds.filter(uid => !newMemberUserIds.has(uid));
       if (removedMembers.length > 0) {
+        // Precheck do delete em lote — amostra um id antes pra rodar can_perform.
+        const { data: sampleToDelete } = await supabase
+          .from('org_project_members')
+          .select('id')
+          .eq('project_id', id)
+          .in('user_id', removedMembers)
+          .limit(1)
+          .maybeSingle();
+        if (sampleToDelete?.id) {
+          await assertCanPerform('org_project_members', 'delete', sampleToDelete.id);
+        }
         await supabase.from('org_project_members').delete().eq('project_id', id).in('user_id', removedMembers);
       }
 
