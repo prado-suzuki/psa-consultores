@@ -1,19 +1,23 @@
-Criar as tabelas `pessoa` e `parentesco` no Supabase com as colunas especificadas e comments apropriados.
+## Objetivo
+Adicionar tooltip na coluna **Trib. ANTES** da tabela "Top NCMs por faturamento" (AbaPorProduto) mostrando a composição estimada em **ICMS**, **IPI**, **PIS** e **COFINS** por NCM.
 
-### Correção de schema
-- O segundo `created_by` (após `updated_at`) na `pessoa` será renomeado para `updated_by` (FK com profiles).
+## Abordagem
+Como `/por_produto` não retorna a composição por NCM, vou ratear proporcionalmente a `ComposicaoTributosAntes` global (já vinda de `/resumo`) com base na participação do `tributoAntes` de cada NCM no `tributoAntes` total.
 
-### Tabela `pessoa`
-- Colunas: `id` (uuid PK), `cliente_id` (uuid FK), `contribuinte_id` (uuid FK nullable), `tipo_pessoa` (text), `denominacao` (text), `cpf_cnpj` (text), endereço completo (logradouro, numero, complemento, bairro, municipio, uf, cep).
-- Campos PF only (com comment): `nacionalidade`, `estado_civil`, `regime_bens`, `data_nascimento`, `filiacao_pai`, `filiacao_mae`, `profissao`, `rg_numero`, `rg_orgao_emissor`, `rg_uf`, `conjuge_id` (FK auto-ref).
-- Campos PJ only (com comment): `nire`, `junta_comercial_uf`, `data_constituicao`, `objeto_social`, `status_constituicao`.
-- Auditoria: `created_at`, `created_by` (FK profiles), `updated_at`, `updated_by` (FK profiles).
+## Implementação
 
-### Tabela `parentesco`
-- Colunas: `id` (uuid PK), `pessoa_id` (uuid FK → pessoa), `parente_pessoa_id` (uuid FK → pessoa), `tipo` (text), `natureza` (text).
-- Auditoria: `created_at`, `created_by` (FK profiles), `updated_at`, `updated_by` (FK profiles).
+1. **`AbaPorProduto.tsx`**
+   - Chamar `useCalculadoraResumo(idContribuinte, filtros)` em paralelo a `useCalculadoraPorProduto` para obter `composicaoAntes` e o `tributoAntes` total.
+   - Calcular fatores de rateio uma vez via `useMemo`:
+     - `fatorICMS = (vICMS + vICMSST) / tributoAntesTotal`
+     - `fatorIPI  = vIPI / tributoAntesTotal`
+     - `fatorPIS  = (vPIS + vPIS_ST) / tributoAntesTotal`
+     - `fatorCOFINS = (vCOFINS + vCOFINS_ST) / tributoAntesTotal`
+   - Envolver o `<TableCell>` do `tributoAntes` num `<Tooltip>` (já importado de `@/components/ui/tooltip`), com underline decoration-dotted e `cursor-help`.
+   - Conteúdo da tooltip: 4 linhas (ICMS, IPI, PIS, COFINS) com valor (`fmtBRL(p.tributoAntes * fator)`) e % de participação, além do total. Nota curta: "Composição estimada por rateio proporcional sobre o total do período".
+   - Se `tributoAntesTotal === 0` ou `composicaoAntes` não disponível, não renderizar tooltip (fallback ao valor simples).
 
-### Padrões do projeto aplicados
-- RLS habilitado em ambas, com policies usando `has_role_or_higher` (team_member+ leitura/escrita, admin delete).
-- Trigger `update_updated_at_column` para `updated_at` nas duas tabelas.
-- Índices em FKs.
+2. Sem mudanças no backend, hooks, tipos ou outras abas.
+
+## Arquivos
+- `src/components/equipe/dev/calculadora-ibs-cbs/AbaPorProduto.tsx` (única edição)
