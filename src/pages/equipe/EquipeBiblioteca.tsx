@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Button } from '@/components/ui/button';
@@ -181,19 +182,22 @@ export default function EquipeBiblioteca() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (doc: ProjectDocument) => {
+      // Precheck antes do storage — evita arquivos órfãos se RLS bloquear o delete da tabela
+      await assertCanPerform('project_documents', 'delete', doc.id);
+
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('project-documents')
         .remove([doc.file_path]);
-      
+
       if (storageError) console.warn('Storage delete error:', storageError);
-      
+
       // Delete record
       const { error: deleteError } = await supabase
         .from('project_documents')
         .delete()
         .eq('id', doc.id);
-      
+
       if (deleteError) throw deleteError;
     },
     onSuccess: () => {
