@@ -93,8 +93,8 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
     return {
       icms: ((c.vICMS ?? 0) + (c.vICMSST ?? 0)) / total,
       ipi: (c.vIPI ?? 0) / total,
-      pis: ((c.vPIS ?? 0) + (c.vPIS_ST ?? 0)) / total,
-      cofins: ((c.vCOFINS ?? 0) + (c.vCOFINS_ST ?? 0)) / total,
+      pisCofins:
+        ((c.vPIS ?? 0) + (c.vPIS_ST ?? 0) + (c.vCOFINS ?? 0) + (c.vCOFINS_ST ?? 0)) / total,
     };
   }, [resumoData]);
   const [search, setSearch] = useState('');
