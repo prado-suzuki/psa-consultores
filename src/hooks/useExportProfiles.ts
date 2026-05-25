@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 export type ExportToolType = 'xml' | 'efd' | 'efd_icms' | 'efd_ecd' | 'efd_ecf';
 
@@ -93,6 +94,7 @@ export function useExportProfiles(toolType: ExportToolType = 'xml') {
       if (columns !== undefined) updateData.columns = columns;
       if (isDefault !== undefined) updateData.is_default = isDefault;
 
+      await assertCanPerform('export_profiles', 'update', id);
       const { data, error } = await supabase
         .from('export_profiles')
         .update(updateData)
@@ -118,6 +120,7 @@ export function useExportProfiles(toolType: ExportToolType = 'xml') {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
 
+      await assertCanPerform('export_profiles', 'delete', id);
       const { error } = await supabase
         .from('export_profiles')
         .delete()
@@ -148,6 +151,7 @@ export function useExportProfiles(toolType: ExportToolType = 'xml') {
         .eq('tool_type', toolType);
 
       // Definir novo padrão
+      await assertCanPerform('export_profiles', 'update', id);
       const { error } = await supabase
         .from('export_profiles')
         .update({ is_default: true })
