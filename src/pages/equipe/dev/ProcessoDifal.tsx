@@ -456,6 +456,7 @@ const ProcessoDifal = () => {
 
       if (existingSession) {
         // Atualizar sessão existente com novos parâmetros
+        await assertCanPerform('difal_sessao', 'update', existingSession.id);
         const { error } = await supabase
           .from("difal_sessao")
           .update({
@@ -711,9 +712,11 @@ const ProcessoDifal = () => {
 
       if (fetchError) throw fetchError;
 
-      // 1.1 Precheck do delete em difal_decisao — roda antes da API externa (passo 3)
-      // e antes do UPDATE em difal_sessao (passo 4) pra não deixar estado inconsistente.
-      // Allowlist tem DELETE como lider+; sample uma linha pra rodar can_perform.
+      // 1.1 Prechecks — rodam antes da API externa (passo 3) e do UPDATE
+      // em difal_sessao (passo 4) pra não deixar estado inconsistente.
+      // DELETE em difal_decisao exige lider+; sample uma linha pra rodar can_perform.
+      // UPDATE em difal_sessao exige team_member+.
+      await assertCanPerform('difal_sessao', 'update', activeSessaoId);
       if (decisoes && decisoes.length > 0) {
         await assertCanPerform('difal_decisao', 'delete', decisoes[0].id);
       }
