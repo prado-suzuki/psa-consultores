@@ -47,27 +47,36 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     icon: LayoutDashboard,
-    label: 'Dashboards',
+    label: 'Estratégico',
     path: '/equipe/dashboard',
     children: [
       { icon: LayoutDashboard, label: 'Visão Geral', path: '/equipe/dashboard' },
       { icon: Sparkles, label: 'Análise Inteligente', path: '/equipe/dashboards/analise-inteligente' },
+      { icon: FileBarChart, label: 'Relatórios', path: '/equipe/relatorios' },
+      { icon: FolderKanban, label: 'Projetos', path: '/equipe/projetos' },
     ],
   },
-   { icon: FileBarChart, label: 'Relatórios', path: '/equipe/relatorios' },
   {
-    icon: FolderKanban,
-    label: 'Projetos',
-    path: '/equipe/projetos',
+    icon: Calendar,
+    label: 'Planejamento',
+    path: '/equipe/sprints',
     children: [
-      { icon: Map, label: 'Mapeamento', path: '/equipe/mapeamento' },
-      { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
-      { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
       { icon: Calendar, label: 'Sprints', path: '/equipe/sprints' },
       { icon: Layers, label: 'Backlog', path: '/equipe/backlog' },
-      { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
+      { icon: Map, label: 'Mapeamento', path: '/equipe/mapeamento' },
+      { icon: Workflow, label: 'Processos', path: '/equipe/processos' },
       { icon: RefreshCw, label: 'Rotinas', path: '/equipe/rotinas' },
-    ]
+    ],
+  },
+  {
+    icon: Kanban,
+    label: 'Execução',
+    path: '/equipe/kanban',
+    children: [
+      { icon: Kanban, label: 'Kanban', path: '/equipe/kanban' },
+      { icon: MessageSquare, label: 'Daily', path: '/equipe/daily' },
+      // { icon: BarChart3, label: 'Semana', path: '/equipe/semana' }, // habilitar na Etapa 4
+    ],
   },
   // { icon: Library, label: 'Biblioteca', path: '/equipe/biblioteca' }, // Temporariamente oculto
 ];
@@ -78,8 +87,9 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
-    '/equipe/projetos': true,
     '/equipe/dashboard': true,
+    '/equipe/sprints': true,
+    '/equipe/kanban': true,
   });
 
   const handleSignOut = async () => {

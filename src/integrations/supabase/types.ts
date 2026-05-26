@@ -285,6 +285,189 @@ export type Database = {
         }
         Relationships: []
       }
+      bem: {
+        Row: {
+          ccir_codigo: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          denominacao: string
+          empresa_destino_pessoa_id: string | null
+          id: string
+          imposto_anual_exercicio: number | null
+          inscricao_municipal: string | null
+          motivo_nao_integralizacao: string | null
+          observacao: string | null
+          participa_estruturacao: boolean
+          referencia_dp: string
+          status_integralizacao: string | null
+          tipo_bem: string
+          updated_at: string
+          updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number
+        }
+        Insert: {
+          ccir_codigo?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          denominacao: string
+          empresa_destino_pessoa_id?: string | null
+          id?: string
+          imposto_anual_exercicio?: number | null
+          inscricao_municipal?: string | null
+          motivo_nao_integralizacao?: string | null
+          observacao?: string | null
+          participa_estruturacao?: boolean
+          referencia_dp: string
+          status_integralizacao?: string | null
+          tipo_bem: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil: number
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado: number
+        }
+        Update: {
+          ccir_codigo?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          denominacao?: string
+          empresa_destino_pessoa_id?: string | null
+          id?: string
+          imposto_anual_exercicio?: number | null
+          inscricao_municipal?: string | null
+          motivo_nao_integralizacao?: string | null
+          observacao?: string | null
+          participa_estruturacao?: boolean
+          referencia_dp?: string
+          status_integralizacao?: string | null
+          tipo_bem?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil?: number
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bem_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_empresa_destino_pessoa_id_fkey"
+            columns: ["empresa_destino_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bem_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cartorio: {
+        Row: {
+          comarca: string
+          created_at: string
+          created_by: string | null
+          id: string
+          nome_completo: string
+          numero_oficio: string | null
+          uf: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          comarca: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_completo: string
+          numero_oficio?: string | null
+          uf: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          comarca?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nome_completo?: string
+          numero_oficio?: string | null
+          uf?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cartorio_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cartorio_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_clients: {
         Row: {
           color: string | null
@@ -1685,6 +1868,109 @@ export type Database = {
         }
         Relationships: []
       }
+      impedimento: {
+        Row: {
+          area_afetada: number | null
+          cancelado: boolean
+          created_at: string
+          created_by: string | null
+          credor_nome: string | null
+          credor_pessoa_id: string | null
+          data_constituicao: string | null
+          data_validade: string | null
+          descricao: string | null
+          id: string
+          impede_transferencia: boolean
+          matricula_id: string
+          referencia: string | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+          vlr: number | null
+        }
+        Insert: {
+          area_afetada?: number | null
+          cancelado?: boolean
+          created_at?: string
+          created_by?: string | null
+          credor_nome?: string | null
+          credor_pessoa_id?: string | null
+          data_constituicao?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string
+          impede_transferencia?: boolean
+          matricula_id: string
+          referencia?: string | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr?: number | null
+        }
+        Update: {
+          area_afetada?: number | null
+          cancelado?: boolean
+          created_at?: string
+          created_by?: string | null
+          credor_nome?: string | null
+          credor_pessoa_id?: string | null
+          data_constituicao?: string | null
+          data_validade?: string | null
+          descricao?: string | null
+          id?: string
+          impede_transferencia?: boolean
+          matricula_id?: string
+          referencia?: string | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "impedimento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impedimento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impedimento_credor_pessoa_id_fkey"
+            columns: ["credor_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impedimento_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impedimento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "impedimento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       improvement_savings_details: {
         Row: {
           cost_after: number | null
@@ -1940,6 +2226,140 @@ export type Database = {
             columns: ["meta_id"]
             isOneToOne: false
             referencedRelation: "metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      matricula: {
+        Row: {
+          area_documento: number
+          area_explorada: number | null
+          area_real: number
+          area_unidade: string
+          bem_id: string
+          cartorio_id: string
+          confrontacoes_texto: string | null
+          created_at: string
+          created_by: string | null
+          data_matricula: string | null
+          descricao_psa_completa: string | null
+          folha: string | null
+          georref_prejudica_transferencia: boolean | null
+          georreferenciado: string | null
+          id: string
+          livro: string | null
+          matricula_anterior_id: string | null
+          matricula_anterior_texto: string | null
+          municipio_imovel: string
+          numero: string
+          origem_descricao: string | null
+          tipo_exploracao_posse: string | null
+          uf_imovel: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          area_documento: number
+          area_explorada?: number | null
+          area_real: number
+          area_unidade: string
+          bem_id: string
+          cartorio_id: string
+          confrontacoes_texto?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_matricula?: string | null
+          descricao_psa_completa?: string | null
+          folha?: string | null
+          georref_prejudica_transferencia?: boolean | null
+          georreferenciado?: string | null
+          id?: string
+          livro?: string | null
+          matricula_anterior_id?: string | null
+          matricula_anterior_texto?: string | null
+          municipio_imovel: string
+          numero: string
+          origem_descricao?: string | null
+          tipo_exploracao_posse?: string | null
+          uf_imovel: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          area_documento?: number
+          area_explorada?: number | null
+          area_real?: number
+          area_unidade?: string
+          bem_id?: string
+          cartorio_id?: string
+          confrontacoes_texto?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_matricula?: string | null
+          descricao_psa_completa?: string | null
+          folha?: string | null
+          georref_prejudica_transferencia?: boolean | null
+          georreferenciado?: string | null
+          id?: string
+          livro?: string | null
+          matricula_anterior_id?: string | null
+          matricula_anterior_texto?: string | null
+          municipio_imovel?: string
+          numero?: string
+          origem_descricao?: string | null
+          tipo_exploracao_posse?: string | null
+          uf_imovel?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "matricula_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_cartorio_id_fkey"
+            columns: ["cartorio_id"]
+            isOneToOne: false
+            referencedRelation: "cartorio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_matricula_anterior_id_fkey"
+            columns: ["matricula_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4976,6 +5396,85 @@ export type Database = {
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      titularidade: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          fracao: number
+          id: string
+          matricula_id: string
+          tipo: string
+          titular_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          fracao: number
+          id?: string
+          matricula_id: string
+          tipo: string
+          titular_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          fracao?: number
+          id?: string
+          matricula_id?: string
+          tipo?: string
+          titular_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "titularidade_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titularidade_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titularidade_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titularidade_titular_pessoa_id_fkey"
+            columns: ["titular_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titularidade_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "titularidade_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
