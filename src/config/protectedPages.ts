@@ -432,6 +432,22 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/diagnostico-patrimonial',
+    page_name: 'Diagnóstico Patrimonial',
+    page_description: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/controle-matriculas',
+    page_name: 'Controle de Matrículas',
+    page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/auditoria',
     page_name: 'Auditoria OSG',
     page_description: 'Histórico de alterações em projetos e tarefas OSG',

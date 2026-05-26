@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Users } from 'lucide-react';
+import { ChevronRight, Users, Landmark, FileText } from 'lucide-react';
 
 interface Ferramenta {
   id: string;
@@ -17,7 +17,21 @@ const FERRAMENTAS: Ferramenta[] = [
     titulo: 'Quadro Societário',
     descricao: 'Cadastro de sócios (PF/PJ) e vínculos de parentesco por cliente.',
     path: '/equipe/osg/work/quadro-societario',
-    icon: <Users className="h-5 w-5 text-orange-600" />,
+    icon: <Users className="h-5 w-5 text-osg-600" />,
+  },
+  {
+    id: 'diagnostico-patrimonial',
+    titulo: 'Diagnóstico Patrimonial',
+    descricao: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente.',
+    path: '/equipe/osg/work/diagnostico-patrimonial',
+    icon: <Landmark className="h-5 w-5 text-osg-600" />,
+  },
+  {
+    id: 'controle-matriculas',
+    titulo: 'Controle de Matrículas',
+    descricao: 'Registro de todas as matrículas, vinculadas ou órfãs, e seus vínculos com bens.',
+    path: '/equipe/osg/work/controle-matriculas',
+    icon: <FileText className="h-5 w-5 text-osg-600" />,
   },
 ];
 
@@ -30,15 +44,15 @@ const OsgWorkDashboard = () => {
         {FERRAMENTAS.map((f) => (
           <Card
             key={f.id}
-            className="cursor-pointer hover:border-orange-300 hover:shadow-md transition-all group"
+            className="cursor-pointer hover:border-osg-300 hover:shadow-md transition-all group"
             onClick={() => navigate(f.path)}
           >
             <CardHeader className="pb-3">
               <div className="flex items-start justify-between">
-                <div className="h-10 w-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-osg-100 flex items-center justify-center">
                   {f.icon}
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-orange-600 group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
               </div>
               <CardTitle className="text-base mt-3">{f.titulo}</CardTitle>
             </CardHeader>

@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -13,7 +12,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Users, Search, Building2, User as UserIcon } from 'lucide-react';
-import { useClientesLista } from '@/hooks/useGestaoClientes';
+import { useOsgWork } from '@/contexts/OsgWorkContext';
 import {
   useDeletePessoa,
   usePessoasByCliente,
@@ -119,10 +118,9 @@ const PessoasTable = ({
 );
 
 const QuadroSocietario = () => {
-  const [clienteId, setClienteId] = useState<string>('');
+  const { clienteId } = useOsgWork();
   const [busca, setBusca] = useState('');
 
-  const { data: clientes = [], isLoading: loadingClientes } = useClientesLista();
   const { data: pessoas = [], isLoading: loadingPessoas } = usePessoasByCliente(clienteId || null);
 
   const [pessoaModal, setPessoaModal] = useState<{
@@ -147,7 +145,6 @@ const QuadroSocietario = () => {
     };
   }, [pessoas, busca]);
 
-  const clienteSelecionado = clientes.find((c) => c.id === clienteId);
   const buscaAtiva = busca.trim().length > 0;
 
   return (
@@ -156,27 +153,27 @@ const QuadroSocietario = () => {
       subtitle="Cadastro de pessoas físicas/jurídicas e vínculos de parentesco por cliente"
     >
       <div className="space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Cliente</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col md:flex-row gap-3 md:items-end">
-              <div className="flex-1 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Selecione um cliente</Label>
-                <Select value={clienteId || undefined} onValueChange={setClienteId} disabled={loadingClientes}>
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder={loadingClientes ? 'Carregando...' : 'Selecione...'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clientes.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              {clienteId && (
-                <div className="flex-1 space-y-1.5">
+        {!clienteId ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o quadro societário.</p>
+            </CardContent>
+          </Card>
+        ) : loadingPessoas ? (
+          <Card>
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <p className="text-sm">Carregando...</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Filtros</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Buscar pessoa</Label>
                   <div className="relative">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -188,31 +185,9 @@ const QuadroSocietario = () => {
                     />
                   </div>
                 </div>
-              )}
-            </div>
-            {clienteSelecionado && (
-              <p className="text-xs text-muted-foreground mt-3">
-                Cliente selecionado: <span className="font-medium">{clienteSelecionado.nome}</span>
-              </p>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
 
-        {!clienteId ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente para visualizar e gerenciar o quadro societário.</p>
-            </CardContent>
-          </Card>
-        ) : loadingPessoas ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <p className="text-sm">Carregando...</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
             <PessoasTable
               titulo="Pessoas Jurídicas"
               icone={<Building2 className="h-4 w-4 text-slate-500" />}
