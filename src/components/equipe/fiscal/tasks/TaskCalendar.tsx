@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from 'date-fns';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -148,9 +148,19 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                           </p>
                         )}
                       </div>
-                      <Button size="sm" variant="ghost" onClick={() => onEdit(task)}>
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <Button size="sm" variant="ghost" onClick={() => onEdit(task)}>
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => onDelete(task.id)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))

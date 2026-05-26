@@ -95,6 +95,13 @@ import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
        });
        return;
      }
+     const activeChildren = tasks.filter(t => t.parent_task_id === taskId && t.status !== 'done');
+     if (activeChildren.length > 0) {
+       toast.error('Não é possível excluir esta tarefa.', {
+         description: `Existe(m) ${activeChildren.length} subtarefa(s) ativa(s). Conclua ou exclua as subtarefas primeiro.`,
+       });
+       return;
+     }
      setTaskToDelete(taskId);
    };
  
