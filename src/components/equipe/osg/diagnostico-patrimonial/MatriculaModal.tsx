@@ -14,7 +14,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Loader2, Plus, Pencil, Trash2, X, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { UF_STATES } from '@/components/equipe/client-form/constants';
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
@@ -36,12 +36,12 @@ import {
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQuadroSocietario';
 
-const TIPO_TITULARIDADE_OPTIONS = [
-  { value: 'FATO', label: 'Posse de fato' },
-  { value: 'DIREITO', label: 'Propriedade plena' },
-  { value: 'USUFRUTO', label: 'Usufruto' },
-  { value: 'NUE_PROP', label: 'Nua propriedade' },
-];
+type TipoTitularidade = 'FATO' | 'DIREITO';
+
+const TIPO_TITULARIDADE: Record<TipoTitularidade, { code: string; label: string }> = {
+  FATO: { code: 'FT', label: 'Propriedade de Fato' },
+  DIREITO: { code: 'DT', label: 'Propriedade de Direito' },
+};
 
 const TIPO_IMPEDIMENTO_OPTIONS = [
   'Hipoteca', 'Penhora', 'Arrolamento Fiscal', 'Indisponibilidade',
@@ -314,7 +314,7 @@ export function MatriculaModal({
                 <Separator />
                 <div>
                   <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">
-                    Titular inicial<RequiredMark />
+                    Titular inicial — Propriedade de Direito (DT)<RequiredMark />
                   </h4>
                   {semPessoas ? (
                     <p className="text-xs text-amber-600">
@@ -322,7 +322,7 @@ export function MatriculaModal({
                       um cliente) antes de criar a matrícula.
                     </p>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <Label className="text-xs font-semibold text-muted-foreground">Titular</Label>
                         <Select
@@ -335,20 +335,6 @@ export function MatriculaModal({
                               <SelectItem key={p.id} value={p.id}>
                                 {p.denominacao} <span className="text-xs text-muted-foreground">({p.tipo_pessoa})</span>
                               </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
-                        <Select
-                          value={titularInicial.tipo}
-                          onValueChange={(v) => setTitularInicial((p) => ({ ...p, tipo: v }))}
-                        >
-                          <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {TIPO_TITULARIDADE_OPTIONS.map((o) => (
-                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
                             ))}
                           </SelectContent>
                         </Select>
@@ -370,7 +356,8 @@ export function MatriculaModal({
                   )}
                   <p className="text-[11px] text-muted-foreground mt-1.5">
                     Toda matrícula precisa de ao menos um titular — é ele que define o cliente.
-                    Outros titulares podem ser adicionados depois de salvar.
+                    Ele entra como Propriedade de Direito (DT); titulares de FT e demais de DT
+                    podem ser adicionados depois de salvar.
                   </p>
                 </div>
               </>
@@ -603,26 +590,74 @@ interface TitularidadesPanelProps {
 
 function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelProps) {
   const { data: titularidades = [], isLoading } = useTitularidadesByMatricula(matriculaId);
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>;
+  }
+
+  const fato = titularidades.filter((t) => t.tipo === 'FATO');
+  const direito = titularidades.filter((t) => t.tipo !== 'FATO');
+  // É preciso restar ao menos um titular na matrícula (define o cliente).
+  const totalTitulares = titularidades.length;
+
+  return (
+    <div className="space-y-4">
+      <TitularBucket
+        matriculaId={matriculaId}
+        tipo="FATO"
+        titularidades={fato}
+        pessoasCliente={pessoasCliente}
+        totalTitulares={totalTitulares}
+      />
+      <Separator />
+      <TitularBucket
+        matriculaId={matriculaId}
+        tipo="DIREITO"
+        titularidades={direito}
+        pessoasCliente={pessoasCliente}
+        totalTitulares={totalTitulares}
+        copySource={fato}
+      />
+    </div>
+  );
+}
+
+interface TitularBucketProps {
+  matriculaId: string;
+  tipo: TipoTitularidade;
+  titularidades: TitularidadeEnriched[];
+  pessoasCliente: PessoaRow[];
+  totalTitulares: number;
+  // Quando presente (seção PD), habilita o botão de copiar titulares da PT.
+  copySource?: TitularidadeEnriched[];
+}
+
+function TitularBucket({
+  matriculaId, tipo, titularidades, pessoasCliente, totalTitulares, copySource,
+}: TitularBucketProps) {
   const upsert = useUpsertTitularidade();
   const deleteMutation = useDeleteTitularidade();
+  const { code, label } = TIPO_TITULARIDADE[tipo];
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{ titular_pessoa_id: string; tipo: string; fracao: string }>({
-    titular_pessoa_id: '', tipo: 'DIREITO', fracao: '',
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState<{ titular_pessoa_id: string; fracao: string }>({
+    titular_pessoa_id: '', fracao: '',
   });
 
   const startEdit = (t: TitularidadeRow) => {
+    setAdding(false);
     setEditingId(t.id);
     setDraft({
       titular_pessoa_id: t.titular_pessoa_id,
-      tipo: t.tipo,
       fracao: t.fracao != null ? String(t.fracao) : '',
     });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft({ titular_pessoa_id: '', tipo: 'DIREITO', fracao: '' });
+    setAdding(false);
+    setDraft({ titular_pessoa_id: '', fracao: '' });
   };
 
   const handleSave = () => {
@@ -651,7 +686,7 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
         values: {
           matricula_id: matriculaId,
           titular_pessoa_id: draft.titular_pessoa_id,
-          tipo: draft.tipo,
+          tipo,
           fracao: fracaoNum,
         },
         original,
@@ -660,50 +695,91 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
     );
   };
 
-  const totalFracao = titularidades
-    .filter((t) => (t.tipo === 'DIREITO' || t.tipo === 'FATO') && t.fracao != null)
-    .reduce((sum, t) => sum + Number(t.fracao), 0);
+  const handleCopyFromPT = async () => {
+    if (!copySource) return;
+    const jaPresentes = new Set(titularidades.map((t) => t.titular_pessoa_id));
+    const aCopiar = copySource.filter((t) => !jaPresentes.has(t.titular_pessoa_id));
+    if (aCopiar.length === 0) {
+      toast.info('Nenhum titular novo da FT para copiar.');
+      return;
+    }
+    try {
+      for (const t of aCopiar) {
+        await upsert.mutateAsync({
+          values: {
+            matricula_id: matriculaId,
+            titular_pessoa_id: t.titular_pessoa_id,
+            tipo,
+            fracao: t.fracao,
+          },
+        });
+      }
+    } catch {
+      // Erros individuais já são notificados pelo hook.
+    }
+  };
+
+  const comFracao = titularidades.filter((t) => t.fracao != null);
+  const totalFracao = comFracao.reduce((sum, t) => sum + Number(t.fracao), 0);
+  const formOpen = adding || editingId != null;
 
   return (
-    <div className="space-y-3">
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-      ) : titularidades.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Nenhuma titularidade cadastrada para esta matrícula.
-        </p>
+    <section className="space-y-2.5">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-5 items-center rounded bg-osg-500 px-1.5 text-[10px] font-bold font-mono text-white">
+            {code}
+          </span>
+          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
+          {comFracao.length > 0 && (
+            <span
+              className={`text-xs font-medium tabular-nums ${totalFracao > 100 ? 'text-destructive' : 'text-muted-foreground'}`}
+            >
+              {totalFracao}%{totalFracao > 100 && ' • excede 100%'}
+            </span>
+          )}
+        </div>
+        {copySource && (
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="h-7 gap-1.5 text-xs text-muted-foreground bg-teal-50"
+            onClick={handleCopyFromPT}
+            disabled={upsert.isPending || copySource.length === 0}
+          >
+            <Copy className="h-3.5 w-3.5" />
+            Copiar da FT
+          </Button>
+        )}
+      </div>
+
+      {titularidades.length === 0 && !formOpen ? (
+        <p className="text-sm text-muted-foreground">Nenhum titular.</p>
       ) : (
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {titularidades.map((t) => (
             <TitularidadeRowItem
               key={t.id}
               titularidade={t}
               isEditing={editingId === t.id}
-              canDelete={titularidades.length > 1}
+              canDelete={totalTitulares > 1}
               onEdit={() => startEdit(t)}
               onDelete={() => deleteMutation.mutate(t)}
             />
           ))}
-          <p className="text-xs text-muted-foreground pt-2">
-            Total fração (FATO + DIREITO): <span className="font-semibold">{totalFracao}%</span>
-            {totalFracao > 100 && <span className="text-destructive ml-2">⚠ Excede 100%</span>}
-          </p>
         </div>
       )}
 
-      <div className="rounded-md border border-dashed p-3 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">
-          {editingId ? 'Editar titularidade' : 'Nova titularidade'}
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Titular</Label>
+      {formOpen ? (
+        <div className="rounded-lg border border-dashed bg-muted/30 p-3 space-y-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Select
               value={draft.titular_pessoa_id || undefined}
               onValueChange={(v) => setDraft((p) => ({ ...p, titular_pessoa_id: v }))}
             >
-              <SelectTrigger className="h-9">
-                <SelectValue placeholder={pessoasCliente.length ? 'Selecione...' : 'Cadastre uma pessoa no Quadro Societário'} />
+              <SelectTrigger className="h-9 flex-1">
+                <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa no Quadro Societário'} />
               </SelectTrigger>
               <SelectContent>
                 {pessoasCliente.map((p) => (
@@ -713,23 +789,6 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
                 ))}
               </SelectContent>
             </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
-            <Select
-              value={draft.tipo}
-              onValueChange={(v) => setDraft((p) => ({ ...p, tipo: v }))}
-            >
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {TIPO_TITULARIDADE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Fração (%) — opcional</Label>
             <Input
               type="number"
               step="0.01"
@@ -737,33 +796,44 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
               max="100"
               value={draft.fracao}
               onChange={(e) => setDraft((p) => ({ ...p, fracao: e.target.value }))}
-              placeholder="ex: 50 (deixe vazio se composse indefinida)"
-              className="h-9 font-mono"
+              placeholder="Fração %"
+              className="h-9 font-mono sm:w-28"
             />
+            <div className="flex gap-1.5">
+              <Button type="button" size="sm" variant="ghost" className="h-9" onClick={cancelEdit}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="h-9 gap-1.5"
+                onClick={handleSave}
+                disabled={upsert.isPending}
+              >
+                {upsert.isPending
+                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  : <Plus className="h-3.5 w-3.5" />}
+                {editingId ? 'Salvar' : 'Adicionar'}
+              </Button>
+            </div>
           </div>
+          <p className="text-[11px] text-muted-foreground">
+            Deixe a fração vazia quando a composse for indefinida.
+          </p>
         </div>
-        <div className="flex justify-end gap-2">
-          {editingId && (
-            <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>
-              Cancelar
-            </Button>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={handleSave}
-            disabled={upsert.isPending}
-          >
-            {upsert.isPending
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Plus className="h-3.5 w-3.5" />}
-            {editingId ? 'Salvar' : 'Adicionar'}
-          </Button>
-        </div>
-      </div>
-    </div>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-8 w-full justify-start gap-1.5 border border-dashed text-muted-foreground hover:text-foreground"
+          onClick={() => { setEditingId(null); setDraft({ titular_pessoa_id: '', fracao: '' }); setAdding(true); }}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Adicionar titular
+        </Button>
+      )}
+    </section>
   );
 }
 
@@ -776,29 +846,26 @@ interface TitularidadeRowItemProps {
 }
 
 function TitularidadeRowItem({ titularidade, isEditing, canDelete, onEdit, onDelete }: TitularidadeRowItemProps) {
-  const tipoLabel = TIPO_TITULARIDADE_OPTIONS.find((o) => o.value === titularidade.tipo)?.label ?? titularidade.tipo;
   return (
     <div
-      className={`flex items-center gap-2 rounded-md border px-3 py-2 ${isEditing ? 'bg-osg-50 border-osg-200' : 'bg-muted/30'}`}
+      className={`group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${isEditing ? 'bg-osg-50 border-osg-200' : 'bg-card hover:bg-muted/40'}`}
     >
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium truncate">{titularidade.titular_denominacao}</span>
-          {titularidade.titular_tipo && (
-            <Badge variant="outline" className="text-[10px]">{titularidade.titular_tipo}</Badge>
-          )}
-        </div>
-        <div className="flex gap-1.5 mt-0.5">
-          <Badge variant="secondary" className="text-[10px]">{tipoLabel}</Badge>
-          <Badge variant="outline" className="text-[10px] font-mono">
-            {titularidade.fracao != null ? `${titularidade.fracao}%` : 'sem fração'}
-          </Badge>
-        </div>
+      <div className="flex flex-1 items-center gap-2 min-w-0">
+        <span className="text-sm font-medium truncate">{titularidade.titular_denominacao}</span>
+        {titularidade.titular_tipo && (
+          <span className="shrink-0 text-[11px] text-muted-foreground">{titularidade.titular_tipo}</span>
+        )}
       </div>
-      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
-        <Pencil className="h-3.5 w-3.5" />
-      </Button>
-      {!canDelete ? (
+      <span
+        className={`shrink-0 text-sm font-mono tabular-nums ${titularidade.fracao != null ? 'font-medium text-foreground' : 'text-muted-foreground/60'}`}
+      >
+        {titularidade.fracao != null ? `${titularidade.fracao}%` : '—'}
+      </span>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        {!canDelete ? (
         <Button
           size="icon"
           variant="ghost"
@@ -819,7 +886,7 @@ function TitularidadeRowItem({ titularidade, isEditing, canDelete, onEdit, onDel
           <AlertDialogHeader>
             <AlertDialogTitle>Remover titularidade?</AlertDialogTitle>
             <AlertDialogDescription>
-              Remover {titularidade.titular_denominacao} ({tipoLabel}
+              Remover {titularidade.titular_denominacao} ({TIPO_TITULARIDADE[titularidade.tipo as TipoTitularidade]?.code ?? titularidade.tipo}
               {titularidade.fracao != null ? `, ${titularidade.fracao}%` : ''}) desta matrícula.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -835,6 +902,7 @@ function TitularidadeRowItem({ titularidade, isEditing, canDelete, onEdit, onDel
         </AlertDialogContent>
       </AlertDialog>
       )}
+      </div>
     </div>
   );
 }
