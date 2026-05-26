@@ -11,7 +11,8 @@ type AuditEntityType =
   | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
   | 'regra_pis_cofins' | 'procedimento' | 'correcao_icms'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral'
-  | 'pessoa' | 'parentesco';
+  | 'pessoa' | 'parentesco'
+  | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio';
 
 interface AuditLogEntry {
   area: AuditArea;

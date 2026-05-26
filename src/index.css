@@ -53,6 +53,15 @@ All colors MUST be HSL.
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
     
+    /* OSG accent — taupe/brown (versão mais escura) */
+    --osg-50: 32 28% 92%;
+    --osg-100: 30 26% 84%;
+    --osg-200: 30 25% 70%;
+    --osg-300: 30 23% 56%;
+    --osg-500: 22 24% 33%;
+    --osg-600: 19 24% 25%;
+    --osg-700: 17 25% 19%;
+
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;
     --gray-100: 220 14% 96%;

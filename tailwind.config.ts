@@ -80,6 +80,15 @@ export default {
           800: "hsl(var(--gray-800))",
           900: "hsl(var(--gray-900))",
         },
+        osg: {
+          50: "hsl(var(--osg-50) / <alpha-value>)",
+          100: "hsl(var(--osg-100) / <alpha-value>)",
+          200: "hsl(var(--osg-200) / <alpha-value>)",
+          300: "hsl(var(--osg-300) / <alpha-value>)",
+          500: "hsl(var(--osg-500) / <alpha-value>)",
+          600: "hsl(var(--osg-600) / <alpha-value>)",
+          700: "hsl(var(--osg-700) / <alpha-value>)",
+        },
       },
       backgroundImage: {
         'gradient-primary': 'var(--gradient-primary)',
