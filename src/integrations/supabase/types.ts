@@ -2236,7 +2236,7 @@ export type Database = {
           area_explorada: number | null
           area_real: number
           area_unidade: string
-          bem_id: string | null
+          bem_id: string
           cartorio_id: string
           confrontacoes_texto: string | null
           created_at: string
@@ -2263,7 +2263,7 @@ export type Database = {
           area_explorada?: number | null
           area_real: number
           area_unidade: string
-          bem_id?: string | null
+          bem_id: string
           cartorio_id: string
           confrontacoes_texto?: string | null
           created_at?: string
@@ -2290,7 +2290,7 @@ export type Database = {
           area_explorada?: number | null
           area_real?: number
           area_unidade?: string
-          bem_id?: string | null
+          bem_id?: string
           cartorio_id?: string
           confrontacoes_texto?: string | null
           created_at?: string
@@ -5671,10 +5671,6 @@ export type Database = {
       can_perform: {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
-      }
-      criar_matricula_com_titular: {
-        Args: { matricula_data: Json; titular_data: Json }
-        Returns: Database["public"]["Tables"]["matricula"]["Row"]
       }
       can_view_org_project: {
         Args: { _project_id: string; _user_id: string }
