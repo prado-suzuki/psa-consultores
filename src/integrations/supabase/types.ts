@@ -5672,13 +5672,45 @@ export type Database = {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
       }
-      criar_matricula_com_titular: {
-        Args: { matricula_data: Json; titular_data: Json }
-        Returns: Database["public"]["Tables"]["matricula"]["Row"]
-      }
       can_view_org_project: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      criar_matricula_com_titular: {
+        Args: { matricula_data: Json; titular_data: Json }
+        Returns: {
+          area_documento: number
+          area_explorada: number | null
+          area_real: number
+          area_unidade: string
+          bem_id: string | null
+          cartorio_id: string
+          confrontacoes_texto: string | null
+          created_at: string
+          created_by: string | null
+          data_matricula: string | null
+          descricao_psa_completa: string | null
+          folha: string | null
+          georref_prejudica_transferencia: boolean | null
+          georreferenciado: string | null
+          id: string
+          livro: string | null
+          matricula_anterior_id: string | null
+          matricula_anterior_texto: string | null
+          municipio_imovel: string
+          numero: string
+          origem_descricao: string | null
+          tipo_exploracao_posse: string | null
+          uf_imovel: string
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matricula"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_internal_users: {
         Args: never
