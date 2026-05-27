@@ -829,25 +829,7 @@ export default function ControlePerdcomp() {
                       <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
                       <TableCell className="text-right">
-                        {valorRessarcido > 0 ? (
-                          <span className="inline-flex items-center justify-end gap-1">
-                            {formatCurrency(valorRessarcido)}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              title="Excluir ressarcimento"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRessarcimentoToDelete({ nr_per: item.nr_per, valor: valorRessarcido });
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </span>
-                        ) : (
-                          "-"
-                        )}
+                        {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : "-"}
                       </TableCell>
                       <TableCell>{situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : "-"}</TableCell>
                       <TableCell className="text-right">
