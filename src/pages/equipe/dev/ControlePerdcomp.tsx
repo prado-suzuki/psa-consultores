@@ -47,17 +47,6 @@ import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RequiredMark } from '@/components/ui/required-mark';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useAuth } from "@/contexts/AuthContext";
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
