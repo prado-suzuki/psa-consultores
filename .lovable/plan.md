@@ -1,37 +1,32 @@
-## Objetivo
+## Rodar migration `20260527120000_pessoa_align_diagram.sql`
 
-Em `src/pages/equipe/dev/ControlePerdcomp.tsx`, permitir excluir o ressarcimento registrado em um PER diretamente pela tabela. A exclusão **não é soft delete**: apenas atualiza colunas da tabela `per`, limpando o valor ressarcido e preenchendo `atualizado_em` / `atualizado_por`.
+Alinha a tabela `public.pessoa` ao diagrama ER.
 
-## Comportamento
+### O que a migration faz
 
-- Na coluna **Ressarcido** da tabela (linha ~791), quando `valorRessarcido > 0`, exibir um ícone de lixeira ao lado do valor.
-- Ao clicar, abrir um `AlertDialog` de confirmação ("Excluir ressarcimento do PER X? Esta ação limpa o valor ressarcido registrado.").
-- Ao confirmar, executar mutation que faz `UPDATE public.per SET vlr_ressarcido = NULL, vlr_ressarcido_original = NULL, atualizado_em = now(), atualizado_por = <auth.uid()> WHERE nr_per = ...`.
-- Click no botão usa `e.stopPropagation()` para não abrir o `PerDetailModal`.
-- Não toca em `per_situacao` (nem remove o registro "PER deferido" criado no momento do ressarcimento) — o usuário pediu apenas atualização de coluna.
-- Não altera DCOMPs nem usa `excluido`.
+1. **Renomeia colunas** (RG → documento de identidade genérico):
+   - `rg_numero` → `documento_identidade_numero`
+   - `rg_orgao_emissor` → `documento_identidade_orgao`
+   - `rg_uf` → `documento_identidade_uf`
 
-## Detalhes técnicos
+2. **Adiciona novas colunas** em `pessoa`:
+   - `documento_identidade_tipo` (rg/cnh/reservista/ctps)
+   - `nome_uso`, `genero` (M/F)
+   - `naturalidade_municipio`, `naturalidade_uf`
+   - `filiacao_pai_pessoa_id`, `filiacao_mae_pessoa_id` (FKs para `pessoa.id`, ON DELETE SET NULL)
+   - `convive_uniao_estavel` (bool, default false)
+   - `is_fundador` (bool, default false)
 
-- Adicionar `useMutation` `deleteRessarcimentoMutation` no componente:
-  - Pega `user.id` via `useAuth()` (já usado em hooks similares como `useAuditLog`).
-  - Faz o `update` com cast `as any` (padrão já usado no arquivo para `per`).
-  - On success: `toast.success`, `invalidateQueries` para `['perdcomp-per']`, `['per-detail']`, `['per-situacoes']`.
-  - On error: `toast.error`.
-- Registrar o evento via `useAuditLog`:
-  ```ts
-  logAction({
-    area: 'dev',
-    entity_type: 'project', // ou novo tipo se aplicável — manter 'project' por enquanto não cabe; usar entity_name = nr_per e details textual
-    ...
-  })
-  ```
-  → na verdade `useAuditLog` não tem tipo para PER. Vou usar `details` textual e `entity_id = nr_per` com `entity_type` mais próximo (`'project'`). **Decisão:** seguir convenção mínima — registrar em `audit_logs` via `useAuditLog` com `action: 'updated'`, `entity_name: 'PER ' + nr_per`, `changed_fields: { vlr_ressarcido: { old, new: null } }`. Se isso não couber no enum `entity_type`, omitir o log (o trigger de atualização da coluna `atualizado_em/por` já é a trilha mínima).
-- Estado local: `const [ressarcimentoToDelete, setRessarcimentoToDelete] = useState<{ nr_per: string; valor: number } | null>(null)`.
-- Importar `AlertDialog*` de `@/components/ui/alert-dialog`.
+3. **Checks**: `genero IN ('M','F')`, `documento_identidade_tipo IN ('rg','cnh','reservista','ctps')`.
 
-## Fora de escopo
+4. **Comentários** em todas as novas colunas + índices nos dois novos FKs.
 
-- Não criar migration (colunas `atualizado_em`/`atualizado_por` em `per` já existem).
-- Não mexer no `PerDetailModal` nem no fluxo de registrar ressarcimento.
-- Não usar soft delete (`excluido`).
+### Observações
+
+- Migration é puramente de schema (sem GRANT/RLS novos — a tabela já existe com políticas).
+- **Impacto em código**: o hook `src/hooks/useQuadroSocietario.ts` lista `rg_numero`, `rg_orgao_emissor`, `rg_uf` em `PESSOA_DIFF_FIELDS`. Após a migration os tipos do Supabase serão regenerados e esses nomes deixarão de existir — vai quebrar TypeScript. Será necessário atualizar o array (e qualquer formulário que use os nomes antigos) para os novos nomes `documento_identidade_*` num passo seguinte.
+
+### Passos
+
+1. Executar a migration via tool de migration.
+2. Após aprovação e regeneração dos tipos, ajustar `useQuadroSocietario.ts` (e demais usos de `rg_*` em `pessoa`) para os novos nomes — confirmar comigo antes.
