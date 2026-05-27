@@ -501,6 +501,33 @@ export function PerDetailModal({
     },
   });
 
+  // Mutation: exclui o ressarcimento (hard column update, sem soft delete).
+  const deleteRessarcimentoMutation = useMutation({
+    mutationFn: async () => {
+      if (!per?.nr_per) throw new Error('PER inválido');
+      const { error } = await (supabase.from('per') as any)
+        .update({
+          vlr_ressarcido: null,
+          vlr_ressarcido_original: null,
+          atualizado_em: new Date().toISOString(),
+          atualizado_por: user?.id ?? null,
+        })
+        .eq('nr_per', per.nr_per);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
+      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
+      toast.success('Ressarcimento excluído com sucesso.');
+      setDeleteRessarcimentoOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao excluir ressarcimento: ${err.message}`);
+    },
+  });
+
+
   const handleUpdateSituacao = () => {
     if (!novaSituacao) {
       toast.error('Selecione uma situação');
