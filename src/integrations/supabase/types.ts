@@ -292,6 +292,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           denominacao: string
+          descricao_outros: string | null
           empresa_destino_pessoa_id: string | null
           id: string
           imposto_anual_exercicio: number | null
@@ -316,6 +317,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           denominacao: string
+          descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
@@ -340,6 +342,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           denominacao?: string
+          descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
