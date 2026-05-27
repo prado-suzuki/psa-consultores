@@ -3302,7 +3302,6 @@ export type Database = {
           cliente_id: string
           conjuge_id: string | null
           contribuinte_id: string | null
-          convive_uniao_estavel: boolean
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
@@ -3345,7 +3344,6 @@ export type Database = {
           cliente_id: string
           conjuge_id?: string | null
           contribuinte_id?: string | null
-          convive_uniao_estavel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
@@ -3388,7 +3386,6 @@ export type Database = {
           cliente_id?: string
           conjuge_id?: string | null
           contribuinte_id?: string | null
-          convive_uniao_estavel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null

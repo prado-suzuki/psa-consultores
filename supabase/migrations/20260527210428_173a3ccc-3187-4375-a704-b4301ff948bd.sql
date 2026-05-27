@@ -1,0 +1,1 @@
+ALTER TABLE public.pessoa DROP COLUMN IF EXISTS convive_uniao_estavel;
