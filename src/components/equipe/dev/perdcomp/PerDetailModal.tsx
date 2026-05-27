@@ -46,6 +46,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { DcompFormModal } from './DcompFormModal';
 import { SoftDeleteModal } from './SoftDeleteModal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PerData {
   nr_per: string;
@@ -172,6 +173,10 @@ export function PerDetailModal({
   const [ressarcimentoData, setRessarcimentoData] = useState('');
   
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
+
+  // Confirmação para excluir ressarcimento
+  const [deleteRessarcimentoOpen, setDeleteRessarcimentoOpen] = useState(false);
+  const { user } = useAuth();
 
   // Filtro de tipo de tributo na tabela de DCOMPs
   const [tributoFiltro, setTributoFiltro] = useState<string>('__todos__');
@@ -496,6 +501,33 @@ export function PerDetailModal({
     },
   });
 
+  // Mutation: exclui o ressarcimento (hard column update, sem soft delete).
+  const deleteRessarcimentoMutation = useMutation({
+    mutationFn: async () => {
+      if (!per?.nr_per) throw new Error('PER inválido');
+      const { error } = await (supabase.from('per') as any)
+        .update({
+          vlr_ressarcido: null,
+          vlr_ressarcido_original: null,
+          atualizado_em: new Date().toISOString(),
+          atualizado_por: user?.id ?? null,
+        })
+        .eq('nr_per', per.nr_per);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      await queryClient.refetchQueries({ queryKey: ['per-detail', per?.nr_per] });
+      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
+      toast.success('Ressarcimento excluído com sucesso.');
+      setDeleteRessarcimentoOpen(false);
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao excluir ressarcimento: ${err.message}`);
+    },
+  });
+
+
   const handleUpdateSituacao = () => {
     if (!novaSituacao) {
       toast.error('Selecione uma situação');
@@ -762,14 +794,25 @@ export function PerDetailModal({
               {perPago && (
                 <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-700">
                   <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-3">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
                         <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
                       </div>
-                      <div>
-                        <h5 className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
-                          Ressarcimento Registrado
-                        </h5>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <h5 className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                            Ressarcimento Registrado
+                          </h5>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 -mt-1 -mr-1 text-green-700 hover:text-destructive hover:bg-destructive/10"
+                            title="Excluir ressarcimento"
+                            onClick={() => setDeleteRessarcimentoOpen(true)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
                           <div>
                             <span className="text-[10px] text-green-600 dark:text-green-400">Valor Atualizado</span>
@@ -1075,6 +1118,32 @@ export function PerDetailModal({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Confirmação: excluir ressarcimento */}
+      <AlertDialog open={deleteRessarcimentoOpen} onOpenChange={setDeleteRessarcimentoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir ressarcimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação limpa o valor ressarcido registrado neste PER{per?.nr_per ? ` (${normalizeProcessNumber(per.nr_per)})` : ''}
+              {vlrRessarcido > 0 ? ` — ${formatCurrency(vlrRessarcido)}` : ''}. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRessarcimentoMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteRessarcimentoMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteRessarcimentoMutation.mutate();
+              }}
+            >
+              {deleteRessarcimentoMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
 
       {/* Soft Delete Modal */}
       <SoftDeleteModal

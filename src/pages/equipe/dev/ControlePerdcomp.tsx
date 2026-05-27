@@ -47,17 +47,6 @@ import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
 import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { RequiredMark } from '@/components/ui/required-mark';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { useAuth } from "@/contexts/AuthContext";
 
 // --- Tooltip helpers ---
 const FieldTooltip = ({ text }: { text: string }) => (
@@ -118,10 +107,7 @@ interface PerSituacaoMap {
 
 export default function ControlePerdcomp() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  // Ressarcimento delete state
-  const [ressarcimentoToDelete, setRessarcimentoToDelete] = useState<{ nr_per: string; valor: number } | null>(null);
 
   // Filter states
   const [clienteId, setClienteId] = useState<string>("");
@@ -638,31 +624,6 @@ export default function ControlePerdcomp() {
     setSoftDeleteOpen(true);
   };
 
-  // Mutation: exclui o ressarcimento de um PER (não é soft delete — apenas limpa colunas).
-  const deleteRessarcimentoMutation = useMutation({
-    mutationFn: async (nrPer: string) => {
-      const { error } = await (supabase.from('per') as any)
-        .update({
-          vlr_ressarcido: null,
-          vlr_ressarcido_original: null,
-          atualizado_em: new Date().toISOString(),
-          atualizado_por: user?.id ?? null,
-        })
-        .eq('nr_per', nrPer);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
-      queryClient.invalidateQueries({ queryKey: ['per-detail'] });
-      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
-      toast.success('Ressarcimento excluído com sucesso.');
-      setRessarcimentoToDelete(null);
-    },
-    onError: (err: any) => {
-      toast.error(`Erro ao excluir ressarcimento: ${err.message}`);
-    },
-  });
-
   const isLoading = perLoading || dcompLoading;
 
   const renderTable = () => {
@@ -829,25 +790,7 @@ export default function ControlePerdcomp() {
                       <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
                       <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
                       <TableCell className="text-right">
-                        {valorRessarcido > 0 ? (
-                          <span className="inline-flex items-center justify-end gap-1">
-                            {formatCurrency(valorRessarcido)}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-6 w-6"
-                              title="Excluir ressarcimento"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setRessarcimentoToDelete({ nr_per: item.nr_per, valor: valorRessarcido });
-                              }}
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </span>
-                        ) : (
-                          "-"
-                        )}
+                        {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : "-"}
                       </TableCell>
                       <TableCell>{situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : "-"}</TableCell>
                       <TableCell className="text-right">
@@ -1180,39 +1123,6 @@ export default function ControlePerdcomp() {
         per={selectedPer}
         contribuinteId={contribuinteId}
       />
-
-      {/* Confirmação: excluir ressarcimento */}
-      <AlertDialog
-        open={!!ressarcimentoToDelete}
-        onOpenChange={(v) => { if (!v) setRessarcimentoToDelete(null); }}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Excluir ressarcimento</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação limpa o valor ressarcido registrado no PER{' '}
-              <span className="font-mono font-medium">
-                {ressarcimentoToDelete ? normalizeProcessNumber(ressarcimentoToDelete.nr_per) : ''}
-              </span>
-              {ressarcimentoToDelete ? ` (${formatCurrency(ressarcimentoToDelete.valor)})` : ''}. Não é possível desfazer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteRessarcimentoMutation.isPending}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={deleteRessarcimentoMutation.isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                if (ressarcimentoToDelete) {
-                  deleteRessarcimentoMutation.mutate(ressarcimentoToDelete.nr_per);
-                }
-              }}
-            >
-              {deleteRessarcimentoMutation.isPending ? 'Excluindo...' : 'Excluir'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
       </TooltipProvider>
     </DevLayout>
   );
