@@ -638,6 +638,31 @@ export default function ControlePerdcomp() {
     setSoftDeleteOpen(true);
   };
 
+  // Mutation: exclui o ressarcimento de um PER (não é soft delete — apenas limpa colunas).
+  const deleteRessarcimentoMutation = useMutation({
+    mutationFn: async (nrPer: string) => {
+      const { error } = await (supabase.from('per') as any)
+        .update({
+          vlr_ressarcido: null,
+          vlr_ressarcido_original: null,
+          atualizado_em: new Date().toISOString(),
+          atualizado_por: user?.id ?? null,
+        })
+        .eq('nr_per', nrPer);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
+      queryClient.invalidateQueries({ queryKey: ['per-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
+      toast.success('Ressarcimento excluído com sucesso.');
+      setRessarcimentoToDelete(null);
+    },
+    onError: (err: any) => {
+      toast.error(`Erro ao excluir ressarcimento: ${err.message}`);
+    },
+  });
+
   const isLoading = perLoading || dcompLoading;
 
   const renderTable = () => {
