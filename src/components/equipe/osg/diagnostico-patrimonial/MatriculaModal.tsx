@@ -66,8 +66,8 @@ const fieldCls =
   'focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss ' +
   'focus:ring-1 focus:ring-osg-moss/40 focus:ring-offset-0 focus:border-osg-moss';
 
-// Seção como "passo" estruturado: um trilho vertical verde-musgo na lateral e um
-// número de ordem (01, 02…) estabelecem zonas distintas sem encaixotar os campos.
+// Seção como "passo" estruturado: trilho vertical verde-musgo na lateral + linha
+// fina horizontal separando as zonas, com número de ordem (01, 02…).
 function FieldSection({
   number, title, hint, children,
 }: {
@@ -77,17 +77,19 @@ function FieldSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="relative pl-6">
-      <span
-        aria-hidden
-        className="absolute inset-y-0 left-0 w-1 rounded-full bg-osg-moss/70"
-      />
-      <div className="mb-4 flex items-center gap-2.5">
-        <span className="font-mono text-xs font-bold tabular-nums text-osg-moss">{number}</span>
-        <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">{title}</h4>
-        {hint && <span className="ml-auto text-[11px] font-medium text-muted-foreground">{hint}</span>}
+    <section className="mt-6 border-t-2 border-osg-100 pt-6 first:mt-0 first:border-t-0 first:pt-0">
+      <div className="relative pl-6">
+        <span
+          aria-hidden
+          className="absolute inset-y-0 left-0 w-1 rounded-full bg-osg-moss/70"
+        />
+        <div className="mb-4 flex items-center gap-2.5">
+          <span className="font-mono text-xs font-bold tabular-nums text-osg-moss">{number}</span>
+          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">{title}</h4>
+          {hint && <span className="ml-auto text-[11px] font-medium text-muted-foreground">{hint}</span>}
+        </div>
+        {children}
       </div>
-      {children}
     </section>
   );
 }
@@ -315,7 +317,7 @@ export function MatriculaModal({
 
           {/* Área rolável */}
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <TabsContent value="dados" className="mt-0 space-y-8 focus-visible:ring-0">
+            <TabsContent value="dados" className="mt-0 focus-visible:ring-0">
               <FieldSection number={nextNo()} title="Identificação">
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
