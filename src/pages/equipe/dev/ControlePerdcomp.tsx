@@ -107,10 +107,7 @@ interface PerSituacaoMap {
 
 export default function ControlePerdcomp() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
-  // Ressarcimento delete state
-  const [ressarcimentoToDelete, setRessarcimentoToDelete] = useState<{ nr_per: string; valor: number } | null>(null);
 
   // Filter states
   const [clienteId, setClienteId] = useState<string>("");
