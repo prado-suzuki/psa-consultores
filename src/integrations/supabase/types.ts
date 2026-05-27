@@ -303,6 +303,7 @@ export type Database = {
           referencia_dp: string
           status_integralizacao: string | null
           tipo_bem: string
+          descricao_outros: string | null
           updated_at: string
           updated_by: string | null
           vlr_benfeitorias: number | null
@@ -328,6 +329,7 @@ export type Database = {
           referencia_dp: string
           status_integralizacao?: string | null
           tipo_bem: string
+          descricao_outros?: string | null
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
@@ -353,6 +355,7 @@ export type Database = {
           referencia_dp?: string
           status_integralizacao?: string | null
           tipo_bem?: string
+          descricao_outros?: string | null
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
@@ -3447,6 +3450,20 @@ export type Database = {
             columns: ["contribuinte_id"]
             isOneToOne: false
             referencedRelation: "contribuinte"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_mae_pessoa_id_fkey"
+            columns: ["filiacao_mae_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_pai_pessoa_id_fkey"
+            columns: ["filiacao_pai_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
           {

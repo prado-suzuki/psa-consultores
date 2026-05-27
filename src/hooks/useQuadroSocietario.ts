@@ -20,7 +20,9 @@ const PESSOA_DIFF_FIELDS: (keyof PessoaRow)[] = [
   'endereco_logradouro', 'endereco_numero', 'endereco_complemento', 'endereco_bairro',
   'endereco_municipio', 'endereco_uf', 'endereco_cep',
   'nacionalidade', 'estado_civil', 'regime_bens', 'data_nascimento',
-  'filiacao_pai', 'filiacao_mae', 'profissao', 'documento_identidade_numero', 'documento_identidade_orgao', 'documento_identidade_uf', 'conjuge_id',
+  'filiacao_pai', 'filiacao_mae', 'profissao',
+  'documento_identidade_tipo', 'documento_identidade_numero', 'documento_identidade_orgao', 'documento_identidade_uf',
+  'conjuge_id',
   'nire', 'junta_comercial_uf', 'data_constituicao', 'objeto_social', 'status_constituicao',
 ];
 

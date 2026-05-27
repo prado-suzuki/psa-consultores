@@ -36,13 +36,13 @@ export type TipoBem = 'IR' | 'IB' | 'AP' | 'PS' | 'OU';
 export const TIPO_BEM_OPTIONS: Array<{ value: TipoBem; label: string; descricao: string }> = [
   { value: 'IR', label: 'Imóvel Rural', descricao: 'Imóvel rural com CCIR e ITR' },
   { value: 'IB', label: 'Imóvel de Benfeitoria', descricao: 'Imóvel urbano / IPTU' },
-  { value: 'AP', label: 'Animal de Produção', descricao: 'Rebanho, semoventes' },
+  { value: 'AP', label: 'Arrendamento e/ou Parceria', descricao: 'Arrendamento e/ou parceria' },
   { value: 'PS', label: 'Participação Societária', descricao: 'Quotas / ações em PJs' },
   { value: 'OU', label: 'Outros', descricao: 'Demais bens' },
 ];
 
 const BEM_DIFF_FIELDS: (keyof BemRow)[] = [
-  'cliente_id', 'referencia_dp', 'tipo_bem', 'denominacao',
+  'cliente_id', 'referencia_dp', 'tipo_bem', 'descricao_outros', 'denominacao',
   'vlr_contabil', 'vlr_contabil_ajustado', 'vlr_benfeitorias',
   'vlr_mercado', 'vlr_imposto_anual', 'imposto_anual_exercicio',
   'ccir_codigo', 'inscricao_municipal', 'status_integralizacao',

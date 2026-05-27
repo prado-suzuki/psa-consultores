@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { toast } from 'sonner';
-import { Loader2, Plus, X } from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import { formatCpfCnpj, formatCep, UF_STATES } from '@/components/equipe/client-form/constants';
+import {
+  fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
+} from '@/components/equipe/osg/formKit';
 import type { PessoaRow, TipoPessoa } from '@/hooks/useQuadroSocietario';
 import {
   useDeleteParentesco,
@@ -16,7 +20,6 @@ import {
   useUpsertParentesco,
   useUpsertPessoa,
 } from '@/hooks/useQuadroSocietario';
-import { Badge } from '@/components/ui/badge';
 
 const ESTADO_CIVIL_OPTIONS = [
   'Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável',
@@ -29,12 +32,24 @@ const STATUS_CONSTITUICAO_OPTIONS = [
 ];
 
 const TIPO_PARENTESCO_OPTIONS = [
-  'Cônjuge', 'Filho(a)', 'Pai/Mãe', 'Irmão(ã)', 'Avô(ó)', 'Neto(a)',
+  'Filho(a)', 'Pai/Mãe', 'Irmão(ã)', 'Avô(ó)', 'Neto(a)',
   'Tio(a)', 'Sobrinho(a)', 'Primo(a)', 'Sogro(a)', 'Genro/Nora', 'Cunhado(a)',
   'Padrasto/Madrasta', 'Enteado(a)', 'Outro',
 ];
 
 const NATUREZA_OPTIONS = ['Consanguíneo', 'Afim', 'Adotivo', 'Civil'];
+
+const GENERO_OPTIONS: { value: string; label: string }[] = [
+  { value: 'M', label: 'Masculino' },
+  { value: 'F', label: 'Feminino' },
+];
+
+const DOC_IDENTIDADE_TIPO_OPTIONS: { value: string; label: string }[] = [
+  { value: 'rg', label: 'RG' },
+  { value: 'cnh', label: 'CNH' },
+  { value: 'reservista', label: 'Reservista' },
+  { value: 'ctps', label: 'CTPS' },
+];
 
 interface PessoaModalProps {
   open: boolean;
@@ -57,17 +72,25 @@ type DraftPessoa = {
   endereco_municipio: string;
   endereco_uf: string;
   // PF
+  genero: string;
   nacionalidade: string;
+  naturalidade_municipio: string;
+  naturalidade_uf: string;
   estado_civil: string;
+  convive_uniao_estavel: boolean;
   regime_bens: string;
   data_nascimento: string;
   filiacao_pai: string;
+  filiacao_pai_pessoa_id: string;
   filiacao_mae: string;
+  filiacao_mae_pessoa_id: string;
   profissao: string;
+  documento_identidade_tipo: string;
   documento_identidade_numero: string;
   documento_identidade_orgao: string;
   documento_identidade_uf: string;
   conjuge_id: string;
+  is_fundador: boolean;
   // PJ
   nire: string;
   junta_comercial_uf: string;
@@ -87,17 +110,25 @@ const emptyDraft = (): DraftPessoa => ({
   endereco_bairro: '',
   endereco_municipio: '',
   endereco_uf: '',
+  genero: '',
   nacionalidade: '',
+  naturalidade_municipio: '',
+  naturalidade_uf: '',
   estado_civil: '',
+  convive_uniao_estavel: false,
   regime_bens: '',
   data_nascimento: '',
   filiacao_pai: '',
+  filiacao_pai_pessoa_id: '',
   filiacao_mae: '',
+  filiacao_mae_pessoa_id: '',
   profissao: '',
+  documento_identidade_tipo: '',
   documento_identidade_numero: '',
   documento_identidade_orgao: '',
   documento_identidade_uf: '',
   conjuge_id: '',
+  is_fundador: false,
   nire: '',
   junta_comercial_uf: '',
   data_constituicao: '',
@@ -116,23 +147,86 @@ const fromPessoa = (p: PessoaRow): DraftPessoa => ({
   endereco_bairro: p.endereco_bairro ?? '',
   endereco_municipio: p.endereco_municipio ?? '',
   endereco_uf: p.endereco_uf ?? '',
+  genero: p.genero ?? '',
   nacionalidade: p.nacionalidade ?? '',
+  naturalidade_municipio: p.naturalidade_municipio ?? '',
+  naturalidade_uf: p.naturalidade_uf ?? '',
   estado_civil: p.estado_civil ?? '',
+  convive_uniao_estavel: p.convive_uniao_estavel ?? false,
   regime_bens: p.regime_bens ?? '',
   data_nascimento: p.data_nascimento ?? '',
   filiacao_pai: p.filiacao_pai ?? '',
+  filiacao_pai_pessoa_id: p.filiacao_pai_pessoa_id ?? '',
   filiacao_mae: p.filiacao_mae ?? '',
+  filiacao_mae_pessoa_id: p.filiacao_mae_pessoa_id ?? '',
   profissao: p.profissao ?? '',
+  documento_identidade_tipo: p.documento_identidade_tipo ?? '',
   documento_identidade_numero: p.documento_identidade_numero ?? '',
   documento_identidade_orgao: p.documento_identidade_orgao ?? '',
   documento_identidade_uf: p.documento_identidade_uf ?? '',
   conjuge_id: p.conjuge_id ?? '',
+  is_fundador: p.is_fundador ?? false,
   nire: p.nire ?? '',
   junta_comercial_uf: p.junta_comercial_uf ?? '',
   data_constituicao: p.data_constituicao ?? '',
   objeto_social: p.objeto_social ?? '',
   status_constituicao: p.status_constituicao ?? '',
 });
+
+// Campo de filiação: texto livre com autocomplete. Digitar busca pessoas já
+// cadastradas (PF); selecionar uma vincula o FK; sem seleção, salva só o texto.
+function FiliacaoCombobox({
+  nome, pessoaId, candidates, placeholder, onChange,
+}: {
+  nome: string;
+  pessoaId: string;
+  candidates: PessoaRow[];
+  placeholder: string;
+  onChange: (nome: string, pessoaId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const termo = nome.trim().toLowerCase();
+  const suggestions = termo
+    ? candidates.filter((c) => (c.denominacao ?? '').toLowerCase().includes(termo)).slice(0, 8)
+    : [];
+
+  return (
+    <div className="relative">
+      <Input
+        value={nome}
+        // Digitar desvincula: volta a ser texto livre até selecionar alguém.
+        onChange={(e) => { onChange(e.target.value, ''); setOpen(true); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className={`${fieldCls} ${pessoaId ? 'pr-8' : ''}`}
+      />
+      {pessoaId && (
+        <Check className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-moss" />
+      )}
+      {open && suggestions.length > 0 && (
+        <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover py-1 shadow-md">
+          {suggestions.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-osg-moss hover:text-white"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(c.denominacao ?? '', c.id);
+                  setOpen(false);
+                }}
+              >
+                <span className="truncate">{c.denominacao}</span>
+                {pessoaId === c.id && <Check className="ml-auto h-3.5 w-3.5 shrink-0" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTipo, onClose }: PessoaModalProps) {
   const [draft, setDraft] = useState<DraftPessoa>(emptyDraft);
@@ -152,39 +246,47 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
         ? fromPessoa(pessoa)
         : { ...emptyDraft(), tipo_pessoa: defaultTipo ?? 'PF' },
     );
-    setNovoParente({ parenteId: '', tipo: '', natureza: '' });
   }, [open, pessoa, defaultTipo]);
 
   const isPF = draft.tipo_pessoa === 'PF';
   const isEdit = !!pessoa?.id;
 
-  const parentescosDaPessoa = pessoa?.id
-    ? parentescosCliente.filter(
-        (v) => v.pessoa_id === pessoa.id || v.parente_pessoa_id === pessoa.id,
-      )
-    : [];
+  // Vínculo de parentesco é 1:1: cada pessoa tem no máximo um, que ela "possui"
+  // (pessoa_id = a própria). É salvo junto com a pessoa, sem botão dedicado.
+  const parentescoAtual = pessoa?.id
+    ? parentescosCliente.find((v) => v.pessoa_id === pessoa.id) ?? null
+    : null;
 
-  const handleAddParentesco = () => {
-    if (!pessoa?.id) return;
-    if (!novoParente.parenteId) {
-      toast.error('Selecione o parente');
-      return;
-    }
-    upsertParentesco.mutate(
-      {
+  useEffect(() => {
+    if (!open) return;
+    setNovoParente(
+      parentescoAtual
+        ? {
+            parenteId: parentescoAtual.parente_pessoa_id,
+            tipo: parentescoAtual.tipo ?? '',
+            natureza: parentescoAtual.natureza ?? '',
+          }
+        : { parenteId: '', tipo: '', natureza: '' },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, pessoa?.id, parentescoAtual?.id]);
+
+  // Reconcilia o vínculo 1:1 depois de salvar a pessoa (insert/update/delete).
+  const reconcileParentesco = async (pessoaId: string) => {
+    if (novoParente.parenteId) {
+      await upsertParentesco.mutateAsync({
         values: {
-          pessoa_id: pessoa.id,
+          pessoa_id: pessoaId,
           parente_pessoa_id: novoParente.parenteId,
           tipo: novoParente.tipo || null,
           natureza: novoParente.natureza || null,
         },
-        original: null,
+        original: parentescoAtual,
         clienteId,
-      },
-      {
-        onSuccess: () => setNovoParente({ parenteId: '', tipo: '', natureza: '' }),
-      },
-    );
+      });
+    } else if (parentescoAtual) {
+      await deleteParentesco.mutateAsync({ row: parentescoAtual, clienteId });
+    }
   };
 
   const setField = <K extends keyof DraftPessoa>(field: K, value: DraftPessoa[K]) => {
@@ -224,17 +326,25 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
     const pfFields = isPF
       ? {
+          genero: nullify(draft.genero),
           nacionalidade: nullify(draft.nacionalidade),
+          naturalidade_municipio: nullify(draft.naturalidade_municipio),
+          naturalidade_uf: nullify(draft.naturalidade_uf),
           estado_civil: nullify(draft.estado_civil),
+          convive_uniao_estavel: draft.convive_uniao_estavel,
           regime_bens: nullify(draft.regime_bens),
           data_nascimento: nullify(draft.data_nascimento),
           filiacao_pai: nullify(draft.filiacao_pai),
+          filiacao_pai_pessoa_id: draft.filiacao_pai_pessoa_id || null,
           filiacao_mae: nullify(draft.filiacao_mae),
+          filiacao_mae_pessoa_id: draft.filiacao_mae_pessoa_id || null,
           profissao: nullify(draft.profissao),
+          documento_identidade_tipo: nullify(draft.documento_identidade_tipo),
           documento_identidade_numero: nullify(draft.documento_identidade_numero),
           documento_identidade_orgao: nullify(draft.documento_identidade_orgao),
           documento_identidade_uf: nullify(draft.documento_identidade_uf),
           conjuge_id: draft.conjuge_id || null,
+          is_fundador: draft.is_fundador,
           nire: null,
           junta_comercial_uf: null,
           data_constituicao: null,
@@ -242,17 +352,25 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           status_constituicao: null,
         }
       : {
+          genero: null,
           nacionalidade: null,
+          naturalidade_municipio: null,
+          naturalidade_uf: null,
           estado_civil: null,
+          convive_uniao_estavel: false,
           regime_bens: null,
           data_nascimento: null,
           filiacao_pai: null,
+          filiacao_pai_pessoa_id: null,
           filiacao_mae: null,
+          filiacao_mae_pessoa_id: null,
           profissao: null,
+          documento_identidade_tipo: null,
           documento_identidade_numero: null,
           documento_identidade_orgao: null,
           documento_identidade_uf: null,
           conjuge_id: null,
+          is_fundador: false,
           nire: nullify(draft.nire),
           junta_comercial_uf: nullify(draft.junta_comercial_uf),
           data_constituicao: nullify(draft.data_constituicao),
@@ -262,174 +380,215 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
     upsert.mutate(
       { values: { ...base, ...pfFields }, original: pessoa },
-      { onSuccess: () => onClose() },
+      {
+        onSuccess: async (result) => {
+          if (isPF) await reconcileParentesco(result.row.id);
+          onClose();
+        },
+      },
     );
   };
 
-  const conjugeCandidates = pessoasCliente.filter(
+  // PFs do mesmo cliente, exceto a própria pessoa — usadas em cônjuge e filiação.
+  const pessoaCandidates = pessoasCliente.filter(
     (p) => p.tipo_pessoa === 'PF' && p.id !== pessoa?.id,
   );
+  const conjugeCandidates = pessoaCandidates;
+
+  let secNo = 0;
+  const nextNo = () => String(++secNo).padStart(2, '0');
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {isEdit ? 'Editar pessoa' : 'Nova pessoa'} — Quadro Societário
+          <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
+            {isEdit ? 'Editar pessoa' : 'Nova pessoa'}
+            <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
+              {isPF ? 'Pessoa Física' : 'Pessoa Jurídica'}
+            </span>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Tipo de pessoa<RequiredMark />
-              </Label>
-              <Select
-                value={draft.tipo_pessoa}
-                onValueChange={(v: TipoPessoa) => {
-                  setDraft((prev) => ({ ...prev, tipo_pessoa: v, cpf_cnpj: '' }));
-                }}
-              >
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PF">Pessoa Física</SelectItem>
-                  <SelectItem value="PJ">Pessoa Jurídica</SelectItem>
-                </SelectContent>
-              </Select>
+        <div>
+          <FieldSection number={nextNo()} title="Identificação">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className={labelCls}>
+                  Tipo de pessoa<RequiredMark />
+                </Label>
+                <Select
+                  value={draft.tipo_pessoa}
+                  onValueChange={(v: TipoPessoa) => {
+                    setDraft((prev) => ({ ...prev, tipo_pessoa: v, cpf_cnpj: '' }));
+                  }}
+                >
+                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PF">Pessoa Física</SelectItem>
+                    <SelectItem value="PJ">Pessoa Jurídica</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className={labelCls}>
+                  {isPF ? 'CPF' : 'CNPJ'}
+                </Label>
+                <Input
+                  value={draft.cpf_cnpj}
+                  onChange={(e) => setField('cpf_cnpj', formatCpfCnpj(e.target.value, draft.tipo_pessoa))}
+                  placeholder={isPF ? '000.000.000-00' : '00.000.000/0000-00'}
+                  className={`${fieldCls} font-mono`}
+                />
+              </div>
+
+              <div className="md:col-span-2 space-y-1.5">
+                <Label className={labelCls}>
+                  {isPF ? 'Nome completo' : 'Razão social'}<RequiredMark />
+                </Label>
+                <Input
+                  value={draft.denominacao}
+                  onChange={(e) => setField('denominacao', e.target.value)}
+                  className={fieldCls}
+                />
+              </div>
             </div>
+          </FieldSection>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                {isPF ? 'CPF' : 'CNPJ'}
-              </Label>
-              <Input
-                value={draft.cpf_cnpj}
-                onChange={(e) => setField('cpf_cnpj', formatCpfCnpj(e.target.value, draft.tipo_pessoa))}
-                placeholder={isPF ? '000.000.000-00' : '00.000.000/0000-00'}
-                className="font-mono h-9"
-              />
-            </div>
-
-            <div className="md:col-span-2 space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                {isPF ? 'Nome completo' : 'Razão social'}<RequiredMark />
-              </Label>
-              <Input
-                value={draft.denominacao}
-                onChange={(e) => setField('denominacao', e.target.value)}
-                className="h-9"
-              />
-            </div>
-          </div>
-
-          <Separator />
-
-          <div>
-            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Endereço</h4>
+          <FieldSection number={nextNo()} title="Endereço">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">CEP</Label>
+                <Label className={labelCls}>CEP</Label>
                 <Input
                   value={draft.endereco_cep}
                   onChange={(e) => setField('endereco_cep', formatCep(e.target.value))}
                   placeholder="00000-000"
-                  className="font-mono h-9"
+                  className={`${fieldCls} font-mono`}
                 />
               </div>
               <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Logradouro</Label>
+                <Label className={labelCls}>Logradouro</Label>
                 <Input
                   value={draft.endereco_logradouro}
                   onChange={(e) => setField('endereco_logradouro', e.target.value)}
-                  className="h-9"
+                  className={fieldCls}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Número</Label>
+                <Label className={labelCls}>Número</Label>
                 <Input
                   value={draft.endereco_numero}
                   onChange={(e) => setField('endereco_numero', e.target.value)}
-                  className="h-9"
+                  className={fieldCls}
                 />
               </div>
               <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Complemento</Label>
+                <Label className={labelCls}>Complemento</Label>
                 <Input
                   value={draft.endereco_complemento}
                   onChange={(e) => setField('endereco_complemento', e.target.value)}
-                  className="h-9"
+                  className={fieldCls}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Bairro</Label>
+                <Label className={labelCls}>Bairro</Label>
                 <Input
                   value={draft.endereco_bairro}
                   onChange={(e) => setField('endereco_bairro', e.target.value)}
-                  className="h-9"
+                  className={fieldCls}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Município</Label>
+                <Label className={labelCls}>Município</Label>
                 <Input
                   value={draft.endereco_municipio}
                   onChange={(e) => setField('endereco_municipio', e.target.value)}
-                  className="h-9"
+                  className={fieldCls}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">UF</Label>
+                <Label className={labelCls}>UF</Label>
                 <Select
                   value={draft.endereco_uf || undefined}
                   onValueChange={(v) => setField('endereco_uf', v)}
                 >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>
                     {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-          </div>
-
-          <Separator />
+          </FieldSection>
 
           {isPF ? (
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Dados pessoais</h4>
+            <FieldSection number={nextNo()} title="Dados pessoais">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Nacionalidade</Label>
+                  <Label className={labelCls}>Gênero</Label>
+                  <Select
+                    value={draft.genero || undefined}
+                    onValueChange={(v) => setField('genero', v)}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {GENERO_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Nacionalidade</Label>
                   <Input
                     value={draft.nacionalidade}
                     onChange={(e) => setField('nacionalidade', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Data de nascimento</Label>
+                  <Label className={labelCls}>Naturalidade (município)</Label>
+                  <Input
+                    value={draft.naturalidade_municipio}
+                    onChange={(e) => setField('naturalidade_municipio', e.target.value)}
+                    className={fieldCls}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Naturalidade (UF)</Label>
+                  <Select
+                    value={draft.naturalidade_uf || undefined}
+                    onValueChange={(v) => setField('naturalidade_uf', v)}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Data de nascimento</Label>
                   <Input
                     type="date"
                     value={draft.data_nascimento}
                     onChange={(e) => setField('data_nascimento', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Profissão</Label>
+                  <Label className={labelCls}>Profissão</Label>
                   <Input
                     value={draft.profissao}
                     onChange={(e) => setField('profissao', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Estado civil</Label>
+                  <Label className={labelCls}>Estado civil</Label>
                   <Select
                     value={draft.estado_civil || undefined}
                     onValueChange={(v) => setField('estado_civil', v)}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       {ESTADO_CIVIL_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
@@ -438,24 +597,24 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                 {(draft.estado_civil === 'Casado(a)' || draft.estado_civil === 'União Estável') && (
                   <>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Regime de bens</Label>
+                      <Label className={labelCls}>Regime de bens</Label>
                       <Select
                         value={draft.regime_bens || undefined}
                         onValueChange={(v) => setField('regime_bens', v)}
                       >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                         <SelectContent>
                           {REGIME_BENS_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Cônjuge</Label>
+                      <Label className={labelCls}>Cônjuge</Label>
                       <Select
                         value={draft.conjuge_id || undefined}
                         onValueChange={(v) => setField('conjuge_id', v)}
                       >
-                        <SelectTrigger className="h-9">
+                        <SelectTrigger className={fieldCls}>
                           <SelectValue placeholder={conjugeCandidates.length ? 'Selecione...' : 'Nenhuma PF cadastrada'} />
                         </SelectTrigger>
                         <SelectContent>
@@ -469,234 +628,201 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                 )}
                 <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Filiação (pai)</Label>
-                    <Input
-                      value={draft.filiacao_pai}
-                      onChange={(e) => setField('filiacao_pai', e.target.value)}
-                      className="h-9"
+                    <Label className={labelCls}>Filiação (pai)</Label>
+                    <FiliacaoCombobox
+                      nome={draft.filiacao_pai}
+                      pessoaId={draft.filiacao_pai_pessoa_id}
+                      candidates={pessoaCandidates}
+                      placeholder="Nome do pai"
+                      onChange={(nome, id) =>
+                        setDraft((prev) => ({ ...prev, filiacao_pai: nome, filiacao_pai_pessoa_id: id }))}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Filiação (mãe)</Label>
-                    <Input
-                      value={draft.filiacao_mae}
-                      onChange={(e) => setField('filiacao_mae', e.target.value)}
-                      className="h-9"
+                    <Label className={labelCls}>Filiação (mãe)</Label>
+                    <FiliacaoCombobox
+                      nome={draft.filiacao_mae}
+                      pessoaId={draft.filiacao_mae_pessoa_id}
+                      candidates={pessoaCandidates}
+                      placeholder="Nome da mãe"
+                      onChange={(nome, id) =>
+                        setDraft((prev) => ({ ...prev, filiacao_mae: nome, filiacao_mae_pessoa_id: id }))}
                     />
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">RG</Label>
+                  <Label className={labelCls}>Tipo de documento</Label>
+                  <Select
+                    value={draft.documento_identidade_tipo || undefined}
+                    onValueChange={(v) => setField('documento_identidade_tipo', v)}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {DOC_IDENTIDADE_TIPO_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Nº do documento</Label>
                   <Input
                     value={draft.documento_identidade_numero}
                     onChange={(e) => setField('documento_identidade_numero', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Órgão emissor</Label>
+                  <Label className={labelCls}>Órgão emissor</Label>
                   <Input
                     value={draft.documento_identidade_orgao}
                     onChange={(e) => setField('documento_identidade_orgao', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">UF do RG</Label>
+                  <Label className={labelCls}>UF do documento</Label>
                   <Select
                     value={draft.documento_identidade_uf || undefined}
                     onValueChange={(v) => setField('documento_identidade_uf', v)}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="md:col-span-3">
+                  <label className={`${switchBoxCls} w-full cursor-pointer text-sm`}>
+                    <Checkbox
+                      checked={draft.is_fundador}
+                      onCheckedChange={(c) => setField('is_fundador', c === true)}
+                    />
+                    Fundador (patriarca/matriarca do grupo)
+                  </label>
+                </div>
               </div>
-            </div>
+            </FieldSection>
           ) : (
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Dados da PJ</h4>
+            <FieldSection number={nextNo()} title="Dados da PJ">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">NIRE</Label>
+                  <Label className={labelCls}>NIRE</Label>
                   <Input
                     value={draft.nire}
                     onChange={(e) => setField('nire', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">UF da Junta Comercial</Label>
+                  <Label className={labelCls}>UF da Junta Comercial</Label>
                   <Select
                     value={draft.junta_comercial_uf || undefined}
                     onValueChange={(v) => setField('junta_comercial_uf', v)}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Data de constituição</Label>
+                  <Label className={labelCls}>Data de constituição</Label>
                   <Input
                     type="date"
                     value={draft.data_constituicao}
                     onChange={(e) => setField('data_constituicao', e.target.value)}
-                    className="h-9"
+                    className={fieldCls}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
+                  <Label className={labelCls}>Status</Label>
                   <Select
                     value={draft.status_constituicao || undefined}
                     onValueChange={(v) => setField('status_constituicao', v)}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       {STATUS_CONSTITUICAO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="md:col-span-3 space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Objeto social</Label>
-                  <textarea
+                  <Label className={labelCls}>Objeto social</Label>
+                  <Textarea
                     value={draft.objeto_social}
                     onChange={(e) => setField('objeto_social', e.target.value)}
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className={`min-h-[80px] ${textareaCls}`}
                   />
                 </div>
               </div>
-            </div>
+            </FieldSection>
           )}
 
-          <Separator />
-
-          <div>
-            <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Filiação / Parentes</h4>
-
-            {!isEdit ? (
-              <p className="text-xs text-muted-foreground italic">
-                Salve a pessoa para cadastrar vínculos de parentesco.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {parentescosDaPessoa.length > 0 && (
-                  <div className="space-y-1.5">
-                    {parentescosDaPessoa.map((v) => {
-                      const isOrigem = v.pessoa_id === pessoa?.id;
-                      const outroNome = isOrigem ? v.parente_denominacao : v.pessoa_denominacao;
-                      return (
-                        <div
-                          key={v.id}
-                          className="flex items-center gap-2 rounded-md border bg-muted/30 px-3 py-2"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">{outroNome}</div>
-                            <div className="flex gap-1.5 mt-0.5">
-                              {v.tipo && <Badge variant="outline" className="text-[10px]">{v.tipo}</Badge>}
-                              {v.natureza && <Badge variant="secondary" className="text-[10px]">{v.natureza}</Badge>}
-                              {!isOrigem && (
-                                <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                                  vínculo recíproco
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-destructive"
-                            onClick={() => deleteParentesco.mutate({ row: v, clienteId })}
-                            disabled={deleteParentesco.isPending}
-                          >
-                            <X className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                <div className="rounded-md border border-dashed p-3">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
-                    <div className="md:col-span-2 space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Parente</Label>
-                      <Select
-                        value={novoParente.parenteId || undefined}
-                        onValueChange={(v) => setNovoParente((prev) => ({ ...prev, parenteId: v }))}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue
-                            placeholder={
-                              pessoasCliente.filter((p) => p.id !== pessoa?.id).length
-                                ? 'Selecione...'
-                                : 'Cadastre outra pessoa primeiro'
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {pessoasCliente
-                            .filter((p) => p.id !== pessoa?.id)
-                            .map((p) => (
-                              <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
-                      <Select
-                        value={novoParente.tipo || undefined}
-                        onValueChange={(v) => setNovoParente((prev) => ({ ...prev, tipo: v }))}
-                      >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {TIPO_PARENTESCO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Natureza</Label>
-                      <Select
-                        value={novoParente.natureza || undefined}
-                        onValueChange={(v) => setNovoParente((prev) => ({ ...prev, natureza: v }))}
-                      >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>
-                          {NATUREZA_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="flex justify-end mt-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="gap-1.5"
-                      onClick={handleAddParentesco}
-                      disabled={upsertParentesco.isPending || !novoParente.parenteId}
-                    >
-                      {upsertParentesco.isPending
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <Plus className="h-3.5 w-3.5" />}
-                      Adicionar parente
-                    </Button>
-                  </div>
+          {isPF && (
+            <FieldSection number={nextNo()} title="Filiação">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className={labelCls}>Parente</Label>
+                  <Select
+                    value={novoParente.parenteId || undefined}
+                    onValueChange={(v) => setNovoParente((prev) => ({ ...prev, parenteId: v }))}
+                  >
+                    <SelectTrigger className={fieldCls}>
+                      <SelectValue
+                        placeholder={
+                          pessoaCandidates.length
+                            ? 'Selecione...'
+                            : 'Cadastre outra pessoa primeiro'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {pessoaCandidates.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Tipo</Label>
+                  <Select
+                    value={novoParente.tipo || undefined}
+                    onValueChange={(v) => setNovoParente((prev) => ({ ...prev, tipo: v }))}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_PARENTESCO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Natureza</Label>
+                  <Select
+                    value={novoParente.natureza || undefined}
+                    onValueChange={(v) => setNovoParente((prev) => ({ ...prev, natureza: v }))}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {NATUREZA_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-            )}
-          </div>
+            </FieldSection>
+          )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="mt-6 border-t border-osg-100 pt-4">
           <Button variant="outline" onClick={onClose} disabled={upsert.isPending}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={upsert.isPending} className="gap-1.5">
-            {upsert.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          <Button
+            onClick={handleSave}
+            disabled={upsert.isPending || upsertParentesco.isPending || deleteParentesco.isPending}
+            className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+          >
+            {(upsert.isPending || upsertParentesco.isPending || deleteParentesco.isPending) && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            )}
             {isEdit ? 'Salvar alterações' : 'Cadastrar pessoa'}
           </Button>
         </DialogFooter>

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Users, Search, Building2, User as UserIcon } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { rowActivateProps } from '@/hooks/rowActivateProps';
 import {
   useDeletePessoa,
   usePessoasByCliente,
@@ -64,7 +65,7 @@ const PessoasTable = ({
             </TableHeader>
             <TableBody>
               {pessoas.map((p) => (
-                <TableRow key={p.id}>
+                <TableRow key={p.id} {...rowActivateProps(() => onEditar(p))}>
                   <TableCell className="font-medium">{p.denominacao}</TableCell>
                   <TableCell className="font-mono text-xs">{p.cpf_cnpj ?? '—'}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">

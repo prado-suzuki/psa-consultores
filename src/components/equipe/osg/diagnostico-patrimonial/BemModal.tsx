@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { RequiredMark } from '@/components/ui/required-mark';
+import {
+  fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
+} from '@/components/equipe/osg/formKit';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -45,6 +47,7 @@ interface BemModalProps {
 type DraftBem = {
   referencia_dp: string;
   tipo_bem: TipoBem;
+  descricao_outros: string;
   denominacao: string;
   vlr_contabil: string;
   vlr_contabil_ajustado: string;
@@ -64,6 +67,7 @@ type DraftBem = {
 const emptyDraft = (): DraftBem => ({
   referencia_dp: '',
   tipo_bem: 'IR',
+  descricao_outros: '',
   denominacao: '',
   vlr_contabil: '',
   vlr_contabil_ajustado: '',
@@ -83,6 +87,7 @@ const emptyDraft = (): DraftBem => ({
 const fromBem = (b: BemRow): DraftBem => ({
   referencia_dp: b.referencia_dp ?? '',
   tipo_bem: (b.tipo_bem as TipoBem) ?? 'IR',
+  descricao_outros: b.descricao_outros ?? '',
   denominacao: b.denominacao ?? '',
   vlr_contabil: b.vlr_contabil != null ? String(b.vlr_contabil) : '',
   vlr_contabil_ajustado: b.vlr_contabil_ajustado != null ? String(b.vlr_contabil_ajustado) : '',
@@ -119,6 +124,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
   const isEdit = !!bem?.id;
   const isImovel = draft.tipo_bem === 'IR' || draft.tipo_bem === 'IB';
   const isImovelRural = draft.tipo_bem === 'IR';
+  const isOutros = draft.tipo_bem === 'OU';
 
   const setField = <K extends keyof DraftBem>(field: K, value: DraftBem[K]) => {
     setDraft((p) => ({ ...p, [field]: value }));
@@ -138,6 +144,10 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       toast.error('Denominação é obrigatória');
       return;
     }
+    if (isOutros && !draft.descricao_outros.trim()) {
+      toast.error('Especifique o tipo de bem');
+      return;
+    }
     if (!draft.vlr_contabil.trim() || isNaN(Number(draft.vlr_contabil))) {
       toast.error('Valor contábil é obrigatório');
       return;
@@ -155,6 +165,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       cliente_id: clienteId,
       referencia_dp: draft.referencia_dp.trim(),
       tipo_bem: draft.tipo_bem,
+      descricao_outros: isOutros ? nullify(draft.descricao_outros) : null,
       denominacao: draft.denominacao.trim(),
       vlr_contabil: Number(draft.vlr_contabil),
       vlr_contabil_ajustado: toNum(draft.vlr_contabil_ajustado),
@@ -177,76 +188,96 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
     );
   };
 
+  let secNo = 0;
+  const nextNo = () => String(++secNo).padStart(2, '0');
+
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {isEdit ? `Editar bem — ${bem?.referencia_dp}` : 'Novo bem'}
+            <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
+              {isEdit ? 'Editar bem' : 'Novo bem'}
+              {isEdit && bem?.referencia_dp && (
+                <span className="rounded-md bg-osg-50 px-2 py-0.5 font-mono text-sm font-semibold text-osg-700">
+                  {bem.referencia_dp}
+                </span>
+              )}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Referência DP<RequiredMark />
-                </Label>
-                <Input
-                  value={draft.referencia_dp}
-                  onChange={(e) => setField('referencia_dp', e.target.value)}
-                  placeholder="ex: IR-01"
-                  className="h-9 font-mono"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Tipo de bem<RequiredMark />
-                </Label>
-                <Select
-                  value={draft.tipo_bem}
-                  onValueChange={(v: TipoBem) => setField('tipo_bem', v)}
-                >
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TIPO_BEM_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>
-                        <span className="font-mono mr-2">{o.value}</span>{o.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5 flex items-end gap-2">
-                <div className="flex items-center gap-2 h-9">
-                  <Switch
-                    checked={draft.participa_estruturacao}
-                    onCheckedChange={(v) => setField('participa_estruturacao', v)}
-                  />
-                  <Label className="text-sm">Participa da estruturação</Label>
-                </div>
-              </div>
-              <div className="md:col-span-3 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Denominação<RequiredMark />
-                </Label>
-                <Input
-                  value={draft.denominacao}
-                  onChange={(e) => setField('denominacao', e.target.value)}
-                  placeholder="Nome do bem / fazenda / propriedade"
-                  className="h-9"
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Valores</h4>
+          <div>
+            <FieldSection number={nextNo()} title="Identificação">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
+                  <Label className={labelCls}>
+                    Referência DP<RequiredMark />
+                  </Label>
+                  <Input
+                    value={draft.referencia_dp}
+                    onChange={(e) => setField('referencia_dp', e.target.value)}
+                    placeholder="ex: IR-01"
+                    className={`${fieldCls} font-mono`}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>
+                    Tipo de bem<RequiredMark />
+                  </Label>
+                  <Select
+                    value={draft.tipo_bem}
+                    onValueChange={(v: TipoBem) => setField('tipo_bem', v)}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_BEM_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          <span className="font-mono mr-2">{o.value}</span>{o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-end">
+                  <div className={`${switchBoxCls} w-full`}>
+                    <Switch
+                      checked={draft.participa_estruturacao}
+                      onCheckedChange={(v) => setField('participa_estruturacao', v)}
+                    />
+                    <Label className="text-sm">Participa da estruturação</Label>
+                  </div>
+                </div>
+                {isOutros && (
+                  <div className="md:col-span-3 space-y-1.5">
+                    <Label className={labelCls}>
+                      Especifique o tipo de bem<RequiredMark />
+                    </Label>
+                    <Input
+                      value={draft.descricao_outros}
+                      onChange={(e) => setField('descricao_outros', e.target.value)}
+                      placeholder="Descreva o tipo de bem"
+                      className={fieldCls}
+                    />
+                  </div>
+                )}
+                <div className="md:col-span-3 space-y-1.5">
+                  <Label className={labelCls}>
+                    Denominação<RequiredMark />
+                  </Label>
+                  <Input
+                    value={draft.denominacao}
+                    onChange={(e) => setField('denominacao', e.target.value)}
+                    placeholder="Nome do bem / fazenda / propriedade"
+                    className={fieldCls}
+                  />
+                </div>
+              </div>
+            </FieldSection>
+
+            <FieldSection number={nextNo()} title="Valores">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>
                     Vlr. contábil<RequiredMark />
                   </Label>
                   <Input
@@ -254,31 +285,31 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     step="0.01"
                     value={draft.vlr_contabil}
                     onChange={(e) => setField('vlr_contabil', e.target.value)}
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Vlr. contábil ajustado</Label>
+                  <Label className={labelCls}>Vlr. contábil ajustado</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={draft.vlr_contabil_ajustado}
                     onChange={(e) => setField('vlr_contabil_ajustado', e.target.value)}
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Vlr. benfeitorias</Label>
+                  <Label className={labelCls}>Vlr. benfeitorias</Label>
                   <Input
                     type="number"
                     step="0.01"
                     value={draft.vlr_benfeitorias}
                     onChange={(e) => setField('vlr_benfeitorias', e.target.value)}
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
+                  <Label className={labelCls}>
                     Vlr. mercado<RequiredMark />
                   </Label>
                   <Input
@@ -286,11 +317,11 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     step="0.01"
                     value={draft.vlr_mercado}
                     onChange={(e) => setField('vlr_mercado', e.target.value)}
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
+                  <Label className={labelCls}>
                     {isImovelRural ? 'ITR anual' : draft.tipo_bem === 'IB' ? 'IPTU anual' : 'Imposto anual'}
                   </Label>
                   <Input
@@ -298,65 +329,58 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     step="0.01"
                     value={draft.vlr_imposto_anual}
                     onChange={(e) => setField('vlr_imposto_anual', e.target.value)}
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Exercício</Label>
+                  <Label className={labelCls}>Exercício</Label>
                   <Input
                     type="number"
                     value={draft.imposto_anual_exercicio}
                     onChange={(e) => setField('imposto_anual_exercicio', e.target.value)}
                     placeholder="ex: 2025"
-                    className="h-9 font-mono"
+                    className={`${fieldCls} font-mono`}
                   />
                 </div>
               </div>
-            </div>
+            </FieldSection>
 
             {isImovel && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Cadastros oficiais</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {isImovelRural && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">CCIR</Label>
-                        <Input
-                          value={draft.ccir_codigo}
-                          onChange={(e) => setField('ccir_codigo', e.target.value)}
-                          className="h-9 font-mono"
-                        />
-                      </div>
-                    )}
-                    {draft.tipo_bem === 'IB' && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">Inscrição municipal</Label>
-                        <Input
-                          value={draft.inscricao_municipal}
-                          onChange={(e) => setField('inscricao_municipal', e.target.value)}
-                          className="h-9 font-mono"
-                        />
-                      </div>
-                    )}
-                  </div>
+              <FieldSection number={nextNo()} title="Cadastros oficiais">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {isImovelRural && (
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>CCIR</Label>
+                      <Input
+                        value={draft.ccir_codigo}
+                        onChange={(e) => setField('ccir_codigo', e.target.value)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                  )}
+                  {draft.tipo_bem === 'IB' && (
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Inscrição municipal</Label>
+                      <Input
+                        value={draft.inscricao_municipal}
+                        onChange={(e) => setField('inscricao_municipal', e.target.value)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                  )}
                 </div>
-              </>
+              </FieldSection>
             )}
 
-            <Separator />
-
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Integralização</h4>
+            <FieldSection number={nextNo()} title="Integralização">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Status integralização</Label>
+                  <Label className={labelCls}>Status integralização</Label>
                   <Select
                     value={draft.status_integralizacao || undefined}
                     onValueChange={(v) => setField('status_integralizacao', v)}
                   >
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
                       {STATUS_INTEGRALIZACAO_OPTIONS.map((o) => (
                         <SelectItem key={o} value={o}>{o}</SelectItem>
@@ -365,12 +389,12 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">PJ de destino</Label>
+                  <Label className={labelCls}>PJ de destino</Label>
                   <Select
                     value={draft.empresa_destino_pessoa_id || undefined}
                     onValueChange={(v) => setField('empresa_destino_pessoa_id', v)}
                   >
-                    <SelectTrigger className="h-9">
+                    <SelectTrigger className={fieldCls}>
                       <SelectValue placeholder={pjs.length ? 'Selecione...' : 'Cadastre uma PJ no Quadro Societário'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -382,95 +406,93 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                 </div>
                 {!draft.participa_estruturacao && (
                   <div className="md:col-span-2 space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">
+                    <Label className={labelCls}>
                       Motivo de não integralização
                     </Label>
                     <Textarea
                       value={draft.motivo_nao_integralizacao}
                       onChange={(e) => setField('motivo_nao_integralizacao', e.target.value)}
-                      className="min-h-[60px]"
+                      className={`min-h-[60px] ${textareaCls}`}
                     />
                   </div>
                 )}
               </div>
-            </div>
+            </FieldSection>
 
-            <Separator />
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Observação</Label>
+            <FieldSection number={nextNo()} title="Observação">
               <Textarea
                 value={draft.observacao}
                 onChange={(e) => setField('observacao', e.target.value)}
-                className="min-h-[60px]"
+                className={`min-h-[60px] ${textareaCls}`}
               />
-            </div>
+            </FieldSection>
 
             {isImovel && (
-              <>
-                <Separator />
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-bold uppercase text-muted-foreground">
-                      Matrículas ({matriculas.length})
-                    </h4>
-                    <div className="flex gap-1.5">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        disabled={!isEdit}
-                        onClick={() => setVincularOpen(true)}
-                      >
-                        <Link2 className="h-3.5 w-3.5" /> Vincular existente
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5"
-                        disabled={!isEdit}
-                        onClick={() => setMatriculaModal({ open: true, matricula: null })}
-                      >
-                        <Plus className="h-3.5 w-3.5" /> Nova matrícula
-                      </Button>
-                    </div>
+              <FieldSection
+                number={nextNo()}
+                title="Matrículas"
+                hint={isEdit && matriculas.length > 0 ? `${matriculas.length} registro(s)` : undefined}
+                actions={
+                  <div className="flex gap-1.5">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1.5"
+                      disabled={!isEdit}
+                      onClick={() => setVincularOpen(true)}
+                    >
+                      <Link2 className="h-3.5 w-3.5" /> Vincular existente
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-7 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                      disabled={!isEdit}
+                      onClick={() => setMatriculaModal({ open: true, matricula: null })}
+                    >
+                      <Plus className="h-3.5 w-3.5" /> Nova matrícula
+                    </Button>
                   </div>
-                  {!isEdit ? (
-                    <p className="text-xs text-muted-foreground italic">
-                      Salve o bem primeiro para cadastrar matrículas.
-                    </p>
-                  ) : loadingMatriculas ? (
-                    <p className="text-xs text-muted-foreground">Carregando...</p>
-                  ) : matriculas.length === 0 ? (
-                    <Card>
-                      <CardContent className="py-6 text-center text-muted-foreground text-sm">
-                        <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        Nenhuma matrícula cadastrada.
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="space-y-1.5">
-                      {matriculas.map((m) => (
-                        <MatriculaCard
-                          key={m.id}
-                          matricula={m}
-                          onEdit={() => setMatriculaModal({ open: true, matricula: m })}
-                          onUnlink={() => setMatriculaBem.mutate({ matricula: m, bemId: null })}
-                          onDelete={() => deleteMatricula.mutate(m)}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
+                }
+              >
+                {!isEdit ? (
+                  <p className="text-xs text-muted-foreground italic">
+                    Salve o bem primeiro para cadastrar matrículas.
+                  </p>
+                ) : loadingMatriculas ? (
+                  <p className="text-xs text-muted-foreground">Carregando...</p>
+                ) : matriculas.length === 0 ? (
+                  <Card>
+                    <CardContent className="py-6 text-center text-muted-foreground text-sm">
+                      <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                      Nenhuma matrícula cadastrada.
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="space-y-1.5">
+                    {matriculas.map((m) => (
+                      <MatriculaCard
+                        key={m.id}
+                        matricula={m}
+                        onEdit={() => setMatriculaModal({ open: true, matricula: m })}
+                        onUnlink={() => setMatriculaBem.mutate({ matricula: m, bemId: null })}
+                        onDelete={() => deleteMatricula.mutate(m)}
+                      />
+                    ))}
+                  </div>
+                )}
+              </FieldSection>
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="mt-6 border-t border-osg-100 pt-4">
             <Button variant="outline" onClick={onClose} disabled={upsert.isPending}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={upsert.isPending} className="gap-1.5">
+            <Button
+              onClick={handleSave}
+              disabled={upsert.isPending}
+              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+            >
               {upsert.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               {isEdit ? 'Salvar alterações' : 'Cadastrar bem'}
             </Button>

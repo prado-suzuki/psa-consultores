@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/command';
 import { Plus, Pencil, Trash2, Search, FileText, Link2, Unlink, AlertCircle, Loader2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { usePessoasByCliente } from '@/hooks/useQuadroSocietario';
 import {
   useAllMatriculas,
@@ -175,7 +176,7 @@ const ControleMatriculas = () => {
                     {matriculasFiltradas.map((m) => {
                       const orfa = m.bem_id == null;
                       return (
-                        <TableRow key={m.id}>
+                        <TableRow key={m.id} {...rowActivateProps(() => setModal({ open: true, matricula: m }))}>
                           <TableCell>
                             {orfa && (
                               <span

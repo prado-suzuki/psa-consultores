@@ -11,9 +11,10 @@ import {
 } from '@/components/ui/table';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
+} from '@/components/equipe/osg/OsgDialog';
 import { Plus, Pencil, Trash2, Search, Landmark, Loader2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { usePessoasByCliente } from '@/hooks/useQuadroSocietario';
 import {
   useBensByCliente,
@@ -162,7 +163,7 @@ const DiagnosticoPatrimonial = () => {
                         {bensFiltrados.map((b) => {
                           const tipoOpt = TIPO_BEM_OPTIONS.find((o) => o.value === b.tipo_bem);
                           return (
-                            <TableRow key={b.id}>
+                            <TableRow key={b.id} {...rowActivateProps(() => setBemModal({ open: true, bem: b }))}>
                               <TableCell className="font-mono text-xs">{b.referencia_dp}</TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="text-[10px]">

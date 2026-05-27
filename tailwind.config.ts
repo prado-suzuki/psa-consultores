@@ -121,10 +121,29 @@ export default {
             height: "0",
           },
         },
+        // Abertura/fechamento dos modais OSG: rise sutil + leve escala, com o
+        // centramento (-50%, -50%) embutido para o conteúdo não sair do eixo
+        // durante a animação. Mantido aqui (e não no dialog global) para ficar
+        // restrito à OSG. Ver OsgDialog.tsx.
+        "osg-modal-in": {
+          from: { opacity: "0", transform: "translate(-50%, calc(-50% + 8px)) scale(0.97)" },
+          to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+        },
+        "osg-modal-out": {
+          from: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+          to: { opacity: "0", transform: "translate(-50%, calc(-50% + 8px)) scale(0.97)" },
+        },
+        "osg-overlay-in": { from: { opacity: "0" }, to: { opacity: "1" } },
+        "osg-overlay-out": { from: { opacity: "1" }, to: { opacity: "0" } },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        // ease-out-expo na entrada (suave, "assenta" no fim); saída mais curta.
+        "osg-modal-in": "osg-modal-in 0.26s cubic-bezier(0.16, 1, 0.3, 1)",
+        "osg-modal-out": "osg-modal-out 0.18s cubic-bezier(0.4, 0, 1, 1)",
+        "osg-overlay-in": "osg-overlay-in 0.26s ease-out",
+        "osg-overlay-out": "osg-overlay-out 0.18s ease-in",
       },
     },
   },

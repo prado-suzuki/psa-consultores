@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,7 +7,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { RequiredMark } from '@/components/ui/required-mark';
 import {
@@ -18,6 +17,9 @@ import { Loader2, Plus, Pencil, Trash2, X, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import { UF_STATES } from '@/components/equipe/client-form/constants';
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
+import {
+  fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
+} from '@/components/equipe/osg/formKit';
 import { CartorioSelect } from './CartorioSelect';
 import {
   useUpsertMatricula,
@@ -58,41 +60,6 @@ const GEORREFERENCIAMENTO_OPTIONS = [
 ];
 
 const UNIDADE_AREA_OPTIONS = ['ha', 'm²'];
-
-// Estilo base dos campos: superfície branca limpa, borda fina e foco verde-musgo.
-// Substitui o preenchimento bege antigo que deixava o formulário "barrento".
-const fieldCls =
-  'h-9 rounded-md border-osg-200/80 bg-white shadow-[0_1px_1px_rgba(16,24,40,0.04)] ' +
-  'focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss ' +
-  'focus:ring-1 focus:ring-osg-moss/40 focus:ring-offset-0 focus:border-osg-moss';
-
-// Seção como "passo" estruturado: trilho vertical verde-musgo na lateral + linha
-// fina horizontal separando as zonas, com número de ordem (01, 02…).
-function FieldSection({
-  number, title, hint, children,
-}: {
-  number: string;
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="mt-6 border-t-2 border-osg-100 pt-6 first:mt-0 first:border-t-0 first:pt-0">
-      <div className="relative pl-6">
-        <span
-          aria-hidden
-          className="absolute inset-y-0 left-0 w-1 rounded-full bg-osg-moss/70"
-        />
-        <div className="mb-4 flex items-center gap-2.5">
-          <span className="font-mono text-xs font-bold tabular-nums text-osg-moss">{number}</span>
-          <h4 className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">{title}</h4>
-          {hint && <span className="ml-auto text-[11px] font-medium text-muted-foreground">{hint}</span>}
-        </div>
-        {children}
-      </div>
-    </section>
-  );
-}
 
 interface MatriculaModalProps {
   open: boolean;
@@ -277,7 +244,6 @@ export function MatriculaModal({
 
   const matriculasAnterioresPossiveis = matriculasDoBem.filter((m) => m.id !== matricula?.id);
 
-  const labelCls = 'text-xs font-medium text-muted-foreground';
   // Numeração sequencial das seções, avaliada na ordem de renderização — assim
   // seções condicionais (titular inicial, georref) não deixam buracos na sequência.
   let secNo = 0;
@@ -509,7 +475,7 @@ export function MatriculaModal({
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex h-9 items-center gap-2.5 rounded-md border border-osg-200/80 bg-white px-3 shadow-[0_1px_1px_rgba(16,24,40,0.04)]">
+                    <div className={switchBoxCls}>
                       <Switch
                         checked={draft.georref_prejudica_transferencia}
                         onCheckedChange={(v) => setField('georref_prejudica_transferencia', v)}
@@ -573,7 +539,7 @@ export function MatriculaModal({
                     <Textarea
                       value={draft.confrontacoes_texto}
                       onChange={(e) => setField('confrontacoes_texto', e.target.value)}
-                      className="min-h-[80px] rounded-md border-osg-200/80 bg-white shadow-[0_1px_1px_rgba(16,24,40,0.04)] focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss"
+                      className={`min-h-[80px] ${textareaCls}`}
                     />
                   </div>
                   <div className="md:col-span-2 space-y-1.5">
@@ -581,7 +547,7 @@ export function MatriculaModal({
                     <Textarea
                       value={draft.descricao_psa_completa}
                       onChange={(e) => setField('descricao_psa_completa', e.target.value)}
-                      className="min-h-[100px] rounded-md border-osg-200/80 bg-white shadow-[0_1px_1px_rgba(16,24,40,0.04)] focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss"
+                      className={`min-h-[100px] ${textareaCls}`}
                     />
                   </div>
                 </div>
@@ -648,16 +614,17 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
   const totalTitulares = titularidades.length;
 
   return (
-    <div className="space-y-4">
+    <div>
       <TitularBucket
+        number="01"
         matriculaId={matriculaId}
         tipo="FATO"
         titularidades={fato}
         pessoasCliente={pessoasCliente}
         totalTitulares={totalTitulares}
       />
-      <Separator />
       <TitularBucket
+        number="02"
         matriculaId={matriculaId}
         tipo="DIREITO"
         titularidades={direito}
@@ -670,6 +637,7 @@ function TitularidadesPanel({ matriculaId, pessoasCliente }: TitularidadesPanelP
 }
 
 interface TitularBucketProps {
+  number: string;
   matriculaId: string;
   tipo: TipoTitularidade;
   titularidades: TitularidadeEnriched[];
@@ -680,7 +648,7 @@ interface TitularBucketProps {
 }
 
 function TitularBucket({
-  matriculaId, tipo, titularidades, pessoasCliente, totalTitulares, copySource,
+  number, matriculaId, tipo, titularidades, pessoasCliente, totalTitulares, copySource,
 }: TitularBucketProps) {
   const upsert = useUpsertTitularidade();
   const deleteMutation = useDeleteTitularidade();
@@ -771,116 +739,115 @@ function TitularBucket({
   const formOpen = adding || editingId != null;
 
   return (
-    <section className="space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-5 items-center rounded bg-osg-500 px-1.5 text-[10px] font-bold font-mono text-white">
-            {code}
-          </span>
-          <h4 className="text-sm font-semibold text-foreground">{label}</h4>
-          {comFracao.length > 0 && (
-            <span
-              className={`text-xs font-medium tabular-nums ${totalFracao > 100 ? 'text-destructive' : 'text-muted-foreground'}`}
-            >
-              {totalFracao}%{totalFracao > 100 && ' • excede 100%'}
-            </span>
-          )}
-        </div>
-        {copySource && (
+    <FieldSection
+      number={number}
+      title={label}
+      badge={
+        <span className="inline-flex h-5 items-center rounded bg-osg-500 px-1.5 text-[10px] font-bold font-mono text-white">
+          {code}
+        </span>
+      }
+      hint={comFracao.length > 0 ? (
+        <span className={totalFracao > 100 ? 'tabular-nums text-destructive' : 'tabular-nums'}>
+          {totalFracao}%{totalFracao > 100 && ' • excede 100%'}
+        </span>
+      ) : undefined}
+      actions={copySource ? (
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          className="h-7 gap-1.5 text-xs text-osg-moss bg-osg-moss/10 hover:bg-osg-moss/15"
+          onClick={handleCopyFromPT}
+          disabled={upsert.isPending || copySource.length === 0}
+        >
+          <Copy className="h-3.5 w-3.5" />
+          Copiar da FT
+        </Button>
+      ) : undefined}
+    >
+      <div className="space-y-2.5">
+        {titularidades.length === 0 && !formOpen ? (
+          <p className="text-sm text-muted-foreground">Nenhum titular.</p>
+        ) : (
+          <div className="space-y-1">
+            {titularidades.map((t) => (
+              <TitularidadeRowItem
+                key={t.id}
+                titularidade={t}
+                isEditing={editingId === t.id}
+                canDelete={totalTitulares > 1}
+                onEdit={() => startEdit(t)}
+                onDelete={() => deleteMutation.mutate(t)}
+              />
+            ))}
+          </div>
+        )}
+
+        {formOpen ? (
+          <div className="rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-3 space-y-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Select
+                value={draft.titular_pessoa_id || undefined}
+                onValueChange={(v) => setDraft((p) => ({ ...p, titular_pessoa_id: v }))}
+              >
+                <SelectTrigger className={`${fieldCls} flex-1`}>
+                  <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa no Quadro Societário'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pessoasCliente.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.denominacao} <span className="text-xs text-muted-foreground">({p.tipo_pessoa})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                value={draft.fracao}
+                onChange={(e) => setDraft((p) => ({ ...p, fracao: e.target.value }))}
+                placeholder="Fração %"
+                className={`${fieldCls} font-mono sm:w-28`}
+              />
+              <div className="flex gap-1.5">
+                <Button type="button" size="sm" variant="ghost" className="h-9" onClick={cancelEdit}>
+                  Cancelar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                  onClick={handleSave}
+                  disabled={upsert.isPending}
+                >
+                  {upsert.isPending
+                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    : <Plus className="h-3.5 w-3.5" />}
+                  {editingId ? 'Salvar' : 'Adicionar'}
+                </Button>
+              </div>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Deixe a fração vazia quando a composse for indefinida.
+            </p>
+          </div>
+        ) : (
           <Button
             type="button"
-            size="sm"
             variant="ghost"
-            className="h-7 gap-1.5 text-xs text-osg-moss bg-osg-moss/10 hover:bg-osg-moss/15"
-            onClick={handleCopyFromPT}
-            disabled={upsert.isPending || copySource.length === 0}
+            size="sm"
+            className="h-8 w-full justify-start gap-1.5 border border-dashed border-osg-200 text-muted-foreground hover:text-osg-700"
+            onClick={() => { setEditingId(null); setDraft({ titular_pessoa_id: '', fracao: '' }); setAdding(true); }}
           >
-            <Copy className="h-3.5 w-3.5" />
-            Copiar da FT
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar titular
           </Button>
         )}
       </div>
-
-      {titularidades.length === 0 && !formOpen ? (
-        <p className="text-sm text-muted-foreground">Nenhum titular.</p>
-      ) : (
-        <div className="space-y-1">
-          {titularidades.map((t) => (
-            <TitularidadeRowItem
-              key={t.id}
-              titularidade={t}
-              isEditing={editingId === t.id}
-              canDelete={totalTitulares > 1}
-              onEdit={() => startEdit(t)}
-              onDelete={() => deleteMutation.mutate(t)}
-            />
-          ))}
-        </div>
-      )}
-
-      {formOpen ? (
-        <div className="rounded-lg border border-dashed bg-muted/30 p-3 space-y-2">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Select
-              value={draft.titular_pessoa_id || undefined}
-              onValueChange={(v) => setDraft((p) => ({ ...p, titular_pessoa_id: v }))}
-            >
-              <SelectTrigger className="h-9 flex-1">
-                <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa no Quadro Societário'} />
-              </SelectTrigger>
-              <SelectContent>
-                {pessoasCliente.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.denominacao} <span className="text-xs text-muted-foreground">({p.tipo_pessoa})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={draft.fracao}
-              onChange={(e) => setDraft((p) => ({ ...p, fracao: e.target.value }))}
-              placeholder="Fração %"
-              className="h-9 font-mono sm:w-28"
-            />
-            <div className="flex gap-1.5">
-              <Button type="button" size="sm" variant="ghost" className="h-9" onClick={cancelEdit}>
-                Cancelar
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="h-9 gap-1.5"
-                onClick={handleSave}
-                disabled={upsert.isPending}
-              >
-                {upsert.isPending
-                  ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  : <Plus className="h-3.5 w-3.5" />}
-                {editingId ? 'Salvar' : 'Adicionar'}
-              </Button>
-            </div>
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            Deixe a fração vazia quando a composse for indefinida.
-          </p>
-        </div>
-      ) : (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 w-full justify-start gap-1.5 border border-dashed text-muted-foreground hover:text-foreground"
-          onClick={() => { setEditingId(null); setDraft({ titular_pessoa_id: '', fracao: '' }); setAdding(true); }}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          Adicionar titular
-        </Button>
-      )}
-    </section>
+    </FieldSection>
   );
 }
 
@@ -969,14 +936,7 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
   const upsert = useUpsertImpedimento();
   const deleteMutation = useDeleteImpedimento();
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [draft, setDraft] = useState<{
-    tipo: string; referencia: string; descricao: string;
-    credor_pessoa_id: string; credor_nome: string;
-    data_constituicao: string; data_validade: string;
-    vlr: string; area_afetada: string;
-    impede_transferencia: boolean; cancelado: boolean;
-  }>({
+  const emptyImpedimento = () => ({
     tipo: 'Hipoteca', referencia: '', descricao: '',
     credor_pessoa_id: '', credor_nome: '',
     data_constituicao: '', data_validade: '',
@@ -984,7 +944,18 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
     impede_transferencia: false, cancelado: false,
   });
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState(emptyImpedimento);
+
+  const startAdd = () => {
+    setEditingId(null);
+    setDraft(emptyImpedimento());
+    setAdding(true);
+  };
+
   const startEdit = (i: ImpedimentoRow) => {
+    setAdding(false);
     setEditingId(i.id);
     setDraft({
       tipo: i.tipo,
@@ -1003,13 +974,8 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
 
   const cancelEdit = () => {
     setEditingId(null);
-    setDraft({
-      tipo: 'Hipoteca', referencia: '', descricao: '',
-      credor_pessoa_id: '', credor_nome: '',
-      data_constituicao: '', data_validade: '',
-      vlr: '', area_afetada: '',
-      impede_transferencia: false, cancelado: false,
-    });
+    setAdding(false);
+    setDraft(emptyImpedimento());
   };
 
   const handleSave = () => {
@@ -1044,71 +1010,79 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
     );
   };
 
-  return (
-    <div className="space-y-3">
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-      ) : impedimentos.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          Nenhum impedimento cadastrado para esta matrícula.
-        </p>
-      ) : (
-        <div className="space-y-1.5">
-          {impedimentos.map((i) => (
-            <ImpedimentoRowItem
-              key={i.id}
-              impedimento={i}
-              areaUnidade={areaUnidade}
-              isEditing={editingId === i.id}
-              onEdit={() => startEdit(i)}
-              onDelete={() => deleteMutation.mutate(i)}
-            />
-          ))}
-        </div>
-      )}
+  const formOpen = adding || editingId != null;
 
-      <div className="rounded-md border border-dashed p-3 space-y-3">
-        <p className="text-xs font-semibold text-muted-foreground">
-          {editingId ? 'Editar impedimento' : 'Novo impedimento'}
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+  return (
+    <FieldSection
+      number="01"
+      title="Impedimentos"
+      hint={!isLoading && impedimentos.length > 0 ? `${impedimentos.length} registro(s)` : undefined}
+    >
+      <div className="space-y-2.5">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-2">Carregando...</p>
+        ) : impedimentos.length === 0 && !formOpen ? (
+          <p className="text-sm text-muted-foreground py-2">
+            Nenhum impedimento cadastrado para esta matrícula.
+          </p>
+        ) : impedimentos.length > 0 ? (
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">
+            {impedimentos.map((i) => (
+              <ImpedimentoRowItem
+                key={i.id}
+                impedimento={i}
+                areaUnidade={areaUnidade}
+                isEditing={editingId === i.id}
+                onEdit={() => startEdit(i)}
+                onDelete={() => deleteMutation.mutate(i)}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {formOpen ? (
+        <div className="rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4 space-y-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">
+            {editingId ? 'Editar impedimento' : 'Novo impedimento'}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Label className={labelCls}>
               Tipo<RequiredMark />
             </Label>
             <Select value={draft.tipo} onValueChange={(v) => setDraft((p) => ({ ...p, tipo: v }))}>
-              <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TIPO_IMPEDIMENTO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Referência</Label>
+            <Label className={labelCls}>Referência</Label>
             <Input
               value={draft.referencia}
               onChange={(e) => setDraft((p) => ({ ...p, referencia: e.target.value }))}
               placeholder="R-X/Av-Y"
-              className="h-9 font-mono"
+              className={`${fieldCls} font-mono`}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Valor (R$)</Label>
+            <Label className={labelCls}>Valor (R$)</Label>
             <Input
               type="number"
               step="0.01"
               value={draft.vlr}
               onChange={(e) => setDraft((p) => ({ ...p, vlr: e.target.value }))}
-              className="h-9 font-mono"
+              className={`${fieldCls} font-mono`}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Credor (PSA)</Label>
+            <Label className={labelCls}>Credor (PSA)</Label>
             <Select
               value={draft.credor_pessoa_id || undefined}
               onValueChange={(v) => setDraft((p) => ({ ...p, credor_pessoa_id: v }))}
             >
-              <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
               <SelectContent>
                 {pessoasCliente.map((p) => (
                   <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>
@@ -1117,54 +1091,54 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
             </Select>
           </div>
           <div className="md:col-span-2 space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Credor (texto livre)</Label>
+            <Label className={labelCls}>Credor (texto livre)</Label>
             <Input
               value={draft.credor_nome}
               onChange={(e) => setDraft((p) => ({ ...p, credor_nome: e.target.value }))}
               placeholder="Quando o credor não estiver cadastrado"
-              className="h-9"
+              className={fieldCls}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Data constituição</Label>
+            <Label className={labelCls}>Data constituição</Label>
             <DateFieldWithInput
               value={draft.data_constituicao}
               onChange={(v) => setDraft((p) => ({ ...p, data_constituicao: v }))}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Data validade</Label>
+            <Label className={labelCls}>Data validade</Label>
             <DateFieldWithInput
               value={draft.data_validade}
               onChange={(v) => setDraft((p) => ({ ...p, data_validade: v }))}
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Área afetada ({areaUnidade})</Label>
+            <Label className={labelCls}>Área afetada ({areaUnidade})</Label>
             <Input
               type="number"
               step="0.0001"
               value={draft.area_afetada}
               onChange={(e) => setDraft((p) => ({ ...p, area_afetada: e.target.value }))}
-              className="h-9 font-mono"
+              className={`${fieldCls} font-mono`}
             />
           </div>
           <div className="md:col-span-3 space-y-1.5">
-            <Label className="text-xs font-semibold text-muted-foreground">Descrição</Label>
+            <Label className={labelCls}>Descrição</Label>
             <Textarea
               value={draft.descricao}
               onChange={(e) => setDraft((p) => ({ ...p, descricao: e.target.value }))}
-              className="min-h-[60px]"
+              className={`min-h-[60px] ${textareaCls}`}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className={switchBoxCls}>
             <Switch
               checked={draft.impede_transferencia}
               onCheckedChange={(v) => setDraft((p) => ({ ...p, impede_transferencia: v }))}
             />
             <Label className="text-sm">Impede transferência</Label>
           </div>
-          <div className="flex items-center gap-2">
+          <div className={switchBoxCls}>
             <Switch
               checked={draft.cancelado}
               onCheckedChange={(v) => setDraft((p) => ({ ...p, cancelado: v }))}
@@ -1172,28 +1146,38 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
             <Label className="text-sm">Cancelado</Label>
           </div>
         </div>
-        <div className="flex justify-end gap-2">
-          {editingId && (
+          <div className="flex justify-end gap-2">
             <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>
               Cancelar
             </Button>
-          )}
+            <Button
+              type="button"
+              size="sm"
+              className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+              onClick={handleSave}
+              disabled={upsert.isPending}
+            >
+              {upsert.isPending
+                ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                : <Plus className="h-3.5 w-3.5" />}
+              {editingId ? 'Salvar' : 'Adicionar'}
+            </Button>
+          </div>
+        </div>
+        ) : (
           <Button
             type="button"
+            variant="ghost"
             size="sm"
-            variant="outline"
-            className="gap-1.5"
-            onClick={handleSave}
-            disabled={upsert.isPending}
+            className="h-8 w-full justify-start gap-1.5 border border-dashed border-osg-200 text-muted-foreground hover:text-osg-700"
+            onClick={startAdd}
           >
-            {upsert.isPending
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Plus className="h-3.5 w-3.5" />}
-            {editingId ? 'Salvar' : 'Adicionar'}
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar impedimento
           </Button>
-        </div>
+        )}
       </div>
-    </div>
+    </FieldSection>
   );
 }
 
