@@ -3302,12 +3302,17 @@ export type Database = {
           cliente_id: string
           conjuge_id: string | null
           contribuinte_id: string | null
+          convive_uniao_estavel: boolean
           cpf_cnpj: string | null
           created_at: string
           created_by: string | null
           data_constituicao: string | null
           data_nascimento: string | null
           denominacao: string
+          documento_identidade_numero: string | null
+          documento_identidade_orgao: string | null
+          documento_identidade_tipo: string | null
+          documento_identidade_uf: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
           endereco_complemento: string | null
@@ -3317,17 +3322,21 @@ export type Database = {
           endereco_uf: string | null
           estado_civil: string | null
           filiacao_mae: string | null
+          filiacao_mae_pessoa_id: string | null
           filiacao_pai: string | null
+          filiacao_pai_pessoa_id: string | null
+          genero: string | null
           id: string
+          is_fundador: boolean
           junta_comercial_uf: string | null
           nacionalidade: string | null
+          naturalidade_municipio: string | null
+          naturalidade_uf: string | null
           nire: string | null
+          nome_uso: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
-          rg_numero: string | null
-          rg_orgao_emissor: string | null
-          rg_uf: string | null
           status_constituicao: string | null
           tipo_pessoa: string
           updated_at: string
@@ -3337,12 +3346,17 @@ export type Database = {
           cliente_id: string
           conjuge_id?: string | null
           contribuinte_id?: string | null
+          convive_uniao_estavel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
           data_constituicao?: string | null
           data_nascimento?: string | null
           denominacao: string
+          documento_identidade_numero?: string | null
+          documento_identidade_orgao?: string | null
+          documento_identidade_tipo?: string | null
+          documento_identidade_uf?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_complemento?: string | null
@@ -3352,17 +3366,21 @@ export type Database = {
           endereco_uf?: string | null
           estado_civil?: string | null
           filiacao_mae?: string | null
+          filiacao_mae_pessoa_id?: string | null
           filiacao_pai?: string | null
+          filiacao_pai_pessoa_id?: string | null
+          genero?: string | null
           id?: string
+          is_fundador?: boolean
           junta_comercial_uf?: string | null
           nacionalidade?: string | null
+          naturalidade_municipio?: string | null
+          naturalidade_uf?: string | null
           nire?: string | null
+          nome_uso?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
-          rg_numero?: string | null
-          rg_orgao_emissor?: string | null
-          rg_uf?: string | null
           status_constituicao?: string | null
           tipo_pessoa: string
           updated_at?: string
@@ -3372,12 +3390,17 @@ export type Database = {
           cliente_id?: string
           conjuge_id?: string | null
           contribuinte_id?: string | null
+          convive_uniao_estavel?: boolean
           cpf_cnpj?: string | null
           created_at?: string
           created_by?: string | null
           data_constituicao?: string | null
           data_nascimento?: string | null
           denominacao?: string
+          documento_identidade_numero?: string | null
+          documento_identidade_orgao?: string | null
+          documento_identidade_tipo?: string | null
+          documento_identidade_uf?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_complemento?: string | null
@@ -3387,17 +3410,21 @@ export type Database = {
           endereco_uf?: string | null
           estado_civil?: string | null
           filiacao_mae?: string | null
+          filiacao_mae_pessoa_id?: string | null
           filiacao_pai?: string | null
+          filiacao_pai_pessoa_id?: string | null
+          genero?: string | null
           id?: string
+          is_fundador?: boolean
           junta_comercial_uf?: string | null
           nacionalidade?: string | null
+          naturalidade_municipio?: string | null
+          naturalidade_uf?: string | null
           nire?: string | null
+          nome_uso?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
-          rg_numero?: string | null
-          rg_orgao_emissor?: string | null
-          rg_uf?: string | null
           status_constituicao?: string | null
           tipo_pessoa?: string
           updated_at?: string
@@ -3437,6 +3464,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_mae_pessoa_id_fkey"
+            columns: ["filiacao_mae_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_pai_pessoa_id_fkey"
+            columns: ["filiacao_pai_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
           {

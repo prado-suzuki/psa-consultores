@@ -64,9 +64,9 @@ type DraftPessoa = {
   filiacao_pai: string;
   filiacao_mae: string;
   profissao: string;
-  rg_numero: string;
-  rg_orgao_emissor: string;
-  rg_uf: string;
+  documento_identidade_numero: string;
+  documento_identidade_orgao: string;
+  documento_identidade_uf: string;
   conjuge_id: string;
   // PJ
   nire: string;
@@ -94,9 +94,9 @@ const emptyDraft = (): DraftPessoa => ({
   filiacao_pai: '',
   filiacao_mae: '',
   profissao: '',
-  rg_numero: '',
-  rg_orgao_emissor: '',
-  rg_uf: '',
+  documento_identidade_numero: '',
+  documento_identidade_orgao: '',
+  documento_identidade_uf: '',
   conjuge_id: '',
   nire: '',
   junta_comercial_uf: '',
@@ -123,9 +123,9 @@ const fromPessoa = (p: PessoaRow): DraftPessoa => ({
   filiacao_pai: p.filiacao_pai ?? '',
   filiacao_mae: p.filiacao_mae ?? '',
   profissao: p.profissao ?? '',
-  rg_numero: p.rg_numero ?? '',
-  rg_orgao_emissor: p.rg_orgao_emissor ?? '',
-  rg_uf: p.rg_uf ?? '',
+  documento_identidade_numero: p.documento_identidade_numero ?? '',
+  documento_identidade_orgao: p.documento_identidade_orgao ?? '',
+  documento_identidade_uf: p.documento_identidade_uf ?? '',
   conjuge_id: p.conjuge_id ?? '',
   nire: p.nire ?? '',
   junta_comercial_uf: p.junta_comercial_uf ?? '',
@@ -231,9 +231,9 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           filiacao_pai: nullify(draft.filiacao_pai),
           filiacao_mae: nullify(draft.filiacao_mae),
           profissao: nullify(draft.profissao),
-          rg_numero: nullify(draft.rg_numero),
-          rg_orgao_emissor: nullify(draft.rg_orgao_emissor),
-          rg_uf: nullify(draft.rg_uf),
+          documento_identidade_numero: nullify(draft.documento_identidade_numero),
+          documento_identidade_orgao: nullify(draft.documento_identidade_orgao),
+          documento_identidade_uf: nullify(draft.documento_identidade_uf),
           conjuge_id: draft.conjuge_id || null,
           nire: null,
           junta_comercial_uf: null,
@@ -249,9 +249,9 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           filiacao_pai: null,
           filiacao_mae: null,
           profissao: null,
-          rg_numero: null,
-          rg_orgao_emissor: null,
-          rg_uf: null,
+          documento_identidade_numero: null,
+          documento_identidade_orgao: null,
+          documento_identidade_uf: null,
           conjuge_id: null,
           nire: nullify(draft.nire),
           junta_comercial_uf: nullify(draft.junta_comercial_uf),
@@ -488,24 +488,24 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">RG</Label>
                   <Input
-                    value={draft.rg_numero}
-                    onChange={(e) => setField('rg_numero', e.target.value)}
+                    value={draft.documento_identidade_numero}
+                    onChange={(e) => setField('documento_identidade_numero', e.target.value)}
                     className="h-9"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">Órgão emissor</Label>
                   <Input
-                    value={draft.rg_orgao_emissor}
-                    onChange={(e) => setField('rg_orgao_emissor', e.target.value)}
+                    value={draft.documento_identidade_orgao}
+                    onChange={(e) => setField('documento_identidade_orgao', e.target.value)}
                     className="h-9"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground">UF do RG</Label>
                   <Select
-                    value={draft.rg_uf || undefined}
-                    onValueChange={(v) => setField('rg_uf', v)}
+                    value={draft.documento_identidade_uf || undefined}
+                    onValueChange={(v) => setField('documento_identidade_uf', v)}
                   >
                     <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>
