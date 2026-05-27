@@ -1180,6 +1180,39 @@ export default function ControlePerdcomp() {
         per={selectedPer}
         contribuinteId={contribuinteId}
       />
+
+      {/* Confirmação: excluir ressarcimento */}
+      <AlertDialog
+        open={!!ressarcimentoToDelete}
+        onOpenChange={(v) => { if (!v) setRessarcimentoToDelete(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir ressarcimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação limpa o valor ressarcido registrado no PER{' '}
+              <span className="font-mono font-medium">
+                {ressarcimentoToDelete ? normalizeProcessNumber(ressarcimentoToDelete.nr_per) : ''}
+              </span>
+              {ressarcimentoToDelete ? ` (${formatCurrency(ressarcimentoToDelete.valor)})` : ''}. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRessarcimentoMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteRessarcimentoMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (ressarcimentoToDelete) {
+                  deleteRessarcimentoMutation.mutate(ressarcimentoToDelete.nr_per);
+                }
+              }}
+            >
+              {deleteRessarcimentoMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </TooltipProvider>
     </DevLayout>
   );
