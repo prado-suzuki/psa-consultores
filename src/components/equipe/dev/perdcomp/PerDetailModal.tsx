@@ -1119,6 +1119,32 @@ export function PerDetailModal({
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Confirmação: excluir ressarcimento */}
+      <AlertDialog open={deleteRessarcimentoOpen} onOpenChange={setDeleteRessarcimentoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir ressarcimento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação limpa o valor ressarcido registrado neste PER{per?.nr_per ? ` (${normalizeProcessNumber(per.nr_per)})` : ''}
+              {vlrRessarcido > 0 ? ` — ${formatCurrency(vlrRessarcido)}` : ''}. Não é possível desfazer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteRessarcimentoMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteRessarcimentoMutation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                deleteRessarcimentoMutation.mutate();
+              }}
+            >
+              {deleteRessarcimentoMutation.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+
       {/* Soft Delete Modal */}
       <SoftDeleteModal
         open={softDeleteOpen}
