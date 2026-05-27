@@ -174,6 +174,10 @@ export function PerDetailModal({
   
   const [ressarcimentoCalOpen, setRessarcimentoCalOpen] = useState(false);
 
+  // Confirmação para excluir ressarcimento
+  const [deleteRessarcimentoOpen, setDeleteRessarcimentoOpen] = useState(false);
+  const { user } = useAuth();
+
   // Filtro de tipo de tributo na tabela de DCOMPs
   const [tributoFiltro, setTributoFiltro] = useState<string>('__todos__');
 
