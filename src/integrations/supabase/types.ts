@@ -3333,7 +3333,6 @@ export type Database = {
           naturalidade_municipio: string | null
           naturalidade_uf: string | null
           nire: string | null
-          nome_uso: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
@@ -3377,7 +3376,6 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
-          nome_uso?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
@@ -3421,7 +3419,6 @@ export type Database = {
           naturalidade_municipio?: string | null
           naturalidade_uf?: string | null
           nire?: string | null
-          nome_uso?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
