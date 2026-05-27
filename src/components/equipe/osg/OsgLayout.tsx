@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -104,6 +104,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
+  // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
+  useEffect(() => {
+    document.documentElement.classList.add('osg-theme');
+    return () => document.documentElement.classList.remove('osg-theme');
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();

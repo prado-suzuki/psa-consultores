@@ -59,6 +59,38 @@ const GEORREFERENCIAMENTO_OPTIONS = [
 
 const UNIDADE_AREA_OPTIONS = ['ha', 'm²'];
 
+// Agrupa um conjunto de campos de mesma categoria num cartão com cabeçalho
+// tonalizado — dá separação visual clara dentro da aba.
+function FieldSection({
+  title, hint, children, tone = 'default',
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+  tone?: 'default' | 'accent';
+}) {
+  const accent = tone === 'accent';
+  return (
+    <section
+      className={
+        accent
+          ? 'rounded-xl border border-osg-200 bg-osg-50/70 overflow-hidden'
+          : 'rounded-xl border border-osg-100 bg-osg-50/30 overflow-hidden'
+      }
+    >
+      <div
+        className={`flex items-center gap-2 border-b px-4 py-2.5 ${
+          accent ? 'border-osg-200 bg-osg-100/50' : 'border-osg-100 bg-osg-50/60'
+        }`}
+      >
+        <h4 className="text-xs font-bold uppercase tracking-wide text-osg-700">{title}</h4>
+        {hint && <span className="ml-auto text-[11px] text-muted-foreground">{hint}</span>}
+      </div>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
 interface MatriculaModalProps {
   open: boolean;
   // Quando null, a matrícula é cadastrada avulsa (órfã) a partir do Controle de Matrículas.
@@ -263,284 +295,275 @@ export function MatriculaModal({
           </TabsList>
 
           <TabsContent value="dados" className="space-y-4 pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Nº da matrícula<RequiredMark />
-                </Label>
-                <Input
-                  value={draft.numero}
-                  onChange={(e) => setField('numero', e.target.value)}
-                  className="h-9 font-mono"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Livro</Label>
-                <Input
-                  value={draft.livro}
-                  onChange={(e) => setField('livro', e.target.value)}
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Folha</Label>
-                <Input
-                  value={draft.folha}
-                  onChange={(e) => setField('folha', e.target.value)}
-                  className="h-9"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Data</Label>
-                <DateFieldWithInput
-                  value={draft.data_matricula}
-                  onChange={(v) => setField('data_matricula', v)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">
-                Cartório<RequiredMark />
-              </Label>
-              <CartorioSelect
-                value={draft.cartorio_id}
-                onChange={(v) => setField('cartorio_id', v)}
-              />
-            </div>
-
-            {!isEdit && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">
-                    Titular inicial — Propriedade de Direito (DT)<RequiredMark />
-                  </h4>
-                  {semPessoas ? (
-                    <p className="text-xs text-amber-600">
-                      Nenhuma pessoa disponível. Cadastre o titular no Quadro Societário (ou selecione
-                      um cliente) antes de criar a matrícula.
-                    </p>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">Titular</Label>
-                        <Select
-                          value={titularInicial.titular_pessoa_id || undefined}
-                          onValueChange={(v) => setTitularInicial((p) => ({ ...p, titular_pessoa_id: v }))}
-                        >
-                          <SelectTrigger className="h-9"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                          <SelectContent>
-                            {pessoasCliente.map((p) => (
-                              <SelectItem key={p.id} value={p.id}>
-                                {p.denominacao} <span className="text-xs text-muted-foreground">({p.tipo_pessoa})</span>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-semibold text-muted-foreground">Fração (%) — opcional</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          value={titularInicial.fracao}
-                          onChange={(e) => setTitularInicial((p) => ({ ...p, fracao: e.target.value }))}
-                          placeholder="ex: 50"
-                          className="h-9 font-mono"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  <p className="text-[11px] text-muted-foreground mt-1.5">
-                    Toda matrícula precisa de ao menos um titular — é ele que define o cliente.
-                    Ele entra como Propriedade de Direito (DT); titulares de FT e demais de DT
-                    podem ser adicionados depois de salvar.
-                  </p>
-                </div>
-              </>
-            )}
-
-            <Separator />
-
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Localização do imóvel</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="md:col-span-2 space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Município<RequiredMark />
-                  </Label>
-                  <Input
-                    value={draft.municipio_imovel}
-                    onChange={(e) => setField('municipio_imovel', e.target.value)}
-                    className="h-9"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    UF<RequiredMark />
-                  </Label>
-                  <Select value={draft.uf_imovel || undefined} onValueChange={(v) => setField('uf_imovel', v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Áreas</h4>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">Unidade</Label>
-                  <Select value={draft.area_unidade} onValueChange={(v) => setField('area_unidade', v)}>
-                    <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {UNIDADE_AREA_OPTIONS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Área documento<RequiredMark />
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={draft.area_documento}
-                    onChange={(e) => setField('area_documento', e.target.value)}
-                    className="h-9 font-mono"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold text-muted-foreground">
-                    Área real<RequiredMark />
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.0001"
-                    value={draft.area_real}
-                    onChange={(e) => setField('area_real', e.target.value)}
-                    className="h-9 font-mono"
-                  />
-                </div>
-                {isImovelRural && (
+            <FieldSection title="Identificação">
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-muted-foreground">Área explorada</Label>
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Nº da matrícula<RequiredMark />
+                    </Label>
                     <Input
-                      type="number"
-                      step="0.0001"
-                      value={draft.area_explorada}
-                      onChange={(e) => setField('area_explorada', e.target.value)}
-                      className="h-9 font-mono"
+                      value={draft.numero}
+                      onChange={(e) => setField('numero', e.target.value)}
+                      className="h-9 font-mono bg-osg-50/60"
                     />
                   </div>
-                )}
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Livro</Label>
+                    <Input
+                      value={draft.livro}
+                      onChange={(e) => setField('livro', e.target.value)}
+                      className="h-9 bg-osg-50/60"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Folha</Label>
+                    <Input
+                      value={draft.folha}
+                      onChange={(e) => setField('folha', e.target.value)}
+                      className="h-9 bg-osg-50/60"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Data</Label>
+                    <DateFieldWithInput
+                      value={draft.data_matricula}
+                      onChange={(v) => setField('data_matricula', v)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Cartório<RequiredMark />
+                  </Label>
+                  <CartorioSelect
+                    value={draft.cartorio_id}
+                    onChange={(v) => setField('cartorio_id', v)}
+                  />
+                </div>
               </div>
-            </div>
+            </FieldSection>
 
-            {isImovelRural && (
-              <>
-                <Separator />
-                <div>
-                  <h4 className="text-xs font-bold uppercase text-muted-foreground mb-2">Georreferenciamento</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+            {!isEdit && (
+              <FieldSection
+                title="Titular inicial — Propriedade de Direito (DT)"
+                tone="accent"
+              >
+                {semPessoas ? (
+                  <p className="text-xs text-amber-600">
+                    Nenhuma pessoa disponível. Cadastre o titular no Quadro Societário (ou selecione
+                    um cliente) antes de criar a matrícula.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
+                      <Label className="text-xs font-semibold text-muted-foreground">Titular<RequiredMark /></Label>
                       <Select
-                        value={draft.georreferenciado || undefined}
-                        onValueChange={(v) => setField('georreferenciado', v)}
+                        value={titularInicial.titular_pessoa_id || undefined}
+                        onValueChange={(v) => setTitularInicial((p) => ({ ...p, titular_pessoa_id: v }))}
                       >
-                        <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectTrigger className="h-9 bg-osg-50/60"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                         <SelectContent>
-                          {GEORREFERENCIAMENTO_OPTIONS.map((o) => (
-                            <SelectItem key={o} value={o}>{o}</SelectItem>
+                          {pessoasCliente.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.denominacao} <span className="text-xs text-muted-foreground">({p.tipo_pessoa})</span>
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center gap-2 pb-2">
-                      <Switch
-                        checked={draft.georref_prejudica_transferencia}
-                        onCheckedChange={(v) => setField('georref_prejudica_transferencia', v)}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Fração (%) — opcional</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={titularInicial.fracao}
+                        onChange={(e) => setTitularInicial((p) => ({ ...p, fracao: e.target.value }))}
+                        placeholder="ex: 50"
+                        className="h-9 font-mono bg-osg-50/60"
                       />
-                      <Label className="text-sm">Prejudica transferência</Label>
                     </div>
                   </div>
-                </div>
-              </>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-2">
+                  Toda matrícula precisa de ao menos um titular — é ele que define o cliente.
+                  Ele entra como Propriedade de Direito (DT); titulares de FT e demais de DT
+                  podem ser adicionados depois de salvar.
+                </p>
+              </FieldSection>
             )}
 
-            <Separator />
+            <FieldSection title="Localização e áreas" hint={`áreas em ${draft.area_unidade}`}>
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="md:col-span-2 space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Município<RequiredMark />
+                    </Label>
+                    <Input
+                      value={draft.municipio_imovel}
+                      onChange={(e) => setField('municipio_imovel', e.target.value)}
+                      className="h-9 bg-osg-50/60"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      UF<RequiredMark />
+                    </Label>
+                    <Select value={draft.uf_imovel || undefined} onValueChange={(v) => setField('uf_imovel', v)}>
+                      <SelectTrigger className="h-9 bg-osg-50/60"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        {UF_STATES.map((uf) => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Unidade</Label>
+                    <Select value={draft.area_unidade} onValueChange={(v) => setField('area_unidade', v)}>
+                      <SelectTrigger className="h-9 bg-osg-50/60"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {UNIDADE_AREA_OPTIONS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Área documento<RequiredMark />
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={draft.area_documento}
+                      onChange={(e) => setField('area_documento', e.target.value)}
+                      className="h-9 font-mono bg-osg-50/60"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      Área real<RequiredMark />
+                    </Label>
+                    <Input
+                      type="number"
+                      step="0.0001"
+                      value={draft.area_real}
+                      onChange={(e) => setField('area_real', e.target.value)}
+                      className="h-9 font-mono bg-osg-50/60"
+                    />
+                  </div>
+                  {isImovelRural && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-muted-foreground">Área explorada</Label>
+                      <Input
+                        type="number"
+                        step="0.0001"
+                        value={draft.area_explorada}
+                        onChange={(e) => setField('area_explorada', e.target.value)}
+                        className="h-9 font-mono bg-osg-50/60"
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </FieldSection>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Tipo de exploração/posse</Label>
-                <Select
-                  value={draft.tipo_exploracao_posse || undefined}
-                  onValueChange={(v) => setField('tipo_exploracao_posse', v)}
-                >
-                  <SelectTrigger className="h-9"><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>
-                    {TIPO_EXPLORACAO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+            {isImovelRural && (
+              <FieldSection title="Georreferenciamento">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground">Status</Label>
+                    <Select
+                      value={draft.georreferenciado || undefined}
+                      onValueChange={(v) => setField('georreferenciado', v)}
+                    >
+                      <SelectTrigger className="h-9 bg-osg-50/60"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        {GEORREFERENCIAMENTO_OPTIONS.map((o) => (
+                          <SelectItem key={o} value={o}>{o}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-lg border border-osg-100 bg-osg-50/60 px-3 h-9">
+                    <Switch
+                      checked={draft.georref_prejudica_transferencia}
+                      onCheckedChange={(v) => setField('georref_prejudica_transferencia', v)}
+                    />
+                    <Label className="text-sm">Prejudica transferência</Label>
+                  </div>
+                </div>
+              </FieldSection>
+            )}
+
+            <FieldSection title="Histórico e descrição">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Tipo de exploração/posse</Label>
+                  <Select
+                    value={draft.tipo_exploracao_posse || undefined}
+                    onValueChange={(v) => setField('tipo_exploracao_posse', v)}
+                  >
+                    <SelectTrigger className="h-9 bg-osg-50/60"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_EXPLORACAO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Matrícula anterior</Label>
+                  <Select
+                    value={draft.matricula_anterior_id || undefined}
+                    onValueChange={(v) => setField('matricula_anterior_id', v)}
+                  >
+                    <SelectTrigger className="h-9 bg-osg-50/60">
+                      <SelectValue placeholder={matriculasAnterioresPossiveis.length ? 'Selecione...' : 'Nenhuma'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {matriculasAnterioresPossiveis.map((m) => (
+                        <SelectItem key={m.id} value={m.id}>Matrícula {m.numero}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">
+                    Texto da matrícula anterior (caso não esteja cadastrada)
+                  </Label>
+                  <Input
+                    value={draft.matricula_anterior_texto}
+                    onChange={(e) => setField('matricula_anterior_texto', e.target.value)}
+                    className="h-9 bg-osg-50/60"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Origem (descrição)</Label>
+                  <Input
+                    value={draft.origem_descricao}
+                    onChange={(e) => setField('origem_descricao', e.target.value)}
+                    className="h-9 bg-osg-50/60"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Confrontações</Label>
+                  <Textarea
+                    value={draft.confrontacoes_texto}
+                    onChange={(e) => setField('confrontacoes_texto', e.target.value)}
+                    className="min-h-[80px] bg-osg-50/60"
+                  />
+                </div>
+                <div className="md:col-span-2 space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground">Descrição PSA (completa)</Label>
+                  <Textarea
+                    value={draft.descricao_psa_completa}
+                    onChange={(e) => setField('descricao_psa_completa', e.target.value)}
+                    className="min-h-[100px] bg-osg-50/60"
+                  />
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Matrícula anterior</Label>
-                <Select
-                  value={draft.matricula_anterior_id || undefined}
-                  onValueChange={(v) => setField('matricula_anterior_id', v)}
-                >
-                  <SelectTrigger className="h-9">
-                    <SelectValue placeholder={matriculasAnterioresPossiveis.length ? 'Selecione...' : 'Nenhuma'} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {matriculasAnterioresPossiveis.map((m) => (
-                      <SelectItem key={m.id} value={m.id}>Matrícula {m.numero}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">
-                  Texto da matrícula anterior (caso não esteja cadastrada)
-                </Label>
-                <Input
-                  value={draft.matricula_anterior_texto}
-                  onChange={(e) => setField('matricula_anterior_texto', e.target.value)}
-                  className="h-9"
-                />
-              </div>
-              <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Origem (descrição)</Label>
-                <Input
-                  value={draft.origem_descricao}
-                  onChange={(e) => setField('origem_descricao', e.target.value)}
-                  className="h-9"
-                />
-              </div>
-              <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Confrontações</Label>
-                <Textarea
-                  value={draft.confrontacoes_texto}
-                  onChange={(e) => setField('confrontacoes_texto', e.target.value)}
-                  className="min-h-[80px]"
-                />
-              </div>
-              <div className="md:col-span-2 space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Descrição PSA (completa)</Label>
-                <Textarea
-                  value={draft.descricao_psa_completa}
-                  onChange={(e) => setField('descricao_psa_completa', e.target.value)}
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
+            </FieldSection>
           </TabsContent>
 
           <TabsContent value="titulares" className="pt-4">
@@ -568,7 +591,7 @@ export function MatriculaModal({
           <Button
             onClick={handleSave}
             disabled={upsert.isPending || (!isEdit && semPessoas)}
-            className="gap-1.5"
+            className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
           >
             {upsert.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             {isEdit ? 'Salvar alterações' : 'Cadastrar matrícula'}
@@ -744,7 +767,7 @@ function TitularBucket({
             type="button"
             size="sm"
             variant="ghost"
-            className="h-7 gap-1.5 text-xs text-muted-foreground bg-teal-50"
+            className="h-7 gap-1.5 text-xs text-osg-moss bg-osg-moss/10 hover:bg-osg-moss/15"
             onClick={handleCopyFromPT}
             disabled={upsert.isPending || copySource.length === 0}
           >

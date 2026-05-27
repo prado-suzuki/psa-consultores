@@ -61,6 +61,7 @@ All colors MUST be HSL.
     --osg-500: 22 24% 33%;
     --osg-600: 19 24% 25%;
     --osg-700: 17 25% 19%;
+    --osg-moss: 149 66% 22%; /* verde musgo (#125837) */
 
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;
@@ -88,6 +89,16 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 85 85% 37%;
+  }
+
+  /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
+     Aplicado no <html> pelo OsgLayout, então alcança menus renderizados em portal. */
+  .osg-theme {
+    --accent: var(--osg-moss);
+    --accent-foreground: 0 0% 100%;
+    --primary: var(--osg-moss);
+    --primary-foreground: 0 0% 100%;
+    --ring: var(--osg-moss);
   }
 
   .dark {

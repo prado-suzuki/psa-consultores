@@ -100,6 +100,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                   <CommandItem
                     key={c.id}
                     value={`${c.nome_completo} ${c.comarca} ${c.uf}`}
+                    className="data-[selected=true]:bg-osg-moss data-[selected=true]:text-white"
                     onSelect={() => {
                       onChange(c.id);
                       setOpen(false);

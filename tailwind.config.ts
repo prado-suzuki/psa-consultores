@@ -88,6 +88,7 @@ export default {
           500: "hsl(var(--osg-500) / <alpha-value>)",
           600: "hsl(var(--osg-600) / <alpha-value>)",
           700: "hsl(var(--osg-700) / <alpha-value>)",
+          moss: "hsl(var(--osg-moss) / <alpha-value>)",
         },
       },
       backgroundImage: {
