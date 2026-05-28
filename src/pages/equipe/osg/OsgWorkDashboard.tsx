@@ -13,10 +13,10 @@ interface Ferramenta {
 
 const FERRAMENTAS: Ferramenta[] = [
   {
-    id: 'quadro-societario',
-    titulo: 'Quadro Societário',
+    id: 'qualificacao-das-partes',
+    titulo: 'Qualificação das Partes',
     descricao: 'Cadastro de sócios (PF/PJ) e vínculos de parentesco por cliente.',
-    path: '/equipe/osg/work/quadro-societario',
+    path: '/equipe/osg/work/qualificacao-das-partes',
     icon: <Users className="h-5 w-5 text-osg-600" />,
   },
   {
@@ -44,7 +44,7 @@ const OsgWorkDashboard = () => {
         {FERRAMENTAS.map((f) => (
           <Card
             key={f.id}
-            className="cursor-pointer hover:border-osg-300 hover:shadow-md transition-all group"
+            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5 transition-all duration-200 group"
             onClick={() => navigate(f.path)}
           >
             <CardHeader className="pb-3">

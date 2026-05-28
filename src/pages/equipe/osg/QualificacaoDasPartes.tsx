@@ -19,8 +19,8 @@ import {
   usePessoasByCliente,
   type PessoaRow,
   type TipoPessoa,
-} from '@/hooks/useQuadroSocietario';
-import { PessoaModal } from '@/components/equipe/osg/quadro-societario/PessoaModal';
+} from '@/hooks/useQualificacaoDasPartes';
+import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
 
 interface PessoasTableProps {
   titulo: string;
@@ -118,7 +118,7 @@ const PessoasTable = ({
   </Card>
 );
 
-const QuadroSocietario = () => {
+const QualificacaoDasPartes = () => {
   const { clienteId } = useOsgWork();
   const [busca, setBusca] = useState('');
 
@@ -150,7 +150,7 @@ const QuadroSocietario = () => {
 
   return (
     <OsgLayout
-      title="Quadro Societário"
+      title="Qualificação das Partes"
       subtitle="Cadastro de pessoas físicas/jurídicas e vínculos de parentesco por cliente"
     >
       <div className="space-y-4">
@@ -158,7 +158,7 @@ const QuadroSocietario = () => {
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
               <Users className="h-10 w-10 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar o quadro societário.</p>
+              <p className="text-sm">Selecione um cliente na barra acima para visualizar e gerenciar a qualificação das partes.</p>
             </CardContent>
           </Card>
         ) : loadingPessoas ? (
@@ -229,4 +229,4 @@ const QuadroSocietario = () => {
   );
 };
 
-export default QuadroSocietario;
+export default QualificacaoDasPartes;

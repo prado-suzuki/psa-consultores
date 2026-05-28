@@ -38,7 +38,7 @@ import {
   type ImpedimentoEnriched,
   type TitularInicial,
 } from '@/hooks/useDiagnosticoPatrimonial';
-import type { PessoaRow } from '@/hooks/useQuadroSocietario';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 type TipoTitularidade = 'FATO' | 'DIREITO';
 
@@ -372,7 +372,7 @@ export function MatriculaModal({
                   <div className="rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4">
                     {semPessoas ? (
                       <p className="text-xs text-amber-600">
-                        Nenhuma pessoa disponível. Cadastre o titular no Quadro Societário (ou selecione
+                        Nenhuma pessoa disponível. Cadastre o titular na Qualificação das Partes (ou selecione
                         um cliente) antes de criar a matrícula.
                       </p>
                     ) : (
@@ -835,7 +835,7 @@ function TitularBucket({
                 onValueChange={(v) => setDraft((p) => ({ ...p, titular_pessoa_id: v }))}
               >
                 <SelectTrigger className={`${fieldCls} flex-1`}>
-                  <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa no Quadro Societário'} />
+                  <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa na Qualificação das Partes'} />
                 </SelectTrigger>
                 <SelectContent>
                   {pessoasCliente.map((p) => (

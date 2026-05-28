@@ -30,7 +30,7 @@ import {
   type MatriculaRow,
   type TipoBem,
 } from '@/hooks/useDiagnosticoPatrimonial';
-import type { PessoaRow } from '@/hooks/useQuadroSocietario';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { MatriculaModal, formatAreaUnidade } from './MatriculaModal';
 import { VincularMatriculaDialog } from './VincularMatriculaDialog';
 
@@ -389,7 +389,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     onValueChange={(v) => setField('empresa_destino_pessoa_id', v)}
                   >
                     <SelectTrigger className={fieldCls}>
-                      <SelectValue placeholder={pjs.length ? 'Selecione...' : 'Cadastre uma PJ no Quadro Societário'} />
+                      <SelectValue placeholder={pjs.length ? 'Selecione...' : 'Cadastre uma PJ na Qualificação das Partes'} />
                     </SelectTrigger>
                     <SelectContent>
                       {pjs.map((p) => (

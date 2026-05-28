@@ -22,7 +22,7 @@ import {
 import { Plus, Pencil, Trash2, Search, FileText, Link2, Unlink, AlertCircle, Loader2 } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
-import { usePessoasByCliente } from '@/hooks/useQuadroSocietario';
+import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
   useAllMatriculas,
   useBensByCliente,

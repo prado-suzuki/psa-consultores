@@ -424,8 +424,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/osg/work/quadro-societario',
-    page_name: 'Quadro Societário',
+    page_path: '/equipe/osg/work/qualificacao-das-partes',
+    page_name: 'Qualificação das Partes',
     page_description: 'CRUD de pessoas (PF/PJ) e vínculos de parentesco por cliente',
     category: 'osg',
     requires_admin: false,

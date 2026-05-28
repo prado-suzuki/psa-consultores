@@ -14,13 +14,13 @@ import { formatCpfCnpj, formatCep, UF_STATES } from '@/components/equipe/client-
 import {
   fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
 } from '@/components/equipe/osg/formKit';
-import type { PessoaRow, TipoPessoa } from '@/hooks/useQuadroSocietario';
+import type { PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
 import {
   useDeleteParentesco,
   useParentescosByCliente,
   useUpsertParentesco,
   useUpsertPessoa,
-} from '@/hooks/useQuadroSocietario';
+} from '@/hooks/useQualificacaoDasPartes';
 
 const ESTADO_CIVIL_OPTIONS = [
   'Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável',
@@ -421,24 +421,6 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
         <div>
           <FieldSection number={nextNo()} title="Identificação">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className={labelCls}>
-                  Tipo de pessoa<RequiredMark />
-                </Label>
-                <Select
-                  value={draft.tipo_pessoa}
-                  onValueChange={(v: TipoPessoa) => {
-                    setDraft((prev) => ({ ...prev, tipo_pessoa: v, cpf_cnpj: '' }));
-                  }}
-                >
-                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PF">Pessoa Física</SelectItem>
-                    <SelectItem value="PJ">Pessoa Jurídica</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
               <div className="space-y-1.5">
                 <Label className={labelCls}>
                   {isPF ? 'CPF' : 'CNPJ'}

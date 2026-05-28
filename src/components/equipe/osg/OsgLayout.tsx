@@ -173,21 +173,21 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         {/* Navigation */}
         <nav className="p-4 space-y-1">
           <button
-            onClick={() => navigate('/equipe/osg/work/quadro-societario')}
+            onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              location.pathname === '/equipe/osg/work/quadro-societario'
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/work/qualificacao-das-partes'
                 ? "bg-osg-100 text-osg-700"
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
             <Users className="h-4 w-4" />
-            {!collapsed && <span>Quadro Societário</span>}
+            {!collapsed && <span>Qualificação das Partes</span>}
           </button>
           <button
             onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
                 ? "bg-osg-100 text-osg-700"
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
@@ -199,7 +199,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/controle-matriculas'
                 ? "bg-osg-100 text-osg-700"
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
@@ -211,7 +211,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/auditoria')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/auditoria'
                 ? "bg-osg-100 text-osg-700"
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
