@@ -309,7 +309,7 @@ export type Database = {
           vlr_contabil: number
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
-          vlr_mercado: number
+          vlr_mercado: number | null
         }
         Insert: {
           ccir_codigo?: string | null
@@ -334,7 +334,7 @@ export type Database = {
           vlr_contabil: number
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
-          vlr_mercado: number
+          vlr_mercado?: number | null
         }
         Update: {
           ccir_codigo?: string | null
@@ -359,7 +359,7 @@ export type Database = {
           vlr_contabil?: number
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
-          vlr_mercado?: number
+          vlr_mercado?: number | null
         }
         Relationships: [
           {
