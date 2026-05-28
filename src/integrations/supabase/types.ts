@@ -5440,39 +5440,49 @@ export type Database = {
       }
       titularidade: {
         Row: {
+          bem_id: string | null
           created_at: string
           created_by: string | null
           fracao: number | null
           id: string
-          matricula_id: string
+          matricula_id: string | null
           tipo: string
           titular_pessoa_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          bem_id?: string | null
           created_at?: string
           created_by?: string | null
           fracao?: number | null
           id?: string
-          matricula_id: string
+          matricula_id?: string | null
           tipo: string
           titular_pessoa_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          bem_id?: string | null
           created_at?: string
           created_by?: string | null
           fracao?: number | null
           id?: string
-          matricula_id?: string
+          matricula_id?: string | null
           tipo?: string
           titular_pessoa_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "titularidade_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "titularidade_created_by_fkey"
             columns: ["created_by"]
