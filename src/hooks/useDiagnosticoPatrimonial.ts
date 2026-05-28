@@ -60,7 +60,7 @@ const MATRICULA_DIFF_FIELDS: (keyof MatriculaRow)[] = [
 ];
 
 const TITULARIDADE_DIFF_FIELDS: (keyof TitularidadeRow)[] = [
-  'matricula_id', 'titular_pessoa_id', 'tipo', 'fracao',
+  'matricula_id', 'bem_id', 'titular_pessoa_id', 'tipo', 'fracao',
 ];
 
 const IMPEDIMENTO_DIFF_FIELDS: (keyof ImpedimentoRow)[] = [
@@ -184,6 +184,8 @@ export function useDeleteBem() {
       queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem', bem.id] });
       queryClient.invalidateQueries({ queryKey: ['matriculas-all'] });
       queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
+      // Titularidades diretas do bem caem em cascata (FK ON DELETE CASCADE).
+      queryClient.invalidateQueries({ queryKey: ['titularidades-by-bem', bem.id] });
 
       await logAction({
         area: 'osg',
@@ -480,18 +482,50 @@ export interface TitularidadeEnriched extends TitularidadeRow {
   titular_cpf_cnpj: string | null;
 }
 
-export function useTitularidadesByMatricula(matriculaId: string | null) {
+// A titularidade ancora em exatamente um lado: numa matrícula (imóvel, fonte
+// legal no registro) ou direto num bem sem matrícula (PS/AP/OU). O arco
+// exclusivo é garantido pela constraint titularidade_ancora_xor no banco.
+export type TitularidadeAnchor =
+  | { kind: 'matricula'; id: string }
+  | { kind: 'bem'; id: string };
+
+const anchorColumn = (kind: TitularidadeAnchor['kind']) =>
+  kind === 'matricula' ? 'matricula_id' : 'bem_id';
+
+const anchorQueryKey = (anchor: TitularidadeAnchor) =>
+  [`titularidades-by-${anchor.kind}`, anchor.id] as const;
+
+// Campos da âncora para INSERT (a coluna não usada fica ausente → NULL).
+export const titularidadeAnchorValues = (
+  anchor: TitularidadeAnchor,
+): { matricula_id: string } | { bem_id: string } =>
+  anchor.kind === 'matricula' ? { matricula_id: anchor.id } : { bem_id: anchor.id };
+
+// Invalida a(s) lista(s) afetada(s) por uma linha, qualquer que seja a âncora.
+function invalidateTitularidadeLists(
+  queryClient: ReturnType<typeof useQueryClient>,
+  row: Pick<TitularidadeRow, 'matricula_id' | 'bem_id'>,
+) {
+  if (row.matricula_id) {
+    queryClient.invalidateQueries({ queryKey: ['titularidades-by-matricula', row.matricula_id] });
+  }
+  if (row.bem_id) {
+    queryClient.invalidateQueries({ queryKey: ['titularidades-by-bem', row.bem_id] });
+  }
+}
+
+function useTitularidadesByAnchor(anchor: TitularidadeAnchor | null) {
   return useQuery<TitularidadeEnriched[]>({
-    queryKey: ['titularidades-by-matricula', matriculaId],
+    queryKey: anchor ? anchorQueryKey(anchor) : ['titularidades-by-none'],
     queryFn: async () => {
-      if (!matriculaId) return [];
+      if (!anchor) return [];
       const { data, error } = await supabase
         .from('titularidade')
         .select(`
           *,
           titular:titular_pessoa_id (id, denominacao, tipo_pessoa, cpf_cnpj)
         `)
-        .eq('matricula_id', matriculaId)
+        .eq(anchorColumn(anchor.kind), anchor.id)
         .order('created_at');
       if (error) throw error;
 
@@ -506,8 +540,16 @@ export function useTitularidadesByMatricula(matriculaId: string | null) {
         titular_cpf_cnpj: r.titular?.cpf_cnpj ?? null,
       }));
     },
-    enabled: !!matriculaId,
+    enabled: !!anchor,
   });
+}
+
+export function useTitularidadesByMatricula(matriculaId: string | null) {
+  return useTitularidadesByAnchor(matriculaId ? { kind: 'matricula', id: matriculaId } : null);
+}
+
+export function useTitularidadesByBem(bemId: string | null) {
+  return useTitularidadesByAnchor(bemId ? { kind: 'bem', id: bemId } : null);
 }
 
 export function useUpsertTitularidade() {
@@ -541,7 +583,7 @@ export function useUpsertTitularidade() {
       return { row: data as TitularidadeRow, original: null };
     },
     onSuccess: async ({ row, original }) => {
-      queryClient.invalidateQueries({ queryKey: ['titularidades-by-matricula', row.matricula_id] });
+      invalidateTitularidadeLists(queryClient, row);
 
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
@@ -577,7 +619,7 @@ export function useDeleteTitularidade() {
       return titularidade;
     },
     onSuccess: async (titularidade) => {
-      queryClient.invalidateQueries({ queryKey: ['titularidades-by-matricula', titularidade.matricula_id] });
+      invalidateTitularidadeLists(queryClient, titularidade);
       await logAction({
         area: 'osg',
         entity_type: 'titularidade',

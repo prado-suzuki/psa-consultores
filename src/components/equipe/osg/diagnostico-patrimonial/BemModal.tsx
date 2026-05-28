@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { MatriculaModal } from './MatriculaModal';
+import { TitularidadesPanel } from './TitularidadesPanel';
 import { formatAreaUnidade } from './areaUtils';
 import { VincularMatriculaDialog } from './VincularMatriculaDialog';
 
@@ -422,6 +423,23 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                 className={`min-h-[60px] ${textareaCls}`}
               />
             </FieldSection>
+
+            {/* Bens sem matrícula (PS/AP/OU) registram titularidade direto no bem.
+                Imóveis (IR/IB) registram pela matrícula, na seção abaixo. */}
+            {!isImovel && (
+              <FieldSection number={nextNo()} title="Titularidade">
+                {isEdit && bem ? (
+                  <TitularidadesPanel
+                    anchor={{ kind: 'bem', id: bem.id }}
+                    pessoasCliente={pessoasCliente}
+                  />
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">
+                    Salve o bem primeiro para cadastrar a titularidade.
+                  </p>
+                )}
+              </FieldSection>
+            )}
 
             {isImovel && (
               <FieldSection
