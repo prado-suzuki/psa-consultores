@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
-import { useDirtyClose, UnsavedChangesAlert } from '@/components/equipe/osg/useDirtyClose';
+import { useDirtyClose } from '@/components/equipe/osg/useDirtyClose';
+import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,6 +24,7 @@ import {
   fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
 } from '@/components/equipe/osg/formKit';
 import { CartorioSelect } from './CartorioSelect';
+import { formatAreaUnidade, maxAreaDecimals, areaStep, clampAreaInput } from './areaUtils';
 import {
   useUpsertMatricula,
   useTitularidadesByMatricula,
@@ -65,24 +67,6 @@ const UNIDADE_AREA_OPTIONS: { value: string; label: string }[] = [
   { value: 'ha', label: 'ha' },
   { value: 'm2', label: 'm²' },
 ];
-
-export const formatAreaUnidade = (u: string | null | undefined) =>
-  u === 'm2' ? 'm²' : (u ?? '');
-
-// m² aceita 2 casas decimais; ha aceita 4.
-export const maxAreaDecimals = (u: string | null | undefined) => (u === 'm2' ? 2 : 4);
-export const areaStep = (u: string | null | undefined) => (u === 'm2' ? '0.01' : '0.0001');
-
-const clampDecimals = (v: string, max: number): string => {
-  if (!v) return v;
-  const dot = v.indexOf('.');
-  if (dot === -1) return v;
-  const decimals = v.length - dot - 1;
-  return decimals > max ? v.slice(0, dot + 1 + max) : v;
-};
-
-export const clampAreaInput = (v: string, u: string | null | undefined) =>
-  clampDecimals(v, maxAreaDecimals(u));
 
 interface MatriculaModalProps {
   open: boolean;

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
-import { useDirtyClose, UnsavedChangesAlert } from '@/components/equipe/osg/useDirtyClose';
+import { useDirtyClose } from '@/components/equipe/osg/useDirtyClose';
+import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,7 +32,8 @@ import {
   type TipoBem,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { MatriculaModal, formatAreaUnidade } from './MatriculaModal';
+import { MatriculaModal } from './MatriculaModal';
+import { formatAreaUnidade } from './areaUtils';
 import { VincularMatriculaDialog } from './VincularMatriculaDialog';
 
 const STATUS_INTEGRALIZACAO_OPTIONS = [
