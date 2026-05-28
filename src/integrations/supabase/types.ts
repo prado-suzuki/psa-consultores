@@ -2237,7 +2237,7 @@ export type Database = {
         Row: {
           area_documento: number
           area_explorada: number | null
-          area_real: number
+          area_real: number | null
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
@@ -2264,7 +2264,7 @@ export type Database = {
         Insert: {
           area_documento: number
           area_explorada?: number | null
-          area_real: number
+          area_real?: number | null
           area_unidade: string
           bem_id?: string | null
           cartorio_id: string
@@ -2291,7 +2291,7 @@ export type Database = {
         Update: {
           area_documento?: number
           area_explorada?: number | null
-          area_real?: number
+          area_real?: number | null
           area_unidade?: string
           bem_id?: string | null
           cartorio_id?: string
@@ -5719,7 +5719,7 @@ export type Database = {
         Returns: {
           area_documento: number
           area_explorada: number | null
-          area_real: number
+          area_real: number | null
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
