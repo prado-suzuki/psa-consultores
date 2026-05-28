@@ -39,14 +39,18 @@ export const isItemOutrasSaidas = (i: ItemCredito): boolean =>
 
 export const isItemCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
-  return !isNaN(n) && n >= 50 && n <= 66 && i.aliq_pis > 0;
+  if (isNaN(n)) return false;
+  // CST 51 gera crédito mesmo quando vem com alíquota zerada no arquivo
+  if (n === 51) return true;
+  return n >= 50 && n <= 66 && i.aliq_pis > 0;
 };
 
 export const isItemIsencaoCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
+  if (isNaN(n)) return false;
   return (
-    (!isNaN(n) && n >= 70 && n <= 98) ||
-    (!isNaN(n) && n >= 50 && n <= 66 && i.aliq_pis === 0)
+    (n >= 70 && n <= 98) ||
+    (n >= 50 && n <= 66 && n !== 51 && i.aliq_pis === 0)
   );
 };
 
