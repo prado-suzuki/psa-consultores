@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import { useDirtyClose, UnsavedChangesAlert } from '@/components/equipe/osg/useDirtyClose';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -174,11 +175,26 @@ export function MatriculaModal({
   const isImovelRural = bemTipo === 'IR' || bemTipo == null;
   const semPessoas = pessoasCliente.length === 0;
 
+  // Snapshots do estado inicial para detectar "dirty" no fechamento. Quando o
+  // usuário tenta fechar com alterações, abrimos um alerta antes de descartar.
+  const initialDraftRef = useRef<string>('');
+  const initialTitularRef = useRef<string>('');
+
   useEffect(() => {
     if (!open) return;
-    setDraft(matricula ? fromMatricula(matricula) : emptyDraft());
-    setTitularInicial({ titular_pessoa_id: '', tipo: 'DIREITO', fracao: '' });
+    const initialDraft = matricula ? fromMatricula(matricula) : emptyDraft();
+    const initialTitular = { titular_pessoa_id: '', tipo: 'DIREITO', fracao: '' };
+    setDraft(initialDraft);
+    setTitularInicial(initialTitular);
+    initialDraftRef.current = JSON.stringify(initialDraft);
+    initialTitularRef.current = JSON.stringify(initialTitular);
   }, [open, matricula]);
+
+  const isDirty =
+    JSON.stringify(draft) !== initialDraftRef.current ||
+    (!isEdit && JSON.stringify(titularInicial) !== initialTitularRef.current);
+
+  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
 
   const setField = <K extends keyof DraftMatricula>(field: K, value: DraftMatricula[K]) => {
     setDraft((p) => ({ ...p, [field]: value }));
@@ -272,7 +288,8 @@ export function MatriculaModal({
     'data-[state=active]:text-osg-700 data-[state=active]:shadow-none';
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
         <Tabs defaultValue="dados" className="flex min-h-0 flex-1 flex-col">
           {/* Cabeçalho + abas fixos no topo enquanto o formulário rola */}
@@ -600,7 +617,7 @@ export function MatriculaModal({
 
           {/* Footer fixo */}
           <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
-            <Button variant="outline" onClick={onClose} disabled={upsert.isPending}>Cancelar</Button>
+            <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
             <Button
               onClick={handleSave}
               disabled={upsert.isPending || (!isEdit && semPessoas)}
@@ -613,6 +630,8 @@ export function MatriculaModal({
         </Tabs>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesAlert {...alertProps} />
+    </>
   );
 }
 

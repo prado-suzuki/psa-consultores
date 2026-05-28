@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import { useDirtyClose, UnsavedChangesAlert } from '@/components/equipe/osg/useDirtyClose';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -117,10 +118,18 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
   });
   const [vincularOpen, setVincularOpen] = useState(false);
 
+  // Snapshot do draft inicial para detectar "dirty" e pedir confirmação ao fechar.
+  const initialDraftRef = useRef<string>('');
+
   useEffect(() => {
     if (!open) return;
-    setDraft(bem ? fromBem(bem) : emptyDraft());
+    const initial = bem ? fromBem(bem) : emptyDraft();
+    setDraft(initial);
+    initialDraftRef.current = JSON.stringify(initial);
   }, [open, bem]);
+
+  const isDirty = JSON.stringify(draft) !== initialDraftRef.current;
+  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
 
   const isEdit = !!bem?.id;
   const isImovel = draft.tipo_bem === 'IR' || draft.tipo_bem === 'IB';
@@ -190,7 +199,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
 
   return (
     <>
-      <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
@@ -472,7 +481,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
           </div>
 
           <DialogFooter className="mt-6 border-t border-osg-100 pt-4">
-            <Button variant="outline" onClick={onClose} disabled={upsert.isPending}>Cancelar</Button>
+            <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
             <Button
               onClick={handleSave}
               disabled={upsert.isPending}
@@ -505,6 +514,8 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
           onClose={() => setVincularOpen(false)}
         />
       )}
+
+      <UnsavedChangesAlert {...alertProps} />
     </>
   );
 }

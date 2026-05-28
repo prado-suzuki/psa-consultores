@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import { useDirtyClose, UnsavedChangesAlert } from '@/components/equipe/osg/useDirtyClose';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -236,13 +237,18 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
     parenteId: '', tipo: '', natureza: '',
   });
 
+  // Snapshots do estado inicial para detectar "dirty" no fechamento. Atualizados
+  // sempre que reinicializamos draft/novoParente (abertura ou troca de pessoa).
+  const initialDraftRef = useRef<string>('');
+  const initialParenteRef = useRef<string>('');
+
   useEffect(() => {
     if (!open) return;
-    setDraft(
-      pessoa
-        ? fromPessoa(pessoa)
-        : { ...emptyDraft(), tipo_pessoa: defaultTipo ?? 'PF' },
-    );
+    const initial = pessoa
+      ? fromPessoa(pessoa)
+      : { ...emptyDraft(), tipo_pessoa: defaultTipo ?? 'PF' };
+    setDraft(initial);
+    initialDraftRef.current = JSON.stringify(initial);
   }, [open, pessoa, defaultTipo]);
 
   const isPF = draft.tipo_pessoa === 'PF';
@@ -256,17 +262,23 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
   useEffect(() => {
     if (!open) return;
-    setNovoParente(
-      parentescoAtual
-        ? {
-            parenteId: parentescoAtual.parente_pessoa_id,
-            tipo: parentescoAtual.tipo ?? '',
-            natureza: parentescoAtual.natureza ?? '',
-          }
-        : { parenteId: '', tipo: '', natureza: '' },
-    );
+    const initial = parentescoAtual
+      ? {
+          parenteId: parentescoAtual.parente_pessoa_id,
+          tipo: parentescoAtual.tipo ?? '',
+          natureza: parentescoAtual.natureza ?? '',
+        }
+      : { parenteId: '', tipo: '', natureza: '' };
+    setNovoParente(initial);
+    initialParenteRef.current = JSON.stringify(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, pessoa?.id, parentescoAtual?.id]);
+
+  const isDirty =
+    JSON.stringify(draft) !== initialDraftRef.current ||
+    JSON.stringify(novoParente) !== initialParenteRef.current;
+
+  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
 
   // Reconcilia o vínculo 1:1 depois de salvar a pessoa (insert/update/delete).
   const reconcileParentesco = async (pessoaId: string) => {
@@ -394,7 +406,8 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
   const nextNo = () => String(++secNo).padStart(2, '0');
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+    <>
+    <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
@@ -819,7 +832,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
         </div>
 
         <DialogFooter className="mt-6 border-t border-osg-100 pt-4">
-          <Button variant="outline" onClick={onClose} disabled={upsert.isPending}>Cancelar</Button>
+          <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
           <Button
             onClick={handleSave}
             disabled={upsert.isPending || upsertParentesco.isPending || deleteParentesco.isPending}
@@ -833,5 +846,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <UnsavedChangesAlert {...alertProps} />
+    </>
   );
 }
