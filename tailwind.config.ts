@@ -121,17 +121,20 @@ export default {
             height: "0",
           },
         },
-        // Abertura/fechamento dos modais OSG: rise sutil + leve escala, com o
-        // centramento (-50%, -50%) embutido para o conteúdo não sair do eixo
-        // durante a animação. Mantido aqui (e não no dialog global) para ficar
-        // restrito à OSG. Ver OsgDialog.tsx.
+        // Abertura/fechamento dos modais OSG: entrada com física de mola —
+        // sobe de baixo, passa levemente do centro (overshoot) e assenta. Só
+        // transform + opacity (compositados na GPU) para rodar liso; nada de
+        // filter/blur animado, que causa repaint e engasga. O centramento
+        // (-50%, -50%) fica embutido em cada stop pra o conteúdo não sair do
+        // eixo durante a animação. Restrito à OSG (ver OsgDialog).
         "osg-modal-in": {
-          from: { opacity: "0", transform: "translate(-50%, calc(-50% + 8px)) scale(0.97)" },
-          to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
+          "0%": { opacity: "0", transform: "translate(-50%, calc(-50% + 28px)) scale(0.94)" },
+          "55%": { opacity: "1", transform: "translate(-50%, calc(-50% - 7px)) scale(1.015)" },
+          "100%": { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
         },
         "osg-modal-out": {
           from: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
-          to: { opacity: "0", transform: "translate(-50%, calc(-50% + 8px)) scale(0.97)" },
+          to: { opacity: "0", transform: "translate(-50%, calc(-50% + 14px)) scale(0.96)" },
         },
         "osg-overlay-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "osg-overlay-out": { from: { opacity: "1" }, to: { opacity: "0" } },
@@ -139,11 +142,11 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        // ease-out-expo na entrada (suave, "assenta" no fim); saída mais curta.
-        "osg-modal-in": "osg-modal-in 0.26s cubic-bezier(0.16, 1, 0.3, 1)",
-        "osg-modal-out": "osg-modal-out 0.18s cubic-bezier(0.4, 0, 1, 1)",
-        "osg-overlay-in": "osg-overlay-in 0.26s ease-out",
-        "osg-overlay-out": "osg-overlay-out 0.18s ease-in",
+        // Entrada com overshoot de mola (~0.42s); saída curta e seca.
+        "osg-modal-in": "osg-modal-in 0.42s cubic-bezier(0.34, 1.2, 0.42, 1)",
+        "osg-modal-out": "osg-modal-out 0.2s cubic-bezier(0.4, 0, 1, 1)",
+        "osg-overlay-in": "osg-overlay-in 0.3s ease-out",
+        "osg-overlay-out": "osg-overlay-out 0.2s ease-in",
       },
     },
   },

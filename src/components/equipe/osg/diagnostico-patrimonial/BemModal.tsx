@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import {
   fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
 } from '@/components/equipe/osg/formKit';
@@ -29,7 +30,7 @@ import {
   type TipoBem,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQuadroSocietario';
-import { MatriculaModal } from './MatriculaModal';
+import { MatriculaModal, formatAreaUnidade } from './MatriculaModal';
 import { VincularMatriculaDialog } from './VincularMatriculaDialog';
 
 const STATUS_INTEGRALIZACAO_OPTIONS = [
@@ -152,10 +153,6 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       toast.error('Valor contábil é obrigatório');
       return;
     }
-    if (!draft.vlr_mercado.trim() || isNaN(Number(draft.vlr_mercado))) {
-      toast.error('Valor de mercado é obrigatório');
-      return;
-    }
 
     const nullify = (v: string) => (v.trim() ? v : null);
     const toNum = (v: string) => (v.trim() && !isNaN(Number(v)) ? Number(v) : null);
@@ -170,7 +167,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       vlr_contabil: Number(draft.vlr_contabil),
       vlr_contabil_ajustado: toNum(draft.vlr_contabil_ajustado),
       vlr_benfeitorias: toNum(draft.vlr_benfeitorias),
-      vlr_mercado: Number(draft.vlr_mercado),
+      vlr_mercado: toNum(draft.vlr_mercado),
       vlr_imposto_anual: toNum(draft.vlr_imposto_anual),
       imposto_anual_exercicio: toInt(draft.imposto_anual_exercicio),
       ccir_codigo: isImovelRural ? nullify(draft.ccir_codigo) : null,
@@ -280,43 +277,33 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   <Label className={labelCls}>
                     Vlr. contábil<RequiredMark />
                   </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={draft.vlr_contabil}
-                    onChange={(e) => setField('vlr_contabil', e.target.value)}
+                    onChange={(v) => setField('vlr_contabil', v)}
                     className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className={labelCls}>Vlr. contábil ajustado</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={draft.vlr_contabil_ajustado}
-                    onChange={(e) => setField('vlr_contabil_ajustado', e.target.value)}
+                    onChange={(v) => setField('vlr_contabil_ajustado', v)}
                     className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
                   <Label className={labelCls}>Vlr. benfeitorias</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={draft.vlr_benfeitorias}
-                    onChange={(e) => setField('vlr_benfeitorias', e.target.value)}
+                    onChange={(v) => setField('vlr_benfeitorias', v)}
                     className={`${fieldCls} font-mono`}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className={labelCls}>
-                    Vlr. mercado<RequiredMark />
-                  </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <Label className={labelCls}>Vlr. mercado</Label>
+                  <CurrencyInput
                     value={draft.vlr_mercado}
-                    onChange={(e) => setField('vlr_mercado', e.target.value)}
+                    onChange={(v) => setField('vlr_mercado', v)}
                     className={`${fieldCls} font-mono`}
                   />
                 </div>
@@ -324,11 +311,9 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   <Label className={labelCls}>
                     {isImovelRural ? 'ITR anual' : draft.tipo_bem === 'IB' ? 'IPTU anual' : 'Imposto anual'}
                   </Label>
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={draft.vlr_imposto_anual}
-                    onChange={(e) => setField('vlr_imposto_anual', e.target.value)}
+                    onChange={(v) => setField('vlr_imposto_anual', v)}
                     className={`${fieldCls} font-mono`}
                   />
                 </div>
@@ -542,8 +527,10 @@ function MatriculaCard({ matricula, onEdit, onUnlink, onDelete }: MatriculaCardP
           </span>
         </div>
         <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
-          <span>Área doc: <span className="font-mono">{matricula.area_documento} {matricula.area_unidade}</span></span>
-          <span>Área real: <span className="font-mono">{matricula.area_real} {matricula.area_unidade}</span></span>
+          <span>Área doc: <span className="font-mono">{matricula.area_documento} {formatAreaUnidade(matricula.area_unidade)}</span></span>
+          {matricula.area_real != null && (
+            <span>Área real: <span className="font-mono">{matricula.area_real} {formatAreaUnidade(matricula.area_unidade)}</span></span>
+          )}
           {matricula.georreferenciado && (
             <span>Georref: <span className="font-medium">{matricula.georreferenciado}</span></span>
           )}

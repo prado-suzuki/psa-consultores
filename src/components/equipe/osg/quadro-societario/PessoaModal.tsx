@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { toast } from 'sonner';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { formatCpfCnpj, formatCep, UF_STATES } from '@/components/equipe/client-form/constants';
 import {
   fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
@@ -77,7 +77,6 @@ type DraftPessoa = {
   naturalidade_municipio: string;
   naturalidade_uf: string;
   estado_civil: string;
-  convive_uniao_estavel: boolean;
   regime_bens: string;
   data_nascimento: string;
   filiacao_pai: string;
@@ -115,7 +114,6 @@ const emptyDraft = (): DraftPessoa => ({
   naturalidade_municipio: '',
   naturalidade_uf: '',
   estado_civil: '',
-  convive_uniao_estavel: false,
   regime_bens: '',
   data_nascimento: '',
   filiacao_pai: '',
@@ -152,7 +150,6 @@ const fromPessoa = (p: PessoaRow): DraftPessoa => ({
   naturalidade_municipio: p.naturalidade_municipio ?? '',
   naturalidade_uf: p.naturalidade_uf ?? '',
   estado_civil: p.estado_civil ?? '',
-  convive_uniao_estavel: p.convive_uniao_estavel ?? false,
   regime_bens: p.regime_bens ?? '',
   data_nascimento: p.data_nascimento ?? '',
   filiacao_pai: p.filiacao_pai ?? '',
@@ -331,7 +328,6 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           naturalidade_municipio: nullify(draft.naturalidade_municipio),
           naturalidade_uf: nullify(draft.naturalidade_uf),
           estado_civil: nullify(draft.estado_civil),
-          convive_uniao_estavel: draft.convive_uniao_estavel,
           regime_bens: nullify(draft.regime_bens),
           data_nascimento: nullify(draft.data_nascimento),
           filiacao_pai: nullify(draft.filiacao_pai),
@@ -357,7 +353,6 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           naturalidade_municipio: null,
           naturalidade_uf: null,
           estado_civil: null,
-          convive_uniao_estavel: false,
           regime_bens: null,
           data_nascimento: null,
           filiacao_pai: null,
@@ -400,7 +395,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
             {isEdit ? 'Editar pessoa' : 'Nova pessoa'}
@@ -608,8 +603,18 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="relative space-y-1.5">
                       <Label className={labelCls}>Cônjuge</Label>
+                      {draft.conjuge_id && (
+                        <button
+                          type="button"
+                          onClick={() => setField('conjuge_id', '')}
+                          aria-label="Remover cônjuge"
+                          className="absolute right-0 top-0 text-red-600 hover:text-red-700"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <Select
                         value={draft.conjuge_id || undefined}
                         onValueChange={(v) => setField('conjuge_id', v)}

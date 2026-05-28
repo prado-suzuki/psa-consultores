@@ -42,7 +42,7 @@ const OsgDialogContent = React.forwardRef<
       onInteractOutside={(e) => {
         // Permite fechar pelo clique no overlay (PointerEvent), mas bloqueia o
         // dismiss disparado por foco/blur do SO (ex.: troca de aba).
-        const original = (e as any).detail?.originalEvent;
+        const original = e.detail?.originalEvent;
         if (original && !(original instanceof PointerEvent)) {
           e.preventDefault();
         }
@@ -51,7 +51,11 @@ const OsgDialogContent = React.forwardRef<
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] " +
           "gap-4 border bg-background p-6 shadow-lg will-change-[transform,opacity] sm:rounded-lg " +
           "data-[state=open]:animate-osg-modal-in data-[state=closed]:animate-osg-modal-out " +
-          "motion-reduce:animate-none",
+          "motion-reduce:animate-none " +
+          // Em Chrome/Linux o scrollbar de hover "sobe de layer" e desenha por
+          // cima do border-radius. clip-path força o recorte visual no raio do
+          // modal, independente da camada do scrollbar.
+          "sm:[clip-path:inset(0_round_0.75rem)]",
         className,
       )}
       {...props}

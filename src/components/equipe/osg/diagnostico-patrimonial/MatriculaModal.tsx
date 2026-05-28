@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -59,7 +60,28 @@ const GEORREFERENCIAMENTO_OPTIONS = [
   'Sim', 'Não', 'Parcial', 'Em processo',
 ];
 
-const UNIDADE_AREA_OPTIONS = ['ha', 'm²'];
+const UNIDADE_AREA_OPTIONS: { value: string; label: string }[] = [
+  { value: 'ha', label: 'ha' },
+  { value: 'm2', label: 'm²' },
+];
+
+export const formatAreaUnidade = (u: string | null | undefined) =>
+  u === 'm2' ? 'm²' : (u ?? '');
+
+// m² aceita 2 casas decimais; ha aceita 4.
+export const maxAreaDecimals = (u: string | null | undefined) => (u === 'm2' ? 2 : 4);
+export const areaStep = (u: string | null | undefined) => (u === 'm2' ? '0.01' : '0.0001');
+
+const clampDecimals = (v: string, max: number): string => {
+  if (!v) return v;
+  const dot = v.indexOf('.');
+  if (dot === -1) return v;
+  const decimals = v.length - dot - 1;
+  return decimals > max ? v.slice(0, dot + 1 + max) : v;
+};
+
+export const clampAreaInput = (v: string, u: string | null | undefined) =>
+  clampDecimals(v, maxAreaDecimals(u));
 
 interface MatriculaModalProps {
   open: boolean;
@@ -183,11 +205,6 @@ export function MatriculaModal({
       toast.error('Área do documento é obrigatória');
       return;
     }
-    if (!draft.area_real.trim() || isNaN(Number(draft.area_real))) {
-      toast.error('Área real é obrigatória');
-      return;
-    }
-
     const nullify = (v: string) => (v.trim() ? v : null);
     const toNum = (v: string) => (v.trim() && !isNaN(Number(v)) ? Number(v) : null);
 
@@ -203,7 +220,7 @@ export function MatriculaModal({
       municipio_imovel: draft.municipio_imovel.trim(),
       uf_imovel: draft.uf_imovel,
       area_documento: Number(draft.area_documento),
-      area_real: Number(draft.area_real),
+      area_real: toNum(draft.area_real),
       area_explorada: isImovelRural ? toNum(draft.area_explorada) : null,
       area_unidade: draft.area_unidade,
       georreferenciado: isImovelRural ? nullify(draft.georreferenciado) : null,
@@ -383,7 +400,7 @@ export function MatriculaModal({
                 </FieldSection>
               )}
 
-              <FieldSection number={nextNo()} title="Localização e áreas" hint={`áreas em ${draft.area_unidade}`}>
+              <FieldSection number={nextNo()} title="Localização e áreas" hint={`áreas em ${formatAreaUnidade(draft.area_unidade)}`}>
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="md:col-span-2 space-y-1.5">
@@ -411,10 +428,19 @@ export function MatriculaModal({
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                     <div className="space-y-1.5">
                       <Label className={labelCls}>Unidade</Label>
-                      <Select value={draft.area_unidade} onValueChange={(v) => setField('area_unidade', v)}>
+                      <Select
+                        value={draft.area_unidade}
+                        onValueChange={(v) => setDraft((prev) => ({
+                          ...prev,
+                          area_unidade: v,
+                          area_documento: clampAreaInput(prev.area_documento, v),
+                          area_real: clampAreaInput(prev.area_real, v),
+                          area_explorada: clampAreaInput(prev.area_explorada, v),
+                        }))}
+                      >
                         <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          {UNIDADE_AREA_OPTIONS.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                          {UNIDADE_AREA_OPTIONS.map((u) => <SelectItem key={u.value} value={u.value}>{u.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>
@@ -424,21 +450,19 @@ export function MatriculaModal({
                       </Label>
                       <Input
                         type="number"
-                        step="0.0001"
+                        step={areaStep(draft.area_unidade)}
                         value={draft.area_documento}
-                        onChange={(e) => setField('area_documento', e.target.value)}
+                        onChange={(e) => setField('area_documento', clampAreaInput(e.target.value, draft.area_unidade))}
                         className={`${fieldCls} font-mono`}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className={labelCls}>
-                        Área real<RequiredMark />
-                      </Label>
+                      <Label className={labelCls}>Área real</Label>
                       <Input
                         type="number"
-                        step="0.0001"
+                        step={areaStep(draft.area_unidade)}
                         value={draft.area_real}
-                        onChange={(e) => setField('area_real', e.target.value)}
+                        onChange={(e) => setField('area_real', clampAreaInput(e.target.value, draft.area_unidade))}
                         className={`${fieldCls} font-mono`}
                       />
                     </div>
@@ -447,9 +471,9 @@ export function MatriculaModal({
                         <Label className={labelCls}>Área explorada</Label>
                         <Input
                           type="number"
-                          step="0.0001"
+                          step={areaStep(draft.area_unidade)}
                           value={draft.area_explorada}
-                          onChange={(e) => setField('area_explorada', e.target.value)}
+                          onChange={(e) => setField('area_explorada', clampAreaInput(e.target.value, draft.area_unidade))}
                           className={`${fieldCls} font-mono`}
                         />
                       </div>
@@ -1068,11 +1092,9 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
           </div>
           <div className="space-y-1.5">
             <Label className={labelCls}>Valor (R$)</Label>
-            <Input
-              type="number"
-              step="0.01"
+            <CurrencyInput
               value={draft.vlr}
-              onChange={(e) => setDraft((p) => ({ ...p, vlr: e.target.value }))}
+              onChange={(v) => setDraft((p) => ({ ...p, vlr: v }))}
               className={`${fieldCls} font-mono`}
             />
           </div>
@@ -1114,12 +1136,12 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
             />
           </div>
           <div className="space-y-1.5">
-            <Label className={labelCls}>Área afetada ({areaUnidade})</Label>
+            <Label className={labelCls}>Área afetada ({formatAreaUnidade(areaUnidade)})</Label>
             <Input
               type="number"
-              step="0.0001"
+              step={areaStep(areaUnidade)}
               value={draft.area_afetada}
-              onChange={(e) => setDraft((p) => ({ ...p, area_afetada: e.target.value }))}
+              onChange={(e) => setDraft((p) => ({ ...p, area_afetada: clampAreaInput(e.target.value, areaUnidade) }))}
               className={`${fieldCls} font-mono`}
             />
           </div>
@@ -1223,7 +1245,7 @@ function ImpedimentoRowItem({ impedimento, areaUnidade, isEditing, onEdit, onDel
           <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
             {impedimento.vlr != null && <span>Valor: <span className="font-mono">{formatVlr(impedimento.vlr)}</span></span>}
             {impedimento.area_afetada != null && (
-              <span>Área: <span className="font-mono">{impedimento.area_afetada} {areaUnidade}</span></span>
+              <span>Área: <span className="font-mono">{impedimento.area_afetada} {formatAreaUnidade(areaUnidade)}</span></span>
             )}
             {impedimento.data_constituicao && (
               <span>Constituído: {new Date(impedimento.data_constituicao).toLocaleDateString('pt-BR')}</span>
