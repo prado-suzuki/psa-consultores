@@ -193,6 +193,8 @@ export function calcApuracao(
     creditoCofins: number;
     creditoPisAliquotaReduzida: number;
     creditoCofinsAliquotaReduzida: number;
+    creditoPisPresumido: number;
+    creditoCofinsPresumido: number;
   },
   anterior: SaldoCarryforward,
 ): ResultadoApuracao {
@@ -224,6 +226,8 @@ export function calcApuracao(
     cofinsCreditoMes,
     pisCreditoMesAliquotaReduzida: valoresSeparados.creditoPisAliquotaReduzida,
     cofinsCreditoMesAliquotaReduzida: valoresSeparados.creditoCofinsAliquotaReduzida,
+    pisCreditoMesPresumido: valoresSeparados.creditoPisPresumido,
+    cofinsCreditoMesPresumido: valoresSeparados.creditoCofinsPresumido,
     pisCreditoAnterior: anterior.pis,
     cofinsCreditoAnterior: anterior.cofins,
     pisDue,
@@ -232,6 +236,7 @@ export function calcApuracao(
     cofinsSaldoAcumulado,
   };
 }
+
 
 export function calcTodosPeriodos(
   input: ApuracaoInput,
