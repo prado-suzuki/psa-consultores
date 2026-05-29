@@ -165,10 +165,11 @@ export function calcValoresDebito(itens: ItemCredito[]) {
 
 export function calcApuracao(
   baseDebito: { baseNormal: number; baseDiferenciada: number },
-  baseCredito: { baseTotal: number },
   valoresSeparados: {
     pisContribuicaoBrutaAliquotaReduzida: number;
     cofinsContribuicaoBrutaAliquotaReduzida: number;
+    creditoPis: number;
+    creditoCofins: number;
     creditoPisAliquotaReduzida: number;
     creditoCofinsAliquotaReduzida: number;
   },
@@ -179,8 +180,11 @@ export function calcApuracao(
   const cofinsContribuicaoBruta =
     baseDebito.baseNormal * 0.076 + baseDebito.baseDiferenciada * 0.04;
 
-  const pisCreditoMes = baseCredito.baseTotal * 0.0165;
-  const cofinsCreditoMes = baseCredito.baseTotal * 0.076;
+  // Crédito por item, respeitando a alíquota de cada lançamento (normal 1,65%/7,6%
+  // e presumido 1,2375%/5,7%). Antes usava baseTotal × alíquota cheia, o que tributava
+  // a parcela presumida indevidamente a 1,65%/7,6%.
+  const pisCreditoMes = valoresSeparados.creditoPis;
+  const cofinsCreditoMes = valoresSeparados.creditoCofins;
 
   const pisDue = Math.max(0, pisContribuicaoBruta - pisCreditoMes - anterior.pis);
   const cofinsDue = Math.max(0, cofinsContribuicaoBruta - cofinsCreditoMes - anterior.cofins);
@@ -222,10 +226,11 @@ export function calcTodosPeriodos(
     const valoresCredito = calcValoresCredito(itens);
     const resultado = calcApuracao(
       baseDebito,
-      baseCredito,
       {
         pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
         cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPis: valoresCredito.creditoPis,
+        creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
       },
@@ -405,10 +410,11 @@ export function calcTodosPeriodosBalancete(
     const valoresCredito = calcValoresCreditoBalancete(itens, periodoFechado);
     const resultado = calcApuracao(
       baseDebito,
-      baseCredito,
       {
         pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
         cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPis: valoresCredito.creditoPis,
+        creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
       },
