@@ -27,6 +27,17 @@ export const subFormBoxCls =
 // um pouco mais de contraste à descrição dos campos.
 export const labelCls = 'text-xs font-medium text-slate-600';
 
+// Abas dos modais OSG (matrícula, bem). Sublinhado em "passo" com realce
+// verde-musgo no item ativo (fundo osg-50 + traço de 3px) e hover nos inativos —
+// pensado para chamar atenção e não passar batido.
+export const osgTabsListCls =
+  'h-auto w-full justify-start gap-2 rounded-none border-b border-osg-100 bg-transparent p-0 text-muted-foreground';
+
+export const osgTabTriggerCls =
+  'relative -mb-px rounded-t-md border-b-[3px] border-transparent bg-transparent px-3 pb-2.5 pt-1.5 ' +
+  'text-sm font-semibold text-slate-500 shadow-none transition-colors hover:bg-osg-50 hover:text-osg-700 ' +
+  'data-[state=active]:border-osg-moss data-[state=active]:bg-osg-50 data-[state=active]:text-osg-700 data-[state=active]:shadow-none';
+
 // Seção como "passo" estruturado: trilho vertical verde-musgo na lateral + linha
 // fina horizontal separando as zonas, com número de ordem (01, 02…). Os slots
 // `badge` (após o número) e `actions` (à direita) permitem reaproveitar a mesma

@@ -35,7 +35,7 @@ export type TipoBem = 'IR' | 'IB' | 'AP' | 'PS' | 'OU';
 
 export const TIPO_BEM_OPTIONS: Array<{ value: TipoBem; label: string; descricao: string }> = [
   { value: 'IR', label: 'Imóvel Rural', descricao: 'Imóvel rural com CCIR e ITR' },
-  { value: 'IB', label: 'Imóvel de Benfeitoria', descricao: 'Imóvel urbano / IPTU' },
+  { value: 'IB', label: 'Imóvel Urbano', descricao: 'Imóvel urbano / IPTU' },
   { value: 'AP', label: 'Arrendamento e/ou Parceria', descricao: 'Arrendamento e/ou parceria' },
   { value: 'PS', label: 'Participação Societária', descricao: 'Quotas / ações em PJs' },
   { value: 'OU', label: 'Outros', descricao: 'Demais bens' },
@@ -102,9 +102,13 @@ export function useUpsertBem() {
     mutationFn: async ({
       values,
       original,
+      titular,
     }: {
       values: BemInsert | BemUpdate;
       original?: BemRow | null;
+      // Obrigatório ao criar bem não-imóvel (PS/AP/OU); ignorado no update e nos
+      // imóveis (cujos titulares vivem na matrícula).
+      titular?: TitularInicial;
     }) => {
       if (original?.id) {
         const { data, error } = await supabase
@@ -116,6 +120,19 @@ export function useUpsertBem() {
         if (error) throw error;
         return { row: data as BemRow, original };
       }
+      if (titular?.titular_pessoa_id) {
+        // Inserção atômica bem + titularidade (rollback se o titular falhar).
+        const { data, error } = await supabase.rpc('criar_bem_com_titular', {
+          bem_data: values as unknown as Json,
+          titular_data: {
+            titular_pessoa_id: titular.titular_pessoa_id,
+            tipo: titular.tipo,
+            fracao: titular.fracao,
+          } as unknown as Json,
+        });
+        if (error) throw error;
+        return { row: data as BemRow, original: null };
+      }
       const { data, error } = await supabase
         .from('bem')
         .insert(values as BemInsert)
@@ -126,6 +143,7 @@ export function useUpsertBem() {
     },
     onSuccess: async ({ row, original }) => {
       queryClient.invalidateQueries({ queryKey: ['bens-by-cliente', row.cliente_id] });
+      queryClient.invalidateQueries({ queryKey: ['titularidades-by-bem', row.id] });
 
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
