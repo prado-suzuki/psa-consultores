@@ -128,6 +128,7 @@ export function aliqCofins(aliqPis: number): number {
 export function calcValoresCredito(itens: ItemCredito[]) {
   const elegiveis = itens.filter(isItemCredito);
   const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
+  const elegiveisPresumido = elegiveis.filter(isItemCreditoPresumido);
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
@@ -149,13 +150,26 @@ export function calcValoresCredito(itens: ItemCredito[]) {
     0,
   );
 
+  const creditoPisPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + i.vlr_efd * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
   return {
     creditoPis,
     creditoCofins,
     creditoPisAliquotaReduzida,
     creditoCofinsAliquotaReduzida,
+    creditoPisPresumido,
+    creditoCofinsPresumido,
   };
 }
+
 
 export function calcValoresDebito(itens: ItemCredito[]) {
   const baseAliquotaReduzida = itens
