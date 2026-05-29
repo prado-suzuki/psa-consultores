@@ -617,6 +617,67 @@ export function MatriculaModal({
                   </FieldSection>
                 )}
 
+                <FieldSection number={nextNo()} title="Valores">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. contábil</Label>
+                      <CurrencyInput
+                        value={draft.vlr_contabil}
+                        onChange={(v) => setField('vlr_contabil', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. contábil ajustado</Label>
+                      <CurrencyInput
+                        value={draft.vlr_contabil_ajustado}
+                        onChange={(v) => setField('vlr_contabil_ajustado', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. benfeitorias</Label>
+                      <CurrencyInput
+                        value={draft.vlr_benfeitorias}
+                        onChange={(v) => setField('vlr_benfeitorias', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. mercado</Label>
+                      <CurrencyInput
+                        value={draft.vlr_mercado}
+                        onChange={(v) => setField('vlr_mercado', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>
+                        {tipoEfetivo === 'IR'
+                          ? 'ITR anual'
+                          : tipoEfetivo === 'IB'
+                            ? 'IPTU anual'
+                            : 'Imposto anual'}
+                      </Label>
+                      <CurrencyInput
+                        value={draft.vlr_imposto_anual}
+                        onChange={(v) => setField('vlr_imposto_anual', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Exercício</Label>
+                      <Input
+                        type="number"
+                        value={draft.imposto_anual_exercicio}
+                        onChange={(e) => setField('imposto_anual_exercicio', e.target.value)}
+                        placeholder="ex: 2025"
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                  </div>
+                </FieldSection>
+
                 <FieldSection number={nextNo()} title="Histórico e descrição">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
