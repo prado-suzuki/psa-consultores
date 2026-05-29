@@ -402,6 +402,7 @@ export function calcValoresCreditoBalancete(
 ) {
   const elegiveis = itens.filter(isItemCredito);
   const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
+  const elegiveisPresumido = elegiveis.filter(isItemCreditoPresumido);
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
@@ -423,11 +424,23 @@ export function calcValoresCreditoBalancete(
     0,
   );
 
+  const creditoPisPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
   return {
     creditoPis,
     creditoCofins,
     creditoPisAliquotaReduzida,
     creditoCofinsAliquotaReduzida,
+    creditoPisPresumido,
+    creditoCofinsPresumido,
   };
 }
 
@@ -453,9 +466,12 @@ export function calcTodosPeriodosBalancete(
         creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+        creditoPisPresumido: valoresCredito.creditoPisPresumido,
+        creditoCofinsPresumido: valoresCredito.creditoCofinsPresumido,
       },
       saldoAnterior,
     );
+
 
     saldoAnterior = {
       pis: resultado.pisSaldoAcumulado,
