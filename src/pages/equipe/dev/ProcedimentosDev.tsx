@@ -36,11 +36,7 @@ const ProcedimentosDev = () => {
     status_publicacao: statusPub || undefined,
   }), [search, processo, complexidade, statusPub]);
 
-  const { data: procedimentos = [], isLoading } = useProcedimentosList(
-    filters,
-    // Enable polling if any card is processing
-    true,
-  );
+  const { data: procedimentos = [], isLoading } = useProcedimentosList(filters);
 
   const retryMutation = useRetryProcedimento();
   const deleteMutation = useDeleteProcedimento();

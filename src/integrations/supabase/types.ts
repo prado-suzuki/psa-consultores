@@ -5843,6 +5843,10 @@ export type Database = {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
       }
+      mark_stuck_procedimentos: {
+        Args: { timeout_minutes?: number }
+        Returns: number
+      }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
