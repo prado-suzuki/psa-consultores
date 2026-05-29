@@ -409,6 +409,25 @@ export function MatriculaModal({
                         />
                       </div>
                       <div className="space-y-1.5">
+                        <Label className={labelCls}>Tipo do imóvel</Label>
+                        <Select
+                          value={draft.tipo_bem || undefined}
+                          onValueChange={(v) => setField('tipo_bem', v as 'IR' | 'IB')}
+                        >
+                          <SelectTrigger className={fieldCls}>
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IR">
+                              <span className="font-mono mr-2">IR</span>Imóvel Rural
+                            </SelectItem>
+                            <SelectItem value="IB">
+                              <span className="font-mono mr-2">IB</span>Imóvel Urbano
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
                         <Label className={labelCls}>Livro</Label>
                         <Input
                           value={draft.livro}
