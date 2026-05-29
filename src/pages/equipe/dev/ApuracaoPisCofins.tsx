@@ -1067,37 +1067,6 @@ const ApuracaoPisCofins = () => {
                             {formatCurrency(totais.cofinsCreditoMesAliquotaReduzida)}
                           </TableCell>
                         </TableRow>
-                        <TableRow>
-                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            PIS - Crédito Presumido (CST 60-66)
-                          </StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.pisCreditoMesPresumido),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
-                            {formatCurrency(totais.pisCreditoMesPresumido)}
-                          </TableCell>
-                        </TableRow>
-                        <TableRow>
-                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            COFINS - Crédito Presumido (CST 60-66)
-                          </StickyCell>
-                          {headerBottom.map((col) => (
-                            <TableCell key={col.id} className={cn("text-right font-mono", POSITIVE_VALUE_CLASS, isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
-                              {formatCurrency(
-                                getResultadoColValue(resultados, col.dataKeys, (r) => r.resultado.cofinsCreditoMesPresumido),
-                              )}
-                            </TableCell>
-                          ))}
-                          <TableCell className={cn("text-right font-mono font-bold bg-muted/30", POSITIVE_VALUE_CLASS)}>
-                            {formatCurrency(totais.cofinsCreditoMesPresumido)}
-                          </TableCell>
-                        </TableRow>
-
                       </TableBody>
                     </InlineTableWrapper>
                   </section>
