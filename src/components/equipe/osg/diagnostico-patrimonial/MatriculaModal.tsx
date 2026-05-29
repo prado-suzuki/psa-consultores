@@ -285,10 +285,12 @@ export function MatriculaModal({
     }
     const nullify = (v: string) => (v.trim() ? v : null);
     const toNum = (v: string) => (v.trim() && !isNaN(Number(v)) ? Number(v) : null);
+    const toInt = (v: string) => (v.trim() && !isNaN(parseInt(v, 10)) ? parseInt(v, 10) : null);
 
     const values = {
       bem_id: bemId ?? matricula?.bem_id ?? null,
       numero: draft.numero.trim(),
+      tipo_bem: draft.tipo_bem || null,
       matricula_anterior_id: draft.matricula_anterior_id || null,
       matricula_anterior_texto: nullify(draft.matricula_anterior_texto),
       livro: nullify(draft.livro),
@@ -307,6 +309,12 @@ export function MatriculaModal({
       descricao_psa_completa: nullify(draft.descricao_psa_completa),
       confrontacoes_texto: nullify(draft.confrontacoes_texto),
       origem_descricao: nullify(draft.origem_descricao),
+      vlr_contabil: toNum(draft.vlr_contabil),
+      vlr_contabil_ajustado: toNum(draft.vlr_contabil_ajustado),
+      vlr_benfeitorias: toNum(draft.vlr_benfeitorias),
+      vlr_mercado: toNum(draft.vlr_mercado),
+      vlr_imposto_anual: toNum(draft.vlr_imposto_anual),
+      imposto_anual_exercicio: toInt(draft.imposto_anual_exercicio),
     };
 
     let titular: TitularInicial | undefined;
