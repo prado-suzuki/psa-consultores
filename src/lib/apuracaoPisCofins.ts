@@ -45,6 +45,13 @@ export const isItemCredito = (i: ItemCredito): boolean => {
   return n >= 50 && n <= 66 && i.aliq_pis > 0;
 };
 
+export const isItemCreditoPresumido = (i: ItemCredito): boolean => {
+  const n = parseInt(i.cst_pis, 10);
+  if (isNaN(n)) return false;
+  return n >= 60 && n <= 66 && i.aliq_pis > 0;
+};
+
+
 export const isItemIsencaoCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
   if (isNaN(n)) return false;
