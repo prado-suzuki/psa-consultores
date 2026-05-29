@@ -403,6 +403,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   </div>
                 </FieldSection>
 
+                {!isImovel && (
                 <FieldSection number={nextNo()} title="Valores">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1.5">
