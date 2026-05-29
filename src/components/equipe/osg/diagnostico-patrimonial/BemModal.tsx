@@ -218,7 +218,8 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       toast.error('Especifique o tipo de bem');
       return;
     }
-    if (!draft.vlr_contabil.trim() || isNaN(Number(draft.vlr_contabil))) {
+    // Para imóveis (IR/IB) os valores vivem na matrícula; o valor contábil do bem é opcional.
+    if (!isImovel && (!draft.vlr_contabil.trim() || isNaN(Number(draft.vlr_contabil)))) {
       toast.error('Valor contábil é obrigatório');
       return;
     }
