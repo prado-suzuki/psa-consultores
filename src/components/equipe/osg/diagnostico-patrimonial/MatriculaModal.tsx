@@ -163,27 +163,47 @@ const emptyDraft = (defaultTipo: '' | 'IR' | 'IB' = ''): DraftMatricula => ({
   imposto_anual_exercicio: '',
 });
 
-const fromMatricula = (m: MatriculaRow): DraftMatricula => ({
-  numero: m.numero ?? '',
-  matricula_anterior_id: m.matricula_anterior_id ?? '',
-  matricula_anterior_texto: m.matricula_anterior_texto ?? '',
-  livro: m.livro ?? '',
-  folha: m.folha ?? '',
-  data_matricula: m.data_matricula ?? '',
-  cartorio_id: m.cartorio_id ?? '',
-  municipio_imovel: m.municipio_imovel ?? '',
-  uf_imovel: m.uf_imovel ?? '',
-  area_documento: m.area_documento != null ? String(m.area_documento) : '',
-  area_real: m.area_real != null ? String(m.area_real) : '',
-  area_explorada: m.area_explorada != null ? String(m.area_explorada) : '',
-  area_unidade: m.area_unidade ?? 'ha',
-  georreferenciado: m.georreferenciado ?? '',
-  georref_prejudica_transferencia: m.georref_prejudica_transferencia ?? false,
-  tipo_exploracao_posse: m.tipo_exploracao_posse ?? '',
-  descricao_psa_completa: m.descricao_psa_completa ?? '',
-  confrontacoes_texto: m.confrontacoes_texto ?? '',
-  origem_descricao: m.origem_descricao ?? '',
-});
+const fromMatricula = (m: MatriculaRow): DraftMatricula => {
+  // Campos novos (tipo_bem + valores) podem não estar ainda nos tipos gerados.
+  const mx = m as MatriculaRow & {
+    tipo_bem?: 'IR' | 'IB' | null;
+    vlr_contabil?: number | null;
+    vlr_contabil_ajustado?: number | null;
+    vlr_benfeitorias?: number | null;
+    vlr_mercado?: number | null;
+    vlr_imposto_anual?: number | null;
+    imposto_anual_exercicio?: number | null;
+  };
+  return {
+    numero: m.numero ?? '',
+    tipo_bem: (mx.tipo_bem as '' | 'IR' | 'IB') ?? '',
+    matricula_anterior_id: m.matricula_anterior_id ?? '',
+    matricula_anterior_texto: m.matricula_anterior_texto ?? '',
+    livro: m.livro ?? '',
+    folha: m.folha ?? '',
+    data_matricula: m.data_matricula ?? '',
+    cartorio_id: m.cartorio_id ?? '',
+    municipio_imovel: m.municipio_imovel ?? '',
+    uf_imovel: m.uf_imovel ?? '',
+    area_documento: m.area_documento != null ? String(m.area_documento) : '',
+    area_real: m.area_real != null ? String(m.area_real) : '',
+    area_explorada: m.area_explorada != null ? String(m.area_explorada) : '',
+    area_unidade: m.area_unidade ?? 'ha',
+    georreferenciado: m.georreferenciado ?? '',
+    georref_prejudica_transferencia: m.georref_prejudica_transferencia ?? false,
+    tipo_exploracao_posse: m.tipo_exploracao_posse ?? '',
+    descricao_psa_completa: m.descricao_psa_completa ?? '',
+    confrontacoes_texto: m.confrontacoes_texto ?? '',
+    origem_descricao: m.origem_descricao ?? '',
+    vlr_contabil: mx.vlr_contabil != null ? String(mx.vlr_contabil) : '',
+    vlr_contabil_ajustado: mx.vlr_contabil_ajustado != null ? String(mx.vlr_contabil_ajustado) : '',
+    vlr_benfeitorias: mx.vlr_benfeitorias != null ? String(mx.vlr_benfeitorias) : '',
+    vlr_mercado: mx.vlr_mercado != null ? String(mx.vlr_mercado) : '',
+    vlr_imposto_anual: mx.vlr_imposto_anual != null ? String(mx.vlr_imposto_anual) : '',
+    imposto_anual_exercicio:
+      mx.imposto_anual_exercicio != null ? String(mx.imposto_anual_exercicio) : '',
+  };
+};
 
 export function MatriculaModal({
   open,
