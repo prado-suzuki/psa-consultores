@@ -86,6 +86,8 @@ export interface ResultadoApuracao {
   cofinsCreditoMes: number;
   pisCreditoMesAliquotaReduzida: number;
   cofinsCreditoMesAliquotaReduzida: number;
+  pisCreditoMesPresumido: number;
+  cofinsCreditoMesPresumido: number;
   pisCreditoAnterior: number;
   cofinsCreditoAnterior: number;
   pisDue: number;
@@ -93,6 +95,7 @@ export interface ResultadoApuracao {
   pisSaldoAcumulado: number;
   cofinsSaldoAcumulado: number;
 }
+
 
 // ── Resultado do rateio proporcional ──
 
