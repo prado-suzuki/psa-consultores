@@ -259,7 +259,10 @@ export function calcTodosPeriodos(
         creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+        creditoPisPresumido: valoresCredito.creditoPisPresumido,
+        creditoCofinsPresumido: valoresCredito.creditoCofinsPresumido,
       },
+
       saldoAnterior,
     );
     const rateio = calcRateio(
