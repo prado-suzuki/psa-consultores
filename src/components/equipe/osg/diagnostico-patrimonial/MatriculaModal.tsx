@@ -238,14 +238,17 @@ export function MatriculaModal({
 
   useEffect(() => {
     if (!open) return;
-    const initialDraft = matricula ? fromMatricula(matricula) : emptyDraft();
+    // Ao criar a partir de um bem IR/IB, herda o tipo do bem como padrão.
+    const defaultTipo: '' | 'IR' | 'IB' =
+      bemTipo === 'IR' || bemTipo === 'IB' ? (bemTipo as 'IR' | 'IB') : '';
+    const initialDraft = matricula ? fromMatricula(matricula) : emptyDraft(defaultTipo);
     const initialTitular = { titular_pessoa_id: '', tipo: 'DIREITO', fracao: '' };
     setDraft(initialDraft);
     setTitularInicial(initialTitular);
     setActiveTab('dados');
     initialDraftRef.current = JSON.stringify(initialDraft);
     initialTitularRef.current = JSON.stringify(initialTitular);
-  }, [open, matricula]);
+  }, [open, matricula, bemTipo]);
 
   const isDirty =
     JSON.stringify(draft) !== initialDraftRef.current ||
