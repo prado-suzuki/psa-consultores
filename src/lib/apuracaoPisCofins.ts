@@ -327,6 +327,8 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       pisCreditoMes: acc.pisCreditoMes + r.resultado.pisCreditoMes,
       pisCreditoMesAliquotaReduzida:
         acc.pisCreditoMesAliquotaReduzida + r.resultado.pisCreditoMesAliquotaReduzida,
+      pisCreditoMesPresumido:
+        acc.pisCreditoMesPresumido + r.resultado.pisCreditoMesPresumido,
       pisDue: acc.pisDue + r.resultado.pisDue,
       cofinsContribuicaoBruta: acc.cofinsContribuicaoBruta + r.resultado.cofinsContribuicaoBruta,
       cofinsContribuicaoBrutaAliquotaReduzida:
@@ -334,6 +336,8 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       cofinsCreditoMes: acc.cofinsCreditoMes + r.resultado.cofinsCreditoMes,
       cofinsCreditoMesAliquotaReduzida:
         acc.cofinsCreditoMesAliquotaReduzida + r.resultado.cofinsCreditoMesAliquotaReduzida,
+      cofinsCreditoMesPresumido:
+        acc.cofinsCreditoMesPresumido + r.resultado.cofinsCreditoMesPresumido,
       cofinsDue: acc.cofinsDue + r.resultado.cofinsDue,
     }),
     {
@@ -343,14 +347,17 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       pisContribuicaoBrutaAliquotaReduzida: 0,
       pisCreditoMes: 0,
       pisCreditoMesAliquotaReduzida: 0,
+      pisCreditoMesPresumido: 0,
       pisDue: 0,
       cofinsContribuicaoBruta: 0,
       cofinsContribuicaoBrutaAliquotaReduzida: 0,
       cofinsCreditoMes: 0,
       cofinsCreditoMesAliquotaReduzida: 0,
+      cofinsCreditoMesPresumido: 0,
       cofinsDue: 0,
     },
   );
+
 }
 
 // ── Variante: Apuração pelo Balancete ──
