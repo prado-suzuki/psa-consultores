@@ -64,8 +64,34 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
     }
   };
 
-  // Processing state
+  // Processing state — detecta "travado" (>10 min sem terminar) e oferece recuperação
   if (p.status_geracao === 'processando') {
+    const ageMs = Date.now() - new Date(p.created_at).getTime();
+    const isStuck = ageMs > 10 * 60 * 1000;
+
+    if (isStuck) {
+      return (
+        <div className="bg-amber-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-amber-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
+          <AlertTriangle className="h-8 w-8 text-amber-500" />
+          <p className="text-sm text-amber-800 font-medium text-center">Processamento travado</p>
+          <p className="text-xs text-amber-600 text-center">
+            Iniciado {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })} e não foi concluído.
+          </p>
+          <div className="flex gap-2 mt-2">
+            <Button size="sm" variant="outline" onClick={() => onRetry(p.id)}>
+              <RefreshCw className="h-3 w-3 mr-1" /> Tentar novamente
+            </Button>
+            {isLeaderOrAdmin && (
+              <Button size="sm" variant="outline" className="text-red-500" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="h-3 w-3 mr-1" /> Excluir
+              </Button>
+            )}
+          </div>
+          <DeleteConfirmDialog open={confirmDelete} onOpenChange={setConfirmDelete} onConfirm={() => onDelete(p)} />
+        </div>
+      );
+    }
+
     return (
       <div className="bg-white rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col items-center justify-center min-h-[280px] gap-3">
         <Skeleton className="h-4 w-3/4" />
