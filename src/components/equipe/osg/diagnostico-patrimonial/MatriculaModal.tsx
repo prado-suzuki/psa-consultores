@@ -107,6 +107,7 @@ interface MatriculaModalProps {
 
 type DraftMatricula = {
   numero: string;
+  tipo_bem: '' | 'IR' | 'IB';
   matricula_anterior_id: string;
   matricula_anterior_texto: string;
   livro: string;
@@ -125,10 +126,17 @@ type DraftMatricula = {
   descricao_psa_completa: string;
   confrontacoes_texto: string;
   origem_descricao: string;
+  vlr_contabil: string;
+  vlr_contabil_ajustado: string;
+  vlr_benfeitorias: string;
+  vlr_mercado: string;
+  vlr_imposto_anual: string;
+  imposto_anual_exercicio: string;
 };
 
-const emptyDraft = (): DraftMatricula => ({
+const emptyDraft = (defaultTipo: '' | 'IR' | 'IB' = ''): DraftMatricula => ({
   numero: '',
+  tipo_bem: defaultTipo,
   matricula_anterior_id: '',
   matricula_anterior_texto: '',
   livro: '',
@@ -147,29 +155,55 @@ const emptyDraft = (): DraftMatricula => ({
   descricao_psa_completa: '',
   confrontacoes_texto: '',
   origem_descricao: '',
+  vlr_contabil: '',
+  vlr_contabil_ajustado: '',
+  vlr_benfeitorias: '',
+  vlr_mercado: '',
+  vlr_imposto_anual: '',
+  imposto_anual_exercicio: '',
 });
 
-const fromMatricula = (m: MatriculaRow): DraftMatricula => ({
-  numero: m.numero ?? '',
-  matricula_anterior_id: m.matricula_anterior_id ?? '',
-  matricula_anterior_texto: m.matricula_anterior_texto ?? '',
-  livro: m.livro ?? '',
-  folha: m.folha ?? '',
-  data_matricula: m.data_matricula ?? '',
-  cartorio_id: m.cartorio_id ?? '',
-  municipio_imovel: m.municipio_imovel ?? '',
-  uf_imovel: m.uf_imovel ?? '',
-  area_documento: m.area_documento != null ? String(m.area_documento) : '',
-  area_real: m.area_real != null ? String(m.area_real) : '',
-  area_explorada: m.area_explorada != null ? String(m.area_explorada) : '',
-  area_unidade: m.area_unidade ?? 'ha',
-  georreferenciado: m.georreferenciado ?? '',
-  georref_prejudica_transferencia: m.georref_prejudica_transferencia ?? false,
-  tipo_exploracao_posse: m.tipo_exploracao_posse ?? '',
-  descricao_psa_completa: m.descricao_psa_completa ?? '',
-  confrontacoes_texto: m.confrontacoes_texto ?? '',
-  origem_descricao: m.origem_descricao ?? '',
-});
+const fromMatricula = (m: MatriculaRow): DraftMatricula => {
+  // Campos novos (tipo_bem + valores) podem não estar ainda nos tipos gerados.
+  const mx = m as MatriculaRow & {
+    tipo_bem?: 'IR' | 'IB' | null;
+    vlr_contabil?: number | null;
+    vlr_contabil_ajustado?: number | null;
+    vlr_benfeitorias?: number | null;
+    vlr_mercado?: number | null;
+    vlr_imposto_anual?: number | null;
+    imposto_anual_exercicio?: number | null;
+  };
+  return {
+    numero: m.numero ?? '',
+    tipo_bem: (mx.tipo_bem as '' | 'IR' | 'IB') ?? '',
+    matricula_anterior_id: m.matricula_anterior_id ?? '',
+    matricula_anterior_texto: m.matricula_anterior_texto ?? '',
+    livro: m.livro ?? '',
+    folha: m.folha ?? '',
+    data_matricula: m.data_matricula ?? '',
+    cartorio_id: m.cartorio_id ?? '',
+    municipio_imovel: m.municipio_imovel ?? '',
+    uf_imovel: m.uf_imovel ?? '',
+    area_documento: m.area_documento != null ? String(m.area_documento) : '',
+    area_real: m.area_real != null ? String(m.area_real) : '',
+    area_explorada: m.area_explorada != null ? String(m.area_explorada) : '',
+    area_unidade: m.area_unidade ?? 'ha',
+    georreferenciado: m.georreferenciado ?? '',
+    georref_prejudica_transferencia: m.georref_prejudica_transferencia ?? false,
+    tipo_exploracao_posse: m.tipo_exploracao_posse ?? '',
+    descricao_psa_completa: m.descricao_psa_completa ?? '',
+    confrontacoes_texto: m.confrontacoes_texto ?? '',
+    origem_descricao: m.origem_descricao ?? '',
+    vlr_contabil: mx.vlr_contabil != null ? String(mx.vlr_contabil) : '',
+    vlr_contabil_ajustado: mx.vlr_contabil_ajustado != null ? String(mx.vlr_contabil_ajustado) : '',
+    vlr_benfeitorias: mx.vlr_benfeitorias != null ? String(mx.vlr_benfeitorias) : '',
+    vlr_mercado: mx.vlr_mercado != null ? String(mx.vlr_mercado) : '',
+    vlr_imposto_anual: mx.vlr_imposto_anual != null ? String(mx.vlr_imposto_anual) : '',
+    imposto_anual_exercicio:
+      mx.imposto_anual_exercicio != null ? String(mx.imposto_anual_exercicio) : '',
+  };
+};
 
 export function MatriculaModal({
   open,
@@ -193,8 +227,10 @@ export function MatriculaModal({
   const [activeTab, setActiveTab] = useState('dados');
   const upsert = useUpsertMatricula();
   const isEdit = !!matricula?.id;
-  // Sem bem definido (cadastro avulso) mostramos os campos rurais — não há tipo para ocultá-los.
-  const isImovelRural = bemTipo === 'IR' || bemTipo == null;
+  // Determina o tipo efetivo: prioriza o draft (escolha do usuário); cai no tipo do bem.
+  const tipoEfetivo = draft.tipo_bem || bemTipo || null;
+  // Sem tipo definido (avulsa) mostramos os campos rurais — não há tipo para ocultá-los.
+  const isImovelRural = tipoEfetivo === 'IR' || tipoEfetivo == null;
   const semPessoas = pessoasCliente.length === 0;
 
   // Snapshots do estado inicial para detectar "dirty" no fechamento. Quando o
@@ -204,14 +240,17 @@ export function MatriculaModal({
 
   useEffect(() => {
     if (!open) return;
-    const initialDraft = matricula ? fromMatricula(matricula) : emptyDraft();
+    // Ao criar a partir de um bem IR/IB, herda o tipo do bem como padrão.
+    const defaultTipo: '' | 'IR' | 'IB' =
+      bemTipo === 'IR' || bemTipo === 'IB' ? (bemTipo as 'IR' | 'IB') : '';
+    const initialDraft = matricula ? fromMatricula(matricula) : emptyDraft(defaultTipo);
     const initialTitular = { titular_pessoa_id: '', tipo: 'DIREITO', fracao: '' };
     setDraft(initialDraft);
     setTitularInicial(initialTitular);
     setActiveTab('dados');
     initialDraftRef.current = JSON.stringify(initialDraft);
     initialTitularRef.current = JSON.stringify(initialTitular);
-  }, [open, matricula]);
+  }, [open, matricula, bemTipo]);
 
   const isDirty =
     JSON.stringify(draft) !== initialDraftRef.current ||
@@ -246,10 +285,12 @@ export function MatriculaModal({
     }
     const nullify = (v: string) => (v.trim() ? v : null);
     const toNum = (v: string) => (v.trim() && !isNaN(Number(v)) ? Number(v) : null);
+    const toInt = (v: string) => (v.trim() && !isNaN(parseInt(v, 10)) ? parseInt(v, 10) : null);
 
     const values = {
       bem_id: bemId ?? matricula?.bem_id ?? null,
       numero: draft.numero.trim(),
+      tipo_bem: draft.tipo_bem || null,
       matricula_anterior_id: draft.matricula_anterior_id || null,
       matricula_anterior_texto: nullify(draft.matricula_anterior_texto),
       livro: nullify(draft.livro),
@@ -268,6 +309,12 @@ export function MatriculaModal({
       descricao_psa_completa: nullify(draft.descricao_psa_completa),
       confrontacoes_texto: nullify(draft.confrontacoes_texto),
       origem_descricao: nullify(draft.origem_descricao),
+      vlr_contabil: toNum(draft.vlr_contabil),
+      vlr_contabil_ajustado: toNum(draft.vlr_contabil_ajustado),
+      vlr_benfeitorias: toNum(draft.vlr_benfeitorias),
+      vlr_mercado: toNum(draft.vlr_mercado),
+      vlr_imposto_anual: toNum(draft.vlr_imposto_anual),
+      imposto_anual_exercicio: toInt(draft.imposto_anual_exercicio),
     };
 
     let titular: TitularInicial | undefined;
@@ -360,6 +407,25 @@ export function MatriculaModal({
                           onChange={(e) => setField('numero', e.target.value)}
                           className={`${fieldCls} font-mono`}
                         />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className={labelCls}>Tipo do imóvel</Label>
+                        <Select
+                          value={draft.tipo_bem || undefined}
+                          onValueChange={(v) => setField('tipo_bem', v as 'IR' | 'IB')}
+                        >
+                          <SelectTrigger className={fieldCls}>
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="IR">
+                              <span className="font-mono mr-2">IR</span>Imóvel Rural
+                            </SelectItem>
+                            <SelectItem value="IB">
+                              <span className="font-mono mr-2">IB</span>Imóvel Urbano
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-1.5">
                         <Label className={labelCls}>Livro</Label>
@@ -550,6 +616,67 @@ export function MatriculaModal({
                     </div>
                   </FieldSection>
                 )}
+
+                <FieldSection number={nextNo()} title="Valores">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. contábil</Label>
+                      <CurrencyInput
+                        value={draft.vlr_contabil}
+                        onChange={(v) => setField('vlr_contabil', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. contábil ajustado</Label>
+                      <CurrencyInput
+                        value={draft.vlr_contabil_ajustado}
+                        onChange={(v) => setField('vlr_contabil_ajustado', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. benfeitorias</Label>
+                      <CurrencyInput
+                        value={draft.vlr_benfeitorias}
+                        onChange={(v) => setField('vlr_benfeitorias', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Vlr. mercado</Label>
+                      <CurrencyInput
+                        value={draft.vlr_mercado}
+                        onChange={(v) => setField('vlr_mercado', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>
+                        {tipoEfetivo === 'IR'
+                          ? 'ITR anual'
+                          : tipoEfetivo === 'IB'
+                            ? 'IPTU anual'
+                            : 'Imposto anual'}
+                      </Label>
+                      <CurrencyInput
+                        value={draft.vlr_imposto_anual}
+                        onChange={(v) => setField('vlr_imposto_anual', v)}
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={labelCls}>Exercício</Label>
+                      <Input
+                        type="number"
+                        value={draft.imposto_anual_exercicio}
+                        onChange={(e) => setField('imposto_anual_exercicio', e.target.value)}
+                        placeholder="ex: 2025"
+                        className={`${fieldCls} font-mono`}
+                      />
+                    </div>
+                  </div>
+                </FieldSection>
 
                 <FieldSection number={nextNo()} title="Histórico e descrição">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

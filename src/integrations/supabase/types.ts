@@ -306,7 +306,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vlr_benfeitorias: number | null
-          vlr_contabil: number
+          vlr_contabil: number | null
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
           vlr_mercado: number | null
@@ -331,7 +331,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
-          vlr_contabil: number
+          vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
           vlr_mercado?: number | null
@@ -356,7 +356,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
-          vlr_contabil?: number
+          vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
           vlr_mercado?: number | null
@@ -2250,16 +2250,23 @@ export type Database = {
           georref_prejudica_transferencia: boolean | null
           georreferenciado: string | null
           id: string
+          imposto_anual_exercicio: number | null
           livro: string | null
           matricula_anterior_id: string | null
           matricula_anterior_texto: string | null
           municipio_imovel: string
           numero: string
           origem_descricao: string | null
+          tipo_bem: string | null
           tipo_exploracao_posse: string | null
           uf_imovel: string
           updated_at: string
           updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number | null
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number | null
         }
         Insert: {
           area_documento: number
@@ -2277,16 +2284,23 @@ export type Database = {
           georref_prejudica_transferencia?: boolean | null
           georreferenciado?: string | null
           id?: string
+          imposto_anual_exercicio?: number | null
           livro?: string | null
           matricula_anterior_id?: string | null
           matricula_anterior_texto?: string | null
           municipio_imovel: string
           numero: string
           origem_descricao?: string | null
+          tipo_bem?: string | null
           tipo_exploracao_posse?: string | null
           uf_imovel: string
           updated_at?: string
           updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil?: number | null
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado?: number | null
         }
         Update: {
           area_documento?: number
@@ -2304,16 +2318,23 @@ export type Database = {
           georref_prejudica_transferencia?: boolean | null
           georreferenciado?: string | null
           id?: string
+          imposto_anual_exercicio?: number | null
           livro?: string | null
           matricula_anterior_id?: string | null
           matricula_anterior_texto?: string | null
           municipio_imovel?: string
           numero?: string
           origem_descricao?: string | null
+          tipo_bem?: string | null
           tipo_exploracao_posse?: string | null
           uf_imovel?: string
           updated_at?: string
           updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil?: number | null
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado?: number | null
         }
         Relationships: [
           {
@@ -5746,10 +5767,16 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vlr_benfeitorias: number | null
-          vlr_contabil: number
+          vlr_contabil: number | null
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
           vlr_mercado: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bem"
+          isOneToOne: true
+          isSetofReturn: false
         }
       }
       criar_matricula_com_titular: {
@@ -5770,16 +5797,23 @@ export type Database = {
           georref_prejudica_transferencia: boolean | null
           georreferenciado: string | null
           id: string
+          imposto_anual_exercicio: number | null
           livro: string | null
           matricula_anterior_id: string | null
           matricula_anterior_texto: string | null
           municipio_imovel: string
           numero: string
           origem_descricao: string | null
+          tipo_bem: string | null
           tipo_exploracao_posse: string | null
           uf_imovel: string
           updated_at: string
           updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number | null
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number | null
         }
         SetofOptions: {
           from: "*"

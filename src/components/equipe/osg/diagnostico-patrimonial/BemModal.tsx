@@ -218,7 +218,8 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       toast.error('Especifique o tipo de bem');
       return;
     }
-    if (!draft.vlr_contabil.trim() || isNaN(Number(draft.vlr_contabil))) {
+    // Para imóveis (IR/IB) os valores vivem na matrícula; o valor contábil do bem é opcional.
+    if (!isImovel && (!draft.vlr_contabil.trim() || isNaN(Number(draft.vlr_contabil)))) {
       toast.error('Valor contábil é obrigatório');
       return;
     }
@@ -233,12 +234,12 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
       tipo_bem: draft.tipo_bem,
       descricao_outros: isOutros ? nullify(draft.descricao_outros) : null,
       denominacao: draft.denominacao.trim(),
-      vlr_contabil: Number(draft.vlr_contabil),
-      vlr_contabil_ajustado: toNum(draft.vlr_contabil_ajustado),
-      vlr_benfeitorias: toNum(draft.vlr_benfeitorias),
-      vlr_mercado: toNum(draft.vlr_mercado),
-      vlr_imposto_anual: toNum(draft.vlr_imposto_anual),
-      imposto_anual_exercicio: toInt(draft.imposto_anual_exercicio),
+      vlr_contabil: isImovel ? toNum(draft.vlr_contabil) : Number(draft.vlr_contabil),
+      vlr_contabil_ajustado: isImovel ? null : toNum(draft.vlr_contabil_ajustado),
+      vlr_benfeitorias: isImovel ? null : toNum(draft.vlr_benfeitorias),
+      vlr_mercado: isImovel ? null : toNum(draft.vlr_mercado),
+      vlr_imposto_anual: isImovel ? null : toNum(draft.vlr_imposto_anual),
+      imposto_anual_exercicio: isImovel ? null : toInt(draft.imposto_anual_exercicio),
       ccir_codigo: isImovelRural ? nullify(draft.ccir_codigo) : null,
       inscricao_municipal: draft.tipo_bem === 'IB' ? nullify(draft.inscricao_municipal) : null,
       status_integralizacao: nullify(draft.status_integralizacao),
@@ -402,6 +403,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   </div>
                 </FieldSection>
 
+                {!isImovel && (
                 <FieldSection number={nextNo()} title="Valores">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div className="space-y-1.5">
@@ -465,6 +467,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     </div>
                   </div>
                 </FieldSection>
+                )}
 
                 {isImovel && (
                   <FieldSection number={nextNo()} title="Cadastros oficiais">
