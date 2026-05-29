@@ -227,8 +227,10 @@ export function MatriculaModal({
   const [activeTab, setActiveTab] = useState('dados');
   const upsert = useUpsertMatricula();
   const isEdit = !!matricula?.id;
-  // Sem bem definido (cadastro avulso) mostramos os campos rurais — não há tipo para ocultá-los.
-  const isImovelRural = bemTipo === 'IR' || bemTipo == null;
+  // Determina o tipo efetivo: prioriza o draft (escolha do usuário); cai no tipo do bem.
+  const tipoEfetivo = draft.tipo_bem || bemTipo || null;
+  // Sem tipo definido (avulsa) mostramos os campos rurais — não há tipo para ocultá-los.
+  const isImovelRural = tipoEfetivo === 'IR' || tipoEfetivo == null;
   const semPessoas = pessoasCliente.length === 0;
 
   // Snapshots do estado inicial para detectar "dirty" no fechamento. Quando o
