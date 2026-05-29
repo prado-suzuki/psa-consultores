@@ -101,10 +101,16 @@ export function calcCreditoPorConta(itens: ItemCredito[]) {
 }
 
 export function calcBaseCredito(itens: ItemCredito[]): BaseCredito {
-  const baseNormal = itens.filter(isItemCredito).reduce((sum, i) => sum + i.vlr_efd, 0);
-  const basePresumido = 0;
+  const elegiveis = itens.filter(isItemCredito);
+  const basePresumido = elegiveis
+    .filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + i.vlr_efd, 0);
+  const baseNormal = elegiveis
+    .filter((i) => !hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + i.vlr_efd, 0);
   return { baseNormal, basePresumido, baseTotal: baseNormal + basePresumido };
 }
+
 
 // ── Seção 3 — Cálculo dos Valores de Crédito ──
 
@@ -352,13 +358,16 @@ export function calcBaseCreditoBalancete(
   itens: ItemCredito[],
   periodoFechado: boolean,
 ): BaseCredito {
-  const baseNormal = itens
-    .filter(isItemCredito)
+  const elegiveis = itens.filter(isItemCredito);
+  const basePresumido = elegiveis
+    .filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
     .reduce((sum, i) => sum + valorBaseBalancete(i, periodoFechado), 0);
-
-  const basePresumido = 0;
+  const baseNormal = elegiveis
+    .filter((i) => !hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + valorBaseBalancete(i, periodoFechado), 0);
   return { baseNormal, basePresumido, baseTotal: baseNormal + basePresumido };
 }
+
 
 export function calcValoresCreditoBalancete(
   itens: ItemCredito[],
