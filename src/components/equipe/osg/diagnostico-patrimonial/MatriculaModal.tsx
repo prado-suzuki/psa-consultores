@@ -107,6 +107,7 @@ interface MatriculaModalProps {
 
 type DraftMatricula = {
   numero: string;
+  tipo_bem: '' | 'IR' | 'IB';
   matricula_anterior_id: string;
   matricula_anterior_texto: string;
   livro: string;
@@ -125,10 +126,17 @@ type DraftMatricula = {
   descricao_psa_completa: string;
   confrontacoes_texto: string;
   origem_descricao: string;
+  vlr_contabil: string;
+  vlr_contabil_ajustado: string;
+  vlr_benfeitorias: string;
+  vlr_mercado: string;
+  vlr_imposto_anual: string;
+  imposto_anual_exercicio: string;
 };
 
-const emptyDraft = (): DraftMatricula => ({
+const emptyDraft = (defaultTipo: '' | 'IR' | 'IB' = ''): DraftMatricula => ({
   numero: '',
+  tipo_bem: defaultTipo,
   matricula_anterior_id: '',
   matricula_anterior_texto: '',
   livro: '',
@@ -147,6 +155,12 @@ const emptyDraft = (): DraftMatricula => ({
   descricao_psa_completa: '',
   confrontacoes_texto: '',
   origem_descricao: '',
+  vlr_contabil: '',
+  vlr_contabil_ajustado: '',
+  vlr_benfeitorias: '',
+  vlr_mercado: '',
+  vlr_imposto_anual: '',
+  imposto_anual_exercicio: '',
 });
 
 const fromMatricula = (m: MatriculaRow): DraftMatricula => ({
