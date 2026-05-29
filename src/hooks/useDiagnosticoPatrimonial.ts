@@ -57,7 +57,10 @@ const MATRICULA_DIFF_FIELDS: (keyof MatriculaRow)[] = [
   'area_explorada', 'area_unidade', 'georreferenciado',
   'georref_prejudica_transferencia', 'tipo_exploracao_posse',
   'descricao_psa_completa', 'confrontacoes_texto', 'origem_descricao',
-];
+  // Novos: tipo do imóvel e valores (antes ficavam apenas no bem).
+  'tipo_bem', 'vlr_contabil', 'vlr_contabil_ajustado', 'vlr_benfeitorias',
+  'vlr_mercado', 'vlr_imposto_anual', 'imposto_anual_exercicio',
+] as (keyof MatriculaRow)[];
 
 const TITULARIDADE_DIFF_FIELDS: (keyof TitularidadeRow)[] = [
   'matricula_id', 'bem_id', 'titular_pessoa_id', 'tipo', 'fracao',
