@@ -5724,34 +5724,6 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
-      criar_bem_com_titular: {
-        Args: { bem_data: Json; titular_data: Json }
-        Returns: {
-          ccir_codigo: string | null
-          cliente_id: string
-          created_at: string
-          created_by: string | null
-          denominacao: string
-          descricao_outros: string | null
-          empresa_destino_pessoa_id: string | null
-          id: string
-          imposto_anual_exercicio: number | null
-          inscricao_municipal: string | null
-          motivo_nao_integralizacao: string | null
-          observacao: string | null
-          participa_estruturacao: boolean
-          referencia_dp: string
-          status_integralizacao: string | null
-          tipo_bem: string
-          updated_at: string
-          updated_by: string | null
-          vlr_benfeitorias: number | null
-          vlr_contabil: number
-          vlr_contabil_ajustado: number | null
-          vlr_imposto_anual: number | null
-          vlr_mercado: number | null
-        }
-      }
       criar_matricula_com_titular: {
         Args: { matricula_data: Json; titular_data: Json }
         Returns: {
