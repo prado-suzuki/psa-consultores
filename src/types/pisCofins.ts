@@ -86,6 +86,8 @@ export interface ResultadoApuracao {
   cofinsCreditoMes: number;
   pisCreditoMesAliquotaReduzida: number;
   cofinsCreditoMesAliquotaReduzida: number;
+  pisCreditoMesPresumido: number;
+  cofinsCreditoMesPresumido: number;
   pisCreditoAnterior: number;
   cofinsCreditoAnterior: number;
   pisDue: number;
@@ -93,6 +95,7 @@ export interface ResultadoApuracao {
   pisSaldoAcumulado: number;
   cofinsSaldoAcumulado: number;
 }
+
 
 // ── Resultado do rateio proporcional ──
 
@@ -142,12 +145,15 @@ export interface TotaisApuracao {
   pisContribuicaoBrutaAliquotaReduzida: number;
   pisCreditoMes: number;
   pisCreditoMesAliquotaReduzida: number;
+  pisCreditoMesPresumido: number;
   pisDue: number;
   cofinsContribuicaoBruta: number;
   cofinsContribuicaoBrutaAliquotaReduzida: number;
   cofinsCreditoMes: number;
   cofinsCreditoMesAliquotaReduzida: number;
+  cofinsCreditoMesPresumido: number;
   cofinsDue: number;
+
 }
 
 // ── Tipos para tabelas pivotadas (Geração 1 — mantidos) ──

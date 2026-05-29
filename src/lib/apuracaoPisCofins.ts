@@ -45,6 +45,13 @@ export const isItemCredito = (i: ItemCredito): boolean => {
   return n >= 50 && n <= 66 && i.aliq_pis > 0;
 };
 
+export const isItemCreditoPresumido = (i: ItemCredito): boolean => {
+  const n = parseInt(i.cst_pis, 10);
+  if (isNaN(n)) return false;
+  return n >= 60 && n <= 66 && i.aliq_pis > 0;
+};
+
+
 export const isItemIsencaoCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
   if (isNaN(n)) return false;
@@ -121,6 +128,7 @@ export function aliqCofins(aliqPis: number): number {
 export function calcValoresCredito(itens: ItemCredito[]) {
   const elegiveis = itens.filter(isItemCredito);
   const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
+  const elegiveisPresumido = elegiveis.filter(isItemCreditoPresumido);
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
@@ -142,13 +150,26 @@ export function calcValoresCredito(itens: ItemCredito[]) {
     0,
   );
 
+  const creditoPisPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + i.vlr_efd * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + i.vlr_efd * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
   return {
     creditoPis,
     creditoCofins,
     creditoPisAliquotaReduzida,
     creditoCofinsAliquotaReduzida,
+    creditoPisPresumido,
+    creditoCofinsPresumido,
   };
 }
+
 
 export function calcValoresDebito(itens: ItemCredito[]) {
   const baseAliquotaReduzida = itens
@@ -172,6 +193,8 @@ export function calcApuracao(
     creditoCofins: number;
     creditoPisAliquotaReduzida: number;
     creditoCofinsAliquotaReduzida: number;
+    creditoPisPresumido: number;
+    creditoCofinsPresumido: number;
   },
   anterior: SaldoCarryforward,
 ): ResultadoApuracao {
@@ -203,6 +226,8 @@ export function calcApuracao(
     cofinsCreditoMes,
     pisCreditoMesAliquotaReduzida: valoresSeparados.creditoPisAliquotaReduzida,
     cofinsCreditoMesAliquotaReduzida: valoresSeparados.creditoCofinsAliquotaReduzida,
+    pisCreditoMesPresumido: valoresSeparados.creditoPisPresumido,
+    cofinsCreditoMesPresumido: valoresSeparados.creditoCofinsPresumido,
     pisCreditoAnterior: anterior.pis,
     cofinsCreditoAnterior: anterior.cofins,
     pisDue,
@@ -211,6 +236,7 @@ export function calcApuracao(
     cofinsSaldoAcumulado,
   };
 }
+
 
 export function calcTodosPeriodos(
   input: ApuracaoInput,
@@ -233,7 +259,10 @@ export function calcTodosPeriodos(
         creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+        creditoPisPresumido: valoresCredito.creditoPisPresumido,
+        creditoCofinsPresumido: valoresCredito.creditoCofinsPresumido,
       },
+
       saldoAnterior,
     );
     const rateio = calcRateio(
@@ -298,6 +327,8 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       pisCreditoMes: acc.pisCreditoMes + r.resultado.pisCreditoMes,
       pisCreditoMesAliquotaReduzida:
         acc.pisCreditoMesAliquotaReduzida + r.resultado.pisCreditoMesAliquotaReduzida,
+      pisCreditoMesPresumido:
+        acc.pisCreditoMesPresumido + r.resultado.pisCreditoMesPresumido,
       pisDue: acc.pisDue + r.resultado.pisDue,
       cofinsContribuicaoBruta: acc.cofinsContribuicaoBruta + r.resultado.cofinsContribuicaoBruta,
       cofinsContribuicaoBrutaAliquotaReduzida:
@@ -305,6 +336,8 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       cofinsCreditoMes: acc.cofinsCreditoMes + r.resultado.cofinsCreditoMes,
       cofinsCreditoMesAliquotaReduzida:
         acc.cofinsCreditoMesAliquotaReduzida + r.resultado.cofinsCreditoMesAliquotaReduzida,
+      cofinsCreditoMesPresumido:
+        acc.cofinsCreditoMesPresumido + r.resultado.cofinsCreditoMesPresumido,
       cofinsDue: acc.cofinsDue + r.resultado.cofinsDue,
     }),
     {
@@ -314,14 +347,17 @@ export function calcTotais(resultados: ResultadoPeriodo[]): TotaisApuracao {
       pisContribuicaoBrutaAliquotaReduzida: 0,
       pisCreditoMes: 0,
       pisCreditoMesAliquotaReduzida: 0,
+      pisCreditoMesPresumido: 0,
       pisDue: 0,
       cofinsContribuicaoBruta: 0,
       cofinsContribuicaoBrutaAliquotaReduzida: 0,
       cofinsCreditoMes: 0,
       cofinsCreditoMesAliquotaReduzida: 0,
+      cofinsCreditoMesPresumido: 0,
       cofinsDue: 0,
     },
   );
+
 }
 
 // ── Variante: Apuração pelo Balancete ──
@@ -366,6 +402,7 @@ export function calcValoresCreditoBalancete(
 ) {
   const elegiveis = itens.filter(isItemCredito);
   const elegiveisAliquotaReduzida = elegiveis.filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA));
+  const elegiveisPresumido = elegiveis.filter(isItemCreditoPresumido);
 
   const creditoPis = elegiveis.reduce(
     (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
@@ -387,11 +424,23 @@ export function calcValoresCreditoBalancete(
     0,
   );
 
+  const creditoPisPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (i.aliq_pis / 100),
+    0,
+  );
+
+  const creditoCofinsPresumido = elegiveisPresumido.reduce(
+    (sum, i) => sum + valorBaseBalancete(i, periodoFechado) * (aliqCofins(i.aliq_pis) / 100),
+    0,
+  );
+
   return {
     creditoPis,
     creditoCofins,
     creditoPisAliquotaReduzida,
     creditoCofinsAliquotaReduzida,
+    creditoPisPresumido,
+    creditoCofinsPresumido,
   };
 }
 
@@ -417,9 +466,12 @@ export function calcTodosPeriodosBalancete(
         creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
+        creditoPisPresumido: valoresCredito.creditoPisPresumido,
+        creditoCofinsPresumido: valoresCredito.creditoCofinsPresumido,
       },
       saldoAnterior,
     );
+
 
     saldoAnterior = {
       pis: resultado.pisSaldoAcumulado,
