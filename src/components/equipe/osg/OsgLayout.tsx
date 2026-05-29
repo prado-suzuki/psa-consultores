@@ -64,8 +64,8 @@ const OsgWorkClienteBar = () => {
               className={cn(
                 'h-10 font-medium',
                 semCliente
-                  ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-white'
-                  : 'border-osg-200 bg-white',
+                  ? 'border-2 border-osg-300 ring-2 ring-osg-100 bg-background'
+                  : 'border-osg-200 bg-background',
               )}
             >
               <SelectValue placeholder={isLoading ? 'Carregando...' : 'Selecione um cliente...'} />
@@ -133,7 +133,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       : <Briefcase className="h-5 w-5 text-osg-600" />;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="min-h-screen bg-osg-canvas flex w-full">
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div
         className={`${collapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex-shrink-0 sticky top-0 h-screen relative`}
@@ -142,13 +142,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
+          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-slate-200 bg-background hover:bg-slate-50 text-slate-600 shadow-sm"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
-        <aside className="h-full w-full bg-white border-r border-slate-200/60 flex flex-col overflow-y-auto">
+        <aside className="h-full w-full bg-background border-r border-slate-200/60 flex flex-col overflow-y-auto">
         {/* Header */}
         <div className="p-6 border-b border-slate-200/60">
           {collapsed ? (
@@ -259,7 +259,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-destructive/10 hover:text-destructive transition-colors`}
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
@@ -273,7 +273,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-slate-200/60 bg-background flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

@@ -606,7 +606,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                           type="button"
                           onClick={() => setField('conjuge_id', '')}
                           aria-label="Remover cônjuge"
-                          className="absolute right-0 top-0 text-red-600 hover:text-red-700"
+                          className="absolute right-0 top-0 text-destructive hover:text-destructive/80"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>

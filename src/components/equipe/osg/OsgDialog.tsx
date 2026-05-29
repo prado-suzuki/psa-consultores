@@ -49,6 +49,7 @@ const OsgDialogContent = React.forwardRef<
       }}
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] " +
+          // bg-background herda o tom levemente amarronzado de .osg-theme (no <html>).
           "gap-4 border bg-background p-6 shadow-lg will-change-[transform,opacity] sm:rounded-lg " +
           "data-[state=open]:animate-osg-modal-in data-[state=closed]:animate-osg-modal-out " +
           "motion-reduce:animate-none " +

@@ -6,18 +6,18 @@ import type { ReactNode } from 'react';
 
 // Estilo base dos campos: superfície branca limpa, borda fina e foco verde-musgo.
 export const fieldCls =
-  'h-9 rounded-md border-osg-200/80 bg-white shadow-[0_1px_1px_rgba(16,24,40,0.04)] ' +
+  'h-9 rounded-md border-osg-200/80 bg-background shadow-[0_1px_1px_rgba(16,24,40,0.04)] ' +
   'focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss ' +
   'focus:ring-1 focus:ring-osg-moss/40 focus:ring-offset-0 focus:border-osg-moss';
 
 // Mesmo tratamento do fieldCls para áreas de texto (sem a altura fixa de 9).
 export const textareaCls =
-  'rounded-md border-osg-200/80 bg-white shadow-[0_1px_1px_rgba(16,24,40,0.04)] ' +
+  'rounded-md border-osg-200/80 bg-background shadow-[0_1px_1px_rgba(16,24,40,0.04)] ' +
   'focus-visible:ring-1 focus-visible:ring-osg-moss/40 focus-visible:ring-offset-0 focus-visible:border-osg-moss';
 
 // Caixa de switch/checkbox alinhada ao visual dos campos: borda fina, fundo branco, altura 9.
 export const switchBoxCls =
-  'flex h-9 items-center gap-2.5 rounded-md border border-osg-200/80 bg-white px-3 shadow-[0_1px_1px_rgba(16,24,40,0.04)]';
+  'flex h-9 items-center gap-2.5 rounded-md border border-osg-200/80 bg-background px-3 shadow-[0_1px_1px_rgba(16,24,40,0.04)]';
 
 // Caixa de subformulário destacada em verde-musgo (ex.: "novo item" embutido).
 export const subFormBoxCls =

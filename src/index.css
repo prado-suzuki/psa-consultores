@@ -99,6 +99,26 @@ All colors MUST be HSL.
     --primary: var(--osg-moss);
     --primary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
+
+    /* Superfícies da área OSG: branco com um toque bem sutil de marrom
+       (matiz da paleta osg) no lugar do branco-puro estéril. */
+    --background: 32 28% 98.5%;
+    --card: 32 28% 98.5%;
+    --popover: 32 28% 98.5%;
+
+    /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
+       escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
+    --osg-canvas: 32 24% 96%;
+
+    /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
+       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
+    --destructive: 356 59% 45%;
+  }
+
+  /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
+     no lugar do cinza padrão (muted). */
+  .osg-theme tbody tr:hover {
+    background-color: hsl(var(--osg-50) / 0.6);
   }
 
   .dark {

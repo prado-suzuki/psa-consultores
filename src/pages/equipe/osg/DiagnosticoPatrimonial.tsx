@@ -151,7 +151,7 @@ const DiagnosticoPatrimonial = () => {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Ref.</TableHead>
-                          <TableHead>Tipo</TableHead>
+                          <TableHead>Tipo do Bem</TableHead>
                           <TableHead>Denominação</TableHead>
                           <TableHead className="text-right">Vlr. contábil</TableHead>
                           <TableHead className="text-right">Vlr. mercado</TableHead>
@@ -166,7 +166,7 @@ const DiagnosticoPatrimonial = () => {
                             <TableRow key={b.id} {...rowActivateProps(() => setBemModal({ open: true, bem: b }))}>
                               <TableCell className="font-mono text-xs">{b.referencia_dp}</TableCell>
                               <TableCell>
-                                <Badge variant="outline" className="text-[10px]">
+                                <Badge variant="outline" className="text-xs">
                                   {tipoOpt?.label ?? b.tipo_bem}
                                 </Badge>
                               </TableCell>

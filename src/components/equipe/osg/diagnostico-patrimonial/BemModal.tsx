@@ -68,6 +68,7 @@ const STATUS_INTEGRALIZACAO_OPTIONS = [
   'Pendente',
   'Em análise',
   'Aprovado',
+  'Aprovado para 2ª Instancia',
   'Integralizado',
   'Recusado',
   'Não se aplica',
