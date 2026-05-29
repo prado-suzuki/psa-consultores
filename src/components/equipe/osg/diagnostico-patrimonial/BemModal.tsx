@@ -467,6 +467,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                     </div>
                   </div>
                 </FieldSection>
+                )}
 
                 {isImovel && (
                   <FieldSection number={nextNo()} title="Cadastros oficiais">
