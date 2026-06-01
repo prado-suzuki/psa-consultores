@@ -6067,6 +6067,7 @@ export type Database = {
           caminho_arquivo: string | null
           changelog: string | null
           checksum: string | null
+          conteudo: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -6081,6 +6082,7 @@ export type Database = {
           caminho_arquivo?: string | null
           changelog?: string | null
           checksum?: string | null
+          conteudo?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -6095,6 +6097,7 @@ export type Database = {
           caminho_arquivo?: string | null
           changelog?: string | null
           checksum?: string | null
+          conteudo?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
