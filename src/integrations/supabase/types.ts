@@ -1456,6 +1456,239 @@ export type Database = {
           },
         ]
       }
+      documento_gerado: {
+        Row: {
+          caminho_arquivo: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          documento_anterior_id: string | null
+          documento_raiz_id: string | null
+          documento_template_id: string | null
+          gerado_em: string | null
+          gerado_por_id: string | null
+          id: string
+          observacao: string | null
+          pj_pessoa_id: string | null
+          snapshot_dados: Json | null
+          snapshot_flags: Json | null
+          snapshot_versoes_blocos: Json | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          caminho_arquivo?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          documento_anterior_id?: string | null
+          documento_raiz_id?: string | null
+          documento_template_id?: string | null
+          gerado_em?: string | null
+          gerado_por_id?: string | null
+          id?: string
+          observacao?: string | null
+          pj_pessoa_id?: string | null
+          snapshot_dados?: Json | null
+          snapshot_flags?: Json | null
+          snapshot_versoes_blocos?: Json | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          caminho_arquivo?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          documento_anterior_id?: string | null
+          documento_raiz_id?: string | null
+          documento_template_id?: string | null
+          gerado_em?: string | null
+          gerado_por_id?: string | null
+          id?: string
+          observacao?: string | null
+          pj_pessoa_id?: string | null
+          snapshot_dados?: Json | null
+          snapshot_flags?: Json | null
+          snapshot_versoes_blocos?: Json | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_gerado_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_anterior_id_fkey"
+            columns: ["documento_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_raiz_id_fkey"
+            columns: ["documento_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_template_id_fkey"
+            columns: ["documento_template_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_documento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_gerado_por_id_fkey"
+            columns: ["gerado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_gerado_por_id_fkey"
+            columns: ["gerado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_pj_pessoa_id_fkey"
+            columns: ["pj_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_override: {
+        Row: {
+          bloco_alvo_id: string | null
+          bloco_substituto_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_gerado_id: string
+          id: string
+          observacao: string | null
+          ordem: number | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_alvo_id?: string | null
+          bloco_substituto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id: string
+          id?: string
+          observacao?: string | null
+          ordem?: number | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_alvo_id?: string | null
+          bloco_substituto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id?: string
+          id?: string
+          observacao?: string | null
+          ordem?: number | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_override_bloco_alvo_id_fkey"
+            columns: ["bloco_alvo_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_bloco_substituto_id_fkey"
+            columns: ["bloco_substituto_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_documento_gerado_id_fkey"
+            columns: ["documento_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           created_at: string | null
@@ -4571,6 +4804,109 @@ export type Database = {
           },
         ]
       }
+      projeto_flag_valor: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          flag_id: string
+          id: string
+          pj_pessoa_id: string | null
+          setado_por_id: string | null
+          updated_at: string
+          updated_by: string | null
+          valor: boolean
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          flag_id: string
+          id?: string
+          pj_pessoa_id?: string | null
+          setado_por_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor: boolean
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          flag_id?: string
+          id?: string
+          pj_pessoa_id?: string | null
+          setado_por_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_flag_valor_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_flag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_pj_pessoa_id_fkey"
+            columns: ["pj_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
+            columns: ["setado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
+            columns: ["setado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -5541,6 +5877,494 @@ export type Database = {
           },
           {
             foreignKeyName: "titularidade_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco: {
+        Row: {
+          ativo: boolean
+          autor_id: string | null
+          bloco_origem_id: string | null
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          escopo_documento_raiz_id: string | null
+          id: string
+          nome: string
+          tipo_derivacao: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          autor_id?: string | null
+          bloco_origem_id?: string | null
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo_documento_raiz_id?: string | null
+          id?: string
+          nome: string
+          tipo_derivacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          autor_id?: string | null
+          bloco_origem_id?: string | null
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo_documento_raiz_id?: string | null
+          id?: string
+          nome?: string
+          tipo_derivacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_bloco_origem_id_fkey"
+            columns: ["bloco_origem_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_escopo_documento_raiz_fk"
+            columns: ["escopo_documento_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco_flag: {
+        Row: {
+          bloco_id: string
+          created_at: string
+          created_by: string | null
+          flag_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_id: string
+          created_at?: string
+          created_by?: string | null
+          flag_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_id?: string
+          created_at?: string
+          created_by?: string | null
+          flag_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_flag_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_flag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco_versao: {
+        Row: {
+          atual: boolean
+          autor_id: string | null
+          bloco_id: string
+          caminho_arquivo: string | null
+          changelog: string | null
+          checksum: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          numero_versao: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          atual?: boolean
+          autor_id?: string | null
+          bloco_id: string
+          caminho_arquivo?: string | null
+          changelog?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_versao: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          atual?: boolean
+          autor_id?: string | null
+          bloco_id?: string
+          caminho_arquivo?: string | null
+          changelog?: string | null
+          checksum?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_versao?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_documento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tipo: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_documento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_documento_bloco: {
+        Row: {
+          bloco_id: string
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          id: string
+          obrigatorio: boolean
+          observacao: string | null
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_id: string
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          id?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_id?: string
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          id?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_documento_bloco_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_documento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_flag: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          escopo: string
+          expressao_sql: string | null
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo: string
+          expressao_sql?: string | null
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo?: string
+          expressao_sql?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
