@@ -965,12 +965,42 @@ const ApuracaoPisCofins = () => {
                       <TableBody>
                         <TableRow>
                           <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            Base Normal
+                            Base Normal (1,65% e 7,6%)
                           </StickyCell>
                           {headerBottom.map((col) => (
                             <TableCell key={col.id} className={cn("text-right font-mono", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
                               {formatCurrency(
                                 getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.baseNormal),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">
+                            {formatCurrency(resultados.reduce((s, r) => s + r.baseCredito.baseNormal, 0))}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            Base Presumida (1,2375% e 5,7%)
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.basePresumido),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">
+                            {formatCurrency(resultados.reduce((s, r) => s + r.baseCredito.basePresumido, 0))}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-bold bg-muted/30">
+                            Total
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono font-bold bg-muted/30", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.baseTotal),
                               )}
                             </TableCell>
                           ))}
