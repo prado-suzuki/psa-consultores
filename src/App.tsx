@@ -103,6 +103,9 @@ import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
 import QualificacaoDasPartes from "./pages/equipe/osg/QualificacaoDasPartes";
 import DiagnosticoPatrimonial from "./pages/equipe/osg/DiagnosticoPatrimonial";
 import ControleMatriculas from "./pages/equipe/osg/ControleMatriculas";
+import BibliotecaModelos from "./pages/equipe/osg/BibliotecaModelos";
+import MontagemDocumentos from "./pages/equipe/osg/MontagemDocumentos";
+import GerarDocumento from "./pages/equipe/osg/GerarDocumento";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
@@ -232,6 +235,9 @@ const App = () => (
                 <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/diagnostico-patrimonial" element={<PageAccessGate pagePath="/equipe/osg/work/diagnostico-patrimonial"><DiagnosticoPatrimonial /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/controle-matriculas" element={<PageAccessGate pagePath="/equipe/osg/work/controle-matriculas"><ControleMatriculas /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/gerar-documento" element={<ProtectedRoute><GerarDocumento /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
               </Route>
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 

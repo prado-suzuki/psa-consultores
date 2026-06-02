@@ -12,7 +12,8 @@ type AuditEntityType =
   | 'regra_pis_cofins' | 'procedimento' | 'correcao_icms'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral'
   | 'pessoa' | 'parentesco'
-  | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio';
+  | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
+  | 'tmpl_bloco' | 'tmpl_documento';
 
 interface AuditLogEntry {
   area: AuditArea;

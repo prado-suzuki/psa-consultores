@@ -7248,6 +7248,7 @@ export type Database = {
           autor_id?: string | null
           bloco_id: string
           caminho_arquivo?: string | null
+          conteudo?: string | null
           changelog?: string | null
           checksum?: string | null
           conteudo?: string | null
