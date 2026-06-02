@@ -1,91 +1,177 @@
 
-## Diagnóstico
+# Plano de Mitigação — `mapa_integration_migration.sql` (revisão final para aprovação)
 
-Há **dois procedimentos travados em `status_geracao = 'processando'` desde 27/03/2026** (mais de 2 meses), ambos PDFs sem `erro_mensagem`. Ou seja, a edge function `processar-procedimento` caiu/falhou silenciosamente naquele dia e nunca atualizou o registro para `erro`.
+> Em Build Mode, **não** vou editar o script original. Vou criar **uma migration complementar** (`supabase/migrations/<timestamp>_mapa_integration_hardening.sql`) que roda logo após o script base e cobre R2 + R3. R1 fica homologado e documentado.
 
-A partir daí, três fatores combinados produzem o loop visual que você está vendo:
+---
 
-1. **Polling permanente em `ProcedimentosDev.tsx` (linha ~46)**
-   ```tsx
-   const { data: procedimentos = [], isLoading } = useProcedimentosList(
-     filters,
-     // Enable polling if any card is processing
-     true,   // ← sempre true
-   );
-   ```
-   O comentário promete condicionar ao processamento, mas o valor é fixo `true`. O `useProcedimentosList` então roda `refetchInterval: 3000` indefinidamente, refazendo a query a cada 3s mesmo quando nada muda.
+## R1 — Cenários (`process_stages.cenario`) ✅ Homologado
 
-2. **`ProcedimentoCard` mostra spinner "Analisando documento..." enquanto `status_geracao === 'processando'`** (linhas 68–81). Como o registro nunca sai desse estado, o card fica eternamente em loop visual.
+**Ação:** nenhuma alteração de schema. Apenas registro de decisão no cabeçalho da migration complementar:
 
-3. **Não existe UI de recuperação para `processando`** — só `erro` oferece "Tentar novamente"/"Excluir". Para registros zumbi (processando há horas/dias), o usuário não consegue desbloquear sem ir ao banco.
-
-Resultado: cada vez que a página é aberta, refetch a cada 3s + 2 cards permanentemente em spinner = sensação de "loop".
-
-## Plano de correção
-
-### 1. Tornar o polling condicional (corrige o loop de refetch)
-
-Em `src/hooks/useProcedimentos.ts`, mudar `useProcedimentosList` para decidir o `refetchInterval` com base nos dados retornados, em vez de receber um booleano fixo:
-
-```ts
-return useQuery({
-  queryKey: ['procedimentos', filters],
-  queryFn: async () => { /* ... */ },
-  refetchInterval: (query) => {
-    const data = query.state.data as Procedimento[] | undefined;
-    const hasProcessing = data?.some(p => p.status_geracao === 'processando');
-    return hasProcessing ? 3000 : false;
-  },
-});
-```
-
-Em `ProcedimentosDev.tsx`, remover o segundo argumento `true` da chamada. Sem itens em processamento, a query para de refazer.
-
-### 2. Detectar e exibir registros "travados" (stuck)
-
-No `ProcedimentoCard.tsx`, na branch `status_geracao === 'processando'`, considerar travado se `now - created_at > 10 minutos`. Quando travado, em vez do spinner:
-
-- Mostrar ícone de alerta + texto "Processamento travado (iniciado há X)";
-- Mostrar botões **Tentar novamente** (chama `onRetry`, que já existe) e, para `isLeaderOrAdmin`, **Excluir** (chama `onDelete`).
-
-Isso permite ao usuário desbloquear os 2 registros existentes sem intervenção no banco e cobre futuras falhas da edge function. O polling do item 1 também ignora esses cards (eles continuam tecnicamente em `processando`, então o polling segue ativo apenas se houver `processando` recente — opcionalmente, podemos refinar o predicado para `hasProcessing && < 10min` para parar o polling também).
-
-### 3. Auto-marcar como erro no servidor (defesa em profundidade)
-
-A `processar-procedimento` deve, no início do `try`, registrar `started_at` (ou simplesmente confiar em `created_at`) e, em qualquer caminho de falha não capturado, gravar `status_geracao = 'erro'` com `erro_mensagem`. Como medida adicional, criar um pequeno cron / `setInterval` no Edge Runtime não é viável — em vez disso, adicionar uma **migration** que cria uma função SQL `mark_stuck_procedimentos()` chamada sob demanda pelo frontend (ou via trigger no `SELECT` da página). Mais simples e suficiente:
-
-- No `useProcedimentosList`, antes do `select`, chamar um RPC `mark_stuck_procedimentos(interval := '15 minutes')` que faz:
-  ```sql
-  UPDATE procedimentos
-  SET status_geracao = 'erro',
-      erro_mensagem = COALESCE(erro_mensagem, 'Processamento expirado (timeout)')
-  WHERE status_geracao = 'processando'
-    AND created_at < now() - interval '15 minutes';
-  ```
-  Com `SECURITY DEFINER` e grant para `authenticated`.
-
-Isso garante que qualquer registro órfão (incluindo os 2 atuais) migre automaticamente para `erro` na próxima abertura da página, exibindo o card de erro padrão com retry/excluir.
-
-### 4. (Opcional) limpar os 2 registros zumbi agora
-
-Após aplicar a função do item 3, abrir a página já resolve. Se preferir limpar antes via migration manual:
 ```sql
-UPDATE procedimentos
-SET status_geracao = 'erro',
-    erro_mensagem = 'Processamento interrompido (limpeza manual)'
-WHERE status_geracao = 'processando'
-  AND created_at < now() - interval '1 day';
+-- R1 [HOMOLOGADO ENG]: process_stages.cenario NOT NULL DEFAULT 'AS-IS'.
+-- Backfill semântico aceito: todas as linhas pré-existentes são AS-IS.
+-- O novo frontend MAPA enviará 'cenario' explicitamente em todo INSERT.
 ```
 
-## Arquivos afetados
+---
 
-- `src/hooks/useProcedimentos.ts` — `refetchInterval` dinâmico + chamada do RPC no `queryFn`.
-- `src/pages/equipe/dev/ProcedimentosDev.tsx` — remover `true` fixo.
-- `src/components/equipe/dev/procedimentos/ProcedimentoCard.tsx` — estado "travado" com retry/excluir.
-- `supabase/migrations/<timestamp>_mark_stuck_procedimentos.sql` — função `mark_stuck_procedimentos` + GRANT EXECUTE para `authenticated` + UPDATE de limpeza dos registros atuais.
+## R2 — Segurança / RLS para as 18 tabelas novas
 
-## Resultado esperado
+**Padrão aplicado a cada tabela** (justificativa: feature interna, somente usuários autenticados; sem acesso `anon`; `service_role` mantém acesso total para edge functions/admin):
 
-- Sem nenhum item em processamento real, a página deixa de refazer a query a cada 3s.
-- Os 2 registros de 27/03 viram cards de erro com botão "Excluir"/"Tentar novamente" assim que a página carregar.
-- Qualquer falha futura da edge function expira automaticamente em 15 min em vez de virar zumbi.
+```sql
+-- Template aplicado a cada uma das 18 tabelas
+ALTER TABLE public.<tabela> ENABLE ROW LEVEL SECURITY;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.<tabela> TO authenticated;
+GRANT ALL ON public.<tabela> TO service_role;
+
+CREATE POLICY "<tabela>_auth_select" ON public.<tabela>
+  FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "<tabela>_auth_insert" ON public.<tabela>
+  FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "<tabela>_auth_update" ON public.<tabela>
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+-- DELETE intencionalmente NÃO liberado a 'authenticated' nesta primeira onda
+-- (CASCADE já cobre limpeza ao remover pai). Pode ser revisto depois.
+```
+
+**Loop idempotente real que será escrito** (evita 18 blocos repetidos e é seguro em reexecução):
+
+```sql
+DO $$
+DECLARE
+  t text;
+  tabelas text[] := ARRAY[
+    'projeto_justificativas','documentos_processo','sistemas_processo',
+    'etapa_responsaveis','etapa_sistemas','etapa_documentos',
+    'gargalos','gargalo_processos','gargalo_responsaveis',
+    'documento_horas_historico','cascata_eventos','cascata_evento_etapas',
+    'sistema_clusters','sistema_responsaveis','melhoria_processos',
+    'melhoria_sistemas','melhoria_responsaveis','melhoria_acoes_td'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tabelas LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY;', t);
+    EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON public.%I TO authenticated;', t);
+    EXECUTE format('GRANT ALL ON public.%I TO service_role;', t);
+
+    -- SELECT
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename=t AND policyname=t||'_auth_select'
+    ) THEN
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR SELECT TO authenticated USING (true);',
+        t||'_auth_select', t
+      );
+    END IF;
+
+    -- INSERT
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename=t AND policyname=t||'_auth_insert'
+    ) THEN
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR INSERT TO authenticated WITH CHECK (true);',
+        t||'_auth_insert', t
+      );
+    END IF;
+
+    -- UPDATE
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname='public' AND tablename=t AND policyname=t||'_auth_update'
+    ) THEN
+      EXECUTE format(
+        'CREATE POLICY %I ON public.%I FOR UPDATE TO authenticated USING (true) WITH CHECK (true);',
+        t||'_auth_update', t
+      );
+    END IF;
+  END LOOP;
+END $$;
+```
+
+**Resultado:**
+- 18 × `ENABLE RLS`
+- 18 × `GRANT … TO authenticated` + `GRANT ALL TO service_role`
+- 54 políticas (SELECT / INSERT / UPDATE por tabela), idempotentes
+- DELETE permanece restrito ao `service_role` — CASCADE cobre os fluxos do MAPA; revisamos numa 2ª onda se a UI exigir delete direto.
+
+---
+
+## R3 — Eliminar `set_updated_at()` duplicada + hardening da cascade
+
+### 3.1 Reapontar os 4 triggers de `updated_at` para a função nativa `public.update_updated_at_column()`
+
+A função pré-existente (em `<db-functions>`) já faz exatamente `NEW.updated_at = NOW(); RETURN NEW;` e tem `SECURITY DEFINER SET search_path = public`. É a candidata canônica.
+
+```sql
+DO $$
+DECLARE
+  t text;
+  tabelas_updated_at text[] := ARRAY[
+    'documentos_processo','sistemas_processo','gargalos','cascata_eventos'
+  ];
+BEGIN
+  FOREACH t IN ARRAY tabelas_updated_at LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS trg_%1$s_updated_at ON public.%1$s;', t);
+    EXECUTE format(
+      'CREATE TRIGGER trg_%1$s_updated_at
+         BEFORE UPDATE ON public.%1$s
+         FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();',
+      t
+    );
+  END LOOP;
+END $$;
+
+-- Função duplicada criada pelo script base deixa de ter referências → remover.
+DROP FUNCTION IF EXISTS public.set_updated_at();
+```
+
+### 3.2 Hardening da função do trigger de cascade AS-IS → TO-BE
+
+```sql
+CREATE OR REPLACE FUNCTION public.process_stages_cascade_as_is_delete()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF OLD.cenario = 'AS-IS' THEN
+    DELETE FROM public.process_stages
+     WHERE cenario = 'TO-BE'
+       AND etapa_as_is_id = OLD.id;
+  END IF;
+  RETURN OLD;
+END;
+$$;
+```
+
+> `CREATE OR REPLACE` preserva o trigger existente (`trg_process_stages_as_is_cascade`) sem precisar recriá-lo. Apenas adiciona `SET search_path = public` para silenciar o warning *"Function Search Path Mutable"* do `supabase--linter`.
+
+---
+
+## Ordem de execução em Build Mode
+
+1. Criar `supabase/migrations/<timestamp>_mapa_integration_hardening.sql` envolvendo tudo acima em `BEGIN; … COMMIT;`.
+2. Submeter via ferramenta de migration para aprovação do usuário.
+3. Após execução, rodar `supabase--linter` para confirmar zero warnings nas novas estruturas.
+4. Aguardar regeneração automática de `src/integrations/supabase/types.ts` (sem ação manual).
+5. Nenhuma alteração no frontend é necessária nesta etapa — a feature MAPA será implementada em PRs subsequentes consumindo as tabelas já liberadas pelas políticas.
+
+## Critérios de aceite
+
+- [ ] 18 tabelas com `relrowsecurity = true` em `pg_class`.
+- [ ] 54 policies presentes em `pg_policies` (3 por tabela).
+- [ ] `pg_proc` não contém mais `public.set_updated_at()`.
+- [ ] 4 triggers de `updated_at` apontam para `public.update_updated_at_column()` (verificável em `information_schema.triggers.action_statement`).
+- [ ] `public.process_stages_cascade_as_is_delete` com `proconfig` contendo `search_path=public`.
+- [ ] `supabase--linter` sem warnings novos.
+
+Aprovação para entrar em Build Mode e gerar a migration?
