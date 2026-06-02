@@ -46,11 +46,10 @@ import {
  useCreateOrgTask,
  useUpdateOrgTask
 } from '@/hooks/useOrgTasks';
-import { useExternalClients, useContribuintes } from '@/hooks/useTaxReferenceData';
+import { useExternalClients, useContribuintes, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 
 import { RequiredMark } from '@/components/ui/required-mark';
-import { useOrgProjectsList } from '@/hooks/useOrgProjects';
-import { useEstruturaArea } from '@/hooks/useEstruturaArea';
+import { useOrgProjectsList, useProjectMembers } from '@/hooks/useOrgProjects';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
@@ -124,13 +123,18 @@ export const TaskModal = ({
   const watchedProjectId = form.watch('project_id') as string | undefined;
   const watchedClientId = form.watch('client_id') as string | undefined;
 
-  const selectedProjectAreaId = useMemo(() => {
-    if (!watchedProjectId) return null;
-    const proj = projects.find(p => p.id === watchedProjectId);
-    return proj?.estrutura_area_id || null;
-  }, [watchedProjectId, projects]);
+  // Membros vinculados ao projeto selecionado (executor + líderes + membros
+  // escolhidos no cadastro do projeto). É a fonte do dropdown "Responsável".
+  const { data: projectMembers = [] } = useProjectMembers(watchedProjectId || undefined);
+  const projectMemberIds = useMemo(
+    () => projectMembers.map(m => m.user_id),
+    [projectMembers],
+  );
 
-  const { allMemberIds: areaMemberIds } = useEstruturaArea(selectedProjectAreaId);
+  // Perfis de todos os usuários — usado para resolver o nome de membros do
+  // projeto que não pertencem ao cluster Tax (ex.: projetos multidisciplinares),
+  // pois esses não vêm em `teamMembers`.
+  const { data: allProfiles = [] } = useTeamProfilesSafe();
 
   // ── Queries ────────────────────────────────────────────────────────
 
@@ -161,11 +165,27 @@ export const TaskModal = ({
     user?.id,
   );
 
-  // Filtered team members for Responsável dropdown
+  // Filtered team members for Responsável dropdown.
+  // Restringe aos membros do projeto (executor + líderes + membros). Resolve o
+  // nome via `teamMembers` e, para membros fora do cluster Tax (multidisciplinar),
+  // recorre a `allProfiles`. Sem projeto selecionado (ou projeto legado sem
+  // membros gravados) cai de volta para a lista completa.
   const filteredTeamMembers = useMemo(() => {
-    if (!areaMemberIds.length) return teamMembers;
-    return teamMembers.filter(m => areaMemberIds.includes(m.id));
-  }, [teamMembers, areaMemberIds]);
+    if (!watchedProjectId || !projectMemberIds.length) return teamMembers;
+    const teamMap = new Map(teamMembers.map(m => [m.id, m]));
+    const profileMap = new Map(
+      allProfiles.map(p => [p.id, `${p.first_name} ${p.last_name}`.trim()]),
+    );
+    return projectMemberIds
+      .map(id => {
+        const existing = teamMap.get(id);
+        if (existing) return existing;
+        const name = profileMap.get(id);
+        return name ? { id, name } : null;
+      })
+      .filter((m): m is { id: string; name: string } => m !== null)
+      .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+  }, [teamMembers, projectMemberIds, watchedProjectId, allProfiles]);
 
   // Contribuintes filtered by selected client
   const { data: contribuintesTask = [] } = useContribuintes(watchedClientId || null, task?.contribuinte_id ?? null);
@@ -208,13 +228,13 @@ export const TaskModal = ({
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
-    // Clear assignee if not in the new area's member list
+    // Clear assignee if not among the project's members
     const currentAssignee = form.getValues('assigned_to');
-    if (currentAssignee && areaMemberIds.length > 0 && !areaMemberIds.includes(currentAssignee)) {
+    if (currentAssignee && projectMemberIds.length > 0 && !projectMemberIds.includes(currentAssignee)) {
       form.setValue('assigned_to', undefined);
       form.setValue('assigned_to_name', undefined);
     }
-  }, [watchedProjectId, form, defaultParentId, areaMemberIds]);
+  }, [watchedProjectId, form, defaultParentId, projectMemberIds]);
 
   // Effect B: Auto-fill client from project (runs when projects load or project changes)
   useEffect(() => {
@@ -277,7 +297,7 @@ export const TaskModal = ({
       form.setValue('assigned_to_name', undefined);
       return;
     }
-    const member = teamMembers.find(m => m.id === userId);
+    const member = filteredTeamMembers.find(m => m.id === userId);
     form.setValue('assigned_to', userId);
     form.setValue('assigned_to_name', member?.name || '');
   };
