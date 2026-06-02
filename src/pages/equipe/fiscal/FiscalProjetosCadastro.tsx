@@ -1214,7 +1214,7 @@ const FiscalProjetosCadastro = () => {
                   <Label>Líder Geral *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
                         {formData.leader_ids.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {formData.leader_ids.map(id => {
@@ -1333,7 +1333,7 @@ const FiscalProjetosCadastro = () => {
                   ) : (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                        <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
                           {formData.member_ids.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {formData.member_ids.map(id => {
