@@ -670,6 +670,83 @@ export type Database = {
           },
         ]
       }
+      cascata_evento_etapas: {
+        Row: {
+          cenario: string
+          created_at: string
+          etapa_id: string
+          evento_id: string
+          id: string
+        }
+        Insert: {
+          cenario?: string
+          created_at?: string
+          etapa_id: string
+          evento_id: string
+          id?: string
+        }
+        Update: {
+          cenario?: string
+          created_at?: string
+          etapa_id?: string
+          evento_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "casc_evt_etp_etapa_fk"
+            columns: ["etapa_id", "cenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "cenario"]
+          },
+          {
+            foreignKeyName: "cascata_evento_etapas_evento_id_fkey"
+            columns: ["evento_id"]
+            isOneToOne: false
+            referencedRelation: "cascata_eventos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cascata_eventos: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          processo_raiz_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          processo_raiz_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          processo_raiz_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cascata_eventos_processo_raiz_id_fkey"
+            columns: ["processo_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_clients: {
         Row: {
           color: string | null
@@ -1796,6 +1873,41 @@ export type Database = {
           },
         ]
       }
+      documento_horas_historico: {
+        Row: {
+          alterado_por: string | null
+          documento_id: string
+          horas_antes: number | null
+          horas_depois: number | null
+          id: number
+          registrado_em: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          documento_id: string
+          horas_antes?: number | null
+          horas_depois?: number | null
+          id?: never
+          registrado_em?: string
+        }
+        Update: {
+          alterado_por?: string | null
+          documento_id?: string
+          horas_antes?: number | null
+          horas_depois?: number | null
+          id?: never
+          registrado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_horas_historico_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_override: {
         Row: {
           bloco_alvo_id: string | null
@@ -1884,6 +1996,62 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_processo: {
+        Row: {
+          canonico_id: string | null
+          categoria: string | null
+          cluster_id: string | null
+          created_at: string
+          estrutura_entrada: string | null
+          estruturado: string | null
+          formato: string | null
+          id: string
+          nome: string
+          origem: string | null
+          tempo_minutos: number | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonico_id?: string | null
+          categoria?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          estrutura_entrada?: string | null
+          estruturado?: string | null
+          formato?: string | null
+          id?: string
+          nome: string
+          origem?: string | null
+          tempo_minutos?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonico_id?: string | null
+          categoria?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          estrutura_entrada?: string | null
+          estruturado?: string | null
+          formato?: string | null
+          id?: string
+          nome?: string
+          origem?: string | null
+          tempo_minutos?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_processo_canonico_id_fkey"
+            columns: ["canonico_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
             referencedColumns: ["id"]
           },
         ]
@@ -2196,6 +2364,138 @@ export type Database = {
           },
         ]
       }
+      etapa_documentos: {
+        Row: {
+          cenario: string
+          created_at: string
+          documento_id: string
+          etapa_id: string
+          id: string
+          sentido: string
+          volume: number | null
+        }
+        Insert: {
+          cenario?: string
+          created_at?: string
+          documento_id: string
+          etapa_id: string
+          id?: string
+          sentido: string
+          volume?: number | null
+        }
+        Update: {
+          cenario?: string
+          created_at?: string
+          documento_id?: string
+          etapa_id?: string
+          id?: string
+          sentido?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_documentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapa_documentos_etapa_fk"
+            columns: ["etapa_id", "cenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "cenario"]
+          },
+        ]
+      }
+      etapa_responsaveis: {
+        Row: {
+          cenario: string
+          created_at: string
+          etapa_id: string
+          horas: number | null
+          id: string
+          papel: string
+          responsavel_id: string
+        }
+        Insert: {
+          cenario?: string
+          created_at?: string
+          etapa_id: string
+          horas?: number | null
+          id?: string
+          papel: string
+          responsavel_id: string
+        }
+        Update: {
+          cenario?: string
+          created_at?: string
+          etapa_id?: string
+          horas?: number | null
+          id?: string
+          papel?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_responsaveis_etapa_fk"
+            columns: ["etapa_id", "cenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "cenario"]
+          },
+          {
+            foreignKeyName: "etapa_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      etapa_sistemas: {
+        Row: {
+          cenario: string
+          created_at: string
+          etapa_id: string
+          id: string
+          rateio: number | null
+          sistema_id: string
+        }
+        Insert: {
+          cenario?: string
+          created_at?: string
+          etapa_id: string
+          id?: string
+          rateio?: number | null
+          sistema_id: string
+        }
+        Update: {
+          cenario?: string
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          rateio?: number | null
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_sistemas_etapa_fk"
+            columns: ["etapa_id", "cenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "cenario"]
+          },
+          {
+            foreignKeyName: "etapa_sistemas_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_profiles: {
         Row: {
           columns: string[]
@@ -2275,6 +2575,137 @@ export type Database = {
             columns: ["ciclo_id"]
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_processos: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          id: string
+          processo_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          id?: string
+          processo_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          id?: string
+          processo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_processos_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_responsaveis: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          horas: number | null
+          id: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          horas?: number | null
+          id?: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          horas?: number | null
+          id?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_responsaveis_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalos: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          custo_externo_unico: number | null
+          descricao: string | null
+          horas_gastas: number | null
+          horas_implementacao: number | null
+          id: string
+          melhoria_id: string | null
+          nome: string
+          origem: string | null
+          taxa_captura_apos_melhoria: number | null
+          taxa_ocorrencia: number | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_externo_unico?: number | null
+          descricao?: string | null
+          horas_gastas?: number | null
+          horas_implementacao?: number | null
+          id?: string
+          melhoria_id?: string | null
+          nome: string
+          origem?: string | null
+          taxa_captura_apos_melhoria?: number | null
+          taxa_ocorrencia?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_externo_unico?: number | null
+          descricao?: string | null
+          horas_gastas?: number | null
+          horas_implementacao?: number | null
+          id?: string
+          melhoria_id?: string | null
+          nome?: string
+          origem?: string | null
+          taxa_captura_apos_melhoria?: number | null
+          taxa_ocorrencia?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalos_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
             referencedColumns: ["id"]
           },
         ]
@@ -2590,7 +3021,9 @@ export type Database = {
       }
       job_roles: {
         Row: {
+          categoria: string | null
           category: string | null
+          cluster_id: string | null
           created_at: string | null
           hourly_rate: number
           id: string
@@ -2598,9 +3031,12 @@ export type Database = {
           level: string
           monthly_salary_ref: number | null
           name: string
+          tipo: string | null
         }
         Insert: {
+          categoria?: string | null
           category?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           hourly_rate: number
           id?: string
@@ -2608,9 +3044,12 @@ export type Database = {
           level: string
           monthly_salary_ref?: number | null
           name: string
+          tipo?: string | null
         }
         Update: {
+          categoria?: string | null
           category?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           hourly_rate?: number
           id?: string
@@ -2618,8 +3057,17 @@ export type Database = {
           level?: string
           monthly_salary_ref?: number | null
           name?: string
+          tipo?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "job_roles_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kpis_meta: {
         Row: {
@@ -2816,6 +3264,155 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_acoes_td: {
+        Row: {
+          acao_td: string
+          created_at: string
+          id: string
+          melhoria_id: string
+          ordem: number | null
+        }
+        Insert: {
+          acao_td: string
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          ordem?: number | null
+        }
+        Update: {
+          acao_td?: string
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          ordem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_acoes_td_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_processos: {
+        Row: {
+          created_at: string
+          id: string
+          melhoria_id: string
+          processo_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          processo_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          processo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_processos_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_responsaveis: {
+        Row: {
+          created_at: string
+          horas: number | null
+          id: string
+          melhoria_id: string
+          papel: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          melhoria_id: string
+          papel?: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          melhoria_id?: string
+          papel?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_responsaveis_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_sistemas: {
+        Row: {
+          created_at: string
+          id: string
+          melhoria_id: string
+          rateio: number | null
+          sistema_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          rateio?: number | null
+          sistema_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          rateio?: number | null
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_sistemas_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_sistemas_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
             referencedColumns: ["id"]
           },
         ]
@@ -4176,14 +4773,17 @@ export type Database = {
           baseline_time_hours: number | null
           baseline_volume: number | null
           build_vs_buy_savings: number | null
+          cluster_id: string | null
           cost_saved_monthly: number | null
           cost_saved_percent: number | null
           created_at: string | null
+          custo_externo_unico: number | null
           evaluated_by: string | null
           evaluation_end_date: string | null
           evaluation_period_days: number | null
           evaluation_start_date: string | null
           evaluation_status: string | null
+          horas_treinamento: number | null
           id: string
           implementation_cost: number | null
           implementation_hours: number | null
@@ -4199,6 +4799,7 @@ export type Database = {
           roi_percentage: number | null
           roi_time_months: number | null
           sprint_deliverable_id: string | null
+          status_melhoria: string | null
           system_savings_monthly: number | null
           time_saved_hours: number | null
           time_saved_percent: number | null
@@ -4210,14 +4811,17 @@ export type Database = {
           baseline_time_hours?: number | null
           baseline_volume?: number | null
           build_vs_buy_savings?: number | null
+          cluster_id?: string | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
+          custo_externo_unico?: number | null
           evaluated_by?: string | null
           evaluation_end_date?: string | null
           evaluation_period_days?: number | null
           evaluation_start_date?: string | null
           evaluation_status?: string | null
+          horas_treinamento?: number | null
           id?: string
           implementation_cost?: number | null
           implementation_hours?: number | null
@@ -4233,6 +4837,7 @@ export type Database = {
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
+          status_melhoria?: string | null
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
@@ -4244,14 +4849,17 @@ export type Database = {
           baseline_time_hours?: number | null
           baseline_volume?: number | null
           build_vs_buy_savings?: number | null
+          cluster_id?: string | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
+          custo_externo_unico?: number | null
           evaluated_by?: string | null
           evaluation_end_date?: string | null
           evaluation_period_days?: number | null
           evaluation_start_date?: string | null
           evaluation_status?: string | null
+          horas_treinamento?: number | null
           id?: string
           implementation_cost?: number | null
           implementation_hours?: number | null
@@ -4267,12 +4875,20 @@ export type Database = {
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
+          status_melhoria?: string | null
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "process_improvements_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "process_improvements_evaluated_by_fkey"
             columns: ["evaluated_by"]
@@ -4315,19 +4931,29 @@ export type Database = {
           computed_metrics: Json | null
           created_at: string
           created_by: string
+          criado_por: string | null
+          custo_anual: number | null
           description: string | null
+          economia_anual: number | null
+          horas_anual: number | null
+          horas_liberadas: number | null
           id: string
           improvement_id: string | null
+          investimento: number | null
           is_locked: boolean
           locked_fields: string[]
           name: string
           notes: string | null
           parameters: Json
           parent_scenario_id: string | null
+          payback_meses: number | null
           process_id: string
+          processo_id: string | null
           project_id: string | null
+          roi_percentual: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type: Database["public"]["Enums"]["scenario_type"]
+          snapshot_em: string | null
           status: Database["public"]["Enums"]["scenario_status"]
           unit_basis: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at: string
@@ -4337,19 +4963,29 @@ export type Database = {
           computed_metrics?: Json | null
           created_at?: string
           created_by: string
+          criado_por?: string | null
+          custo_anual?: number | null
           description?: string | null
+          economia_anual?: number | null
+          horas_anual?: number | null
+          horas_liberadas?: number | null
           id?: string
           improvement_id?: string | null
+          investimento?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name: string
           notes?: string | null
           parameters: Json
           parent_scenario_id?: string | null
+          payback_meses?: number | null
           process_id: string
+          processo_id?: string | null
           project_id?: string | null
+          roi_percentual?: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          snapshot_em?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
@@ -4359,19 +4995,29 @@ export type Database = {
           computed_metrics?: Json | null
           created_at?: string
           created_by?: string
+          criado_por?: string | null
+          custo_anual?: number | null
           description?: string | null
+          economia_anual?: number | null
+          horas_anual?: number | null
+          horas_liberadas?: number | null
           id?: string
           improvement_id?: string | null
+          investimento?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name?: string
           notes?: string | null
           parameters?: Json
           parent_scenario_id?: string | null
+          payback_meses?: number | null
           process_id?: string
+          processo_id?: string | null
           project_id?: string | null
+          roi_percentual?: number | null
           scenario_kind?: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          snapshot_em?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
@@ -4414,6 +5060,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "process_scenarios_processo_id_fk"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "process_scenarios_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -4425,65 +5078,102 @@ export type Database = {
       process_stages: {
         Row: {
           automation_level: string | null
+          cenario: string
           created_at: string | null
+          custo_erro: number | null
           description: string | null
+          etapa_as_is_id: string | null
+          execucao: string | null
           frequency: string | null
           id: string
           inputs: Json | null
           job_role_id: string | null
+          lead_time_dias: number | null
           name: string
           outputs: Json | null
           process_id: string | null
+          processo_id: string | null
           related_projects: string[] | null
           responsible: string | null
           stage_order: number
           systems: Json | null
+          taxa_erros: number | null
+          taxa_retrabalho: number | null
           time_current: string | null
           time_target: string | null
           updated_at: string | null
           volume: string | null
+          volume_erros: number | null
+          volume_por_processo: number | null
         }
         Insert: {
           automation_level?: string | null
+          cenario?: string
           created_at?: string | null
+          custo_erro?: number | null
           description?: string | null
+          etapa_as_is_id?: string | null
+          execucao?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
+          lead_time_dias?: number | null
           name: string
           outputs?: Json | null
           process_id?: string | null
+          processo_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
           stage_order: number
           systems?: Json | null
+          taxa_erros?: number | null
+          taxa_retrabalho?: number | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
+          volume_erros?: number | null
+          volume_por_processo?: number | null
         }
         Update: {
           automation_level?: string | null
+          cenario?: string
           created_at?: string | null
+          custo_erro?: number | null
           description?: string | null
+          etapa_as_is_id?: string | null
+          execucao?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
+          lead_time_dias?: number | null
           name?: string
           outputs?: Json | null
           process_id?: string | null
+          processo_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
           stage_order?: number
           systems?: Json | null
+          taxa_erros?: number | null
+          taxa_retrabalho?: number | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
+          volume_erros?: number | null
+          volume_por_processo?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "process_stages_etapa_as_is_fk"
+            columns: ["etapa_as_is_id"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "process_stages_job_role_id_fkey"
             columns: ["job_role_id"]
@@ -4498,6 +5188,13 @@ export type Database = {
             referencedRelation: "processes"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "process_stages_processo_id_fk"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       processes: {
@@ -4505,6 +5202,7 @@ export type Database = {
           area: string | null
           automation_potential: number | null
           client_id: string | null
+          cluster_id: string | null
           code: string | null
           complexity_level: string | null
           cost_monthly: number | null
@@ -4512,27 +5210,33 @@ export type Database = {
           created_by: string | null
           description: string | null
           document_path: string | null
+          entregavel: string | null
           equipe_id: string | null
           evaluation_period_days: number | null
           financial_impact: string | null
           formatted_content: string | null
           frequency: string | null
+          horas_treinamento: number | null
           id: string
           last_ai_sync: string | null
           last_cost_saved_monthly: number | null
           last_improvement_date: string | null
           last_roi_percentage: number | null
           last_time_saved_hours: number | null
+          mapeado_em: string | null
           name: string
+          ordem: number | null
           people_involved: number | null
           priority: string | null
           project_id: string | null
+          projeto_id: string | null
           sop_before_content: string | null
           sop_before_document_path: string | null
           sop_before_link: string | null
           sop_document_path: string | null
           sop_link: string | null
           stage: string
+          status_avaliacao: string | null
           time_spent_frequency: string | null
           time_spent_hours: number | null
           updated_at: string
@@ -4543,6 +5247,7 @@ export type Database = {
           area?: string | null
           automation_potential?: number | null
           client_id?: string | null
+          cluster_id?: string | null
           code?: string | null
           complexity_level?: string | null
           cost_monthly?: number | null
@@ -4550,27 +5255,33 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          entregavel?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
+          horas_treinamento?: number | null
           id?: string
           last_ai_sync?: string | null
           last_cost_saved_monthly?: number | null
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
+          mapeado_em?: string | null
           name: string
+          ordem?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
+          projeto_id?: string | null
           sop_before_content?: string | null
           sop_before_document_path?: string | null
           sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
+          status_avaliacao?: string | null
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
           updated_at?: string
@@ -4581,6 +5292,7 @@ export type Database = {
           area?: string | null
           automation_potential?: number | null
           client_id?: string | null
+          cluster_id?: string | null
           code?: string | null
           complexity_level?: string | null
           cost_monthly?: number | null
@@ -4588,27 +5300,33 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           document_path?: string | null
+          entregavel?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
+          horas_treinamento?: number | null
           id?: string
           last_ai_sync?: string | null
           last_cost_saved_monthly?: number | null
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
+          mapeado_em?: string | null
           name?: string
+          ordem?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
+          projeto_id?: string | null
           sop_before_content?: string | null
           sop_before_document_path?: string | null
           sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
+          status_avaliacao?: string | null
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
           updated_at?: string
@@ -4624,6 +5342,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "processes_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "processes_equipe_id_fkey"
             columns: ["equipe_id"]
             isOneToOne: false
@@ -4633,6 +5358,13 @@ export type Database = {
           {
             foreignKeyName: "processes_project_id_fkey"
             columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_projeto_id_fk"
+            columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
@@ -4906,6 +5638,7 @@ export type Database = {
           area: string | null
           client_id: string | null
           client_name: string | null
+          cluster_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -4919,6 +5652,7 @@ export type Database = {
           name: string
           product_service: string | null
           project_front: string | null
+          projetos_por_ano: number | null
           start_date: string | null
           status: string | null
           updated_at: string | null
@@ -4927,6 +5661,7 @@ export type Database = {
           area?: string | null
           client_id?: string | null
           client_name?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -4940,6 +5675,7 @@ export type Database = {
           name: string
           product_service?: string | null
           project_front?: string | null
+          projetos_por_ano?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -4948,6 +5684,7 @@ export type Database = {
           area?: string | null
           client_id?: string | null
           client_name?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -4961,6 +5698,7 @@ export type Database = {
           name?: string
           product_service?: string | null
           project_front?: string | null
+          projetos_por_ano?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -4971,6 +5709,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
           {
@@ -5102,6 +5847,38 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_justificativas: {
+        Row: {
+          created_at: string
+          id: string
+          justificativa: string
+          ordem: number | null
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justificativa: string
+          ordem?: number | null
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justificativa?: string
+          ordem?: number | null
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_justificativas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -5479,6 +6256,149 @@ export type Database = {
           sigla?: string
         }
         Relationships: []
+      }
+      sistema_clusters: {
+        Row: {
+          cluster_id: string
+          created_at: string
+          id: string
+          rateio: number | null
+          sistema_id: string
+        }
+        Insert: {
+          cluster_id: string
+          created_at?: string
+          id?: string
+          rateio?: number | null
+          sistema_id: string
+        }
+        Update: {
+          cluster_id?: string
+          created_at?: string
+          id?: string
+          rateio?: number | null
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistema_clusters_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sistema_clusters_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sistema_responsaveis: {
+        Row: {
+          created_at: string
+          horas: number | null
+          id: string
+          responsavel_id: string
+          sistema_id: string
+        }
+        Insert: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          responsavel_id: string
+          sistema_id: string
+        }
+        Update: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          responsavel_id?: string
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistema_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sistema_responsaveis_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sistemas_processo: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          custo_licenca_mensal: number | null
+          custo_por_operacao: number | null
+          custo_setup: number | null
+          custo_variavel_por_uso: number | null
+          descricao: string | null
+          id: string
+          nome: string
+          obs_custo_por_operacao: string | null
+          obs_licenca: string | null
+          obs_variavel: string | null
+          origem: string | null
+          tipo: string | null
+          tipo_custo: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_licenca_mensal?: number | null
+          custo_por_operacao?: number | null
+          custo_setup?: number | null
+          custo_variavel_por_uso?: number | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          obs_custo_por_operacao?: string | null
+          obs_licenca?: string | null
+          obs_variavel?: string | null
+          origem?: string | null
+          tipo?: string | null
+          tipo_custo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_licenca_mensal?: number | null
+          custo_por_operacao?: number | null
+          custo_setup?: number | null
+          custo_variavel_por_uso?: number | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          obs_custo_por_operacao?: string | null
+          obs_licenca?: string | null
+          obs_variavel?: string | null
+          origem?: string | null
+          tipo?: string | null
+          tipo_custo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistemas_processo_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sprint_backlog_items: {
         Row: {
