@@ -1370,7 +1370,7 @@ const FiscalProjetosCadastro = () => {
                                     <CommandItem
                                       value={`__area_header_${group.area_id}__ ${group.area_name} ${group.cluster_name}`}
                                       onSelect={() => toggleAreaGroup(group.area_id)}
-                                      className="bg-muted/40 data-[selected=true]:bg-muted font-semibold"
+                                      className="bg-muted/40 data-[selected=true]:bg-muted data-[selected=true]:text-foreground font-semibold"
                                     >
                                       {isCollapsed
                                         ? <ChevronRight className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />
