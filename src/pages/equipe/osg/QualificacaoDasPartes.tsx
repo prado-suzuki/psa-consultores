@@ -16,11 +16,20 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import {
   useDeletePessoa,
+  useParentescosByCliente,
   usePessoasByCliente,
   type PessoaRow,
   type TipoPessoa,
 } from '@/hooks/useQualificacaoDasPartes';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
+
+// Rótulos de tipo_empresa; PR e CN ganham destaque em verde na coluna "Papel".
+const TIPO_EMPRESA_LABELS: Record<string, string> = {
+  PR: 'Proprietária',
+  CN: 'Controladora',
+  SC: 'Sócia',
+};
+const TIPOS_EMPRESA_DESTAQUE = new Set(['PR', 'CN']);
 
 interface PessoasTableProps {
   titulo: string;
@@ -29,13 +38,17 @@ interface PessoasTableProps {
   pessoas: PessoaRow[];
   buscaAtiva: boolean;
   documentoLabel: string;
+  // Exibe a coluna "Papel" (tipo_empresa) — só PJ.
+  mostrarPapel?: boolean;
+  // Quando presente, exibe a coluna "Filiação" (vínculo de parentesco) — só PF.
+  filiacaoPorPessoa?: Map<string, string>;
   onNovo: () => void;
   onEditar: (p: PessoaRow) => void;
   onRemover: (p: PessoaRow) => void;
 }
 
 const PessoasTable = ({
-  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, onNovo, onEditar, onRemover,
+  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
 }: PessoasTableProps) => (
   <Card>
     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
@@ -59,6 +72,8 @@ const PessoasTable = ({
               <TableRow>
                 <TableHead>Denominação</TableHead>
                 <TableHead>{documentoLabel}</TableHead>
+                {mostrarPapel && <TableHead>Papel</TableHead>}
+                {filiacaoPorPessoa && <TableHead>Filiação</TableHead>}
                 <TableHead>Município/UF</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
               </TableRow>
@@ -68,6 +83,32 @@ const PessoasTable = ({
                 <TableRow key={p.id} {...rowActivateProps(() => onEditar(p))}>
                   <TableCell className="font-medium">{p.denominacao}</TableCell>
                   <TableCell className="font-mono text-xs">{p.cpf_cnpj ?? '—'}</TableCell>
+                  {mostrarPapel && (
+                    <TableCell className="text-xs">
+                      {p.tipo_empresa ? (
+                        <span
+                          className={
+                            TIPOS_EMPRESA_DESTAQUE.has(p.tipo_empresa)
+                              ? 'font-medium text-osg-moss'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {TIPO_EMPRESA_LABELS[p.tipo_empresa] ?? p.tipo_empresa}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
+                  {filiacaoPorPessoa && (
+                    <TableCell className="text-xs text-muted-foreground">
+                      {p.is_fundador ? (
+                        <span className="font-medium text-osg-moss">Fundador</span>
+                      ) : (
+                        filiacaoPorPessoa.get(p.id) || '—'
+                      )}
+                    </TableCell>
+                  )}
                   <TableCell className="text-xs text-muted-foreground">
                     {[p.endereco_municipio, p.endereco_uf].filter(Boolean).join('/') || '—'}
                   </TableCell>
@@ -123,6 +164,16 @@ const QualificacaoDasPartes = () => {
   const [busca, setBusca] = useState('');
 
   const { data: pessoas = [], isLoading: loadingPessoas } = usePessoasByCliente(clienteId || null);
+  const { data: parentescos = [] } = useParentescosByCliente(clienteId || null);
+
+  // Resumo do vínculo de parentesco (1:1) por pessoa, ex.: "Filho(a) de João".
+  const filiacaoPorPessoa = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const v of parentescos) {
+      map.set(v.pessoa_id, v.tipo ? `${v.tipo} de ${v.parente_denominacao}` : v.parente_denominacao);
+    }
+    return map;
+  }, [parentescos]);
 
   const [pessoaModal, setPessoaModal] = useState<{
     open: boolean;
@@ -142,7 +193,10 @@ const QualificacaoDasPartes = () => {
       : pessoas;
     return {
       pjs: filtradas.filter((p) => p.tipo_pessoa === 'PJ'),
-      pfs: filtradas.filter((p) => p.tipo_pessoa === 'PF'),
+      // Fundadores sempre no topo; sort estável preserva a ordem original no restante.
+      pfs: filtradas
+        .filter((p) => p.tipo_pessoa === 'PF')
+        .sort((a, b) => Number(b.is_fundador ?? false) - Number(a.is_fundador ?? false)),
     };
   }, [pessoas, busca]);
 
@@ -194,6 +248,7 @@ const QualificacaoDasPartes = () => {
               icone={<Building2 className="h-4 w-4 text-slate-500" />}
               tipo="PJ"
               documentoLabel="CNPJ"
+              mostrarPapel
               pessoas={pjs}
               buscaAtiva={buscaAtiva}
               onNovo={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PJ' })}
@@ -207,6 +262,7 @@ const QualificacaoDasPartes = () => {
               documentoLabel="CPF"
               pessoas={pfs}
               buscaAtiva={buscaAtiva}
+              filiacaoPorPessoa={filiacaoPorPessoa}
               onNovo={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PF' })}
               onEditar={(p) => setPessoaModal({ open: true, pessoa: p, defaultTipo: 'PF' })}
               onRemover={(p) => deletePessoa.mutate(p)}

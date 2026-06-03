@@ -30,7 +30,7 @@ export interface ItemDiagnostico {
   status: StatusItem;
   mensagem: string;
   impacto: string;
-  formula?: string;        // ex.: "Σ horas × custoHora × volumePorProcesso"
+  formula?: string;        // ex.: "Σ horas × hourly_rate × volume_per_process"
   camposFonte?: string[];  // ex.: ["etapas.executado_por.horas", "responsaveis.custo_hora"]
   /** Destino exato ao clicar em "ver erro": rota + id do item a focar (abre o modal de detalhe). */
   alvo?: { rota: string; focusId: string };
@@ -47,7 +47,7 @@ export interface CategoriaDiagnostico {
 }
 
 export interface DiagnosticoRoi {
-  processoId: string;
+  process_id: string;
   processoNome: string;
   categorias: CategoriaDiagnostico[];
   resumo: string;
@@ -125,7 +125,7 @@ export function diagnosticarRoi(
 
   // ---- 1. Dados do Processo ----
   const catProcesso: ItemDiagnostico[] = [];
-  const freq = processo.frequencia;
+  const freq = processo.frequency;
   const ann = execucoesAnuais(processo);
 
   if (!freq) {
@@ -135,8 +135,8 @@ export function diagnosticarRoi(
       valor: null,
       status: 'faltando',
       impacto: 'execuções anuais, custo anual, horas anuais',
-      formula: 'FATOR_ANUAL[frequencia]',
-      camposFonte: ['processos.frequencia'],
+      formula: 'FATOR_ANUAL[frequency]',
+      camposFonte: ['processos.frequency'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   } else {
@@ -146,8 +146,8 @@ export function diagnosticarRoi(
       valor: `${freq} (${ann} exec./ano)`,
       status: 'ok',
       impacto: 'multiplicador anual de custos e horas',
-      formula: 'FATOR_ANUAL[frequencia]',
-      camposFonte: ['processos.frequencia'],
+      formula: 'FATOR_ANUAL[frequency]',
+      camposFonte: ['processos.frequency'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   }
@@ -177,18 +177,18 @@ export function diagnosticarRoi(
 
       if (!temExec) {
         catEquipe.push(item({
-          campo: `Etapa "${e.nome}" — Responsáveis`,
+          campo: `Etapa "${e.name}" — Responsáveis`,
           origem: 'Mapear → Editar etapas → Aba Equipe',
           valor: null,
           status: 'faltando',
           impacto: 'custo de pessoas desta etapa',
-          formula: 'Σ executadoPor.horas × custoHora',
+          formula: 'Σ executadoPor.horas × hourly_rate',
           camposFonte: ['etapa_responsaveis.papel', 'etapa_responsaveis.horas'],
           alvoEtapaId: e.id,
         }));
       } else if (horasTotal === 0) {
         catEquipe.push(item({
-          campo: `Etapa "${e.nome}" — Horas`,
+          campo: `Etapa "${e.name}" — Horas`,
           origem: 'Mapear → Editar etapas → Equipe (horas por pessoa)',
           valor: '0h',
           status: 'zerado',
@@ -199,22 +199,22 @@ export function diagnosticarRoi(
         }));
       } else {
         catEquipe.push(item({
-          campo: `Etapa "${e.nome}" — Equipe`,
+          campo: `Etapa "${e.name}" — Equipe`,
           origem: 'Mapear → Editar etapas → Equipe',
           valor: `${formatDecimal(horasTotal, 'h')} (${(e.executadoPor || []).length} pessoas)`,
           status: 'ok',
           impacto: 'custo de pessoas desta etapa',
-          formula: 'Σ executadoPor.horas × volumePorProcesso',
+          formula: 'Σ executadoPor.horas × volume_per_process',
           camposFonte: ['etapa_responsaveis.horas', 'etapas.volume_por_processo'],
           alvoEtapaId: e.id,
         }));
       }
 
       // Volume por processo
-      const vpp = e.volumePorProcesso;
+      const vpp = e.volume_per_process;
       if (vpp == null || vpp === 0) {
         catEquipe.push(item({
-          campo: `Etapa "${e.nome}" — Volume/Projeto`,
+          campo: `Etapa "${e.name}" — Volume/Projeto`,
           origem: 'Mapear → Editar etapas → Métricas',
           valor: vpp ?? null,
           status: vpp === 0 ? 'zerado' : 'faltando',
@@ -235,7 +235,7 @@ export function diagnosticarRoi(
     etapas.forEach(e => { addResp(e.executadoPor); });
     melhorias.forEach(m => { addResp(m.executadoPor); addResp(m.treinamentoPor); });
     gargalos.forEach(g => addResp(g.responsaveisHoras));
-    const respUsados = responsaveis.filter(r => respKeys.has(r.id) || respKeys.has(r.nome));
+    const respUsados = responsaveis.filter(r => respKeys.has(r.id) || respKeys.has(r.name));
 
     if (respKeys.size > 0 && respUsados.length === 0) {
       catEquipe.push(item({
@@ -249,11 +249,11 @@ export function diagnosticarRoi(
       }));
     }
     for (const r of respUsados) {
-      const temCusto = !!r.custoHora && r.custoHora > 0;
+      const temCusto = !!r.hourly_rate && r.hourly_rate > 0;
       catEquipe.push(item({
-        campo: `Responsável "${r.nome}"`,
+        campo: `Responsável "${r.name}"`,
         origem: 'Página Responsáveis → editar',
-        valor: temCusto ? `${formatarMoeda(r.custoHora)}/h` : 'sem custo/hora',
+        valor: temCusto ? `${formatarMoeda(r.hourly_rate)}/h` : 'sem custo/hora',
         status: temCusto ? 'ok' : 'incompleto',
         impacto: 'custo de cada hora trabalhada por esta pessoa',
         formula: 'responsaveis.custo_hora × horas',
@@ -278,24 +278,24 @@ export function diagnosticarRoi(
       valor: null,
       status: 'faltando',
       impacto: 'custo de retrabalho',
-      formula: 'taxaRetrabalho × custoPessoas',
+      formula: 'rework_rate × custoPessoas',
       camposFonte: ['etapas.taxa_retrabalho'],
     }));
   } else {
     for (const e of etapas) {
-      const txErro = e.taxaErros ?? 0;
-      const txRetrab = e.taxaRetrabalho ?? 0;
+      const txErro = e.error_rate ?? 0;
+      const txRetrab = e.rework_rate ?? 0;
 
       const temQualidade = txErro > 0 || txRetrab > 0;
 
       if (!temQualidade) {
         catQualidade.push(item({
-          campo: `Etapa "${e.nome}" — Qualidade`,
+          campo: `Etapa "${e.name}" — Qualidade`,
           origem: 'Mapear → Editar etapas → Métricas',
           valor: 'todas zeradas',
           status: 'zerado',
           impacto: 'custo de retrabalho desta etapa (taxa de erros é informativa)',
-          formula: 'taxaRetrabalho × custoPessoas',
+          formula: 'rework_rate × custoPessoas',
           camposFonte: ['etapas.taxa_erros', 'etapas.taxa_retrabalho'],
           alvoEtapaId: e.id,
         }));
@@ -304,12 +304,12 @@ export function diagnosticarRoi(
         if (txErro > 0) partes.push(`erros ${formatDecimal(txErro * 100, '%')}`);
         if (txRetrab > 0) partes.push(`retrab. ${formatDecimal(txRetrab * 100, '%')}`);
         catQualidade.push(item({
-          campo: `Etapa "${e.nome}" — Qualidade`,
+          campo: `Etapa "${e.name}" — Qualidade`,
           origem: 'Mapear → Editar etapas → Métricas',
           valor: partes.join(' · '),
           status: 'ok',
           impacto: 'custo de retrabalho desta etapa (taxa de erros é informativa)',
-          formula: 'taxaRetrabalho × custoPessoas',
+          formula: 'rework_rate × custoPessoas',
           camposFonte: ['etapas.taxa_erros', 'etapas.taxa_retrabalho'],
           alvoEtapaId: e.id,
         }));
@@ -342,11 +342,11 @@ export function diagnosticarRoi(
     }));
   } else {
     for (const s of sistemasUsados) {
-      const temCusto = (s.custoVariavelPorUso || 0) > 0;
+      const temCusto = (s.custo_variavel_por_uso || 0) > 0;
       catSistemas.push(item({
         campo: `Sistema "${s.nome}"`,
         origem: 'Página Sistemas → editar',
-        valor: temCusto ? `${formatarMoeda(s.custoVariavelPorUso || 0)}/mês` : 'sem custo mensal',
+        valor: temCusto ? `${formatarMoeda(s.custo_variavel_por_uso || 0)}/mês` : 'sem custo mensal',
         status: temCusto ? 'ok' : 'incompleto',
         impacto: 'custo anual de sistemas (custo mensal × 12 × rateio)',
         formula: 'custo_variavel_por_uso × 12 × rateio%',
@@ -356,15 +356,15 @@ export function diagnosticarRoi(
     }
   }
 
-  // Melhorias e investimentos — uma melhoria entra no investimento do processo
+  // Melhorias e investimentos — uma melhoria entra no investment do processo
   // se está associada ao processo (M:N direta) OU se resolve um gargalo do processo.
   const gargalosDoProc = new Set(
     gargalos.filter(g => (g.processos || []).includes(processo.id)).map(g => g.id)
   );
   const melhoriaIdsViaGargalos = new Set(
     gargalos
-      .filter(g => gargalosDoProc.has(g.id) && g.melhoriaId)
-      .map(g => g.melhoriaId as string)
+      .filter(g => gargalosDoProc.has(g.id) && g.melhoria_id)
+      .map(g => g.melhoria_id as string)
   );
   const melhoriasRelevantes = melhorias.filter(m =>
     (m.processos || []).includes(processo.id) ||
@@ -377,24 +377,24 @@ export function diagnosticarRoi(
       origem: 'Página Melhorias → associar processos atendidos',
       valor: 'nenhuma melhoria',
       status: 'zerado',
-      impacto: 'investimento em melhorias (treinamento, execução, custo externo)',
+      impacto: 'investment em melhorias (treinamento, execução, custo externo)',
       formula: 'Σ horas_treinamento×CH + executadoPor.horas×CH + custo_externo_unico',
       camposFonte: ['melhoria_processos', 'gargalos.melhoria_id', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
     }));
   } else {
     for (const m of melhoriasRelevantes) {
-      const invTreino = (m.horasTreinamento || 0);
+      const invTreino = (m.training_hours || 0);
       const invExec = (m.executadoPor || []).reduce((s, r) => s + (r.horas || 0), 0);
-      const invExt = m.custoExternoUnico || 0;
+      const invExt = m.one_time_external_cost || 0;
       const invMelhoria = invTreino + invExec + invExt;
       catSistemas.push(item({
-        campo: `Melhoria "${m.nome}"`,
+        campo: `Melhoria "${m.improvement_description}"`,
         origem: 'Página Melhorias → editar',
         valor: invMelhoria > 0
           ? `${formatDecimal(invTreino, 'h')} treino + ${formatDecimal(invExec, 'h')} exec + ${formatarMoeda(invExt)} ext.`
-          : 'sem investimento cadastrado',
+          : 'sem investment cadastrado',
         status: invMelhoria > 0 ? 'ok' : 'incompleto',
-        impacto: 'investimento total (treinamento + execução + custo externo)',
+        impacto: 'investment total (treinamento + execução + custo externo)',
         formula: 'horas_treinamento×CH + executadoPor.horas×CH + custo_externo_unico',
         camposFonte: ['melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
         alvo: { rota: '/melhorias', focusId: m.id },
@@ -403,7 +403,7 @@ export function diagnosticarRoi(
   }
 
   // Horas de treinamento das melhorias (já coberto acima, mas consolidado)
-  const melhoriasSemTreino = melhoriasRelevantes.filter(m => !m.horasTreinamento);
+  const melhoriasSemTreino = melhoriasRelevantes.filter(m => !m.training_hours);
   if (melhoriasRelevantes.length > 0 && melhoriasSemTreino.length === melhoriasRelevantes.length) {
     // já reportado individualmente
   }
@@ -419,7 +419,7 @@ export function diagnosticarRoi(
   const catGargalos: ItemDiagnostico[] = [];
   const gargalosDoProcLista = gargalos.filter(g => (g.processos || []).includes(processo.id));
   for (const g of gargalosDoProcLista) {
-    const horas = g.horasGastas || 0;
+    const horas = g.horas_gastas || 0;
     catGargalos.push(item({
       campo: `Gargalo "${g.nome}"`,
       origem: 'Página Gargalos → editar',
@@ -475,8 +475,8 @@ export function diagnosticarRoi(
   }
 
   return {
-    processoId: processo.id,
-    processoNome: processo.nome,
+    process_id: processo.id,
+    processoNome: processo.name,
     categorias,
     resumo,
     totalItens: todosItens.length,

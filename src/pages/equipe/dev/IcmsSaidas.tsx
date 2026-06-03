@@ -45,8 +45,8 @@ const IcmsSaidas = () => {
 
   const [selectedCliente, setSelectedCliente] = useState('');
   const [selectedContribuinte, setSelectedContribuinte] = useState('');
-  const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
-  const [dataFim, setDataFim] = useState(defaultDates.fim);
+  const [start_date, setDataInicio] = useState(defaultDates.inicio);
+  const [end_date, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [activeTab, setActiveTab] = useState('t01');
 
@@ -195,7 +195,7 @@ const IcmsSaidas = () => {
                     <span>
                       Data Início <RequiredMark />
                     </span>
-                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataInicio} />
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.start_date} />
                   </span>
                 </label>
                 <Popover>
@@ -204,16 +204,16 @@ const IcmsSaidas = () => {
                       variant="outline"
                       className={cn(
                         'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
-                        !dataInicio && 'text-muted-foreground',
+                        !start_date && 'text-muted-foreground',
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {dataInicio ? format(parse(dataInicio, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
+                      {start_date ? format(parse(start_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                      selected={dataInicio ? parse(dataInicio, 'yyyy-MM-dd', new Date()) : undefined}
+                      selected={start_date ? parse(start_date, 'yyyy-MM-dd', new Date()) : undefined}
                       onSelect={(date) => {
                         setDataInicio(date ? format(date, 'yyyy-MM-dd') : '');
                         setSearchTriggered(false);
@@ -229,7 +229,7 @@ const IcmsSaidas = () => {
                     <span>
                       Data Fim <RequiredMark />
                     </span>
-                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.dataFim} />
+                    <FieldTooltip text={ICMS_PAGE_TOOLTIPS.end_date} />
                   </span>
                 </label>
                 <Popover>
@@ -238,16 +238,16 @@ const IcmsSaidas = () => {
                       variant="outline"
                       className={cn(
                         'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
-                        !dataFim && 'text-muted-foreground',
+                        !end_date && 'text-muted-foreground',
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                      {dataFim ? format(parse(dataFim, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
+                      {end_date ? format(parse(end_date, 'yyyy-MM-dd', new Date()), 'dd/MM/yyyy') : 'Selecione'}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
-                      selected={dataFim ? parse(dataFim, 'yyyy-MM-dd', new Date()) : undefined}
+                      selected={end_date ? parse(end_date, 'yyyy-MM-dd', new Date()) : undefined}
                       onSelect={(date) => {
                         setDataFim(date ? format(date, 'yyyy-MM-dd') : '');
                         setSearchTriggered(false);
@@ -316,8 +316,8 @@ const IcmsSaidas = () => {
             <T01ApuracaoTab
               enabled={tabsEnabled}
               contribuinteId={selectedContribuinte}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           </TabsContent>
 
@@ -325,8 +325,8 @@ const IcmsSaidas = () => {
             <T02CfopTab
               enabled={tabsEnabled}
               contribuinteId={selectedContribuinte}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           </TabsContent>
 
@@ -334,8 +334,8 @@ const IcmsSaidas = () => {
             <T03_1SaidasTab
               enabled={tabsEnabled}
               contribuinteId={selectedContribuinte}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           </TabsContent>
 
@@ -343,8 +343,8 @@ const IcmsSaidas = () => {
             <T03_2SaidasStTab
               enabled={tabsEnabled}
               contribuinteId={selectedContribuinte}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           </TabsContent>
         </Tabs>

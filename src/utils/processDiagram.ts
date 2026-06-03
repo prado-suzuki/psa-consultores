@@ -80,16 +80,16 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
     .filter(Boolean);
 
   const resps = Array.from(respKeys)
-    .map(k => responsaveis.find(r => r.id === k || r.nome === k) || { id: k, nome: k });
+    .map(k => responsaveis.find(r => r.id === k || r.name === k) || { id: k, name: k });
 
   const sis = Array.from(sisKeys)
     .map(k => sistemas.find(s => s.id === k || s.nome === k) || { id: k, nome: k });
 
   const procGargalos = gargalos.filter(g => (g.processos || []).includes(processo.id));
 
-  // Pós-refator 1:N: o vínculo gargalo↔melhoria vive em gargalos.melhoriaId.
+  // Pós-refator 1:N: o vínculo gargalo↔melhoria vive em gargalos.melhoria_id.
   const melhoriaIdsViaGargalos = new Set(
-    procGargalos.filter(g => g.melhoriaId).map(g => g.melhoriaId as string)
+    procGargalos.filter(g => g.melhoria_id).map(g => g.melhoria_id as string)
   );
   const procMelhorias = melhorias.filter(
     m =>
@@ -103,7 +103,7 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
 
   const idDocEntrada = (d: { id?: string; nome: string }) => safeId('DE', d.id || d.nome);
   const idDocSaida   = (d: { id?: string; nome: string }) => safeId('DS', d.id || d.nome);
-  const idResp       = (r: { id?: string; nome: string }) => safeId('R',  r.id || r.nome);
+  const idResp       = (r: { id?: string; name: string }) => safeId('R',  r.id || r.name);
   const idSis        = (s: { id?: string; nome: string }) => safeId('S',  s.id || s.nome);
   const idGar        = (g: Gargalo) => safeId('G', g.id);
   const idMel        = (m: Melhoria) => safeId('M', m.id);
@@ -115,11 +115,11 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   lines.push('  %% ===== nós =====');
 
   // Processo central
-  lines.push(`  ${pId}["<b>${safeLabel(processo.nome)}</b><br/><i>Processo</i>"]:::processo`);
+  lines.push(`  ${pId}["<b>${safeLabel(processo.name)}</b><br/><i>Processo</i>"]:::processo`);
 
   // Projeto
   if (projeto && projId) {
-    lines.push(`  ${projId}["${safeLabel(projeto.nome)}<br/><i>Projeto</i>"]:::projeto`);
+    lines.push(`  ${projId}["${safeLabel(projeto.name)}<br/><i>Projeto</i>"]:::projeto`);
   }
 
   // Subgraphs
@@ -148,7 +148,7 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   renderSubgraph(
     'SG_R',
     `👥 Responsáveis (${resps.length})`,
-    resps.map(r => `${idResp(r)}["${safeLabel(r.nome)}"]:::responsavel`)
+    resps.map(r => `${idResp(r)}["${safeLabel(r.name)}"]:::responsavel`)
   );
   renderSubgraph(
     'SG_S',
@@ -163,7 +163,7 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   renderSubgraph(
     'SG_M',
     `⚡ Melhorias (${procMelhorias.length})`,
-    procMelhorias.map(m => `${idMel(m)}["${safeLabel(m.nome)}"]:::melhoria`)
+    procMelhorias.map(m => `${idMel(m)}["${safeLabel(m.improvement_description)}"]:::melhoria`)
   );
 
   // ---------- Ligações ----------
@@ -177,11 +177,11 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   sis.forEach(s => lines.push(`  ${pId} -.-> ${idSis(s)}`));
   procGargalos.forEach(g => lines.push(`  ${idGar(g)} -. impacta .-> ${pId}`));
 
-  // Melhorias: linkam ao processo e aos gargalos resolvidos (via gargalos.melhoriaId).
+  // Melhorias: linkam ao processo e aos gargalos resolvidos (via gargalos.melhoria_id).
   procMelhorias.forEach(m => {
     lines.push(`  ${idMel(m)} -. resolve .-> ${pId}`);
     procGargalos
-      .filter(g => g.melhoriaId === m.id)
+      .filter(g => g.melhoria_id === m.id)
       .forEach(g => {
         lines.push(`  ${idMel(m)} ==> ${idGar(g)}`);
       });

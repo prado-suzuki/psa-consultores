@@ -38,7 +38,7 @@ export const PDF_STRINGS = {
     kpiInvestLabel: 'Investimento',
     kpiInvestSub: 'Pagamento único (CapEx)',
     kpiResultadoLabel: (m: number) => `Resultado líquido (${m}M)`,
-    kpiResultadoSub: 'Economia − investimento',
+    kpiResultadoSub: 'Economia − investment',
 
     tabelaTitulo: 'O que muda',
     tabelaCol: ['Indicador', 'Antes', 'Depois', 'Ganho'] as const,
@@ -55,9 +55,9 @@ export const PDF_STRINGS = {
 
     recomendacaoLabel: 'RECOMENDAÇÃO',
     recomendacaoAprovar: (invest: string, payback: string, roi: string, m: number, horas: string) =>
-      `Aprovar a implantação. O investimento de ${invest} se paga em ${payback} e gera ROI de ${roi} em ${m} meses, liberando ${horas} da equipe para atividades de maior valor.`,
+      `Aprovar a implantação. O investment de ${invest} se paga em ${payback} e gera ROI de ${roi} em ${m} meses, liberando ${horas} da equipe para atividades de maior valor.`,
     recomendacaoSemPayback: (invest: string, m: number) =>
-      `Avaliar a implantação considerando ganhos qualitativos e de capacidade — o investimento de ${invest} ainda não tem retorno financeiro líquido positivo no horizonte de ${m} meses.`,
+      `Avaliar a implantação considerando ganhos qualitativos e de capacidade — o investment de ${invest} ainda não tem retorno financeiro líquido positivo no horizonte de ${m} meses.`,
 
     rodapeAnexo: 'Detalhamento operacional (processo etapa-a-etapa) nas páginas seguintes.',
     rodapeMarca: 'PSA Consultores',

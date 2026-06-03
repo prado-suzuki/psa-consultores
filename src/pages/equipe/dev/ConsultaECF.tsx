@@ -73,8 +73,8 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 const TOOLTIPS = {
   cliente: "Filtra as ECF por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  dataInicio: "Define o período inicial da busca.",
-  dataFim: "Define o período final da busca.",
+  start_date: "Define o período inicial da busca.",
+  end_date: "Define o período final da busca.",
   colArquivo: "Nome e ID do arquivo ECF processado.",
   colPeriodo: "Mês inicial e final da escrituração.",
   colTipo: "Status do arquivo (Original ou Retificadora).",
@@ -170,8 +170,8 @@ const ConsultaECF = () => {
     return contrib?.cpf_cnpj?.replace(/\D/g, '') || '';
   }, [contribuintes, selectedContribuinte]);
 
-  const dataInicio = monthYearToDateString(mesInicio, 'start');
-  const dataFim = monthYearToDateString(mesFim, 'end');
+  const start_date = monthYearToDateString(mesInicio, 'start');
+  const end_date = monthYearToDateString(mesFim, 'end');
 
   const {
     data: overview,
@@ -187,19 +187,19 @@ const ConsultaECF = () => {
   const arquivosFiltrados = useMemo(() => {
     if (!overview?.arquivos) return [];
     let filtrados = overview.arquivos;
-    if (dataInicio || dataFim) {
+    if (start_date || end_date) {
       filtrados = filtrados.filter(arquivo => {
         const arquivoInicio = new Date(arquivo.DT_INI);
         const arquivoFim = new Date(arquivo.DT_FIN);
-        const filtroInicio = dataInicio ? new Date(dataInicio) : null;
-        const filtroFim = dataFim ? new Date(dataFim) : null;
+        const filtroInicio = start_date ? new Date(start_date) : null;
+        const filtroFim = end_date ? new Date(end_date) : null;
         const depoisDoInicio = !filtroInicio || arquivoFim >= filtroInicio;
         const antesDoFim = !filtroFim || arquivoInicio <= filtroFim;
         return depoisDoInicio && antesDoFim;
       });
     }
     return filtrados;
-  }, [overview?.arquivos, dataInicio, dataFim]);
+  }, [overview?.arquivos, start_date, end_date]);
 
   useEffect(() => {
     if (errorOverview) {
@@ -244,8 +244,8 @@ const ConsultaECF = () => {
     setDownloadingAll(true);
     try {
       const url = new URL(getApiUrl(`/api/v1/query/download/efd/ecf/${selectedContribuinte}`));
-      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
-      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      if (start_date) url.searchParams.set('data_inicio', start_date);
+      if (end_date) url.searchParams.set('data_fim', end_date);
       const response = await fetchWithAuth(url.toString(), {}, 60000);
       if (!response.ok) {
         const contentType = response.headers.get('Content-Type');
@@ -432,11 +432,11 @@ const ConsultaECF = () => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>
               <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} /></label>
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
             </div>
           </div>

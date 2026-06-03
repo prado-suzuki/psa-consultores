@@ -53,7 +53,7 @@ export function isEtapaEliminada(e: Etapa): boolean {
   const f = e.ficou;
   if (!f) return false;
   const semExec = !(f.executadoPor && f.executadoPor.length);
-  const semDescr = !(f.descricao && f.descricao.trim());
+  const semDescr = !(f.description && f.description.trim());
   const semHoras = (f.executadoPor || []).every(r => !r.horas);
   return semExec && semDescr && semHoras;
 }
@@ -72,16 +72,16 @@ export function calcEtapa(
 ): CalcEtapaResult {
   const f = ficou ? e.ficou : null;
   const exec = (ficou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
-  const vol = (ficou ? (f?.volumePorProcesso ?? e.volumePorProcesso) : e.volumePorProcesso) || 1;
+  const vol = (ficou ? (f?.volume_per_process ?? e.volume_per_process) : e.volume_per_process) || 1;
   let horas = 0, custoBase = 0;
   for (const r of exec) {
-    const ch = (r.responsavelId ? respById.get(r.responsavelId)?.custoHora : undefined) ?? custoMedio;
+    const ch = (r.responsavelId ? respById.get(r.responsavelId)?.hourly_rate : undefined) ?? custoMedio;
     const h = r.horas ?? 0;
     horas += h;
     custoBase += h * ch;
   }
   const custo = custoBase * vol;
-  const taxaRetrab = (ficou ? (f?.taxaRetrabalho ?? e.taxaRetrabalho) : e.taxaRetrabalho) ?? 0;
+  const taxaRetrab = (ficou ? (f?.rework_rate ?? e.rework_rate) : e.rework_rate) ?? 0;
   return { horas, custo, taxaRetrab };
 }
 
@@ -90,21 +90,21 @@ export function calcEtapa(
 export function generateHeadline(args: {
   processoNome: string;
   roiPct: number;
-  paybackMeses: number;
+  payback_months: number;
 }): string {
-  const { processoNome, roiPct, paybackMeses } = args;
+  const { processoNome, roiPct, payback_months } = args;
   const roiStr = `${roiPct.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`;
-  const paybackStr = paybackMeses > 0
-    ? `${paybackMeses.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} meses`
+  const paybackStr = payback_months > 0
+    ? `${payback_months.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} meses`
     : '—';
 
-  if (paybackMeses <= 0) {
+  if (payback_months <= 0) {
     return PDF_STRINGS.exec.headlineSemPayback(processoNome);
   }
-  if (paybackMeses <= 6 && roiPct >= 500) {
+  if (payback_months <= 6 && roiPct >= 500) {
     return PDF_STRINGS.exec.headlineExcepcional(processoNome, roiStr, paybackStr);
   }
-  if (paybackMeses <= 12 && roiPct >= 100) {
+  if (payback_months <= 12 && roiPct >= 100) {
     return PDF_STRINGS.exec.headlineSolido(processoNome, roiStr);
   }
   return PDF_STRINGS.exec.headlineQualitativo(processoNome, paybackStr);

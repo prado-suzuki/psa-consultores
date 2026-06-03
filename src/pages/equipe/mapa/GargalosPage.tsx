@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -9,12 +9,13 @@ import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
-import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
 import { agrupar } from '@/utils/agrupar';
 import { formatDecimal } from '@/utils/format';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Gargalo } from '@/types';
 import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useGargalos, useCreateGargalo, useUpdateGargalo, useDeleteGargalo } from '@/hooks/useGargalos';
+import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
 
 const ORIGEM_OPCOES = [
   { value: 'Processo', label: 'Processo' },
@@ -32,31 +33,38 @@ const ORGANIZAR_OPCOES = [
 ];
 
 export default function GargalosPage() {
-  const { items, loaded, addItem, setItems, removeItem } = useStoredData<Gargalo>('gargalosAdicionados', '/gargalos.json');
+  const { data: items = [], isLoading: gargalosLoading } = useGargalos();
+  const loaded = !gargalosLoading;
+  const createGargalo = useCreateGargalo();
+  const updateGargalo = useUpdateGargalo();
+  const deleteGargalo = useDeleteGargalo();
+  const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
+  const { data: clusters = [] } = useClusters();
 
   const { data: processos = [] } = useProcessosLista();
   const { data: melhoriasList = [] } = useMelhoriasLista();
 
   const procNomeById = useMemo(
-    () => new Map(processos.map(p => [p.id, p.nome])),
+    () => new Map(processos.map(p => [p.id, p.name])),
     [processos]
   );
   const procIdByNome = useMemo(
-    () => new Map(processos.map(p => [p.nome, p.id])),
+    () => new Map(processos.map(p => [p.name, p.id])),
     [processos]
   );
   const procOptionsOrdenado = useMemo(
-    () => [...processos].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+    () => [...processos].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
     [processos]
   );
   const melhoriaNomeById = useMemo(
-    () => new Map(melhoriasList.map(m => [m.id, m.nome])),
+    () => new Map(melhoriasList.map(m => [m.id, m.improvement_description])),
     [melhoriasList]
   );
   const melhoriaOpcoes = useMemo(
     () => [
       { value: '', label: '— sem melhoria —' },
-      ...melhoriasList.map(m => ({ value: m.id, label: m.nome })),
+      ...melhoriasList.map(m => ({ value: m.id, label: m.improvement_description })),
     ],
     [melhoriasList]
   );
@@ -84,7 +92,7 @@ export default function GargalosPage() {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [origem, setOrigem] = useState('');
-  const [cluster, setCluster] = useState('');
+  const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
   const [melhoriaId, setMelhoriaId] = useState('');
   const [error, setError] = useState('');
@@ -96,28 +104,36 @@ export default function GargalosPage() {
   const [editNome, setEditNome] = useState('');
   const [editDescricao, setEditDescricao] = useState('');
   const [editOrigem, setEditOrigem] = useState('');
-  const [editCluster, setEditCluster] = useState('');
+  const [editClusterId, setEditClusterId] = useState('');
   const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
   const [editMelhoriaId, setEditMelhoriaId] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) { setError('Preencha o nome do gargalo.'); return; }
     setError('');
     setIsSaving(true);
-    addItem({
-      nome: nome.trim(),
-      descricao: descricao.trim(),
-      origem: origem.trim(),
-      cluster: cluster || undefined,
-      processos: namesToIds(processosNomes),
-      melhoriaId: melhoriaId || null,
-    });
-    setTimeout(() => {
-      setNome(''); setDescricao(''); setOrigem(''); setCluster(''); setProcessosNomes([]); setMelhoriaId('');
-      setIsSaving(false); setModalOpen(false);
-    }, 300);
+    try {
+      await createGargalo.mutateAsync({
+        nome: nome.trim(),
+        descricao: descricao.trim(),
+        origem: origem.trim(),
+        cluster_id: clusterId || undefined,
+        // TODO M:N junction (gargalo_processos) será gerenciada em hook
+        // dedicado no próximo refator com TDD — por ora, mantém o array em
+        // memória mas o INSERT só persiste a row do gargalo.
+        processos: namesToIds(processosNomes),
+        melhoria_id: melhoriaId || null,
+      });
+      toast.success('Gargalo criado');
+      setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openEdit = (g: Gargalo) => {
@@ -125,38 +141,45 @@ export default function GargalosPage() {
     setEditNome(g.nome);
     setEditDescricao(g.descricao || '');
     setEditOrigem(g.origem || '');
-    setEditCluster(g.cluster || '');
+    setEditClusterId(g.cluster_id || '');
     setEditProcessosNomes(idsToNames(g.processos || []));
-    setEditMelhoriaId(g.melhoriaId || '');
+    setEditMelhoriaId(g.melhoria_id || '');
     setEditError('');
     setEditOpen(true);
   };
 
   const openDetail = (g: Gargalo) => { setDetailItem(g); setDetailOpen(true); };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome do gargalo.'); return; }
+    const old = items.find(g => g.id === editId);
+    if (!old) return;
     setEditError('');
     setEditSaving(true);
-    const updated = items.map(g =>
-      g.id === editId
-        ? {
-            ...g,
-            nome: editNome.trim(),
-            descricao: editDescricao.trim(),
-            origem: editOrigem.trim(),
-            cluster: editCluster || undefined,
-            processos: namesToIds(editProcessosNomes),
-            melhoriaId: editMelhoriaId || null,
-          }
-        : g
-    );
-    setItems(updated);
-    setTimeout(() => { setEditSaving(false); setEditOpen(false); }, 300);
+    try {
+      await updateGargalo.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          nome: editNome.trim(),
+          descricao: editDescricao.trim(),
+          origem: editOrigem.trim(),
+          cluster_id: editClusterId || undefined,
+          processos: namesToIds(editProcessosNomes),
+          melhoria_id: editMelhoriaId || null,
+        },
+      });
+      toast.success('Gargalo atualizado');
+      setEditOpen(false);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const itensFiltrados = useMemo(() => items.filter(g =>
-    (!fCluster || g.cluster === fCluster) &&
+    (!fCluster || g.cluster_id === fCluster) &&
     (!fOrigem || g.origem === fOrigem) &&
     (!fProcesso || (g.processos || []).includes(fProcesso))
   ), [items, fCluster, fOrigem, fProcesso]);
@@ -165,13 +188,13 @@ export default function GargalosPage() {
   const [organizar, setOrganizar] = useState('cluster');
   const grupos = useMemo(() => {
     if (organizar === 'origem') return agrupar(itensFiltrados, (g) => [g.origem || ''], ORIGEM_OPCOES, 'Sem origem');
-    if (organizar === 'processo') return agrupar(itensFiltrados, (g) => g.processos || [], procOptionsOrdenado.map((p) => ({ value: p.id, label: p.nome })), 'Sem processo');
-    return agrupar(itensFiltrados, (g) => [g.cluster || ''], CLUSTER_OPCOES, 'Sem cluster');
+    if (organizar === 'processo') return agrupar(itensFiltrados, (g) => g.processos || [], procOptionsOrdenado.map((p) => ({ value: p.id, label: p.name })), 'Sem processo');
+    return agrupar(itensFiltrados, (g) => [g.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
   }, [organizar, itensFiltrados, procOptionsOrdenado]);
 
   // KPI computations
   const totalHoras = useMemo(
-    () => items.reduce((acc, g) => acc + (g.horasGastas || 0), 0),
+    () => items.reduce((acc, g) => acc + (g.horas_gastas || 0), 0),
     [items]
   );
   const processosDistintos = useMemo(
@@ -179,7 +202,7 @@ export default function GargalosPage() {
     [items]
   );
   const gargalosResolvidos = useMemo(
-    () => items.filter(g => g.melhoriaId).length,
+    () => items.filter(g => g.melhoria_id).length,
     [items]
   );
 
@@ -201,7 +224,7 @@ export default function GargalosPage() {
       <div className="card-header">
         <h1>Gargalos</h1>
         <button className="btn-add" onClick={() => {
-          setNome(''); setDescricao(''); setOrigem(''); setCluster(''); setProcessosNomes([]); setMelhoriaId('');
+          setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
           setError(''); setModalOpen(true);
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -222,7 +245,7 @@ export default function GargalosPage() {
           { id: 'fg-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
           { id: 'fg-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fg-origem', label: 'Origem', value: fOrigem, onChange: setFOrigem, options: ORIGEM_FILTRO_OPCOES, tooltip: dica('gargalos.filtro.origem') },
-          { id: 'fg-processo', label: 'Processo afetado', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...procOptionsOrdenado.map(p => ({ value: p.id, label: p.nome }))], tooltip: dica('gargalos.filtro.processo') },
+          { id: 'fg-processo', label: 'Processo afetado', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...procOptionsOrdenado.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('gargalos.filtro.processo') },
         ]}
       />
       <GrupoAccordion
@@ -263,11 +286,11 @@ export default function GargalosPage() {
                   </div>
                 </div>
                 <p>{g.descricao || 'Sem descrição.'}</p>
-                {(g.origem || g.cluster) && (
+                {(g.origem || g.clusterName) && (
                   <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 6 }}>
                     {g.origem && <><strong>Origem:</strong> {g.origem}</>}
-                    {g.origem && g.cluster && ' · '}
-                    {g.cluster && <><strong>Cluster:</strong> {g.cluster}</>}
+                    {g.origem && g.clusterName && ' · '}
+                    {g.clusterName && <><strong>Cluster:</strong> {g.clusterName}</>}
                   </div>
                 )}
                 {g.processos && g.processos.length > 0 && (
@@ -298,11 +321,11 @@ export default function GargalosPage() {
             <Select value={origem} onChange={setOrigem} options={ORIGEM_OPCOES} placeholder="Selecione..." />
           </FormField>
           <FormField label="Cluster" tooltip={dica('gargalos.form.cluster')}>
-            <Select value={cluster} onChange={setCluster} options={CLUSTER_OPCOES} />
+            <Select value={clusterId} onChange={setClusterId} options={CLUSTER_OPCOES} />
           </FormField>
           <FormField label="Processos afetados" tooltip={dica('gargalos.form.processos')}>
             <ChipSelector
-              options={procOptionsOrdenado.map((p) => p.nome)}
+              options={procOptionsOrdenado.map((p) => p.name)}
               value={processosNomes}
               onChange={(v) => setProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
@@ -336,11 +359,11 @@ export default function GargalosPage() {
             <Select value={editOrigem} onChange={setEditOrigem} options={ORIGEM_OPCOES} placeholder="Selecione..." />
           </FormField>
           <FormField label="Cluster" tooltip={dica('gargalos.form.cluster')}>
-            <Select value={editCluster} onChange={setEditCluster} options={CLUSTER_OPCOES} />
+            <Select value={editClusterId} onChange={setEditClusterId} options={CLUSTER_OPCOES} />
           </FormField>
           <FormField label="Processos afetados" tooltip={dica('gargalos.form.processos')}>
             <ChipSelector
-              options={procOptionsOrdenado.map((p) => p.nome)}
+              options={procOptionsOrdenado.map((p) => p.name)}
               value={editProcessosNomes}
               onChange={(v) => setEditProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
@@ -380,10 +403,10 @@ export default function GargalosPage() {
                   <div>{detailItem.origem}</div>
                 </div>
               )}
-              {detailItem.cluster && (
+              {detailItem.clusterName && (
                 <div className="form-group compact">
                   <label><Tooltip text={dica('gargalos.detalhe.cluster')}>Cluster</Tooltip></label>
-                  <div>{detailItem.cluster}</div>
+                  <div>{detailItem.clusterName}</div>
                 </div>
               )}
               <div className="form-group compact">
@@ -403,8 +426,8 @@ export default function GargalosPage() {
               <div className="form-group compact">
                 <label>Horas estimadas/mês</label>
                 <div>
-                  {detailItem.horasGastas
-                    ? formatDecimal(detailItem.horasGastas, 'h')
+                  {detailItem.horas_gastas
+                    ? formatDecimal(detailItem.horas_gastas, 'h')
                     : '— não estimado'}
                 </div>
               </div>
@@ -412,9 +435,9 @@ export default function GargalosPage() {
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>
                   Melhoria vinculada
                 </div>
-                {detailItem.melhoriaId ? (
+                {detailItem.melhoria_id ? (
                   <div className="tags">
-                    <span className="tag">{melhoriaNomeById.get(detailItem.melhoriaId) || detailItem.melhoriaId}</span>
+                    <span className="tag">{melhoriaNomeById.get(detailItem.melhoria_id) || detailItem.melhoria_id}</span>
                   </div>
                 ) : (
                   <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Nenhuma melhoria vinculada.</p>
@@ -444,9 +467,15 @@ export default function GargalosPage() {
               onClick={async () => {
                 if (!confirmDel) return;
                 setDeleting(true);
-                await removeItem(confirmDel.id);
-                setDeleting(false);
-                setConfirmDel(null);
+                try {
+                  await deleteGargalo.mutateAsync({ id: confirmDel.id, old: confirmDel });
+                  toast.success('Gargalo excluído');
+                  setConfirmDel(null);
+                } catch (err) {
+                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
+                } finally {
+                  setDeleting(false);
+                }
               }}
             >
               {deleting ? 'Excluindo...' : 'Excluir'}

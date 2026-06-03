@@ -1,7 +1,8 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useStoredData } from '@/hooks/useStoredData';
 import { useProjetos, useCreateProjeto, useUpdateProjeto, useDeleteProjeto, type ProjetoInput } from '@/hooks/useProjetos';
+import { useProcessos } from '@/hooks/useProcessos';
+import { useClusterFiltroOpcoes, useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
@@ -12,7 +13,6 @@ import { Tooltip, Popover } from '@/components/equipe/mapa/Tooltip';
 import { useHoverPopover } from '@/components/equipe/mapa/useHoverPopover';
 import { dica } from '@/utils/tooltips';
 import { useFocusParam } from '@/utils/useFocusParam';
-import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
 import {
   JUSTIFICATIVAS_PROJETO,
   type JustificativaProjeto,
@@ -36,31 +36,32 @@ const EMPTY_JUSTIFICATIVAS: JustificativaProjeto[] = [];
 
 interface ProjetoFormState {
   nome: string;
-  cluster: string;
+  /** UUID do cluster selecionado — bind do <select>. '' = sem cluster. */
+  clusterId: string;
   descricao: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
   status: ProjetoStatus;
   justificativas: JustificativaProjeto[];
 }
 
 const EMPTY_FORM: ProjetoFormState = {
   nome: '',
-  cluster: '',
+  clusterId: '',
   descricao: '',
-  dataInicio: '',
-  dataFim: '',
+  start_date: '',
+  end_date: '',
   status: 'Mapeamento',
   justificativas: EMPTY_JUSTIFICATIVAS,
 };
 
 function projetoToForm(p: Projeto): ProjetoFormState {
   return {
-    nome: p.nome,
-    cluster: p.cluster || '',
-    descricao: p.descricao || '',
-    dataInicio: p.dataInicio || '',
-    dataFim: p.dataFim || '',
+    nome: p.name,
+    clusterId: p.cluster_id || '',
+    descricao: p.description || '',
+    start_date: p.start_date || '',
+    end_date: p.end_date || '',
     status: p.status || 'Mapeamento',
     justificativas: p.justificativas || EMPTY_JUSTIFICATIVAS,
   };
@@ -134,15 +135,15 @@ function JustificativaChips({ value, onChange }: JustificativaChipsProps) {
 }
 
 export default function ProjetosPage() {
-  // Migração para hooks de domínio (preparação integração PSA Lovable).
-  // - `useStoredData` continua sendo usado nas outras 11 páginas (deprecated mas válido).
-  // - Projetos passa a usar a fachada Supabase-like + React Query.
   const { data: items = [], isLoading: projetosLoading } = useProjetos();
   const loaded = !projetosLoading;
   const createMut = useCreateProjeto();
   const updateMut = useUpdateProjeto();
   const deleteMut = useDeleteProjeto();
-  const { items: processos, loaded: processosLoaded } = useStoredData<Processo>('processosAdicionados', '/processes.json');
+  const { data: processos = [], isLoading: processosLoading } = useProcessos();
+  const processosLoaded = !processosLoading;
+  const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
 
   const [confirmDel, setConfirmDel] = useState<Projeto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -167,7 +168,7 @@ export default function ProjetosPage() {
   const filtrosAtivos = !!(fCluster || fStatus);
   const limparFiltros = () => { setFCluster(''); setFStatus(''); };
   const itensFiltrados = useMemo(() => items.filter(p =>
-    (!fCluster || p.cluster === fCluster) &&
+    (!fCluster || p.cluster_id === fCluster) &&
     (!fStatus || (p.status || 'Mapeamento') === fStatus)
   ), [items, fCluster, fStatus]);
 
@@ -183,14 +184,14 @@ export default function ProjetosPage() {
   const processosPorProjeto = useMemo(() => {
     const map = new Map<string, Processo[]>();
     for (const p of processos) {
-      const pid = p.projetoId;
+      const pid = p.project_id;
       if (!pid) continue;
       const arr = map.get(pid) || [];
       arr.push(p);
       map.set(pid, arr);
     }
     for (const arr of map.values()) {
-      arr.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0) || a.nome.localeCompare(b.nome));
+      arr.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name));
     }
     return map;
   }, [processos]);
@@ -199,16 +200,16 @@ export default function ProjetosPage() {
 
   const validate = (f: ProjetoFormState): string => {
     if (!f.nome.trim()) return 'Preencha o nome do projeto.';
-    if (f.dataInicio && f.dataFim && f.dataFim < f.dataInicio) return 'Data fim deve ser posterior à data início.';
+    if (f.start_date && f.end_date && f.end_date < f.start_date) return 'Data fim deve ser posterior à data início.';
     return '';
   };
 
   const toPayload = (f: ProjetoFormState): ProjetoInput => ({
-    nome: f.nome.trim(),
-    cluster: f.cluster.trim() || undefined,
-    descricao: f.descricao.trim(),
-    dataInicio: f.dataInicio || undefined,
-    dataFim: f.dataFim || undefined,
+    name: f.nome.trim(),
+    cluster_id: f.clusterId || undefined,
+    description: f.descricao.trim(),
+    start_date: f.start_date || undefined,
+    end_date: f.end_date || undefined,
     status: f.status,
     justificativas: f.justificativas.length ? f.justificativas : [],
   });
@@ -220,7 +221,7 @@ export default function ProjetosPage() {
     setIsSaving(true);
     try {
       const created = await createMut.mutateAsync(toPayload(form));
-      toast.success('Projeto criado', { description: created.nome });
+      toast.success('Projeto criado', { description: created.name });
       setForm(EMPTY_FORM);
       setModalOpen(false);
     } catch (err) {
@@ -255,7 +256,7 @@ export default function ProjetosPage() {
       if (!old) throw new Error('Projeto não encontrado no cache local.');
       const patch = toPayload(editForm);
       const saved = await updateMut.mutateAsync({ id: editId, patch, old });
-      toast.success('Projeto atualizado', { description: saved.nome });
+      toast.success('Projeto atualizado', { description: saved.name });
       setEditOpen(false);
     } catch (err) {
       toast.error('Erro ao salvar projeto', {
@@ -289,7 +290,7 @@ export default function ProjetosPage() {
       <p>Acompanhe os projetos vinculados ao mapeamento de processos.</p>
       <PageStats stats={[
         { label: 'Projetos', value: String(items.length), tooltip: 'Total de projetos cadastrados.' },
-        { label: 'Clusters', value: String(new Set(items.map(p => p.cluster).filter(Boolean)).size), tooltip: 'Clusters distintos representados nos projetos (ex.: OSG agrupa P1..P6).' },
+        { label: 'Clusters', value: String(new Set(items.map(p => p.clusterName).filter(Boolean)).size), tooltip: 'Clusters distintos representados nos projetos (ex.: OSG agrupa P1..P6).' },
         { label: 'Processos', value: String(processos.length), tooltip: 'Total de processos cadastrados e vinculáveis a projetos.' },
       ]} />
       <FiltrosBar
@@ -314,7 +315,7 @@ export default function ProjetosPage() {
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewId(p.id); } }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <h3><Tooltip text={dica('projetos.card.titulo')}>{p.nome}</Tooltip></h3>
+                <h3><Tooltip text={dica('projetos.card.titulo')}>{p.name}</Tooltip></h3>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button
                     className="btn-edit"
@@ -345,9 +346,9 @@ export default function ProjetosPage() {
                   </button>
                 </div>
               </div>
-              {p.cluster && (
+              {p.clusterName && (
                 <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--primary-color)', fontWeight: 700, marginTop: 4, marginBottom: 6 }}>
-                  Cluster: {p.cluster}
+                  Cluster: {p.clusterName}
                 </div>
               )}
               {p.justificativas && p.justificativas.length > 0 && (
@@ -359,13 +360,13 @@ export default function ProjetosPage() {
                   ))}
                 </div>
               )}
-              <p style={{ whiteSpace: 'pre-line' }}>{p.descricao || 'Sem descrição.'}</p>
+              <p style={{ whiteSpace: 'pre-line' }}>{p.description || 'Sem descrição.'}</p>
               <div style={{ marginTop: 8 }}>
                 <span className={`status-badge status-${(p.status || 'Mapeamento').toLowerCase().replace('ó', 'o')}`}>{p.status || 'Mapeamento'}</span>
               </div>
               <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem', color: 'var(--text-secondary, #666)', marginTop: 8 }}>
-                <span><strong>Início:</strong> {formatarData(p.dataInicio)}</span>
-                <span><strong>Fim:</strong> {formatarData(p.dataFim)}</span>
+                <span><strong>Início:</strong> {formatarData(p.start_date)}</span>
+                <span><strong>Fim:</strong> {formatarData(p.end_date)}</span>
               </div>
               <div className="card-actions">
                 <button
@@ -400,8 +401,8 @@ export default function ProjetosPage() {
           </FormField>
           <FormField label="Cluster" tooltip={dica('projetos.form.cluster')}>
             <Select
-              value={form.cluster}
-              onChange={(v) => setForm({ ...form, cluster: v })}
+              value={form.clusterId}
+              onChange={(v) => setForm({ ...form, clusterId: v })}
               options={CLUSTER_OPCOES}
             />
           </FormField>
@@ -420,11 +421,11 @@ export default function ProjetosPage() {
             />
           </FormField>
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Data início" tooltip={dica('projetos.form.dataInicio')}>
-              <input type="date" value={form.dataInicio} onChange={(e) => { setForm({ ...form, dataInicio: e.target.value }); if (error) setError(''); }} />
+            <FormField label="Data início" tooltip={dica('projetos.form.start_date')}>
+              <input type="date" value={form.start_date} onChange={(e) => { setForm({ ...form, start_date: e.target.value }); if (error) setError(''); }} />
             </FormField>
-            <FormField label="Data fim" tooltip={dica('projetos.form.dataFim')}>
-              <input type="date" value={form.dataFim} onChange={(e) => { setForm({ ...form, dataFim: e.target.value }); if (error) setError(''); }} />
+            <FormField label="Data fim" tooltip={dica('projetos.form.end_date')}>
+              <input type="date" value={form.end_date} onChange={(e) => { setForm({ ...form, end_date: e.target.value }); if (error) setError(''); }} />
             </FormField>
           </div>
           <FormField label="Status (fase atual do projeto)" tooltip={dica('projetos.form.status')}>
@@ -450,8 +451,8 @@ export default function ProjetosPage() {
           </FormField>
           <FormField label="Cluster" tooltip={dica('projetos.form.cluster')}>
             <Select
-              value={editForm.cluster}
-              onChange={(v) => setEditForm({ ...editForm, cluster: v })}
+              value={editForm.clusterId}
+              onChange={(v) => setEditForm({ ...editForm, clusterId: v })}
               options={CLUSTER_OPCOES}
             />
           </FormField>
@@ -470,11 +471,11 @@ export default function ProjetosPage() {
             />
           </FormField>
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Data início" tooltip={dica('projetos.form.dataInicio')}>
-              <input type="date" value={editForm.dataInicio} onChange={(e) => { setEditForm({ ...editForm, dataInicio: e.target.value }); if (editError) setEditError(''); }} />
+            <FormField label="Data início" tooltip={dica('projetos.form.start_date')}>
+              <input type="date" value={editForm.start_date} onChange={(e) => { setEditForm({ ...editForm, start_date: e.target.value }); if (editError) setEditError(''); }} />
             </FormField>
-            <FormField label="Data fim" tooltip={dica('projetos.form.dataFim')}>
-              <input type="date" value={editForm.dataFim} onChange={(e) => { setEditForm({ ...editForm, dataFim: e.target.value }); if (editError) setEditError(''); }} />
+            <FormField label="Data fim" tooltip={dica('projetos.form.end_date')}>
+              <input type="date" value={editForm.end_date} onChange={(e) => { setEditForm({ ...editForm, end_date: e.target.value }); if (editError) setEditError(''); }} />
             </FormField>
           </div>
           <FormField label="Status (fase atual do projeto)" tooltip={dica('projetos.form.status')}>
@@ -496,14 +497,14 @@ export default function ProjetosPage() {
         <div className="modal">
           {projetoEmFoco && (
             <>
-              <h2 style={{ marginBottom: 4 }}>{projetoEmFoco.nome}</h2>
+              <h2 style={{ marginBottom: 4 }}>{projetoEmFoco.name}</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 <span className={`status-badge status-${(projetoEmFoco.status || 'Mapeamento').toLowerCase().replace('ó', 'o')}`}>{projetoEmFoco.status || 'Mapeamento'}</span>
               </div>
 
-              {projetoEmFoco.cluster && (
+              {projetoEmFoco.clusterName && (
                 <div style={{ fontSize: '0.85rem', marginBottom: 10 }}>
-                  <strong style={{ color: 'var(--primary-color)' }}>Cluster:</strong> {projetoEmFoco.cluster}
+                  <strong style={{ color: 'var(--primary-color)' }}>Cluster:</strong> {projetoEmFoco.clusterName}
                 </div>
               )}
 
@@ -525,13 +526,13 @@ export default function ProjetosPage() {
                   Descrição
                 </div>
                 <div style={{ whiteSpace: 'pre-line', fontSize: '0.9rem', lineHeight: 1.5, color: '#334155' }}>
-                  {projetoEmFoco.descricao || 'Sem descrição.'}
+                  {projetoEmFoco.description || 'Sem descrição.'}
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: 24, fontSize: '0.85rem', color: '#475569', marginBottom: 16 }}>
-                <span><strong>Início:</strong> {formatarData(projetoEmFoco.dataInicio)}</span>
-                <span><strong>Fim:</strong> {formatarData(projetoEmFoco.dataFim)}</span>
+                <span><strong>Início:</strong> {formatarData(projetoEmFoco.start_date)}</span>
+                <span><strong>Fim:</strong> {formatarData(projetoEmFoco.end_date)}</span>
               </div>
 
               <div>
@@ -542,7 +543,7 @@ export default function ProjetosPage() {
                   {(processosPorProjeto.get(projetoEmFoco.id) || []).map(pr => (
                     <li key={pr.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.86rem' }}>
                       <Link to={`/equipe/digital/mapa/processos/${encodeURIComponent(pr.id)}/mapear`} style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
-                        {pr.nome}
+                        {pr.name}
                       </Link>
                     </li>
                   ))}
@@ -577,7 +578,7 @@ export default function ProjetosPage() {
         <div className="modal">
           <h2>Excluir projeto</h2>
           <p>
-            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? O projeto será
+            Tem certeza que deseja excluir <strong>{confirmDel?.name}</strong>? O projeto será
             removido permanentemente. Os processos vinculados a ele ficarão sem projeto associado.
             Esta ação não pode ser desfeita.
           </p>
@@ -592,7 +593,7 @@ export default function ProjetosPage() {
                 setDeleting(true);
                 try {
                   await deleteMut.mutateAsync({ id: confirmDel.id, old: confirmDel });
-                  toast.success('Projeto excluído', { description: confirmDel.nome });
+                  toast.success('Projeto excluído', { description: confirmDel.name });
                   setConfirmDel(null);
                 } catch (err) {
                   toast.error('Erro ao excluir projeto', {
@@ -614,7 +615,7 @@ export default function ProjetosPage() {
         <div className="modal">
           {projetoProcessos && (
             <>
-              <h2 style={{ marginBottom: 4 }}>Processos — {projetoProcessos.nome}</h2>
+              <h2 style={{ marginBottom: 4 }}>Processos — {projetoProcessos.name}</h2>
               <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 12 }}>
                 {processosDoModal.length} processo(s) vinculado(s). Clique em um deles para abrir o mapeamento.
               </p>
@@ -625,20 +626,20 @@ export default function ProjetosPage() {
                       to={`/equipe/digital/mapa/processos/${encodeURIComponent(pr.id)}/mapear`}
                       style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}
                     >
-                      {pr.nome}
+                      {pr.name}
                     </Link>
-                    {pr.descricao && (
+                    {pr.description && (
                       <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2, lineHeight: 1.4 }}>
-                        {pr.descricao}
+                        {pr.description}
                       </div>
                     )}
-                    {(pr.frequencia || pr.complexidade) && (
+                    {(pr.frequency || pr.complexity_level) && (
                       <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                        {pr.frequencia && (
-                          <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem' }}>{pr.frequencia}</span>
+                        {pr.frequency && (
+                          <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem' }}>{pr.frequency}</span>
                         )}
-                        {pr.complexidade && (
-                          <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.68rem' }}>{pr.complexidade}</span>
+                        {pr.complexity_level && (
+                          <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.68rem' }}>{pr.complexity_level}</span>
                         )}
                       </div>
                     )}

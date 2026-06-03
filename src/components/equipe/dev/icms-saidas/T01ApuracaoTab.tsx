@@ -12,8 +12,8 @@ import { renderColumnLabel } from './renderColumnLabel';
 interface T01ApuracaoTabProps {
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 const fmtCurrency = (value: number) =>
@@ -24,14 +24,14 @@ const fmtNullableCurrency = (value: number | null) => (value === null ? '—' : 
 export const T01ApuracaoTab = ({
   enabled,
   contribuinteId,
-  dataInicio,
-  dataFim,
+  start_date,
+  end_date,
 }: T01ApuracaoTabProps) => {
   const { data, isLoading } = useIcmsSaidasApuracao({
     enabled,
     contribuinteId,
-    dataInicio,
-    dataFim,
+    start_date,
+    end_date,
   });
 
   if (!enabled) {

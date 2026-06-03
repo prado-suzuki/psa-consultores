@@ -7,21 +7,30 @@
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Etapa } from '@/types';
-import { etapaToDb } from '@/utils/mapa/dbMappers';
 
 export interface UpsertEtapaToBeInput {
   etapa: Etapa;
-  processoId: string;
+  process_id: string;
 }
 
 export function useUpsertEtapaToBe(): UseMutationResult<void, Error, UpsertEtapaToBeInput> {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ etapa, processoId }: UpsertEtapaToBeInput) => {
-      const payload = etapaToDb(
-        { ...etapa, processoId },
-        { scenario: 'TO-BE', stageAsIsId: etapa.id },
-      );
+    mutationFn: async ({ etapa, process_id }: UpsertEtapaToBeInput) => {
+      // Payload é a row da etapa direta, sem campos sintéticos da UI,
+      // + scenario/stage_as_is_id.
+      const payload: Record<string, unknown> = { ...(etapa as unknown as Record<string, unknown>) };
+      // Strip campos não-coluna
+      delete payload.docsEntrada;
+      delete payload.docsSaida;
+      delete payload.executadoPor;
+      delete payload.sistemas;
+      delete payload.volumeMensal;
+      delete payload.ficou;
+      payload.process_id = process_id;
+      payload.scenario = 'TO-BE';
+      payload.stage_as_is_id = etapa.id;
+
       const { error } = await supabase
         .from('process_stages' as never)
         .upsert(payload as never, { onConflict: 'id,scenario' });

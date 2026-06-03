@@ -1,14 +1,21 @@
-// Hook piloto — entidade Projeto. Usa mapper PT↔EN porque a tabela `projects`
-// é reaproveitada do Digital Rotina (schema em inglês).
+// Hook de entidade Projeto (tabela `projects`).
+// JOIN com `estrutura_clusters(name)` pra hidratar `clusterName` no acesso.
 
 import { useQuery, useMutation, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { Projeto } from '@/types';
-import { projetoFromDb, projetoToDb } from '@/utils/mapa/dbMappers';
 
-export type ProjetoInput = Omit<Projeto, 'id'>;
+export type ProjetoInput = Omit<Projeto, 'id' | 'clusterName'>;
 
 const TABLE = 'projects';
+const SELECT = '*, estrutura_clusters(name)';
+
+type DbRow = Record<string, unknown>;
+
+function hydrateClusterName(row: DbRow): Projeto {
+  const rel = row.estrutura_clusters as { name?: string } | null | undefined;
+  return { ...(row as unknown as Projeto), clusterName: rel?.name };
+}
 
 export function useProjetos(): UseQueryResult<Projeto[]> {
   return useQuery<Projeto[]>({
@@ -16,10 +23,10 @@ export function useProjetos(): UseQueryResult<Projeto[]> {
     queryFn: async () => {
       const { data, error } = await supabase
         .from(TABLE as never)
-        .select('*')
+        .select(SELECT)
         .order('name');
       if (error) throw new Error(error.message);
-      return ((data ?? []) as unknown[]).map(r => projetoFromDb(r as Record<string, unknown>));
+      return ((data ?? []) as unknown as DbRow[]).map(hydrateClusterName);
     },
   });
 }
@@ -32,11 +39,11 @@ export function useProjeto(id: string | undefined): UseQueryResult<Projeto | nul
       if (!id) return null;
       const { data, error } = await supabase
         .from(TABLE as never)
-        .select('*')
+        .select(SELECT)
         .eq('id', id)
         .maybeSingle();
       if (error) throw new Error(error.message);
-      return data ? projetoFromDb(data as Record<string, unknown>) : null;
+      return data ? hydrateClusterName(data as DbRow) : null;
     },
   });
 }
@@ -47,11 +54,11 @@ export function useCreateProjeto(): UseMutationResult<Projeto, Error, ProjetoInp
     mutationFn: async (input: ProjetoInput) => {
       const { data, error } = await supabase
         .from(TABLE as never)
-        .insert(projetoToDb(input) as never)
+        .insert(input as never)
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return projetoFromDb(data as Record<string, unknown>);
+      return data as unknown as Projeto;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
   });
@@ -65,14 +72,17 @@ export function useUpdateProjeto(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }) => {
+      // Não persistir clusterName (campo sintético — vem do JOIN, não tem coluna).
+      const dbPatch = { ...patch };
+      delete (dbPatch as Record<string, unknown>).clusterName;
       const { data, error } = await supabase
         .from(TABLE as never)
-        .update(projetoToDb(patch) as never)
+        .update(dbPatch as never)
         .eq('id', id)
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return projetoFromDb(data as Record<string, unknown>);
+      return data as unknown as Projeto;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
   });

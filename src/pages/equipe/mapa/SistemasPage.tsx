@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -12,11 +12,10 @@ import { agrupar } from '@/utils/agrupar';
 import { formatarMoeda, parseMoeda } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
-import { CLUSTER_OPCOES } from '@/utils/clusters';
 import type { Sistema } from '@/types';
-import { useEtapasLista, useDocumentosLista, useSistemasLista, useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
-
-const CLUSTERS_DISPONIVEIS = CLUSTER_OPCOES.filter(o => o.value !== '').map(o => o.value);
+import { useEtapasLista, useDocumentosLista, useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useSistemas, useCreateSistema, useUpdateSistema, useDeleteSistema } from '@/hooks/useSistemas';
+import { useClusters } from '@/hooks/useClusters';
 
 const ORIGEM_OPCOES = [
   { value: 'Interno', label: 'Interno' },
@@ -29,7 +28,16 @@ const ORGANIZAR_OPCOES = [
 ];
 
 export default function SistemasPage() {
-  const { items, loaded, addItem, setItems, removeItem } = useStoredData<Sistema>('sistemasAdicionados', '/sistemas_processo.json');
+  const { data: items = [], isLoading: sistemasLoading } = useSistemas();
+  const loaded = !sistemasLoading;
+  const createSistema = useCreateSistema();
+  const updateSistema = useUpdateSistema();
+  const deleteSistema = useDeleteSistema();
+  const { data: clustersList = [] } = useClusters();
+  const CLUSTERS_DISPONIVEIS = useMemo(
+    () => clustersList.filter(c => c.ativo).map(c => c.nome),
+    [clustersList],
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Sistema | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -42,12 +50,11 @@ export default function SistemasPage() {
 
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: docs = [] } = useDocumentosLista();
-  const { data: sis = [] } = useSistemasLista();
   const { data: processos = [] } = useProcessosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, docs, sis, []),
-    [rawEtapas, docs, sis],
+    () => enrichEtapas(rawEtapas, docs, items, []),
+    [rawEtapas, docs, items],
   );
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -63,16 +70,16 @@ export default function SistemasPage() {
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
-  const procMap = new Map(processos.map(p => [p.id, p.nome]));
+  const procMap = new Map(processos.map(p => [p.id, p.name]));
 
   const getVinculos = (sistemaNome: string) => {
     const vinculos: { procId: string; procName: string; etapas: string[] }[] = [];
     const etapasRel = etapas.filter(e => (e.sistemas || []).includes(sistemaNome));
     const grouped = new Map<string, string[]>();
     etapasRel.forEach(e => {
-      const list = grouped.get(e.processoId) || [];
-      list.push(e.nome);
-      grouped.set(e.processoId, list);
+      const list = grouped.get(e.process_id) || [];
+      list.push(e.name);
+      grouped.set(e.process_id, list);
     });
     grouped.forEach((etapasList, procId) => {
       vinculos.push({ procId, procName: procMap.get(procId) || procId, etapas: etapasList });
@@ -80,21 +87,26 @@ export default function SistemasPage() {
     return vinculos;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) { setError('Preencha o nome do sistema.'); return; }
     setError('');
     setIsSaving(true);
-    addItem({
-      nome: nome.trim(),
-      descricao: descricao.trim(),
-      origem,
-      custoLicencaMensal: 0,
-      custoVariavelPorUso: parseMoeda(variavel),
-    });
-    setTimeout(() => {
+    try {
+      await createSistema.mutateAsync({
+        nome: nome.trim(),
+        descricao: descricao.trim(),
+        origem,
+        custo_licenca_mensal: 0,
+        custo_variavel_por_uso: parseMoeda(variavel),
+      });
+      toast.success('Sistema criado');
       setNome(''); setDescricao(''); setOrigem('Interno'); setVariavel('');
-      setIsSaving(false); setModalOpen(false);
-    }, 300);
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openDetail = (s: Sistema) => {
@@ -112,33 +124,40 @@ export default function SistemasPage() {
     setEditNome(s.nome);
     setEditDescricao(s.descricao);
     setEditOrigem(s.origem || 'Interno');
-    setEditVariavel(formatarMoeda(s.custoVariavelPorUso));
+    setEditVariavel(formatarMoeda(s.custo_variavel_por_uso));
     setEditClustersRateio(Object.fromEntries((s.clustersRateio || []).map(c => [c.cluster, c.rateio])));
     setEditError('');
     setEditOpen(true);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome do sistema.'); return; }
+    const old = items.find(s => s.id === editId);
+    if (!old) return;
     setEditError('');
     setEditSaving(true);
     const clustersRateio = Object.entries(editClustersRateio)
       .filter(([, r]) => r != null && r !== 100)
       .map(([cluster, rateio]) => ({ cluster, rateio }));
-    const updated = items.map(s =>
-      s.id === editId
-        ? {
-            ...s,
-            nome: editNome.trim(),
-            descricao: editDescricao.trim(),
-            origem: editOrigem,
-            custoVariavelPorUso: parseMoeda(editVariavel),
-            clustersRateio,
-          }
-        : s
-    );
-    setItems(updated);
-    setTimeout(() => { setEditSaving(false); setEditOpen(false); }, 300);
+    try {
+      await updateSistema.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          nome: editNome.trim(),
+          descricao: editDescricao.trim(),
+          origem: editOrigem,
+          custo_variavel_por_uso: parseMoeda(editVariavel),
+          clustersRateio,
+        },
+      });
+      toast.success('Sistema atualizado');
+      setEditOpen(false);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const [fOrigem, setFOrigem] = useState('');
@@ -181,12 +200,12 @@ export default function SistemasPage() {
         { label: 'Sistemas', value: String(items.length), tooltip: 'Total de sistemas cadastrados.' },
         {
           label: 'Custo mensal total',
-          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custoVariavelPorUso || 0), 0)),
+          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custo_variavel_por_uso || 0), 0)),
           tooltip: 'Soma dos custos mensais de todos os sistemas.',
         },
         {
           label: 'Custo anual total',
-          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custoVariavelPorUso || 0), 0) * 12),
+          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custo_variavel_por_uso || 0), 0) * 12),
           tooltip: 'Projeção anual dos custos mensais (× 12).',
         },
       ]} />
@@ -239,7 +258,7 @@ export default function SistemasPage() {
                 {s.origem && (
                   <div className="cost">Origem: <span>{s.origem}</span></div>
                 )}
-                <div className="cost">Custo mensal: <span>{formatarMoeda(s.custoVariavelPorUso)}</span> / mês</div>
+                <div className="cost">Custo mensal: <span>{formatarMoeda(s.custo_variavel_por_uso)}</span> / mês</div>
                 <div className="card-actions">
                   <button className="btn-action" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>Editar</button>
                   <button className="btn-action" style={{ color: '#b91c1c' }} onClick={(e) => { e.stopPropagation(); setConfirmDel(s); }}>Excluir</button>
@@ -336,11 +355,11 @@ export default function SistemasPage() {
               <div className="form-row">
                 <div className="form-group compact">
                   <label>Custo mensal</label>
-                  <div>{formatarMoeda(detailItem.custoVariavelPorUso)} / mês</div>
+                  <div>{formatarMoeda(detailItem.custo_variavel_por_uso)} / mês</div>
                 </div>
                 <div className="form-group compact">
                   <label>Custo anual (× 12)</label>
-                  <div>{formatarMoeda((detailItem.custoVariavelPorUso || 0) * 12)} / ano</div>
+                  <div>{formatarMoeda((detailItem.custo_variavel_por_uso || 0) * 12)} / ano</div>
                 </div>
               </div>
               <div style={{ marginTop: 16 }}>
@@ -369,7 +388,7 @@ export default function SistemasPage() {
                       <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Nenhuma melhoria utiliza este sistema.</p>
                     ) : (
                       <div className="tags">
-                        {melhoriasDoSistema.map((m) => <span key={m.id} className="tag tag-sistema">{m.nome}</span>)}
+                        {melhoriasDoSistema.map((m) => <span key={m.id} className="tag tag-sistema">{m.improvement_description}</span>)}
                       </div>
                     )}
                   </div>
@@ -400,9 +419,15 @@ export default function SistemasPage() {
               onClick={async () => {
                 if (!confirmDel) return;
                 setDeleting(true);
-                await removeItem(confirmDel.id);
-                setDeleting(false);
-                setConfirmDel(null);
+                try {
+                  await deleteSistema.mutateAsync({ id: confirmDel.id, old: confirmDel });
+                  toast.success('Sistema excluído');
+                  setConfirmDel(null);
+                } catch (err) {
+                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
+                } finally {
+                  setDeleting(false);
+                }
               }}
             >
               {deleting ? 'Excluindo...' : 'Excluir'}

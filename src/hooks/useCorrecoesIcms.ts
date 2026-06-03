@@ -36,8 +36,8 @@ export interface CreateCorrecaoIcmsInput {
 interface UseCorrecoesIcmsParams {
   contribuinteId: string;
   familia: FamiliaCorrecao;
-  dataInicio?: string;
-  dataFim?: string;
+  start_date?: string;
+  end_date?: string;
   enabled?: boolean;
 }
 
@@ -48,8 +48,8 @@ export function correcoesQueryKey(params: UseCorrecoesIcmsParams) {
     'correcoes-icms',
     params.contribuinteId,
     params.familia,
-    params.dataInicio ?? null,
-    params.dataFim ?? null,
+    params.start_date ?? null,
+    params.end_date ?? null,
   ] as const;
 }
 
@@ -67,8 +67,8 @@ export function useCorrecoesIcms(params: UseCorrecoesIcmsParams) {
         .eq('excluido', false)
         .order('data_lancamento', { ascending: true });
 
-      if (params.dataInicio) query = query.gte('data_lancamento', params.dataInicio);
-      if (params.dataFim) query = query.lte('data_lancamento', params.dataFim);
+      if (params.start_date) query = query.gte('data_lancamento', params.start_date);
+      if (params.end_date) query = query.lte('data_lancamento', params.end_date);
 
       const { data, error } = await query;
       if (error) throw error;

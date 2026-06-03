@@ -22,6 +22,7 @@ import {
   Building2,
   AlertCircle,
   FileSignature,
+  PieChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
@@ -276,6 +277,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               </div>
             </div>
           </div>
+          <button
+            onClick={() => navigate('/equipe/osg/work/quadro-societario')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/work/quadro-societario'
+                ? "bg-osg-100 text-osg-700"
+                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+            )}
+          >
+            <PieChart className="h-4 w-4" />
+            {!collapsed && <span>Quadro Societário</span>}
+          </button>
           <button
             onClick={() => navigate('/equipe/osg/auditoria')}
             className={cn(

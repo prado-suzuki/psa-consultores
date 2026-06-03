@@ -16,7 +16,7 @@ export const TestimonialsSection = () => {
             Nossa Filosofia
           </h2>
           <p className="text-gray-600 leading-relaxed">
-            Transformamos complexidade burocrática em vantagem competitiva
+            Transformamos complexity_level burocrática em vantagem competitiva
           </p>
         </motion.div>
 

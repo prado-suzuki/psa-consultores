@@ -9,8 +9,8 @@ interface UseEFDOverviewParams {
   idContribuinte: string;    // UUID do contribuinte (obrigatório)
   uf?: string;               // Filtro opcional
   indAtiv?: number;          // Filtro opcional
-  dataInicio?: string;       // DT_INI (YYYY-MM-DD)
-  dataFim?: string;          // DT_FIN (YYYY-MM-DD)
+  start_date?: string;       // DT_INI (YYYY-MM-DD)
+  end_date?: string;          // DT_FIN (YYYY-MM-DD)
   tipo?: EFDTipo;            // 'contribuicoes' (default) ou 'icms'
 }
 
@@ -36,8 +36,8 @@ export function useEFDOverview(params?: UseEFDOverviewParams) {
       params?.idContribuinte,
       params?.uf,
       params?.indAtiv,
-      params?.dataInicio,
-      params?.dataFim,
+      params?.start_date,
+      params?.end_date,
     ],
     queryFn: async (): Promise<EFDOverview> => {
       if (!params?.idContribuinte) {

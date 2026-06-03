@@ -1,19 +1,134 @@
-import { createEntityHooks } from './_createEntityHooks';
+// Hook de Etapa (tabela `process_stages`, cenário AS-IS).
+// Arrays de junção (docsEntrada/docsSaida/executadoPor/sistemas) e o
+// `ficou` (TO-BE) são hidratados por hooks/utils separados.
+
+import { useQuery, useMutation, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import type { Etapa } from '@/types';
-import { etapaFromDb, etapaToDb } from '@/utils/mapa/dbMappers';
 
-const hooks = createEntityHooks<Etapa>({
-  resource: 'process_stages',
-  defaultOrder: 'stage_order',
-  fromDb: r => etapaFromDb(r) as Etapa,
-  toDb: e => etapaToDb(e, { scenario: 'AS-IS' }),
-});
+const TABLE = 'process_stages';
 
-export const useEtapas = hooks.useList;
-export const useEtapa = hooks.useById;
-export const useCreateEtapa = hooks.useCreate;
-export const useUpdateEtapa = hooks.useUpdate;
-export const useDeleteEtapa = hooks.useDelete;
+type DbRow = Record<string, unknown>;
+
+function hydrate(row: DbRow): Etapa {
+  return {
+    ...(row as unknown as Etapa),
+    docsEntrada: [],
+    docsSaida: [],
+    executadoPor: [],
+    sistemas: [],
+    volumeMensal: 0,
+  };
+}
+
+function stripSyntheticFields(patch: Partial<Etapa>): Record<string, unknown> {
+  const out = { ...patch } as Record<string, unknown>;
+  delete out.docsEntrada;
+  delete out.docsSaida;
+  delete out.executadoPor;
+  delete out.sistemas;
+  delete out.volumeMensal;
+  delete out.ficou;
+  return out;
+}
+
+export type EtapaInput = Omit<Etapa, 'id' | 'docsEntrada' | 'docsSaida' | 'executadoPor' | 'sistemas' | 'volumeMensal' | 'ficou'> & {
+  id?: string;
+  docsEntrada?: Etapa['docsEntrada'];
+  docsSaida?: Etapa['docsSaida'];
+  executadoPor?: Etapa['executadoPor'];
+  sistemas?: Etapa['sistemas'];
+  volumeMensal?: Etapa['volumeMensal'];
+  ficou?: Etapa['ficou'];
+};
+
+export function useEtapas(): UseQueryResult<Etapa[]> {
+  return useQuery<Etapa[]>({
+    queryKey: [TABLE],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(TABLE as never)
+        .select('*')
+        .eq('scenario', 'AS-IS')
+        .order('stage_order');
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as unknown as DbRow[]).map(hydrate);
+    },
+  });
+}
+
+export function useEtapa(id: string | undefined): UseQueryResult<Etapa | null> {
+  return useQuery<Etapa | null>({
+    queryKey: [TABLE, id],
+    enabled: !!id,
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase
+        .from(TABLE as never)
+        .select('*')
+        .eq('id', id)
+        .eq('scenario', 'AS-IS')
+        .maybeSingle();
+      if (error) throw new Error(error.message);
+      return data ? hydrate(data as DbRow) : null;
+    },
+  });
+}
+
+export function useCreateEtapa(): UseMutationResult<Etapa, Error, EtapaInput> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: EtapaInput) => {
+      const payload = stripSyntheticFields(input as Partial<Etapa>);
+      payload.scenario = 'AS-IS';
+      const { data, error } = await supabase
+        .from(TABLE as never)
+        .insert(payload as never)
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return hydrate(data as DbRow);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
+  });
+}
+
+export function useUpdateEtapa(): UseMutationResult<
+  Etapa,
+  Error,
+  { id: string; patch: Partial<Etapa>; old: Etapa }
+> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }) => {
+      const { data, error } = await supabase
+        .from(TABLE as never)
+        .update(stripSyntheticFields(patch) as never)
+        .eq('id', id)
+        .eq('scenario', 'AS-IS')
+        .select()
+        .single();
+      if (error) throw new Error(error.message);
+      return hydrate(data as DbRow);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
+  });
+}
+
+export function useDeleteEtapa(): UseMutationResult<void, Error, { id: string; old: Etapa }> {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id }) => {
+      const { error } = await supabase
+        .from(TABLE as never)
+        .delete()
+        .eq('id', id)
+        .eq('scenario', 'AS-IS');
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
+  });
+}
 
 // Upsert da projeção TO-BE — vive em arquivo dedicado porque usa um
 // `onConflict` composto (id, scenario) que o factory genérico não cobre.

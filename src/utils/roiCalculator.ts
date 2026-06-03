@@ -17,8 +17,8 @@ const FATOR_ANUAL: Record<FrequenciaProcesso, number> = {
   'Anual': 1,
 };
 
-export function execucoesAnuais(p: Pick<Processo, 'frequencia'>): number {
-  if (p.frequencia && FATOR_ANUAL[p.frequencia]) return FATOR_ANUAL[p.frequencia];
+export function execucoesAnuais(p: Pick<Processo, 'frequency'>): number {
+  if (p.frequency && FATOR_ANUAL[p.frequency]) return FATOR_ANUAL[p.frequency];
   return 0;
 }
 
@@ -74,7 +74,7 @@ export interface RoiInput {
 
 export interface RoiAgregado {
   porProcesso: RoiProcesso[];
-  // KPIs globais (somatórios)
+  // KPIs globais (somatórios) — campos sintéticos da UI, não colunas de DB.
   custoAtualAno: number;
   custoFuturoAno: number;
   horasAtualAno: number;
@@ -101,7 +101,7 @@ const zeroCategoria = (): CategoriaCusto => ({ pessoas: 0, sistemas: 0, retrabal
 
 function custoMedioHora(responsaveis: Responsavel[]): number {
   if (!responsaveis.length) return 0;
-  const total = responsaveis.reduce((s, r) => s + (r.custoHora || 0), 0);
+  const total = responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0);
   return total / responsaveis.length;
 }
 
@@ -116,7 +116,7 @@ function calcProcesso(
   clusterDoProcesso: string,
 ): RoiProcesso {
   const ann = execucoesAnuais(proc);
-  const etapasDoProc = etapas.filter(e => e.processoId === proc.id);
+  const etapasDoProc = etapas.filter(e => e.process_id === proc.id);
 
   let horasPorExec = 0;
   let custoPorExec = 0;
@@ -141,7 +141,7 @@ function calcProcesso(
       // (recurso externo / cliente). Só usa o custo médio como fallback se o vínculo
       // não puder ser resolvido (ex.: responsável deletado mas ainda referenciado).
       const resp = rid ? respById.get(rid) : undefined;
-      const ch = resp ? resp.custoHora : custoHoraMedio;
+      const ch = resp ? resp.hourly_rate : custoHoraMedio;
       h += horas;
       c += horas * ch;
     }
@@ -150,8 +150,8 @@ function calcProcesso(
 
   for (const e of etapasDoProc) {
     const f = e.ficou; // null/undefined quando não há projeção salva
-    const volEra = e.volumePorProcesso || 1;
-    const volFicou = (f?.volumePorProcesso ?? e.volumePorProcesso) || 1;
+    const volEra = e.volume_per_process || 1;
+    const volFicou = (f?.volume_per_process ?? e.volume_per_process) || 1;
 
     const exeEra  = sumResp(e.executadoPor);
     const exeFic  = sumResp(f?.executadoPor ?? e.executadoPor);
@@ -161,10 +161,10 @@ function calcProcesso(
     horasPorExecFicou += exeFic.h * volFicou;
     custoPorExecFicou += exeFic.c * volFicou;
 
-    const taxaErr = e.taxaErros ?? 0;
+    const taxaErr = e.error_rate ?? 0;
     if (taxaErr > 0) { somaTaxaErro += taxaErr; nTaxaErro += 1; }
-    somaTaxaRetrab += e.taxaRetrabalho ?? 0;
-    somaTaxaRetrabFicou += (f?.taxaRetrabalho ?? e.taxaRetrabalho ?? 0);
+    somaTaxaRetrab += e.rework_rate ?? 0;
+    somaTaxaRetrabFicou += (f?.rework_rate ?? e.rework_rate ?? 0);
     nRetrab += 1;
 
     // Retrabalho proporcional ao custo real de pessoas da etapa (não à média global).
@@ -172,8 +172,8 @@ function calcProcesso(
     // pessoas da etapa origem é só executadoPor.
     const custoPessoasEtapa = exeEra.c * volEra;
     const custoPessoasEtapaFicou = exeFic.c * volFicou;
-    custoRetrabalhoPorExec += custoPessoasEtapa * (e.taxaRetrabalho ?? 0);
-    custoRetrabalhoPorExecFicou += custoPessoasEtapaFicou * (f?.taxaRetrabalho ?? e.taxaRetrabalho ?? 0);
+    custoRetrabalhoPorExec += custoPessoasEtapa * (e.rework_rate ?? 0);
+    custoRetrabalhoPorExecFicou += custoPessoasEtapaFicou * (f?.rework_rate ?? e.rework_rate ?? 0);
   }
 
   // Sistemas atuais (era): união de etapa.sistemas. Sistemas projetados (ficou):
@@ -189,11 +189,11 @@ function calcProcesso(
     ficouS.forEach(s => sistemasIdsFicou.add(s));
   });
   const gargalosDoProcIds = new Set(gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id));
-  // Pós-refator: vínculo gargalo→melhoria virou 1:N (gargalos.melhoriaId).
+  // Pós-refator: vínculo gargalo→melhoria virou 1:N (gargalos.melhoria_id).
   const melhoriaIdsViaGargalosDoProc = new Set(
     gargalos
-      .filter(g => gargalosDoProcIds.has(g.id) && g.melhoriaId)
-      .map(g => g.melhoriaId as string)
+      .filter(g => gargalosDoProcIds.has(g.id) && g.melhoria_id)
+      .map(g => g.melhoria_id as string)
   );
   const melhoriasDoProc = melhorias.filter(m =>
     (m.processos || []).includes(proc.id) ||
@@ -214,12 +214,12 @@ function calcProcesso(
   };
   const fracEra = fracDeSistema;
   const fracFicou = fracDeSistema;
-  // Apenas o custo MENSAL recorrente (custoVariavelPorUso × 12) entra aqui, rateado.
+  // Apenas o custo MENSAL recorrente (custo_variavel_por_uso × 12) entra aqui, rateado.
   // O custo fixo/licença/setup é registrado como investimento via melhoria
   // (custoExternoUnico), então não entra no custo recorrente para evitar dupla
   // contagem. Era e Ficou: o "antes" inclui o mensal dos sistemas já usados.
-  const custoSistemasAnual = sistemasUsados.reduce((sum, s) => sum + (s.custoVariavelPorUso || 0) * 12 * fracEra(s), 0);
-  const custoSistemasAnualFicou = sistemasUsadosFicou.reduce((sum, s) => sum + (s.custoVariavelPorUso || 0) * 12 * fracFicou(s), 0);
+  const custoSistemasAnual = sistemasUsados.reduce((sum, s) => sum + (s.custo_variavel_por_uso || 0) * 12 * fracEra(s), 0);
+  const custoSistemasAnualFicou = sistemasUsadosFicou.reduce((sum, s) => sum + (s.custo_variavel_por_uso || 0) * 12 * fracFicou(s), 0);
 
   // Investimento atribuído a este processo
   const custoHoraTreino = custoHoraMedio;
@@ -232,22 +232,22 @@ function calcProcesso(
   );
   const melhoriaIdsViaGargalos = new Set(
     gargalos
-      .filter(g => gargalosDoProc.has(g.id) && g.melhoriaId)
-      .map(g => g.melhoriaId as string)
+      .filter(g => gargalosDoProc.has(g.id) && g.melhoria_id)
+      .map(g => g.melhoria_id as string)
   );
   const melhoriasRelevantes = melhorias.filter(m =>
     (m.processos || []).includes(proc.id) ||
     melhoriaIdsViaGargalos.has(m.id)
   );
-  const investTreinamentoMelhorias = melhoriasRelevantes.reduce((s, m) => s + ((m.horasTreinamento || 0) * custoHoraTreino), 0);
+  const investTreinamentoMelhorias = melhoriasRelevantes.reduce((s, m) => s + ((m.training_hours || 0) * custoHoraTreino), 0);
   const investExecucaoMelhorias = melhoriasRelevantes.reduce((s, m) => {
     const horasExec = (m.executadoPor || []).reduce((acc, r) => {
-      const ch = (r.responsavelId && respById.get(r.responsavelId)?.custoHora) || custoHoraMedio;
+      const ch = (r.responsavelId && respById.get(r.responsavelId)?.hourly_rate) || custoHoraMedio;
       return acc + (r.horas || 0) * ch;
     }, 0);
     return s + horasExec;
   }, 0);
-  const investExterno = melhoriasRelevantes.reduce((s, m) => s + (m.custoExternoUnico || 0), 0);
+  const investExterno = melhoriasRelevantes.reduce((s, m) => s + (m.one_time_external_cost || 0), 0);
   // Implantação interna (horas de quem desenvolve o sistema) é rateada na MELHORIA
   // (melhoria.executadoPor), não no sistema. Mantido como 0 para o breakdown.
   const investSistemas = 0;
@@ -275,7 +275,7 @@ function calcProcesso(
 
   return {
     processoId: proc.id,
-    processoNome: proc.nome,
+    processoNome: proc.name,
     execucoesAnuais: ann,
     horasPorExecucao: horasPorExec,
     custoPorExecucao: custoPorExec,
@@ -320,7 +320,7 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const projetoById = new Map((input.projetos || []).map(p => [p.id, p]));
 
   const porProcesso = input.processos.map(p => {
-    const cluster = (p.projetoId && projetoById.get(p.projetoId)?.cluster) || '';
+    const cluster = (p.project_id && projetoById.get(p.project_id)?.clusterName) || '';
     return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster);
   });
 

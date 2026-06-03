@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
@@ -9,7 +9,6 @@ import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
 import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
-import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
 import { agrupar } from '@/utils/agrupar';
 import { parseDecimal, formatDecimal, formatarMoeda, parseMoeda } from '@/utils/format';
 import type { Melhoria, Gargalo, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
@@ -17,6 +16,8 @@ import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { useFocusParam } from '@/utils/useFocusParam';
 import { useGargalosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useMelhorias, useCreateMelhoria, useUpdateMelhoria, useDeleteMelhoria } from '@/hooks/useMelhorias';
+import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
 
 const STATUS_FILTRO_OPCOES = [{ value: '', label: 'Todos os status' }, ...MELHORIA_STATUSES.map(s => ({ value: s, label: s }))];
 
@@ -66,9 +67,9 @@ function RateioEditor({
                 value={r.nome}
                 onChange={(v) => handlers.changeNome(index, v)}
                 options={responsaveisList.map((resp) => ({
-                  value: resp.nome,
-                  label: resp.nome,
-                  disabled: otherNames.includes(resp.nome),
+                  value: resp.name,
+                  label: resp.name,
+                  disabled: otherNames.includes(resp.name),
                 }))}
                 placeholder="Selecione..."
               />
@@ -125,7 +126,14 @@ function StatusBadge({ status }: { status?: MelhoriaStatus | string }) {
 }
 
 export default function MelhoriasPage() {
-  const { items, loaded, addItem, setItems, removeItem } = useStoredData<Melhoria>('melhoriasAdicionados', '/process_improvements.json');
+  const { data: items = [], isLoading: melhoriasLoading } = useMelhorias();
+  const loaded = !melhoriasLoading;
+  const createMelhoria = useCreateMelhoria();
+  const updateMelhoria = useUpdateMelhoria();
+  const deleteMelhoria = useDeleteMelhoria();
+  const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
+  const { data: clusters = [] } = useClusters();
   const focusId = useFocusParam();
 
   const { data: gargalosList = [] } = useGargalosLista();
@@ -134,21 +142,21 @@ export default function MelhoriasPage() {
   const { data: processosList = [] } = useProcessosLista();
 
   const processoNomeById = useMemo(
-    () => new Map(processosList.map(p => [p.id, p.nome])),
+    () => new Map(processosList.map(p => [p.id, p.name])),
     [processosList]
   );
   const processoIdByNome = useMemo(
-    () => new Map(processosList.map(p => [p.nome, p.id])),
+    () => new Map(processosList.map(p => [p.name, p.id])),
     [processosList]
   );
   // Inverso da relação 1:N — para uma melhoria, lista os gargalos que ela resolve.
   const gargalosPorMelhoria = useMemo(() => {
     const m = new Map<string, Gargalo[]>();
     for (const g of gargalosList) {
-      if (!g.melhoriaId) continue;
-      const arr = m.get(g.melhoriaId) ?? [];
+      if (!g.melhoria_id) continue;
+      const arr = m.get(g.melhoria_id) ?? [];
       arr.push(g);
-      m.set(g.melhoriaId, arr);
+      m.set(g.melhoria_id, arr);
     }
     return m;
   }, [gargalosList]);
@@ -161,7 +169,7 @@ export default function MelhoriasPage() {
     [sistemasList]
   );
   const processoOptionsOrdenado = useMemo(
-    () => [...processosList].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+    () => [...processosList].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
     [processosList]
   );
   const statusOptions = MELHORIA_STATUSES.map(s => ({ value: s, label: s }));
@@ -179,7 +187,7 @@ export default function MelhoriasPage() {
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [status, setStatus] = useState<MelhoriaStatus>('Não iniciado');
-  const [cluster, setCluster] = useState('');
+  const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
   const [sistemas, setSistemas] = useState<string[]>([]);
   const [executadoPor, setExecutadoPor] = useState<{ nome: string; horas: number }[]>([]);
@@ -195,7 +203,7 @@ export default function MelhoriasPage() {
   const [editNome, setEditNome] = useState('');
   const [editDescricao, setEditDescricao] = useState('');
   const [editStatus, setEditStatus] = useState<MelhoriaStatus>('Não iniciado');
-  const [editCluster, setEditCluster] = useState('');
+  const [editClusterId, setEditClusterId] = useState('');
   const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
   const [editSistemas, setEditSistemas] = useState<string[]>([]);
   const [editExecutadoPor, setEditExecutadoPor] = useState<{ nome: string; horas: number }[]>([]);
@@ -228,14 +236,14 @@ export default function MelhoriasPage() {
   const [fGargalo, setFGargalo] = useState('');
   const filtrosAtivos = !!(fCluster || fStatus || fProcesso || fGargalo);
   const limparFiltros = () => { setFCluster(''); setFStatus(''); setFProcesso(''); setFGargalo(''); };
-  // Filtro por gargalo: agora a fonte é a FK gargalos.melhoriaId.
+  // Filtro por gargalo: agora a fonte é a FK gargalos.melhoria_id.
   const melhoriaIdDoGargaloFiltro = useMemo(
-    () => (fGargalo ? gargalosList.find(g => g.id === fGargalo)?.melhoriaId ?? null : null),
+    () => (fGargalo ? gargalosList.find(g => g.id === fGargalo)?.melhoria_id ?? null : null),
     [fGargalo, gargalosList]
   );
   const itensFiltrados = useMemo(() => items.filter(m =>
-    (!fCluster || m.cluster === fCluster) &&
-    (!fStatus || (m.status || 'Não iniciado') === fStatus) &&
+    (!fCluster || m.cluster_id === fCluster) &&
+    (!fStatus || (m.improvement_status || 'Não iniciado') === fStatus) &&
     (!fProcesso || (m.processos || []).includes(fProcesso)) &&
     (!fGargalo || melhoriaIdDoGargaloFiltro === m.id)
   ), [items, fCluster, fStatus, fProcesso, fGargalo, melhoriaIdDoGargaloFiltro]);
@@ -243,9 +251,9 @@ export default function MelhoriasPage() {
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('cluster');
   const grupos = useMemo(() => {
-    if (organizar === 'status') return agrupar(itensFiltrados, (m) => [m.status || 'Não iniciado'], MELHORIA_STATUSES.map((s) => ({ value: s, label: s })), 'Sem status');
-    if (organizar === 'processo') return agrupar(itensFiltrados, (m) => m.processos || [], processoOptionsOrdenado.map((p) => ({ value: p.id, label: p.nome })), 'Sem processo');
-    return agrupar(itensFiltrados, (m) => [m.cluster || ''], CLUSTER_OPCOES, 'Sem cluster');
+    if (organizar === 'status') return agrupar(itensFiltrados, (m) => [m.improvement_status || 'Não iniciado'], MELHORIA_STATUSES.map((s) => ({ value: s, label: s })), 'Sem status');
+    if (organizar === 'processo') return agrupar(itensFiltrados, (m) => m.processos || [], processoOptionsOrdenado.map((p) => ({ value: p.id, label: p.name })), 'Sem processo');
+    return agrupar(itensFiltrados, (m) => [m.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
   }, [organizar, itensFiltrados, processoOptionsOrdenado]);
 
   // ----- helpers genéricos de rateio (DRY entre executadoPor / treinamentoPor) -----
@@ -278,25 +286,25 @@ export default function MelhoriasPage() {
 
   const openEdit = (m: Melhoria) => {
     setEditId(m.id);
-    setEditNome(m.nome);
-    setEditDescricao(m.descricao || '');
-    setEditStatus((m.status as MelhoriaStatus) || 'Não iniciado');
-    setEditCluster(m.cluster || '');
+    setEditNome(m.improvement_description);
+    setEditDescricao(m.improvement_description || '');
+    setEditStatus((m.improvement_status as MelhoriaStatus) || 'Não iniciado');
+    setEditClusterId(m.cluster_id || '');
     setEditProcessosNomes(idsToNames(m.processos || []));
     setEditSistemas(sistemaIdsToNames(m.sistemas || []));
     setEditAcoesTd([...(m.acoesTd || [])]);
     setEditExecutadoPor(m.executadoPor.map((r) => ({ ...r })));
-    // Migração: se a melhoria legada só tem o scalar horasTreinamento sem
+    // Migração: se a melhoria legada só tem o scalar training_hours sem
     // rateio, cria UMA entrada órfã com o total — o usuário pode atribuir
     // o nome do responsável depois para "finalizar" o rateio.
     const treinoSeed: { nome: string; horas: number }[] =
       m.treinamentoPor && m.treinamentoPor.length > 0
         ? m.treinamentoPor.map((r) => ({ ...r }))
-        : ((m.horasTreinamento ?? 0) > 0
-          ? [{ nome: '', horas: m.horasTreinamento ?? 0 }]
+        : ((m.training_hours ?? 0) > 0
+          ? [{ nome: '', horas: m.training_hours ?? 0 }]
           : []);
     setEditTreinamentoPor(treinoSeed);
-    setEditCustoExternoUnico(m.custoExternoUnico ? formatarMoeda(m.custoExternoUnico) : '');
+    setEditCustoExternoUnico(m.one_time_external_cost ? formatarMoeda(m.one_time_external_cost) : '');
     setEditError('');
     setEditSaving(false);
     setEditOpen(true);
@@ -305,77 +313,78 @@ export default function MelhoriasPage() {
   const rateioEditExec   = makeRateioHandlers(editExecutadoPor,   setEditExecutadoPor);
   const rateioEditTreino = makeRateioHandlers(editTreinamentoPor, setEditTreinamentoPor);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome da melhoria.'); return; }
+    const old = items.find(m => m.id === editId);
+    if (!old) return;
     setEditError('');
     setEditSaving(true);
     const treinoLimpo = editTreinamentoPor.filter(r => r.nome?.trim());
     const horasTotal  = sumHoras(treinoLimpo);
-    setItems(items.map((it) =>
-      it.id === editId
-        ? {
-            ...it,
-            nome: editNome.trim(),
-            descricao: editDescricao.trim(),
-            status: editStatus,
-            cluster: editCluster || undefined,
-            processos: namesToIds(editProcessosNomes),
-            sistemas: sistemaNamesToIds(editSistemas),
-            acoesTd: editAcoesTd,
-            executadoPor: editExecutadoPor.filter(r => r.nome?.trim()),
-            treinamentoPor: treinoLimpo,
-            // Σ rateio = total cacheado. Mantém ROI/SOP/dashboards funcionando.
-            horasTreinamento: horasTotal,
-            custoExternoUnico: parseMoeda(editCustoExternoUnico),
-          }
-        : it
-    ));
-    setTimeout(() => {
-      setEditSaving(false);
+    try {
+      await updateMelhoria.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          // DB tem só `improvement_description` — concatenamos título + corpo
+          // (antes do refator, melhoriaFromDb retornava ambos como o mesmo valor).
+          improvement_description: editDescricao.trim() || editNome.trim(),
+          improvement_status: editStatus,
+          cluster_id: editClusterId || undefined,
+          processos: namesToIds(editProcessosNomes),
+          sistemas: sistemaNamesToIds(editSistemas),
+          acoesTd: editAcoesTd,
+          executadoPor: editExecutadoPor.filter(r => r.nome?.trim()),
+          treinamentoPor: treinoLimpo,
+          training_hours: horasTotal,
+          one_time_external_cost: parseMoeda(editCustoExternoUnico),
+        },
+      });
+      toast.success('Melhoria atualizada');
       setEditOpen(false);
-    }, 300);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) { setError('Preencha o nome da melhoria.'); return; }
     setError('');
     setIsSaving(true);
     const treinoLimpo = treinamentoPor.filter(r => r.nome?.trim());
     const horasTotal  = sumHoras(treinoLimpo);
-    addItem({
-      nome: nome.trim(),
-      descricao: descricao.trim(),
-      status,
-      cluster: cluster || undefined,
-      processos: namesToIds(processosNomes),
-      sistemas: sistemaNamesToIds(sistemas),
-      acoesTd,
-      executadoPor: executadoPor.filter(r => r.nome?.trim()),
-      treinamentoPor: treinoLimpo,
-      horasTreinamento: horasTotal,
-      custoExternoUnico: parseMoeda(custoExternoUnico),
-    });
-    setTimeout(() => {
-      setNome('');
-      setDescricao('');
-      setStatus('Não iniciado');
-      setCluster('');
-      setProcessosNomes([]);
-      setSistemas([]);
-      setAcoesTd([]);
-      setExecutadoPor([]);
-      setTreinamentoPor([]);
-      setCustoExternoUnico('');
-      setIsSaving(false);
+    try {
+      await createMelhoria.mutateAsync({
+        improvement_description: descricao.trim() || nome.trim(),
+        improvement_status: status,
+        cluster_id: clusterId || undefined,
+        processos: namesToIds(processosNomes),
+        sistemas: sistemaNamesToIds(sistemas),
+        acoesTd,
+        executadoPor: executadoPor.filter(r => r.nome?.trim()),
+        treinamentoPor: treinoLimpo,
+        training_hours: horasTotal,
+        one_time_external_cost: parseMoeda(custoExternoUnico),
+      });
+      toast.success('Melhoria criada');
+      setNome(''); setDescricao(''); setStatus('Não iniciado'); setClusterId('');
+      setProcessosNomes([]); setSistemas([]); setAcoesTd([]);
+      setExecutadoPor([]); setTreinamentoPor([]); setCustoExternoUnico('');
       setModalOpen(false);
-    }, 300);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openNew = () => {
     setNome('');
     setDescricao('');
     setStatus('Não iniciado');
-    setCluster('');
+    setClusterId('');
     setProcessosNomes([]);
     setSistemas([]);
     setAcoesTd([]);
@@ -402,10 +411,10 @@ export default function MelhoriasPage() {
       <p>Registre melhorias e os processos que cada uma atende (uma melhoria pode atender mais de um processo).</p>
       <PageStats stats={[
         { label: 'Melhorias', value: String(items.length), tooltip: 'Total de melhorias cadastradas.' },
-        { label: 'Concluídas', value: String(items.filter(m => m.status === 'Concluído').length), tooltip: 'Melhorias com status Concluído.' },
-        { label: 'Em progresso', value: String(items.filter(m => m.status === 'Em progresso').length), tooltip: 'Melhorias atualmente em execução.' },
-        { label: 'Horas treino', value: formatDecimal(items.reduce((s, m) => s + (m.horasTreinamento || 0), 0), 'h'), tooltip: 'Soma das horas de treinamento estimadas.' },
-        { label: 'Custo externo', value: formatarMoeda(items.reduce((s, m) => s + (m.custoExternoUnico || 0), 0)), tooltip: 'Soma dos custos externos únicos registrados.' },
+        { label: 'Concluídas', value: String(items.filter(m => m.improvement_status === 'Concluído').length), tooltip: 'Melhorias com status Concluído.' },
+        { label: 'Em progresso', value: String(items.filter(m => m.improvement_status === 'Em progresso').length), tooltip: 'Melhorias atualmente em execução.' },
+        { label: 'Horas treino', value: formatDecimal(items.reduce((s, m) => s + (m.training_hours || 0), 0), 'h'), tooltip: 'Soma das horas de treinamento estimadas.' },
+        { label: 'Custo externo', value: formatarMoeda(items.reduce((s, m) => s + (m.one_time_external_cost || 0), 0)), tooltip: 'Soma dos custos externos únicos registrados.' },
       ]} />
       <FiltrosBar
         ativo={filtrosAtivos}
@@ -414,7 +423,7 @@ export default function MelhoriasPage() {
           { id: 'fm-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
           { id: 'fm-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fm-status', label: 'Status', value: fStatus, onChange: setFStatus, options: STATUS_FILTRO_OPCOES, tooltip: dica('melhorias.filtro.status') },
-          { id: 'fm-processo', label: 'Processo', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...processoOptionsOrdenado.map(p => ({ value: p.id, label: p.nome }))], tooltip: dica('melhorias.filtro.processo') },
+          { id: 'fm-processo', label: 'Processo', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...processoOptionsOrdenado.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('melhorias.filtro.processo') },
           { id: 'fm-gargalo', label: 'Gargalo resolvido', value: fGargalo, onChange: setFGargalo, options: [{ value: '', label: 'Todos os gargalos' }, ...gargalosList.map(g => ({ value: g.id, label: g.nome }))], tooltip: dica('melhorias.filtro.gargalo') },
         ]}
       />
@@ -433,12 +442,12 @@ export default function MelhoriasPage() {
                 tabIndex={0}
                 onClick={() => openDetail(m)}
                 onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(m); } }}
-                aria-label={`Ver detalhes de ${m.nome}`}
+                aria-label={`Ver detalhes de ${m.improvement_description}`}
               >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-              <h3 style={{ flex: 1 }}><Tooltip text={dica('melhorias.form.nome')}>{m.nome}</Tooltip></h3>
+              <h3 style={{ flex: 1 }}><Tooltip text={dica('melhorias.form.nome')}>{m.improvement_description}</Tooltip></h3>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                <StatusBadge status={m.status as MelhoriaStatus | undefined} />
+                <StatusBadge status={m.improvement_status as MelhoriaStatus | undefined} />
                 <button
                   className="btn-edit"
                   title="Editar melhoria"
@@ -466,7 +475,7 @@ export default function MelhoriasPage() {
                 ))}
               </div>
             )}
-            <p>{m.descricao || 'Sem descrição.'}</p>
+            <p>{m.improvement_description || 'Sem descrição.'}</p>
             {m.acoesTd && m.acoesTd.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div style={{
@@ -493,7 +502,7 @@ export default function MelhoriasPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <span style={{ fontWeight: 600 }}>Treinamento (rateio):</span>
                   <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                    Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(m.horasTreinamento || sumHoras(m.treinamentoPor), 'h')}</strong>
+                    Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(m.training_hours || sumHoras(m.treinamentoPor), 'h')}</strong>
                   </span>
                 </div>
                 {m.treinamentoPor.map((r, idx) => (
@@ -503,9 +512,9 @@ export default function MelhoriasPage() {
                   </div>
                 ))}
               </div>
-            ) : m.horasTreinamento ? (
+            ) : m.training_hours ? (
               <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 8 }}>
-                <strong>Horas treinamento:</strong> {formatDecimal(m.horasTreinamento, 'h')}
+                <strong>Horas treinamento:</strong> {formatDecimal(m.training_hours, 'h')}
                 <span style={{ marginLeft: 6, color: '#94a3b8', fontStyle: 'italic' }}>(sem rateio)</span>
               </div>
             ) : null}
@@ -549,13 +558,13 @@ export default function MelhoriasPage() {
           {detailItem && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <h2 style={{ flex: 1, margin: 0 }}>{detailItem.nome}</h2>
-                <StatusBadge status={detailItem.status as MelhoriaStatus | undefined} />
+                <h2 style={{ flex: 1, margin: 0 }}>{detailItem.improvement_description}</h2>
+                <StatusBadge status={detailItem.improvement_status as MelhoriaStatus | undefined} />
               </div>
-              {detailItem.cluster && (
+              {detailItem.clusterName && (
                 <div className="form-group compact">
                   <label>Cluster</label>
-                  <div>{detailItem.cluster}</div>
+                  <div>{detailItem.clusterName}</div>
                 </div>
               )}
               {detailItem.processos && detailItem.processos.length > 0 && (
@@ -570,10 +579,10 @@ export default function MelhoriasPage() {
                   </div>
                 </div>
               )}
-              {detailItem.descricao && (
+              {detailItem.improvement_description && (
                 <div className="form-group compact">
                   <label>Descrição</label>
-                  <div>{detailItem.descricao}</div>
+                  <div>{detailItem.improvement_description}</div>
                 </div>
               )}
               {detailItem.acoesTd && detailItem.acoesTd.length > 0 && (
@@ -621,12 +630,12 @@ export default function MelhoriasPage() {
                   ))}
                 </div>
               )}
-              {((detailItem.treinamentoPor && detailItem.treinamentoPor.length > 0) || (detailItem.horasTreinamento ?? 0) > 0) && (
+              {((detailItem.treinamentoPor && detailItem.treinamentoPor.length > 0) || (detailItem.training_hours ?? 0) > 0) && (
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>Treinamento por</div>
                     <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                      Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(detailItem.horasTreinamento || 0, 'h')}</strong>
+                      Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(detailItem.training_hours || 0, 'h')}</strong>
                     </span>
                   </div>
                   {(detailItem.treinamentoPor || []).map((r, idx) => (
@@ -642,14 +651,14 @@ export default function MelhoriasPage() {
                 <div className="form-row" style={{ display: 'flex', gap: 16 }}>
                   <div className="form-group compact" style={{ flex: 1 }}>
                     <label>Custo externo único</label>
-                    <div style={{ fontWeight: 600 }}>{formatarMoeda(detailItem.custoExternoUnico || 0)}</div>
+                    <div style={{ fontWeight: 600 }}>{formatarMoeda(detailItem.one_time_external_cost || 0)}</div>
                   </div>
                   <div className="form-group compact" style={{ flex: 1 }}>
                     <label>Horas totais (exec + treino)</label>
                     <div style={{ fontWeight: 600, color: 'var(--accent-color)' }}>
                       {formatDecimal(
                         (detailItem.executadoPor || []).reduce((s, r) => s + (Number(r.horas) || 0), 0) +
-                        (detailItem.horasTreinamento || 0),
+                        (detailItem.training_hours || 0),
                         'h'
                       )}
                     </div>
@@ -678,7 +687,7 @@ export default function MelhoriasPage() {
         <div className="modal">
           <h2>Excluir melhoria</h2>
           <p>
-            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir <strong>{confirmDel?.improvement_description}</strong>? Esta ação não pode ser desfeita.
           </p>
           <div className="modal-actions">
             <button className="btn-cancel" onClick={() => setConfirmDel(null)} disabled={deleting}>Cancelar</button>
@@ -689,9 +698,15 @@ export default function MelhoriasPage() {
               onClick={async () => {
                 if (!confirmDel) return;
                 setDeleting(true);
-                await removeItem(confirmDel.id);
-                setDeleting(false);
-                setConfirmDel(null);
+                try {
+                  await deleteMelhoria.mutateAsync({ id: confirmDel.id, old: confirmDel });
+                  toast.success('Melhoria excluída');
+                  setConfirmDel(null);
+                } catch (err) {
+                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
+                } finally {
+                  setDeleting(false);
+                }
               }}
             >
               {deleting ? 'Excluindo...' : 'Excluir'}
@@ -719,11 +734,11 @@ export default function MelhoriasPage() {
             />
           </FormField>
           <FormField label="Cluster" tooltip={dica('melhorias.form.cluster')}>
-            <Select value={cluster} onChange={setCluster} options={CLUSTER_OPCOES} />
+            <Select value={clusterId} onChange={setClusterId} options={CLUSTER_OPCOES} />
           </FormField>
           <FormField label="Processos atendidos" tooltip={dica('melhorias.form.processos')}>
             <ChipSelector
-              options={processoOptionsOrdenado.map((p) => p.nome)}
+              options={processoOptionsOrdenado.map((p) => p.name)}
               value={processosNomes}
               onChange={(v) => setProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
@@ -794,11 +809,11 @@ export default function MelhoriasPage() {
             />
           </FormField>
           <FormField label="Cluster" tooltip={dica('melhorias.form.cluster')}>
-            <Select value={editCluster} onChange={setEditCluster} options={CLUSTER_OPCOES} />
+            <Select value={editClusterId} onChange={setEditClusterId} options={CLUSTER_OPCOES} />
           </FormField>
           <FormField label="Processos atendidos" tooltip={dica('melhorias.form.processos')}>
             <ChipSelector
-              options={processoOptionsOrdenado.map((p) => p.nome)}
+              options={processoOptionsOrdenado.map((p) => p.name)}
               value={editProcessosNomes}
               onChange={(v) => setEditProcessosNomes(v as string[])}
               addLabel="Adicionar processo"

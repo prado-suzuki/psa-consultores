@@ -39,7 +39,7 @@ function PageHeader({ processo, scenarioLabel }: { processo: Processo; scenarioL
   return (
     <View style={styles.pageHeader} fixed>
       <View>
-        <Text style={styles.pageHeaderTitle}>{processo.nome}</Text>
+        <Text style={styles.pageHeaderTitle}>{processo.name}</Text>
         <Text style={styles.pageHeaderSub}>{scenarioLabel}</Text>
       </View>
       <Text style={styles.pageHeaderSub}>PSA Consultores · MAPA</Text>
@@ -86,12 +86,12 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
 
   const respById = new Map(responsaveis.map(r => [r.id, r]));
   const custoMedio = responsaveis.length
-    ? responsaveis.reduce((s, r) => s + (r.custoHora || 0), 0) / responsaveis.length
+    ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length
     : 0;
 
   const gargalosDoProc = gargalos.filter(g => (g.processos || []).includes(processo.id));
   const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProc.filter(g => g.melhoriaId).map(g => g.melhoriaId as string),
+    gargalosDoProc.filter(g => g.melhoria_id).map(g => g.melhoria_id as string),
   );
   const melhoriasDoProc = melhorias.filter(m =>
     (m.processos || []).includes(processo.id) ||
@@ -100,10 +100,10 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
 
   // ── Métricas derivadas do horizonte (mesmo padrão do Dashboard ROI) ──
   const economiaH = roi.economiaMensal * m;
-  const investimento = roi.investimentoTotal;
-  const resultadoLiquido = economiaH - investimento;
-  const roiPct = investimento > 0 ? (economiaH / investimento) * 100 : 0;
-  const paybackMeses = roi.economiaMensal > 0 ? investimento / roi.economiaMensal : 0;
+  const investment = roi.investimentoTotal;
+  const resultadoLiquido = economiaH - investment;
+  const roiPct = investment > 0 ? (economiaH / investment) * 100 : 0;
+  const payback_months = roi.economiaMensal > 0 ? investment / roi.economiaMensal : 0;
   const horasLiberadasH = roi.horasLiberadas * (m / 12);
   const custoEraH = roi.custoAtualAno * (m / 12);
   const custoFicouH = roi.custoFuturoAno * (m / 12);
@@ -113,7 +113,7 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
   const retrabFicou = roi.taxaRetrabalhoFuturo;
   const deltaRetrabPp = (retrabEra - retrabFicou) * 100;
 
-  const headline = generateHeadline({ processoNome: processo.nome, roiPct, paybackMeses });
+  const headline = generateHeadline({ processoNome: processo.name, roiPct, payback_months });
   const tags = extractKeywords(projeto, processo, gargalosDoProc);
   const data = todayBR();
   const podeCalcular = diagnostico.podeCalcular;
@@ -121,24 +121,24 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
   // Recomendação
   const recomendacao = resultadoLiquido > 0
     ? S.recomendacaoAprovar(
-        fmtMoney(investimento),
-        `${paybackMeses.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} meses`,
+        fmtMoney(investment),
+        `${payback_months.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} meses`,
         `${roiPct.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`,
         m,
         `${horasLiberadasH.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} horas`,
       )
-    : S.recomendacaoSemPayback(fmtMoney(investimento), m);
+    : S.recomendacaoSemPayback(fmtMoney(investment), m);
 
   return (
-    <Document title={`SOP Comparativo - ${processo.nome}`} author="PSA Consultores">
+    <Document title={`SOP Comparativo - ${processo.name}`} author="PSA Consultores">
       {/* ============ PÁGINA 1 — SUMÁRIO EXECUTIVO (RETRATO) ============ */}
       <Page size="A4" orientation="portrait" style={styles.page}>
         <View style={styles.pageHeader}>
           <View>
             <Text style={styles.pageHeaderTitle}>{S.pageTitle}</Text>
             <Text style={styles.pageHeaderSub}>
-              {S.metaProcesso}: {processo.nome}
-              {!!projeto?.cluster && `${S.metaSeparator}${S.metaCluster}: ${projeto.cluster}`}
+              {S.metaProcesso}: {processo.name}
+              {!!projeto?.clusterName && `${S.metaSeparator}${S.metaCluster}: ${projeto.clusterName}`}
               {S.metaSeparator}{S.metaData}: {data}
             </Text>
           </View>
@@ -186,8 +186,8 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
           />
           <Kpi
             label={S.kpiPaybackLabel}
-            value={paybackMeses > 0
-              ? `${paybackMeses.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m`
+            value={payback_months > 0
+              ? `${payback_months.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} m`
               : '—'}
             sub={S.kpiPaybackSub}
           />
@@ -198,7 +198,7 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
           />
           <Kpi
             label={S.kpiInvestLabel}
-            value={fmtMoney(investimento)}
+            value={fmtMoney(investment)}
             sub={S.kpiInvestSub}
           />
           <Kpi
@@ -319,7 +319,7 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
           <Page key={e.id} size="A4" orientation="landscape" style={styles.page}>
             <PageHeader
               processo={processo}
-              scenarioLabel={`Etapa ${pad2(i + 1)}/${pad2(etapas.length)} · ${e.nome}`}
+              scenarioLabel={`Etapa ${pad2(i + 1)}/${pad2(etapas.length)} · ${e.name}`}
             />
 
             <View style={styles.cmpRow}>
@@ -328,11 +328,11 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
                 <Text style={[styles.cmpHeader, { color: PDF_COLORS.textMuted }]}>
                   Como era · As-Is
                 </Text>
-                {!!e.descricao && (
-                  <Text style={[styles.small, { marginBottom: 4 }]}>{e.descricao}</Text>
+                {!!e.description && (
+                  <Text style={[styles.small, { marginBottom: 4 }]}>{e.description}</Text>
                 )}
                 <Text style={[styles.small, styles.muted]}>Execução</Text>
-                <Text style={[styles.small, { marginBottom: 3 }]}>{e.execucao || '—'}</Text>
+                <Text style={[styles.small, { marginBottom: 3 }]}>{e.execution || '—'}</Text>
                 <Text style={[styles.small, styles.muted]}>Executado por</Text>
                 <Text style={[styles.small, { marginBottom: 3 }]}>{joinPeople(eraExec)}</Text>
                 <Text style={[styles.small, styles.muted]}>Sistemas</Text>
@@ -363,11 +363,11 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
                   </View>
                 ) : (
                   <>
-                    {!!(f?.descricao ?? e.descricao) && (
-                      <Text style={[styles.small, { marginBottom: 4 }]}>{f?.descricao ?? e.descricao}</Text>
+                    {!!(f?.description ?? e.description) && (
+                      <Text style={[styles.small, { marginBottom: 4 }]}>{f?.description ?? e.description}</Text>
                     )}
                     <Text style={[styles.small, styles.muted]}>Execução</Text>
-                    <Text style={[styles.small, { marginBottom: 3 }]}>{f?.execucao ?? e.execucao ?? '—'}</Text>
+                    <Text style={[styles.small, { marginBottom: 3 }]}>{f?.execution ?? e.execution ?? '—'}</Text>
                     <Text style={[styles.small, styles.muted]}>Executado por</Text>
                     <Text style={[styles.small, { marginBottom: 3 }]}>{joinPeople(ficExec)}</Text>
                     <Text style={[styles.small, styles.muted]}>Sistemas</Text>

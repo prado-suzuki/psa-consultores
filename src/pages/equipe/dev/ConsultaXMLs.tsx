@@ -81,8 +81,8 @@ const TOOLTIPS = {
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
   tipoDoc: "Define se a busca trará notas NFe ou CTe. Obrigatório.",
   tipoMov: "Filtra o fluxo por Entradas ou Saídas.",
-  dataInicio: "Define o período de emissão. Obrigatório.",
-  dataFim: "Define o período de emissão. Obrigatório.",
+  start_date: "Define o período de emissão. Obrigatório.",
+  end_date: "Define o período de emissão. Obrigatório.",
   emitente: "Filtra pelo documento exato do emissor (somente números).",
   destinatario: "Filtra pelo documento exato do destinatário (somente números).",
   chaveAcesso: "Busca exata pela chave de 44 dígitos.",
@@ -242,8 +242,8 @@ const ConsultaXMLs = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedCliente, setSelectedCliente] = useState("");
   const [selectedContribuinte, setSelectedContribuinte] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const [start_date, setDataInicio] = useState("");
+  const [end_date, setDataFim] = useState("");
   const [tipoDocumento, setTipoDocumento] = useState<"nfe" | "cte" | "todos" | "">("");
   const [tipoMov, setTipoMov] = useState<"Entrada" | "Saida" | "">(DEFAULT_TIPO_MOV);
   const [emitente, setEmitente] = useState("");
@@ -259,15 +259,15 @@ const ConsultaXMLs = () => {
     return (
       selectedCliente !== "" ||
       selectedContribuinte !== "" ||
-      dataInicio !== "" ||
-      dataFim !== "" ||
+      start_date !== "" ||
+      end_date !== "" ||
       tipoDocumento !== "" ||
       tipoMov !== DEFAULT_TIPO_MOV ||
       emitente !== "" ||
       destinatario !== "" ||
       chaveAcesso !== ""
     );
-  }, [selectedCliente, selectedContribuinte, dataInicio, dataFim, tipoDocumento, tipoMov, emitente, destinatario, chaveAcesso]);
+  }, [selectedCliente, selectedContribuinte, start_date, end_date, tipoDocumento, tipoMov, emitente, destinatario, chaveAcesso]);
 
   const handleClearFilters = () => {
     setSelectedCliente("");
@@ -373,14 +373,14 @@ const ConsultaXMLs = () => {
     error: errorNfe,
     refetch: refetchNfe,
   } = useQuery({
-    queryKey: ["nfe-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, committedChave],
+    queryKey: ["nfe-docs", selectedContribuinte, start_date, end_date, currentPage, tipoMov, emitente, destinatario, committedChave],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
       const params = new URLSearchParams({
-        data_inicio: dataInicio,
-        data_fim: dataFim,
+        data_inicio: start_date,
+        data_fim: end_date,
         page: currentPage.toString(),
         page_size: ITEMS_PER_PAGE.toString(),
       });
@@ -412,14 +412,14 @@ const ConsultaXMLs = () => {
     error: errorCte,
     refetch: refetchCte,
   } = useQuery({
-    queryKey: ["cte-docs", selectedContribuinte, dataInicio, dataFim, currentPage, tipoMov, emitente, destinatario, committedChave],
+    queryKey: ["cte-docs", selectedContribuinte, start_date, end_date, currentPage, tipoMov, emitente, destinatario, committedChave],
     queryFn: async () => {
       if (!selectedContribuinte) return null;
 
       const baseUrl = `${API_BASE_URL}/api/v1/query/contribuintes`;
       const params = new URLSearchParams({
-        data_inicio: dataInicio,
-        data_fim: dataFim,
+        data_inicio: start_date,
+        data_fim: end_date,
         page: currentPage.toString(),
         page_size: ITEMS_PER_PAGE.toString(),
       });
@@ -499,7 +499,7 @@ const ConsultaXMLs = () => {
   };
 
   const handleSearch = () => {
-    if (!selectedCliente || !selectedContribuinte || !tipoDocumento || !dataInicio || !dataFim) {
+    if (!selectedCliente || !selectedContribuinte || !tipoDocumento || !start_date || !end_date) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha Cliente, Contribuinte, Tipo Doc., Data Início e Data Fim.",
@@ -556,12 +556,12 @@ const ConsultaXMLs = () => {
   };
 
   const handleDownloadBatchXml = async () => {
-    if (!selectedContribuinte || !dataInicio) return;
+    if (!selectedContribuinte || !start_date) return;
     setDownloadingBatch(true);
     try {
       const docType = tipoDocumento === "cte" ? "cte" : "nfe";
-      const params = new URLSearchParams({ data_inicio: dataInicio });
-      if (dataFim) params.append("data_fim", dataFim);
+      const params = new URLSearchParams({ data_inicio: start_date });
+      if (end_date) params.append("data_fim", end_date);
       if (tipoMov) params.append("tipo_mov", tipoMov);
       if (emitente) params.append("emitente", emitente.replace(/\D/g, ""));
       if (destinatario) params.append("destinatario", destinatario.replace(/\D/g, ""));
@@ -614,7 +614,7 @@ const ConsultaXMLs = () => {
     }
   };
 
-  const allRequiredFilled = !!(selectedCliente && selectedContribuinte && tipoDocumento && dataInicio && dataFim);
+  const allRequiredFilled = !!(selectedCliente && selectedContribuinte && tipoDocumento && start_date && end_date);
   const isBuscarDisabled = !allRequiredFilled || isLoading;
   const isBaixarXmlsDisabled = downloadingBatch || isLoading || !allRequiredFilled ||
     (tipoDocumento === "nfe" ? nfeRecords.length === 0 : cteRecords.length === 0);
@@ -797,7 +797,7 @@ const ConsultaXMLs = () => {
                 <div className="md:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                     Data Início <RequiredMark />
-                    <FieldTooltip text={TOOLTIPS.dataInicio} />
+                    <FieldTooltip text={TOOLTIPS.start_date} />
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -805,12 +805,12 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         className={cn(
                           "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                          !dataInicio && "text-muted-foreground",
+                          !start_date && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataInicio ? (
-                          format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        {start_date ? (
+                          format(parse(start_date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
                         ) : (
                           <span>Selecione</span>
                         )}
@@ -818,7 +818,7 @@ const ConsultaXMLs = () => {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                        selected={start_date ? parse(start_date, "yyyy-MM-dd", new Date()) : undefined}
                         onSelect={(date) => {
                           setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
                           setSearchTriggered(false);
@@ -830,7 +830,7 @@ const ConsultaXMLs = () => {
                 <div className="md:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
                     Data Fim <RequiredMark />
-                    <FieldTooltip text={TOOLTIPS.dataFim} />
+                    <FieldTooltip text={TOOLTIPS.end_date} />
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
@@ -838,12 +838,12 @@ const ConsultaXMLs = () => {
                         variant="outline"
                         className={cn(
                           "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                          !dataFim && "text-muted-foreground",
+                          !end_date && "text-muted-foreground",
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                        {dataFim ? (
-                          format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
+                        {end_date ? (
+                          format(parse(end_date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy")
                         ) : (
                           <span>Selecione</span>
                         )}
@@ -851,7 +851,7 @@ const ConsultaXMLs = () => {
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
-                        selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                        selected={end_date ? parse(end_date, "yyyy-MM-dd", new Date()) : undefined}
                         onSelect={(date) => {
                           setDataFim(date ? format(date, "yyyy-MM-dd") : "");
                           setSearchTriggered(false);
@@ -942,8 +942,8 @@ const ConsultaXMLs = () => {
                     cteData={tipoDocumento === "cte" ? cteRecords : []}
                     tipoDocumento={(tipoDocumento || "nfe") as "nfe" | "cte" | "todos"}
                     totalRecords={totalRecords}
-                    dataInicio={dataInicio}
-                    dataFim={dataFim}
+                    start_date={start_date}
+                    end_date={end_date}
                     contribuinteId={selectedContribuinte}
                     tipoMov={tipoMov}
                     emitente={emitente}

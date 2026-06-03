@@ -739,6 +739,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cascata_eventos_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cascata_eventos_processo_raiz_id_fkey"
             columns: ["processo_raiz_id"]
             isOneToOne: false
@@ -2054,6 +2061,13 @@ export type Database = {
             referencedRelation: "documentos_processo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documentos_processo_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       documents: {
@@ -2701,6 +2715,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "gargalos_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gargalos_melhoria_id_fkey"
             columns: ["melhoria_id"]
@@ -4386,6 +4407,7 @@ export type Database = {
           profissao: string | null
           regime_bens: string | null
           status_constituicao: string | null
+          tipo_empresa: string | null
           tipo_pessoa: string
           updated_at: string
           updated_by: string | null
@@ -4428,6 +4450,7 @@ export type Database = {
           profissao?: string | null
           regime_bens?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa: string
           updated_at?: string
           updated_by?: string | null
@@ -4470,6 +4493,7 @@ export type Database = {
           profissao?: string | null
           regime_bens?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa?: string
           updated_at?: string
           updated_by?: string | null
@@ -7903,6 +7927,7 @@ export type Database = {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
       }
+      mapa_uuid: { Args: { slug: string }; Returns: string }
       mark_stuck_procedimentos: {
         Args: { timeout_minutes?: number }
         Returns: number

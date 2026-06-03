@@ -30,7 +30,7 @@ export interface Procedimento {
 interface ProcedimentoFilters {
   search?: string;
   processo?: string;
-  complexidade?: string;
+  complexity_level?: string;
   status_publicacao?: string;
 }
 
@@ -54,8 +54,8 @@ export function useProcedimentosList(filters: ProcedimentoFilters = {}) {
       if (filters.status_publicacao) {
         query = query.eq('status_publicacao', filters.status_publicacao);
       }
-      if (filters.complexidade) {
-        query = query.eq('ai_complexidade', filters.complexidade);
+      if (filters.complexity_level) {
+        query = query.eq('ai_complexidade', filters.complexity_level);
       }
       if (filters.processo) {
         query = query.contains('processos_associados', [filters.processo]);

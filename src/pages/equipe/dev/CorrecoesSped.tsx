@@ -224,7 +224,7 @@ const CorrecoesSped = () => {
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Data Início <RequiredMark />
-                  <FieldTooltip text={SPED_TOOLTIPS.dataInicio} />
+                  <FieldTooltip text={SPED_TOOLTIPS.start_date} />
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -241,7 +241,7 @@ const CorrecoesSped = () => {
               <div>
                 <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Data Fim <RequiredMark />
-                  <FieldTooltip text={SPED_TOOLTIPS.dataFim} />
+                  <FieldTooltip text={SPED_TOOLTIPS.end_date} />
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>

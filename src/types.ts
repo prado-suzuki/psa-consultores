@@ -1,6 +1,23 @@
+// Tipos das entidades do MAPA — alinhados 1:1 com o schema do Supabase.
+//
+// Convenção:
+//   - Campos que mapeiam direto pra colunas do DB: snake_case EN (= nome da
+//     coluna). Nada de `nome → name` no leitor — ler direto o que o Postgres
+//     devolve.
+//   - Campos derivados de JOIN ou junções M:N: camelCase com nome que o
+//     domínio MAPA usa (ex.: `processos[]` agregado de `gargalo_processos`).
+//   - Campos sintéticos da UI (ex.: `ficou` no Etapa, `clusterName`):
+//     camelCase indicando origem.
+//
+// FK convention: snake_case com sufixo `_id` (ex.: `project_id`, `cluster_id`)
+// — espelha o DB e o resto do PSA Lovable.
+
+// Base usado por entidades com schema EN (projects, processes, process_stages,
+// job_roles). Tabelas PT-native (sistemas_processo, documentos_processo,
+// gargalos) declaram `id`/`nome` direto sem extender.
 export interface BaseEntity {
   id: string;
-  nome: string;
+  name: string;
 }
 
 export type ProjetoStatus = 'Mapeamento' | 'Diagnóstico' | 'Melhorias' | 'ROI';
@@ -40,34 +57,49 @@ export const JUSTIFICATIVAS_PROJETO: { value: JustificativaProjeto; label: strin
   },
 ];
 
+// ═════════════════════════════════════════════════════════════════════════
+//  Projeto — tabela `projects` (Lovable nativa + cols MAPA via integration)
+// ═════════════════════════════════════════════════════════════════════════
+
 export interface Projeto extends BaseEntity {
-  cluster?: string;
-  descricao: string;
-  projetosPorAno?: number;
-  dataInicio?: string;
-  dataFim?: string;
+  description: string;
+  cluster_id?: string | null;
+  /** Nome do cluster, hidratado via PostgREST relation `estrutura_clusters(name)`. */
+  clusterName?: string;
+  projects_per_year?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
   status?: ProjetoStatus;
+  /** Hidratado via junção `projeto_justificativas` (carregado em query separada). */
   justificativas?: JustificativaProjeto[];
 }
 
-export interface Sistema extends BaseEntity {
+// ═════════════════════════════════════════════════════════════════════════
+//  Sistema — tabela `sistemas_processo`
+// ═════════════════════════════════════════════════════════════════════════
+
+export interface Sistema {
+  id: string;
+  /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
+  nome: string;
   descricao: string;
-  /** Custo da licença/assinatura (recorrente mensal). Mapeia para sistemas_processo.custo_licenca_mensal. */
-  custoLicencaMensal: number;
-  /** Custo variável por uso (mensal). Mapeia para sistemas_processo.custo_variavel_por_uso. */
-  custoVariavelPorUso: number;
+  /** Custo da licença/assinatura (recorrente mensal). */
+  custo_licenca_mensal: number;
+  /** Custo variável por uso (mensal). */
+  custo_variavel_por_uso: number;
   tipo?: string;
   origem?: string;
-  custoPorOperacao?: number;
-  custoSetup?: number;
-  /** 'fixo' | 'variavel' | 'setup' | 'misto' — mapeia para sistemas_processo.tipo_custo. */
-  tipoCusto?: string;
+  custo_por_operacao?: number;
+  custo_setup?: number;
+  /** 'fixo' | 'variavel' | 'setup' | 'misto' */
+  tipo_custo?: string;
+  /** Hidratado via `sistema_responsaveis`. */
   responsaveisHoras?: ResponsavelHoras[];
-  /** Rateio (%) do custo do sistema atribuído a cada cluster — Onda E. */
+  /** Hidratado via `sistema_clusters` — rateio (%) por cluster (Onda E). */
   clustersRateio?: SistemaClusterRateio[];
-  obsLicenca?: string;
-  obsVariavel?: string;
-  obsCustoPorOperacao?: string;
+  obs_licenca?: string;
+  obs_variavel?: string;
+  obs_custo_por_operacao?: string;
 }
 
 export interface SistemaClusterRateio {
@@ -77,14 +109,21 @@ export interface SistemaClusterRateio {
 
 export type EstruturacaoDoc = 'Não Estruturado' | 'Semi Estruturado' | 'Estruturado';
 
-export interface Documento extends BaseEntity {
+// ═════════════════════════════════════════════════════════════════════════
+//  Documento — tabela `documentos_processo`
+// ═════════════════════════════════════════════════════════════════════════
+
+export interface Documento {
+  id: string;
+  /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
+  nome: string;
   tipo: string;
   formato: string;
   origem: string;
-  /** Tempo de elaboração em minutos. Mapeia para documentos_processo.tempo_minutos. */
-  tempoMinutos: number;
+  /** Tempo de elaboração em minutos. */
+  tempo_minutos: number;
   categoria?: string;
-  estruturaEntrada?: string;
+  estrutura_entrada?: string;
   estruturado?: EstruturacaoDoc;
 }
 
@@ -95,41 +134,61 @@ export type StatusAvaliacao = 'Não avaliado' | 'Em avaliação' | 'Avaliado';
 
 export type Complexidade = 'Baixa' | 'Média' | 'Alta';
 
+// ═════════════════════════════════════════════════════════════════════════
+//  Processo — tabela `processes`
+// ═════════════════════════════════════════════════════════════════════════
+
 export interface Processo extends BaseEntity {
-  descricao: string;
-  horasTreinamento?: number;
-  projetoId?: string;
-  ordem?: number;
-  frequencia?: FrequenciaProcesso;
-  entregavel?: string;
-  statusAvaliacao?: StatusAvaliacao;
-  complexidade?: Complexidade;
-  mapeadoEm?: string;
+  description: string;
+  training_hours?: number | null;
+  project_id?: string | null;
+  order_index?: number | null;
+  frequency?: FrequenciaProcesso | null;
+  deliverable?: string | null;
+  evaluation_status?: StatusAvaliacao | null;
+  complexity_level?: Complexidade | null;
+  mapped_at?: string | null;
 }
 
-export interface Gargalo extends BaseEntity {
+// ═════════════════════════════════════════════════════════════════════════
+//  Gargalo — tabela `gargalos`
+// ═════════════════════════════════════════════════════════════════════════
+
+export interface Gargalo {
+  id: string;
+  /** Coluna PT-native do DB (tabela `gargalos`). Mantém snake_case PT. */
+  nome: string;
   descricao: string;
-  /** Processos afetados por este gargalo (M:N) */
+  /** Hidratado via `gargalo_processos` (M:N). */
   processos: string[];
   /** Melhoria vinculada (1:N — cada gargalo tem no máximo 1 melhoria). */
-  melhoriaId?: string | null;
+  melhoria_id?: string | null;
   origem?: string;
-  cluster?: string;
-  horasGastas?: number;
-  horasImplementacao?: number;
-  taxaOcorrencia?: number;
-  taxaCapturaAposMelhoria?: number;
-  custoExternoUnico?: number;
+  cluster_id?: string | null;
+  /** Nome do cluster, hidratado via JOIN. */
+  clusterName?: string;
+  horas_gastas?: number;
+  horas_implementacao?: number;
+  taxa_ocorrencia?: number;
+  taxa_captura_apos_melhoria?: number;
+  custo_externo_unico?: number;
+  /** Hidratado via `gargalo_responsaveis`. */
   responsaveisHoras?: ResponsavelHoras[];
 }
 
+// ═════════════════════════════════════════════════════════════════════════
+//  Responsavel — tabela `job_roles`
+// ═════════════════════════════════════════════════════════════════════════
+
 export interface Responsavel extends BaseEntity {
-  cargo: string;
-  custoHora: number;
-  tipo?: string;
-  cluster?: string;
-  /** Senioridade do cargo (ex.: Pleno, Júnior, Sênior) */
-  categoria?: string;
+  /** Coluna `level` do DB (junior/pleno/senior/...). */
+  level: string;
+  hourly_rate: number;
+  type?: string;
+  cluster_id?: string | null;
+  clusterName?: string;
+  /** Coluna `category` do DB. */
+  category?: string;
 }
 
 export interface DocRef {
@@ -148,48 +207,62 @@ export interface ResponsavelEtapa {
   horas: number;
 }
 
+// ═════════════════════════════════════════════════════════════════════════
+//  Etapa — tabela `process_stages` (cenário AS-IS/TO-BE via coluna scenario)
+// ═════════════════════════════════════════════════════════════════════════
+
 // Cenário projetado "Como Ficou" — espelho lateral, opcional.
-// null/undefined quando o usuário ainda não salvou nenhuma projeção;
-// nesse caso o cálculo de ROI faz fallback para os campos da era.
 export interface EtapaFicou {
-  descricao?: string | null;
-  execucao?: string;
-  leadTimeDias?: number | null;
-  volumePorProcesso?: number | null;
-  taxaErros?: number | null;
-  taxaRetrabalho?: number | null;
-  custoErro?: number | null;
-  volumeErros?: number | null;
+  description?: string | null;
+  execution?: string;
+  lead_time_days?: number | null;
+  volume_per_process?: number | null;
+  error_rate?: number | null;
+  rework_rate?: number | null;
+  error_cost?: number | null;
+  error_volume?: number | null;
+  /** Hidratado via etapa_responsaveis cenario=TO-BE. */
   executadoPor?: ResponsavelEtapa[];
+  /** Hidratado via etapa_responsaveis cenario=TO-BE (papel=aprovado). */
   aprovadoPor?: ResponsavelEtapa[];
+  /** Hidratado via etapa_sistemas cenario=TO-BE. */
   sistemas?: string[];
+  /** Hidratado via etapa_documentos cenario=TO-BE (sentido=entrada). */
   docsEntrada?: DocRef[];
+  /** Hidratado via etapa_documentos cenario=TO-BE (sentido=saida). */
   docsSaida?: DocRef[];
 }
 
 export interface Etapa extends BaseEntity {
-  processoId: string;
-  descricao: string;
-  execucao: string;
+  description: string;
+  process_id: string;
+  execution: string;
+  /** Lead time em dias do AS-IS. */
+  lead_time_days?: number;
+  volume_per_process?: number;
+  error_rate?: number;
+  rework_rate: number;
+  error_cost?: number;
+  error_volume?: number;
+  /** Posição da etapa no processo (1-based). */
+  stage_order?: number;
+  // Junções hidratadas no hook (não vêm direto da row de process_stages):
+  /** Hidratado via etapa_documentos cenario=AS-IS (sentido=entrada). */
   docsEntrada: DocRef[];
+  /** Hidratado via etapa_documentos cenario=AS-IS (sentido=saida). */
   docsSaida: DocRef[];
+  /** Hidratado via etapa_responsaveis cenario=AS-IS (papel=executado). */
   executadoPor: ResponsavelEtapa[];
-  volumeMensal: number;
-  volumePorProcesso?: number;
-  leadTimeDias?: number;
-  taxaErros?: number;
-  taxaRetrabalho: number;
-  custoErro?: number;
-  volumeErros?: number;
+  /** Hidratado via etapa_sistemas cenario=AS-IS. */
   sistemas: string[];
-  /** Posição da etapa no processo (1-based). Persistida na coluna `ordem`. */
-  ordem?: number;
+  /** Computado: soma do volume mensal agregando todos os projetos ativos. */
+  volumeMensal: number;
   // Cenário "Como Ficou" — null/ausente quando sem projeção salva.
   ficou?: EtapaFicou | null;
 }
 
 export interface RoiReport {
-  processoId: string;
+  process_id: string;
   processoNome: string;
   tempoTotalAtual: number;
   tempoTotalProjetado: number;
@@ -199,8 +272,8 @@ export interface RoiReport {
   economiaFinanceiraMensal: number;
   investimentoInicial: number;
   retornoAnualizado: number;
-  roiPercentual: number;
-  paybackMeses: number;
+  roi_percent: number;
+  payback_months: number;
 }
 
 export interface ResponsavelHoras {
@@ -236,51 +309,56 @@ export const ACOES_TD: AcaoTd[] = [
   'Treinar',
 ];
 
-export interface Melhoria extends BaseEntity {
-  descricao: string;
-  sistemas: string[];
-  executadoPor: ResponsavelHoras[];
+// ═════════════════════════════════════════════════════════════════════════
+//  Melhoria — tabela `process_improvements`
+// ═════════════════════════════════════════════════════════════════════════
+
+export interface Melhoria {
+  id: string;
   /**
-   * Total de horas de treinamento. Quando `treinamentoPor` tem entradas,
-   * é cacheado como Σ rateio no save (backend). Mantido por compatibilidade
-   * com consumidores que não usam o rateio (ROI, SOP, dashboards).
+   * MAPA usa esta coluna do DB pra título — não há `name` na process_improvements.
+   * Mantém snake_case PT (não é EN no DB).
    */
-  horasTreinamento?: number;
-  /**
-   * Rateio das horas de treinamento por responsável.
-   * Σ horas = horasTreinamento (cacheado no backend ao salvar).
-   */
-  treinamentoPor?: ResponsavelHoras[];
-  custoExternoUnico?: number;
-  status?: MelhoriaStatus;
-  acoesTd?: AcaoTd[];
-  cluster?: string;
-  /** Processos atendidos por esta melhoria (M:N) */
+  improvement_description: string;
+  improvement_status?: MelhoriaStatus | null;
+  cluster_id?: string | null;
+  clusterName?: string;
+  training_hours?: number | null;
+  one_time_external_cost?: number | null;
+  // Junções hidratadas no hook:
+  /** Hidratado via `melhoria_processos`. */
   processos: string[];
+  /** Hidratado via `melhoria_sistemas`. */
+  sistemas: string[];
+  /** Hidratado via `melhoria_responsaveis` (papel=executor). */
+  executadoPor: ResponsavelHoras[];
+  /** Hidratado via `melhoria_responsaveis` (papel=treinando). */
+  treinamentoPor?: ResponsavelHoras[];
+  /** Hidratado via `melhoria_acoes_td`. */
+  acoesTd?: AcaoTd[];
 }
 
-// Snapshots de processo (append-only) — registro linear puro de indicadores.
-// Sem contador de versão, sem `tipo`, sem `metadados`. A última mensuração
-// por processo é a row com MAX(snapshot_em) — timeline puramente cronológica.
+// ═════════════════════════════════════════════════════════════════════════
+//  ProcessSnapshot — tabela `process_scenarios`
+// ═════════════════════════════════════════════════════════════════════════
+
 export interface ProcessSnapshot {
   id: string;
-  processoId: string;
-  snapshotEm: string;             // ISO 8601 — única fonte de ordenação
-  custoAnual: number;
-  horasAnual: number;
-  economiaAnual: number;
-  roiPercentual: number;
-  paybackMeses: number;
-  horasLiberadas: number;
-  investimento: number;
-  criadoPor?: string | null;
+  process_id: string;
+  snapshot_at: string;             // ISO 8601 — única fonte de ordenação
+  annual_cost: number;
+  annual_hours: number;
+  annual_savings: number;
+  roi_percent: number;
+  payback_months: number;
+  hours_freed: number;
+  investment: number;
+  created_by?: string | null;
 }
 
 
 // =====================================================================
 // Cascata — Eventos de Disrupção com etapas de retrabalho marcadas manualmente.
-// O conjunto de etapas afetadas é definido pelo usuário (não há derivação
-// automática nem BFS). A junção cascata_evento_etapas guarda (etapa_id, cenario).
 // =====================================================================
 
 export type CenarioEtapa = 'AS-IS' | 'TO-BE';
@@ -291,7 +369,7 @@ export interface CascataEventoEtapaRef {
   // Campos hidratados pelo backend (read-only) — facilitam a UI sem cruzamento.
   etapaNome?: string;
   etapaOrdem?: number;
-  processoId?: string;
+  process_id?: string;
   processoNome?: string;
 }
 
@@ -299,10 +377,10 @@ export interface CascataEvento {
   id: string;
   nome: string;
   descricao?: string;
-  /** FK para processo raiz. Mapeia para cascata_eventos.processo_raiz_id. */
+  /** FK para processo raiz. */
   processoRaizId?: string | null;
   cluster?: string;
-  /** ISO 8601 — mapeia para cascata_eventos.created_at. */
+  /** ISO 8601. */
   createdAt?: string;
   /** Etapas marcadas como retrabalho quando o evento ocorre. */
   etapas: CascataEventoEtapaRef[];

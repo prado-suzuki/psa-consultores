@@ -14,7 +14,7 @@ import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
-import { CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
+import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
@@ -60,6 +60,7 @@ function KPICard({ label, valor, hint, variacao, positivo, tooltip }: KPICardPro
 // ============================================================
 
 export default function SetorEvolucaoPage() {
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -81,26 +82,26 @@ export default function SetorEvolucaoPage() {
   const [dataFim, setDataFim] = useState<string>('');
 
   const clusterPorProjetoId = useMemo(
-    () => new Map(projetos.map(p => [p.id, p.cluster || ''])),
+    () => new Map(projetos.map(p => [p.id, p.clusterName || ''])),
     [projetos],
   );
   const projetosDoCluster = useMemo(
-    () => (filtroCluster ? projetos.filter(p => (p.cluster || '') === filtroCluster) : projetos),
+    () => (filtroCluster ? projetos.filter(p => (p.clusterName || '') === filtroCluster) : projetos),
     [projetos, filtroCluster],
   );
 
   // Escopo (processos do cluster + projeto selecionados, ou todos)
   const processosFiltrados = useMemo(() => {
     let arr = processos;
-    if (filtroCluster) arr = arr.filter(p => p.projetoId && clusterPorProjetoId.get(p.projetoId) === filtroCluster);
-    if (filtroProjeto) arr = arr.filter(p => p.projetoId === filtroProjeto);
+    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterPorProjetoId.get(p.project_id) === filtroCluster);
+    if (filtroProjeto) arr = arr.filter(p => p.project_id === filtroProjeto);
     return arr;
   }, [processos, filtroCluster, filtroProjeto, clusterPorProjetoId]);
 
   const idsProc = useMemo(() => new Set(processosFiltrados.map(p => p.id)), [processosFiltrados]);
 
   const etapasFiltradas = useMemo(
-    () => etapas.filter(e => idsProc.has(e.processoId)),
+    () => etapas.filter(e => idsProc.has(e.process_id)),
     [etapas, idsProc],
   );
   const gargalosFiltrados = useMemo(
@@ -123,7 +124,7 @@ export default function SetorEvolucaoPage() {
   const comparativoPorProcesso = useMemo(() => {
     return roi.porProcesso
       .map(p => ({
-        processoId: p.processoId,
+        process_id: p.processoId,
         processoNome: p.processoNome,
         execucoesAnuais: p.execucoesAnuais,
         custoEra: p.custoAnual,
@@ -131,7 +132,7 @@ export default function SetorEvolucaoPage() {
         deltaCusto: p.economiaAnual,
         deltaCustoPct: p.custoAnual > 0 ? (p.economiaAnual / p.custoAnual) * 100 : 0,
         deltaHoras: p.horasLiberadas,
-        roiPercentual: p.roiPercentual,
+        roi_percent: p.roiPercentual,
       }))
       .sort((a, b) => b.deltaCusto - a.deltaCusto);
   }, [roi]);
@@ -145,18 +146,18 @@ export default function SetorEvolucaoPage() {
   // Série temporal de economia acumulada por mês — depende de snapshots (histórico real).
   const snapshotsFiltrados = useMemo(() => {
     return snapshots
-      .filter(s => idsProc.has(s.processoId))
-      .filter(s => !dataInicio || s.snapshotEm.slice(0, 10) >= dataInicio)
-      .filter(s => !dataFim || s.snapshotEm.slice(0, 10) <= dataFim);
+      .filter(s => idsProc.has(s.process_id))
+      .filter(s => !dataInicio || s.snapshot_at.slice(0, 10) >= dataInicio)
+      .filter(s => !dataFim || s.snapshot_at.slice(0, 10) <= dataFim);
   }, [snapshots, idsProc, dataInicio, dataFim]);
 
   const serieTemporal = useMemo(() => {
     const porMes = new Map<string, number>();
-    const ordenados = [...snapshotsFiltrados].sort((a, b) => a.snapshotEm < b.snapshotEm ? -1 : 1);
+    const ordenados = [...snapshotsFiltrados].sort((a, b) => a.snapshot_at < b.snapshot_at ? -1 : 1);
     let acumulado = 0;
     for (const s of ordenados) {
-      const mes = s.snapshotEm.slice(0, 7);
-      acumulado += s.economiaAnual / 12; // contribuição mensal desta medição
+      const mes = s.snapshot_at.slice(0, 7);
+      acumulado += s.annual_savings / 12; // contribuição mensal desta medição
       porMes.set(mes, acumulado);
     }
     return Array.from(porMes.entries()).map(([mes, valor]) => ({ mes, valor }));
@@ -209,7 +210,7 @@ export default function SetorEvolucaoPage() {
           <Select
             value={filtroProjeto}
             onChange={setFiltroProjeto}
-            options={[{ value: '', label: 'Todos os projetos' }, ...projetosDoCluster.map(p => ({ value: p.id, label: p.nome }))]}
+            options={[{ value: '', label: 'Todos os projetos' }, ...projetosDoCluster.map(p => ({ value: p.id, label: p.name }))]}
             placeholder="Todos os projetos"
           />
         </div>
@@ -244,7 +245,7 @@ export default function SetorEvolucaoPage() {
             label="Horas Liberadas / ano"
             valor={`${fmtNum(horasLiberadasAcum)} h`}
             hint="Δ horas entre Como Era e Como Ficará"
-            tooltip={dica('setor.kpi.horasLiberadas')}
+            tooltip={dica('setor.kpi.hours_freed')}
           />
           <KPICard
             label="Economia Anual"
@@ -310,7 +311,7 @@ export default function SetorEvolucaoPage() {
                   </td>
                 </tr>
               ) : comparativoPorProcesso.map(l => (
-                <tr key={l.processoId}>
+                <tr key={l.process_id}>
                   <td>{l.processoNome}</td>
                   <td>{fmtNum(l.execucoesAnuais)}</td>
                   <td>{formatarMoeda(l.custoEra)}</td>
@@ -322,7 +323,7 @@ export default function SetorEvolucaoPage() {
                     {formatDecimal(l.deltaCustoPct, '%')}
                   </td>
                   <td>{formatDecimal(l.deltaHoras, ' h')}</td>
-                  <td>{formatDecimal(l.roiPercentual, '%')}</td>
+                  <td>{formatDecimal(l.roi_percent, '%')}</td>
                 </tr>
               ))}
             </tbody>

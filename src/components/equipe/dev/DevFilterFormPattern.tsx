@@ -41,28 +41,28 @@ const filterSchema = z
   .object({
     clienteId: z.string().min(1, "Selecione um cliente"),
     contribuinteId: z.string().min(1, "Selecione um contribuinte"),
-    dataInicio: z.date().optional(),
-    dataFim: z.date().optional(),
+    start_date: z.date().optional(),
+    end_date: z.date().optional(),
   })
   .superRefine((data, ctx) => {
-    if (!data.dataInicio) {
+    if (!data.start_date) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["dataInicio"],
+        path: ["start_date"],
         message: "Data inicial é obrigatória",
       });
     }
-    if (!data.dataFim) {
+    if (!data.end_date) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["dataFim"],
+        path: ["end_date"],
         message: "Data final é obrigatória",
       });
     }
-    if (data.dataInicio && data.dataFim && data.dataFim < data.dataInicio) {
+    if (data.start_date && data.end_date && data.end_date < data.start_date) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["dataFim"],
+        path: ["end_date"],
         message: "Data final deve ser maior ou igual à inicial",
       });
     }
@@ -74,8 +74,8 @@ export type DevFilterFormValues = z.infer<typeof filterSchema>;
 export interface DevFilterSubmitValues {
   clienteId: string;
   contribuinteId: string;
-  dataInicio: Date;
-  dataFim: Date;
+  start_date: Date;
+  end_date: Date;
 }
 
 interface SelectOption {
@@ -115,8 +115,8 @@ export const DevFilterFormPattern = ({
     defaultValues: {
       clienteId: "",
       contribuinteId: "",
-      dataInicio: undefined,
-      dataFim: undefined,
+      start_date: undefined,
+      end_date: undefined,
     },
   });
 
@@ -137,8 +137,8 @@ export const DevFilterFormPattern = ({
     form.reset({
       clienteId: "",
       contribuinteId: "",
-      dataInicio: undefined,
-      dataFim: undefined,
+      start_date: undefined,
+      end_date: undefined,
     });
   };
 
@@ -256,7 +256,7 @@ export const DevFilterFormPattern = ({
               {/* Data Início */}
               <FormField
                 control={form.control}
-                name="dataInicio"
+                name="start_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>
@@ -296,7 +296,7 @@ export const DevFilterFormPattern = ({
               {/* Data Fim */}
               <FormField
                 control={form.control}
-                name="dataFim"
+                name="end_date"
                 render={({ field }) => (
                   <FormItem className="flex flex-col">
                     <FormLabel>

@@ -139,6 +139,19 @@ export default {
         },
         "osg-overlay-in": { from: { opacity: "0" }, to: { opacity: "1" } },
         "osg-overlay-out": { from: { opacity: "1" }, to: { opacity: "0" } },
+        // Entrada de conteúdo OSG (troca de empresa no Quadro Societário):
+        // fade + subida curta, escalonável via animation-delay inline. Só
+        // transform/opacity (GPU); fill-mode "both" segura o estado inicial
+        // durante o delay para o elemento não piscar antes de entrar.
+        "osg-rise": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+        // Barras de participação crescendo da esquerda (usar com origin-left).
+        "osg-bar-grow": {
+          from: { transform: "scaleX(0)" },
+          to: { transform: "scaleX(1)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -148,6 +161,8 @@ export default {
         "osg-modal-out": "osg-modal-out 0.2s cubic-bezier(0.4, 0, 1, 1)",
         "osg-overlay-in": "osg-overlay-in 0.3s ease-out",
         "osg-overlay-out": "osg-overlay-out 0.2s ease-in",
+        "osg-rise": "osg-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
+        "osg-bar-grow": "osg-bar-grow 1.4s cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },

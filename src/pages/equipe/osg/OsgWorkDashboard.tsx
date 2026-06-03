@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Users, Landmark, FileText } from 'lucide-react';
+import { ChevronRight, Users, Landmark, FileText, PieChart } from 'lucide-react';
 
 interface Ferramenta {
   id: string;
@@ -32,6 +32,13 @@ const FERRAMENTAS: Ferramenta[] = [
     descricao: 'Registro de todas as matrículas, vinculadas ou órfãs, e seus vínculos com bens.',
     path: '/equipe/osg/work/controle-matriculas',
     icon: <FileText className="h-5 w-5 text-osg-600" />,
+  },
+  {
+    id: 'quadro-societario',
+    titulo: 'Quadro Societário',
+    descricao: 'Distribuição de quotas e participação dos sócios das empresas do cliente.',
+    path: '/equipe/osg/work/quadro-societario',
+    icon: <PieChart className="h-5 w-5 text-osg-600" />,
   },
 ];
 

@@ -30,7 +30,7 @@ function PageHeader({ processo, scenarioLabel }: { processo: Processo; scenarioL
   return (
     <View style={styles.pageHeader} fixed>
       <View>
-        <Text style={styles.pageHeaderTitle}>{processo.nome}</Text>
+        <Text style={styles.pageHeaderTitle}>{processo.name}</Text>
         <Text style={styles.pageHeaderSub}>{scenarioLabel}</Text>
       </View>
       <Text style={styles.pageHeaderSub}>PSA Consultores · MAPA</Text>
@@ -76,7 +76,7 @@ export function SopDocument(props: SopDocumentProps) {
   // Cross-cuts — replicar lógica do sopHtmlTemplate em forma funcional simples
   const gargalosDoProcesso = gargalos.filter(g => (g.processos || []).includes(processo.id));
   const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProcesso.filter(g => g.melhoriaId).map(g => g.melhoriaId as string),
+    gargalosDoProcesso.filter(g => g.melhoria_id).map(g => g.melhoria_id as string),
   );
   const procMelhorias = isFicou
     ? melhorias.filter(m =>
@@ -111,17 +111,17 @@ export function SopDocument(props: SopDocumentProps) {
     const exec = (isFicou ? (e.ficou?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
     exec.forEach(r => r.nome && respNames.add(r.nome));
   });
-  const respList = responsaveis.filter(r => respNames.has(r.nome));
+  const respList = responsaveis.filter(r => respNames.has(r.name));
 
   let sectionNum = 0;
   const nextNum = () => ++sectionNum;
 
   return (
-    <Document title={`SOP - ${processo.nome}`} author="PSA Consultores">
+    <Document title={`SOP - ${processo.name}`} author="PSA Consultores">
       {/* CAPA */}
       <Page size="A4" style={styles.coverPage}>
         <Text style={styles.coverEyebrow}>SOP · PROCEDIMENTO OPERACIONAL</Text>
-        <Text style={styles.coverTitle}>{processo.nome}</Text>
+        <Text style={styles.coverTitle}>{processo.name}</Text>
         <Text style={styles.coverSub}>{scenarioLabel}</Text>
         <Text style={styles.coverMeta}>Emissão · {data}</Text>
       </Page>
@@ -133,11 +133,11 @@ export function SopDocument(props: SopDocumentProps) {
         {/* Identificação */}
         <View style={styles.section}>
           <SectionHeader num={nextNum()} title="Identificação" />
-          <InfoRow label="Nome" value={processo.nome} />
-          <InfoRow label="Descrição" value={processo.descricao || ''} />
-          <InfoRow label="Entregável" value={processo.entregavel || ''} />
-          <InfoRow label="Frequência" value={processo.frequencia || ''} />
-          <InfoRow label="Complexidade" value={processo.complexidade || ''} />
+          <InfoRow label="Nome" value={processo.name} />
+          <InfoRow label="Descrição" value={processo.description || ''} />
+          <InfoRow label="Entregável" value={processo.deliverable || ''} />
+          <InfoRow label="Frequência" value={processo.frequency || ''} />
+          <InfoRow label="Complexidade" value={processo.complexity_level || ''} />
         </View>
 
         {/* Etapas */}
@@ -148,20 +148,20 @@ export function SopDocument(props: SopDocumentProps) {
           )}
           {etapas.map((e, i) => {
             const f = isFicou ? e.ficou : null;
-            const descricao = (isFicou ? (f?.descricao ?? e.descricao) : e.descricao) || '';
-            const execucao = (isFicou ? (f?.execucao ?? e.execucao) : e.execucao) || '';
+            const descricao = (isFicou ? (f?.description ?? e.description) : e.description) || '';
+            const execution = (isFicou ? (f?.execution ?? e.execution) : e.execution) || '';
             const exec = (isFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
             const sisEtapa = sisOf(e);
             const docsE = docsEntOf(e);
             const docsS = docsSaiOf(e);
-            const taxa = (isFicou ? (f?.taxaRetrabalho ?? e.taxaRetrabalho) : e.taxaRetrabalho) ?? 0;
+            const taxa = (isFicou ? (f?.rework_rate ?? e.rework_rate) : e.rework_rate) ?? 0;
             return (
               <View key={e.id} style={styles.card} wrap={false}>
-                <Text style={styles.cardTitle}>{i + 1}. {e.nome}</Text>
+                <Text style={styles.cardTitle}>{i + 1}. {e.name}</Text>
                 {!!descricao && (
                   <Text style={[styles.small, { marginBottom: 4 }]}>{descricao}</Text>
                 )}
-                <InfoRow label="Execução" value={execucao} />
+                <InfoRow label="Execução" value={execution} />
                 <InfoRow label="Executado por" value={joinPeople(exec)} />
                 <InfoRow label="Sistemas" value={sisEtapa.map(s => sistemas.find(x => x.id === s || x.nome === s)?.nome ?? s).join(' · ') || '—'} />
                 <InfoRow label="Docs entrada" value={joinDocs(docsE)} />
@@ -245,10 +245,10 @@ export function SopDocument(props: SopDocumentProps) {
               </View>
               {respList.map(r => (
                 <View key={r.id} style={styles.tr}>
-                  <Text style={[styles.td, { width: '40%' }]}>{r.nome}</Text>
-                  <Text style={[styles.td, { width: '30%' }]}>{r.cargo || '—'}</Text>
+                  <Text style={[styles.td, { width: '40%' }]}>{r.name}</Text>
+                  <Text style={[styles.td, { width: '30%' }]}>{r.level || '—'}</Text>
                   <Text style={[styles.td, { flex: 1 }]}>
-                    {r.custoHora ? `R$ ${r.custoHora.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}
+                    {r.hourly_rate ? `R$ ${r.hourly_rate.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}
                   </Text>
                 </View>
               ))}
@@ -277,10 +277,10 @@ export function SopDocument(props: SopDocumentProps) {
             <SectionHeader num={nextNum()} title={`Melhorias projetadas (${procMelhorias.length})`} />
             {procMelhorias.map(m => (
               <View key={m.id} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: PDF_COLORS.accentSoft }]}>
-                <Text style={styles.cardTitle}>{m.nome}</Text>
-                {!!m.descricao && <Text style={[styles.small, { marginBottom: 2 }]}>{m.descricao}</Text>}
-                {!!m.status && (
-                  <Text style={[styles.small, styles.muted]}>Status: {m.status}</Text>
+                <Text style={styles.cardTitle}>{m.improvement_description}</Text>
+                {!!m.improvement_description && <Text style={[styles.small, { marginBottom: 2 }]}>{m.improvement_description}</Text>}
+                {!!m.improvement_status && (
+                  <Text style={[styles.small, styles.muted]}>Status: {m.improvement_status}</Text>
                 )}
               </View>
             ))}

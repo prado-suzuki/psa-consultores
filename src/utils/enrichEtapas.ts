@@ -48,7 +48,7 @@ export function enrichEtapas(
 ): Etapa[] {
   const docById = new Map(documentos.map((d) => [d.id, d.nome]));
   const sisById = new Map(sistemas.map((s) => [s.id, s.nome]));
-  const respById = new Map(responsaveis.map((r) => [r.id, r.nome]));
+  const respById = new Map(responsaveis.map((r) => [r.id, r.name]));
 
   return rawEtapas.map((e) => {
     const enriched: Etapa = {
@@ -57,7 +57,7 @@ export function enrichEtapas(
       sistemas: resolveIds(toArr(e.sistemas).map(String), sisById),
       docsEntrada: enrichDocRefs(e.docsEntrada, docById),
       docsSaida: enrichDocRefs(e.docsSaida, docById),
-      volumeMensal: e.volumeMensal ?? e.volumePorProcesso ?? 0,
+      volumeMensal: e.volumeMensal ?? e.volume_per_process ?? 0,
     };
     // Espelha a resolução de ids→nomes no cenário "Como Ficou" (sistemas e docs)
     // para a UI não exibir ids crus. Na gravação o backend reconverte por nome.

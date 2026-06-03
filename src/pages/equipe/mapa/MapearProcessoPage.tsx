@@ -51,7 +51,7 @@ const ABAS: { id: Aba; label: string }[] = [
 ];
 
 // Ordem canônica das etapas (a reordenação é persistida na coluna `ordem`).
-const ordenarPorOrdem = (a: Etapa, b: Etapa) => (a.ordem ?? 0) - (b.ordem ?? 0);
+const ordenarPorOrdem = (a: Etapa, b: Etapa) => (a.stage_order ?? 0) - (b.stage_order ?? 0);
 
 export default function MapearProcessoPage() {
   const { id } = useParams<{ id: string }>();
@@ -75,7 +75,7 @@ export default function MapearProcessoPage() {
   // Etapas hidratadas e filtradas para este processo.
   const etapas = useMemo(() => {
     if (!id) return [] as Etapa[];
-    const filtered = rawEtapas.filter(e => e.processoId === id).sort(ordenarPorOrdem);
+    const filtered = rawEtapas.filter(e => e.process_id === id).sort(ordenarPorOrdem);
     return enrichEtapas(filtered, documentos, sistemas, responsaveis);
   }, [id, rawEtapas, documentos, sistemas, responsaveis]);
   // `snapshots` é local porque podemos querer apppendar otimisticamente
@@ -108,7 +108,7 @@ export default function MapearProcessoPage() {
 
   const docNames = useMemo(() => documentos.map(d => d.nome), [documentos]);
   const sisNames = useMemo(() => sistemas.map(s => s.nome), [sistemas]);
-  const respNames = useMemo(() => responsaveis.map(r => r.nome), [responsaveis]);
+  const respNames = useMemo(() => responsaveis.map(r => r.name), [responsaveis]);
 
   if (loading) {
     return <div className="loading-container"><div className="spinner" /></div>;
@@ -150,7 +150,7 @@ export default function MapearProcessoPage() {
         projetos,
       });
       const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
-      const projetoDoProcesso = projetos.find(p => p.id === processo.projetoId) || null;
+      const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
       await generateSOPComparativo({
         processo,
         etapas,
@@ -171,7 +171,7 @@ export default function MapearProcessoPage() {
   // ============================================================
   //  Diagrama (Mermaid) — Processo + 6 grupos de ligações
   // ============================================================
-  const projetoDoProcesso = projetos.find(p => p.id === processo.projetoId) || null;
+  const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
   const diagramaCode = buildProcessDiagram({
     processo,
     etapas,
@@ -201,7 +201,7 @@ export default function MapearProcessoPage() {
   });
 
   const openEditEtapas = (mode: 'era' | 'ficou', focusEtapaId?: string) => {
-    const snapshotsEtapas = etapas.map(e => cleanEtapa({ ...e, nome: cleanEtapaName(e.nome) }));
+    const snapshotsEtapas = etapas.map(e => cleanEtapa({ ...e, name: cleanEtapaName(e.name) }));
     let prepared: Etapa[];
     if (mode === 'era') {
       prepared = snapshotsEtapas;
@@ -212,14 +212,14 @@ export default function MapearProcessoPage() {
         const f = eraEtapa.ficou;
         return {
           ...eraEtapa,
-          descricao: f?.descricao ?? eraEtapa.descricao,
-          execucao: f?.execucao ?? eraEtapa.execucao,
-          leadTimeDias: f?.leadTimeDias ?? eraEtapa.leadTimeDias,
-          volumePorProcesso: f?.volumePorProcesso ?? eraEtapa.volumePorProcesso,
-          taxaErros: f?.taxaErros ?? eraEtapa.taxaErros,
-          taxaRetrabalho: f?.taxaRetrabalho ?? eraEtapa.taxaRetrabalho ?? 0,
-          custoErro: f?.custoErro ?? eraEtapa.custoErro,
-          volumeErros: f?.volumeErros ?? eraEtapa.volumeErros,
+          descricao: f?.description ?? eraEtapa.description,
+          execution: f?.execution ?? eraEtapa.execution,
+          lead_time_days: f?.lead_time_days ?? eraEtapa.lead_time_days,
+          volume_per_process: f?.volume_per_process ?? eraEtapa.volume_per_process,
+          error_rate: f?.error_rate ?? eraEtapa.error_rate,
+          rework_rate: f?.rework_rate ?? eraEtapa.rework_rate ?? 0,
+          error_cost: f?.error_cost ?? eraEtapa.error_cost,
+          error_volume: f?.error_volume ?? eraEtapa.error_volume,
           executadoPor: f?.executadoPor ?? eraEtapa.executadoPor,
           sistemas: f?.sistemas ?? eraEtapa.sistemas,
           docsEntrada: f?.docsEntrada ?? eraEtapa.docsEntrada,
@@ -257,21 +257,20 @@ export default function MapearProcessoPage() {
   };
 
   // Nova etapa em branco — já atrelada ao processo atual (o modal vive dentro
-  // de um processo, então processoId é automático).
+  // de um processo, então process_id é automático).
   const addNovaEtapa = () => {
     const nova = {
       id: `etp-novo-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      processoId: processo.id,
-      nome: '',
-      descricao: '',
-      execucao: 'manual',
+      process_id: processo.id,
+      name: '',
+      description: '',
+      execution: 'manual',
       docsEntrada: [],
       docsSaida: [],
       executadoPor: [],
       volumeMensal: 0,
       sistemas: [],
-      estruturaEntrada: '',
-      taxaRetrabalho: 0,
+      rework_rate: 0,
     } as Etapa;
     const novaLista = [...editEtapasList, nova];
     setEditEtapasList(novaLista);
@@ -313,7 +312,7 @@ export default function MapearProcessoPage() {
         } else {
           // mode === 'ficou' — projeção TO-BE via hook (upsert id+cenario).
           if (!existingIds.has(e.id)) continue;
-          await upsertEtapaToBe.mutateAsync({ etapa: e, processoId: processo.id });
+          await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
         }
       }
       // Etapas removidas no modal: deleta do banco (somente as que já existiam).
@@ -374,9 +373,9 @@ export default function MapearProcessoPage() {
           >
             ← Voltar
           </button>
-          <h1 style={{ margin: 0 }}>{processo.nome}</h1>
-          {processo.statusAvaliacao && processo.statusAvaliacao !== 'Não avaliado' && (
-            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534' }}>{processo.statusAvaliacao}</span>
+          <h1 style={{ margin: 0 }}>{processo.name}</h1>
+          {processo.evaluation_status && processo.evaluation_status !== 'Não avaliado' && (
+            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534' }}>{processo.evaluation_status}</span>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -402,8 +401,8 @@ export default function MapearProcessoPage() {
         </div>
       </div>
 
-      {processo.descricao && (
-        <p style={{ color: '#475569', marginTop: 6 }}>{processo.descricao}</p>
+      {processo.description && (
+        <p style={{ color: '#475569', marginTop: 6 }}>{processo.description}</p>
       )}
 
       {/* Navegação por abas */}
@@ -499,7 +498,7 @@ export default function MapearProcessoPage() {
                   <div className="etapas-sidebar-header">Etapas do processo</div>
                   <ol className="etapas-sidebar-list">
                     {editEtapasList.map((e, i) => {
-                      const rotulo = cleanEtapaName(e.nome) || 'Nova etapa';
+                      const rotulo = cleanEtapaName(e.name) || 'Nova etapa';
                       const isActive = i === editEtapasActiveIndex;
                       return (
                         <li
@@ -552,20 +551,20 @@ export default function MapearProcessoPage() {
                 <div className="modal-section">
                   <div className="modal-section-title"><Tooltip text={dica('mapear.secao.identificacao')}>Identificação</Tooltip></div>
                   <FormField label="Nome" compact tooltip={dica('mapear.etapa.nome')}>
-                    <input type="text" value={active.nome} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'nome', e.target.value)} />
+                    <input type="text" value={active.name} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'name', e.target.value)} />
                   </FormField>
                   <FormField label="Descrição" compact tooltip={dica('mapear.etapa.descricao')}>
-                    <textarea value={active.descricao} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'descricao', e.target.value)} />
+                    <textarea value={active.description} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'description', e.target.value)} />
                   </FormField>
                 </div>
 
                 <div className="modal-section">
                   <div className="modal-section-title"><Tooltip text={dica('mapear.secao.operacao')}>Operação</Tooltip></div>
                   <div className="form-row">
-                    <FormField label="Execução" compact tooltip={dica('mapear.etapa.execucao')}>
+                    <FormField label="Execução" compact tooltip={dica('mapear.etapa.execution')}>
                       <Select
-                        value={active.execucao || ''}
-                        onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'execucao', v)}
+                        value={active.execution || ''}
+                        onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'execution', v)}
                         options={EXECUCAO_OPCOES}
                         placeholder="Selecione..."
                         compact
@@ -616,23 +615,23 @@ export default function MapearProcessoPage() {
                 <div className="modal-section">
                   <div className="modal-section-title"><Tooltip text={dica('mapear.secao.metricas')}>Métricas</Tooltip></div>
                   <div className="form-row">
-                    <FormField label="Volume por processo" compact tooltip={dica('mapear.etapa.volumePorProcesso')}>
-                      <DecimalInput value={active.volumePorProcesso || 0} onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'volumePorProcesso', n)} min={0} />
+                    <FormField label="Volume por processo" compact tooltip={dica('mapear.etapa.volume_per_process')}>
+                      <DecimalInput value={active.volume_per_process || 0} onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'volume_per_process', n)} min={0} />
                     </FormField>
-                    <FormField label="Taxa Erros (%)" compact tooltip={dica('mapear.etapa.taxaErros')}>
+                    <FormField label="Taxa Erros (%)" compact tooltip={dica('mapear.etapa.error_rate')}>
                       <DecimalInput
-                        value={(active.taxaErros ?? 0) * 100}
-                        onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'taxaErros', n / 100)}
+                        value={(active.error_rate ?? 0) * 100}
+                        onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'error_rate', n / 100)}
                         min={0}
                         max={100}
                         placeholder="Ex: 5"
                       />
                     </FormField>
                   </div>
-                  <FormField label="Taxa Retrabalho (%)" compact tooltip={dica('mapear.etapa.taxaRetrabalho')}>
+                  <FormField label="Taxa Retrabalho (%)" compact tooltip={dica('mapear.etapa.rework_rate')}>
                     <DecimalInput
-                      value={(active.taxaRetrabalho || 0) * 100}
-                      onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'taxaRetrabalho', n / 100)}
+                      value={(active.rework_rate || 0) * 100}
+                      onChange={(n) => handleUpdateEtapaField(editEtapasActiveIndex, 'rework_rate', n / 100)}
                       min={0}
                       max={100}
                       placeholder="Ex: 15"
@@ -686,7 +685,7 @@ export default function MapearProcessoPage() {
       <Modal isOpen={historicoOpen} onClose={() => setHistoricoOpen(false)}>
         <div className="modal-etapas">
           <div className="modal-header">
-            <h2>Histórico de Medições: {processo.nome}</h2>
+            <h2>Histórico de Medições: {processo.name}</h2>
             <button
               className="btn-sop-header"
               onClick={() => { setHistoricoOpen(false); setAba('configurar-roi'); }}
@@ -704,14 +703,14 @@ export default function MapearProcessoPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {snapshots.map((s, i) => {
                   const anterior = i > 0 ? snapshots[i - 1] : null;
-                  const deltaCusto = anterior ? s.custoAnual - anterior.custoAnual : 0;
+                  const deltaCusto = anterior ? s.annual_cost - anterior.annual_cost : 0;
                   return (
                     <div key={s.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
                         <div>
                           <strong>Mensuração</strong>
                           <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#64748b' }}>
-                            {new Date(s.snapshotEm).toLocaleString('pt-BR')}
+                            {new Date(s.snapshot_at).toLocaleString('pt-BR')}
                           </span>
                         </div>
                         {anterior && (
@@ -721,12 +720,12 @@ export default function MapearProcessoPage() {
                         )}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, marginTop: 8, fontSize: '0.8rem' }}>
-                        <div><span style={{ color: '#64748b' }}>Custo / ano</span><br/><strong>{formatarMoeda(s.custoAnual)}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Horas / ano</span><br/><strong>{formatDecimal(s.horasAnual, ' h')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Economia / ano</span><br/><strong>{formatarMoeda(s.economiaAnual)}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>ROI</span><br/><strong>{formatDecimal(s.roiPercentual, '%')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Payback</span><br/><strong>{formatDecimal(s.paybackMeses, ' meses')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Horas liberadas</span><br/><strong>{formatDecimal(s.horasLiberadas, ' h')}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>Custo / ano</span><br/><strong>{formatarMoeda(s.annual_cost)}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>Horas / ano</span><br/><strong>{formatDecimal(s.annual_hours, ' h')}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>Economia / ano</span><br/><strong>{formatarMoeda(s.annual_savings)}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>ROI</span><br/><strong>{formatDecimal(s.roi_percent, '%')}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>Payback</span><br/><strong>{formatDecimal(s.payback_months, ' meses')}</strong></div>
+                        <div><span style={{ color: '#64748b' }}>Horas liberadas</span><br/><strong>{formatDecimal(s.hours_freed, ' h')}</strong></div>
                       </div>
                     </div>
                   );
@@ -745,7 +744,7 @@ export default function MapearProcessoPage() {
         onClose={() => setDiagramaOpen(false)}
         code={diagramaCode}
         filename={diagramaFilename}
-        title={`Diagrama: ${processo.nome}`}
+        title={`Diagrama: ${processo.name}`}
       />
     </div>
   );
@@ -782,13 +781,13 @@ function ComoEraView({ etapas, fmtDocs, fmtPct, sumHorasEtapa, gargalosDoProcess
         <div key={e.id} className="etapa-item">
           <div className="etapa-section">
             <div className="etapa-section-title">Identificação</div>
-            <h4>{e.nome}</h4>
-            <div className="campo" style={{ whiteSpace: 'pre-line' }}>{e.descricao}</div>
+            <h4>{e.name}</h4>
+            <div className="campo" style={{ whiteSpace: 'pre-line' }}>{e.description}</div>
           </div>
 
           <div className="etapa-section">
             <div className="etapa-section-title">Operação</div>
-            <div className="campo"><strong>Execução:</strong> {e.execucao || '—'}</div>
+            <div className="campo"><strong>Execução:</strong> {e.execution || '—'}</div>
           </div>
 
           <div className="etapa-section">
@@ -815,9 +814,9 @@ function ComoEraView({ etapas, fmtDocs, fmtPct, sumHorasEtapa, gargalosDoProcess
             <div className="etapa-section-title">Métricas</div>
             <div className="meta">
               <div>Horas gasta por projeto: <span>{formatDecimal(sumHorasEtapa(e), 'h')}</span></div>
-              <div>Volume por processo: <span>{formatDecimal(e.volumePorProcesso || 0)}</span></div>
-              <div>Taxa Erros: <span>{fmtPct(e.taxaErros ?? 0)}%</span></div>
-              <div>Retrabalho: <span>{fmtPct(e.taxaRetrabalho)}%</span></div>
+              <div>Volume por processo: <span>{formatDecimal(e.volume_per_process || 0)}</span></div>
+              <div>Taxa Erros: <span>{fmtPct(e.error_rate ?? 0)}%</span></div>
+              <div>Retrabalho: <span>{fmtPct(e.rework_rate)}%</span></div>
             </div>
           </div>
         </div>
@@ -841,10 +840,10 @@ function ComoFicouView({ etapas, melhoriasDoProcesso, fmtDocs, fmtPct, sumHorasE
         // Resolve campos do cenário ficou — usa etapa.ficou.* quando há
         // projeção salva, senão faz fallback para os valores da era.
         const f = e.ficou;
-        const descricao  = f?.descricao        ?? e.descricao;
-        const execucao   = f?.execucao        ?? e.execucao;
-        const volProjeto = f?.volumePorProcesso ?? e.volumePorProcesso;
-        const taxaRetrab = f?.taxaRetrabalho   ?? e.taxaRetrabalho;
+        const descricao  = f?.description        ?? e.description;
+        const execution   = f?.execution        ?? e.execution;
+        const volProjeto = f?.volume_per_process ?? e.volume_per_process;
+        const taxaRetrab = f?.rework_rate   ?? e.rework_rate;
         const execArr    = f?.executadoPor     ?? e.executadoPor;
         const sistArr    = f?.sistemas         ?? e.sistemas;
         const docsEnt    = f?.docsEntrada      ?? e.docsEntrada;
@@ -855,7 +854,7 @@ function ComoFicouView({ etapas, melhoriasDoProcesso, fmtDocs, fmtPct, sumHorasE
           <div key={e.id} className="etapa-item">
             <div className="etapa-section">
               <div className="etapa-section-title">Identificação</div>
-              <h4>{e.nome}</h4>
+              <h4>{e.name}</h4>
               <div className="campo" style={{ whiteSpace: 'pre-line' }}>{descricao}</div>
             </div>
 
@@ -866,12 +865,12 @@ function ComoFicouView({ etapas, melhoriasDoProcesso, fmtDocs, fmtPct, sumHorasE
                 {melhoriasDoProcesso.length === 0 ? '—' : (
                   <span className="tags" style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
                     {melhoriasDoProcesso.map(m => (
-                      <span key={m.id} className="tag tag-etapa">{m.nome}</span>
+                      <span key={m.id} className="tag tag-etapa">{m.improvement_description}</span>
                     ))}
                   </span>
                 )}
               </div>
-              <div className="campo"><strong>Execução:</strong> {execucao || '—'}</div>
+              <div className="campo"><strong>Execução:</strong> {execution || '—'}</div>
             </div>
 
             <div className="etapa-section">

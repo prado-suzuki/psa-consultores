@@ -154,8 +154,8 @@ interface ExportDialogProps {
   cteData?: CTeRecord[];
   tipoDocumento: 'nfe' | 'cte' | 'todos';
   totalRecords: number;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
   disabled?: boolean;
   // Props para buscar todos os dados
   contribuinteId?: string;
@@ -308,8 +308,8 @@ export function ExportDialog({
   cteData = [], 
   tipoDocumento, 
   totalRecords, 
-  dataInicio, 
-  dataFim, 
+  start_date, 
+  end_date, 
   disabled,
   contribuinteId,
   tipoMov,
@@ -505,8 +505,8 @@ export function ExportDialog({
     const url = `${API_BASE_URL}/api/v1/query/export/${contribuinteId}/${docType}/csv`;
     
     const body = {
-      data_inicio: dataInicio,
-      data_fim: dataFim,
+      data_inicio: start_date,
+      data_fim: end_date,
       colunas: selectedColumns,
       ...(tipoMov && { tipo_mov: tipoMov }),
       ...(emitente && { emitente: emitente.replace(/\D/g, '') }),
@@ -581,7 +581,7 @@ export function ExportDialog({
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
       // Download
-      const fileName = `${tipoDocumento}_export_${dataInicio}_${dataFim}.xlsx`;
+      const fileName = `${tipoDocumento}_export_${start_date}_${end_date}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -613,7 +613,7 @@ export function ExportDialog({
           <DialogHeader>
             <DialogTitle>Exportar Documentos Fiscais</DialogTitle>
             <DialogDescription>
-              {totalRecords} registro(s) serão exportados • Período: {dataInicio} a {dataFim}
+              {totalRecords} registro(s) serão exportados • Período: {start_date} a {end_date}
             </DialogDescription>
             <div className="flex items-start gap-2 mt-2 p-3 rounded-md bg-blue-50 border border-blue-200 text-sm text-slate-700">
               <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
