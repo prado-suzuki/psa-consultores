@@ -3,9 +3,9 @@
 // funcionar (react-refresh/only-export-components).
 
 export const formatAreaUnidade = (u: string | null | undefined) =>
-  u === 'm2' ? 'm²' : (u ?? '');
+  u === 'm2' ? 'm²' : u === 'ha_m2' ? 'ha + m²' : (u ?? '');
 
-// m² aceita 2 casas decimais; ha aceita 4.
+// m² aceita 2 casas decimais; ha e ha+m² aceitam 4.
 export const maxAreaDecimals = (u: string | null | undefined) => (u === 'm2' ? 2 : 4);
 export const areaStep = (u: string | null | undefined) => (u === 'm2' ? '0.01' : '0.0001');
 

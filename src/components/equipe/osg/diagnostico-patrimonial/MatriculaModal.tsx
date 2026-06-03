@@ -91,6 +91,7 @@ const GEORREFERENCIAMENTO_OPTIONS = ['Sim', 'Não', 'Parcial', 'Em processo'];
 const UNIDADE_AREA_OPTIONS: { value: string; label: string }[] = [
   { value: 'ha', label: 'ha' },
   { value: 'm2', label: 'm²' },
+  { value: 'ha_m2', label: 'ha + m²' },
 ];
 
 interface MatriculaModalProps {
