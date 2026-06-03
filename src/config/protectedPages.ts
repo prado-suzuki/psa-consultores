@@ -10,7 +10,7 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax' | 'mapa';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -356,6 +356,106 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_name: 'ICMS das Saídas',
     page_description: 'Classificação fiscal de produtos em saídas interestaduais (Beta)',
     category: 'dev',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+
+  // =============================================
+  // === MAPA PAGES (Mapeamento de Processos OSG) ===
+  // =============================================
+  {
+    page_path: '/equipe/digital/mapa',
+    page_name: 'MAPA - Projetos',
+    page_description: 'Lista de projetos do OSG (6 pilares)',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/processos',
+    page_name: 'MAPA - Processos',
+    page_description: 'Mapeamento de processos por projeto',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/processos/:id/mapear',
+    page_name: 'MAPA - Mapear processo',
+    page_description: 'Edição de etapas, ROI baseline e remensurações',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/cascata',
+    page_name: 'MAPA - Cascata',
+    page_description: 'Grafo de interdependências processo→processo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/documentos',
+    page_name: 'MAPA - Documentos',
+    page_description: 'Catálogo de documentos (entrada/saída de etapas)',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/sistemas',
+    page_name: 'MAPA - Sistemas',
+    page_description: 'Sistemas/ferramentas usados nas etapas',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/responsaveis',
+    page_name: 'MAPA - Responsáveis',
+    page_description: 'Pessoas, papéis (executado/revisado/aprovado) e custo-hora',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/gargalos',
+    page_name: 'MAPA - Gargalos',
+    page_description: 'Gargalos identificados em processos',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/melhorias',
+    page_name: 'MAPA - Melhorias',
+    page_description: 'Plano de ações T/D por gargalo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/dashboard-roi',
+    page_name: 'MAPA - Dashboard ROI',
+    page_description: 'Visão consolidada de ROI por processo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/setor-evolucao',
+    page_name: 'MAPA - Setor / Evolução',
+    page_description: 'Linha do tempo e maturidade por setor',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/notas-metodologicas',
+    page_name: 'MAPA - Notas metodológicas',
+    page_description: 'Premissas, fórmulas e referências do diagnóstico',
+    category: 'mapa',
     requires_admin: false,
     requires_team_member: true,
   },

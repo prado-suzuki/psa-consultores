@@ -58,6 +58,7 @@ import EquipeBacklog from "./pages/equipe/EquipeBacklog";
 import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import DigitalAreaSelector from "./pages/equipe/DigitalAreaSelector";
+import MapaRoutes from "./pages/equipe/mapa/MapaRoutes";
 
 // Equipe > Dev
 import DevDashboard from "./pages/equipe/dev/DevDashboard";
@@ -175,6 +176,7 @@ const App = () => (
               <Route path="/equipe/biblioteca" element={<PageAccessGate pagePath="/equipe/biblioteca"><EquipeBiblioteca /></PageAccessGate>} />
               <Route path="/equipe/backlog" element={<PageAccessGate pagePath="/equipe/backlog"><EquipeBacklog /></PageAccessGate>} />
               <Route path="/equipe/digital" element={<ProtectedRoute><DigitalAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/digital/mapa/*" element={<ProtectedRoute><MapaRoutes /></ProtectedRoute>} />
               <Route path="/equipe/dev" element={<PageAccessGate pagePath="/equipe/dev"><DevDashboard /></PageAccessGate>} />
               <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />

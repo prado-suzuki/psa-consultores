@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, RefreshCw, Code2, ChevronRight, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Code2, ChevronRight, ShieldCheck, Map } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
 import logo from '@/assets/logo-psa.png';
@@ -44,6 +44,15 @@ const DigitalAreaSelector = () => {
       category: 'dev',
     },
     {
+      id: 'mapa',
+      label: 'Digital MAPA',
+      description: 'Mapeamento de processos OSG, cascata de impactos e dashboard de ROI',
+      icon: Map,
+      path: '/equipe/digital/mapa',
+      color: 'from-teal-500 to-emerald-500',
+      category: 'mapa',
+    },
+    {
       id: 'acessos',
       label: 'Acessos',
       description: 'Liberação de acessos, gestão de usuários e histórico de alterações',
@@ -61,7 +70,7 @@ const DigitalAreaSelector = () => {
     return categories?.includes(area.category);
   });
 
-  const gridCols = areas.length === 3 ? 'md:grid-cols-3' : areas.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : 'md:grid-cols-2';
+  const gridCols = areas.length >= 4 ? 'md:grid-cols-2 lg:grid-cols-4' : areas.length === 3 ? 'md:grid-cols-3' : areas.length === 1 ? 'md:grid-cols-1 max-w-md mx-auto' : 'md:grid-cols-2';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">

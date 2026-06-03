@@ -1,0 +1,459 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useStoredData } from '@/hooks/useStoredData';
+import Modal from '@/components/equipe/mapa/Modal';
+import FormField from '@/components/equipe/mapa/FormField';
+import Select from '@/components/equipe/mapa/Select';
+import ChipSelector from '@/components/equipe/mapa/ChipSelector';
+import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
+import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
+import PageStats from '@/components/equipe/mapa/PageStats';
+import { Tooltip } from '@/components/equipe/mapa/Tooltip';
+import { dica } from '@/utils/tooltips';
+import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
+import { agrupar } from '@/utils/agrupar';
+import { formatDecimal } from '@/utils/format';
+import { useFocusParam } from '@/utils/useFocusParam';
+import type { Gargalo } from '@/types';
+import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+
+const ORIGEM_OPCOES = [
+  { value: 'Processo', label: 'Processo' },
+  { value: 'Sistema', label: 'Sistema' },
+  { value: 'Pessoas', label: 'Pessoas' },
+  { value: 'Cliente', label: 'Cliente' },
+  { value: 'Externo', label: 'Externo (regulatório / terceiros)' },
+];
+const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
+
+const ORGANIZAR_OPCOES = [
+  { value: 'cluster', label: 'Por cluster' },
+  { value: 'origem', label: 'Por origem' },
+  { value: 'processo', label: 'Por processo afetado' },
+];
+
+export default function GargalosPage() {
+  const { items, loaded, addItem, setItems, removeItem } = useStoredData<Gargalo>('gargalosAdicionados', '/gargalos.json');
+
+  const { data: processos = [] } = useProcessosLista();
+  const { data: melhoriasList = [] } = useMelhoriasLista();
+
+  const procNomeById = useMemo(
+    () => new Map(processos.map(p => [p.id, p.nome])),
+    [processos]
+  );
+  const procIdByNome = useMemo(
+    () => new Map(processos.map(p => [p.nome, p.id])),
+    [processos]
+  );
+  const procOptionsOrdenado = useMemo(
+    () => [...processos].sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0)),
+    [processos]
+  );
+  const melhoriaNomeById = useMemo(
+    () => new Map(melhoriasList.map(m => [m.id, m.nome])),
+    [melhoriasList]
+  );
+  const melhoriaOpcoes = useMemo(
+    () => [
+      { value: '', label: '— sem melhoria —' },
+      ...melhoriasList.map(m => ({ value: m.id, label: m.nome })),
+    ],
+    [melhoriasList]
+  );
+  const idsToNames = (ids: string[]) =>
+    ids.map(id => procNomeById.get(id)).filter((n): n is string => Boolean(n));
+  const namesToIds = (names: string[]) =>
+    names.map(n => procIdByNome.get(n)).filter((id): id is string => Boolean(id));
+
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailItem, setDetailItem] = useState<Gargalo | null>(null);
+
+  // Delete confirm
+  const [confirmDel, setConfirmDel] = useState<Gargalo | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Filtros
+  const [fCluster, setFCluster] = useState('');
+  const [fOrigem, setFOrigem] = useState('');
+  const [fProcesso, setFProcesso] = useState('');
+  const filtrosAtivos = !!(fCluster || fOrigem || fProcesso);
+  const limparFiltros = () => { setFCluster(''); setFOrigem(''); setFProcesso(''); };
+
+  // Criação
+  const [modalOpen, setModalOpen] = useState(false);
+  const [nome, setNome] = useState('');
+  const [descricao, setDescricao] = useState('');
+  const [origem, setOrigem] = useState('');
+  const [cluster, setCluster] = useState('');
+  const [processosNomes, setProcessosNomes] = useState<string[]>([]);
+  const [melhoriaId, setMelhoriaId] = useState('');
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Edição
+  const [editOpen, setEditOpen] = useState(false);
+  const [editId, setEditId] = useState('');
+  const [editNome, setEditNome] = useState('');
+  const [editDescricao, setEditDescricao] = useState('');
+  const [editOrigem, setEditOrigem] = useState('');
+  const [editCluster, setEditCluster] = useState('');
+  const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
+  const [editMelhoriaId, setEditMelhoriaId] = useState('');
+  const [editError, setEditError] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
+
+  const handleSave = () => {
+    if (!nome.trim()) { setError('Preencha o nome do gargalo.'); return; }
+    setError('');
+    setIsSaving(true);
+    addItem({
+      nome: nome.trim(),
+      descricao: descricao.trim(),
+      origem: origem.trim(),
+      cluster: cluster || undefined,
+      processos: namesToIds(processosNomes),
+      melhoriaId: melhoriaId || null,
+    });
+    setTimeout(() => {
+      setNome(''); setDescricao(''); setOrigem(''); setCluster(''); setProcessosNomes([]); setMelhoriaId('');
+      setIsSaving(false); setModalOpen(false);
+    }, 300);
+  };
+
+  const openEdit = (g: Gargalo) => {
+    setEditId(g.id);
+    setEditNome(g.nome);
+    setEditDescricao(g.descricao || '');
+    setEditOrigem(g.origem || '');
+    setEditCluster(g.cluster || '');
+    setEditProcessosNomes(idsToNames(g.processos || []));
+    setEditMelhoriaId(g.melhoriaId || '');
+    setEditError('');
+    setEditOpen(true);
+  };
+
+  const openDetail = (g: Gargalo) => { setDetailItem(g); setDetailOpen(true); };
+
+  const handleUpdate = () => {
+    if (!editNome.trim()) { setEditError('Preencha o nome do gargalo.'); return; }
+    setEditError('');
+    setEditSaving(true);
+    const updated = items.map(g =>
+      g.id === editId
+        ? {
+            ...g,
+            nome: editNome.trim(),
+            descricao: editDescricao.trim(),
+            origem: editOrigem.trim(),
+            cluster: editCluster || undefined,
+            processos: namesToIds(editProcessosNomes),
+            melhoriaId: editMelhoriaId || null,
+          }
+        : g
+    );
+    setItems(updated);
+    setTimeout(() => { setEditSaving(false); setEditOpen(false); }, 300);
+  };
+
+  const itensFiltrados = useMemo(() => items.filter(g =>
+    (!fCluster || g.cluster === fCluster) &&
+    (!fOrigem || g.origem === fOrigem) &&
+    (!fProcesso || (g.processos || []).includes(fProcesso))
+  ), [items, fCluster, fOrigem, fProcesso]);
+
+  // Organizador (primeiro filtro): agrupa em cards expansíveis.
+  const [organizar, setOrganizar] = useState('cluster');
+  const grupos = useMemo(() => {
+    if (organizar === 'origem') return agrupar(itensFiltrados, (g) => [g.origem || ''], ORIGEM_OPCOES, 'Sem origem');
+    if (organizar === 'processo') return agrupar(itensFiltrados, (g) => g.processos || [], procOptionsOrdenado.map((p) => ({ value: p.id, label: p.nome })), 'Sem processo');
+    return agrupar(itensFiltrados, (g) => [g.cluster || ''], CLUSTER_OPCOES, 'Sem cluster');
+  }, [organizar, itensFiltrados, procOptionsOrdenado]);
+
+  // KPI computations
+  const totalHoras = useMemo(
+    () => items.reduce((acc, g) => acc + (g.horasGastas || 0), 0),
+    [items]
+  );
+  const processosDistintos = useMemo(
+    () => new Set(items.flatMap(g => g.processos || [])).size,
+    [items]
+  );
+  const gargalosResolvidos = useMemo(
+    () => items.filter(g => g.melhoriaId).length,
+    [items]
+  );
+
+  // Focus param
+  const focusId = useFocusParam();
+  useEffect(() => {
+    if (loaded && focusId) {
+      const g = items.find(x => x.id === focusId);
+      if (g) openDetail(g);
+    }
+  }, [loaded, focusId, items]);
+
+  if (!loaded) return (
+    <div className="loading-container"><div className="spinner" /></div>
+  );
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h1>Gargalos</h1>
+        <button className="btn-add" onClick={() => {
+          setNome(''); setDescricao(''); setOrigem(''); setCluster(''); setProcessosNomes([]); setMelhoriaId('');
+          setError(''); setModalOpen(true);
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Adicionar Gargalo
+        </button>
+      </div>
+      <p>Gargalos afetam um ou mais processos. Cadastre-os de forma generalista para mapear o ROI corretamente em todos os processos impactados.</p>
+      <PageStats stats={[
+        { label: 'Gargalos', value: String(items.length), tooltip: 'Total de gargalos cadastrados.' },
+        { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês em todos os gargalos.' },
+        { label: 'Processos afetados', value: String(processosDistintos), tooltip: 'Número de processos distintos impactados por pelo menos um gargalo.' },
+        { label: 'Com melhoria', value: String(gargalosResolvidos), tooltip: 'Gargalos que possuem ao menos uma melhoria vinculada.' },
+      ]} />
+      <FiltrosBar
+        ativo={filtrosAtivos}
+        onLimpar={limparFiltros}
+        filtros={[
+          { id: 'fg-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
+          { id: 'fg-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
+          { id: 'fg-origem', label: 'Origem', value: fOrigem, onChange: setFOrigem, options: ORIGEM_FILTRO_OPCOES, tooltip: dica('gargalos.filtro.origem') },
+          { id: 'fg-processo', label: 'Processo afetado', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...procOptionsOrdenado.map(p => ({ value: p.id, label: p.nome }))], tooltip: dica('gargalos.filtro.processo') },
+        ]}
+      />
+      <GrupoAccordion
+        grupos={grupos}
+        substantivo={['gargalo', 'gargalos']}
+        emptyMessage="Nenhum gargalo encontrado para os filtros selecionados."
+        renderGrupo={(itens) => (
+          <div className="gargalo-list">
+            {itens.map((g) => (
+              <div
+                key={g.id}
+                className="gargalo-card"
+                style={{ position: 'relative', cursor: 'pointer' }}
+                role="button"
+                tabIndex={0}
+                onClick={() => openDetail(g)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(g); } }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                  <h3><Tooltip text={dica('gargalos.detalhe.processos')}>{g.nome}</Tooltip></h3>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <button
+                      className="btn-edit"
+                      onClick={(e) => { e.stopPropagation(); openEdit(g); }}
+                      title="Editar gargalo"
+                      style={{ padding: '4px 6px' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </button>
+                    <button
+                      className="btn-edit"
+                      onClick={(e) => { e.stopPropagation(); setConfirmDel(g); }}
+                      title="Excluir gargalo"
+                      style={{ padding: '4px 6px', color: '#b91c1c' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+                    </button>
+                  </div>
+                </div>
+                <p>{g.descricao || 'Sem descrição.'}</p>
+                {(g.origem || g.cluster) && (
+                  <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 6 }}>
+                    {g.origem && <><strong>Origem:</strong> {g.origem}</>}
+                    {g.origem && g.cluster && ' · '}
+                    {g.cluster && <><strong>Cluster:</strong> {g.cluster}</>}
+                  </div>
+                )}
+                {g.processos && g.processos.length > 0 && (
+                  <div className="tags">
+                    {g.processos.map((pid) => (
+                      <span key={pid} className="tag tag-processo">
+                        {procNomeById.get(pid) || pid}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      />
+
+      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
+        <div className="modal">
+          <h2>Novo Gargalo</h2>
+          <FormField label="Nome" error={error} required tooltip={dica('gargalos.form.nome')}>
+            <input type="text" value={nome} onChange={(e) => { setNome(e.target.value); if (error) setError(''); }} placeholder="Digite o nome do gargalo" />
+          </FormField>
+          <FormField label="Descrição" tooltip={dica('gargalos.form.descricao')}>
+            <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o gargalo" />
+          </FormField>
+          <FormField label="Origem" tooltip={dica('gargalos.form.origem')}>
+            <Select value={origem} onChange={setOrigem} options={ORIGEM_OPCOES} placeholder="Selecione..." />
+          </FormField>
+          <FormField label="Cluster" tooltip={dica('gargalos.form.cluster')}>
+            <Select value={cluster} onChange={setCluster} options={CLUSTER_OPCOES} />
+          </FormField>
+          <FormField label="Processos afetados" tooltip={dica('gargalos.form.processos')}>
+            <ChipSelector
+              options={procOptionsOrdenado.map((p) => p.nome)}
+              value={processosNomes}
+              onChange={(v) => setProcessosNomes(v as string[])}
+              addLabel="Adicionar processo"
+            />
+          </FormField>
+          <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
+            <Select
+              value={melhoriaId}
+              onChange={setMelhoriaId}
+              options={melhoriaOpcoes}
+              placeholder="— sem melhoria —"
+            />
+          </FormField>
+          <div className="modal-actions">
+            <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>
+            <button className="btn-save" onClick={handleSave} disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)}>
+        <div className="modal">
+          <h2>Editar Gargalo</h2>
+          <FormField label="Nome" error={editError} required tooltip={dica('gargalos.form.nome')}>
+            <input type="text" value={editNome} onChange={(e) => { setEditNome(e.target.value); if (editError) setEditError(''); }} />
+          </FormField>
+          <FormField label="Descrição" tooltip={dica('gargalos.form.descricao')}>
+            <textarea value={editDescricao} onChange={(e) => setEditDescricao(e.target.value)} />
+          </FormField>
+          <FormField label="Origem" tooltip={dica('gargalos.form.origem')}>
+            <Select value={editOrigem} onChange={setEditOrigem} options={ORIGEM_OPCOES} placeholder="Selecione..." />
+          </FormField>
+          <FormField label="Cluster" tooltip={dica('gargalos.form.cluster')}>
+            <Select value={editCluster} onChange={setEditCluster} options={CLUSTER_OPCOES} />
+          </FormField>
+          <FormField label="Processos afetados" tooltip={dica('gargalos.form.processos')}>
+            <ChipSelector
+              options={procOptionsOrdenado.map((p) => p.nome)}
+              value={editProcessosNomes}
+              onChange={(v) => setEditProcessosNomes(v as string[])}
+              addLabel="Adicionar processo"
+            />
+          </FormField>
+          <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
+            <Select
+              value={editMelhoriaId}
+              onChange={setEditMelhoriaId}
+              options={melhoriaOpcoes}
+              placeholder="— sem melhoria —"
+            />
+          </FormField>
+          <div className="modal-actions">
+            <button className="btn-cancel" onClick={() => setEditOpen(false)}>Cancelar</button>
+            <button className="btn-save" onClick={handleUpdate} disabled={editSaving}>{editSaving ? 'Salvando...' : 'Salvar'}</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={detailOpen} onClose={() => setDetailOpen(false)}>
+        <div className="modal">
+          <h2>Detalhes do Gargalo</h2>
+          {detailItem && (
+            <>
+              <div className="form-group compact">
+                <label>Nome</label>
+                <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{detailItem.nome}</div>
+              </div>
+              <div className="form-group compact">
+                <label>Descrição</label>
+                <div>{detailItem.descricao || '—'}</div>
+              </div>
+              {detailItem.origem && (
+                <div className="form-group compact">
+                  <label><Tooltip text={dica('gargalos.detalhe.origem')}>Origem</Tooltip></label>
+                  <div>{detailItem.origem}</div>
+                </div>
+              )}
+              {detailItem.cluster && (
+                <div className="form-group compact">
+                  <label><Tooltip text={dica('gargalos.detalhe.cluster')}>Cluster</Tooltip></label>
+                  <div>{detailItem.cluster}</div>
+                </div>
+              )}
+              <div className="form-group compact">
+                <label><Tooltip text={dica('gargalos.detalhe.processos')}>Processos afetados</Tooltip></label>
+                {detailItem.processos && detailItem.processos.length > 0 ? (
+                  <div className="tags">
+                    {detailItem.processos.map((pid) => (
+                      <span key={pid} className="tag tag-processo">
+                        {procNomeById.get(pid) || pid}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div>—</div>
+                )}
+              </div>
+              <div className="form-group compact">
+                <label>Horas estimadas/mês</label>
+                <div>
+                  {detailItem.horasGastas
+                    ? formatDecimal(detailItem.horasGastas, 'h')
+                    : '— não estimado'}
+                </div>
+              </div>
+              <div style={{ marginTop: 16 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>
+                  Melhoria vinculada
+                </div>
+                {detailItem.melhoriaId ? (
+                  <div className="tags">
+                    <span className="tag">{melhoriaNomeById.get(detailItem.melhoriaId) || detailItem.melhoriaId}</span>
+                  </div>
+                ) : (
+                  <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Nenhuma melhoria vinculada.</p>
+                )}
+              </div>
+            </>
+          )}
+          <div className="modal-actions">
+            <button className="btn-cancel" onClick={() => setDetailOpen(false)}>Fechar</button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Confirmar Exclusão */}
+      <Modal isOpen={!!confirmDel} onClose={() => setConfirmDel(null)}>
+        <div className="modal">
+          <h2>Excluir gargalo</h2>
+          <p>
+            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? Esta ação não pode ser desfeita.
+          </p>
+          <div className="modal-actions">
+            <button className="btn-cancel" onClick={() => setConfirmDel(null)} disabled={deleting}>Cancelar</button>
+            <button
+              className="btn-save"
+              style={{ background: '#b91c1c' }}
+              disabled={deleting}
+              onClick={async () => {
+                if (!confirmDel) return;
+                setDeleting(true);
+                await removeItem(confirmDel.id);
+                setDeleting(false);
+                setConfirmDel(null);
+              }}
+            >
+              {deleting ? 'Excluindo...' : 'Excluir'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}
