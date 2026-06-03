@@ -7064,6 +7064,7 @@ export type Database = {
           escopo_documento_raiz_id: string | null
           id: string
           nome: string
+          tipo: string
           tipo_derivacao: string | null
           updated_at: string
           updated_by: string | null
@@ -7079,6 +7080,7 @@ export type Database = {
           escopo_documento_raiz_id?: string | null
           id?: string
           nome: string
+          tipo?: string
           tipo_derivacao?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -7094,6 +7096,7 @@ export type Database = {
           escopo_documento_raiz_id?: string | null
           id?: string
           nome?: string
+          tipo?: string
           tipo_derivacao?: string | null
           updated_at?: string
           updated_by?: string | null
