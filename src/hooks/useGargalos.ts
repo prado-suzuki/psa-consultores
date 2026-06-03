@@ -7,6 +7,11 @@ import type { Gargalo } from '@/types';
 
 const TABLE = 'gargalos';
 const SELECT = '*, estrutura_clusters(name), gargalo_processos(processo_id)';
+// Fallback quando a FK gargalos.cluster_id → estrutura_clusters não está
+// registrada no schema cache do PostgREST (acontece se a migration
+// 20260603150000 não foi aplicada). Sem a FK, o embed dá erro e a página
+// fica vazia — o fallback degrada gracefully omitindo o nome do cluster.
+const SELECT_FALLBACK = '*, gargalo_processos(processo_id)';
 
 type DbRow = Record<string, unknown>;
 
@@ -41,12 +46,15 @@ export function useGargalos(): UseQueryResult<Gargalo[]> {
   return useQuery<Gargalo[]>({
     queryKey: [TABLE],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from(TABLE as never)
-        .select(SELECT)
-        .order('nome');
-      if (error) throw new Error(error.message);
-      return ((data ?? []) as unknown as DbRow[]).map(hydrate);
+      // 1ª tentativa com JOIN cluster — se a FK não estiver no schema cache
+      // do PostgREST, a query falha com "no relationship found". Aí cai no
+      // fallback sem o JOIN.
+      let result = await supabase.from(TABLE as never).select(SELECT).order('nome');
+      if (result.error && /relationship|not find/i.test(result.error.message)) {
+        result = await supabase.from(TABLE as never).select(SELECT_FALLBACK).order('nome');
+      }
+      if (result.error) throw new Error(result.error.message);
+      return ((result.data ?? []) as unknown as DbRow[]).map(hydrate);
     },
   });
 }

@@ -218,16 +218,20 @@ export default function ResponsaveisPage() {
   }, [items]);
   const filtrosAtivos = !!(fCluster || fTipo || fCargo);
   const limparFiltros = () => { setFCluster(''); setFTipo(''); setFCargo(''); };
+  // Normaliza tipo: null/undefined são tratados como 'Interno' (default coerente
+  // com o KPI Internos e com o default do form de edição).
+  const tipoDe = (r: { type?: string | null }): string => r.type === 'Externo' ? 'Externo' : 'Interno';
+
   const itensFiltrados = useMemo(() => items.filter(r =>
     (!fCluster || r.cluster_id === fCluster) &&
-    (!fTipo || r.type === fTipo) &&
+    (!fTipo || tipoDe(r) === fTipo) &&
     (!fCargo || r.level === fCargo)
   ), [items, fCluster, fTipo, fCargo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('cluster');
   const grupos = useMemo(() => {
-    if (organizar === 'tipo') return agrupar(itensFiltrados, (r) => [r.type || ''], TIPO_OPCOES, 'Sem tipo');
+    if (organizar === 'tipo') return agrupar(itensFiltrados, (r) => [tipoDe(r)], TIPO_OPCOES, 'Sem tipo');
     if (organizar === 'cargo') return agrupar(itensFiltrados, (r) => [r.level || ''], cargoFiltroOpcoes, 'Sem cargo');
     return agrupar(itensFiltrados, (r) => [r.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
   }, [organizar, itensFiltrados, cargoFiltroOpcoes]);
