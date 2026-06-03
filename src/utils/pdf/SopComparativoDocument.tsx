@@ -104,7 +104,7 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
   const resultadoLiquido = economiaH - investment;
   const roiPct = investment > 0 ? (economiaH / investment) * 100 : 0;
   const payback_months = roi.economiaMensal > 0 ? investment / roi.economiaMensal : 0;
-  const horasLiberadasH = roi.hours_freed * (m / 12);
+  const horasLiberadasH = roi.horasLiberadas * (m / 12);
   const custoEraH = roi.custoAtualAno * (m / 12);
   const custoFicouH = roi.custoFuturoAno * (m / 12);
   const horasEraH = roi.horasAtualAno * (m / 12);

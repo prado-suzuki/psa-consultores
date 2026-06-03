@@ -18,28 +18,29 @@ import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
 // em um RoiAgregado. Esta é a única fonte do Dashboard de ROI — sem cálculo
 // ao vivo e sem agregação por data.
 function agregaUltimasMensuracoes(snaps: ProcessSnapshot[]): RoiAgregado {
+  // sum() acessa colunas do DB (ProcessSnapshot) — strings ficam snake_case.
   const sum = (k: keyof ProcessSnapshot) => snaps.reduce((s, x) => s + (Number(x[k]) || 0), 0);
   const custoAtualAno = sum('annual_cost');
-  const annual_savings = sum('annual_savings');
-  const investment = sum('investment');
-  const economiaMensal = annual_savings / 12;
+  const economiaAnual = sum('annual_savings');
+  const investimento = sum('investment');
+  const economiaMensal = economiaAnual / 12;
   return {
     porProcesso: [],
     custoAtualAno,
-    custoFuturoAno: Math.max(0, custoAtualAno - annual_savings),
+    custoFuturoAno: Math.max(0, custoAtualAno - economiaAnual),
     horasAtualAno: sum('annual_hours'),
     horasFuturoAno: Math.max(0, sum('annual_hours') - sum('hours_freed')),
-    annual_savings,
+    economiaAnual,
     economiaMensal,
-    hours_freed: sum('hours_freed'),
+    horasLiberadas: sum('hours_freed'),
     taxaRetrabalhoAtual: 0,
     taxaRetrabalhoFuturo: 0,
-    investimentoTotal: investment,
-    investimentoBreakdown: { treinamentoMelhorias: 0, sistemas: 0, execucaoMelhorias: 0, externo: investment },
+    investimentoTotal: investimento,
+    investimentoBreakdown: { treinamentoMelhorias: 0, sistemas: 0, execucaoMelhorias: 0, externo: investimento },
     custosCategoria: { pessoas: custoAtualAno, sistemas: 0, retrabalho: 0, externo: 0 },
-    custosCategoriaFicou: { pessoas: Math.max(0, custoAtualAno - annual_savings), sistemas: 0, retrabalho: 0, externo: 0 },
-    roi_percent: investment > 0 ? (annual_savings / investment) * 100 : 0,
-    payback_months: economiaMensal > 0 ? investment / economiaMensal : 0,
+    custosCategoriaFicou: { pessoas: Math.max(0, custoAtualAno - economiaAnual), sistemas: 0, retrabalho: 0, externo: 0 },
+    roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
+    paybackMeses: economiaMensal > 0 ? investimento / economiaMensal : 0,
   };
 }
 
@@ -628,8 +629,8 @@ export default function DashboardRoiPage() {
               <KPICard variant="highlight" label={`Economia ${periodoSufixo}`} valor={fmtBRL(economiaHorizonte)} hint={`≈ ${fmtBRL(v.economiaMensal)} / mês`} tooltip={dica('dashboard.kpi.annual_savings')} />
               <KPICard variant="highlight" label="Retorno (ROI)" valor={fmtPct(roiHorizonte)} positivo={roiHorizonte >= 0} hint={`Em ${horizonte} meses`} tooltip={dica('dashboard.kpi.roi')} />
               <KPICard label={`Resultado líquido (${horizonte}m)`} valor={fmtBRL(resultadoLiquidoHorizonte)} positivo={resultadoLiquidoHorizonte >= 0} hint="Economia acum. − investment" />
-              <KPICard label="Payback" valor={v.payback_months > 0 ? `${fmtNum(v.payback_months, 0)} meses` : '—'} hint="Tempo de recuperação" tooltip={dica('dashboard.kpi.payback')} />
-              <KPICard label={`Horas Liberadas ${periodoSufixo}`} valor={`${fmtNum(v.hours_freed * horizonteFator)} h`} hint="Capacidade humana" tooltip={dica('dashboard.kpi.hours_freed')} />
+              <KPICard label="Payback" valor={v.paybackMeses > 0 ? `${fmtNum(v.paybackMeses, 0)} meses` : '—'} hint="Tempo de recuperação" tooltip={dica('dashboard.kpi.payback')} />
+              <KPICard label={`Horas Liberadas ${periodoSufixo}`} valor={`${fmtNum(v.horasLiberadas * horizonteFator)} h`} hint="Capacidade humana" tooltip={dica('dashboard.kpi.hours_freed')} />
             </div>
 
             <div className="dashv2-quote">
@@ -637,7 +638,7 @@ export default function DashboardRoiPage() {
               <div className="dashv2-quote-body">
                 Investindo <strong>{fmtBRL(v.investimentoTotal)}</strong> no plano de melhorias, a operação passa a economizar
                 <strong> {fmtBRL(economiaHorizonte)} em {horizonte} meses</strong>, com retorno do investment em{' '}
-                <strong>{fmtNum(v.payback_months, 0)} meses</strong> — liberando <strong>{fmtNum(v.hours_freed * horizonteFator)} horas</strong> da equipe no período.
+                <strong>{fmtNum(v.paybackMeses, 0)} meses</strong> — liberando <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período.
               </div>
             </div>
 
@@ -679,7 +680,7 @@ export default function DashboardRoiPage() {
             </div>
             <div className="dashv2-card">
               <HBarChart
-                items={v.porProcesso.map((p) => ({ label: p.processoNome, valor: p.annual_hours * horizonteFator, cor: 'var(--accent-color)' }))}
+                items={v.porProcesso.map((p) => ({ label: p.processoNome, valor: p.horasAnual * horizonteFator, cor: 'var(--accent-color)' }))}
                 valueFmt={(x) => `${fmtNum(x)} h`}
               />
             </div>
@@ -702,14 +703,14 @@ export default function DashboardRoiPage() {
                 </thead>
                 <tbody>
                   {v.porProcesso.length === 0 ? <EmptyRow cols={6} /> : v.porProcesso.map(p => {
-                    const ets = etapasFiltradas.filter(e => e.process_id === p.process_id);
+                    const ets = etapasFiltradas.filter(e => e.process_id === p.processoId);
                     const docsCount = new Set(ets.flatMap(e => [
                       ...(e.docsEntrada || []).map(d => d.documentoId || d.nome),
                       ...(e.docsSaida || []).map(d => d.documentoId || d.nome),
                     ])).size;
                     const sisCount = new Set(ets.flatMap(e => e.sistemas || [])).size;
                     return (
-                      <tr key={p.process_id}>
+                      <tr key={p.processoId}>
                         <td>{p.processoNome}</td>
                         <td>{ets.length}</td>
                         <td>{docsCount}</td>
@@ -986,7 +987,7 @@ export default function DashboardRoiPage() {
             </div>
             <div className="dashv2-kpi-grid">
               <KPICard variant="highlight" label={`Custo Operacional ${periodoSufixo}`} valor={fmtBRL(v.custoFuturoAno * horizonteFator)} hint={`Redução de ${fmtPct(deltaPct(v.custoAtualAno, v.custoFuturoAno))}`} tooltip={dica('dashboard.kpi.custoFuturo')} />
-              <KPICard label={`Horas Alocadas ${periodoSufixo}`} valor={`${fmtNum(v.horasFuturoAno * horizonteFator)} h`} hint={`Liberadas: ${fmtNum(v.hours_freed * horizonteFator)} h`} tooltip={dica('dashboard.kpi.horasFuturo')} />
+              <KPICard label={`Horas Alocadas ${periodoSufixo}`} valor={`${fmtNum(v.horasFuturoAno * horizonteFator)} h`} hint={`Liberadas: ${fmtNum(v.horasLiberadas * horizonteFator)} h`} tooltip={dica('dashboard.kpi.horasFuturo')} />
               <KPICard label={`Custo de Retrabalho ${periodoSufixo}`} valor={fmtBRL(v.custosCategoriaFicou.retrabalho * horizonteFator)} hint="Retrabalho residual" tooltip={dica('dashboard.kpi.custoRetrabalho')} />
               <KPICard label="Retrabalho" valor={fmtPct(v.taxaRetrabalhoFuturo * 100)} hint="% do tempo refazendo" tooltip={dica('dashboard.kpi.retrabalho')} />
             </div>
@@ -1054,7 +1055,7 @@ export default function DashboardRoiPage() {
               <KPICard variant="highlight" label={`Economia ${periodoSufixo}`} valor={fmtBRL(economiaHorizonte)} variacao={fmtPct(deltaPct(v.custoAtualAno, v.custoFuturoAno))} positivo={economiaHorizonte >= 0} hint="Vs. cenário atual" tooltip={dica('dashboard.kpi.annual_savings')} />
               <KPICard variant="highlight" label="ROI" valor={fmtPct(roiHorizonte)} positivo={roiHorizonte >= 0} hint={`Em ${horizonte} meses`} tooltip={dica('dashboard.kpi.roi')} />
               <KPICard label={`Resultado líquido (${horizonte}m)`} valor={fmtBRL(resultadoLiquidoHorizonte)} positivo={resultadoLiquidoHorizonte >= 0} hint="Economia acum. − investment" />
-              <KPICard label="Payback" valor={v.payback_months > 0 ? `${fmtNum(v.payback_months, 0)} meses` : '—'} hint="Recuperação" tooltip={dica('dashboard.kpi.payback')} />
+              <KPICard label="Payback" valor={v.paybackMeses > 0 ? `${fmtNum(v.paybackMeses, 0)} meses` : '—'} hint="Recuperação" tooltip={dica('dashboard.kpi.payback')} />
             </div>
 
             <div className="dashv2-section-header">
@@ -1119,8 +1120,8 @@ export default function DashboardRoiPage() {
               <div className="dashv2-quote-mark">★</div>
               <div className="dashv2-quote-body">
                 Recomendação: o investment de <strong>{fmtBRL(v.investimentoTotal)}</strong> se paga em
-                <strong> {fmtNum(v.payback_months, 0)} meses</strong> e gera ROI de <strong>{fmtPct(roiHorizonte)}</strong> em {horizonte} meses,
-                além de liberar <strong>{fmtNum(v.hours_freed * horizonteFator)} horas</strong> da equipe no período para atividades de maior valor.
+                <strong> {fmtNum(v.paybackMeses, 0)} meses</strong> e gera ROI de <strong>{fmtPct(roiHorizonte)}</strong> em {horizonte} meses,
+                além de liberar <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período para atividades de maior valor.
               </div>
             </div>
           </StorySection>

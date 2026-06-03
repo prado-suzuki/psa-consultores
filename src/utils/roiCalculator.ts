@@ -30,13 +30,13 @@ interface CategoriaCusto {
 }
 
 export interface RoiProcesso {
-  process_id: string;
+  processoId: string;
   processoNome: string;
   execucoesAnuais: number;
   horasPorExecucao: number;
   custoPorExecucao: number;
-  annual_hours: number;
-  annual_cost: number;
+  horasAnual: number;
+  custoAnual: number;
   horasAnualFicou: number;
   custoAnualFicou: number;
   taxaErroMedia: number;
@@ -46,19 +46,19 @@ export interface RoiProcesso {
   custosCategoria: CategoriaCusto;
   custosCategoriaFicou: CategoriaCusto;
   // Resultado financeiro (preenchido só quando temos cenário "ficou")
-  annual_savings: number;
+  economiaAnual: number;
   economiaMensal: number;
-  hours_freed: number;
+  horasLiberadas: number;
   // Investimento atribuído a este processo
-  investment: number;
+  investimento: number;
   investimentoBreakdown: {
     treinamentoMelhorias: number;
     sistemas: number;
     execucaoMelhorias: number;
     externo: number;
   };
-  roi_percent: number;
-  payback_months: number;
+  roiPercentual: number;
+  paybackMeses: number;
 }
 
 export interface RoiInput {
@@ -74,14 +74,14 @@ export interface RoiInput {
 
 export interface RoiAgregado {
   porProcesso: RoiProcesso[];
-  // KPIs globais (somatórios)
+  // KPIs globais (somatórios) — campos sintéticos da UI, não colunas de DB.
   custoAtualAno: number;
   custoFuturoAno: number;
   horasAtualAno: number;
   horasFuturoAno: number;
-  annual_savings: number;
+  economiaAnual: number;
   economiaMensal: number;
-  hours_freed: number;
+  horasLiberadas: number;
   taxaRetrabalhoAtual: number;
   taxaRetrabalhoFuturo: number;
   investimentoTotal: number;
@@ -93,8 +93,8 @@ export interface RoiAgregado {
   };
   custosCategoria: CategoriaCusto;
   custosCategoriaFicou: CategoriaCusto;
-  roi_percent: number;
-  payback_months: number;
+  roiPercentual: number;
+  paybackMeses: number;
 }
 
 const zeroCategoria = (): CategoriaCusto => ({ pessoas: 0, sistemas: 0, retrabalho: 0, externo: 0 });
@@ -215,7 +215,7 @@ function calcProcesso(
   const fracEra = fracDeSistema;
   const fracFicou = fracDeSistema;
   // Apenas o custo MENSAL recorrente (custo_variavel_por_uso × 12) entra aqui, rateado.
-  // O custo fixo/licença/setup é registrado como investment via melhoria
+  // O custo fixo/licença/setup é registrado como investimento via melhoria
   // (custoExternoUnico), então não entra no custo recorrente para evitar dupla
   // contagem. Era e Ficou: o "antes" inclui o mensal dos sistemas já usados.
   const custoSistemasAnual = sistemasUsados.reduce((sum, s) => sum + (s.custo_variavel_por_uso || 0) * 12 * fracEra(s), 0);
@@ -226,7 +226,7 @@ function calcProcesso(
 
   // Melhorias relevantes para este processo: vínculo direto via M:N + vínculo
   // indireto via gargalos do processo (uma melhoria que resolve um gargalo do
-  // processo, mesmo sem estar associada explicitamente, conta no investment).
+  // processo, mesmo sem estar associada explicitamente, conta no investimento).
   const gargalosDoProc = new Set(
     gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id)
   );
@@ -252,35 +252,35 @@ function calcProcesso(
   // (melhoria.executadoPor), não no sistema. Mantido como 0 para o breakdown.
   const investSistemas = 0;
 
-  const annual_hours = horasPorExec * ann;
+  const horasAnual = horasPorExec * ann;
   const horasAnualFicou = horasPorExecFicou * ann;
   const custoPessoasAnual = custoPorExec * ann;
   const custoPessoasAnualFicou = custoPorExecFicou * ann;
   const custoRetrabAnual = custoRetrabalhoPorExec * ann;
   const custoRetrabAnualFicou = custoRetrabalhoPorExecFicou * ann;
-  const custoExternoAnual = 0; // externo é one-shot — entra no investment, não no custo recorrente
+  const custoExternoAnual = 0; // externo é one-shot — entra no investimento, não no custo recorrente
 
-  const annual_cost = custoPessoasAnual + custoSistemasAnual + custoRetrabAnual + custoExternoAnual;
+  const custoAnual = custoPessoasAnual + custoSistemasAnual + custoRetrabAnual + custoExternoAnual;
   const custoAnualFicou = custoPessoasAnualFicou + custoSistemasAnualFicou + custoRetrabAnualFicou;
 
   // ROI pode ser negativo: se o cenário futuro custar mais que o atual, a
   // economia é negativa (não zeramos). Idem para horas liberadas.
-  const annual_savings = annual_cost - custoAnualFicou;
-  const economiaMensal = annual_savings / 12;
-  const hours_freed = annual_hours - horasAnualFicou;
+  const economiaAnual = custoAnual - custoAnualFicou;
+  const economiaMensal = economiaAnual / 12;
+  const horasLiberadas = horasAnual - horasAnualFicou;
 
-  const investment = investTreinamentoMelhorias + investExecucaoMelhorias + investExterno + investSistemas;
-  const roi_percent = investment > 0 ? (annual_savings / investment) * 100 : 0;
-  const payback_months = economiaMensal > 0 ? investment / economiaMensal : 0;
+  const investimento = investTreinamentoMelhorias + investExecucaoMelhorias + investExterno + investSistemas;
+  const roiPercentual = investimento > 0 ? (economiaAnual / investimento) * 100 : 0;
+  const paybackMeses = economiaMensal > 0 ? investimento / economiaMensal : 0;
 
   return {
-    process_id: proc.id,
+    processoId: proc.id,
     processoNome: proc.name,
     execucoesAnuais: ann,
     horasPorExecucao: horasPorExec,
     custoPorExecucao: custoPorExec,
-    annual_hours,
-    annual_cost,
+    horasAnual,
+    custoAnual,
     horasAnualFicou,
     custoAnualFicou,
     taxaErroMedia: nTaxaErro ? somaTaxaErro / nTaxaErro : 0,
@@ -299,18 +299,18 @@ function calcProcesso(
       retrabalho: custoRetrabAnualFicou,
       externo: 0,
     },
-    annual_savings,
+    economiaAnual,
     economiaMensal,
-    hours_freed,
-    investment,
+    horasLiberadas,
+    investimento,
     investimentoBreakdown: {
       treinamentoMelhorias: investTreinamentoMelhorias,
       sistemas: investSistemas,
       execucaoMelhorias: investExecucaoMelhorias,
       externo: investExterno,
     },
-    roi_percent,
-    payback_months,
+    roiPercentual,
+    paybackMeses,
   };
 }
 
@@ -336,11 +336,11 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
     return acc;
   };
 
-  const investimentoTotal = sum('investment');
-  const annual_savings = sum('annual_savings');
-  const economiaMensal = annual_savings / 12;
-  const roi_percent = investimentoTotal > 0 ? (annual_savings / investimentoTotal) * 100 : 0;
-  const payback_months = economiaMensal > 0 ? investimentoTotal / economiaMensal : 0;
+  const investimentoTotal = sum('investimento');
+  const economiaAnual = sum('economiaAnual');
+  const economiaMensal = economiaAnual / 12;
+  const roiPercentual = investimentoTotal > 0 ? (economiaAnual / investimentoTotal) * 100 : 0;
+  const paybackMeses = economiaMensal > 0 ? investimentoTotal / economiaMensal : 0;
 
   const invBd = porProcesso.reduce((acc, p) => ({
     treinamentoMelhorias: acc.treinamentoMelhorias + p.investimentoBreakdown.treinamentoMelhorias,
@@ -349,25 +349,25 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
     externo: acc.externo + p.investimentoBreakdown.externo,
   }), { treinamentoMelhorias: 0, sistemas: 0, execucaoMelhorias: 0, externo: 0 });
 
-  const horasAtualAno = sum('annual_hours');
+  const horasAtualAno = sum('horasAnual');
   const horasFuturoAno = sum('horasAnualFicou');
 
   return {
     porProcesso,
-    custoAtualAno: sum('annual_cost'),
+    custoAtualAno: sum('custoAnual'),
     custoFuturoAno: sum('custoAnualFicou'),
     horasAtualAno,
     horasFuturoAno,
-    annual_savings,
+    economiaAnual,
     economiaMensal,
-    hours_freed: horasAtualAno - horasFuturoAno,
+    horasLiberadas: horasAtualAno - horasFuturoAno,
     taxaRetrabalhoAtual: porProcesso.length ? sum('taxaRetrabalhoMedia') / porProcesso.length : 0,
     taxaRetrabalhoFuturo: porProcesso.length ? sum('taxaRetrabalhoFicouMedia') / porProcesso.length : 0,
     investimentoTotal,
     investimentoBreakdown: invBd,
     custosCategoria: sumCat('custosCategoria'),
     custosCategoriaFicou: sumCat('custosCategoriaFicou'),
-    roi_percent,
-    payback_months,
+    roiPercentual,
+    paybackMeses,
   };
 }

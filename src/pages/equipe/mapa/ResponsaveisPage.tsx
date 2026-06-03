@@ -54,7 +54,7 @@ export default function ResponsaveisPage() {
   const [nome, setNome] = useState('');
   const [cargo, setCargo] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [hourly_rate, setCustoHora] = useState('');
+  const [custoHora, setCustoHora] = useState('');
   const [tipo, setTipo] = useState('Interno');
   const [clusterId, setClusterId] = useState('');
   const [error, setError] = useState('');
@@ -146,7 +146,7 @@ export default function ResponsaveisPage() {
         name: nome.trim(),
         level: cargo.trim(),
         category: categoria.trim() || undefined,
-        hourly_rate: parseMoeda(hourly_rate),
+        hourly_rate: parseMoeda(custoHora),
         type: tipo,
         cluster_id: clusterId || undefined,
       });
@@ -394,7 +394,7 @@ export default function ResponsaveisPage() {
             <Select value={clusterId} onChange={setClusterId} options={CLUSTER_OPCOES} />
           </FormField>
           <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')}>
-            <input type="text" value={hourly_rate} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex: 90,00" />
+            <input type="text" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex: 90,00" />
           </FormField>
           <div className="modal-actions">
             <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>

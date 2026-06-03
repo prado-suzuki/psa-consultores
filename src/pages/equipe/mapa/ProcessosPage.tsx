@@ -183,10 +183,10 @@ export default function ProcessosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [project_id, setProjetoId] = useState<string>('');
-  const [frequency, setFrequencia] = useState<string>('');
-  const [evaluation_status, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
-  const [complexity_level, setComplexidade] = useState<string>('');
+  const [projetoId, setProjetoId] = useState<string>('');
+  const [frequencia, setFrequencia] = useState<string>('');
+  const [statusAvaliacao, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
+  const [complexidade, setComplexidade] = useState<string>('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -230,17 +230,17 @@ export default function ProcessosPage() {
 
   const handleSaveProcesso = async () => {
     if (!nome.trim()) { setError('Preencha o nome do processo.'); return; }
-    if (!project_id) { setError('Vincule o processo a um projeto.'); return; }
+    if (!projetoId) { setError('Vincule o processo a um projeto.'); return; }
     setError('');
     setIsSaving(true);
     try {
       await createProcesso.mutateAsync({
         name: nome.trim(),
         description: descricao.trim(),
-        project_id,
-        frequency: (frequency || undefined) as FrequenciaProcesso | undefined,
-        evaluation_status,
-        complexity_level: (complexity_level || undefined) as Complexidade | undefined,
+        project_id: projetoId,
+        frequency: (frequencia || undefined) as FrequenciaProcesso | undefined,
+        evaluation_status: statusAvaliacao,
+        complexity_level: (complexidade || undefined) as Complexidade | undefined,
       });
       toast.success('Processo criado');
       resetNovo();
@@ -552,7 +552,7 @@ export default function ProcessosPage() {
 
           <FormField label="Projeto" required tooltip={dica('processos.form.projeto')}>
             <Select
-              value={project_id}
+              value={projetoId}
               onChange={setProjetoId}
               options={projetos.map(p => ({ value: p.id, label: p.name }))}
               placeholder="Selecione o projeto..."
@@ -561,15 +561,15 @@ export default function ProcessosPage() {
 
           <div style={{ display: 'flex', gap: 12 }}>
             <FormField label="Frequência" tooltip={dica('processos.form.frequency')}>
-              <Select value={frequency} onChange={setFrequencia} options={FREQUENCIA_OPCOES} />
+              <Select value={frequencia} onChange={setFrequencia} options={FREQUENCIA_OPCOES} />
             </FormField>
             <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
-              <Select value={complexity_level} onChange={setComplexidade} options={COMPLEXIDADE_OPCOES} />
+              <Select value={complexidade} onChange={setComplexidade} options={COMPLEXIDADE_OPCOES} />
             </FormField>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
             <FormField label="Status de avaliação" tooltip={dica('processos.form.evaluation_status')}>
-              <Select value={evaluation_status} onChange={(v) => setStatusAvaliacao(v as StatusAvaliacao)} options={STATUS_AVALIACAO_OPCOES} />
+              <Select value={statusAvaliacao} onChange={(v) => setStatusAvaliacao(v as StatusAvaliacao)} options={STATUS_AVALIACAO_OPCOES} />
             </FormField>
           </div>
 

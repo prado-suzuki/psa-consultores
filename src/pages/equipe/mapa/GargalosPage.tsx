@@ -94,7 +94,7 @@ export default function GargalosPage() {
   const [origem, setOrigem] = useState('');
   const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
-  const [melhoria_id, setMelhoriaId] = useState('');
+  const [melhoriaId, setMelhoriaId] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -124,7 +124,7 @@ export default function GargalosPage() {
         // dedicado no próximo refator com TDD — por ora, mantém o array em
         // memória mas o INSERT só persiste a row do gargalo.
         processos: namesToIds(processosNomes),
-        melhoria_id: melhoria_id || null,
+        melhoria_id: melhoriaId || null,
       });
       toast.success('Gargalo criado');
       setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
@@ -333,7 +333,7 @@ export default function GargalosPage() {
           </FormField>
           <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
             <Select
-              value={melhoria_id}
+              value={melhoriaId}
               onChange={setMelhoriaId}
               options={melhoriaOpcoes}
               placeholder="— sem melhoria —"

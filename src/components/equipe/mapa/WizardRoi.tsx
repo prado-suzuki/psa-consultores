@@ -427,13 +427,13 @@ export default function WizardRoi({
     try {
       const snap = await createSnapshotMutation.mutateAsync({
         process_id: processo.id,
-        annual_cost: calc?.annual_cost ?? 0,
-        annual_hours: calc?.annual_hours ?? 0,
-        annual_savings: calc?.annual_savings ?? 0,
-        roi_percent: calc?.roi_percent ?? 0,
-        payback_months: calc?.payback_months ?? 0,
-        hours_freed: calc?.hours_freed ?? 0,
-        investment: calc?.investment ?? 0,
+        annual_cost: calc?.custoAnual ?? 0,
+        annual_hours: calc?.horasAnual ?? 0,
+        annual_savings: calc?.economiaAnual ?? 0,
+        roi_percent: calc?.roiPercentual ?? 0,
+        payback_months: calc?.paybackMeses ?? 0,
+        hours_freed: calc?.horasLiberadas ?? 0,
+        investment: calc?.investimento ?? 0,
       });
       // O hook já invalida `process_snapshots` no onSuccess — a lista
       // recarrega automaticamente via React Query.
@@ -463,13 +463,13 @@ export default function WizardRoi({
         investment: snapAtivo.investment,
       }
     : {
-        annual_cost: calc?.annual_cost ?? 0,
-        annual_hours: calc?.annual_hours ?? 0,
-        annual_savings: calc?.annual_savings ?? 0,
-        roi_percent: calc?.roi_percent ?? 0,
-        payback_months: calc?.payback_months ?? 0,
-        hours_freed: calc?.hours_freed ?? 0,
-        investment: calc?.investment ?? 0,
+        annual_cost: calc?.custoAnual ?? 0,
+        annual_hours: calc?.horasAnual ?? 0,
+        annual_savings: calc?.economiaAnual ?? 0,
+        roi_percent: calc?.roiPercentual ?? 0,
+        payback_months: calc?.paybackMeses ?? 0,
+        hours_freed: calc?.horasLiberadas ?? 0,
+        investment: calc?.investimento ?? 0,
       };
   const visualizandoHistorico = !!snapAtivo;
 
@@ -592,7 +592,7 @@ export default function WizardRoi({
             {(() => {
               const pAtual = calc?.custosCategoria.pessoas ?? 0;
               const pFicou = calc?.custosCategoriaFicou.pessoas ?? 0;
-              const horasA = calc?.annual_hours ?? 0;
+              const horasA = calc?.horasAnual ?? 0;
               const horasF = calc?.horasAnualFicou ?? 0;
               const econ = Math.max(0, pAtual - pFicou);
               const horasLib = Math.max(0, horasA - horasF);
@@ -784,7 +784,7 @@ export default function WizardRoi({
               />
               <KpiExec
                 label="Investimento Total"
-                value={formatarMoeda(calc?.investment ?? 0)}
+                value={formatarMoeda(calc?.investimento ?? 0)}
                 formula="= treino + execução + externo"
                 variant="investment"
               />

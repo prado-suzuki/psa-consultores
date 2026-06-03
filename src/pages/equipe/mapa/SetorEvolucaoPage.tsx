@@ -78,8 +78,8 @@ export default function SetorEvolucaoPage() {
 
   const [filtroCluster, setFiltroCluster] = useState<string>('');
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
-  const [start_date, setDataInicio] = useState<string>('');
-  const [end_date, setDataFim] = useState<string>('');
+  const [dataInicio, setDataInicio] = useState<string>('');
+  const [dataFim, setDataFim] = useState<string>('');
 
   const clusterPorProjetoId = useMemo(
     () => new Map(projetos.map(p => [p.id, p.clusterName || ''])),
@@ -124,32 +124,32 @@ export default function SetorEvolucaoPage() {
   const comparativoPorProcesso = useMemo(() => {
     return roi.porProcesso
       .map(p => ({
-        process_id: p.process_id,
+        process_id: p.processoId,
         processoNome: p.processoNome,
         execucoesAnuais: p.execucoesAnuais,
-        custoEra: p.annual_cost,
+        custoEra: p.custoAnual,
         custoFicou: p.custoAnualFicou,
-        deltaCusto: p.annual_savings,
-        deltaCustoPct: p.annual_cost > 0 ? (p.annual_savings / p.annual_cost) * 100 : 0,
-        deltaHoras: p.hours_freed,
-        roi_percent: p.roi_percent,
+        deltaCusto: p.economiaAnual,
+        deltaCustoPct: p.custoAnual > 0 ? (p.economiaAnual / p.custoAnual) * 100 : 0,
+        deltaHoras: p.horasLiberadas,
+        roi_percent: p.roiPercentual,
       }))
       .sort((a, b) => b.deltaCusto - a.deltaCusto);
   }, [roi]);
 
   // KPIs agregados (live)
-  const horasLiberadasAcum = roi.hours_freed;
-  const economiaAcum = roi.annual_savings;
-  const processosComMelhoria = roi.porProcesso.filter(p => p.annual_savings > 0).length;
-  const roiMedio = roi.roi_percent;
+  const horasLiberadasAcum = roi.horasLiberadas;
+  const economiaAcum = roi.economiaAnual;
+  const processosComMelhoria = roi.porProcesso.filter(p => p.economiaAnual > 0).length;
+  const roiMedio = roi.roiPercentual;
 
   // Série temporal de economia acumulada por mês — depende de snapshots (histórico real).
   const snapshotsFiltrados = useMemo(() => {
     return snapshots
       .filter(s => idsProc.has(s.process_id))
-      .filter(s => !start_date || s.snapshot_at.slice(0, 10) >= start_date)
-      .filter(s => !end_date || s.snapshot_at.slice(0, 10) <= end_date);
-  }, [snapshots, idsProc, start_date, end_date]);
+      .filter(s => !dataInicio || s.snapshot_at.slice(0, 10) >= dataInicio)
+      .filter(s => !dataFim || s.snapshot_at.slice(0, 10) <= dataFim);
+  }, [snapshots, idsProc, dataInicio, dataFim]);
 
   const serieTemporal = useMemo(() => {
     const porMes = new Map<string, number>();
@@ -216,11 +216,11 @@ export default function SetorEvolucaoPage() {
         </div>
         <div className="dashv2-filter">
           <label><Tooltip text={dica('setor.filtro.periodo')}>Início</Tooltip></label>
-          <input type="date" value={start_date} onChange={(e) => setDataInicio(e.target.value)} />
+          <input type="date" value={dataInicio} onChange={(e) => setDataInicio(e.target.value)} />
         </div>
         <div className="dashv2-filter">
           <label><Tooltip text={dica('setor.filtro.periodo')}>Fim</Tooltip></label>
-          <input type="date" value={end_date} onChange={(e) => setDataFim(e.target.value)} />
+          <input type="date" value={dataFim} onChange={(e) => setDataFim(e.target.value)} />
         </div>
         <button className="dashv2-filter-clear" onClick={limparFiltros}>Limpar</button>
         <button
