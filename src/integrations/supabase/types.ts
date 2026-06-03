@@ -739,6 +739,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "cascata_eventos_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cascata_eventos_processo_raiz_id_fkey"
             columns: ["processo_raiz_id"]
             isOneToOne: false
@@ -2054,6 +2061,13 @@ export type Database = {
             referencedRelation: "documentos_processo"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documentos_processo_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
         ]
       }
       documents: {
@@ -2701,6 +2715,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "gargalos_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "gargalos_melhoria_id_fkey"
             columns: ["melhoria_id"]
