@@ -672,33 +672,33 @@ export type Database = {
       }
       cascata_evento_etapas: {
         Row: {
-          cenario: string
           created_at: string
           etapa_id: string
           evento_id: string
           id: string
+          scenario: string
         }
         Insert: {
-          cenario?: string
           created_at?: string
           etapa_id: string
           evento_id: string
           id?: string
+          scenario?: string
         }
         Update: {
-          cenario?: string
           created_at?: string
           etapa_id?: string
           evento_id?: string
           id?: string
+          scenario?: string
         }
         Relationships: [
           {
             foreignKeyName: "casc_evt_etp_etapa_fk"
-            columns: ["etapa_id", "cenario"]
+            columns: ["etapa_id", "scenario"]
             isOneToOne: false
             referencedRelation: "process_stages"
-            referencedColumns: ["id", "cenario"]
+            referencedColumns: ["id", "scenario"]
           },
           {
             foreignKeyName: "cascata_evento_etapas_evento_id_fkey"
@@ -2366,29 +2366,29 @@ export type Database = {
       }
       etapa_documentos: {
         Row: {
-          cenario: string
           created_at: string
           documento_id: string
           etapa_id: string
           id: string
+          scenario: string
           sentido: string
           volume: number | null
         }
         Insert: {
-          cenario?: string
           created_at?: string
           documento_id: string
           etapa_id: string
           id?: string
+          scenario?: string
           sentido: string
           volume?: number | null
         }
         Update: {
-          cenario?: string
           created_at?: string
           documento_id?: string
           etapa_id?: string
           id?: string
+          scenario?: string
           sentido?: string
           volume?: number | null
         }
@@ -2402,48 +2402,48 @@ export type Database = {
           },
           {
             foreignKeyName: "etapa_documentos_etapa_fk"
-            columns: ["etapa_id", "cenario"]
+            columns: ["etapa_id", "scenario"]
             isOneToOne: false
             referencedRelation: "process_stages"
-            referencedColumns: ["id", "cenario"]
+            referencedColumns: ["id", "scenario"]
           },
         ]
       }
       etapa_responsaveis: {
         Row: {
-          cenario: string
           created_at: string
           etapa_id: string
           horas: number | null
           id: string
           papel: string
           responsavel_id: string
+          scenario: string
         }
         Insert: {
-          cenario?: string
           created_at?: string
           etapa_id: string
           horas?: number | null
           id?: string
           papel: string
           responsavel_id: string
+          scenario?: string
         }
         Update: {
-          cenario?: string
           created_at?: string
           etapa_id?: string
           horas?: number | null
           id?: string
           papel?: string
           responsavel_id?: string
+          scenario?: string
         }
         Relationships: [
           {
             foreignKeyName: "etapa_responsaveis_etapa_fk"
-            columns: ["etapa_id", "cenario"]
+            columns: ["etapa_id", "scenario"]
             isOneToOne: false
             referencedRelation: "process_stages"
-            referencedColumns: ["id", "cenario"]
+            referencedColumns: ["id", "scenario"]
           },
           {
             foreignKeyName: "etapa_responsaveis_responsavel_id_fkey"
@@ -2456,36 +2456,36 @@ export type Database = {
       }
       etapa_sistemas: {
         Row: {
-          cenario: string
           created_at: string
           etapa_id: string
           id: string
           rateio: number | null
+          scenario: string
           sistema_id: string
         }
         Insert: {
-          cenario?: string
           created_at?: string
           etapa_id: string
           id?: string
           rateio?: number | null
+          scenario?: string
           sistema_id: string
         }
         Update: {
-          cenario?: string
           created_at?: string
           etapa_id?: string
           id?: string
           rateio?: number | null
+          scenario?: string
           sistema_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "etapa_sistemas_etapa_fk"
-            columns: ["etapa_id", "cenario"]
+            columns: ["etapa_id", "scenario"]
             isOneToOne: false
             referencedRelation: "process_stages"
-            referencedColumns: ["id", "cenario"]
+            referencedColumns: ["id", "scenario"]
           },
           {
             foreignKeyName: "etapa_sistemas_sistema_id_fkey"
@@ -3021,7 +3021,6 @@ export type Database = {
       }
       job_roles: {
         Row: {
-          categoria: string | null
           category: string | null
           cluster_id: string | null
           created_at: string | null
@@ -3031,10 +3030,9 @@ export type Database = {
           level: string
           monthly_salary_ref: number | null
           name: string
-          tipo: string | null
+          type: string | null
         }
         Insert: {
-          categoria?: string | null
           category?: string | null
           cluster_id?: string | null
           created_at?: string | null
@@ -3044,10 +3042,9 @@ export type Database = {
           level: string
           monthly_salary_ref?: number | null
           name: string
-          tipo?: string | null
+          type?: string | null
         }
         Update: {
-          categoria?: string | null
           category?: string | null
           cluster_id?: string | null
           created_at?: string | null
@@ -3057,7 +3054,7 @@ export type Database = {
           level?: string
           monthly_salary_ref?: number | null
           name?: string
-          tipo?: string | null
+          type?: string | null
         }
         Relationships: [
           {
@@ -4777,13 +4774,11 @@ export type Database = {
           cost_saved_monthly: number | null
           cost_saved_percent: number | null
           created_at: string | null
-          custo_externo_unico: number | null
           evaluated_by: string | null
           evaluation_end_date: string | null
           evaluation_period_days: number | null
           evaluation_start_date: string | null
           evaluation_status: string | null
-          horas_treinamento: number | null
           id: string
           implementation_cost: number | null
           implementation_hours: number | null
@@ -4792,6 +4787,8 @@ export type Database = {
           improved_time_hours: number | null
           improved_volume: number | null
           improvement_description: string | null
+          improvement_status: string | null
+          one_time_external_cost: number | null
           other_savings_monthly: number | null
           process_id: string
           project_id: string | null
@@ -4799,10 +4796,10 @@ export type Database = {
           roi_percentage: number | null
           roi_time_months: number | null
           sprint_deliverable_id: string | null
-          status_melhoria: string | null
           system_savings_monthly: number | null
           time_saved_hours: number | null
           time_saved_percent: number | null
+          training_hours: number | null
           updated_at: string | null
         }
         Insert: {
@@ -4815,13 +4812,11 @@ export type Database = {
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
-          custo_externo_unico?: number | null
           evaluated_by?: string | null
           evaluation_end_date?: string | null
           evaluation_period_days?: number | null
           evaluation_start_date?: string | null
           evaluation_status?: string | null
-          horas_treinamento?: number | null
           id?: string
           implementation_cost?: number | null
           implementation_hours?: number | null
@@ -4830,6 +4825,8 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          improvement_status?: string | null
+          one_time_external_cost?: number | null
           other_savings_monthly?: number | null
           process_id: string
           project_id?: string | null
@@ -4837,10 +4834,10 @@ export type Database = {
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
-          status_melhoria?: string | null
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
+          training_hours?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -4853,13 +4850,11 @@ export type Database = {
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
-          custo_externo_unico?: number | null
           evaluated_by?: string | null
           evaluation_end_date?: string | null
           evaluation_period_days?: number | null
           evaluation_start_date?: string | null
           evaluation_status?: string | null
-          horas_treinamento?: number | null
           id?: string
           implementation_cost?: number | null
           implementation_hours?: number | null
@@ -4868,6 +4863,8 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          improvement_status?: string | null
+          one_time_external_cost?: number | null
           other_savings_monthly?: number | null
           process_id?: string
           project_id?: string | null
@@ -4875,10 +4872,10 @@ export type Database = {
           roi_percentage?: number | null
           roi_time_months?: number | null
           sprint_deliverable_id?: string | null
-          status_melhoria?: string | null
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
+          training_hours?: number | null
           updated_at?: string | null
         }
         Relationships: [
@@ -4928,96 +4925,90 @@ export type Database = {
       }
       process_scenarios: {
         Row: {
+          annual_cost: number | null
+          annual_hours: number | null
+          annual_savings: number | null
           computed_metrics: Json | null
           created_at: string
           created_by: string
-          criado_por: string | null
-          custo_anual: number | null
           description: string | null
-          economia_anual: number | null
-          horas_anual: number | null
-          horas_liberadas: number | null
+          hours_freed: number | null
           id: string
           improvement_id: string | null
-          investimento: number | null
+          investment: number | null
           is_locked: boolean
           locked_fields: string[]
           name: string
           notes: string | null
           parameters: Json
           parent_scenario_id: string | null
-          payback_meses: number | null
+          payback_months: number | null
           process_id: string
-          processo_id: string | null
           project_id: string | null
-          roi_percentual: number | null
+          roi_percent: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type: Database["public"]["Enums"]["scenario_type"]
-          snapshot_em: string | null
+          snapshot_at: string | null
           status: Database["public"]["Enums"]["scenario_status"]
           unit_basis: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at: string
           varied_field: string
         }
         Insert: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
           computed_metrics?: Json | null
           created_at?: string
           created_by: string
-          criado_por?: string | null
-          custo_anual?: number | null
           description?: string | null
-          economia_anual?: number | null
-          horas_anual?: number | null
-          horas_liberadas?: number | null
+          hours_freed?: number | null
           id?: string
           improvement_id?: string | null
-          investimento?: number | null
+          investment?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name: string
           notes?: string | null
           parameters: Json
           parent_scenario_id?: string | null
-          payback_meses?: number | null
+          payback_months?: number | null
           process_id: string
-          processo_id?: string | null
           project_id?: string | null
-          roi_percentual?: number | null
+          roi_percent?: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
-          snapshot_em?: string | null
+          snapshot_at?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
           varied_field: string
         }
         Update: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
           computed_metrics?: Json | null
           created_at?: string
           created_by?: string
-          criado_por?: string | null
-          custo_anual?: number | null
           description?: string | null
-          economia_anual?: number | null
-          horas_anual?: number | null
-          horas_liberadas?: number | null
+          hours_freed?: number | null
           id?: string
           improvement_id?: string | null
-          investimento?: number | null
+          investment?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name?: string
           notes?: string | null
           parameters?: Json
           parent_scenario_id?: string | null
-          payback_meses?: number | null
+          payback_months?: number | null
           process_id?: string
-          processo_id?: string | null
           project_id?: string | null
-          roi_percentual?: number | null
+          roi_percent?: number | null
           scenario_kind?: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
-          snapshot_em?: string | null
+          snapshot_at?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
@@ -5060,13 +5051,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "process_scenarios_processo_id_fk"
-            columns: ["processo_id"]
-            isOneToOne: false
-            referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "process_scenarios_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -5078,102 +5062,92 @@ export type Database = {
       process_stages: {
         Row: {
           automation_level: string | null
-          cenario: string
           created_at: string | null
-          custo_erro: number | null
           description: string | null
-          etapa_as_is_id: string | null
-          execucao: string | null
+          error_cost: number | null
+          error_rate: number | null
+          error_volume: number | null
+          execution: string | null
           frequency: string | null
           id: string
           inputs: Json | null
           job_role_id: string | null
-          lead_time_dias: number | null
+          lead_time_days: number | null
           name: string
           outputs: Json | null
           process_id: string | null
-          processo_id: string | null
           related_projects: string[] | null
           responsible: string | null
+          rework_rate: number | null
+          scenario: string
+          stage_as_is_id: string | null
           stage_order: number
           systems: Json | null
-          taxa_erros: number | null
-          taxa_retrabalho: number | null
           time_current: string | null
           time_target: string | null
           updated_at: string | null
           volume: string | null
-          volume_erros: number | null
-          volume_por_processo: number | null
+          volume_per_process: number | null
         }
         Insert: {
           automation_level?: string | null
-          cenario?: string
           created_at?: string | null
-          custo_erro?: number | null
           description?: string | null
-          etapa_as_is_id?: string | null
-          execucao?: string | null
+          error_cost?: number | null
+          error_rate?: number | null
+          error_volume?: number | null
+          execution?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
-          lead_time_dias?: number | null
+          lead_time_days?: number | null
           name: string
           outputs?: Json | null
           process_id?: string | null
-          processo_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
+          rework_rate?: number | null
+          scenario?: string
+          stage_as_is_id?: string | null
           stage_order: number
           systems?: Json | null
-          taxa_erros?: number | null
-          taxa_retrabalho?: number | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
-          volume_erros?: number | null
-          volume_por_processo?: number | null
+          volume_per_process?: number | null
         }
         Update: {
           automation_level?: string | null
-          cenario?: string
           created_at?: string | null
-          custo_erro?: number | null
           description?: string | null
-          etapa_as_is_id?: string | null
-          execucao?: string | null
+          error_cost?: number | null
+          error_rate?: number | null
+          error_volume?: number | null
+          execution?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
-          lead_time_dias?: number | null
+          lead_time_days?: number | null
           name?: string
           outputs?: Json | null
           process_id?: string | null
-          processo_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
+          rework_rate?: number | null
+          scenario?: string
+          stage_as_is_id?: string | null
           stage_order?: number
           systems?: Json | null
-          taxa_erros?: number | null
-          taxa_retrabalho?: number | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
-          volume_erros?: number | null
-          volume_por_processo?: number | null
+          volume_per_process?: number | null
         }
         Relationships: [
-          {
-            foreignKeyName: "process_stages_etapa_as_is_fk"
-            columns: ["etapa_as_is_id"]
-            isOneToOne: false
-            referencedRelation: "process_stages"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "process_stages_job_role_id_fkey"
             columns: ["job_role_id"]
@@ -5189,10 +5163,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "process_stages_processo_id_fk"
-            columns: ["processo_id"]
+            foreignKeyName: "process_stages_stage_as_is_fk"
+            columns: ["stage_as_is_id"]
             isOneToOne: false
-            referencedRelation: "processes"
+            referencedRelation: "process_stages"
             referencedColumns: ["id"]
           },
         ]
@@ -5208,37 +5182,36 @@ export type Database = {
           cost_monthly: number | null
           created_at: string
           created_by: string | null
+          deliverable: string | null
           description: string | null
           document_path: string | null
-          entregavel: string | null
           equipe_id: string | null
           evaluation_period_days: number | null
+          evaluation_status: string | null
           financial_impact: string | null
           formatted_content: string | null
           frequency: string | null
-          horas_treinamento: number | null
           id: string
           last_ai_sync: string | null
           last_cost_saved_monthly: number | null
           last_improvement_date: string | null
           last_roi_percentage: number | null
           last_time_saved_hours: number | null
-          mapeado_em: string | null
+          mapped_at: string | null
           name: string
-          ordem: number | null
+          order_index: number | null
           people_involved: number | null
           priority: string | null
           project_id: string | null
-          projeto_id: string | null
           sop_before_content: string | null
           sop_before_document_path: string | null
           sop_before_link: string | null
           sop_document_path: string | null
           sop_link: string | null
           stage: string
-          status_avaliacao: string | null
           time_spent_frequency: string | null
           time_spent_hours: number | null
+          training_hours: number | null
           updated_at: string
           volume_executions: number | null
           volume_month: number | null
@@ -5253,37 +5226,36 @@ export type Database = {
           cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
+          deliverable?: string | null
           description?: string | null
           document_path?: string | null
-          entregavel?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
+          evaluation_status?: string | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
-          horas_treinamento?: number | null
           id?: string
           last_ai_sync?: string | null
           last_cost_saved_monthly?: number | null
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
-          mapeado_em?: string | null
+          mapped_at?: string | null
           name: string
-          ordem?: number | null
+          order_index?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
-          projeto_id?: string | null
           sop_before_content?: string | null
           sop_before_document_path?: string | null
           sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
-          status_avaliacao?: string | null
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
+          training_hours?: number | null
           updated_at?: string
           volume_executions?: number | null
           volume_month?: number | null
@@ -5298,37 +5270,36 @@ export type Database = {
           cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
+          deliverable?: string | null
           description?: string | null
           document_path?: string | null
-          entregavel?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
+          evaluation_status?: string | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
-          horas_treinamento?: number | null
           id?: string
           last_ai_sync?: string | null
           last_cost_saved_monthly?: number | null
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
-          mapeado_em?: string | null
+          mapped_at?: string | null
           name?: string
-          ordem?: number | null
+          order_index?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
-          projeto_id?: string | null
           sop_before_content?: string | null
           sop_before_document_path?: string | null
           sop_before_link?: string | null
           sop_document_path?: string | null
           sop_link?: string | null
           stage?: string
-          status_avaliacao?: string | null
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
+          training_hours?: number | null
           updated_at?: string
           volume_executions?: number | null
           volume_month?: number | null
@@ -5358,13 +5329,6 @@ export type Database = {
           {
             foreignKeyName: "processes_project_id_fkey"
             columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "processes_projeto_id_fk"
-            columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
@@ -5652,7 +5616,7 @@ export type Database = {
           name: string
           product_service: string | null
           project_front: string | null
-          projetos_por_ano: number | null
+          projects_per_year: number | null
           start_date: string | null
           status: string | null
           updated_at: string | null
@@ -5675,7 +5639,7 @@ export type Database = {
           name: string
           product_service?: string | null
           project_front?: string | null
-          projetos_por_ano?: number | null
+          projects_per_year?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -5698,7 +5662,7 @@ export type Database = {
           name?: string
           product_service?: string | null
           project_front?: string | null
-          projetos_por_ano?: number | null
+          projects_per_year?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
