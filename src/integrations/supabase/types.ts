@@ -7903,6 +7903,7 @@ export type Database = {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
       }
+      mapa_uuid: { Args: { slug: string }; Returns: string }
       mark_stuck_procedimentos: {
         Args: { timeout_minutes?: number }
         Returns: number
