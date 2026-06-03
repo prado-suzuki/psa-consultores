@@ -23,6 +23,14 @@ import {
 } from '@/hooks/useQualificacaoDasPartes';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
 
+// Rótulos de tipo_empresa; PR e CN ganham destaque em verde na coluna "Papel".
+const TIPO_EMPRESA_LABELS: Record<string, string> = {
+  PR: 'Proprietária',
+  CN: 'Controladora',
+  SC: 'Sócia',
+};
+const TIPOS_EMPRESA_DESTAQUE = new Set(['PR', 'CN']);
+
 interface PessoasTableProps {
   titulo: string;
   icone: React.ReactNode;
@@ -30,6 +38,8 @@ interface PessoasTableProps {
   pessoas: PessoaRow[];
   buscaAtiva: boolean;
   documentoLabel: string;
+  // Exibe a coluna "Papel" (tipo_empresa) — só PJ.
+  mostrarPapel?: boolean;
   // Quando presente, exibe a coluna "Filiação" (vínculo de parentesco) — só PF.
   filiacaoPorPessoa?: Map<string, string>;
   onNovo: () => void;
@@ -38,7 +48,7 @@ interface PessoasTableProps {
 }
 
 const PessoasTable = ({
-  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
+  titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
 }: PessoasTableProps) => (
   <Card>
     <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
@@ -62,6 +72,7 @@ const PessoasTable = ({
               <TableRow>
                 <TableHead>Denominação</TableHead>
                 <TableHead>{documentoLabel}</TableHead>
+                {mostrarPapel && <TableHead>Papel</TableHead>}
                 {filiacaoPorPessoa && <TableHead>Filiação</TableHead>}
                 <TableHead>Município/UF</TableHead>
                 <TableHead className="w-24 text-right">Ações</TableHead>
@@ -72,6 +83,23 @@ const PessoasTable = ({
                 <TableRow key={p.id} {...rowActivateProps(() => onEditar(p))}>
                   <TableCell className="font-medium">{p.denominacao}</TableCell>
                   <TableCell className="font-mono text-xs">{p.cpf_cnpj ?? '—'}</TableCell>
+                  {mostrarPapel && (
+                    <TableCell className="text-xs">
+                      {p.tipo_empresa ? (
+                        <span
+                          className={
+                            TIPOS_EMPRESA_DESTAQUE.has(p.tipo_empresa)
+                              ? 'font-medium text-osg-moss'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {TIPO_EMPRESA_LABELS[p.tipo_empresa] ?? p.tipo_empresa}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
                   {filiacaoPorPessoa && (
                     <TableCell className="text-xs text-muted-foreground">
                       {p.is_fundador ? (
@@ -220,6 +248,7 @@ const QualificacaoDasPartes = () => {
               icone={<Building2 className="h-4 w-4 text-slate-500" />}
               tipo="PJ"
               documentoLabel="CNPJ"
+              mostrarPapel
               pessoas={pjs}
               buscaAtiva={buscaAtiva}
               onNovo={() => setPessoaModal({ open: true, pessoa: null, defaultTipo: 'PJ' })}

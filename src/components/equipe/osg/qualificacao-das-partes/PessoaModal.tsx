@@ -2,23 +2,33 @@ import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
 import { useDirtyClose } from '@/components/equipe/osg/useDirtyClose';
 import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { toast } from 'sonner';
-import { Check, Loader2, X } from 'lucide-react';
+import { Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { formatCpfCnpj, formatCep, UF_STATES } from '@/components/equipe/client-form/constants';
 import {
-  fieldCls, textareaCls, switchBoxCls, labelCls, FieldSection,
+  fieldCls, textareaCls, switchBoxCls, subFormBoxCls, labelCls, FieldSection,
+  osgTabsListCls, osgTabTriggerCls,
 } from '@/components/equipe/osg/formKit';
-import type { PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
+import type { AdministracaoEnriched, PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
 import {
+  useAdministracaoByPj,
+  useDeleteAdministracao,
   useDeleteParentesco,
   useParentescosByCliente,
+  useUpsertAdministracao,
   useUpsertParentesco,
   useUpsertPessoa,
 } from '@/hooks/useQualificacaoDasPartes';
@@ -33,6 +43,12 @@ const STATUS_CONSTITUICAO_OPTIONS = [
   'Ativa', 'Suspensa', 'Inapta', 'Baixada', 'Em constituição',
 ];
 
+const TIPO_EMPRESA_OPTIONS: { value: string; label: string }[] = [
+  { value: 'PR', label: 'Proprietária' },
+  { value: 'CN', label: 'Controladora' },
+  { value: 'SC', label: 'Sócia' },
+];
+
 const TIPO_PARENTESCO_OPTIONS = [
   'Filho(a)', 'Pai/Mãe', 'Irmão(ã)', 'Avô(ó)', 'Neto(a)',
   'Tio(a)', 'Sobrinho(a)', 'Primo(a)', 'Sogro(a)', 'Genro/Nora', 'Cunhado(a)',
@@ -40,6 +56,8 @@ const TIPO_PARENTESCO_OPTIONS = [
 ];
 
 const NATUREZA_OPTIONS = ['Consanguíneo', 'Afim', 'Adotivo', 'Civil'];
+
+const CARGO_OPTIONS = ['Administrador', 'Sócio-Administrador', 'Diretor', 'Presidente'];
 
 const GENERO_OPTIONS: { value: string; label: string }[] = [
   { value: 'M', label: 'Masculino' },
@@ -98,6 +116,7 @@ type DraftPessoa = {
   data_constituicao: string;
   objeto_social: string;
   status_constituicao: string;
+  tipo_empresa: string;
 };
 
 const emptyDraft = (): DraftPessoa => ({
@@ -134,6 +153,7 @@ const emptyDraft = (): DraftPessoa => ({
   data_constituicao: '',
   objeto_social: '',
   status_constituicao: '',
+  tipo_empresa: '',
 });
 
 const fromPessoa = (p: PessoaRow): DraftPessoa => ({
@@ -170,6 +190,7 @@ const fromPessoa = (p: PessoaRow): DraftPessoa => ({
   data_constituicao: p.data_constituicao ?? '',
   objeto_social: p.objeto_social ?? '',
   status_constituicao: p.status_constituicao ?? '',
+  tipo_empresa: p.tipo_empresa ?? '',
 });
 
 // Campo de filiação: texto livre com autocomplete. Digitar busca pessoas já
@@ -229,6 +250,7 @@ function FiliacaoCombobox({
 
 export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTipo, onClose }: PessoaModalProps) {
   const [draft, setDraft] = useState<DraftPessoa>(emptyDraft);
+  const [activeTab, setActiveTab] = useState('dados');
   const upsert = useUpsertPessoa();
   const upsertParentesco = useUpsertParentesco();
   const deleteParentesco = useDeleteParentesco();
@@ -250,6 +272,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
       : { ...emptyDraft(), tipo_pessoa: defaultTipo ?? 'PF' };
     setDraft(initial);
     initialDraftRef.current = JSON.stringify(initial);
+    setActiveTab('dados');
   }, [open, pessoa, defaultTipo]);
 
   const isPF = draft.tipo_pessoa === 'PF';
@@ -359,6 +382,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           data_constituicao: null,
           objeto_social: null,
           status_constituicao: null,
+          tipo_empresa: null,
         }
       : {
           genero: null,
@@ -384,6 +408,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           data_constituicao: nullify(draft.data_constituicao),
           objeto_social: nullify(draft.objeto_social),
           status_constituicao: nullify(draft.status_constituicao),
+          tipo_empresa: draft.tipo_empresa || null,
         };
 
     upsert.mutate(
@@ -414,16 +439,38 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
-            {isEdit ? 'Editar pessoa' : 'Nova pessoa'}
-            <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
-              {isPF ? 'Pessoa Física' : 'Pessoa Jurídica'}
-            </span>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+        {/* Cabeçalho + abas fixos no topo enquanto o formulário rola */}
+        <div className="shrink-0 bg-background px-6 pt-5">
+          <DialogHeader className={`space-y-0 text-left ${isPF ? '' : 'mb-4'}`}>
+            <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
+              {isEdit ? 'Editar pessoa' : 'Nova pessoa'}
+              <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
+                {isPF ? 'Pessoa Física' : 'Pessoa Jurídica'}
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          {/* PF não tem vínculos de administração; só PJ ganha abas. */}
+          {!isPF && (
+            <TabsList className={osgTabsListCls}>
+              <TabsTrigger value="dados" className={osgTabTriggerCls}>
+                Dados
+              </TabsTrigger>
+              <TabsTrigger value="administracao" disabled={!isEdit} className={osgTabTriggerCls}>
+                Administração
+              </TabsTrigger>
+            </TabsList>
+          )}
+        </div>
 
+        {/* Área rolável */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <TabsContent value="dados" className="mt-0 focus-visible:ring-0">
         <div>
           <FieldSection number={nextNo()} title="Identificação">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -753,6 +800,20 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <Label className={labelCls}>Tipo Empresa</Label>
+                  <Select
+                    value={draft.tipo_empresa || undefined}
+                    onValueChange={(v) => setField('tipo_empresa', v)}
+                  >
+                    <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      {TIPO_EMPRESA_OPTIONS.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="md:col-span-3 space-y-1.5">
                   <Label className={labelCls}>Objeto social</Label>
                   <Textarea
@@ -818,8 +879,17 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
             </FieldSection>
           )}
         </div>
+        </TabsContent>
 
-        <DialogFooter className="mt-6 border-t border-osg-100 pt-4">
+        <TabsContent value="administracao" className="mt-0 focus-visible:ring-0">
+          {!isPF && isEdit && pessoa && (
+            <AdministracaoPanel pjPessoaId={pessoa.id} pessoasCliente={pessoasCliente} />
+          )}
+        </TabsContent>
+        </div>
+
+        {/* Footer fixo */}
+        <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
           <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
           <Button
             onClick={handleSave}
@@ -832,9 +902,310 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
             {isEdit ? 'Salvar alterações' : 'Cadastrar pessoa'}
           </Button>
         </DialogFooter>
+        </Tabs>
       </DialogContent>
     </Dialog>
     <UnsavedChangesAlert {...alertProps} />
     </>
+  );
+}
+
+// =============================================================================
+// Administração (PJ): vínculos PF → administrador da empresa. CRUD imediato
+// (cada linha salva na hora), independente do botão "Salvar" da pessoa.
+// =============================================================================
+
+interface AdministracaoPanelProps {
+  pjPessoaId: string;
+  pessoasCliente: PessoaRow[];
+}
+
+function AdministracaoPanel({ pjPessoaId, pessoasCliente }: AdministracaoPanelProps) {
+  const { data: administradores = [], isLoading } = useAdministracaoByPj(pjPessoaId);
+  const upsert = useUpsertAdministracao();
+  const deleteMutation = useDeleteAdministracao();
+
+  const emptyAdmin = () => ({
+    administradorId: '',
+    cargo: '',
+    podeIsoladamente: false,
+    dataInicio: '',
+    dataFim: '',
+  });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [adminDraft, setAdminDraft] = useState(emptyAdmin);
+
+  // Só PFs do cliente podem administrar; mantém na lista um administrador já
+  // vinculado mesmo que a pessoa tenha mudado de tipo.
+  const candidates = pessoasCliente.filter(
+    (p) => p.tipo_pessoa === 'PF' || p.id === adminDraft.administradorId,
+  );
+
+  const startAdd = () => {
+    setEditingId(null);
+    setAdminDraft(emptyAdmin());
+    setAdding(true);
+  };
+
+  const startEdit = (a: AdministracaoEnriched) => {
+    setAdding(false);
+    setEditingId(a.id);
+    setAdminDraft({
+      administradorId: a.administrador_pessoa_id,
+      cargo: a.cargo ?? '',
+      podeIsoladamente: a.pode_isoladamente ?? false,
+      dataInicio: a.data_inicio ?? '',
+      dataFim: a.data_fim ?? '',
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setAdding(false);
+    setAdminDraft(emptyAdmin());
+  };
+
+  const handleSave = () => {
+    if (!adminDraft.administradorId) {
+      toast.error('Selecione o administrador');
+      return;
+    }
+    if (adminDraft.dataInicio && adminDraft.dataFim && adminDraft.dataFim < adminDraft.dataInicio) {
+      toast.error('Data fim deve ser igual ou posterior à data início');
+      return;
+    }
+
+    const original = editingId ? (administradores.find((a) => a.id === editingId) ?? null) : null;
+    const entityName =
+      pessoasCliente.find((p) => p.id === adminDraft.administradorId)?.denominacao ?? 'administrador';
+
+    upsert.mutate(
+      {
+        values: {
+          pj_pessoa_id: pjPessoaId,
+          administrador_pessoa_id: adminDraft.administradorId,
+          cargo: adminDraft.cargo.trim() || null,
+          pode_isoladamente: adminDraft.podeIsoladamente,
+          data_inicio: adminDraft.dataInicio || null,
+          data_fim: adminDraft.dataFim || null,
+        },
+        original,
+        entityName,
+      },
+      { onSuccess: cancelEdit },
+    );
+  };
+
+  const formOpen = adding || editingId != null;
+
+  return (
+    <FieldSection
+      number="01"
+      title="Administradores"
+      hint={
+        !isLoading && administradores.length > 0 ? `${administradores.length} vínculo(s)` : undefined
+      }
+    >
+      <div className="space-y-2.5">
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground py-2">Carregando...</p>
+        ) : administradores.length === 0 && !formOpen ? (
+          <p className="text-sm text-muted-foreground py-2">
+            Nenhum administrador vinculado a esta empresa.
+          </p>
+        ) : administradores.length > 0 ? (
+          <div className="space-y-1.5">
+            {administradores.map((a) => (
+              <AdministradorRowItem
+                key={a.id}
+                administracao={a}
+                isEditing={editingId === a.id}
+                onEdit={() => startEdit(a)}
+                onDelete={() =>
+                  deleteMutation.mutate({ row: a, entityName: a.administrador_denominacao })}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        {formOpen ? (
+          <div className={`${subFormBoxCls} space-y-3`}>
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">
+              {editingId ? 'Editar administrador' : 'Novo administrador'}
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className={labelCls}>
+                  Administrador
+                  <RequiredMark />
+                </Label>
+                <Select
+                  value={adminDraft.administradorId || undefined}
+                  onValueChange={(v) => setAdminDraft((p) => ({ ...p, administradorId: v }))}
+                >
+                  <SelectTrigger className={fieldCls}>
+                    <SelectValue
+                      placeholder={candidates.length ? 'Selecione...' : 'Nenhuma PF cadastrada'}
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {candidates.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>Cargo</Label>
+                <Select
+                  value={adminDraft.cargo || undefined}
+                  onValueChange={(v) => setAdminDraft((p) => ({ ...p, cargo: v }))}
+                >
+                  <SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent>
+                    {CARGO_OPTIONS.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>Data início</Label>
+                <Input
+                  type="date"
+                  value={adminDraft.dataInicio}
+                  onChange={(e) => setAdminDraft((p) => ({ ...p, dataInicio: e.target.value }))}
+                  className={fieldCls}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className={labelCls}>Data fim</Label>
+                <Input
+                  type="date"
+                  value={adminDraft.dataFim}
+                  onChange={(e) => setAdminDraft((p) => ({ ...p, dataFim: e.target.value }))}
+                  className={fieldCls}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={`${switchBoxCls} w-full cursor-pointer text-sm`}>
+                  <Checkbox
+                    checked={adminDraft.podeIsoladamente}
+                    onCheckedChange={(c) =>
+                      setAdminDraft((p) => ({ ...p, podeIsoladamente: c === true }))}
+                  />
+                  Pode assinar isoladamente
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button type="button" size="sm" variant="ghost" onClick={cancelEdit}>
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                onClick={handleSave}
+                disabled={upsert.isPending}
+              >
+                {upsert.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                {editingId ? 'Salvar' : 'Adicionar'}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-8 w-full justify-start gap-1.5 border border-dashed border-osg-200 text-muted-foreground hover:text-osg-700"
+            onClick={startAdd}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Adicionar administrador
+          </Button>
+        )}
+      </div>
+    </FieldSection>
+  );
+}
+
+interface AdministradorRowItemProps {
+  administracao: AdministracaoEnriched;
+  isEditing: boolean;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function AdministradorRowItem({ administracao, isEditing, onEdit, onDelete }: AdministradorRowItemProps) {
+  const formatData = (d: string) => {
+    const [y, m, day] = d.split('-');
+    return `${day}/${m}/${y}`;
+  };
+  const hoje = new Date().toISOString().slice(0, 10);
+  const vigente = !administracao.data_fim || administracao.data_fim >= hoje;
+
+  return (
+    <div
+      className={`rounded-md border px-3 py-2 ${isEditing ? 'bg-osg-50 border-osg-200' : 'bg-muted/30'} ${!vigente ? 'opacity-60' : ''}`}
+    >
+      <div className="flex items-start gap-2">
+        <div className="flex-1 min-w-0 space-y-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-medium">{administracao.administrador_denominacao}</span>
+            {administracao.cargo && (
+              <Badge variant="outline" className="text-[10px]">{administracao.cargo}</Badge>
+            )}
+            {administracao.pode_isoladamente && (
+              <Badge variant="default" className="text-[10px]">Assina isoladamente</Badge>
+            )}
+            <Badge variant={vigente ? 'default' : 'secondary'} className="text-[10px]">
+              {vigente ? 'Vigente' : 'Encerrada'}
+            </Badge>
+          </div>
+          {(administracao.data_inicio || administracao.data_fim) && (
+            <div className="flex gap-3 text-xs text-muted-foreground flex-wrap">
+              {administracao.data_inicio && <span>Início: {formatData(administracao.data_inicio)}</span>}
+              {administracao.data_fim && <span>Fim: {formatData(administracao.data_fim)}</span>}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Remover administrador?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Remover o vínculo de {administracao.administrador_denominacao} como
+                  administrador(a) desta empresa.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={onDelete}
+                >
+                  Remover
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    </div>
   );
 }

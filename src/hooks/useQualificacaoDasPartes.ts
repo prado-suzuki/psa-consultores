@@ -15,6 +15,10 @@ export type ParentescoRow = Database['public']['Tables']['parentesco']['Row'];
 export type ParentescoInsert = Database['public']['Tables']['parentesco']['Insert'];
 export type ParentescoUpdate = Database['public']['Tables']['parentesco']['Update'];
 
+export type AdministracaoRow = Database['public']['Tables']['administracao']['Row'];
+export type AdministracaoInsert = Database['public']['Tables']['administracao']['Insert'];
+export type AdministracaoUpdate = Database['public']['Tables']['administracao']['Update'];
+
 const PESSOA_DIFF_FIELDS: (keyof PessoaRow)[] = [
   'cliente_id', 'contribuinte_id', 'tipo_pessoa', 'denominacao', 'cpf_cnpj',
   'endereco_logradouro', 'endereco_numero', 'endereco_complemento', 'endereco_bairro',
@@ -24,10 +28,15 @@ const PESSOA_DIFF_FIELDS: (keyof PessoaRow)[] = [
   'documento_identidade_tipo', 'documento_identidade_numero', 'documento_identidade_orgao', 'documento_identidade_uf',
   'conjuge_id',
   'nire', 'junta_comercial_uf', 'data_constituicao', 'objeto_social', 'status_constituicao',
+  'tipo_empresa',
 ];
 
 const PARENTESCO_DIFF_FIELDS: (keyof ParentescoRow)[] = [
   'pessoa_id', 'parente_pessoa_id', 'tipo', 'natureza',
+];
+
+const ADMINISTRACAO_DIFF_FIELDS: (keyof AdministracaoRow)[] = [
+  'pj_pessoa_id', 'administrador_pessoa_id', 'cargo', 'pode_isoladamente', 'data_inicio', 'data_fim',
 ];
 
 export function usePessoasByCliente(clienteId: string | null) {
@@ -255,6 +264,123 @@ export function useDeleteParentesco() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao remover vínculo', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export interface AdministracaoEnriched extends AdministracaoRow {
+  administrador_denominacao: string;
+}
+
+export function useAdministracaoByPj(pjPessoaId: string | null) {
+  return useQuery<AdministracaoEnriched[]>({
+    queryKey: ['administracao-by-pj', pjPessoaId],
+    queryFn: async () => {
+      if (!pjPessoaId) return [];
+      const { data, error } = await supabase
+        .from('administracao')
+        .select('*, administrador:administrador_pessoa_id (id, denominacao)')
+        .eq('pj_pessoa_id', pjPessoaId)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+
+      const rows = (data ?? []) as unknown as Array<AdministracaoRow & {
+        administrador: { id: string; denominacao: string } | null;
+      }>;
+
+      return rows.map((r) => ({
+        ...r,
+        administrador_denominacao: r.administrador?.denominacao ?? '—',
+      }));
+    },
+    enabled: !!pjPessoaId,
+  });
+}
+
+export function useUpsertAdministracao() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({
+      values,
+      original,
+      entityName,
+    }: {
+      values: AdministracaoInsert | AdministracaoUpdate;
+      original?: AdministracaoRow | null;
+      entityName: string;
+    }) => {
+      if (original?.id) {
+        const { data, error } = await supabase
+          .from('administracao')
+          .update(values as AdministracaoUpdate)
+          .eq('id', original.id)
+          .select('*')
+          .single();
+        if (error) throw error;
+        return { row: data as AdministracaoRow, original, entityName };
+      }
+      const { data, error } = await supabase
+        .from('administracao')
+        .insert(values as AdministracaoInsert)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return { row: data as AdministracaoRow, original: null, entityName };
+    },
+    onSuccess: async ({ row, original, entityName }) => {
+      queryClient.invalidateQueries({ queryKey: ['administracao-by-pj', row.pj_pessoa_id] });
+
+      const changed = computeFieldDiff(
+        original as unknown as Record<string, unknown> | null,
+        row as unknown as Record<string, unknown>,
+        ADMINISTRACAO_DIFF_FIELDS as string[],
+      );
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'administracao',
+        entity_id: row.id,
+        entity_name: entityName,
+        action: original ? 'updated' : 'created',
+        changed_fields: Object.keys(changed).length > 0 ? changed : undefined,
+      });
+
+      toast({
+        title: original ? 'Administrador atualizado' : 'Administrador vinculado',
+        description: entityName,
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao salvar administrador', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteAdministracao() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({ row, entityName }: { row: AdministracaoRow; entityName: string }) => {
+      const { error } = await supabase.from('administracao').delete().eq('id', row.id);
+      if (error) throw error;
+      return { row, entityName };
+    },
+    onSuccess: async ({ row, entityName }) => {
+      queryClient.invalidateQueries({ queryKey: ['administracao-by-pj', row.pj_pessoa_id] });
+      await logAction({
+        area: 'osg',
+        entity_type: 'administracao',
+        entity_id: row.id,
+        entity_name: entityName,
+        action: 'deleted',
+      });
+      toast({ title: 'Administrador removido', description: entityName });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao remover administrador', description: error.message, variant: 'destructive' });
     },
   });
 }
