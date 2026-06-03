@@ -31,7 +31,7 @@ const PAGE_DESCRIPTION =
 
 const AuditoriaCruzadaContent = () => {
   const {
-    clienteId, contribuinteId, dataInicio, dataFim, hasQueried,
+    clienteId, contribuinteId, start_date, end_date, hasQueried,
     setClienteId, setContribuinteId, setDataInicio, setDataFim, setHasQueried, handleLimpar,
   } = useAuditoriaStore();
 
@@ -44,8 +44,8 @@ const AuditoriaCruzadaContent = () => {
     }
   }, [clienteId, contribuintes, contribuinteId, setContribuinteId]);
 
-  const dtIni = dataInicio ? format(dataInicio, 'yyyy-MM-dd') : '';
-  const dtFim = dataFim ? format(dataFim, 'yyyy-MM-dd') : '';
+  const dtIni = start_date ? format(start_date, 'yyyy-MM-dd') : '';
+  const dtFim = end_date ? format(end_date, 'yyyy-MM-dd') : '';
 
   const balanceteQuery = useBalanceteEfd({
     id_contribuinte: contribuinteId,
@@ -117,34 +117,34 @@ const AuditoriaCruzadaContent = () => {
                 <div className="col-span-12 md:col-span-6 lg:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Data Início <RequiredMark />
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataInicio} />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.start_date} />
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dataInicio && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !start_date && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                        {start_date ? format(start_date, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={dataInicio ?? undefined} onSelect={(d) => setDataInicio(d ?? null)} />
+                      <Calendar selected={start_date ?? undefined} onSelect={(d) => setDataInicio(d ?? null)} />
                     </PopoverContent>
                   </Popover>
                 </div>
                 <div className="col-span-12 md:col-span-6 lg:col-span-3">
                   <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                     Data Fim <RequiredMark />
-                    <FieldTooltip text={AUDITORIA_TOOLTIPS.dataFim} />
+                    <FieldTooltip text={AUDITORIA_TOOLTIPS.end_date} />
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dataFim && "text-muted-foreground")}>
+                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !end_date && "text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
+                        {end_date ? format(end_date, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar selected={dataFim ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
+                      <Calendar selected={end_date ?? undefined} onSelect={(d) => setDataFim(d ?? null)} />
                     </PopoverContent>
                   </Popover>
                 </div>

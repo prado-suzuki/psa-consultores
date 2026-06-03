@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -9,13 +9,14 @@ import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
-import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
 import { agrupar } from '@/utils/agrupar';
 import { formatarMoeda, parseMoeda } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Responsavel } from '@/types';
-import { useEtapasLista, useDocumentosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useDocumentosLista, useSistemasLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useResponsaveis, useCreateResponsavel, useUpdateResponsavel, useDeleteResponsavel } from '@/hooks/useResponsaveis';
+import { useClusterFiltroOpcoes, useClusterCadastroOpcoes, useClusters } from '@/hooks/useClusters';
 
 const TIPO_OPCOES = [
   { value: 'Interno', label: 'Interno' },
@@ -39,16 +40,23 @@ const HORAS_MES_PADRAO = 176;
 const RESP_GRID = '44px minmax(180px, 1.6fr) minmax(120px, 1fr) 100px 90px 110px 110px 80px';
 
 export default function ResponsaveisPage() {
-  const { items, loaded, addItem, setItems, removeItem } = useStoredData<Responsavel>('responsaveisAdicionados', '/job_roles.json');
+  const { data: items = [], isLoading: respLoading } = useResponsaveis();
+  const loaded = !respLoading;
+  const createResp = useCreateResponsavel();
+  const updateResp = useUpdateResponsavel();
+  const deleteResp = useDeleteResponsavel();
+  const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
+  const { data: clusters = [] } = useClusters();
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Responsavel | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [nome, setNome] = useState('');
   const [cargo, setCargo] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [custoHora, setCustoHora] = useState('');
+  const [hourly_rate, setCustoHora] = useState('');
   const [tipo, setTipo] = useState('Interno');
-  const [cluster, setCluster] = useState('');
+  const [clusterId, setClusterId] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -60,11 +68,10 @@ export default function ResponsaveisPage() {
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: docs = [] } = useDocumentosLista();
   const { data: sis = [] } = useSistemasLista();
-  const { data: resps = [] } = useResponsaveisLista();
   const { data: processos = [] } = useProcessosLista();
   const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, docs, sis, resps),
-    [rawEtapas, docs, sis, resps],
+    () => enrichEtapas(rawEtapas, docs, sis, items),
+    [rawEtapas, docs, sis, items],
   );
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -77,11 +84,11 @@ export default function ResponsaveisPage() {
   const [editCategoria, setEditCategoria] = useState('');
   const [editCustoHora, setEditCustoHora] = useState('');
   const [editTipo, setEditTipo] = useState('Interno');
-  const [editCluster, setEditCluster] = useState('');
+  const [editClusterId, setEditClusterId] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
-  const procMap = new Map(processos.map(p => [p.id, p.nome]));
+  const procMap = new Map(processos.map(p => [p.id, p.name]));
 
   /**
    * Soma do rateio de horas mapeadas para este responsável nas etapas
@@ -120,9 +127,9 @@ export default function ResponsaveisPage() {
     const etapasRel = etapas.filter(e => (e.executadoPor || []).some(isResp));
     const grouped = new Map<string, { nome: string; papel: string }[]>();
     etapasRel.forEach(e => {
-      const list = grouped.get(e.processoId) || [];
-      list.push({ nome: e.nome, papel: 'Executa' });
-      grouped.set(e.processoId, list);
+      const list = grouped.get(e.process_id) || [];
+      list.push({ nome: e.name, papel: 'Executa' });
+      grouped.set(e.process_id, list);
     });
     grouped.forEach((etapasList, procId) => {
       vinculos.push({ procId, procName: procMap.get(procId) || procId, etapas: etapasList });
@@ -130,47 +137,59 @@ export default function ResponsaveisPage() {
     return vinculos;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) { setError('Preencha o nome do responsável.'); return; }
     setError('');
     setIsSaving(true);
-    addItem({ nome: nome.trim(), cargo: cargo.trim(), categoria: categoria.trim() || undefined, custoHora: parseMoeda(custoHora), tipo, cluster: cluster || undefined });
-    setTimeout(() => {
-      setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setCluster(''); setIsSaving(false); setModalOpen(false);
-    }, 300);
+    try {
+      await createResp.mutateAsync({
+        name: nome.trim(),
+        level: cargo.trim(),
+        category: categoria.trim() || undefined,
+        hourly_rate: parseMoeda(hourly_rate),
+        type: tipo,
+        cluster_id: clusterId || undefined,
+      });
+      toast.success('Responsável criado');
+      setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId('');
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome do responsável.'); return; }
+    const old = items.find(r => r.id === editId);
+    if (!old) return;
     setEditError('');
     setEditSaving(true);
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === editId
-          ? {
-              ...item,
-              nome: editNome.trim(),
-              cargo: editCargo.trim(),
-              categoria: editCategoria.trim() || undefined,
-              custoHora: parseMoeda(editCustoHora),
-              tipo: editTipo,
-              cluster: editCluster || undefined,
-            }
-          : item
-      )
-    );
-    setTimeout(() => {
-      setEditSaving(false);
+    try {
+      await updateResp.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          name: editNome.trim(),
+          level: editCargo.trim(),
+          category: editCategoria.trim() || undefined,
+          hourly_rate: parseMoeda(editCustoHora),
+          type: editTipo,
+          cluster_id: editClusterId || undefined,
+        },
+      });
+      toast.success('Responsável atualizado');
       setEditOpen(false);
-      setEditId('');
-      setEditNome('');
-      setEditCargo('');
-      setEditCategoria('');
-      setEditCustoHora('');
-    }, 300);
+      setEditId(''); setEditNome(''); setEditCargo(''); setEditCategoria(''); setEditCustoHora('');
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
-  const openNew = () => { setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setCluster(''); setError(''); setModalOpen(true); };
+  const openNew = () => { setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId(''); setError(''); setModalOpen(true); };
   const openDetail = (r: Responsavel) => {
     setDetailItem(r);
     setDetailOpen(true);
@@ -178,12 +197,12 @@ export default function ResponsaveisPage() {
   const openEdit = (r: Responsavel) => {
     setDetailItem(r);
     setEditId(r.id);
-    setEditNome(r.nome);
-    setEditCargo(r.cargo || '');
-    setEditCategoria(r.categoria || '');
-    setEditCustoHora(r.custoHora ? String(r.custoHora).replace('.', ',') : '');
-    setEditTipo(r.tipo === 'Externo' ? 'Externo' : 'Interno');
-    setEditCluster(r.cluster || '');
+    setEditNome(r.name);
+    setEditCargo(r.level || '');
+    setEditCategoria(r.category || '');
+    setEditCustoHora(r.hourly_rate ? String(r.hourly_rate).replace('.', ',') : '');
+    setEditTipo(r.type === 'Externo' ? 'Externo' : 'Interno');
+    setEditClusterId(r.cluster_id || '');
     setEditError('');
     setEditOpen(true);
   };
@@ -194,23 +213,23 @@ export default function ResponsaveisPage() {
   };
 
   const cargoFiltroOpcoes = useMemo(() => {
-    const set = Array.from(new Set(items.map(r => r.cargo).filter(Boolean))).sort();
+    const set = Array.from(new Set(items.map(r => r.level).filter(Boolean))).sort();
     return [{ value: '', label: 'Todos os cargos' }, ...set.map(c => ({ value: c as string, label: c as string }))];
   }, [items]);
   const filtrosAtivos = !!(fCluster || fTipo || fCargo);
   const limparFiltros = () => { setFCluster(''); setFTipo(''); setFCargo(''); };
   const itensFiltrados = useMemo(() => items.filter(r =>
-    (!fCluster || r.cluster === fCluster) &&
-    (!fTipo || r.tipo === fTipo) &&
-    (!fCargo || r.cargo === fCargo)
+    (!fCluster || r.cluster_id === fCluster) &&
+    (!fTipo || r.type === fTipo) &&
+    (!fCargo || r.level === fCargo)
   ), [items, fCluster, fTipo, fCargo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('cluster');
   const grupos = useMemo(() => {
-    if (organizar === 'tipo') return agrupar(itensFiltrados, (r) => [r.tipo || ''], TIPO_OPCOES, 'Sem tipo');
-    if (organizar === 'cargo') return agrupar(itensFiltrados, (r) => [r.cargo || ''], cargoFiltroOpcoes, 'Sem cargo');
-    return agrupar(itensFiltrados, (r) => [r.cluster || ''], CLUSTER_OPCOES, 'Sem cluster');
+    if (organizar === 'tipo') return agrupar(itensFiltrados, (r) => [r.type || ''], TIPO_OPCOES, 'Sem tipo');
+    if (organizar === 'cargo') return agrupar(itensFiltrados, (r) => [r.level || ''], cargoFiltroOpcoes, 'Sem cargo');
+    return agrupar(itensFiltrados, (r) => [r.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
   }, [organizar, itensFiltrados, cargoFiltroOpcoes]);
 
   const focusId = useFocusParam();
@@ -224,14 +243,14 @@ export default function ResponsaveisPage() {
     <div className="loading-container"><div className="spinner" /></div>
   );
 
-  const vinculos = detailItem ? getVinculos(detailItem.nome) : [];
+  const vinculos = detailItem ? getVinculos(detailItem.name) : [];
 
   // KPI strip calculations
-  const totalHorasMapeadas = items.reduce((sum, r) => sum + getHorasMapeadas(r.nome), 0);
-  const internos = items.filter(r => r.tipo !== 'Externo').length;
-  const itemsComCusto = items.filter(r => (r.custoHora || 0) > 0);
+  const totalHorasMapeadas = items.reduce((sum, r) => sum + getHorasMapeadas(r.name), 0);
+  const internos = items.filter(r => r.type !== 'Externo').length;
+  const itemsComCusto = items.filter(r => (r.hourly_rate || 0) > 0);
   const custoMedio = itemsComCusto.length > 0
-    ? itemsComCusto.reduce((sum, r) => sum + (r.custoHora || 0), 0) / itemsComCusto.length
+    ? itemsComCusto.reduce((sum, r) => sum + (r.hourly_rate || 0), 0) / itemsComCusto.length
     : 0;
 
   return (
@@ -286,16 +305,16 @@ export default function ResponsaveisPage() {
           <div className="doc-col-icon"></div>
           <div className="doc-col-nome"><Tooltip text={dica('responsaveis.col.responsavel')}>Responsável</Tooltip></div>
           <div className="doc-col-tipo"><Tooltip text={dica('responsaveis.col.cargo')}>Cargo</Tooltip></div>
-          <div className="doc-col-formato"><Tooltip text={dica('responsaveis.col.custoHora')}>Custo/Hora</Tooltip></div>
+          <div className="doc-col-formato"><Tooltip text={dica('responsaveis.col.hourly_rate')}>Custo/Hora</Tooltip></div>
           <div><Tooltip text={dica('responsaveis.col.vinculos')}>Vínculos</Tooltip></div>
           <div><Tooltip text={dica('responsaveis.col.mapeadas')}>Horas Mapeadas</Tooltip></div>
           <div><Tooltip text={dica('responsaveis.col.faltantes')}>Horas Faltantes</Tooltip></div>
           <div className="doc-col-acoes"></div>
         </div>
         {itens.map((r) => {
-          const respVinculos = getVinculos(r.nome);
+          const respVinculos = getVinculos(r.name);
           const totalVinculos = respVinculos.reduce((sum, v) => sum + v.etapas.length, 0);
-          const horasMapeadas = getHorasMapeadas(r.nome);
+          const horasMapeadas = getHorasMapeadas(r.name);
           const horasFaltantes = HORAS_MES_PADRAO - horasMapeadas;
           return (
             <div
@@ -311,13 +330,13 @@ export default function ResponsaveisPage() {
                 <span className="doc-format-icon" title="Responsável">👤</span>
               </div>
               <div className="doc-col-nome">
-                <div className="doc-nome">{r.nome}</div>
+                <div className="doc-nome">{r.name}</div>
               </div>
               <div className="doc-col-tipo">
-                {r.cargo || '—'}
-                {r.categoria && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{r.categoria}</div>}
+                {r.level || '—'}
+                {r.category && <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>{r.category}</div>}
               </div>
-              <div className="doc-col-formato">{formatarMoeda(r.custoHora)}</div>
+              <div className="doc-col-formato">{formatarMoeda(r.hourly_rate)}</div>
               <div>
                 <span className="doc-format-badge">
                   {totalVinculos > 0 ? `${totalVinculos} etapa${totalVinculos > 1 ? 's' : ''}` : 'Nenhum'}
@@ -368,10 +387,10 @@ export default function ResponsaveisPage() {
             <Select value={tipo} onChange={setTipo} options={TIPO_OPCOES} />
           </FormField>
           <FormField label="Cluster" tooltip={dica('responsaveis.form.cluster')}>
-            <Select value={cluster} onChange={setCluster} options={CLUSTER_OPCOES} />
+            <Select value={clusterId} onChange={setClusterId} options={CLUSTER_OPCOES} />
           </FormField>
-          <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.custoHora')}>
-            <input type="text" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex: 90,00" />
+          <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')}>
+            <input type="text" value={hourly_rate} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex: 90,00" />
           </FormField>
           <div className="modal-actions">
             <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>
@@ -396,9 +415,9 @@ export default function ResponsaveisPage() {
             <Select value={editTipo} onChange={setEditTipo} options={TIPO_OPCOES} />
           </FormField>
           <FormField label="Cluster" tooltip={dica('responsaveis.form.cluster')}>
-            <Select value={editCluster} onChange={setEditCluster} options={CLUSTER_OPCOES} />
+            <Select value={editClusterId} onChange={setEditClusterId} options={CLUSTER_OPCOES} />
           </FormField>
-          <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.custoHora')}>
+          <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')}>
             <input type="text" value={editCustoHora} onChange={(e) => setEditCustoHora(e.target.value)} placeholder="Ex: 90,00" />
           </FormField>
           <div className="modal-actions">
@@ -415,24 +434,24 @@ export default function ResponsaveisPage() {
             <>
               <div className="form-group compact">
                 <label>Nome</label>
-                <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{detailItem.nome}</div>
+                <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{detailItem.name}</div>
               </div>
               <div className="form-row">
                 <div className="form-group compact">
                   <label>Cargo</label>
-                  <div>{detailItem.cargo || '—'}</div>
+                  <div>{detailItem.level || '—'}</div>
                 </div>
                 <div className="form-group compact">
                   <label>Categoria</label>
-                  <div>{detailItem.categoria || '—'}</div>
+                  <div>{detailItem.category || '—'}</div>
                 </div>
                 <div className="form-group compact">
                   <label>Custo/Hora</label>
-                  <div>{formatarMoeda(detailItem.custoHora)}</div>
+                  <div>{formatarMoeda(detailItem.hourly_rate)}</div>
                 </div>
               </div>
               {(() => {
-                const horasMapeadas = getHorasMapeadas(detailItem.nome);
+                const horasMapeadas = getHorasMapeadas(detailItem.name);
                 const horasFaltantes = HORAS_MES_PADRAO - horasMapeadas;
                 const pct = Math.min(100, Math.max(0, (horasMapeadas / HORAS_MES_PADRAO) * 100));
                 return (
@@ -502,7 +521,7 @@ export default function ResponsaveisPage() {
         <div className="modal">
           <h2>Excluir responsável</h2>
           <p>
-            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? Ele será
+            Tem certeza que deseja excluir <strong>{confirmDel?.name}</strong>? Ele será
             removido das etapas e melhorias que o referenciam. Esta ação não pode ser desfeita.
           </p>
           <div className="modal-actions">
@@ -514,9 +533,15 @@ export default function ResponsaveisPage() {
               onClick={async () => {
                 if (!confirmDel) return;
                 setDeleting(true);
-                await removeItem(confirmDel.id);
-                setDeleting(false);
-                setConfirmDel(null);
+                try {
+                  await deleteResp.mutateAsync({ id: confirmDel.id, old: confirmDel });
+                  toast.success('Responsável excluído');
+                  setConfirmDel(null);
+                } catch (err) {
+                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
+                } finally {
+                  setDeleting(false);
+                }
               }}
             >
               {deleting ? 'Excluindo...' : 'Excluir'}

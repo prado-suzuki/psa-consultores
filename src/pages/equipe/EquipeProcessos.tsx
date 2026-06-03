@@ -294,7 +294,7 @@ const EquipeProcessos = () => {
           area: area,
           stage: validStages.includes(mappedStage) ? mappedStage : 'discovery',
           priority: row.priority || row.Prioridade || row.prioridade || 'medium',
-          frequency: row.frequency || row.Frequencia || row.frequencia || row.Frequência || null,
+          frequency: row.frequency || row.Frequencia || row.frequency || row.Frequência || null,
           volume_month: row.volume_month ? parseInt(row.volume_month) : (row.Volume ? parseInt(row.Volume) : null),
           financial_impact: row.financial_impact || row.Impacto || row.impacto || null,
           created_by: user?.id
@@ -789,7 +789,7 @@ const EquipeProcessos = () => {
 
   const getSystemName = (system: SystemItem) => system.nome || system.name || '';
   const getSystemFunction = (system: SystemItem) => system.uso || system.function || '';
-  const getSystemFrequency = (system: SystemItem) => system.frequencia || system.frequency || '';
+  const getSystemFrequency = (system: SystemItem) => system.frequency || system.frequency || '';
   const getSystemBottleneck = (system: SystemItem) => system.gargalo || system.bottleneck || '';
 
   return (

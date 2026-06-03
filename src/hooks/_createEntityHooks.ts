@@ -1,12 +1,9 @@
-// Factory: produz os 5 hooks padrão (list, byId, create, update, delete) para
-// uma entidade. Cada chamada à fábrica gera APIs equivalentes ao template
-// canônico documentado em `useProjetos.ts`.
+// Factory thin de hooks CRUD pra uma entidade Supabase. Produz 5 hooks:
+// useList, useById, useCreate, useUpdate, useDelete.
 //
-// Suporta mappers opcionais (fromDb/toDb) — usados pelos hooks de tabelas
-// reaproveitadas com schema EN snake_case (processes, projects, process_stages,
-// etc.) para traduzir entre o nome das colunas EN e os types camelCase em PT
-// do MAPA. Hooks de tabelas nativas do MAPA (documentos_processo, etc.) não
-// precisam — chave do DB e do type são iguais.
+// Sem mappers — rows do DB são consumidas direto. Tipos casam 1:1 com colunas.
+// Pra hidratar junções (M:N) ou JOINs, use `selectClause` PostgREST e faça
+// o flattening em hook dedicado em vez de no factory.
 
 import {
   useQuery, useMutation, useQueryClient,
@@ -14,17 +11,13 @@ import {
 } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-type DbRow = Record<string, unknown>;
-
-export interface EntityHooksConfig<T extends { id: string }> {
+export interface EntityHooksConfig {
   /** Nome da tabela Supabase. */
   resource: string;
-  /** Coluna usada como ORDER BY default na listagem (no schema do DB). */
+  /** Coluna usada como ORDER BY default na listagem. */
   defaultOrder?: string;
-  /** Mapper opcional: row do DB → tipo T. Sem ele, usa cast bruto. */
-  fromDb?: (row: DbRow) => T;
-  /** Mapper opcional: input T (parcial) → linha do DB para insert/update. */
-  toDb?: (input: Partial<T>) => DbRow;
+  /** Cláusula SELECT customizada — default '*'. Use pra incluir JOINs PostgREST. */
+  selectClause?: string;
 }
 
 export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
@@ -36,25 +29,19 @@ export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
 }
 
 export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'>>(
-  cfg: EntityHooksConfig<T>,
+  cfg: EntityHooksConfig,
 ): EntityHooks<T, Input> {
-  const { resource, defaultOrder, fromDb, toDb } = cfg;
-
-  const mapOut = (row: unknown): T =>
-    fromDb ? fromDb(row as DbRow) : (row as unknown as T);
-
-  const mapIn = (input: unknown): DbRow =>
-    toDb ? toDb(input as Partial<T>) : (input as DbRow);
+  const { resource, defaultOrder, selectClause = '*' } = cfg;
 
   function useList(): UseQueryResult<T[]> {
     return useQuery<T[]>({
       queryKey: [resource],
       queryFn: async () => {
-        let q = supabase.from(resource as never).select('*');
+        let q = supabase.from(resource as never).select(selectClause);
         if (defaultOrder) q = q.order(defaultOrder);
         const { data, error } = await q;
         if (error) throw new Error(error.message);
-        return ((data ?? []) as unknown[]).map(mapOut);
+        return (data ?? []) as unknown as T[];
       },
     });
   }
@@ -67,11 +54,11 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
         if (!id) return null;
         const { data, error } = await supabase
           .from(resource as never)
-          .select('*')
+          .select(selectClause)
           .eq('id', id)
           .maybeSingle();
         if (error) throw new Error(error.message);
-        return data ? mapOut(data) : null;
+        return (data ?? null) as unknown as T | null;
       },
     });
   }
@@ -82,11 +69,11 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
       mutationFn: async (input: Input) => {
         const { data, error } = await supabase
           .from(resource as never)
-          .insert(mapIn(input) as never)
+          .insert(input as never)
           .select()
           .single();
         if (error) throw new Error(error.message);
-        return mapOut(data);
+        return data as unknown as T;
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: [resource] }); },
     });
@@ -98,12 +85,12 @@ export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'
       mutationFn: async ({ id, patch }) => {
         const { data, error } = await supabase
           .from(resource as never)
-          .update(mapIn(patch) as never)
+          .update(patch as never)
           .eq('id', id)
           .select()
           .single();
         if (error) throw new Error(error.message);
-        return mapOut(data);
+        return data as unknown as T;
       },
       onSuccess: () => { qc.invalidateQueries({ queryKey: [resource] }); },
     });

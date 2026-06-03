@@ -3,8 +3,8 @@ import type { FamiliaSaida } from '@/hooks/useSaidaIcms';
 export const ICMS_PAGE_TOOLTIPS = {
   cliente: 'Cliente da consulta. Obrigatório.',
   contribuinte: 'Contribuinte da base.',
-  dataInicio: 'Início do período das notas.',
-  dataFim: 'Fim do período das notas.',
+  start_date: 'Início do período das notas.',
+  end_date: 'Fim do período das notas.',
   limparFiltros: 'Restaura os filtros.',
   buscar: 'Carrega os dados do período.',
   tabT01: 'Apuração e recolhimentos.',

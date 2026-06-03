@@ -15,7 +15,7 @@ export interface EtapaFlow {
   cenario: CenarioEtapa;
   etapaNome: string;
   etapaOrdem?: number;
-  processoId: string;
+  process_id: string;
   processoNome: string;
   processoOrdem?: number;
   projetoNome?: string;
@@ -60,7 +60,7 @@ export function buildEventoDiagram({
   }
 
   type Bucket = {
-    processoId: string;
+    process_id: string;
     processoNome: string;
     processoOrdem: number;
     etapas: CascataEventoEtapaRef[];
@@ -68,10 +68,10 @@ export function buildEventoDiagram({
 
   const byProcesso = new Map<string, Bucket>();
   for (const e of etapasMarcadas) {
-    const key = e.processoId || 'sem-processo';
+    const key = e.process_id || 'sem-processo';
     if (!byProcesso.has(key)) {
       byProcesso.set(key, {
-        processoId: key,
+        process_id: key,
         processoNome: e.processoNome || key,
         processoOrdem: 0,
         etapas: [],
@@ -95,7 +95,7 @@ export function buildEventoDiagram({
   const firstNodeOfProc = new Map<string, string>();
   const lastNodeOfProc = new Map<string, string>();
   for (const p of processos) {
-    const sgId = safeId('SG', p.processoId);
+    const sgId = safeId('SG', p.process_id);
     lines.push(`  subgraph ${sgId}["${safeLabel(p.processoNome)}"]`);
     lines.push('    direction LR');
     for (const e of p.etapas) {
@@ -111,15 +111,15 @@ export function buildEventoDiagram({
     }
     lines.push('  end');
     if (p.etapas.length > 0) {
-      firstNodeOfProc.set(p.processoId, etapaNodeId(p.etapas[0].etapaId, p.etapas[0].cenario));
-      lastNodeOfProc.set(p.processoId, etapaNodeId(p.etapas[p.etapas.length - 1].etapaId, p.etapas[p.etapas.length - 1].cenario));
+      firstNodeOfProc.set(p.process_id, etapaNodeId(p.etapas[0].etapaId, p.etapas[0].cenario));
+      lastNodeOfProc.set(p.process_id, etapaNodeId(p.etapas[p.etapas.length - 1].etapaId, p.etapas[p.etapas.length - 1].cenario));
     }
   }
 
   // Setas entre processos: último do anterior → primeiro do seguinte
   for (let i = 0; i < processos.length - 1; i++) {
-    const prev = processos[i].processoId;
-    const next = processos[i + 1].processoId;
+    const prev = processos[i].process_id;
+    const next = processos[i + 1].process_id;
     const a = lastNodeOfProc.get(prev);
     const b = firstNodeOfProc.get(next);
     if (a && b) lines.push(`  ${a} -.-> ${b}`);

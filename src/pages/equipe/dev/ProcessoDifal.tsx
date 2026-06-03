@@ -95,8 +95,8 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 const TOOLTIPS = {
   cliente: "Filtra os cálculos de DIFAL por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  dataInicio: "Define o período inicial da busca.",
-  dataFim: "Define o período final da busca.",
+  start_date: "Define o período inicial da busca.",
+  end_date: "Define o período final da busca.",
   colStatus: "Status atual da classificação tributária do item.",
   colProduto: "Descrição do produto e código interno na nota fiscal.",
   colNcm: "Nomenclatura Comum do Mercosul (NCM) do produto.",
@@ -148,8 +148,8 @@ const ProcessoDifal = () => {
   // Estados de filtros (formato yyyy-MM-dd)
   const [selectedCliente, setSelectedCliente] = useState<string>("");
   const [selectedContribuinte, setSelectedContribuinte] = useState<string>("");
-  const [dataInicio, setDataInicio] = useState(defaultDates.inicio);
-  const [dataFim, setDataFim] = useState(defaultDates.fim);
+  const [start_date, setDataInicio] = useState(defaultDates.inicio);
+  const [end_date, setDataFim] = useState(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [isLoadingSession, setIsLoadingSession] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -306,14 +306,14 @@ const ProcessoDifal = () => {
     isLoading: isLoadingItems,
     error: itemsError,
   } = useQuery({
-    queryKey: ["difal-grouped-items", selectedContribuinte, dataInicio, dataFim, currentPage, statusFilter],
+    queryKey: ["difal-grouped-items", selectedContribuinte, start_date, end_date, currentPage, statusFilter],
     queryFn: async () => {
       if (!selectedContribuinte) {
         throw new Error("Contribuinte não selecionado");
       }
 
       // Construir URL base
-      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${dataInicio}&data_fim=${dataFim}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
+      let url = `${API_BASE_URL}/api/v1/query/contribuintes/${selectedContribuinte}/nfes/agrupado-item?data_inicio=${start_date}&data_fim=${end_date}&tipo_mov=Entrada&page=${currentPage}&page_size=${ITEMS_PER_PAGE}`;
 
       // Adicionar filtro de validação se necessário
       if (statusFilter === "validated") {
@@ -432,8 +432,8 @@ const ProcessoDifal = () => {
     const missing: string[] = [];
     if (!selectedCliente) missing.push("Cliente");
     if (!selectedContribuinte) missing.push("Contribuinte");
-    if (!dataInicio) missing.push("Data Início");
-    if (!dataFim) missing.push("Data Fim");
+    if (!start_date) missing.push("Data Início");
+    if (!end_date) missing.push("Data Fim");
     if (missing.length > 0) {
       toast({
         title: "Preenchimento obrigatório",
@@ -462,12 +462,12 @@ const ProcessoDifal = () => {
           .update({
             cliente_id: selectedCliente,
             cliente_nome: clientes?.find((c) => c.id === selectedCliente)?.nome || "",
-            periodo: `${dataInicio} a ${dataFim}`,
+            periodo: `${start_date} a ${end_date}`,
             uf: "MT",
             request_original: {
               contribuinte_id: selectedContribuinte,
-              data_inicio: dataInicio,
-              data_fim: dataFim,
+              data_inicio: start_date,
+              data_fim: end_date,
             },
           })
           .eq("id", existingSession.id);
@@ -482,12 +482,12 @@ const ProcessoDifal = () => {
             usuario_id: user?.id || "unknown",
             cliente_id: selectedCliente,
             cliente_nome: clientes?.find((c) => c.id === selectedCliente)?.nome || "",
-            periodo: `${dataInicio} a ${dataFim}`,
+            periodo: `${start_date} a ${end_date}`,
             uf: "MT",
             request_original: {
               contribuinte_id: selectedContribuinte,
-              data_inicio: dataInicio,
-              data_fim: dataFim,
+              data_inicio: start_date,
+              data_fim: end_date,
             },
             status: "EM_ANDAMENTO",
           })
@@ -557,7 +557,7 @@ const ProcessoDifal = () => {
   }, []);
 
   const handleExportExcel = async () => {
-    if (!selectedContribuinte || !dataInicio || !dataFim) {
+    if (!selectedContribuinte || !start_date || !end_date) {
       toast({
         title: "Filtros incompletos",
         description: "Selecione contribuinte e período para exportar.",
@@ -589,8 +589,8 @@ const ProcessoDifal = () => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            data_inicio: dataInicio,
-            data_fim: dataFim,
+            data_inicio: start_date,
+            data_fim: end_date,
           }),
         },
         300000, // 5 min timeout para streaming de arquivos grandes
@@ -920,7 +920,7 @@ const ProcessoDifal = () => {
             {/* Data Início - Calendar + Popover */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} />
+                Data Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -928,16 +928,16 @@ const ProcessoDifal = () => {
                     variant="outline"
                     className={cn(
                       "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                      !dataInicio && "text-muted-foreground",
+                      !start_date && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataInicio ? format(parse(dataInicio, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
+                    {start_date ? format(parse(start_date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    selected={dataInicio ? parse(dataInicio, "yyyy-MM-dd", new Date()) : undefined}
+                    selected={start_date ? parse(start_date, "yyyy-MM-dd", new Date()) : undefined}
                     onSelect={(date) => {
                       setDataInicio(date ? format(date, "yyyy-MM-dd") : "");
                       setSearchTriggered(false);
@@ -950,7 +950,7 @@ const ProcessoDifal = () => {
             {/* Data Fim - Calendar + Popover */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} />
+                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -958,16 +958,16 @@ const ProcessoDifal = () => {
                     variant="outline"
                     className={cn(
                       "w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800",
-                      !dataFim && "text-muted-foreground",
+                      !end_date && "text-muted-foreground",
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
-                    {dataFim ? format(parse(dataFim, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
+                    {end_date ? format(parse(end_date, "yyyy-MM-dd", new Date()), "dd/MM/yyyy") : "Selecione"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    selected={dataFim ? parse(dataFim, "yyyy-MM-dd", new Date()) : undefined}
+                    selected={end_date ? parse(end_date, "yyyy-MM-dd", new Date()) : undefined}
                     onSelect={(date) => {
                       setDataFim(date ? format(date, "yyyy-MM-dd") : "");
                       setSearchTriggered(false);

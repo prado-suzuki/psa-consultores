@@ -58,7 +58,7 @@ const KIND_INFO: Record<ScenarioKind, {
   investment: {
     label: 'Investimento',
     icon: DollarSign,
-    description: 'Varia custos de sistema / build vs buy. Mede payback de decisão de investimento mantendo operacional.',
+    description: 'Varia custos de sistema / build vs buy. Mede payback de decisão de investment mantendo operacional.',
     variedField: 'savings',
     variedLabel: 'Economia recorrente (R$/mês)',
     lockedDefault: ['volume', 'team_members', 'time_total'],

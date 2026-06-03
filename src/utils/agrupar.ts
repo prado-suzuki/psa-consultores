@@ -1,7 +1,10 @@
 // Agrupamento para o organizador das páginas de cadastro (primeiro filtro à esquerda).
 // Transforma uma lista em buckets expansíveis segundo a dimensão escolhida.
 
-import type { Opcao } from './clusters';
+export interface Opcao {
+  value: string;
+  label: string;
+}
 
 export interface Grupo<T> {
   key: string;

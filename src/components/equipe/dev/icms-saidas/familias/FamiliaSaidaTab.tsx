@@ -45,8 +45,8 @@ interface FamiliaSaidaTabProps {
   familia: FamiliaSaida;
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 const FAMILIAS_COM_CORRECAO: FamiliaCorrecao[] = ['acucar', 'etanol_interestado', 'biodiesel'];
@@ -58,8 +58,8 @@ export function FamiliaSaidaTab({
   familia,
   enabled,
   contribuinteId,
-  dataInicio,
-  dataFim,
+  start_date,
+  end_date,
 }: FamiliaSaidaTabProps) {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
@@ -69,12 +69,12 @@ export function FamiliaSaidaTab({
 
   useEffect(() => {
     setPage(1);
-  }, [contribuinteId, dataInicio, dataFim, familia]);
+  }, [contribuinteId, start_date, end_date, familia]);
 
   const { data, isLoading, isFetching, error } = useSaidaIcms(familia, {
     id_contribuinte: contribuinteId,
-    data_nota_ini: dataInicio || undefined,
-    data_nota_fim: dataFim || undefined,
+    data_nota_ini: start_date || undefined,
+    data_nota_fim: end_date || undefined,
     page,
     enabled,
   });
@@ -84,8 +84,8 @@ export function FamiliaSaidaTab({
   const { data: correcoes = [] } = useCorrecoesIcms({
     contribuinteId,
     familia: allowCorrecoes ? familia : 'acucar',
-    dataInicio: dataInicio || undefined,
-    dataFim: dataFim || undefined,
+    start_date: start_date || undefined,
+    end_date: end_date || undefined,
     enabled: enabled && allowCorrecoes && !!contribuinteId,
   });
 

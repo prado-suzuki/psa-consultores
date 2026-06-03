@@ -1,12 +1,9 @@
 import { createEntityHooks } from './_createEntityHooks';
 import type { Processo } from '@/types';
-import { processoFromDb, processoToDb } from '@/utils/mapa/dbMappers';
 
 const hooks = createEntityHooks<Processo>({
   resource: 'processes',
   defaultOrder: 'order_index',
-  fromDb: r => processoFromDb(r) as Processo,
-  toDb: processoToDb,
 });
 
 export const useProcessos = hooks.useList;

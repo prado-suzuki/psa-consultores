@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -13,7 +13,8 @@ import { formatDecimal } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Documento, EstruturacaoDoc } from '@/types';
-import { useEtapasLista, useDocumentosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useDocumentos, useCreateDocumento, useUpdateDocumento, useDeleteDocumento } from '@/hooks/useDocumentos';
 
 const ESTRUTURADO_OPCOES: EstruturacaoDoc[] = ['Não Estruturado', 'Semi Estruturado', 'Estruturado'];
 const FORMATO_OPCOES_LIST = ['PDF', 'Word', 'Excel', 'PowerPoint', 'Markdown', 'Texto'];
@@ -52,7 +53,11 @@ const deriveEstruturado = (formato: string): EstruturacaoDoc | '' => {
 };
 
 export default function DocumentosPage() {
-  const { items, setItems, loaded, addItem, removeItem } = useStoredData<Documento>('documentosAdicionados', '/documentos_processo.json');
+  const { data: items = [], isLoading: docsLoading } = useDocumentos();
+  const loaded = !docsLoading;
+  const createDoc = useCreateDocumento();
+  const updateDoc = useUpdateDocumento();
+  const deleteDoc = useDeleteDocumento();
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Documento | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -72,13 +77,12 @@ export default function DocumentosPage() {
   const [fTipo, setFTipo] = useState('');
 
   const { data: rawEtapas = [] } = useEtapasLista();
-  const { data: docs = [] } = useDocumentosLista();
   const { data: sis = [] } = useSistemasLista();
   const { data: resps = [] } = useResponsaveisLista();
   const { data: processos = [] } = useProcessosLista();
   const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, docs, sis, resps),
-    [rawEtapas, docs, sis, resps],
+    () => enrichEtapas(rawEtapas, items, sis, resps),
+    [rawEtapas, items, sis, resps],
   );
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -97,7 +101,7 @@ export default function DocumentosPage() {
 
   const focusId = useFocusParam();
 
-  const procMap = new Map(processos.map(p => [p.id, p.nome]));
+  const procMap = new Map(processos.map(p => [p.id, p.name]));
 
   const getVinculos = (docNome: string) => {
     const vinculos: { procId: string; procName: string; etapas: { nome: string; tipo: 'entrada' | 'saída' }[] }[] = [];
@@ -107,16 +111,16 @@ export default function DocumentosPage() {
     );
     const grouped = new Map<string, { nome: string; tipo: 'entrada' | 'saída' }[]>();
     etapasRel.forEach(e => {
-      const list = grouped.get(e.processoId) || [];
+      const list = grouped.get(e.process_id) || [];
       const hasEntrada = (e.docsEntrada || []).some((d) => (typeof d === 'string' ? d : d.nome) === docNome);
       const hasSaida = (e.docsSaida || []).some((d) => (typeof d === 'string' ? d : d.nome) === docNome);
-      if (hasEntrada) list.push({ nome: e.nome, tipo: 'entrada' });
-      if (hasSaida && !hasEntrada) list.push({ nome: e.nome, tipo: 'saída' });
+      if (hasEntrada) list.push({ nome: e.name, tipo: 'entrada' });
+      if (hasSaida && !hasEntrada) list.push({ nome: e.name, tipo: 'saída' });
       if (hasSaida && hasEntrada) {
-        const idx = list.findIndex((x) => x.nome === e.nome && x.tipo === 'entrada');
-        if (idx !== -1) list[idx] = { nome: e.nome, tipo: 'entrada' };
+        const idx = list.findIndex((x) => x.nome === e.name && x.tipo === 'entrada');
+        if (idx !== -1) list[idx] = { nome: e.name, tipo: 'entrada' };
       }
-      grouped.set(e.processoId, list);
+      grouped.set(e.process_id, list);
     });
     grouped.forEach((etapasList, procId) => {
       vinculos.push({ procId, procName: procMap.get(procId) || procId, etapas: etapasList });
@@ -142,14 +146,28 @@ export default function DocumentosPage() {
     return total;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!nome.trim()) { setError('Preencha o nome do documento.'); return; }
     setError('');
     setIsSaving(true);
-    addItem({ nome: nome.trim(), tipo: tipo.trim(), formato, origem, tempoMinutos: 0, estruturaEntrada: (estrutura || undefined) as Documento['estruturaEntrada'], estruturado: (estruturado || undefined) as EstruturacaoDoc | undefined });
-    setTimeout(() => {
-      setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado(''); setIsSaving(false); setModalOpen(false);
-    }, 300);
+    try {
+      await createDoc.mutateAsync({
+        nome: nome.trim(),
+        tipo: tipo.trim(),
+        formato,
+        origem,
+        tempo_minutos: 0,
+        estrutura_entrada: (estrutura || undefined) as Documento['estrutura_entrada'],
+        estruturado: (estruturado || undefined) as EstruturacaoDoc | undefined,
+      });
+      toast.success('Documento criado');
+      setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado('');
+      setModalOpen(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openNew = () => { setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado(''); setError(''); setModalOpen(true); };
@@ -170,7 +188,7 @@ export default function DocumentosPage() {
     setEditTipo(d.tipo || '');
     setEditFormato(d.formato || '');
     setEditOrigem(d.origem || 'Interno');
-    setEditEstrutura(d.estruturaEntrada || '');
+    setEditEstrutura(d.estrutura_entrada || '');
     setEditEstruturado(d.estruturado || '');
     setEditError('');
     setEditOpen(true);
@@ -181,15 +199,32 @@ export default function DocumentosPage() {
     openEdit(detailItem);
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome do documento.'); return; }
+    const old = items.find(d => d.id === editId);
+    if (!old) return;
     setEditError('');
     setEditSaving(true);
-    setItems((prev) => prev.map((item) => (item.id === editId ? { ...item, nome: editNome.trim(), tipo: editTipo.trim(), formato: editFormato, origem: editOrigem, estruturaEntrada: (editEstrutura || undefined) as Documento['estruturaEntrada'], estruturado: (editEstruturado || undefined) as EstruturacaoDoc | undefined } : item)));
-    setTimeout(() => {
-      setEditSaving(false);
+    try {
+      await updateDoc.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          nome: editNome.trim(),
+          tipo: editTipo.trim(),
+          formato: editFormato,
+          origem: editOrigem,
+          estrutura_entrada: (editEstrutura || undefined) as Documento['estrutura_entrada'],
+          estruturado: (editEstruturado || undefined) as EstruturacaoDoc | undefined,
+        },
+      });
+      toast.success('Documento atualizado');
       setEditOpen(false);
-    }, 300);
+    } catch (err) {
+      setEditError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   const filtrosAtivos = !!(fOrigem || fFormato || fEstruturado || fTipo);
@@ -298,8 +333,8 @@ export default function DocumentosPage() {
               <div className="doc-col-origem">
                 <span className={`badge-origem${d.origem === 'Cliente' ? ' cliente' : ''}`}>{d.origem}</span>
               </div>
-              <div className="doc-col-descricao" title={d.estruturaEntrada || ''}>
-                {d.estruturaEntrada || '—'}
+              <div className="doc-col-descricao" title={d.estrutura_entrada || ''}>
+                {d.estrutura_entrada || '—'}
               </div>
               <div className="doc-col-acoes" style={{ display: 'flex', gap: 4 }}>
                 <button
@@ -451,7 +486,7 @@ export default function DocumentosPage() {
               </div>
               <div className="form-group compact">
                 <label>Descrição</label>
-                <div>{detailItem.estruturaEntrada || '—'}</div>
+                <div>{detailItem.estrutura_entrada || '—'}</div>
               </div>
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>Vinculado a</div>
@@ -497,9 +532,15 @@ export default function DocumentosPage() {
               onClick={async () => {
                 if (!confirmDel?.id) return;
                 setDeleting(true);
-                await removeItem(confirmDel.id);
-                setDeleting(false);
-                setConfirmDel(null);
+                try {
+                  await deleteDoc.mutateAsync({ id: confirmDel.id, old: confirmDel });
+                  toast.success('Documento excluído');
+                  setConfirmDel(null);
+                } catch (err) {
+                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
+                } finally {
+                  setDeleting(false);
+                }
               }}
             >
               {deleting ? 'Excluindo...' : 'Excluir'}

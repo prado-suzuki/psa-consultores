@@ -10,14 +10,14 @@ import type { Documento, Etapa, Processo } from '@/types';
 export type { ImpactoNode, ImpactoProcesso } from '@/utils/cascataEngine';
 
 export function useImpactoProcesso(
-  processoId: string | undefined,
+  process_id: string | undefined,
   cluster?: string,
 ): UseQueryResult<import('@/utils/cascataEngine').ImpactoProcesso> {
   return useQuery({
-    queryKey: ['impacto-processo', processoId, cluster],
-    enabled: !!processoId,
+    queryKey: ['impacto-processo', process_id, cluster],
+    enabled: !!process_id,
     queryFn: async () => {
-      if (!processoId) return { jusante: [], montante: [] };
+      if (!process_id) return { jusante: [], montante: [] };
       const [procs, ets, docs] = await Promise.all([
         supabase.from('processes').select('*'),
         supabase.from('process_stages').select('*'),
@@ -33,7 +33,7 @@ export function useImpactoProcesso(
         documentos:(docs.data ?? [])  as unknown as Documento[],
       }, { cluster });
 
-      return deriveImpact(grafo, processoId);
+      return deriveImpact(grafo, process_id);
     },
   });
 }

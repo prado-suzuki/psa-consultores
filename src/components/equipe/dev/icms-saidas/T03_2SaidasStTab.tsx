@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 interface T03_2SaidasStTabProps {
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 type FamiliaSaidaSt = Extract<FamiliaSaida, 'acucar_st' | 'etanol_interestado_st'>;
@@ -23,8 +23,8 @@ const FAMILIA_TABS: { value: FamiliaSaidaSt; label: string }[] = [
 export const T03_2SaidasStTab = ({
   enabled,
   contribuinteId,
-  dataInicio,
-  dataFim,
+  start_date,
+  end_date,
 }: T03_2SaidasStTabProps) => {
   const [familia, setFamilia] = useState<FamiliaSaidaSt>('acucar_st');
 
@@ -58,8 +58,8 @@ export const T03_2SaidasStTab = ({
               familia={t.value}
               enabled={enabled}
               contribuinteId={contribuinteId}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           )}
         </TabsContent>

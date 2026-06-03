@@ -8,41 +8,41 @@ export interface RoiCsvInput {
   projetos: Projeto[];
   processos: Processo[];
   snapshotsLatest: ProcessSnapshot[];
-  projetoId?: string;
+  project_id?: string;
 }
 
-export function buildRoiCsv({ projetos, processos, snapshotsLatest, projetoId }: RoiCsvInput): string {
+export function buildRoiCsv({ projetos, processos, snapshotsLatest, project_id }: RoiCsvInput): string {
   const projetoById = new Map(projetos.map(p => [p.id, p]));
-  const linhasProcessos = projetoId
-    ? processos.filter(p => p.projetoId === projetoId)
+  const linhasProcessos = project_id
+    ? processos.filter(p => p.project_id === project_id)
     : processos;
-  const snapByProc = new Map(snapshotsLatest.map(s => [s.processoId, s]));
+  const snapByProc = new Map(snapshotsLatest.map(s => [s.process_id, s]));
 
   const sep = ';';
   const header = [
     'projeto_id', 'projeto', 'processo_id', 'processo',
     'custo_anual', 'horas_anual', 'economia_anual',
-    'roi_percentual', 'payback_meses', 'horas_liberadas', 'investimento',
+    'roi_percentual', 'payback_meses', 'horas_liberadas', 'investment',
     'snapshot_em',
   ].join(sep);
 
   const linhas: string[] = [header];
   for (const proc of linhasProcessos) {
     const s = snapByProc.get(proc.id);
-    const projetoNome = proc.projetoId ? (projetoById.get(proc.projetoId)?.nome ?? '') : '';
+    const projetoNome = proc.project_id ? (projetoById.get(proc.project_id)?.name ?? '') : '';
     linhas.push([
-      proc.projetoId ?? '',
+      proc.project_id ?? '',
       escapeCsv(projetoNome),
       proc.id,
-      escapeCsv(proc.nome ?? ''),
-      s?.custoAnual     ?? 0,
-      s?.horasAnual     ?? 0,
-      s?.economiaAnual  ?? 0,
-      s?.roiPercentual  ?? 0,
-      s?.paybackMeses   ?? 0,
-      s?.horasLiberadas ?? 0,
-      s?.investimento   ?? 0,
-      s?.snapshotEm     ?? '',
+      escapeCsv(proc.name ?? ''),
+      s?.annual_cost     ?? 0,
+      s?.annual_hours     ?? 0,
+      s?.annual_savings  ?? 0,
+      s?.roi_percent  ?? 0,
+      s?.payback_months   ?? 0,
+      s?.hours_freed ?? 0,
+      s?.investment   ?? 0,
+      s?.snapshot_at     ?? '',
     ].join(sep));
   }
 

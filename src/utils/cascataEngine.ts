@@ -95,7 +95,7 @@ export function deriveCascadeGraph(
   const { idfMin = 0.5 } = opts;
   const processos = filtrarPorCluster(dados.processos, opts.cluster);
   const procIds = new Set(processos.map(p => p.id));
-  const etapas = dados.etapas.filter(e => procIds.has(e.processoId));
+  const etapas = dados.etapas.filter(e => procIds.has(e.process_id));
   const docsById = new Map(dados.documentos.map(d => [d.id, d]));
 
   // Cada etapa contribui com doc-canônicos de entrada e saída.
@@ -127,10 +127,10 @@ export function deriveCascadeGraph(
   const dfDoc = new Map<string, number>();
   const procToTokens = new Map<string, Set<string>>();
   for (const s of sigs) {
-    const set = procToTokens.get(s.etapa.processoId) ?? new Set<string>();
+    const set = procToTokens.get(s.etapa.process_id) ?? new Set<string>();
     for (const t of s.saida) set.add(t);
     for (const t of s.entrada) set.add(t);
-    procToTokens.set(s.etapa.processoId, set);
+    procToTokens.set(s.etapa.process_id, set);
   }
   for (const tokens of procToTokens.values()) {
     for (const t of tokens) dfDoc.set(t, (dfDoc.get(t) ?? 0) + 1);
@@ -160,13 +160,13 @@ export function deriveCascadeGraph(
     for (let j = 0; j < sigs.length; j++) {
       if (i === j) continue;
       const a = sigs[i], b = sigs[j];
-      if (a.etapa.processoId === b.etapa.processoId) continue;
+      if (a.etapa.process_id === b.etapa.process_id) continue;
 
       // (1) Handoff canônico: saída de A coincide com entrada de B
       for (const t of a.saida) {
         if (!t || idf(t) < idfMin) continue;
         if (b.entrada.has(t)) {
-          bump(a.etapa.processoId, b.etapa.processoId, 3, `Documento: ${t}`);
+          bump(a.etapa.process_id, b.etapa.process_id, 3, `Documento: ${t}`);
         }
       }
       // (2) Co-ocorrência de doc canônico (sem direção forte) — peso 1.5
@@ -175,18 +175,18 @@ export function deriveCascadeGraph(
         if (b.saida.has(t)) {
           // Dois processos produzem o mesmo doc → ambos influenciam o consumidor;
           // como não temos direção, conecta de A→B com peso reduzido.
-          bump(a.etapa.processoId, b.etapa.processoId, 1.5, `Co-doc: ${t}`);
+          bump(a.etapa.process_id, b.etapa.process_id, 1.5, `Co-doc: ${t}`);
         }
       }
       // (3) Sistema/responsável em comum — peso fraco 0.6 (não propaga via BFS)
       for (const s of a.sistemas) {
         if (b.sistemas.has(s)) {
-          bump(a.etapa.processoId, b.etapa.processoId, 0.6, `Sistema: ${s}`);
+          bump(a.etapa.process_id, b.etapa.process_id, 0.6, `Sistema: ${s}`);
         }
       }
       for (const p of a.pessoas) {
         if (b.pessoas.has(p)) {
-          bump(a.etapa.processoId, b.etapa.processoId, 0.6, `Responsável: ${p}`);
+          bump(a.etapa.process_id, b.etapa.process_id, 0.6, `Responsável: ${p}`);
         }
       }
     }
@@ -208,7 +208,7 @@ export function deriveCascadeGraph(
 // =====================================================================
 export function deriveImpact(
   grafo: CascataGrafo,
-  processoId: string,
+  process_id: string,
 ): ImpactoProcesso {
   const procById = new Map(grafo.processos.map(p => [p.id, p]));
   const fortes = grafo.arestas.filter(a => a.peso >= 1);
@@ -234,14 +234,14 @@ export function deriveImpact(
         visit.set(v, dist + 1);
         queue.push(v);
         const p = procById.get(v);
-        out.push({ id: v, nome: p?.nome ?? v, distancia: dist + 1 });
+        out.push({ id: v, nome: p?.name ?? v, distancia: dist + 1 });
       }
     }
     return out;
   };
 
   return {
-    jusante: bfs(processoId, adj),
-    montante: bfs(processoId, adjRev),
+    jusante: bfs(process_id, adj),
+    montante: bfs(process_id, adjRev),
   };
 }

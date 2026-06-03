@@ -38,7 +38,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
   const [resumo, setResumo] = useState('');
   const [etapas, setEtapas] = useState<string[]>([]);
   const [processos, setProcessos] = useState<string[]>([]);
-  const [complexidade, setComplexidade] = useState<string>('intermediario');
+  const [complexity_level, setComplexidade] = useState<string>('intermediario');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [newEtapa, setNewEtapa] = useState('');
@@ -86,7 +86,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
         ai_resumo: resumo,
         ai_etapas: etapas as any,
         processos_associados: processos,
-        ai_complexidade: complexidade as any,
+        ai_complexidade: complexity_level as any,
         ai_tags: tags,
       },
     });
@@ -119,7 +119,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
     }
   };
 
-  const complexConfig = complexidade ? COMPLEXIDADE_CONFIG[complexidade as keyof typeof COMPLEXIDADE_CONFIG] : null;
+  const complexConfig = complexity_level ? COMPLEXIDADE_CONFIG[complexity_level as keyof typeof COMPLEXIDADE_CONFIG] : null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -224,7 +224,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
             {/* Complexidade */}
             <div>
               <Label>Complexidade</Label>
-              <RadioGroup value={complexidade} onValueChange={setComplexidade} className="flex gap-4 mt-1">
+              <RadioGroup value={complexity_level} onValueChange={setComplexidade} className="flex gap-4 mt-1">
                 {Object.entries(COMPLEXIDADE_CONFIG).map(([key, cfg]) => (
                   <label key={key} className="flex items-center gap-1.5 text-sm cursor-pointer">
                     <RadioGroupItem value={key} />

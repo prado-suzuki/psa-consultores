@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useStoredData } from '@/hooks/useStoredData';
+import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -10,15 +10,18 @@ import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
 import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
-import { CLUSTER_FILTRO_OPCOES, CLUSTER_OPCOES } from '@/utils/clusters';
 import { agrupar } from '@/utils/agrupar';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type {
-  Processo, Projeto, FrequenciaProcesso, StatusAvaliacao, Complexidade,
+  Processo, FrequenciaProcesso, StatusAvaliacao, Complexidade,
   Etapa,
 } from '@/types';
-import { useEtapasLista, useGargalosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import {
+  useEtapasLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
+} from '@/hooks/useDominioListas';
+import { useProcessos, useCreateProcesso, useUpdateProcesso, useDeleteProcesso } from '@/hooks/useProcessos';
+import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 
 const ORGANIZAR_OPCOES = [
   { value: 'projeto', label: 'Por projeto' },
@@ -73,16 +76,21 @@ function fmtH(h: number): string {
 }
 
 export default function ProcessosPage() {
-  const { items, loaded, addItem, updateItem, removeItem } = useStoredData<Processo>('processosAdicionados', '/processes.json');
-  const { items: projetos } = useStoredData<Projeto>('projetosAdicionados', '/projects.json');
+  const { data: items = [], isLoading: processosLoading } = useProcessos();
+  const loaded = !processosLoading;
+  const createProcesso = useCreateProcesso();
+  const updateProcesso = useUpdateProcesso();
+  const deleteProcesso = useDeleteProcesso();
+  const { data: projetos = [] } = useProjetosLista();
 
   // ── Supporting data via hooks (Hook-First) ──────────────────────────────
   const { data: etapas = [] } = useEtapasLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
 
   // ── Per-process helpers ───────────────────────────────────────────────────────
-  const etapasDoProcesso = (pid: string) => etapas.filter(e => e.processoId === pid);
+  const etapasDoProcesso = (pid: string) => etapas.filter(e => e.process_id === pid);
 
   const gargalosDoProcesso = (pid: string) =>
     gargalos.filter(g => (g.processos || []).includes(pid));
@@ -90,7 +98,7 @@ export default function ProcessosPage() {
   const melhoriasDoProcesso = (pid: string) => {
     const garsDoProc = gargalosDoProcesso(pid);
     const melhoriaIdsViaGargalos = new Set(
-      garsDoProc.filter(g => g.melhoriaId).map(g => g.melhoriaId as string)
+      garsDoProc.filter(g => g.melhoria_id).map(g => g.melhoria_id as string)
     );
     return melhorias.filter(m =>
       (m.processos || []).includes(pid) ||
@@ -98,11 +106,23 @@ export default function ProcessosPage() {
     );
   };
 
-  // ── Cluster do processo derivado do seu projeto ───────────────────────────────
-  const clusterPorProjeto = useMemo(
-    () => new Map(projetos.map(p => [p.id, p.cluster || ''])),
+  // ── Cluster do processo derivado do seu projeto (UUID pra filter/group) ─
+  const clusterIdPorProjeto = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
   );
+
+  // Opções pro organizador "Por cluster" — extrai os clusters distintos
+  // presentes nos projetos atuais (nome via projeto.cluster, key = uuid).
+  const clusterOpcoesDinamicas = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const p of projetos) {
+      if (p.cluster_id && !seen.has(p.cluster_id)) {
+        seen.set(p.cluster_id, p.clusterName || p.cluster_id);
+      }
+    }
+    return Array.from(seen, ([value, label]) => ({ value, label }));
+  }, [projetos]);
 
   // ── Filtros ───────────────────────────────────────────────────────────────────
   const [fCluster, setFCluster] = useState('');
@@ -111,10 +131,10 @@ export default function ProcessosPage() {
   const filtrosAtivos = !!(fCluster || fProjeto || fStatus);
   const limparFiltros = () => { setFCluster(''); setFProjeto(''); setFStatus(''); };
   const itensFiltrados = useMemo(() => items.filter(p =>
-    (!fCluster || (p.projetoId ? clusterPorProjeto.get(p.projetoId) || '' : '') === fCluster) &&
-    (!fProjeto || p.projetoId === fProjeto) &&
-    (!fStatus || (p.statusAvaliacao || 'Não avaliado') === fStatus)
-  ), [items, fCluster, fProjeto, fStatus, clusterPorProjeto]);
+    (!fCluster || (p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : '') === fCluster) &&
+    (!fProjeto || p.project_id === fProjeto) &&
+    (!fStatus || (p.evaluation_status || 'Não avaliado') === fStatus)
+  ), [items, fCluster, fProjeto, fStatus, clusterIdPorProjeto]);
 
   // ── Organizador ───────────────────────────────────────────────────────────────
   const [organizar, setOrganizar] = useState('projeto');
@@ -123,18 +143,18 @@ export default function ProcessosPage() {
     if (organizar === 'cluster') {
       return agrupar(
         itensFiltrados,
-        (p) => [p.projetoId ? clusterPorProjeto.get(p.projetoId) || '' : ''],
-        CLUSTER_OPCOES,
+        (p) => [p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : ''],
+        clusterOpcoesDinamicas,
         'Sem cluster',
       );
     }
     return agrupar(
       itensFiltrados,
-      (p) => [p.projetoId || ''],
-      projetos.map((p) => ({ value: p.id, label: p.nome })),
+      (p) => [p.project_id || ''],
+      projetos.map((p) => ({ value: p.id, label: p.name })),
       'Sem projeto',
     );
-  }, [organizar, itensFiltrados, projetos, clusterPorProjeto]);
+  }, [organizar, itensFiltrados, projetos, clusterIdPorProjeto, clusterOpcoesDinamicas]);
 
   // ── Global KPI strip ─────────────────────────────────────────────────────────
   const totalHoras = useMemo(() =>
@@ -163,10 +183,10 @@ export default function ProcessosPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
-  const [projetoId, setProjetoId] = useState<string>('');
-  const [frequencia, setFrequencia] = useState<string>('');
-  const [statusAvaliacao, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
-  const [complexidade, setComplexidade] = useState<string>('');
+  const [project_id, setProjetoId] = useState<string>('');
+  const [frequency, setFrequencia] = useState<string>('');
+  const [evaluation_status, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
+  const [complexity_level, setComplexidade] = useState<string>('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -187,9 +207,17 @@ export default function ProcessosPage() {
   const handleConfirmDelete = async () => {
     if (!confirmDel) return;
     setDeleting(true);
-    await removeItem(confirmDel.id);
-    setDeleting(false);
-    setConfirmDel(null);
+    try {
+      await deleteProcesso.mutateAsync({ id: confirmDel.id, old: confirmDel });
+      toast.success('Processo excluído');
+      setConfirmDel(null);
+    } catch (err) {
+      toast.error('Erro ao excluir processo', {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const resetNovo = () => {
@@ -200,54 +228,69 @@ export default function ProcessosPage() {
     setError('');
   };
 
-  const handleSaveProcesso = () => {
+  const handleSaveProcesso = async () => {
     if (!nome.trim()) { setError('Preencha o nome do processo.'); return; }
-    if (!projetoId) { setError('Vincule o processo a um projeto.'); return; }
+    if (!project_id) { setError('Vincule o processo a um projeto.'); return; }
     setError('');
     setIsSaving(true);
-    addItem({
-      nome: nome.trim(),
-      descricao: descricao.trim(),
-      projetoId,
-      frequencia: (frequencia || undefined) as FrequenciaProcesso | undefined,
-      statusAvaliacao,
-      complexidade: (complexidade || undefined) as Complexidade | undefined,
-    });
-    setTimeout(() => {
+    try {
+      await createProcesso.mutateAsync({
+        name: nome.trim(),
+        description: descricao.trim(),
+        project_id,
+        frequency: (frequency || undefined) as FrequenciaProcesso | undefined,
+        evaluation_status,
+        complexity_level: (complexity_level || undefined) as Complexidade | undefined,
+      });
+      toast.success('Processo criado');
       resetNovo();
-      setIsSaving(false);
       setModalOpen(false);
-    }, 300);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const openEdit = (p: Processo) => {
     setEditId(p.id);
-    setEditNome(p.nome);
-    setEditDescricao(p.descricao);
-    setEditProjetoId(p.projetoId || '');
-    setEditFrequencia(p.frequencia || '');
-    setEditStatusAvaliacao(p.statusAvaliacao || 'Não avaliado');
-    setEditComplexidade(p.complexidade || '');
+    setEditNome(p.name);
+    setEditDescricao(p.description);
+    setEditProjetoId(p.project_id || '');
+    setEditFrequencia(p.frequency || '');
+    setEditStatusAvaliacao(p.evaluation_status || 'Não avaliado');
+    setEditComplexidade(p.complexity_level || '');
     setEditOpen(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editNome.trim()) return;
     if (!editProjetoId) return;
+    const old = items.find(p => p.id === editId);
+    if (!old) return;
     setEditSaving(true);
-    updateItem(editId, (prev) => ({
-      ...prev,
-      nome: editNome.trim(),
-      descricao: editDescricao.trim(),
-      projetoId: editProjetoId,
-      frequencia: (editFrequencia || undefined) as FrequenciaProcesso | undefined,
-      statusAvaliacao: editStatusAvaliacao,
-      complexidade: (editComplexidade || undefined) as Complexidade | undefined,
-    }));
-    setTimeout(() => {
-      setEditSaving(false);
+    try {
+      await updateProcesso.mutateAsync({
+        id: editId,
+        old,
+        patch: {
+          name: editNome.trim(),
+          description: editDescricao.trim(),
+          project_id: editProjetoId,
+          frequency: (editFrequencia || undefined) as FrequenciaProcesso | undefined,
+          evaluation_status: editStatusAvaliacao,
+          complexity_level: (editComplexidade || undefined) as Complexidade | undefined,
+        },
+      });
+      toast.success('Processo atualizado');
       setEditOpen(false);
-    }, 300);
+    } catch (err) {
+      toast.error('Erro ao atualizar processo', {
+        description: err instanceof Error ? err.message : String(err),
+      });
+    } finally {
+      setEditSaving(false);
+    }
   };
 
   // ── Card render ───────────────────────────────────────────────────────────────
@@ -262,7 +305,7 @@ export default function ProcessosPage() {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(p); } }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <h3><Tooltip text={dica('processos.card.titulo')}>{p.nome}</Tooltip></h3>
+        <h3><Tooltip text={dica('processos.card.titulo')}>{p.name}</Tooltip></h3>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
             className="btn-edit"
@@ -282,20 +325,20 @@ export default function ProcessosPage() {
           </button>
         </div>
       </div>
-      {(p.statusAvaliacao || p.complexidade) && (
+      {(p.evaluation_status || p.complexity_level) && (
         <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6, flexWrap: 'wrap' }}>
-          {p.complexidade && (
-            <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{p.complexidade}</span>
+          {p.complexity_level && (
+            <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{p.complexity_level}</span>
           )}
-          {p.statusAvaliacao && p.statusAvaliacao !== 'Não avaliado' && (
-            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{p.statusAvaliacao}</span>
+          {p.evaluation_status && p.evaluation_status !== 'Não avaliado' && (
+            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{p.evaluation_status}</span>
           )}
         </div>
       )}
-      <p>{p.descricao || 'Sem descrição.'}</p>
-      {p.frequencia && (
+      <p>{p.description || 'Sem descrição.'}</p>
+      {p.frequency && (
         <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
-          <strong>Frequência:</strong> {p.frequencia}
+          <strong>Frequência:</strong> {p.frequency}
         </div>
       )}
       <div className="processo-card-actions">
@@ -356,7 +399,7 @@ export default function ProcessosPage() {
         filtros={[
           { id: 'fp-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('processos.filtro.organizar') },
           { id: 'fp-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
-          { id: 'fp-projeto', label: 'Projeto', value: fProjeto, onChange: setFProjeto, options: [{ value: '', label: 'Todos os projetos' }, ...projetos.map(p => ({ value: p.id, label: p.nome }))], tooltip: dica('processos.filtro.projeto') },
+          { id: 'fp-projeto', label: 'Projeto', value: fProjeto, onChange: setFProjeto, options: [{ value: '', label: 'Todos os projetos' }, ...projetos.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('processos.filtro.projeto') },
           { id: 'fp-status', label: 'Status de avaliação', value: fStatus, onChange: setFStatus, options: STATUS_AVAL_FILTRO_OPCOES, tooltip: dica('processos.filtro.status') },
         ]}
       />
@@ -372,18 +415,18 @@ export default function ProcessosPage() {
         <div className="modal">
           {detailItem && (
             <>
-              <h2>{detailItem.nome}</h2>
+              <h2>{detailItem.name}</h2>
 
               {/* Badges */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                {detailItem.complexidade && (
-                  <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{detailItem.complexidade}</span>
+                {detailItem.complexity_level && (
+                  <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{detailItem.complexity_level}</span>
                 )}
-                {detailItem.statusAvaliacao && detailItem.statusAvaliacao !== 'Não avaliado' && (
-                  <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{detailItem.statusAvaliacao}</span>
+                {detailItem.evaluation_status && detailItem.evaluation_status !== 'Não avaliado' && (
+                  <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{detailItem.evaluation_status}</span>
                 )}
-                {detailItem.frequencia && (
-                  <span className="status-badge" style={{ background: '#f0fdf4', color: '#15803d', fontSize: '0.7rem' }}>{detailItem.frequencia}</span>
+                {detailItem.frequency && (
+                  <span className="status-badge" style={{ background: '#f0fdf4', color: '#15803d', fontSize: '0.7rem' }}>{detailItem.frequency}</span>
                 )}
               </div>
 
@@ -391,15 +434,15 @@ export default function ProcessosPage() {
               <div className="form-row">
                 <div className="form-group compact">
                   <label>Projeto vinculado</label>
-                  <div>{detailItem.projetoId ? (projetos.find(p => p.id === detailItem.projetoId)?.nome || detailItem.projetoId) : '—'}</div>
+                  <div>{detailItem.project_id ? (projetos.find(p => p.id === detailItem.project_id)?.name || detailItem.project_id) : '—'}</div>
                 </div>
               </div>
 
               {/* Descrição */}
-              {detailItem.descricao && (
+              {detailItem.description && (
                 <div className="form-group compact">
                   <label>Descrição</label>
-                  <div style={{ whiteSpace: 'pre-line', color: '#374151' }}>{detailItem.descricao}</div>
+                  <div style={{ whiteSpace: 'pre-line', color: '#374151' }}>{detailItem.description}</div>
                 </div>
               )}
 
@@ -430,7 +473,7 @@ export default function ProcessosPage() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {detailEtapas.map(e => (
                       <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem', padding: '4px 0', borderBottom: '1px solid #f8fafc' }}>
-                        <span style={{ color: '#374151' }}>{e.nome}</span>
+                        <span style={{ color: '#374151' }}>{e.name}</span>
                         <span style={{ color: '#64748b', fontVariantNumeric: 'tabular-nums', marginLeft: 12 }}>{fmtH(cargaMensalEtapa(e))}/mês</span>
                       </div>
                     ))}
@@ -464,7 +507,7 @@ export default function ProcessosPage() {
                 ) : (
                   <div className="tags">
                     {detailMelhorias.map(m => (
-                      <span key={m.id} className="tag tag-processo">{m.nome}</span>
+                      <span key={m.id} className="tag tag-processo">{m.improvement_description}</span>
                     ))}
                   </div>
                 )}
@@ -509,24 +552,24 @@ export default function ProcessosPage() {
 
           <FormField label="Projeto" required tooltip={dica('processos.form.projeto')}>
             <Select
-              value={projetoId}
+              value={project_id}
               onChange={setProjetoId}
-              options={projetos.map(p => ({ value: p.id, label: p.nome }))}
+              options={projetos.map(p => ({ value: p.id, label: p.name }))}
               placeholder="Selecione o projeto..."
             />
           </FormField>
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Frequência" tooltip={dica('processos.form.frequencia')}>
-              <Select value={frequencia} onChange={setFrequencia} options={FREQUENCIA_OPCOES} />
+            <FormField label="Frequência" tooltip={dica('processos.form.frequency')}>
+              <Select value={frequency} onChange={setFrequencia} options={FREQUENCIA_OPCOES} />
             </FormField>
-            <FormField label="Complexidade" tooltip={dica('processos.form.complexidade')}>
-              <Select value={complexidade} onChange={setComplexidade} options={COMPLEXIDADE_OPCOES} />
+            <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
+              <Select value={complexity_level} onChange={setComplexidade} options={COMPLEXIDADE_OPCOES} />
             </FormField>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Status de avaliação" tooltip={dica('processos.form.statusAvaliacao')}>
-              <Select value={statusAvaliacao} onChange={(v) => setStatusAvaliacao(v as StatusAvaliacao)} options={STATUS_AVALIACAO_OPCOES} />
+            <FormField label="Status de avaliação" tooltip={dica('processos.form.evaluation_status')}>
+              <Select value={evaluation_status} onChange={(v) => setStatusAvaliacao(v as StatusAvaliacao)} options={STATUS_AVALIACAO_OPCOES} />
             </FormField>
           </div>
 
@@ -552,21 +595,21 @@ export default function ProcessosPage() {
             <Select
               value={editProjetoId}
               onChange={setEditProjetoId}
-              options={projetos.map(p => ({ value: p.id, label: p.nome }))}
+              options={projetos.map(p => ({ value: p.id, label: p.name }))}
               placeholder="Selecione o projeto..."
             />
           </FormField>
 
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Frequência" tooltip={dica('processos.form.frequencia')}>
+            <FormField label="Frequência" tooltip={dica('processos.form.frequency')}>
               <Select value={editFrequencia} onChange={setEditFrequencia} options={FREQUENCIA_OPCOES} />
             </FormField>
-            <FormField label="Complexidade" tooltip={dica('processos.form.complexidade')}>
+            <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
               <Select value={editComplexidade} onChange={setEditComplexidade} options={COMPLEXIDADE_OPCOES} />
             </FormField>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
-            <FormField label="Status de avaliação" tooltip={dica('processos.form.statusAvaliacao')}>
+            <FormField label="Status de avaliação" tooltip={dica('processos.form.evaluation_status')}>
               <Select value={editStatusAvaliacao} onChange={(v) => setEditStatusAvaliacao(v as StatusAvaliacao)} options={STATUS_AVALIACAO_OPCOES} />
             </FormField>
           </div>
@@ -583,7 +626,7 @@ export default function ProcessosPage() {
         <div className="modal">
           <h2>Excluir processo</h2>
           <p>
-            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? Todas as
+            Tem certeza que deseja excluir <strong>{confirmDel?.name}</strong>? Todas as
             etapas e mapeamentos (Como Era e Como Ficou) deste processo serão removidos.
             Esta ação não pode ser desfeita.
           </p>

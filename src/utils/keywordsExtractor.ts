@@ -107,9 +107,9 @@ export function extractKeywords(
 
   // ---- 2. Domínio fiscal/OSG detectado no texto do processo ----
   const haystack = [
-    processo.nome,
-    processo.descricao,
-    processo.entregavel,
+    processo.name,
+    processo.description,
+    processo.deliverable,
   ].filter(Boolean).join(' ');
   for (const { regex, tag } of DOMINIO_FISCAL) {
     if (regex.test(haystack)) push(tag);

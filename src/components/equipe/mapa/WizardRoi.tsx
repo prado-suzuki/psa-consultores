@@ -221,7 +221,7 @@ function RoiDataMap({ categorias, onItemClick }: { categorias: CategoriaDiagnost
   );
 }
 
-type KpiVariant = 'default' | 'investimento' | 'payback' | 'atual' | 'estimado' | 'economia';
+type KpiVariant = 'default' | 'investment' | 'payback' | 'atual' | 'estimado' | 'economia';
 
 interface KpiExecProps {
   label: string;
@@ -319,7 +319,7 @@ export default function WizardRoi({
   // os indicadores estáticos do snapshot, sem recálculo.
   const snapshotsQuery = useSnapshots(processo?.id);
   const snapshotsProcesso = useMemo(
-    () => [...(snapshotsQuery.data ?? [])].sort((a, b) => a.snapshotEm.localeCompare(b.snapshotEm)),
+    () => [...(snapshotsQuery.data ?? [])].sort((a, b) => a.snapshot_at.localeCompare(b.snapshot_at)),
     [snapshotsQuery.data],
   );
   const createSnapshotMutation = useCreateSnapshot();
@@ -342,11 +342,11 @@ export default function WizardRoi({
 
   const respById = useMemo(() => new Map(responsaveis.map(r => [r.id, r])), [responsaveis]);
   const custoHM = responsaveis.length
-    ? responsaveis.reduce((s, r) => s + (r.custoHora || 0), 0) / responsaveis.length
+    ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length
     : 0;
 
   // Breakdown por etapa: horas e custo, atual × estimado (ficou).
-  // Usa custoHora do responsável quando vinculado, senão o custo-médio.
+  // Usa hourly_rate do responsável quando vinculado, senão o custo-médio.
   // O cenário "ficou" lê de etapa.ficou.* (espelho lateral); quando ausente,
   // faz fallback para os valores da era.
   const etapasBreakdown = useMemo(() => {
@@ -355,7 +355,7 @@ export default function WizardRoi({
       for (const r of arr || []) {
         const horas = r.horas ?? 0;
         const resp = r.responsavelId ? respById.get(r.responsavelId) : undefined;
-        const ch = resp ? (resp.custoHora ?? 0) : custoHM;
+        const ch = resp ? (resp.hourly_rate ?? 0) : custoHM;
         h += horas;
         c += horas * ch;
       }
@@ -363,8 +363,8 @@ export default function WizardRoi({
     };
     return etapas.map(e => {
       const f = e.ficou;
-      const volEra = e.volumePorProcesso || 1;
-      const volFicou = (f?.volumePorProcesso ?? e.volumePorProcesso) || 1;
+      const volEra = e.volume_per_process || 1;
+      const volFicou = (f?.volume_per_process ?? e.volume_per_process) || 1;
 
       const exe  = sumLado(e.executadoPor);
       const exeF = sumLado(f?.executadoPor ?? e.executadoPor);
@@ -374,18 +374,18 @@ export default function WizardRoi({
       const custoExec = exe.c * volEra;
       const custoFicou = exeF.c * volFicou;
 
-      const txRetrab = e.taxaRetrabalho ?? 0;
-      const txRetrabFicou = f?.taxaRetrabalho ?? txRetrab;
+      const txRetrab = e.rework_rate ?? 0;
+      const txRetrabFicou = f?.rework_rate ?? txRetrab;
       const custoRetrabExec = custoExec * txRetrab;
       const custoRetrabExecFicou = custoFicou * txRetrabFicou;
 
       return {
         id: e.id,
-        nome: e.nome,
+        nome: e.name,
         horasExec, horasFicou,
         custoExec, custoFicou,
-        taxaErros: e.taxaErros ?? 0,
-        taxaErrosFicou: f?.taxaErros ?? e.taxaErros ?? 0,
+        error_rate: e.error_rate ?? 0,
+        taxaErrosFicou: f?.error_rate ?? e.error_rate ?? 0,
         taxaRetrab: txRetrab,
         taxaRetrabFicou: txRetrabFicou,
         custoRetrabExec, custoRetrabExecFicou,
@@ -408,8 +408,8 @@ export default function WizardRoi({
     );
     const melhoriaIdsViaGargalos = new Set(
       gargalos
-        .filter(g => gargalosIds.has(g.id) && g.melhoriaId)
-        .map(g => g.melhoriaId as string)
+        .filter(g => gargalosIds.has(g.id) && g.melhoria_id)
+        .map(g => g.melhoria_id as string)
     );
     return melhorias.filter(m =>
       (m.processos || []).includes(processo.id) ||
@@ -426,14 +426,14 @@ export default function WizardRoi({
     setErro('');
     try {
       const snap = await createSnapshotMutation.mutateAsync({
-        processoId: processo.id,
-        custoAnual: calc?.custoAnual ?? 0,
-        horasAnual: calc?.horasAnual ?? 0,
-        economiaAnual: calc?.economiaAnual ?? 0,
-        roiPercentual: calc?.roiPercentual ?? 0,
-        paybackMeses: calc?.paybackMeses ?? 0,
-        horasLiberadas: calc?.horasLiberadas ?? 0,
-        investimento: calc?.investimento ?? 0,
+        process_id: processo.id,
+        annual_cost: calc?.annual_cost ?? 0,
+        annual_hours: calc?.annual_hours ?? 0,
+        annual_savings: calc?.annual_savings ?? 0,
+        roi_percent: calc?.roi_percent ?? 0,
+        payback_months: calc?.payback_months ?? 0,
+        hours_freed: calc?.hours_freed ?? 0,
+        investment: calc?.investment ?? 0,
       });
       // O hook já invalida `process_snapshots` no onSuccess — a lista
       // recarrega automaticamente via React Query.
@@ -454,22 +454,22 @@ export default function WizardRoi({
     : undefined;
   const indicadores = snapAtivo
     ? {
-        custoAnual: snapAtivo.custoAnual,
-        horasAnual: snapAtivo.horasAnual,
-        economiaAnual: snapAtivo.economiaAnual,
-        roiPercentual: snapAtivo.roiPercentual,
-        paybackMeses: snapAtivo.paybackMeses,
-        horasLiberadas: snapAtivo.horasLiberadas,
-        investimento: snapAtivo.investimento,
+        annual_cost: snapAtivo.annual_cost,
+        annual_hours: snapAtivo.annual_hours,
+        annual_savings: snapAtivo.annual_savings,
+        roi_percent: snapAtivo.roi_percent,
+        payback_months: snapAtivo.payback_months,
+        hours_freed: snapAtivo.hours_freed,
+        investment: snapAtivo.investment,
       }
     : {
-        custoAnual: calc?.custoAnual ?? 0,
-        horasAnual: calc?.horasAnual ?? 0,
-        economiaAnual: calc?.economiaAnual ?? 0,
-        roiPercentual: calc?.roiPercentual ?? 0,
-        paybackMeses: calc?.paybackMeses ?? 0,
-        horasLiberadas: calc?.horasLiberadas ?? 0,
-        investimento: calc?.investimento ?? 0,
+        annual_cost: calc?.annual_cost ?? 0,
+        annual_hours: calc?.annual_hours ?? 0,
+        annual_savings: calc?.annual_savings ?? 0,
+        roi_percent: calc?.roi_percent ?? 0,
+        payback_months: calc?.payback_months ?? 0,
+        hours_freed: calc?.hours_freed ?? 0,
+        investment: calc?.investment ?? 0,
       };
   const visualizandoHistorico = !!snapAtivo;
 
@@ -485,7 +485,7 @@ export default function WizardRoi({
       {/* ---------- Header executivo ---------- */}
       <div className="roi-config-header">
         <div>
-          <span className="roi-config-eyebrow">Configurar ROI · {processo.nome}</span>
+          <span className="roi-config-eyebrow">Configurar ROI · {processo.name}</span>
           <h2>Diagnóstico e baseline do retorno do processo</h2>
         </div>
         <div className="roi-config-meta">
@@ -592,7 +592,7 @@ export default function WizardRoi({
             {(() => {
               const pAtual = calc?.custosCategoria.pessoas ?? 0;
               const pFicou = calc?.custosCategoriaFicou.pessoas ?? 0;
-              const horasA = calc?.horasAnual ?? 0;
+              const horasA = calc?.annual_hours ?? 0;
               const horasF = calc?.horasAnualFicou ?? 0;
               const econ = Math.max(0, pAtual - pFicou);
               const horasLib = Math.max(0, horasA - horasF);
@@ -673,7 +673,7 @@ export default function WizardRoi({
               </table>
             </div>
 
-            {!processo.frequencia && (
+            {!processo.frequency && (
               <div className="roi-callout is-warn">
                 <span className="roi-callout-icon"><Icon name="alert" size={16} /></span>
                 <div className="roi-callout-body">
@@ -707,13 +707,13 @@ export default function WizardRoi({
                   <KpiExec
                     label="Retrabalho Atual / Ano"
                     value={formatarMoeda(reA)}
-                    formula="= Σ taxaRetrabalho × custoPessoas (hoje)"
+                    formula="= Σ rework_rate × custoPessoas (hoje)"
                     variant="atual"
                   />
                   <KpiExec
                     label="Retrabalho Projetado / Ano"
                     value={formatarMoeda(reF)}
-                    formula="= Σ taxaRetrabalho × custoPessoas (após melhorias)"
+                    formula="= Σ rework_rate × custoPessoas (após melhorias)"
                     variant="estimado"
                   />
                   <KpiExec
@@ -770,7 +770,7 @@ export default function WizardRoi({
               <h3>Sistemas &amp; Investimento</h3>
               <p>
                 Custo recorrente dos <strong>sistemas</strong> (custo fixo/licença mensal × 12 × rateio%) e
-                <strong> investimento</strong> one-shot das melhorias vinculadas aos gargalos do
+                <strong> investment</strong> one-shot das melhorias vinculadas aos gargalos do
                 processo — entradas que determinam <strong>ROI %</strong> e <strong>payback</strong>.
               </p>
             </div>
@@ -784,9 +784,9 @@ export default function WizardRoi({
               />
               <KpiExec
                 label="Investimento Total"
-                value={formatarMoeda(calc?.investimento ?? 0)}
+                value={formatarMoeda(calc?.investment ?? 0)}
                 formula="= treino + execução + externo"
-                variant="investimento"
+                variant="investment"
               />
               <KpiExec
                 label="Melhorias vinculadas"
@@ -813,7 +813,7 @@ export default function WizardRoi({
                   {sistemasUsados.length === 0 ? (
                     <tr><td colSpan={3} className="is-empty">Nenhum sistema vinculado às etapas do processo.</td></tr>
                   ) : sistemasUsados.map(s => {
-                    const va = s.custoVariavelPorUso ?? 0;
+                    const va = s.custo_variavel_por_uso ?? 0;
                     const tot = va * 12;
                     return (
                       <tr key={s.id}>
@@ -830,7 +830,7 @@ export default function WizardRoi({
             </div>
 
             <div className="roi-subhead">
-              Composição do investimento
+              Composição do investment
               <span className="roi-subhead-rule" />
             </div>
             <div className="roi-table-wrap">
@@ -848,16 +848,16 @@ export default function WizardRoi({
                   {melhoriasRelevantes.length === 0 ? (
                     <tr><td colSpan={5} className="is-empty">Nenhuma melhoria vinculada aos gargalos deste processo.</td></tr>
                   ) : melhoriasRelevantes.map(m => {
-                    const treino = (m.horasTreinamento || 0) * custoHM;
+                    const treino = (m.training_hours || 0) * custoHM;
                     const exec = (m.executadoPor || []).reduce((acc, r) => {
-                      const ch = (r.responsavelId && respById.get(r.responsavelId)?.custoHora) || custoHM;
+                      const ch = (r.responsavelId && respById.get(r.responsavelId)?.hourly_rate) || custoHM;
                       return acc + (r.horas || 0) * ch;
                     }, 0);
-                    const ext = m.custoExternoUnico || 0;
+                    const ext = m.one_time_external_cost || 0;
                     const total = treino + exec + ext;
                     return (
                       <tr key={m.id}>
-                        <td>{m.nome}</td>
+                        <td>{m.improvement_description}</td>
                         <td className={treino > 0 ? '' : 'is-muted'}>{formatarMoeda(treino)}</td>
                         <td className={exec > 0 ? '' : 'is-muted'}>{formatarMoeda(exec)}</td>
                         <td className={ext > 0 ? '' : 'is-muted'}>{formatarMoeda(ext)}</td>
@@ -922,7 +922,7 @@ export default function WizardRoi({
                     <option value="ao-vivo">Ao vivo (cálculo atual)</option>
                     {[...snapshotsProcesso].reverse().map(s => (
                       <option key={s.id} value={s.id}>
-                        Mensuração de {new Date(s.snapshotEm).toLocaleString('pt-BR')}
+                        Mensuração de {new Date(s.snapshot_at).toLocaleString('pt-BR')}
                       </option>
                     ))}
                   </select>
@@ -956,7 +956,7 @@ export default function WizardRoi({
               Indicadores consolidados
               {visualizandoHistorico && (
                 <span style={{ marginLeft: 8, fontSize: '0.78rem', color: '#0d9488', fontWeight: 600 }}>
-                  · Mensuração de {new Date(snapAtivo!.snapshotEm).toLocaleString('pt-BR')}
+                  · Mensuração de {new Date(snapAtivo!.snapshot_at).toLocaleString('pt-BR')}
                 </span>
               )}
               <span className="roi-subhead-rule" />
@@ -964,40 +964,40 @@ export default function WizardRoi({
             <div className="roi-kpi-grid">
               <KpiExec
                 label="Custo Anual"
-                value={formatarMoeda(indicadores.custoAnual)}
+                value={formatarMoeda(indicadores.annual_cost)}
                 formula="= pessoas + sistemas + erros + retrabalho"
               />
               <KpiExec
                 label="Horas Anuais"
-                value={formatDecimal(indicadores.horasAnual, 'h')}
+                value={formatDecimal(indicadores.annual_hours, 'h')}
                 formula={`= horas/exec × ${formatDecimal(ann, 'exec/ano')}`}
               />
               <KpiExec
                 label="Economia Anual"
-                value={formatarMoeda(indicadores.economiaAnual)}
-                formula="= custoAnual − custoAnualFicou"
+                value={formatarMoeda(indicadores.annual_savings)}
+                formula="= annual_cost − custoAnualFicou"
               />
               <KpiExec
                 label="ROI"
-                value={formatDecimal(indicadores.roiPercentual, '%')}
-                formula="= economia ÷ investimento × 100"
+                value={formatDecimal(indicadores.roi_percent, '%')}
+                formula="= economia ÷ investment × 100"
               />
               <KpiExec
                 label="Payback"
-                value={formatDecimal(indicadores.paybackMeses, ' meses')}
-                formula="= investimento ÷ (economia / 12)"
+                value={formatDecimal(indicadores.payback_months, ' meses')}
+                formula="= investment ÷ (economia / 12)"
                 variant="payback"
               />
               <KpiExec
                 label="Horas Liberadas"
-                value={formatDecimal(indicadores.horasLiberadas, 'h/ano')}
-                formula="= horasAnual − horasAnualFicou"
+                value={formatDecimal(indicadores.hours_freed, 'h/ano')}
+                formula="= annual_hours − horasAnualFicou"
               />
               <KpiExec
                 label="Investimento"
-                value={formatarMoeda(indicadores.investimento)}
+                value={formatarMoeda(indicadores.investment)}
                 formula="= treino + execução + externo"
-                variant="investimento"
+                variant="investment"
               />
             </div>
 

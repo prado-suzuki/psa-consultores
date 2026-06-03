@@ -14,7 +14,7 @@ import Select from '@/components/equipe/mapa/Select';
 import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
 import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
-import { CLUSTER_OPCOES, CLUSTER_FILTRO_OPCOES } from '@/utils/clusters';
+import { useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import { buildEventoDiagram, etapaNodeId } from '@/utils/cascataDiagram';
 import {
   useCascataEventos, useCreateCascataEvento, useUpdateCascataEvento,
@@ -87,28 +87,28 @@ function SeletorEtapas({
   selecionadas: Set<string>;
   onChange: (next: Set<string>) => void;
 }) {
-  const projetoNome = useMemo(() => new Map(projetos.map(p => [p.id, p.nome])), [projetos]);
+  const projetoNome = useMemo(() => new Map(projetos.map(p => [p.id, p.name])), [projetos]);
 
   // Buckets: 1 por processo, ordenados por projeto/ordem.
   const buckets = useMemo<ProcessoBucket[]>(() => {
     const etapasPorProc = new Map<string, Etapa[]>();
     for (const e of etapas) {
-      if (!etapasPorProc.has(e.processoId)) etapasPorProc.set(e.processoId, []);
-      etapasPorProc.get(e.processoId)!.push(e);
+      if (!etapasPorProc.has(e.process_id)) etapasPorProc.set(e.process_id, []);
+      etapasPorProc.get(e.process_id)!.push(e);
     }
-    for (const arr of etapasPorProc.values()) arr.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+    for (const arr of etapasPorProc.values()) arr.sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
 
     return [...processos]
       .filter(p => etapasPorProc.has(p.id))
       .sort((a, b) => {
-        const pa = a.projetoId ? projetoNome.get(a.projetoId) || '' : '';
-        const pb = b.projetoId ? projetoNome.get(b.projetoId) || '' : '';
+        const pa = a.project_id ? projetoNome.get(a.project_id) || '' : '';
+        const pb = b.project_id ? projetoNome.get(b.project_id) || '' : '';
         if (pa !== pb) return pa.localeCompare(pb);
-        return (a.ordem ?? 0) - (b.ordem ?? 0);
+        return (a.order_index ?? 0) - (b.order_index ?? 0);
       })
       .map<ProcessoBucket>(proc => ({
         processo: proc,
-        projetoNome: proc.projetoId ? (projetoNome.get(proc.projetoId) || 'Sem projeto') : 'Sem projeto',
+        projetoNome: proc.project_id ? (projetoNome.get(proc.project_id) || 'Sem projeto') : 'Sem projeto',
         etapas: (etapasPorProc.get(proc.id) || []).map<EtapaNodeUI>(e => ({
           etapa: e,
           cenariosDisponiveis: e.ficou ? ['AS-IS', 'TO-BE'] : ['AS-IS'],
@@ -135,7 +135,7 @@ function SeletorEtapas({
 
   const grupos = buckets.map(b => ({
     key: b.processo.id,
-    titulo: `${b.projetoNome} → ${b.processo.nome}`,
+    titulo: `${b.projetoNome} → ${b.processo.name}`,
     itens: [b], // 1 bucket por grupo para reusar a estrutura
   }));
 
@@ -172,7 +172,7 @@ function SeletorEtapas({
               </div>
               {b.etapas.map(({ etapa, cenariosDisponiveis }) => (
                 <div key={etapa.id} className="cascata-etapa-row">
-                  <span className="nome">{etapa.ordem != null ? `${etapa.ordem}. ` : ''}{etapa.nome}</span>
+                  <span className="nome">{etapa.stage_order != null ? `${etapa.stage_order}. ` : ''}{etapa.name}</span>
                   {cenariosDisponiveis.map(c => {
                     const k = refKey({ etapaId: etapa.id, cenario: c });
                     return (
@@ -225,7 +225,7 @@ function SimuladorEvento({
       const e = etapaMap.get(r.etapaId);
       return {
         ...r,
-        ord: r.etapaOrdem ?? e?.ordem ?? 0,
+        ord: r.etapaOrdem ?? e?.stage_order ?? 0,
         procOrd: 0,
       };
     });
@@ -390,6 +390,8 @@ function SimuladorEvento({
 // ============================================================
 export default function CascataPage() {
   const [aba, setAba] = useState<Aba>('eventos');
+  const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
 
   // ── Dados base via hooks (Hook-First) ─────────────────────────────────
   const eventosQuery = useCascataEventos();
@@ -427,11 +429,11 @@ export default function CascataPage() {
   // Seletor do simulador
   const [eventoSimuladorId, setEventoSimuladorId] = useState('');
 
-  const procNome = useMemo(() => new Map(processos.map(p => [p.id, p.nome])), [processos]);
+  const procNome = useMemo(() => new Map(processos.map(p => [p.id, p.name])), [processos]);
 
   const eventosFiltrados = useMemo(() => eventos.filter(e =>
     (!fCluster || e.cluster === fCluster) &&
-    (!fProcesso || (e.processoRaizId === fProcesso || (e.etapas || []).some(et => et.processoId === fProcesso)))
+    (!fProcesso || (e.processoRaizId === fProcesso || (e.etapas || []).some(et => et.process_id === fProcesso)))
   ), [eventos, fCluster, fProcesso]);
 
   const eventoSelSimulador = useMemo(
@@ -534,7 +536,7 @@ export default function CascataPage() {
               { id: 'casc-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES },
               { id: 'casc-proc', label: 'Processo', value: fProcesso, onChange: setFProcesso, options: [
                 { value: '', label: 'Todos os processos' },
-                ...processos.map(p => ({ value: p.id, label: p.nome })),
+                ...processos.map(p => ({ value: p.id, label: p.name })),
               ] },
             ]}
             ativo={!!(fCluster || fProcesso)}
@@ -576,7 +578,7 @@ export default function CascataPage() {
                           <div>
                             <span style={{ fontWeight: 600 }}>{(evt.etapas || []).length}</span>{' '}
                             <span style={{ color: '#64748b', fontSize: '0.78rem' }}>
-                              em {new Set((evt.etapas || []).map(e => e.processoId)).size} processo(s)
+                              em {new Set((evt.etapas || []).map(e => e.process_id)).size} processo(s)
                             </span>
                           </div>
                         )}
@@ -654,7 +656,7 @@ export default function CascataPage() {
                 onChange={setProcessoRaiz}
                 options={[
                   { value: '', label: '— sem processo raiz —' },
-                  ...processos.map(p => ({ value: p.id, label: p.nome })),
+                  ...processos.map(p => ({ value: p.id, label: p.name })),
                 ]}
                 placeholder="— sem processo raiz —"
               />
