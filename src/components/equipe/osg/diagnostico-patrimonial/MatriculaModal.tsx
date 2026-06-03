@@ -49,7 +49,7 @@ import {
   osgTabTriggerCls,
 } from '@/components/equipe/osg/formKit';
 import { CartorioSelect } from './CartorioSelect';
-import { formatAreaUnidade, maxAreaDecimals, areaStep, clampAreaInput } from './areaUtils';
+import { formatAreaUnidade, areaStep, clampAreaInput } from './areaUtils';
 import {
   useUpsertMatricula,
   useImpedimentosByMatricula,
@@ -91,8 +91,25 @@ const GEORREFERENCIAMENTO_OPTIONS = ['Sim', 'Não', 'Parcial', 'Em processo'];
 const UNIDADE_AREA_OPTIONS: { value: string; label: string }[] = [
   { value: 'ha', label: 'ha' },
   { value: 'm2', label: 'm²' },
-  { value: 'ha_m2', label: 'ha + m²' },
+  // Valor digitado como em 'ha' (123.1234); na exibição a parte inteira é o ha
+  // e as decimais são os m² (123ha e 1234m²), já que 1 ha = 10.000 m².
+  { value: 'ha_m2', label: 'ha e m²' },
 ];
+
+// Campo de área com step/decimais conforme a unidade selecionada.
+function AreaField({
+  value, unidade, onChange,
+}: { value: string; unidade: string; onChange: (v: string) => void }) {
+  return (
+    <Input
+      type="number"
+      step={areaStep(unidade)}
+      value={value}
+      onChange={(e) => onChange(clampAreaInput(e.target.value, unidade))}
+      className={`${fieldCls} font-mono`}
+    />
+  );
+}
 
 interface MatriculaModalProps {
   open: boolean;
@@ -468,7 +485,11 @@ export function MatriculaModal({
                 <FieldSection
                   number={nextNo()}
                   title="Localização e áreas"
-                  hint={`áreas em ${formatAreaUnidade(draft.area_unidade)}`}
+                  hint={
+                    draft.area_unidade === 'ha_m2'
+                      ? 'áreas em ha e m² — inteiro = ha, decimais = m² (123,1234 = 123ha e 1234m²)'
+                      : `áreas em ${formatAreaUnidade(draft.area_unidade)}`
+                  }
                 >
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -537,48 +558,27 @@ export function MatriculaModal({
                           Área documento
                           <RequiredMark />
                         </Label>
-                        <Input
-                          type="number"
-                          step={areaStep(draft.area_unidade)}
+                        <AreaField
                           value={draft.area_documento}
-                          onChange={(e) =>
-                            setField(
-                              'area_documento',
-                              clampAreaInput(e.target.value, draft.area_unidade),
-                            )
-                          }
-                          className={`${fieldCls} font-mono`}
+                          unidade={draft.area_unidade}
+                          onChange={(v) => setField('area_documento', v)}
                         />
                       </div>
                       <div className="space-y-1.5">
                         <Label className={labelCls}>Área real</Label>
-                        <Input
-                          type="number"
-                          step={areaStep(draft.area_unidade)}
+                        <AreaField
                           value={draft.area_real}
-                          onChange={(e) =>
-                            setField(
-                              'area_real',
-                              clampAreaInput(e.target.value, draft.area_unidade),
-                            )
-                          }
-                          className={`${fieldCls} font-mono`}
+                          unidade={draft.area_unidade}
+                          onChange={(v) => setField('area_real', v)}
                         />
                       </div>
                       {isImovelRural && (
                         <div className="space-y-1.5">
                           <Label className={labelCls}>Área explorada</Label>
-                          <Input
-                            type="number"
-                            step={areaStep(draft.area_unidade)}
+                          <AreaField
                             value={draft.area_explorada}
-                            onChange={(e) =>
-                              setField(
-                                'area_explorada',
-                                clampAreaInput(e.target.value, draft.area_unidade),
-                              )
-                            }
-                            className={`${fieldCls} font-mono`}
+                            unidade={draft.area_unidade}
+                            onChange={(v) => setField('area_explorada', v)}
                           />
                         </div>
                       )}
@@ -1078,17 +1078,10 @@ function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: Impedim
               </div>
               <div className="space-y-1.5">
                 <Label className={labelCls}>Área afetada ({formatAreaUnidade(areaUnidade)})</Label>
-                <Input
-                  type="number"
-                  step={areaStep(areaUnidade)}
+                <AreaField
                   value={draft.area_afetada}
-                  onChange={(e) =>
-                    setDraft((p) => ({
-                      ...p,
-                      area_afetada: clampAreaInput(e.target.value, areaUnidade),
-                    }))
-                  }
-                  className={`${fieldCls} font-mono`}
+                  unidade={areaUnidade}
+                  onChange={(v) => setDraft((p) => ({ ...p, area_afetada: v }))}
                 />
               </div>
               <div className="md:col-span-3 space-y-1.5">

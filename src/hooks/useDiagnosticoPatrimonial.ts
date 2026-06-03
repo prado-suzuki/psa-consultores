@@ -827,6 +827,12 @@ export function useUpsertCartorio() {
     },
     onSuccess: async ({ row, original }) => {
       queryClient.invalidateQueries({ queryKey: ['cartorios'] });
+      if (original) {
+        // Edição reflete nas matrículas enriquecidas, que carregam o nome do cartório.
+        queryClient.invalidateQueries({ queryKey: ['matriculas-all'] });
+        queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
+        queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem'] });
+      }
 
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
@@ -850,6 +856,41 @@ export function useUpsertCartorio() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao salvar cartório', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+export function useDeleteCartorio() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (cartorio: CartorioRow) => {
+      const { error } = await supabase.from('cartorio').delete().eq('id', cartorio.id);
+      if (error) {
+        // FK de matricula.cartorio_id: traduz a violação em mensagem clara.
+        if ((error as { code?: string }).code === '23503') {
+          throw new Error('Este cartório está em uso por uma ou mais matrículas e não pode ser removido.');
+        }
+        throw error;
+      }
+      return cartorio;
+    },
+    onSuccess: async (cartorio) => {
+      queryClient.invalidateQueries({ queryKey: ['cartorios'] });
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'cartorio',
+        entity_id: cartorio.id,
+        entity_name: cartorio.nome_completo,
+        action: 'deleted',
+      });
+
+      toast({ title: 'Cartório removido', description: cartorio.nome_completo });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao remover cartório', description: error.message, variant: 'destructive' });
     },
   });
 }

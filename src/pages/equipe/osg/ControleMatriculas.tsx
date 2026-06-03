@@ -31,6 +31,7 @@ import {
   type MatriculaEnriched,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
+import { formatArea } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
 
 type FiltroVinculo = '__todas__' | 'orfas' | 'vinculadas';
 
@@ -168,6 +169,7 @@ const ControleMatriculas = () => {
                       <TableHead>Nº</TableHead>
                       <TableHead>Cartório</TableHead>
                       <TableHead>Município/UF</TableHead>
+                      <TableHead className="text-right">Área (doc.)</TableHead>
                       <TableHead>Bem vinculado</TableHead>
                       <TableHead className="w-32 text-right">Ações</TableHead>
                     </TableRow>
@@ -197,6 +199,9 @@ const ControleMatriculas = () => {
                             </div>
                           </TableCell>
                           <TableCell className="text-xs">{m.municipio_imovel}/{m.uf_imovel}</TableCell>
+                          <TableCell className="text-xs font-mono text-right whitespace-nowrap">
+                            {formatArea(m.area_documento, m.area_unidade)}
+                          </TableCell>
                           <TableCell className="text-xs">
                             {orfa ? (
                               <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Órfã</Badge>

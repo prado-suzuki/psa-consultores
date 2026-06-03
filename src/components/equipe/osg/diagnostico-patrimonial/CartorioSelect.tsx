@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
-import { Check, ChevronsUpDown, Plus, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, Loader2, Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -13,7 +17,9 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { UF_STATES } from '@/components/equipe/client-form/constants';
-import { useCartorios, useUpsertCartorio, type CartorioRow } from '@/hooks/useDiagnosticoPatrimonial';
+import {
+  useCartorios, useUpsertCartorio, useDeleteCartorio, type CartorioRow,
+} from '@/hooks/useDiagnosticoPatrimonial';
 
 interface CartorioSelectProps {
   value: string;
@@ -21,21 +27,37 @@ interface CartorioSelectProps {
   disabled?: boolean;
 }
 
+const emptyDraft = { nome_completo: '', comarca: '', uf: '' };
+
 export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProps) {
   const { data: cartorios = [], isLoading } = useCartorios();
   const upsert = useUpsertCartorio();
+  const deleteCartorio = useDeleteCartorio();
   const [open, setOpen] = useState(false);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [draft, setDraft] = useState<{ nome_completo: string; numero_oficio: string; comarca: string; uf: string }>({
-    nome_completo: '', numero_oficio: '', comarca: '', uf: '',
-  });
+  const [formOpen, setFormOpen] = useState(false);
+  // null = criando; preenchido = editando este cartório.
+  const [editing, setEditing] = useState<CartorioRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CartorioRow | null>(null);
+  const [draft, setDraft] = useState<typeof emptyDraft>(emptyDraft);
 
   const selected = useMemo(
     () => cartorios.find((c) => c.id === value) ?? null,
     [cartorios, value],
   );
 
-  const handleCreate = () => {
+  const openCreate = () => {
+    setEditing(null);
+    setDraft(emptyDraft);
+    setFormOpen(true);
+  };
+
+  const openEdit = (c: CartorioRow) => {
+    setEditing(c);
+    setDraft({ nome_completo: c.nome_completo, comarca: c.comarca, uf: c.uf });
+    setFormOpen(true);
+  };
+
+  const handleSave = () => {
     if (!draft.nome_completo.trim()) {
       toast.error('Informe o nome do cartório');
       return;
@@ -53,20 +75,31 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
       {
         values: {
           nome_completo: draft.nome_completo.trim(),
-          numero_oficio: draft.numero_oficio.trim() || null,
           comarca: draft.comarca.trim(),
           uf: draft.uf,
         },
-        original: null,
+        original: editing,
       },
       {
         onSuccess: ({ row }: { row: CartorioRow }) => {
-          onChange(row.id);
-          setCreateOpen(false);
-          setDraft({ nome_completo: '', numero_oficio: '', comarca: '', uf: '' });
+          if (!editing) onChange(row.id);
+          setFormOpen(false);
+          setEditing(null);
+          setDraft(emptyDraft);
         },
       },
     );
+  };
+
+  const handleDelete = () => {
+    if (!deleteTarget) return;
+    deleteCartorio.mutate(deleteTarget, {
+      onSuccess: (c) => {
+        // Se o cartório removido era o selecionado, limpa a seleção do formulário.
+        if (c.id === value) onChange('');
+      },
+      onSettled: () => setDeleteTarget(null),
+    });
   };
 
   return (
@@ -100,7 +133,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                   <CommandItem
                     key={c.id}
                     value={`${c.nome_completo} ${c.comarca} ${c.uf}`}
-                    className="data-[selected=true]:bg-osg-moss data-[selected=true]:text-white"
+                    className="group data-[selected=true]:bg-osg-moss data-[selected=true]:text-white"
                     onSelect={() => {
                       onChange(c.id);
                       setOpen(false);
@@ -112,11 +145,39 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                         value === c.id ? 'opacity-100' : 'opacity-0',
                       )}
                     />
-                    <div className="flex flex-col">
-                      <span className="text-sm">{c.nome_completo}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {c.comarca}/{c.uf}{c.numero_oficio ? ` · ${c.numero_oficio}º Ofício` : ''}
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="text-sm truncate">{c.nome_completo}</span>
+                      <span className="text-xs text-muted-foreground group-data-[selected=true]:text-white/80">
+                        {c.comarca}/{c.uf}
                       </span>
+                    </div>
+                    <div className="flex gap-0.5 shrink-0 opacity-0 group-data-[selected=true]:opacity-100">
+                      <button
+                        type="button"
+                        title="Editar cartório"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpen(false);
+                          openEdit(c);
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        title="Excluir cartório"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setOpen(false);
+                          setDeleteTarget(c);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </CommandItem>
                 ))}
@@ -129,7 +190,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                   className="w-full justify-start gap-2"
                   onClick={() => {
                     setOpen(false);
-                    setCreateOpen(true);
+                    openCreate();
                   }}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -141,10 +202,10 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
         </PopoverContent>
       </Popover>
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+      <Dialog open={formOpen} onOpenChange={(o) => { if (!o) { setFormOpen(false); setEditing(null); } }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Novo cartório</DialogTitle>
+            <DialogTitle>{editing ? 'Editar cartório' : 'Novo cartório'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
@@ -159,15 +220,6 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-muted-foreground">Nº do Ofício</Label>
-                <Input
-                  value={draft.numero_oficio}
-                  onChange={(e) => setDraft((p) => ({ ...p, numero_oficio: e.target.value }))}
-                  placeholder="ex: 1"
-                  className="h-9"
-                />
-              </div>
               <div className="md:col-span-2 space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   Comarca<RequiredMark />
@@ -192,16 +244,38 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)} disabled={upsert.isPending}>
+            <Button variant="outline" onClick={() => setFormOpen(false)} disabled={upsert.isPending}>
               Cancelar
             </Button>
-            <Button onClick={handleCreate} disabled={upsert.isPending} className="gap-1.5">
+            <Button onClick={handleSave} disabled={upsert.isPending} className="gap-1.5">
               {upsert.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              Cadastrar cartório
+              {editing ? 'Salvar alterações' : 'Cadastrar cartório'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir cartório?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Excluir o cartório "{deleteTarget?.nome_completo} — {deleteTarget?.comarca}/{deleteTarget?.uf}"?
+              Cartórios em uso por matrículas não podem ser removidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteCartorio.isPending}
+              onClick={handleDelete}
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

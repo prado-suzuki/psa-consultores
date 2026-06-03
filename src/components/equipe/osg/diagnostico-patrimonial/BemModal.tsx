@@ -61,7 +61,7 @@ import {
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { MatriculaModal } from './MatriculaModal';
 import { TitularidadesPanel } from './TitularidadesPanel';
-import { formatAreaUnidade } from './areaUtils';
+import { formatArea } from './areaUtils';
 import { VincularMatriculaDialog } from './VincularMatriculaDialog';
 
 const STATUS_INTEGRALIZACAO_OPTIONS = [
@@ -764,14 +764,14 @@ function MatriculaCard({ matricula, onEdit, onUnlink, onDelete }: MatriculaCardP
           <span>
             Área doc:{' '}
             <span className="font-mono">
-              {matricula.area_documento} {formatAreaUnidade(matricula.area_unidade)}
+              {formatArea(matricula.area_documento, matricula.area_unidade)}
             </span>
           </span>
           {matricula.area_real != null && (
             <span>
               Área real:{' '}
               <span className="font-mono">
-                {matricula.area_real} {formatAreaUnidade(matricula.area_unidade)}
+                {formatArea(matricula.area_real, matricula.area_unidade)}
               </span>
             </span>
           )}
