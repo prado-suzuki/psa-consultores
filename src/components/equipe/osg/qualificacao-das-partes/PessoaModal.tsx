@@ -402,6 +402,11 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
     (p) => p.tipo_pessoa === 'PF' && p.id !== pessoa?.id,
   );
   const conjugeCandidates = pessoaCandidates;
+  // No vínculo de parentesco só entram fundadores; mantém o parente já
+  // vinculado na lista mesmo que tenha deixado de ser fundador.
+  const parenteCandidates = pessoaCandidates.filter(
+    (p) => p.is_fundador || p.id === novoParente.parenteId,
+  );
 
   let secNo = 0;
   const nextNo = () => String(++secNo).padStart(2, '0');
@@ -772,14 +777,14 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                     <SelectTrigger className={fieldCls}>
                       <SelectValue
                         placeholder={
-                          pessoaCandidates.length
+                          parenteCandidates.length
                             ? 'Selecione...'
-                            : 'Cadastre outra pessoa primeiro'
+                            : 'Cadastre um fundador primeiro'
                         }
                       />
                     </SelectTrigger>
                     <SelectContent>
-                      {pessoaCandidates.map((p) => (
+                      {parenteCandidates.map((p) => (
                         <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>
                       ))}
                     </SelectContent>
