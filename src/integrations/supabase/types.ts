@@ -4407,6 +4407,7 @@ export type Database = {
           profissao: string | null
           regime_bens: string | null
           status_constituicao: string | null
+          tipo_empresa: string | null
           tipo_pessoa: string
           updated_at: string
           updated_by: string | null
@@ -4449,6 +4450,7 @@ export type Database = {
           profissao?: string | null
           regime_bens?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa: string
           updated_at?: string
           updated_by?: string | null
@@ -4491,6 +4493,7 @@ export type Database = {
           profissao?: string | null
           regime_bens?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa?: string
           updated_at?: string
           updated_by?: string | null
