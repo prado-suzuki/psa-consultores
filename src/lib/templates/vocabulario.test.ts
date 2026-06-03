@@ -1,69 +1,132 @@
 import { describe, it, expect } from 'vitest';
-import { camposNecessarios, montarContextoDeEntradas } from './vocabulario';
 import { extrairCampos } from './render';
 import { gerarDocumento } from './index';
+import { derivarCampos } from './vocabulario';
+import { detectarBindings, resolverTipoDoBinding } from './binding';
+import { concordarTexto } from './concordancia';
+import {
+  mapearMatricula,
+  mapearPessoa,
+  montarContexto,
+  type MatriculaParaMapear,
+} from './mapeadores';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
 
-// Fixture: um bloco que exercita todos os placeholders do vocabulário.
-const CONTEUDO_MATRICULA =
-  'Um imóvel rural com área de {{area}} ({{areaExtenso}}), ' +
-  'denominado {{denominacao}}, de propriedade de {{proprietario}}, ' +
-  'situado no município de {{municipio}}, Estado de {{uf}}, ' +
-  'com registro na matrícula de n° {{matricula}}, ' +
-  'no Livro {{livro}} ({{livroExtenso}}), folhas/ficha {{folha}} ({{folhaExtenso}}) ' +
-  'do {{cartorio}} da comarca de {{comarca}}, Estado de {{ufCartorio}}, ' +
-  'no valor de R$ {{valor}} ({{valorExtenso}}), ' +
-  'inscrito no cadastro de imóvel rural sob o n° {{ccir}}, ' +
-  'com os seguintes limites e confrontações: {{confrontacoes}}.';
+// Fixture namespaced: o mesmo bloco da Mat. 9.617, agora todo sob o binding `imovel`.
+const CONTEUDO_IMOVEL =
+  'Um imóvel rural com área de {{imovel.area}} ({{imovel.areaExtenso}}), ' +
+  'denominado {{imovel.denominacao}}, de propriedade de {{imovel.proprietario}}, ' +
+  'situado no município de {{imovel.municipio}}, Estado de {{imovel.uf}}, ' +
+  'com registro na matrícula de n° {{imovel.numero}}, ' +
+  'no Livro {{imovel.livro}} ({{imovel.livroExtenso}}), folhas/ficha {{imovel.folha}} ({{imovel.folhaExtenso}}) ' +
+  'do {{imovel.cartorio}} da comarca de {{imovel.comarca}}, Estado de {{imovel.ufCartorio}}, ' +
+  'no valor de R$ {{imovel.valor}} ({{imovel.valorExtenso}}), ' +
+  'inscrito no cadastro de imóvel rural sob o n° {{imovel.ccir}}, ' +
+  'com os seguintes limites e confrontações: {{imovel.confrontacoes}}.';
 
-const TEMPLATE_MATRICULA: Template = {
-  id: 'fixture-matricula',
+const TEMPLATE_IMOVEL: Template = {
+  id: 'fixture-imovel',
   nome: 'Fixture — descrição de imóvel',
-  blocos: [{ id: 'bloco-matricula', obrigatorio: true, conteudo: CONTEUDO_MATRICULA }],
+  blocos: [{ id: 'bloco-imovel', obrigatorio: true, conteudo: CONTEUDO_IMOVEL }],
 };
 
-describe('vocabulário', () => {
-  it('mapeia os placeholders do bloco de matrícula para os campos de entrada', () => {
-    const placeholders = extrairCampos(CONTEUDO_MATRICULA);
-    const { campos, desconhecidos } = camposNecessarios(placeholders);
+// Linha de matrícula da Mat. 9.617 (formato enriquecido que o hook entrega ao mapeador).
+const MAT_9617: MatriculaParaMapear = {
+  numero: '9.617', livro: '02', folha: '01',
+  municipio_imovel: 'Lucas do Rio Verde', uf_imovel: 'MT',
+  area_documento: 396.4, area_unidade: 'ha', vlr_contabil: 558413.55,
+  confrontacoes_texto: '01-02 com 758,00 metros', descricao_psa_completa: null,
+  bem: { denominacao: 'Fazenda Tarumã', vlr_contabil: null, ccir_codigo: '901.032.174.190-6' },
+  cartorio: { nome_completo: 'Cartório de 1° Ofício de Imóveis', comarca: 'Lucas do Rio Verde', uf: 'MT' },
+  titulares: [{ denominacao: 'Jose Eduardo de Macedo Soares Junior' }],
+};
 
-    // area+areaExtenso colapsam num único campo (areaHa); idem valor, livro, folha.
+function pessoa(genero: 'M' | 'F'): PessoaRow {
+  return {
+    denominacao: 'Fulano de Tal', estado_civil: 'Casado(a)', genero,
+    nacionalidade: 'Brasileiro', profissao: 'Empresário',
+    documento_identidade_numero: '123', documento_identidade_orgao: 'SSP',
+    documento_identidade_uf: 'MT', cpf_cnpj: '000',
+  } as unknown as PessoaRow;
+}
+
+describe('binding', () => {
+  it('detecta o binding `imovel` (tipo matrícula) e nenhum desconhecido', () => {
+    const { bindings, desconhecidos } = detectarBindings(extrairCampos(CONTEUDO_IMOVEL));
     expect(desconhecidos).toEqual([]);
-    expect(campos.map((c) => c.id).sort()).toEqual(
-      ['areaHa', 'ccir', 'cartorio', 'comarca', 'confrontacoes', 'denominacao', 'folha', 'livro', 'matricula', 'municipio', 'proprietario', 'uf', 'ufCartorio', 'valorContabil'].sort(),
-    );
+    expect(bindings).toEqual([{ nome: 'imovel', tipo: 'matricula', cardinalidade: 'um' }]);
   });
 
-  it('deriva os campos por extenso a partir das entradas cruas', () => {
-    const ctx = montarContextoDeEntradas({ areaHa: '396.4', valorContabil: '558413.55', livro: '02', folha: '01' });
-    expect(ctx.areaExtenso).toBe('trezentos e noventa e seis hectares e quarenta ares');
-    expect(ctx.valorExtenso).toBe('quinhentos e cinquenta e oito mil, quatrocentos e treze reais e cinquenta e cinco centavos');
-    expect(ctx.area).toBe('396,4000 ha');
-    expect(ctx.valor).toBe('558.413,55');
-    expect(ctx.livroExtenso).toBe('dois');
-    expect(ctx.folhaExtenso).toBe('um');
+  it('resolve papéis exatos, por radical numérico e desconhecidos', () => {
+    expect(resolverTipoDoBinding('proprietario')).toBe('pessoa');
+    expect(resolverTipoDoBinding('socio2')).toBe('pessoa');
+    expect(resolverTipoDoBinding('imovel')).toBe('matricula');
+    expect(resolverTipoDoBinding('foo')).toBeNull();
   });
 
-  it('gera o documento da Mat. 9.617 a partir do vocabulário (sem montarContexto específico)', () => {
-    const ctx = montarContextoDeEntradas({
-      areaHa: '396.4',
-      valorContabil: '558413.55',
-      livro: '02',
-      folha: '01',
-      denominacao: 'Fazenda Tarumã',
-      proprietario: 'Jose Eduardo de Macedo Soares Junior',
-      municipio: 'Lucas do Rio Verde',
-      uf: 'Mato Grosso',
-      matricula: '9.617',
-      cartorio: 'Cartório de 1° Ofício de Imóveis',
-      comarca: 'Lucas do Rio Verde',
-      ufCartorio: 'Mato Grosso',
-      ccir: '901.032.174.190-6',
-      confrontacoes: '01-02 com 758,00 metros',
-    });
-    const texto = gerarDocumento(TEMPLATE_MATRICULA, ctx);
+  it('placeholders sem ponto ou com papel desconhecido viram desconhecidos', () => {
+    const { bindings, desconhecidos } = detectarBindings(['campoLivre', 'foo.bar', 'proprietario.nome']);
+    expect(bindings.map((b) => b.nome)).toEqual(['proprietario']);
+    expect(desconhecidos).toEqual(['campoLivre', 'foo.bar']);
+  });
+});
+
+describe('vocabulário namespaced — paridade Mat. 9.617', () => {
+  it('reproduz o texto da Mat. 9.617 sob o namespace imovel.*', () => {
+    const { bindings } = detectarBindings(extrairCampos(CONTEUDO_IMOVEL));
+    const ctx = montarContexto(bindings, { imovel: mapearMatricula(MAT_9617) });
+    const texto = gerarDocumento(TEMPLATE_IMOVEL, ctx);
+
     expect(texto).toContain('área de 396,4000 ha (trezentos e noventa e seis hectares e quarenta ares)');
+    expect(texto).toContain('denominado Fazenda Tarumã, de propriedade de Jose Eduardo de Macedo Soares Junior');
+    expect(texto).toContain('município de Lucas do Rio Verde, Estado de Mato Grosso');
+    expect(texto).toContain('matrícula de n° 9.617');
     expect(texto).toContain('no Livro 02 (dois), folhas/ficha 01 (um)');
     expect(texto).toContain('R$ 558.413,55 (quinhentos e cinquenta e oito mil, quatrocentos e treze reais e cinquenta e cinco centavos)');
+    expect(texto).toContain('sob o n° 901.032.174.190-6');
+  });
+
+  it('re-deriva os extensos a partir de valores editados manualmente', () => {
+    const editado = derivarCampos('matricula', { area: '396,4000 ha', valor: '558.413,55', livro: '02', folha: '01' });
+    expect(editado.areaExtenso).toBe('trezentos e noventa e seis hectares e quarenta ares');
+    expect(editado.valorExtenso).toBe('quinhentos e cinquenta e oito mil, quatrocentos e treze reais e cinquenta e cinco centavos');
+    expect(editado.livroExtenso).toBe('dois');
+    expect(editado.folhaExtenso).toBe('um');
+  });
+});
+
+describe('concordância de gênero', () => {
+  it('deriva formas masculinas e femininas de pessoa.genero', () => {
+    const m = mapearPessoa(pessoa('M'));
+    const f = mapearPessoa(pessoa('F'));
+
+    expect(m.casado).toBe('Casado');
+    expect(m.nascido).toBe('nascido');
+    expect(m.artigo).toBe('o');
+
+    expect(f.casado).toBe('Casada');
+    expect(f.nascido).toBe('nascida');
+    expect(f.artigo).toBe('a');
+    expect(f.residente).toBe('residente e domiciliada');
+  });
+
+  it('concorda o documento conforme o gênero do proprietário', () => {
+    const conteudo = '{{proprietario.nome}}, {{proprietario.casado}} e {{proprietario.nascido}}.';
+    const template: Template = { id: 't', nome: 'n', blocos: [{ id: 'b', obrigatorio: true, conteudo }] };
+    const { bindings } = detectarBindings(extrairCampos(conteudo));
+
+    const ctxM = montarContexto(bindings, { proprietario: mapearPessoa(pessoa('M')) });
+    expect(gerarDocumento(template, ctxM)).toBe('Fulano de Tal, Casado e nascido.');
+
+    const ctxF = montarContexto(bindings, { proprietario: mapearPessoa(pessoa('F')) });
+    expect(gerarDocumento(template, ctxF)).toBe('Fulano de Tal, Casada e nascida.');
+  });
+
+  it('concorda texto marcado e mantém texto sem marcação', () => {
+    expect(concordarTexto('Solteiro(a)', 'F')).toBe('Solteira');
+    expect(concordarTexto('Solteiro(a)', 'M')).toBe('Solteiro');
+    expect(concordarTexto('União Estável', 'F')).toBe('União Estável');
+    expect(concordarTexto(null, 'M')).toBe('');
   });
 });

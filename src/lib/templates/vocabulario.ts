@@ -1,159 +1,203 @@
-import { areaExtenso, cardinalExtenso, formatarArea, formatarValor, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, valorExtenso } from './extenso';
+import { PARES, concordarTexto, type Genero } from './concordancia';
 
-// Vocabulário de campos: o catálogo (mantido no código, decisão da arquitetura OSG)
-// que diz, para cada campo de ENTRADA preenchido pelo usuário, quais placeholders
-// ele produz no contexto — incluindo os derivados (por extenso, formatação).
-//
-// Ex.: a entrada "Área (ha)" é um número; produz {{area}} (formatado) e
-// {{areaExtenso}} (decomposição cartorial). O usuário digita um só valor.
+// Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
+// Cada placeholder é `binding.campo` (ex.: {{ proprietario.nome }}, {{ imovel.area }});
+// o binding (papel) define o tipo de entidade — ver binding.ts. Aqui mora só o
+// catálogo de campos de cada tipo e a derivação (extensos / concordância) usada
+// tanto pelos mapeadores (dados do banco) quanto na edição manual da tela Gerar.
 
 export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro';
 
-export interface CampoVocabulario {
-  /** Chave do campo de entrada (não é, necessariamente, um placeholder). */
+export type TipoEntidade = 'pessoa' | 'bem' | 'matricula' | 'cartorio';
+
+export interface CampoEntidade {
+  /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
   id: string;
   label: string;
   tipo: TipoCampo;
-  /** Placeholders que este campo preenche. */
-  placeholders: string[];
-  /** Produz os valores dos placeholders a partir do valor bruto digitado. Retorna {} se inválido. */
-  produzir(bruto: string): Record<string, string>;
+  /** Se presente, é um campo DERIVADO de outro (não é entrada direta no form). */
+  derivadoDe?: string;
+  /** Recalcula o valor do campo a partir dos demais (extensos, concordância). */
+  derivar?: (valores: Record<string, string>) => string;
 }
 
-function paraNumero(bruto: string): number {
-  return Number(bruto.trim().replace(',', '.'));
-}
-
-/** Campo de texto simples que preenche um único placeholder homônimo. */
-function texto(id: string, label: string, tipo: 'texto' | 'textarea' = 'texto'): CampoVocabulario {
-  return { id, label, tipo, placeholders: [id], produzir: (b) => ({ [id]: b }) };
-}
-
-export const VOCABULARIO: CampoVocabulario[] = [
-  {
-    id: 'areaHa',
-    label: 'Área (hectares)',
-    tipo: 'area',
-    placeholders: ['area', 'areaExtenso'],
-    produzir: (b) => {
-      const n = paraNumero(b);
-      if (!Number.isFinite(n)) return {};
-      return { area: formatarArea(n), areaExtenso: areaExtenso(n) };
-    },
-  },
-  {
-    id: 'valorContabil',
-    label: 'Valor contábil (R$)',
-    tipo: 'valor',
-    placeholders: ['valor', 'valorExtenso'],
-    produzir: (b) => {
-      const n = paraNumero(b);
-      if (!Number.isFinite(n)) return {};
-      return { valor: formatarValor(n), valorExtenso: valorExtenso(n) };
-    },
-  },
-  {
-    id: 'livro',
-    label: 'Livro',
-    tipo: 'texto',
-    placeholders: ['livro', 'livroExtenso'],
-    produzir: (b) => {
-      const n = Number(b);
-      return Number.isFinite(n) ? { livro: b, livroExtenso: cardinalExtenso(n) } : { livro: b };
-    },
-  },
-  {
-    id: 'folha',
-    label: 'Folha/Ficha',
-    tipo: 'texto',
-    placeholders: ['folha', 'folhaExtenso'],
-    produzir: (b) => {
-      const n = Number(b);
-      return Number.isFinite(n) ? { folha: b, folhaExtenso: cardinalExtenso(n) } : { folha: b };
-    },
-  },
-  texto('denominacao', 'Denominação'),
-  texto('proprietario', 'Proprietário'),
-  texto('municipio', 'Município do imóvel'),
-  texto('uf', 'Estado (UF) do imóvel'),
-  texto('matricula', 'Nº da matrícula'),
-  texto('cartorio', 'Cartório'),
-  texto('comarca', 'Comarca'),
-  texto('ufCartorio', 'Estado (UF) do cartório'),
-  texto('ccir', 'Cadastro do imóvel rural (CCIR/SNCR)'),
-  texto('confrontacoes', 'Limites e confrontações', 'textarea'),
-];
-
-const PLACEHOLDER_INDEX = new Map<string, CampoVocabulario>();
-for (const campo of VOCABULARIO) {
-  for (const ph of campo.placeholders) PLACEHOLDER_INDEX.set(ph, campo);
-}
-
-export interface PlaceholderSugerido {
-  /** Nome do placeholder (o que vai dentro de {{ }}). */
-  placeholder: string;
-  /** Rótulo legível do campo de entrada que o produz. */
+export interface Entidade {
+  tipo: TipoEntidade;
   label: string;
-  tipo: TipoCampo;
+  campos: CampoEntidade[];
+}
+
+/** Lê um número de uma string em formato pt-BR ("396,4000 ha", "558.413,55") ou cru ("396.4"). */
+function paraNumeroBR(bruto: string | undefined): number {
+  const limpo = (bruto ?? '').replace(/[^\d.,-]/g, '').trim();
+  if (!limpo) return NaN;
+  // Com vírgula: ponto é separador de milhar, vírgula é decimal.
+  if (limpo.includes(',')) return Number(limpo.replace(/\./g, '').replace(',', '.'));
+  return Number(limpo);
+}
+
+function paraInteiro(bruto: string | undefined): number {
+  const t = (bruto ?? '').trim();
+  if (t === '') return NaN;
+  return Number(t);
+}
+
+// --- Campos derivados reutilizáveis -----------------------------------------
+
+const areaExtensoCampo: CampoEntidade = {
+  id: 'areaExtenso',
+  label: 'Área (por extenso)',
+  tipo: 'texto',
+  derivadoDe: 'area',
+  derivar: (v) => {
+    const n = paraNumeroBR(v.area);
+    return Number.isFinite(n) ? areaExtenso(n) : '';
+  },
+};
+
+const valorExtensoCampo: CampoEntidade = {
+  id: 'valorExtenso',
+  label: 'Valor (por extenso)',
+  tipo: 'texto',
+  derivadoDe: 'valor',
+  derivar: (v) => {
+    const n = paraNumeroBR(v.valor);
+    return Number.isFinite(n) ? valorExtenso(n) : '';
+  },
+};
+
+function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => {
+      const n = paraInteiro(v[derivadoDe]);
+      return Number.isFinite(n) ? cardinalExtenso(n) : '';
+    },
+  };
+}
+
+/** Campo de concordância derivado do gênero (ex.: brasileiro → brasileiro/brasileira). */
+function concordanciaCampo(
+  id: string,
+  label: string,
+  par: (g: Genero) => string,
+): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe: 'genero',
+    derivar: (v) => par((v.genero || null) as Genero),
+  };
+}
+
+// --- Catálogo de entidades ---------------------------------------------------
+
+export const ENTIDADES: Record<TipoEntidade, Entidade> = {
+  pessoa: {
+    tipo: 'pessoa',
+    label: 'Pessoa',
+    campos: [
+      { id: 'nome', label: 'Nome / Denominação', tipo: 'texto' },
+      { id: 'cpfCnpj', label: 'CPF / CNPJ', tipo: 'texto' },
+      { id: 'nacionalidade', label: 'Nacionalidade', tipo: 'texto' },
+      { id: 'estadoCivil', label: 'Estado civil', tipo: 'texto' },
+      { id: 'profissao', label: 'Profissão', tipo: 'texto' },
+      { id: 'rg', label: 'Documento de identidade', tipo: 'texto' },
+      { id: 'orgaoExpedidor', label: 'Órgão expedidor', tipo: 'texto' },
+      { id: 'endereco', label: 'Endereço', tipo: 'texto' },
+      { id: 'genero', label: 'Gênero (M/F)', tipo: 'texto' },
+      // Concordância de gênero (campos derivados, sem nova sintaxe no template).
+      concordanciaCampo('artigo', 'Artigo (o/a)', PARES.artigo),
+      concordanciaCampo('brasileiro', 'Nacionalidade concordada (brasileiro/a)', PARES.brasileiro),
+      concordanciaCampo('nascido', 'Nascido(a)', PARES.nascido),
+      concordanciaCampo('portador', 'Portador(a)', PARES.portador),
+      concordanciaCampo('residente', 'Residente e domiciliado(a)', PARES.residente),
+      concordanciaCampo('inscrito', 'Inscrito(a)', PARES.inscrito),
+      {
+        id: 'casado',
+        label: 'Estado civil concordado (casado/a)',
+        tipo: 'texto',
+        derivadoDe: 'estadoCivil',
+        derivar: (v) => concordarTexto(v.estadoCivil, (v.genero || null) as Genero),
+      },
+    ],
+  },
+  bem: {
+    tipo: 'bem',
+    label: 'Bem',
+    campos: [
+      { id: 'denominacao', label: 'Denominação', tipo: 'texto' },
+      { id: 'referencia', label: 'Referência (DP)', tipo: 'texto' },
+      { id: 'tipo', label: 'Tipo do bem', tipo: 'texto' },
+      { id: 'valor', label: 'Valor contábil (R$)', tipo: 'valor' },
+      valorExtensoCampo,
+      { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
+      { id: 'inscricaoMunicipal', label: 'Inscrição municipal', tipo: 'texto' },
+    ],
+  },
+  matricula: {
+    tipo: 'matricula',
+    label: 'Imóvel / Matrícula',
+    campos: [
+      { id: 'numero', label: 'Nº da matrícula', tipo: 'texto' },
+      { id: 'livro', label: 'Livro', tipo: 'texto' },
+      cardinalCampo('livroExtenso', 'Livro (por extenso)', 'livro'),
+      { id: 'folha', label: 'Folha / Ficha', tipo: 'texto' },
+      cardinalCampo('folhaExtenso', 'Folha (por extenso)', 'folha'),
+      { id: 'municipio', label: 'Município do imóvel', tipo: 'texto' },
+      { id: 'uf', label: 'Estado (UF) do imóvel', tipo: 'texto' },
+      { id: 'area', label: 'Área (hectares)', tipo: 'area' },
+      areaExtensoCampo,
+      { id: 'valor', label: 'Valor contábil (R$)', tipo: 'valor' },
+      valorExtensoCampo,
+      { id: 'denominacao', label: 'Denominação', tipo: 'texto' },
+      { id: 'proprietario', label: 'Proprietário(s)', tipo: 'texto' },
+      { id: 'cartorio', label: 'Cartório', tipo: 'texto' },
+      { id: 'comarca', label: 'Comarca', tipo: 'texto' },
+      { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },
+      { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
+      { id: 'confrontacoes', label: 'Limites e confrontações', tipo: 'textarea' },
+    ],
+  },
+  cartorio: {
+    tipo: 'cartorio',
+    label: 'Cartório',
+    campos: [
+      { id: 'nome', label: 'Nome do cartório', tipo: 'texto' },
+      { id: 'comarca', label: 'Comarca', tipo: 'texto' },
+      { id: 'uf', label: 'Estado (UF)', tipo: 'texto' },
+      { id: 'numeroOficio', label: 'Número do ofício', tipo: 'texto' },
+    ],
+  },
+};
+
+export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
+
+export function camposDaEntidade(tipo: TipoEntidade): CampoEntidade[] {
+  return ENTIDADES[tipo].campos;
+}
+
+export function campoDaEntidade(tipo: TipoEntidade, id: string): CampoEntidade | undefined {
+  return ENTIDADES[tipo].campos.find((c) => c.id === id);
 }
 
 /**
- * Catálogo achatado de placeholders disponíveis — alimenta o autocomplete do
- * editor de modelos. Inclui os derivados (por extenso) com rótulo distinto.
+ * Recalcula os campos derivados (extensos, concordância) de uma entidade a partir
+ * dos valores atuais. Usado pelos mapeadores (após preencher os campos-base com os
+ * dados do banco) e na edição manual da tela Gerar.
  */
-export function listarPlaceholders(): PlaceholderSugerido[] {
-  const out: PlaceholderSugerido[] = [];
-  for (const campo of VOCABULARIO) {
-    for (const ph of campo.placeholders) {
-      const ehExtenso = ph !== campo.id && ph.toLowerCase().endsWith('extenso');
-      out.push({
-        placeholder: ph,
-        label: ehExtenso ? `${campo.label} — por extenso` : campo.label,
-        tipo: campo.tipo,
-      });
-    }
+export function derivarCampos(
+  tipo: TipoEntidade,
+  valores: Record<string, string>,
+): Record<string, string> {
+  const out = { ...valores };
+  for (const campo of ENTIDADES[tipo].campos) {
+    if (campo.derivar) out[campo.id] = campo.derivar(out);
   }
   return out;
-}
-
-export function campoDoPlaceholder(placeholder: string): CampoVocabulario | undefined {
-  return PLACEHOLDER_INDEX.get(placeholder);
-}
-
-/**
- * Dado os placeholders usados num documento, retorna os campos de entrada
- * distintos necessários e os placeholders sem campo no vocabulário (desconhecidos).
- */
-export function camposNecessarios(placeholders: string[]): {
-  campos: CampoVocabulario[];
-  desconhecidos: string[];
-} {
-  const campos = new Map<string, CampoVocabulario>();
-  const desconhecidos: string[] = [];
-  for (const ph of placeholders) {
-    const campo = campoDoPlaceholder(ph);
-    if (campo) campos.set(campo.id, campo);
-    else if (!desconhecidos.includes(ph)) desconhecidos.push(ph);
-  }
-  return { campos: [...campos.values()], desconhecidos };
-}
-
-/**
- * Monta o contexto de placeholders a partir dos valores brutos digitados.
- * Chaves de `valores` são ids de campo do vocabulário; `desconhecidos` são
- * placeholders preenchidos como texto livre (chave = nome do placeholder).
- */
-export function montarContextoDeEntradas(
-  valores: Record<string, string>,
-  desconhecidos: string[] = [],
-): Record<string, string> {
-  const contexto: Record<string, string> = {};
-  for (const campo of VOCABULARIO) {
-    const bruto = valores[campo.id];
-    if (bruto !== undefined && bruto !== '') Object.assign(contexto, campo.produzir(bruto));
-  }
-  for (const ph of desconhecidos) {
-    if (valores[ph] !== undefined) contexto[ph] = valores[ph];
-  }
-  return contexto;
 }

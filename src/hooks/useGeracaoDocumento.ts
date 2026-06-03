@@ -1,86 +1,123 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
+import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
+import type { TipoEntidade } from '@/lib/templates/vocabulario';
+import type { MatriculaParaMapear } from '@/lib/templates/mapeadores';
 
-// Glue entre o domínio OSG (matrícula/bem/cartório/titulares) e o vocabulário de
-// campos do gerador. Para o documento "Descrição de Imóvel Rural", a matrícula é a
-// âncora dos dados do cliente. Outros tipos de documento terão resolvers próprios.
+// Glue entre o cadastro OSG (pessoa/bem/matrícula/cartório) e o binding por entidade
+// do gerador. Para cada tipo de entidade, devolve os registros do cliente como
+// { id, label, row } — guardando a linha crua para o mapeador puro (mapeadores.ts).
 
-const UF_EXTENSO: Record<string, string> = {
-  AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará',
-  DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão',
-  MT: 'Mato Grosso', MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará',
-  PB: 'Paraíba', PR: 'Paraná', PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro',
-  RN: 'Rio Grande do Norte', RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima',
-  SC: 'Santa Catarina', SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins',
-};
+export interface Registro<T = unknown> {
+  id: string;
+  label: string;
+  /** Linha crua do cadastro, consumida pelo mapeador do tipo. */
+  row: T;
+}
 
-/** Converte a sigla da UF para o nome por extenso (ex.: "MT" → "Mato Grosso"). Mantém o valor se já vier por extenso. */
-export function ufPorExtenso(uf: string | null | undefined): string {
-  if (!uf) return '';
-  return UF_EXTENSO[uf.trim().toUpperCase()] ?? uf;
+// JOIN da matrícula com bem + cartório + titulares, no formato que `mapearMatricula`
+// achata sob o binding do imóvel (e o cliente_id usado para filtrar por cliente).
+const MATRICULA_GERACAO_SELECT = `
+  id, numero, livro, folha, municipio_imovel, uf_imovel,
+  area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
+  bem:bem_id ( denominacao, vlr_contabil, ccir_codigo, cliente_id ),
+  cartorio:cartorio_id ( nome_completo, comarca, uf ),
+  titularidade ( titular:titular_pessoa_id ( denominacao, cliente_id ) )
+`;
+
+interface RawMatriculaGeracao {
+  id: string;
+  numero: string | null; livro: string | null; folha: string | null;
+  municipio_imovel: string | null; uf_imovel: string | null;
+  area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
+  confrontacoes_texto: string | null; descricao_psa_completa: string | null;
+  bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null; cliente_id: string | null } | null;
+  cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
+  titularidade: Array<{ titular: { denominacao: string | null; cliente_id: string | null } | null }> | null;
+}
+
+function useMatriculasGeracao(clienteId: string | null) {
+  return useQuery<RawMatriculaGeracao[]>({
+    queryKey: ['matriculas-geracao', clienteId],
+    enabled: !!clienteId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('matricula')
+        .select(MATRICULA_GERACAO_SELECT)
+        .order('numero');
+      if (error) throw error;
+      return (data ?? []) as unknown as RawMatriculaGeracao[];
+    },
+  });
 }
 
 /**
- * Busca uma matrícula e mapeia seus dados para os campos de ENTRADA do vocabulário
- * (mesmas chaves que o usuário preencheria à mão). Campos sem dado ficam de fora.
+ * Registros do cliente por tipo de entidade, prontos para os seletores da tela
+ * Gerar (um por binding). Pessoas e bens vêm filtrados pelo cliente; matrículas
+ * são filtradas por bem.cliente_id ou pelo cliente de algum titular; cartórios
+ * são globais (não pertencem a um cliente).
  */
-export function useEntradasMatricula(matriculaId: string | null) {
-  return useQuery({
-    queryKey: ['entradas-matricula', matriculaId],
-    enabled: !!matriculaId,
-    queryFn: async (): Promise<Record<string, string>> => {
-      const { data, error } = await supabase
-        .from('matricula')
-        .select(`
-          numero, livro, folha, municipio_imovel, uf_imovel,
-          area_documento, area_unidade, confrontacoes_texto, descricao_psa_completa,
-          bem:bem_id ( denominacao, vlr_contabil, ccir_codigo ),
-          cartorio:cartorio_id ( nome_completo, comarca, uf ),
-          titularidade ( titular:titular_pessoa_id ( denominacao ) )
-        `)
-        .eq('id', matriculaId!)
-        .single();
-      if (error) throw error;
+export function useRegistrosPorTipo(clienteId: string | null) {
+  const pessoasQ = usePessoasByCliente(clienteId);
+  const bensQ = useBensByCliente(clienteId);
+  const matriculasQ = useMatriculasGeracao(clienteId);
+  const cartoriosQ = useCartorios();
 
-      const m = data as unknown as {
-        numero: string | null; livro: string | null; folha: string | null;
-        municipio_imovel: string | null; uf_imovel: string | null;
-        area_documento: number | null; area_unidade: string | null;
-        confrontacoes_texto: string | null; descricao_psa_completa: string | null;
-        bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null } | null;
-        cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
-        titularidade: Array<{ titular: { denominacao: string | null } | null }>;
-      };
+  const registros = useMemo<Record<TipoEntidade, Registro[]>>(() => {
+    const pessoa: Registro[] = (pessoasQ.data ?? []).map((p) => ({
+      id: p.id,
+      label: p.denominacao,
+      row: p,
+    }));
 
-      const valores: Record<string, string> = {};
-      const set = (chave: string, valor: unknown) => {
-        if (valor !== null && valor !== undefined && valor !== '') valores[chave] = String(valor);
-      };
+    const bem: Registro[] = (bensQ.data ?? []).map((b) => ({
+      id: b.id,
+      label: [b.referencia_dp, b.denominacao].filter(Boolean).join(' — ') || 's/ ref',
+      row: b,
+    }));
 
-      // Área: o gerador trabalha em hectares; converte se a matrícula estiver em m².
-      let areaHa = m.area_documento ?? null;
-      if (areaHa != null && m.area_unidade === 'm2') areaHa = areaHa / 10000;
-      set('areaHa', areaHa);
+    const matricula: Registro<MatriculaParaMapear>[] = (matriculasQ.data ?? [])
+      .filter(
+        (m) =>
+          m.bem?.cliente_id === clienteId ||
+          (m.titularidade ?? []).some((t) => t.titular?.cliente_id === clienteId),
+      )
+      .map((m) => ({
+        id: m.id,
+        label: `${m.numero ?? 's/ nº'}${m.bem?.denominacao ? ` — ${m.bem.denominacao}` : ''}`,
+        row: {
+          numero: m.numero,
+          livro: m.livro,
+          folha: m.folha,
+          municipio_imovel: m.municipio_imovel,
+          uf_imovel: m.uf_imovel,
+          area_documento: m.area_documento,
+          area_unidade: m.area_unidade,
+          vlr_contabil: m.vlr_contabil,
+          confrontacoes_texto: m.confrontacoes_texto,
+          descricao_psa_completa: m.descricao_psa_completa,
+          bem: m.bem
+            ? { denominacao: m.bem.denominacao, vlr_contabil: m.bem.vlr_contabil, ccir_codigo: m.bem.ccir_codigo }
+            : null,
+          cartorio: m.cartorio,
+          titulares: (m.titularidade ?? []).map((t) => ({ denominacao: t.titular?.denominacao ?? null })),
+        },
+      }));
 
-      const proprietarios = (m.titularidade ?? [])
-        .map((t) => t.titular?.denominacao)
-        .filter(Boolean);
+    const cartorio: Registro[] = (cartoriosQ.data ?? []).map((c) => ({
+      id: c.id,
+      label: [c.nome_completo, [c.comarca, c.uf].filter(Boolean).join('/')].filter(Boolean).join(' — '),
+      row: c,
+    }));
 
-      set('denominacao', m.bem?.denominacao);
-      set('proprietario', proprietarios.join(' e '));
-      set('valorContabil', m.bem?.vlr_contabil);
-      set('municipio', m.municipio_imovel);
-      set('uf', ufPorExtenso(m.uf_imovel));
-      set('matricula', m.numero);
-      set('livro', m.livro);
-      set('folha', m.folha);
-      set('cartorio', m.cartorio?.nome_completo);
-      set('comarca', m.cartorio?.comarca);
-      set('ufCartorio', ufPorExtenso(m.cartorio?.uf));
-      set('ccir', m.bem?.ccir_codigo);
-      set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
+    return { pessoa, bem, matricula, cartorio };
+  }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, clienteId]);
 
-      return valores;
-    },
-  });
+  return {
+    registros,
+    isFetching:
+      pessoasQ.isFetching || bensQ.isFetching || matriculasQ.isFetching || cartoriosQ.isFetching,
+  };
 }

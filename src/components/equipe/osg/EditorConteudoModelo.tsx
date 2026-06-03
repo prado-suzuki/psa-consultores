@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { listarPlaceholders, type PlaceholderSugerido } from '@/lib/templates/vocabulario';
+import { listarPlaceholders, type PlaceholderSugerido } from '@/lib/templates/binding';
 
 // Editor de conteúdo de modelos: um contentEditable que (1) renderiza variáveis
 // fechadas {{ nome }} como "chips" — só o nome, numa caixinha destacada — e
@@ -176,7 +176,7 @@ export interface EditorConteudoModeloProps {
   className?: string;
 }
 
-const MAX_SUGESTOES = 8;
+const MAX_SUGESTOES = 50;
 
 export function EditorConteudoModelo({
   value,
@@ -197,6 +197,14 @@ export function EditorConteudoModelo({
   const itemSelRef = useRef<HTMLButtonElement>(null);
 
   const TODOS = useMemo(() => listarPlaceholders(), []);
+  // Ordem dos grupos (papéis) conforme aparecem no catálogo, para manter contígua.
+  const ordemGrupo = useMemo(() => {
+    const m = new Map<string, number>();
+    TODOS.forEach((s) => {
+      if (!m.has(s.grupo)) m.set(s.grupo, m.size);
+    });
+    return m;
+  }, [TODOS]);
 
   const sugestoes = useMemo<PlaceholderSugerido[]>(() => {
     if (!drop) return [];
@@ -206,14 +214,18 @@ export function EditorConteudoModelo({
       : TODOS.filter(
           (s) => s.placeholder.toLowerCase().includes(q) || s.label.toLowerCase().includes(q),
         );
-    // Quem começa com a query vem primeiro.
+    // Mantém os grupos contíguos (na ordem do catálogo) e, dentro de cada grupo,
+    // quem começa com a query primeiro.
     const ordenada = [...lista].sort((a, b) => {
+      const ga = ordemGrupo.get(a.grupo) ?? Infinity;
+      const gb = ordemGrupo.get(b.grupo) ?? Infinity;
+      if (ga !== gb) return ga - gb;
       const ai = a.placeholder.toLowerCase().startsWith(q) ? 0 : 1;
       const bi = b.placeholder.toLowerCase().startsWith(q) ? 0 : 1;
       return ai - bi;
     });
     return ordenada.slice(0, MAX_SUGESTOES);
-  }, [drop, TODOS]);
+  }, [drop, TODOS, ordemGrupo]);
 
   // Pintura inicial.
   useLayoutEffect(() => {
@@ -413,29 +425,38 @@ export function EditorConteudoModelo({
             <span className="font-mono normal-case">↹ Tab insere</span>
           </div>
           <div className="max-h-60 overflow-y-auto py-1">
-            {sugestoes.map((s, i) => (
-              <button
-                key={s.placeholder}
-                ref={i === sel ? itemSelRef : undefined}
-                type="button"
-                onMouseEnter={() => setSel(i)}
-                onClick={() => aceitarSugestao(s.placeholder)}
-                className={cn(
-                  'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm',
-                  i === sel ? 'bg-osg-50 text-osg-700' : 'hover:bg-muted',
-                )}
-              >
-                <code
-                  className={cn(
-                    'shrink-0 rounded px-1 py-px text-xs font-medium',
-                    i === sel ? 'bg-osg-100 text-osg-700' : 'bg-muted text-foreground',
+            {sugestoes.map((s, i) => {
+              const cabecalho = i === 0 || sugestoes[i - 1].grupo !== s.grupo;
+              return (
+                <div key={s.placeholder}>
+                  {cabecalho && (
+                    <div className="px-2.5 pb-0.5 pt-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                      {s.grupo}
+                    </div>
                   )}
-                >
-                  {s.placeholder}
-                </code>
-                <span className="truncate text-xs text-muted-foreground">{s.label}</span>
-              </button>
-            ))}
+                  <button
+                    ref={i === sel ? itemSelRef : undefined}
+                    type="button"
+                    onMouseEnter={() => setSel(i)}
+                    onClick={() => aceitarSugestao(s.placeholder)}
+                    className={cn(
+                      'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm',
+                      i === sel ? 'bg-osg-50 text-osg-700' : 'hover:bg-muted',
+                    )}
+                  >
+                    <code
+                      className={cn(
+                        'shrink-0 rounded px-1 py-px text-xs font-medium',
+                        i === sel ? 'bg-osg-100 text-osg-700' : 'bg-muted text-foreground',
+                      )}
+                    >
+                      {s.placeholder}
+                    </code>
+                    <span className="truncate text-xs text-muted-foreground">{s.label}</span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
