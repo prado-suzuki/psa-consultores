@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FileOutput, Copy, Check, Loader2, AlertTriangle, Database, Pencil, Download } from 'lucide-react';
-import { gerarDocumento, extrairCampos, type Template } from '@/lib/templates';
+import { gerarBlocos, unirBlocos, extrairCampos, type Bloco, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import {
   campoDaEntidade,
@@ -42,7 +42,7 @@ const GerarDocumento = () => {
   const { template, placeholders } = useMemo(() => {
     const blocos = docBlocos
       .filter((b) => b.bloco?.conteudo)
-      .map((b) => ({ id: b.id, conteudo: b.bloco!.conteudo as string, obrigatorio: b.obrigatorio }));
+      .map((b) => ({ id: b.id, tipo: b.bloco!.tipo, conteudo: b.bloco!.conteudo as string, obrigatorio: b.obrigatorio }));
     const tpl: Template = { id: modeloId ?? 'novo', nome: 'documento', blocos };
     const phs = extrairCampos(blocos.map((b) => b.conteudo).join(' '));
     return { template: tpl, placeholders: phs };
@@ -118,17 +118,20 @@ const GerarDocumento = () => {
     });
   };
 
-  const resultado = useMemo<{ texto: string; erro: null } | { texto: null; erro: string }>(() => {
-    if (template.blocos.length === 0) return { texto: '', erro: null };
+  const resultado = useMemo<
+    { blocos: Bloco[]; texto: string; erro: null } | { blocos: null; texto: null; erro: string }
+  >(() => {
+    if (template.blocos.length === 0) return { blocos: [], texto: '', erro: null };
     try {
       // Texto livre: todo placeholder sem binding resolve em branco quando vazio,
       // para a prévia não travar antes de preencher (diferente dos bindings, que
       // exigem seleção de registro).
       const livres = Object.fromEntries(desconhecidos.map((ph) => [ph, valoresLivres[ph] ?? '']));
       const ctx = montarContexto(bindings, selecao, livres);
-      return { texto: gerarDocumento(template, ctx), erro: null };
+      const blocos = gerarBlocos(template, ctx);
+      return { blocos, texto: unirBlocos(blocos), erro: null };
     } catch (e) {
-      return { texto: null, erro: e instanceof Error ? e.message : String(e) };
+      return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
   }, [template, bindings, selecao, valoresLivres, desconhecidos]);
 
@@ -146,10 +149,10 @@ const GerarDocumento = () => {
 
   const [baixando, setBaixando] = useState(false);
   const baixar = async () => {
-    if (!resultado.texto) return;
+    if (!resultado.blocos?.length) return;
     setBaixando(true);
     try {
-      await baixarDocx(nomeModelo, resultado.texto);
+      await baixarDocx(nomeModelo, resultado.blocos);
     } finally {
       setBaixando(false);
     }

@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Database } from '@/integrations/supabase/types';
+import type { TipoBloco } from '@/lib/templates';
 
 export type BlocoRow = Database['public']['Tables']['tmpl_bloco']['Row'];
 export type BlocoVersaoRow = Database['public']['Tables']['tmpl_bloco_versao']['Row'];
@@ -40,6 +41,8 @@ export interface SalvarBlocoInput {
   /** Presente em edição; ausente em criação. */
   id?: string;
   nome: string;
+  /** Tipo estrutural (capitulo/clausula/paragrafo/livre) — governa a numeração automática. */
+  tipo: TipoBloco;
   categoria: string | null;
   descricao: string | null;
   conteudo: string;
@@ -68,6 +71,7 @@ export function useSalvarBloco() {
           .from('tmpl_bloco')
           .insert({
             nome: input.nome,
+            tipo: input.tipo,
             categoria: input.categoria,
             descricao: input.descricao,
             autor_id: autorId,
@@ -97,6 +101,7 @@ export function useSalvarBloco() {
         .from('tmpl_bloco')
         .update({
           nome: input.nome,
+          tipo: input.tipo,
           categoria: input.categoria,
           descricao: input.descricao,
         })

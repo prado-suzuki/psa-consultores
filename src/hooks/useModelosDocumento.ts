@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Database } from '@/integrations/supabase/types';
+import type { TipoBloco } from '@/lib/templates';
 
 export type ModeloRow = Database['public']['Tables']['tmpl_documento']['Row'];
 export type DocumentoBlocoRow = Database['public']['Tables']['tmpl_documento_bloco']['Row'];
@@ -16,6 +17,7 @@ export interface DocumentoBlocoComBloco extends DocumentoBlocoRow {
   bloco: {
     id: string;
     nome: string;
+    tipo: TipoBloco;
     categoria: string | null;
     ativo: boolean;
     conteudo: string | null;
@@ -52,14 +54,14 @@ export function useModeloBlocos(documentoId: string | null) {
     queryFn: async (): Promise<DocumentoBlocoComBloco[]> => {
       const { data, error } = await supabase
         .from('tmpl_documento_bloco')
-        .select('*, tmpl_bloco(id, nome, categoria, ativo, tmpl_bloco_versao(conteudo, atual, numero_versao))')
+        .select('*, tmpl_bloco(id, nome, tipo, categoria, ativo, tmpl_bloco_versao(conteudo, atual, numero_versao))')
         .eq('documento_id', documentoId!)
         .order('ordem', { ascending: true });
       if (error) throw error;
 
       return (data ?? []).map((row) => {
         const bloco = row.tmpl_bloco as
-          | { id: string; nome: string; categoria: string | null; ativo: boolean; tmpl_bloco_versao: Array<{ conteudo: string | null; atual: boolean; numero_versao: number }> }
+          | { id: string; nome: string; tipo: TipoBloco; categoria: string | null; ativo: boolean; tmpl_bloco_versao: Array<{ conteudo: string | null; atual: boolean; numero_versao: number }> }
           | null;
         const versaoAtual = bloco?.tmpl_bloco_versao?.find((v) => v.atual) ?? null;
         return {
@@ -68,6 +70,7 @@ export function useModeloBlocos(documentoId: string | null) {
             ? {
                 id: bloco.id,
                 nome: bloco.nome,
+                tipo: bloco.tipo,
                 categoria: bloco.categoria,
                 ativo: bloco.ativo,
                 conteudo: versaoAtual?.conteudo ?? null,

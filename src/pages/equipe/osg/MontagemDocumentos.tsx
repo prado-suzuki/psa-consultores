@@ -11,6 +11,7 @@ import {
   FileStack, Lock, LockOpen, AlertTriangle, Layers,
 } from 'lucide-react';
 import { useBlocos } from '@/hooks/useBibliotecaModelos';
+import { LABEL_TIPO_BLOCO, numerarBlocos, unirBlocos, type TipoBloco } from '@/lib/templates';
 import {
   useModelos, useModeloBlocos, useSalvarModelo, useToggleModeloAtivo,
   useAdicionarBloco, useRemoverDocumentoBloco, useAtualizarDocumentoBloco, useReordenarBlocos,
@@ -204,10 +205,13 @@ function EditorModelo({
     reordenar.mutate({ documentoId: modelo.id, idsOrdenados: ids });
   };
 
-  const estrutura = useMemo(
-    () => docBlocos.map((b) => b.bloco?.conteudo ?? '').filter(Boolean).join(' '),
-    [docBlocos],
-  );
+  // Prévia com a numeração automática aplicada (CAPÍTULO/CLÁUSULA/Parágrafo pela ordem).
+  const estrutura = useMemo(() => {
+    const blocos = docBlocos
+      .filter((b) => b.bloco?.conteudo)
+      .map((b) => ({ id: b.id, tipo: b.bloco!.tipo, conteudo: b.bloco!.conteudo as string }));
+    return unirBlocos(numerarBlocos(blocos));
+  }, [docBlocos]);
 
   return (
     <div className="space-y-4">
@@ -264,6 +268,11 @@ function EditorModelo({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="text-sm font-medium">{db.bloco?.nome ?? '— bloco removido —'}</span>
+                      {db.bloco && db.bloco.tipo !== 'livre' && (
+                        <Badge className="text-[10px] bg-osg-100 text-osg-700 hover:bg-osg-100">
+                          {LABEL_TIPO_BLOCO[db.bloco.tipo]}
+                        </Badge>
+                      )}
                       {db.bloco?.categoria && <Badge variant="secondary" className="text-[10px]">{db.bloco.categoria}</Badge>}
                       {db.bloco && <Badge variant="outline" className="text-[10px]">v{db.bloco.numero_versao ?? '—'}</Badge>}
                       {db.bloco && !db.bloco.ativo && (
@@ -320,8 +329,9 @@ function EditorModelo({
           <CardContent>
             <p className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">{estrutura}</p>
             <p className="mt-3 text-xs text-muted-foreground border-t pt-2">
-              Prévia da estrutura com os campos ({'{{ }}'}) ainda não preenchidos. O preenchimento dos campos
-              acontece na geração do documento para um cliente (próxima etapa).
+              Prévia da estrutura com a numeração automática (capítulos, cláusulas e parágrafos pela ordem)
+              e os campos ({'{{ }}'}) ainda não preenchidos. O preenchimento dos campos acontece na geração
+              do documento para um cliente (próxima etapa).
             </p>
           </CardContent>
         </Card>
@@ -375,6 +385,11 @@ function AdicionarBlocoDialog({
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className="text-sm font-medium truncate">{b.nome}</span>
+                      {b.tipo !== 'livre' && (
+                        <Badge className="text-[10px] bg-osg-100 text-osg-700 hover:bg-osg-100">
+                          {LABEL_TIPO_BLOCO[(b.tipo as TipoBloco) ?? 'livre']}
+                        </Badge>
+                      )}
                       {b.categoria && <Badge variant="secondary" className="text-[10px]">{b.categoria}</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1">{b.versao_atual?.conteudo}</p>

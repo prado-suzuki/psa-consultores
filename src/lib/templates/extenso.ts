@@ -113,6 +113,52 @@ export function areaExtenso(hectares: number): string {
   return listaComE(componentes);
 }
 
+// --- Ordinais e romanos (numeração de cláusulas, parágrafos e capítulos) ----
+
+const ORDINAL_UNIDADES_M = ['', 'primeiro', 'segundo', 'terceiro', 'quarto', 'quinto', 'sexto', 'sétimo', 'oitavo', 'nono'];
+const ORDINAL_DEZENAS_M = ['', 'décimo', 'vigésimo', 'trigésimo', 'quadragésimo', 'quinquagésimo', 'sexagésimo', 'septuagésimo', 'octogésimo', 'nonagésimo'];
+const ORDINAL_CENTENAS_M = ['', 'centésimo', 'ducentésimo', 'trecentésimo', 'quadringentésimo', 'quingentésimo', 'sexcentésimo', 'septingentésimo', 'octingentésimo', 'nongentésimo'];
+
+/**
+ * Ordinal por extenso (1–999). Ex.: 15 → "décimo quinto"; (22, 'f') → "vigésima segunda".
+ * É a base dos rótulos "CLÁUSULA DÉCIMA QUINTA" / "Parágrafo Terceiro" da numeração automática.
+ */
+export function ordinalExtenso(n: number, genero: 'm' | 'f' = 'm'): string {
+  if (!Number.isInteger(n) || n < 1 || n > 999) {
+    throw new Error(`Ordinal fora do intervalo suportado (1–999): ${n}`);
+  }
+  const partes = [
+    ORDINAL_CENTENAS_M[Math.floor(n / 100)],
+    ORDINAL_DEZENAS_M[Math.floor((n % 100) / 10)],
+    ORDINAL_UNIDADES_M[n % 10],
+  ].filter(Boolean);
+  const texto = partes.join(' ');
+  // Todas as formas masculinas terminam em "o" ("primeiro", "décimo", "centésimo"):
+  // o feminino troca a vogal final de cada palavra.
+  return genero === 'f' ? texto.replace(/o\b/g, 'a') : texto;
+}
+
+const ROMANOS: Array<[number, string]> = [
+  [1000, 'M'], [900, 'CM'], [500, 'D'], [400, 'CD'], [100, 'C'], [90, 'XC'],
+  [50, 'L'], [40, 'XL'], [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
+];
+
+/** Numeral romano. Ex.: 13 → "XIII" (capítulos de contrato). */
+export function romano(n: number): string {
+  if (!Number.isInteger(n) || n < 1 || n > 3999) {
+    throw new Error(`Romano fora do intervalo suportado (1–3999): ${n}`);
+  }
+  let resto = n;
+  let saida = '';
+  for (const [valor, simbolo] of ROMANOS) {
+    while (resto >= valor) {
+      saida += simbolo;
+      resto -= valor;
+    }
+  }
+  return saida;
+}
+
 /** Agrupa milhares com ponto: "558413" → "558.413". */
 function agruparMilhar(inteiro: string): string {
   return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');

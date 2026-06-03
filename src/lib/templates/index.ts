@@ -1,19 +1,29 @@
 import { comporBlocos } from './composition';
+import { numerarBlocos, unirBlocos } from './numeracao';
 import { renderConteudo } from './render';
 import type { Contexto, Template } from './types';
 
 /**
- * Gera o documento: compõe os blocos segundo as flags ativas e preenche os placeholders.
- * No MVP a saída é uma string de texto; adapters de saída (.docx/PDF) plugam aqui depois,
- * sem mudar composição nem resolução de placeholders.
+ * Compõe os blocos segundo as flags ativas, numera-os pelo tipo estrutural
+ * (capítulo/cláusula/parágrafo) e preenche os placeholders. Os blocos saem
+ * prontos (numerados + renderizados) mas ainda separados — é a entrada dos
+ * adapters de saída que formatam por tipo (.docx) ou unem em texto.
  */
-export function gerarDocumento(template: Template, contexto: Contexto, flagsAtivas: Iterable<string> = []): string {
-  return comporBlocos(template, flagsAtivas)
-    .map((bloco) => renderConteudo(bloco.conteudo, contexto))
-    .join('');
+export function gerarBlocos(template: Template, contexto: Contexto, flagsAtivas: Iterable<string> = []) {
+  return numerarBlocos(comporBlocos(template, flagsAtivas)).map((bloco) => ({
+    ...bloco,
+    conteudo: renderConteudo(bloco.conteudo, contexto),
+  }));
 }
 
-export type { Bloco, Template, Contexto } from './types';
+/** Gera o documento como texto plano (prévia, copiar/colar). */
+export function gerarDocumento(template: Template, contexto: Contexto, flagsAtivas: Iterable<string> = []): string {
+  return unirBlocos(gerarBlocos(template, contexto, flagsAtivas));
+}
+
+export type { Bloco, Template, Contexto, TipoBloco } from './types';
+export { TIPOS_BLOCO, LABEL_TIPO_BLOCO } from './types';
 export { comporBlocos } from './composition';
+export { numerarBlocos, unirBlocos } from './numeracao';
 export { renderConteudo, extrairCampos } from './render';
 export * as extenso from './extenso';

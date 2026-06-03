@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areaExtenso, cardinalExtenso, formatarArea, formatarValor, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, formatarArea, formatarValor, ordinalExtenso, romano, valorExtenso } from './extenso';
 
 describe('cardinalExtenso', () => {
   it.each([
@@ -37,6 +37,50 @@ describe('areaExtenso (decomposição hectare/are/centiare)', () => {
   it('um hectare exato', () => expect(areaExtenso(1)).toBe('um hectare'));
   it('hectares, ares e centiares', () => {
     expect(areaExtenso(2.0305)).toBe('dois hectares, três ares e cinco centiares');
+  });
+});
+
+describe('ordinalExtenso', () => {
+  it.each([
+    [1, 'f', 'primeira'],
+    [2, 'f', 'segunda'],
+    [3, 'f', 'terceira'],
+    [9, 'f', 'nona'],
+    [10, 'f', 'décima'],
+    [15, 'f', 'décima quinta'],
+    [20, 'f', 'vigésima'],
+    [22, 'f', 'vigésima segunda'],
+    [1, 'm', 'primeiro'],
+    [3, 'm', 'terceiro'],
+    [6, 'm', 'sexto'],
+    [21, 'm', 'vigésimo primeiro'],
+    [100, 'm', 'centésimo'],
+    [134, 'f', 'centésima trigésima quarta'],
+  ] as Array<[number, 'm' | 'f', string]>)('%i (%s) → %s', (n, genero, esperado) => {
+    expect(ordinalExtenso(n, genero)).toBe(esperado);
+  });
+
+  it('rejeita fora do intervalo', () => {
+    expect(() => ordinalExtenso(0)).toThrow();
+    expect(() => ordinalExtenso(1000)).toThrow();
+  });
+});
+
+describe('romano', () => {
+  it.each([
+    [1, 'I'],
+    [4, 'IV'],
+    [9, 'IX'],
+    [13, 'XIII'],
+    [40, 'XL'],
+    [1994, 'MCMXCIV'],
+  ])('%i → %s', (n, esperado) => {
+    expect(romano(n)).toBe(esperado);
+  });
+
+  it('rejeita fora do intervalo', () => {
+    expect(() => romano(0)).toThrow();
+    expect(() => romano(4000)).toThrow();
   });
 });
 

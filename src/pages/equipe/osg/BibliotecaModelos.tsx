@@ -12,9 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Pencil, FileText, Search, Power, Loader2, Braces, Maximize2, Minimize2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { extrairCampos } from '@/lib/templates';
+import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
 import {
   useBlocos,
   useSalvarBloco,
@@ -25,16 +26,25 @@ import {
 interface FormState {
   id?: string;
   nome: string;
+  tipo: TipoBloco;
   categoria: string;
   descricao: string;
   conteudo: string;
   changelog: string;
 }
 
-const FORM_VAZIO: FormState = { nome: '', categoria: '', descricao: '', conteudo: '', changelog: '' };
+const FORM_VAZIO: FormState = { nome: '', tipo: 'livre', categoria: '', descricao: '', conteudo: '', changelog: '' };
 
 // Sugestões de categoria (livre): espelham as do modelo de composição documental.
 const CATEGORIAS_SUGERIDAS = ['preambulo', 'capital', 'administracao', 'cessao', 'causa_mortis', 'descricao_imovel', 'outros'];
+
+// O que escrever no conteúdo conforme o tipo — a numeração é resolvida na composição.
+const DICA_POR_TIPO: Record<TipoBloco, string | null> = {
+  capitulo: 'Escreva só o título do capítulo — "CAPÍTULO I/II/…" entra automaticamente pela posição no documento.',
+  clausula: 'Escreva só o caput, sem "CLÁUSULA …:" — a numeração é automática pela ordem no documento.',
+  paragrafo: 'Escreva só o texto, sem "Parágrafo …:" — vira "Parágrafo Único" ou recebe o ordinal conforme a composição.',
+  livre: null,
+};
 
 const BibliotecaModelos = () => {
   const { data: blocos = [], isLoading } = useBlocos();
@@ -68,6 +78,7 @@ const BibliotecaModelos = () => {
       form: {
         id: b.id,
         nome: b.nome,
+        tipo: (b.tipo as TipoBloco) ?? 'livre',
         categoria: b.categoria ?? '',
         descricao: b.descricao ?? '',
         conteudo: b.versao_atual?.conteudo ?? '',
@@ -76,7 +87,7 @@ const BibliotecaModelos = () => {
     });
   };
 
-  const setCampo = (chave: keyof FormState, valor: string) =>
+  const setCampo = <K extends keyof FormState>(chave: K, valor: FormState[K]) =>
     setDialog((d) => ({ ...d, form: { ...d.form, [chave]: valor } }));
 
   const camposDetectados = useMemo(() => extrairCampos(dialog.form.conteudo), [dialog.form.conteudo]);
@@ -87,6 +98,7 @@ const BibliotecaModelos = () => {
     await salvar.mutateAsync({
       id: f.id,
       nome: f.nome.trim(),
+      tipo: f.tipo,
       categoria: f.categoria.trim() || null,
       descricao: f.descricao.trim() || null,
       conteudo: f.conteudo,
@@ -155,6 +167,11 @@ const BibliotecaModelos = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
+                      {b.tipo !== 'livre' && (
+                        <Badge className="text-[10px] bg-osg-100 text-osg-700 hover:bg-osg-100">
+                          {LABEL_TIPO_BLOCO[(b.tipo as TipoBloco) ?? 'livre']}
+                        </Badge>
+                      )}
                       {b.categoria && <Badge variant="secondary" className="text-[10px]">{b.categoria}</Badge>}
                       <Badge variant="outline" className="text-[10px]">v{b.versao_atual?.numero_versao ?? '—'}</Badge>
                       {!b.ativo && <Badge variant="outline" className="text-[10px]">inativo</Badge>}
@@ -208,6 +225,29 @@ const BibliotecaModelos = () => {
                 />
               </div>
               <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Tipo</Label>
+                <Select value={dialog.form.tipo} onValueChange={(v) => setCampo('tipo', v as TipoBloco)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_BLOCO.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {LABEL_TIPO_BLOCO[t]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {DICA_POR_TIPO[dialog.form.tipo] && (
+              <p className="text-xs text-osg-700 bg-osg-50 rounded-md px-2.5 py-1.5 -mt-2">
+                {DICA_POR_TIPO[dialog.form.tipo]}
+              </p>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-muted-foreground">Categoria</Label>
                 <Input
                   value={dialog.form.categoria}
@@ -221,15 +261,14 @@ const BibliotecaModelos = () => {
                   ))}
                 </datalist>
               </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-muted-foreground">Descrição</Label>
-              <Input
-                value={dialog.form.descricao}
-                onChange={(e) => setCampo('descricao', e.target.value)}
-                placeholder="Quando usar este bloco"
-              />
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Descrição</Label>
+                <Input
+                  value={dialog.form.descricao}
+                  onChange={(e) => setCampo('descricao', e.target.value)}
+                  placeholder="Quando usar este bloco"
+                />
+              </div>
             </div>
 
             <div className="space-y-1.5">
