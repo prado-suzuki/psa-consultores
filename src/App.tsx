@@ -103,6 +103,7 @@ import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
 import QualificacaoDasPartes from "./pages/equipe/osg/QualificacaoDasPartes";
 import DiagnosticoPatrimonial from "./pages/equipe/osg/DiagnosticoPatrimonial";
 import ControleMatriculas from "./pages/equipe/osg/ControleMatriculas";
+import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
@@ -232,6 +233,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/diagnostico-patrimonial" element={<PageAccessGate pagePath="/equipe/osg/work/diagnostico-patrimonial"><DiagnosticoPatrimonial /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/controle-matriculas" element={<PageAccessGate pagePath="/equipe/osg/work/controle-matriculas"><ControleMatriculas /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
               </Route>
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 

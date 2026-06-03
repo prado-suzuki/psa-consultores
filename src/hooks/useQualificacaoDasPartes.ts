@@ -129,6 +129,9 @@ export function useDeletePessoa() {
     onSuccess: async (pessoa) => {
       queryClient.invalidateQueries({ queryKey: ['pessoas-by-cliente', pessoa.cliente_id] });
       queryClient.invalidateQueries({ queryKey: ['parentescos-by-cliente', pessoa.cliente_id] });
+      // O CASCADE do banco apaga as linhas do quadro societário da pessoa
+      // (como empresa ou como sócia); invalida todas as empresas em cache.
+      queryClient.invalidateQueries({ queryKey: ['quadro-societario-by-empresa'] });
 
       await logAction({
         area: 'osg',
