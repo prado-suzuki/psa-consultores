@@ -612,7 +612,6 @@ export type Database = {
           created_by: string | null
           id: string
           nome_completo: string
-          numero_oficio: string | null
           uf: string
           updated_at: string
           updated_by: string | null
@@ -623,7 +622,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo: string
-          numero_oficio?: string | null
           uf: string
           updated_at?: string
           updated_by?: string | null
@@ -634,7 +632,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo?: string
-          numero_oficio?: string | null
           uf?: string
           updated_at?: string
           updated_by?: string | null
@@ -7502,9 +7499,11 @@ export type Database = {
       tmpl_flag: {
         Row: {
           ativo: boolean
+          campo: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
+          entidade: string | null
           escopo: string
           expressao_sql: string | null
           id: string
@@ -7512,12 +7511,15 @@ export type Database = {
           tipo: string
           updated_at: string
           updated_by: string | null
+          valor: string | null
         }
         Insert: {
           ativo?: boolean
+          campo?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          entidade?: string | null
           escopo: string
           expressao_sql?: string | null
           id?: string
@@ -7525,12 +7527,15 @@ export type Database = {
           tipo: string
           updated_at?: string
           updated_by?: string | null
+          valor?: string | null
         }
         Update: {
           ativo?: boolean
+          campo?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          entidade?: string | null
           escopo?: string
           expressao_sql?: string | null
           id?: string
@@ -7538,6 +7543,7 @@ export type Database = {
           tipo?: string
           updated_at?: string
           updated_by?: string | null
+          valor?: string | null
         }
         Relationships: [
           {
