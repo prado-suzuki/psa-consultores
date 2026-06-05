@@ -258,15 +258,27 @@ function SimuladorEvento({
     return () => { cancelado = true; };
   }, [codigo]);
 
-  // Após o SVG entrar no DOM, marca os <g.node> de cada etapa do evento com a
-  // classe `cascata-retrabalho` (anclora do CSS de destaque e da animação).
+  // Após o SVG entrar no DOM, identifica cada nó-etapa e marca com:
+  //   - classe `cascata-retrabalho` (ancora do CSS de destaque base)
+  //   - data-cascata-key="<nid>" (seletor exato e estável p/ a animação)
+  //
+  // Mermaid v10+ gera IDs como `flowchart-<nid>-N` em múltiplos elementos
+  // (<g.node>, <text>, <foreignObject>), então `querySelector('[id*=nid]')`
+  // pode retornar elementos diferentes em chamadas sucessivas. Preferimos
+  // achar o `<g.node>` ancestral e estampar um data-attribute único.
   useEffect(() => {
     if (!svg || !stageRef.current) return;
     const root = stageRef.current;
     for (const r of evento.etapas || []) {
       const nid = etapaNodeId(r.etapaId, r.cenario);
-      const node = root.querySelector(`[id*="${nid}"]`);
-      if (node) node.classList.add('cascata-retrabalho');
+      // Procura todos os elementos cujo id contém o nid e sobe pro <g.node>
+      // ancestral; isso resolve quando Mermaid usa o id em filhos (text, etc.).
+      const candidato = root.querySelector<SVGElement>(`[id*="${nid}"]`);
+      const node = candidato?.closest<SVGGElement>('g.node') ?? candidato;
+      if (node) {
+        node.classList.add('cascata-retrabalho');
+        node.setAttribute('data-cascata-key', nid);
+      }
     }
   }, [svg, evento.etapas]);
 
@@ -277,13 +289,17 @@ function SimuladorEvento({
   }, []);
 
   // Avança a animação até `idx` aplicando `is-firing` em cada etapa em ordem.
+  // Usa o data-attribute estampado no useEffect acima, garantindo seletor
+  // exato e mesmo elemento que recebeu `cascata-retrabalho`.
   const avancarAte = useCallback((idx: number) => {
     if (!stageRef.current) return;
     limparAnimacao();
     for (let i = 0; i <= idx && i < sequencia.length; i++) {
       const r = sequencia[i];
       const nid = etapaNodeId(r.etapaId, r.cenario);
-      const node = stageRef.current.querySelector(`[id*="${nid}"]`);
+      // Escape de aspas no nid (defensivo; nid normalmente é só alphanumeric/underscore)
+      const sel = `[data-cascata-key="${nid.replace(/"/g, '\\"')}"]`;
+      const node = stageRef.current.querySelector(sel);
       if (node) node.classList.add('is-firing');
     }
   }, [sequencia, limparAnimacao]);
