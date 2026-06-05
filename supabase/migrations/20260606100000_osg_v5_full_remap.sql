@@ -494,13 +494,12 @@ VALUES
 -- ============================================================================
 -- 6. SISTEMA_CLUSTERS — rateio 100% no OSG (ajustar manualmente depois)
 -- ============================================================================
-INSERT INTO public.sistema_clusters (id, sistema_id, cluster_id, rateio, created_at, updated_at)
+INSERT INTO public.sistema_clusters (id, sistema_id, cluster_id, rateio, created_at)
 SELECT
   mapa_uuid('sc-' || s.slug),
   mapa_uuid(s.slug),
   '0523512c-f980-4236-8a7c-53e06c9c7a80',
   100.00,
-  NOW(),
   NOW()
 FROM (VALUES
   ('sis-osg-docbox'), ('sis-osg-openproject'), ('sis-osg-sigef'),
