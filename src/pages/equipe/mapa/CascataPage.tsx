@@ -258,49 +258,66 @@ function SimuladorEvento({
     return () => { cancelado = true; };
   }, [codigo]);
 
-  // Após o SVG entrar no DOM, identifica cada nó-etapa e marca com:
-  //   - classe `cascata-retrabalho` (ancora do CSS de destaque base)
-  //   - data-cascata-key="<nid>" (seletor exato e estável p/ a animação)
-  //
-  // Mermaid v10+ gera IDs como `flowchart-<nid>-N` em múltiplos elementos
-  // (<g.node>, <text>, <foreignObject>), então `querySelector('[id*=nid]')`
-  // pode retornar elementos diferentes em chamadas sucessivas. Preferimos
-  // achar o `<g.node>` ancestral e estampar um data-attribute único.
+  // Mapa estável das refs dos <g.node> de cada etapa marcada, populado após
+  // cada render do SVG. Evita depender de querySelector (que tem bugs com
+  // múltiplos elementos contendo o nid no id) e de CSS rules (que Mermaid
+  // sobrescreve com style inline nos <rect>/<polygon>/etc.).
+  const nodesRef = useRef<Map<string, SVGGElement>>(new Map());
+
+  // Cores aplicadas diretamente via style inline (vencem o style do Mermaid)
+  const COR_BASE_FILL   = '#fef2f2';
+  const COR_BASE_STROKE = '#dc2626';
+  const COR_FIRE_FILL   = '#dc2626';
+  const COR_FIRE_STROKE = '#991b1b';
+
+  function aplicarCor(node: SVGGElement, fill: string, stroke: string) {
+    node.querySelectorAll<SVGElement>('rect, polygon, circle, ellipse, path')
+      .forEach((el) => {
+        el.style.setProperty('fill',   fill,   'important');
+        el.style.setProperty('stroke', stroke, 'important');
+        el.style.setProperty('stroke-width', '2px', 'important');
+      });
+  }
+
+  // Após o SVG entrar no DOM: identifica cada <g.node>, popula nodesRef e
+  // aplica o visual base (contorno vermelho claro) inline nos shapes filhos.
   useEffect(() => {
     if (!svg || !stageRef.current) return;
     const root = stageRef.current;
+    nodesRef.current = new Map();
     for (const r of evento.etapas || []) {
       const nid = etapaNodeId(r.etapaId, r.cenario);
-      // Procura todos os elementos cujo id contém o nid e sobe pro <g.node>
-      // ancestral; isso resolve quando Mermaid usa o id em filhos (text, etc.).
       const candidato = root.querySelector<SVGElement>(`[id*="${nid}"]`);
-      const node = candidato?.closest<SVGGElement>('g.node') ?? candidato;
+      const node = (candidato?.closest<SVGGElement>('g.node') ?? candidato) as SVGGElement | null;
       if (node) {
+        nodesRef.current.set(nid, node);
         node.classList.add('cascata-retrabalho');
-        node.setAttribute('data-cascata-key', nid);
+        aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE);
       }
     }
   }, [svg, evento.etapas]);
 
   const limparAnimacao = useCallback(() => {
-    if (!stageRef.current) return;
-    stageRef.current.querySelectorAll('.cascata-retrabalho.is-firing')
-      .forEach(el => el.classList.remove('is-firing'));
+    // Volta todos os nós ao visual base (contorno vermelho claro)
+    nodesRef.current.forEach((node) => {
+      node.classList.remove('is-firing');
+      aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE);
+    });
   }, []);
 
-  // Avança a animação até `idx` aplicando `is-firing` em cada etapa em ordem.
-  // Usa o data-attribute estampado no useEffect acima, garantindo seletor
-  // exato e mesmo elemento que recebeu `cascata-retrabalho`.
+  // Avança a animação até `idx` colorindo cada etapa em ordem com o vermelho
+  // "firing" (fill saturado).
   const avancarAte = useCallback((idx: number) => {
     if (!stageRef.current) return;
     limparAnimacao();
     for (let i = 0; i <= idx && i < sequencia.length; i++) {
       const r = sequencia[i];
       const nid = etapaNodeId(r.etapaId, r.cenario);
-      // Escape de aspas no nid (defensivo; nid normalmente é só alphanumeric/underscore)
-      const sel = `[data-cascata-key="${nid.replace(/"/g, '\\"')}"]`;
-      const node = stageRef.current.querySelector(sel);
-      if (node) node.classList.add('is-firing');
+      const node = nodesRef.current.get(nid);
+      if (node) {
+        node.classList.add('is-firing');
+        aplicarCor(node, COR_FIRE_FILL, COR_FIRE_STROKE);
+      }
     }
   }, [sequencia, limparAnimacao]);
 
