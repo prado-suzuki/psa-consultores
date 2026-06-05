@@ -264,18 +264,20 @@ function SimuladorEvento({
   // sobrescreve com style inline nos <rect>/<polygon>/etc.).
   const nodesRef = useRef<Map<string, SVGGElement>>(new Map());
 
-  // Cores aplicadas diretamente via style inline (vencem o style do Mermaid)
-  const COR_BASE_FILL   = '#fef2f2';
-  const COR_BASE_STROKE = '#dc2626';
-  const COR_FIRE_FILL   = '#dc2626';
-  const COR_FIRE_STROKE = '#991b1b';
+  // Cores com contraste máximo entre base e fire para a animação ser óbvia
+  const COR_BASE_FILL    = '#ffffff';   // branco
+  const COR_BASE_STROKE  = '#94a3b8';   // cinza claro
+  const COR_BASE_WIDTH   = '1px';
+  const COR_FIRE_FILL    = '#f97316';   // laranja brilhante
+  const COR_FIRE_STROKE  = '#7c2d12';   // marrom escuro
+  const COR_FIRE_WIDTH   = '4px';
 
-  function aplicarCor(node: SVGGElement, fill: string, stroke: string) {
+  function aplicarCor(node: SVGGElement, fill: string, stroke: string, width: string) {
     node.querySelectorAll<SVGElement>('rect, polygon, circle, ellipse, path')
       .forEach((el) => {
-        el.style.setProperty('fill',   fill,   'important');
-        el.style.setProperty('stroke', stroke, 'important');
-        el.style.setProperty('stroke-width', '2px', 'important');
+        el.style.setProperty('fill',         fill,   'important');
+        el.style.setProperty('stroke',       stroke, 'important');
+        el.style.setProperty('stroke-width', width,  'important');
       });
   }
 
@@ -292,16 +294,16 @@ function SimuladorEvento({
       if (node) {
         nodesRef.current.set(nid, node);
         node.classList.add('cascata-retrabalho');
-        aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE);
+        aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE, COR_BASE_WIDTH);
       }
     }
   }, [svg, evento.etapas]);
 
   const limparAnimacao = useCallback(() => {
-    // Volta todos os nós ao visual base (contorno vermelho claro)
+    // Volta todos os nós ao visual base (branco com borda cinza fina)
     nodesRef.current.forEach((node) => {
       node.classList.remove('is-firing');
-      aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE);
+      aplicarCor(node, COR_BASE_FILL, COR_BASE_STROKE, COR_BASE_WIDTH);
     });
   }, []);
 
@@ -316,7 +318,7 @@ function SimuladorEvento({
       const node = nodesRef.current.get(nid);
       if (node) {
         node.classList.add('is-firing');
-        aplicarCor(node, COR_FIRE_FILL, COR_FIRE_STROKE);
+        aplicarCor(node, COR_FIRE_FILL, COR_FIRE_STROKE, COR_FIRE_WIDTH);
       }
     }
   }, [sequencia, limparAnimacao]);
