@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 
 export const MAPA_BASE = '/equipe/digital/mapa';
 
@@ -47,6 +47,7 @@ const links = [
 
 export default function Layout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     return localStorage.getItem('sidebarCollapsed') === '1';
@@ -83,7 +84,8 @@ export default function Layout() {
 
       <nav className={`sidebar${sidebarOpen ? ' open' : ''}${sidebarCollapsed ? ' collapsed' : ''}`}>
         <div className="sidebar-header">
-          <img src="/logo-psa-white.png" alt="PSA Consultores" />
+          <img src="/favicon.png" alt="" className="sidebar-logo-icon" aria-hidden="true" />
+          <span className="sidebar-logo-text">PSA Consultores</span>
         </div>
         <ul className="sidebar-menu">
           {links.map((l) => (
@@ -95,26 +97,51 @@ export default function Layout() {
             </li>
           ))}
         </ul>
-        <button
-          type="button"
-          className="sidebar-collapse-btn"
-          onClick={toggleCollapsed}
-          aria-label={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
-          title={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {sidebarCollapsed
-              ? <polyline points="9 18 15 12 9 6"/>
-              : <polyline points="15 18 9 12 15 6"/>}
-          </svg>
-          <span className="sidebar-label">{sidebarCollapsed ? 'Expandir' : 'Minimizar'}</span>
-        </button>
+        <div className="sidebar-footer">
+          <button
+            type="button"
+            className="sidebar-action-btn"
+            onClick={() => { closeSidebar(); navigate('/equipe/digital'); }}
+            aria-label="Trocar área"
+            title="Trocar área"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span className="sidebar-label">Trocar área</span>
+          </button>
+          <button
+            type="button"
+            className="sidebar-action-btn"
+            onClick={() => { closeSidebar(); navigate('/'); }}
+            aria-label="Voltar ao site"
+            title="Voltar ao site"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span className="sidebar-label">Voltar ao site</span>
+          </button>
+          <button
+            type="button"
+            className="sidebar-action-btn"
+            onClick={toggleCollapsed}
+            aria-label={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
+            title={sidebarCollapsed ? 'Expandir menu' : 'Minimizar menu'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {sidebarCollapsed
+                ? <polyline points="9 18 15 12 9 6"/>
+                : <polyline points="15 18 9 12 15 6"/>}
+            </svg>
+            <span className="sidebar-label">{sidebarCollapsed ? 'Expandir' : 'Minimizar'}</span>
+          </button>
+        </div>
       </nav>
 
       <div className="main-content">
         <header>
           <div className="page-title">{pageTitle}</div>
-          <div className="status">Status: Online</div>
+          <div className="header-status">
+            <span className="status-dot" aria-hidden="true" />
+            Status: <span className="status-label">Online</span>
+          </div>
         </header>
         <main className="content-body">
           <Outlet />

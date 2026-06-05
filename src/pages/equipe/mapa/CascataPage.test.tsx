@@ -22,9 +22,9 @@ describe('CascataPage smoke', () => {
         <CascataPage />
       </TestProviders>,
     );
-    // Botão "+ Novo Evento" único confirma render sem crash.
+    // Botão "Adicionar Evento" único confirma render sem crash.
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Novo Evento/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Adicionar Evento/i })).toBeInTheDocument();
     });
   });
 });

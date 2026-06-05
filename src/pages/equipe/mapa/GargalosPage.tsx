@@ -221,8 +221,11 @@ export default function GargalosPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Gargalos</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Gargalos</h1>
+          <p>Gargalos afetam um ou mais processos. Cadastre-os de forma generalista para mapear o ROI corretamente em todos os processos impactados.</p>
+        </div>
         <button className="btn-add" onClick={() => {
           setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
           setError(''); setModalOpen(true);
@@ -231,7 +234,6 @@ export default function GargalosPage() {
           Adicionar Gargalo
         </button>
       </div>
-      <p>Gargalos afetam um ou mais processos. Cadastre-os de forma generalista para mapear o ROI corretamente em todos os processos impactados.</p>
       <PageStats stats={[
         { label: 'Gargalos', value: String(items.length), tooltip: 'Total de gargalos cadastrados.' },
         { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês em todos os gargalos.' },
@@ -253,7 +255,7 @@ export default function GargalosPage() {
         substantivo={['gargalo', 'gargalos']}
         emptyMessage="Nenhum gargalo encontrado para os filtros selecionados."
         renderGrupo={(itens) => (
-          <div className="gargalo-list">
+          <div className="gargalo-list list-stagger">
             {itens.map((g) => (
               <div
                 key={g.id}

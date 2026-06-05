@@ -401,14 +401,16 @@ export default function MelhoriasPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Melhorias</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Melhorias</h1>
+          <p>Registre melhorias e os processos que cada uma atende (uma melhoria pode atender mais de um processo).</p>
+        </div>
         <button className="btn-add" onClick={openNew}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Avaliar Melhorias
         </button>
       </div>
-      <p>Registre melhorias e os processos que cada uma atende (uma melhoria pode atender mais de um processo).</p>
       <PageStats stats={[
         { label: 'Melhorias', value: String(items.length), tooltip: 'Total de melhorias cadastradas.' },
         { label: 'Concluídas', value: String(items.filter(m => m.improvement_status === 'Concluído').length), tooltip: 'Melhorias com status Concluído.' },
@@ -432,7 +434,7 @@ export default function MelhoriasPage() {
         substantivo={['melhoria', 'melhorias']}
         emptyMessage="Nenhuma melhoria encontrada para os filtros selecionados."
         renderGrupo={(itens) => (
-          <div className="melhoria-list">
+          <div className="melhoria-list list-stagger">
             {itens.map((m) => (
               <div
                 key={m.id}

@@ -507,13 +507,23 @@ export default function CascataPage() {
   );
 
   return (
-    <div className="cascata-page">
-      <h1 style={{ margin: '0 0 6px' }}>Cascata · Eventos de Disrupção</h1>
-      <p style={{ color: '#475569', fontSize: '0.88rem', margin: '0 0 14px' }}>
-        Catalogue eventos que disparam <strong>retrabalho</strong> em etapas específicas dos processos.
-        Para cada evento você marca manualmente <em>quais</em> etapas (e em qual cenário, AS-IS ou TO-BE)
-        precisam ser refeitas. O simulador exibe o impacto resultante.
-      </p>
+    <div className="card">
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Cascata · Eventos de Disrupção</h1>
+          <p>
+            Catalogue eventos que disparam <strong>retrabalho</strong> em etapas específicas dos processos.
+            Para cada evento você marca manualmente <em>quais</em> etapas (e em qual cenário, AS-IS ou TO-BE)
+            precisam ser refeitas. O simulador exibe o impacto resultante.
+          </p>
+        </div>
+        {aba === 'eventos' && (
+          <button className="btn-add" onClick={abrirNovo}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar Evento
+          </button>
+        )}
+      </div>
 
       <div className="dashv2-tabs" style={{ marginBottom: 12 }}>
         {(['eventos', 'simulador'] as Aba[]).map((id) => (
@@ -542,9 +552,6 @@ export default function CascataPage() {
             ativo={!!(fCluster || fProcesso)}
             onLimpar={() => { setFCluster(''); setFProcesso(''); }}
           />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '10px 0' }}>
-            <button className="btn-save" onClick={abrirNovo}>+ Novo Evento</button>
-          </div>
 
           {eventosFiltrados.length === 0 ? (
             <div style={{ color: '#64748b', fontSize: '0.85rem', padding: 24, textAlign: 'center', background: '#f8fafc', border: '1px dashed #e2e8f0', borderRadius: 8 }}>

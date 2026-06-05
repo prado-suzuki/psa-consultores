@@ -24,6 +24,7 @@ export function useProjetos(): UseQueryResult<Projeto[]> {
       const { data, error } = await supabase
         .from(TABLE as never)
         .select(SELECT)
+        .not('cluster_id', 'is', null) // ⚠️ MAPA-only: esconde rows do Digital Rotina
         .order('name');
       if (error) throw new Error(error.message);
       return ((data ?? []) as unknown as DbRow[]).map(hydrateClusterName);

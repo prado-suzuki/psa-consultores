@@ -4,6 +4,8 @@ import type { Processo } from '@/types';
 const hooks = createEntityHooks<Processo>({
   resource: 'processes',
   defaultOrder: 'order_index',
+  // MAPA-only: esconde os 28 processos do Digital Rotina (cluster_id NULL).
+  listNotNull: ['cluster_id'],
 });
 
 export const useProcessos = hooks.useList;

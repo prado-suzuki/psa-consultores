@@ -57,6 +57,7 @@ export function useMelhorias(): UseQueryResult<Melhoria[]> {
       const { data, error } = await supabase
         .from(TABLE as never)
         .select(SELECT)
+        .not('cluster_id', 'is', null) // ⚠️ MAPA-only: esconde rows do Digital Rotina
         .order('created_at');
       if (error) throw new Error(error.message);
       return ((data ?? []) as unknown as DbRow[]).map(hydrate);

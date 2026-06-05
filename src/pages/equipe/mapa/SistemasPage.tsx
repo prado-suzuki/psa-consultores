@@ -188,14 +188,16 @@ export default function SistemasPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Sistemas</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Sistemas</h1>
+          <p>Gerencie os sistemas integrados ao projeto de mapeamento.</p>
+        </div>
         <button className="btn-add" onClick={openNew}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar Sistema
         </button>
       </div>
-      <p>Gerencie os sistemas integrados ao projeto de mapeamento.</p>
       <PageStats stats={[
         { label: 'Sistemas', value: String(items.length), tooltip: 'Total de sistemas cadastrados.' },
         {
@@ -222,7 +224,7 @@ export default function SistemasPage() {
         substantivo={['sistema', 'sistemas']}
         emptyMessage="Nenhum sistema encontrado para os filtros selecionados."
         renderGrupo={(itens) => (
-          <div className="system-list">
+          <div className="system-list list-stagger">
             {itens.map((s) => (
               <div
                 key={s.id}
