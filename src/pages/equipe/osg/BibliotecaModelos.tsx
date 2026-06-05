@@ -373,7 +373,8 @@ const BibliotecaModelos = () => {
                                     'group flex flex-col rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 animate-osg-card-in',
                                     // Hover: o card "flutua" acima dos vizinhos (z + translate + scale)
                                     // para ampliar um pouco o preview; relative habilita o z-index.
-                                    'relative transition-all duration-200 hover:z-10 hover:-translate-y-1.5 hover:scale-[1.08] hover:border-osg-300 hover:shadow-xl hover:shadow-osg-300/40',
+                                    // Scale discreto: quem amplia a leitura é o painel sobreposto do preview.
+                                    'relative transition-all duration-200 hover:z-10 hover:-translate-y-1.5 hover:scale-[1.02] hover:border-osg-300 hover:shadow-xl hover:shadow-osg-300/40',
                                     !b.ativo && 'opacity-60',
                                   )}
                                   style={{ animationDelay: `${delayPorBloco.get(b.id) ?? 0}ms` }}
@@ -413,9 +414,20 @@ const BibliotecaModelos = () => {
                                     )}
                                   </CardHeader>
                                   <CardContent className="pt-0 flex flex-col flex-1">
-                                    <p className="text-sm text-muted-foreground italic line-clamp-3 leading-relaxed border-l-2 border-osg-100 pl-2.5">
-                                      {b.versao_atual?.conteudo || 'sem conteúdo'}
-                                    </p>
+                                    <div className="relative">
+                                      <p className="text-sm text-muted-foreground italic line-clamp-3 leading-relaxed border-l-2 border-osg-100 pl-2.5">
+                                        {b.versao_atual?.conteudo || 'sem conteúdo'}
+                                      </p>
+                                      {/* Preview completo no hover: painel sobreposto alinhado ao trecho
+                                          clampado — o texto "cresce no lugar" por cima dos vizinhos, sem
+                                          mexer no grid. pointer-events-none: o hover é regido só pelo card,
+                                          então o painel não gruda quando vaza para fora dele. */}
+                                      <div className="pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute -inset-x-2 -top-2 z-30 rounded-md border border-osg-300 bg-card p-2 shadow-xl shadow-osg-300/40 max-h-[60vh] overflow-hidden">
+                                        <p className="text-sm text-muted-foreground italic leading-relaxed border-l-2 border-osg-100 pl-2.5 whitespace-pre-wrap">
+                                          {b.versao_atual?.conteudo || 'sem conteúdo'}
+                                        </p>
+                                      </div>
+                                    </div>
                                     <div className="mt-auto pt-3">
                                       <div className="flex items-center gap-1 flex-wrap border-t border-border/60 pt-2">
                                         {campos.length > 0 && (
