@@ -152,6 +152,16 @@ export default {
           from: { transform: "scaleX(0)" },
           to: { transform: "scaleX(1)" },
         },
+        // Entrada de cards com hover animado (Biblioteca de Modelos): só o
+        // "from" é declarado — o "to" implícito usa o estilo computado do
+        // elemento, então cards com opacidade própria (ex.: inativos a 60%)
+        // assentam no valor certo sem piscar. Usar com fill "backwards" (não
+        // "both"/"forwards"): segura o estado inicial durante o delay do
+        // stagger e libera o transform ao terminar, senão a animação
+        // preenchida sobrepõe o scale/translate do hover para sempre.
+        "osg-card-in": {
+          from: { opacity: "0", transform: "translateY(10px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -163,6 +173,7 @@ export default {
         "osg-overlay-out": "osg-overlay-out 0.2s ease-in",
         "osg-rise": "osg-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
         "osg-bar-grow": "osg-bar-grow 1.4s cubic-bezier(0.16, 1, 0.3, 1) both",
+        "osg-card-in": "osg-card-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards",
       },
     },
   },

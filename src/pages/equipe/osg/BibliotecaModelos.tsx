@@ -159,6 +159,18 @@ const BibliotecaModelos = () => {
     }).filter((g) => g.total > 0);
   }, [blocosFiltrados]);
 
+  // Stagger da entrada dos cards: delay na ordem de exibição, com teto para
+  // bibliotecas grandes (depois do 15º card todos entram juntos — a onda já
+  // foi percebida e ninguém fica esperando o fim da fila para trabalhar).
+  const delayPorBloco = useMemo(() => {
+    const delays = new Map<string, number>();
+    let i = 0;
+    for (const g of grupos)
+      for (const sg of g.subgrupos)
+        for (const b of sg.blocos) delays.set(b.id, Math.min(i++, 15) * 30);
+    return delays;
+  }, [grupos]);
+
   const alternarGrupo = (tipo: TipoBloco) =>
     setGruposRecolhidos((s) => {
       const next = new Set(s);
@@ -358,9 +370,13 @@ const BibliotecaModelos = () => {
                                   key={b.id}
                                   className={cn(
                                     // Borda marrom-areia atenuada + sombra tonal — delimita sem cara de sépia.
-                                    'group flex flex-col rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 transition-all hover:border-osg-300 hover:shadow-md hover:shadow-osg-300/40',
+                                    'group flex flex-col rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 animate-osg-card-in',
+                                    // Hover: o card "flutua" acima dos vizinhos (z + translate + scale)
+                                    // para ampliar um pouco o preview; relative habilita o z-index.
+                                    'relative transition-all duration-200 hover:z-10 hover:-translate-y-1.5 hover:scale-[1.08] hover:border-osg-300 hover:shadow-xl hover:shadow-osg-300/40',
                                     !b.ativo && 'opacity-60',
                                   )}
+                                  style={{ animationDelay: `${delayPorBloco.get(b.id) ?? 0}ms` }}
                                 >
                                   <CardHeader className="pb-3">
                                     <div className="flex items-start justify-between gap-2">
