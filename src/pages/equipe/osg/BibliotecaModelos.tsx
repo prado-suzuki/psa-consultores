@@ -421,8 +421,10 @@ const BibliotecaModelos = () => {
                                       {/* Preview completo no hover: painel sobreposto alinhado ao trecho
                                           clampado — o texto "cresce no lugar" por cima dos vizinhos, sem
                                           mexer no grid. pointer-events-none: o hover é regido só pelo card,
-                                          então o painel não gruda quando vaza para fora dele. */}
-                                      <div className="pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 absolute -inset-x-2 -top-2 z-30 rounded-md border border-osg-300 bg-card p-2 shadow-xl shadow-osg-300/40 max-h-[60vh] overflow-hidden">
+                                          então o painel não gruda quando vaza para fora dele. O delay-300
+                                          (só na entrada — na saída vale o delay-0 do estado base) evita
+                                          abrir quando o mouse está só de passagem pelo grid. */}
+                                      <div className="pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-300 absolute -inset-x-2 -top-2 z-30 rounded-md border border-osg-300 bg-card p-2 shadow-xl shadow-osg-300/40 max-h-[60vh] overflow-hidden">
                                         <p className="text-sm text-muted-foreground italic leading-relaxed border-l-2 border-osg-100 pl-2.5 whitespace-pre-wrap">
                                           {b.versao_atual?.conteudo || 'sem conteúdo'}
                                         </p>
