@@ -3,15 +3,17 @@ import { cn } from '@/lib/utils';
 import { listarPlaceholders, type PlaceholderSugerido } from '@/lib/templates/binding';
 
 // Editor de conteúdo de modelos: um contentEditable que (1) renderiza variáveis
-// fechadas {{ nome }} como "chips" — só o nome, numa caixinha destacada — e
-// (2) abre um autocomplete ao digitar {{, filtrando conforme se digita.
+// fechadas {{ nome }} — e tokens de seção {{#lista}} / {{/lista}} — como "chips",
+// e (2) abre um autocomplete ao digitar {{, filtrando conforme se digita.
 //
 // O modelo de dados é a STRING de origem (prop `value`). O DOM é só uma vista:
 // a cada edição reserializamos o DOM de volta para a string, e só repintamos
 // (re-tokenizando em chips) quando o conjunto de variáveis fechadas muda — o
 // que evita resetar o cursor a cada tecla em texto comum.
 
-const TOKEN_COMPLETO = /\{\{\s*([\w.]+)\s*\}\}/g;
+// Variável {{ nome }}, abertura de seção {{#nome attr="v"}} ou fechamento {{/nome}}.
+const TOKEN_COMPLETO =
+  /\{\{\s*((?:#[\w.]+(?:\s+\w+="(?:[^"\\]|\\.)*")*)|\/[\w.]+|[\w.]+)\s*\}\}/g;
 const ZERO_WIDTH = /[\uFEFF\u200B]/g;
 const ehZeroWidth = (c: string) => c === '\uFEFF' || c === '\u200B';
 
@@ -26,7 +28,8 @@ function tokenizar(source: string): Segmento[] {
   let m: RegExpExecArray | null;
   while ((m = re.exec(source)) !== null) {
     if (m.index > ultimo) segs.push({ tipo: 'texto', texto: source.slice(ultimo, m.index) });
-    segs.push({ tipo: 'chip', nome: m[1], source: m[0] });
+    // Seções mostram só "#nome"/"/nome" no chip (atributos ficam no title/source).
+    segs.push({ tipo: 'chip', nome: m[1].split(/\s/)[0], source: m[0] });
     ultimo = m.index + m[0].length;
   }
   if (ultimo < source.length) segs.push({ tipo: 'texto', texto: source.slice(ultimo) });
@@ -265,7 +268,7 @@ export function EditorConteudoModelo({
       setDrop(null);
       return;
     }
-    const m = source.slice(0, caret).match(/\{\{\s*([\w.]*)$/);
+    const m = source.slice(0, caret).match(/\{\{\s*#?([\w.]*)$/);
     if (!m) {
       setDrop(null);
       return;
@@ -301,13 +304,15 @@ export function EditorConteudoModelo({
     document.execCommand('insertText', false, texto);
   };
 
-  const aceitarSugestao = (ph: string) => {
+  const aceitarSugestao = (s: PlaceholderSugerido) => {
     const ed = editorRef.current;
     if (!ed || !drop) return;
     const source = sourceRef.current;
-    const insercao = `{{ ${ph} }}`;
+    const insercao = s.insercao ?? `{{ ${s.placeholder} }}`;
     const novo = source.slice(0, drop.inicioToken) + insercao + source.slice(drop.caret);
-    const novoCaret = drop.inicioToken + insercao.length;
+    // Seções: cursor entra no corpo (logo após o "}}" da abertura); variável: após o token.
+    const idxCorpo = s.insercao ? insercao.indexOf('}}{{/') : -1;
+    const novoCaret = drop.inicioToken + (idxCorpo >= 0 ? idxCorpo + 2 : insercao.length);
 
     sourceRef.current = novo;
     assinaturaRef.current = assinaturaChips(novo);
@@ -333,7 +338,7 @@ export function EditorConteudoModelo({
       }
       if (e.key === 'Tab' || e.key === 'Enter') {
         e.preventDefault();
-        aceitarSugestao(sugestoes[sel].placeholder);
+        aceitarSugestao(sugestoes[sel]);
         return;
       }
       if (e.key === 'Escape') {
@@ -438,7 +443,7 @@ export function EditorConteudoModelo({
                     ref={i === sel ? itemSelRef : undefined}
                     type="button"
                     onMouseEnter={() => setSel(i)}
-                    onClick={() => aceitarSugestao(s.placeholder)}
+                    onClick={() => aceitarSugestao(s)}
                     className={cn(
                       'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm',
                       i === sel ? 'bg-osg-50 text-osg-700' : 'hover:bg-muted',

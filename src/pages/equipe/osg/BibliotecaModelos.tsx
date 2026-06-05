@@ -13,11 +13,12 @@ import {
   DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Pencil, FileText, Search, Power, Loader2, Braces, Maximize2, Minimize2 } from 'lucide-react';
+import { Plus, Pencil, FileText, Search, Power, Loader2, Braces, Maximize2, Minimize2, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
 import {
   useBlocos,
+  useFlags,
   useSalvarBloco,
   useToggleBlocoAtivo,
   type BlocoComVersao,
@@ -31,9 +32,10 @@ interface FormState {
   descricao: string;
   conteudo: string;
   changelog: string;
+  flagIds: string[];
 }
 
-const FORM_VAZIO: FormState = { nome: '', tipo: 'livre', categoria: '', descricao: '', conteudo: '', changelog: '' };
+const FORM_VAZIO: FormState = { nome: '', tipo: 'livre', categoria: '', descricao: '', conteudo: '', changelog: '', flagIds: [] };
 
 // Sugestões de categoria (livre): espelham as do modelo de composição documental.
 const CATEGORIAS_SUGERIDAS = ['preambulo', 'capital', 'administracao', 'cessao', 'causa_mortis', 'descricao_imovel', 'outros'];
@@ -48,8 +50,11 @@ const DICA_POR_TIPO: Record<TipoBloco, string | null> = {
 
 const BibliotecaModelos = () => {
   const { data: blocos = [], isLoading } = useBlocos();
+  const { data: flags = [] } = useFlags();
   const salvar = useSalvarBloco();
   const toggleAtivo = useToggleBlocoAtivo();
+
+  const nomeDaFlag = useMemo(() => new Map(flags.map((f) => [f.id, f.nome])), [flags]);
 
   const [busca, setBusca] = useState('');
   const [dialog, setDialog] = useState<{ open: boolean; form: FormState }>({ open: false, form: FORM_VAZIO });
@@ -83,9 +88,21 @@ const BibliotecaModelos = () => {
         descricao: b.descricao ?? '',
         conteudo: b.versao_atual?.conteudo ?? '',
         changelog: '',
+        flagIds: b.flag_ids,
       },
     });
   };
+
+  const alternarFlag = (flagId: string) =>
+    setDialog((d) => ({
+      ...d,
+      form: {
+        ...d.form,
+        flagIds: d.form.flagIds.includes(flagId)
+          ? d.form.flagIds.filter((id) => id !== flagId)
+          : [...d.form.flagIds, flagId],
+      },
+    }));
 
   const setCampo = <K extends keyof FormState>(chave: K, valor: FormState[K]) =>
     setDialog((d) => ({ ...d, form: { ...d.form, [chave]: valor } }));
@@ -103,6 +120,7 @@ const BibliotecaModelos = () => {
       descricao: f.descricao.trim() || null,
       conteudo: f.conteudo,
       changelog: f.changelog.trim() || null,
+      flagIds: f.flagIds,
     });
     setDialog({ open: false, form: FORM_VAZIO });
   };
@@ -172,8 +190,14 @@ const BibliotecaModelos = () => {
                           {LABEL_TIPO_BLOCO[(b.tipo as TipoBloco) ?? 'livre']}
                         </Badge>
                       )}
-                      {b.categoria && <Badge variant="secondary" className="text-[10px]">{b.categoria}</Badge>}
+                      {b.categoria && <Badge className="text-[10px] bg-osg-moss text-white hover:bg-osg-moss">{b.categoria}</Badge>}
                       <Badge variant="outline" className="text-[10px]">v{b.versao_atual?.numero_versao ?? '—'}</Badge>
+                      {b.flag_ids.map((id) => (
+                        <Badge key={id} className="text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 gap-1">
+                          <Flag className="h-2.5 w-2.5" />
+                          {nomeDaFlag.get(id) ?? '…'}
+                        </Badge>
+                      ))}
                       {!b.ativo && <Badge variant="outline" className="text-[10px]">inativo</Badge>}
                     </div>
                   </CardHeader>
@@ -319,6 +343,39 @@ const BibliotecaModelos = () => {
                 )}
               </div>
             </div>
+
+            {flags.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
+                  <Flag className="h-3 w-3" /> Flags de composição
+                </Label>
+                <p className="text-[11px] text-muted-foreground -mt-0.5">
+                  Com flags marcadas, o bloco só entra no documento quando TODAS estiverem ativas na
+                  geração (ex.: tipo da empresa selecionada). Sem flags, vale o obrigatório do modelo.
+                </p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {flags.map((f) => {
+                    const marcada = dialog.form.flagIds.includes(f.id);
+                    return (
+                      <button
+                        key={f.id}
+                        type="button"
+                        title={f.descricao ?? undefined}
+                        onClick={() => alternarFlag(f.id)}
+                        className={cn(
+                          'rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+                          marcada
+                            ? 'border-osg-600 bg-osg-100 text-osg-700'
+                            : 'border-border bg-background text-muted-foreground hover:border-osg-300 hover:text-osg-700',
+                        )}
+                      >
+                        {f.nome}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {dialog.form.id && (
               <div className="space-y-1.5">

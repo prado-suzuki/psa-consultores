@@ -175,3 +175,8 @@ export function formatarValor(valor: number): string {
   const [inteiro, decimais] = Math.abs(valor).toFixed(2).split('.');
   return `${agruparMilhar(inteiro)},${decimais}`;
 }
+
+/** Inteiro no formato pt-BR (quotas, quantidades). Ex.: 558413 → "558.413". */
+export function formatarInteiro(valor: number): string {
+  return agruparMilhar(String(Math.floor(Math.abs(valor))));
+}

@@ -171,7 +171,6 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'nome', label: 'Nome do cartório', tipo: 'texto' },
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF)', tipo: 'texto' },
-      { id: 'numeroOficio', label: 'Número do ofício', tipo: 'texto' },
     ],
   },
 };

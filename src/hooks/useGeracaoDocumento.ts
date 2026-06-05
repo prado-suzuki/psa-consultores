@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
+import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
-import type { MatriculaParaMapear } from '@/lib/templates/mapeadores';
+import type {
+  AdministradorParaMapear,
+  MatriculaParaMapear,
+  SocioParaMapear,
+} from '@/lib/templates/mapeadores';
 
 // Glue entre o cadastro OSG (pessoa/bem/matrícula/cartório) e o binding por entidade
 // do gerador. Para cada tipo de entidade, devolve os registros do cliente como
@@ -119,5 +123,92 @@ export function useRegistrosPorTipo(clienteId: string | null) {
     registros,
     isFetching:
       pessoasQ.isFetching || bensQ.isFetching || matriculasQ.isFetching || cartoriosQ.isFetching,
+  };
+}
+
+// --- Listas relacionais da empresa (bindings de cardinalidade 'lista') --------
+
+interface RawQuadroSocietario {
+  quotas: number | null;
+  vlr_total: number | null;
+  socio: PessoaRow | null;
+}
+
+interface RawAdministracao {
+  cargo: string | null;
+  administrador: PessoaRow | null;
+}
+
+/**
+ * Itens das seções de lista, dada a empresa (PJ) escolhida na tela Gerar:
+ * sócios do quadro societário e administradores da administração, na ordem do
+ * cadastro. Para sócia PJ, busca em administracao quem a representa
+ * ("neste ato representada por…").
+ */
+export function useListasDaEmpresa(empresaId: string | null) {
+  const sociosQ = useQuery<SocioParaMapear[]>({
+    queryKey: ['socios-geracao', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('quadro_societario')
+        .select('quotas, vlr_total, socio:socio_pessoa_id (*)')
+        .eq('empresa_pessoa_id', empresaId!)
+        .order('created_at');
+      if (error) throw error;
+      const linhas = ((data ?? []) as unknown as RawQuadroSocietario[]).filter((l) => l.socio);
+
+      // Representantes das sócias PJ (administradores delas, juntados com " e ").
+      const idsPj = linhas.filter((l) => l.socio!.tipo_pessoa === 'PJ').map((l) => l.socio!.id);
+      const representantes = new Map<string, string>();
+      if (idsPj.length > 0) {
+        const { data: adms, error: errAdms } = await supabase
+          .from('administracao')
+          .select('pj_pessoa_id, administrador:administrador_pessoa_id ( denominacao )')
+          .in('pj_pessoa_id', idsPj)
+          .order('created_at');
+        if (errAdms) throw errAdms;
+        for (const a of (adms ?? []) as unknown as Array<{
+          pj_pessoa_id: string;
+          administrador: { denominacao: string | null } | null;
+        }>) {
+          if (!a.administrador?.denominacao) continue;
+          const atual = representantes.get(a.pj_pessoa_id);
+          representantes.set(
+            a.pj_pessoa_id,
+            atual ? `${atual} e ${a.administrador.denominacao}` : a.administrador.denominacao,
+          );
+        }
+      }
+
+      return linhas.map((l) => ({
+        pessoa: l.socio!,
+        quotas: l.quotas,
+        vlr_total: l.vlr_total,
+        representante: representantes.get(l.socio!.id) ?? null,
+      }));
+    },
+  });
+
+  const administradoresQ = useQuery<AdministradorParaMapear[]>({
+    queryKey: ['administradores-geracao', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('administracao')
+        .select('cargo, administrador:administrador_pessoa_id (*)')
+        .eq('pj_pessoa_id', empresaId!)
+        .order('created_at');
+      if (error) throw error;
+      return ((data ?? []) as unknown as RawAdministracao[])
+        .filter((l) => l.administrador)
+        .map((l) => ({ pessoa: l.administrador!, cargo: l.cargo }));
+    },
+  });
+
+  return {
+    socios: sociosQ.data ?? [],
+    administradores: administradoresQ.data ?? [],
+    isFetching: sociosQ.isFetching || administradoresQ.isFetching,
   };
 }

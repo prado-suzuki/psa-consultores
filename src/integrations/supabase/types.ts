@@ -612,7 +612,6 @@ export type Database = {
           created_by: string | null
           id: string
           nome_completo: string
-          numero_oficio: string | null
           uf: string
           updated_at: string
           updated_by: string | null
@@ -623,7 +622,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo: string
-          numero_oficio?: string | null
           uf: string
           updated_at?: string
           updated_by?: string | null
@@ -634,7 +632,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo?: string
-          numero_oficio?: string | null
           uf?: string
           updated_at?: string
           updated_by?: string | null

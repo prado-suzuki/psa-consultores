@@ -73,7 +73,7 @@ const IMPEDIMENTO_DIFF_FIELDS: (keyof ImpedimentoRow)[] = [
 ];
 
 const CARTORIO_DIFF_FIELDS: (keyof CartorioRow)[] = [
-  'nome_completo', 'numero_oficio', 'comarca', 'uf',
+  'nome_completo', 'comarca', 'uf',
 ];
 
 // ============================================================================

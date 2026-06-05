@@ -7,8 +7,16 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileOutput, Copy, Check, Loader2, AlertTriangle, Database, Pencil, Download } from 'lucide-react';
-import { gerarBlocos, unirBlocos, extrairCampos, type Bloco, type Template } from '@/lib/templates';
+import { FileOutput, Copy, Check, Loader2, AlertTriangle, Database, Pencil, Download, Users, Flag } from 'lucide-react';
+import {
+  avaliarFlags,
+  comporBlocos,
+  gerarBlocos,
+  unirBlocos,
+  type Bloco,
+  type FlagDeclarativa,
+  type Template,
+} from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import {
   campoDaEntidade,
@@ -17,11 +25,19 @@ import {
   type CampoEntidade,
   type TipoEntidade,
 } from '@/lib/templates/vocabulario';
-import { detectarBindings, labelDoBinding } from '@/lib/templates/binding';
-import { mapearRegistro, montarContexto } from '@/lib/templates/mapeadores';
+import { detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
+import {
+  mapearAdministrador,
+  mapearRegistro,
+  mapearSocio,
+  montarContexto,
+  type ItemLista,
+} from '@/lib/templates/mapeadores';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
-import { useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
+import { useFlags } from '@/hooks/useBibliotecaModelos';
+import { useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 const GerarDocumento = () => {
   const { data: modelos = [], isLoading: carregandoModelos } = useModelos();
@@ -36,19 +52,70 @@ const GerarDocumento = () => {
   const [selecao, setSelecao] = useState<Record<string, Record<string, string>>>({});
   const [registroPorBinding, setRegistroPorBinding] = useState<Record<string, string>>({});
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
+  const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
-  // Template do engine + placeholders detectados a partir dos blocos do modelo.
-  const { template, placeholders } = useMemo(() => {
+  // Template do engine: blocos do modelo com tipo, obrigatório e flags requeridas.
+  const template = useMemo<Template>(() => {
     const blocos = docBlocos
       .filter((b) => b.bloco?.conteudo)
-      .map((b) => ({ id: b.id, tipo: b.bloco!.tipo, conteudo: b.bloco!.conteudo as string, obrigatorio: b.obrigatorio }));
-    const tpl: Template = { id: modeloId ?? 'novo', nome: 'documento', blocos };
-    const phs = extrairCampos(blocos.map((b) => b.conteudo).join(' '));
-    return { template: tpl, placeholders: phs };
+      .map((b) => ({
+        id: b.id,
+        tipo: b.bloco!.tipo,
+        conteudo: b.bloco!.conteudo as string,
+        obrigatorio: b.obrigatorio,
+        flagsRequeridas: b.bloco!.flags,
+      }));
+    return { id: modeloId ?? 'novo', nome: 'documento', blocos };
   }, [docBlocos, modeloId]);
 
-  const { bindings, desconhecidos } = useMemo(() => detectarBindings(placeholders), [placeholders]);
+  const nomePorBlocoId = useMemo(
+    () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),
+    [docBlocos],
+  );
+
+  // Flags derivadas declarativas avaliadas sobre a empresa selecionada.
+  const { data: catalogoFlags = [] } = useFlags();
+  const temBlocosComFlags = template.blocos.some((b) => (b.flagsRequeridas ?? []).length > 0);
+  const empresaRow = useMemo(
+    () => (empresaId ? (registros.pessoa.find((r) => r.id === empresaId)?.row as PessoaRow | undefined) : undefined),
+    [registros.pessoa, empresaId],
+  );
+  const flagsAtivas = useMemo(() => {
+    const declarativas: FlagDeclarativa[] = catalogoFlags
+      .filter((f) => f.entidade && f.campo && f.valor)
+      .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
+    return avaliarFlags(declarativas, { empresa: empresaRow });
+  }, [catalogoFlags, empresaRow]);
+
+  // Composição: blocos que efetivamente entram com as flags atuais. A detecção
+  // de bindings roda SOBRE OS COMPOSTOS — bloco excluído não pede seleção.
+  const blocosCompostos = useMemo(() => comporBlocos(template, flagsAtivas), [template, flagsAtivas]);
+  const blocosExcluidos = useMemo(
+    () => template.blocos.filter((b) => !blocosCompostos.includes(b)),
+    [template, blocosCompostos],
+  );
+
+  const { bindings, listas, desconhecidos, secoesDesconhecidas, campos: placeholders } = useMemo(
+    () => detectarBindingsDeConteudo(blocosCompostos.map((b) => b.conteudo).join(' ')),
+    [blocosCompostos],
+  );
+
+  // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
+  // a empresa também alimenta as flags, então o card aparece em ambos os casos.
+  const usaListas = listas.length > 0;
+  const precisaEmpresa = usaListas || temBlocosComFlags;
+  const { socios, administradores, isFetching: carregandoListas } = useListasDaEmpresa(
+    usaListas ? empresaId : null,
+  );
+
+  const itensPorLista = useMemo<Record<string, ItemLista[]>>(
+    () => ({
+      socios: socios.map(mapearSocio),
+      administradores: administradores.map(mapearAdministrador),
+    }),
+    [socios, administradores],
+  );
 
   // Campos editáveis (base, não-derivados) de cada binding, conforme o que o modelo referencia.
   const camposPorBinding = useMemo<Record<string, CampoEntidade[]>>(() => {
@@ -102,6 +169,7 @@ const GerarDocumento = () => {
     setSelecao({});
     setRegistroPorBinding({});
     setValoresLivres({});
+    setEmpresaId(null);
   }, [modeloId, clienteId]);
 
   const escolherRegistro = (nome: string, tipo: TipoEntidade, registroId: string) => {
@@ -127,13 +195,15 @@ const GerarDocumento = () => {
       // para a prévia não travar antes de preencher (diferente dos bindings, que
       // exigem seleção de registro).
       const livres = Object.fromEntries(desconhecidos.map((ph) => [ph, valoresLivres[ph] ?? '']));
-      const ctx = montarContexto(bindings, selecao, livres);
-      const blocos = gerarBlocos(template, ctx);
+      // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
+      for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
+      const ctx = montarContexto(bindings, selecao, livres, itensPorLista, listas);
+      const blocos = gerarBlocos(template, ctx, flagsAtivas);
       return { blocos, texto: unirBlocos(blocos), erro: null };
     } catch (e) {
       return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, bindings, selecao, valoresLivres, desconhecidos]);
+  }, [template, bindings, selecao, valoresLivres, desconhecidos, secoesDesconhecidas, itensPorLista, listas, flagsAtivas]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
@@ -162,6 +232,13 @@ const GerarDocumento = () => {
   // a prévia só resolve depois de ligar um registro a cada entidade.
   const bindingsPendentes = bindings.filter(
     (b) => !registroPorBinding[b.nome] && Object.keys(selecao[b.nome] ?? {}).length === 0,
+  );
+  const listasPendentes = precisaEmpresa && !empresaId;
+
+  // Empresas (PJ) do cliente, para a fonte das listas relacionais.
+  const empresas = useMemo(
+    () => registros.pessoa.filter((r) => (r.row as PessoaRow).tipo_pessoa === 'PJ'),
+    [registros.pessoa],
   );
 
   const totalCampos =
@@ -223,8 +300,131 @@ const GerarDocumento = () => {
                 <CardTitle className="text-base">Dados</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {bindings.length === 0 && desconhecidos.length === 0 && (
+                {bindings.length === 0 && desconhecidos.length === 0 && !precisaEmpresa && (
                   <p className="text-sm text-muted-foreground">Este modelo não usa variáveis.</p>
+                )}
+
+                {precisaEmpresa && (
+                  <div className="space-y-3 rounded-lg border border-border/60 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-semibold text-osg-700 flex items-center gap-1.5">
+                        <Users className="h-4 w-4" /> Empresa
+                        <span className="font-normal text-muted-foreground">
+                          ({[usaListas ? 'listas' : '', temBlocosComFlags ? 'flags' : ''].filter(Boolean).join(' + ')})
+                        </span>
+                      </span>
+                      <code className="text-[10px] text-muted-foreground">
+                        {listas.map((l) => `#${l.nome}`).join(' ')}
+                      </code>
+                    </div>
+                    <Select
+                      value={empresaId ?? undefined}
+                      onValueChange={setEmpresaId}
+                      disabled={!clienteId}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            !clienteId
+                              ? 'Selecione um cliente na barra acima'
+                              : empresas.length === 0
+                                ? 'Nenhuma PJ cadastrada para o cliente'
+                                : 'Selecione a empresa'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {empresas.map((r) => (
+                          <SelectItem key={r.id} value={r.id}>
+                            {r.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {empresaId && temBlocosComFlags && (
+                      <div className="flex items-start gap-1.5 flex-wrap text-xs">
+                        <Flag className="h-3 w-3 mt-0.5 text-osg-600 shrink-0" />
+                        {flagsAtivas.length > 0 ? (
+                          flagsAtivas.map((f) => (
+                            <Badge key={f} className="text-[10px] bg-osg-100 text-osg-700 hover:bg-osg-100">
+                              {f}
+                            </Badge>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">
+                            Nenhuma flag ativa para esta empresa (verifique o tipo da empresa no cadastro).
+                          </span>
+                        )}
+                        {blocosExcluidos.length > 0 && (
+                          <span className="text-muted-foreground basis-full">
+                            {blocosExcluidos.length} bloco{blocosExcluidos.length > 1 ? 's' : ''} fora da
+                            composição: {blocosExcluidos.map((b) => nomePorBlocoId.get(b.id)).join(', ')}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {empresaId && usaListas && carregandoListas && (
+                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Carregando sócios e administradores…
+                      </span>
+                    )}
+                    {empresaId && !carregandoListas && (
+                      <div className="space-y-2">
+                        {listas.some((l) => l.nome === 'socios') && (
+                          <div className="text-xs">
+                            <span className="font-semibold text-muted-foreground">
+                              Sócios ({socios.length})
+                            </span>
+                            {socios.length === 0 ? (
+                              <p className="text-amber-700 mt-0.5">
+                                Nenhum sócio no Quadro Societário desta empresa.
+                              </p>
+                            ) : (
+                              <ul className="mt-0.5 space-y-0.5">
+                                {socios.map((s, i) => (
+                                  <li key={s.pessoa.id} className="flex items-center gap-1.5 text-slate-700">
+                                    <span className="text-muted-foreground">{i + 1}.</span>
+                                    {s.pessoa.denominacao}
+                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                                      {s.pessoa.tipo_pessoa}
+                                    </Badge>
+                                    {s.quotas != null && (
+                                      <span className="text-muted-foreground">{s.quotas} quotas</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        {listas.some((l) => l.nome === 'administradores') && (
+                          <div className="text-xs">
+                            <span className="font-semibold text-muted-foreground">
+                              Administradores ({administradores.length})
+                            </span>
+                            {administradores.length === 0 ? (
+                              <p className="text-amber-700 mt-0.5">
+                                Nenhum administrador cadastrado para esta empresa.
+                              </p>
+                            ) : (
+                              <ul className="mt-0.5 space-y-0.5">
+                                {administradores.map((a, i) => (
+                                  <li key={a.pessoa.id} className="flex items-center gap-1.5 text-slate-700">
+                                    <span className="text-muted-foreground">{i + 1}.</span>
+                                    {a.pessoa.denominacao}
+                                    {a.cargo && <span className="text-muted-foreground">{a.cargo}</span>}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        <span className="text-[11px] text-osg-700 flex items-center gap-1.5">
+                          <Database className="h-3 w-3" /> Preenchido do cadastro, na ordem do registro
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 )}
 
                 {bindings.map((b) => {
@@ -287,6 +487,16 @@ const GerarDocumento = () => {
                   );
                 })}
 
+                {secoesDesconhecidas.length > 0 && (
+                  <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-800">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <span>
+                      Seções desconhecidas (não são listas nem condicionais do catálogo), removidas da prévia:{' '}
+                      <code>{secoesDesconhecidas.map((s) => `#${s}`).join(', ')}</code>.
+                    </span>
+                  </div>
+                )}
+
                 {desconhecidos.length > 0 && (
                   <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50/60 p-3">
                     <div className="flex items-start gap-2 text-xs text-amber-800">
@@ -331,12 +541,19 @@ const GerarDocumento = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {bindingsPendentes.length > 0 ? (
+                {bindingsPendentes.length > 0 || listasPendentes ? (
                   <div className="flex items-start gap-2 text-sm text-muted-foreground">
                     <Database className="h-4 w-4 shrink-0 mt-0.5" />
                     <span>
-                      Selecione um registro para{' '}
-                      {bindingsPendentes.map((b) => labelDoBinding(b.nome)).join(', ')} para ver o documento.
+                      {[
+                        listasPendentes ? 'Selecione a empresa' : '',
+                        bindingsPendentes.length > 0
+                          ? `Selecione um registro para ${bindingsPendentes.map((b) => labelDoBinding(b.nome)).join(', ')}`
+                          : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' e ')}{' '}
+                      para ver o documento.
                     </span>
                   </div>
                 ) : resultado.erro ? (
@@ -350,8 +567,17 @@ const GerarDocumento = () => {
                   </p>
                 )}
                 <div className="mt-3 flex items-center gap-1.5 flex-wrap border-t pt-2">
-                  <Badge variant="outline" className="text-[10px]">{template.blocos.length} blocos</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {blocosCompostos.length === template.blocos.length
+                      ? `${template.blocos.length} blocos`
+                      : `${blocosCompostos.length}/${template.blocos.length} blocos (flags)`}
+                  </Badge>
                   <Badge variant="outline" className="text-[10px]">{bindings.length} entidades</Badge>
+                  {usaListas && (
+                    <Badge variant="outline" className="text-[10px]">
+                      {listas.map((l) => l.nome).join(' + ')}
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="text-[10px]">{totalCampos} campos</Badge>
                 </div>
               </CardContent>
