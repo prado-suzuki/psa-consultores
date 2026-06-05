@@ -364,10 +364,10 @@ const BibliotecaModelos = () => {
                                 >
                                   <CardHeader className="pb-3">
                                     <div className="flex items-start justify-between gap-2">
-                                      <CardTitle className="text-sm font-semibold leading-tight">
+                                      <CardTitle className="text-base font-semibold leading-tight">
                                         {nomeExibido(b.nome, tipo)}
                                         {/* Traço-destaque moss: quebra a homogeneidade sem colorir o texto. */}
-                                        <span aria-hidden className="block mt-1.5 h-[3px] w-10 rounded-full bg-osg-moss" />
+                                        <span aria-hidden className="block mt-1.5 h-1 w-10 rounded-full bg-osg-moss" />
                                       </CardTitle>
                                       <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEdicao(b)}>
@@ -397,7 +397,7 @@ const BibliotecaModelos = () => {
                                     )}
                                   </CardHeader>
                                   <CardContent className="pt-0 flex flex-col flex-1">
-                                    <p className="text-xs text-muted-foreground italic line-clamp-3 leading-relaxed border-l-2 border-osg-100 pl-2.5">
+                                    <p className="text-sm text-muted-foreground italic line-clamp-3 leading-relaxed border-l-2 border-osg-100 pl-2.5">
                                       {b.versao_atual?.conteudo || 'sem conteúdo'}
                                     </p>
                                     <div className="mt-auto pt-3">
