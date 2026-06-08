@@ -6934,6 +6934,7 @@ export type Database = {
           created_by: string | null
           fracao: number | null
           id: string
+          integralizador: boolean
           matricula_id: string | null
           tipo: string
           titular_pessoa_id: string
@@ -6946,6 +6947,7 @@ export type Database = {
           created_by?: string | null
           fracao?: number | null
           id?: string
+          integralizador?: boolean
           matricula_id?: string | null
           tipo: string
           titular_pessoa_id: string
@@ -6958,6 +6960,7 @@ export type Database = {
           created_by?: string | null
           fracao?: number | null
           id?: string
+          integralizador?: boolean
           matricula_id?: string | null
           tipo?: string
           titular_pessoa_id?: string
