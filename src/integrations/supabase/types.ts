@@ -667,90 +667,6 @@ export type Database = {
           },
         ]
       }
-      cascata_evento_etapas: {
-        Row: {
-          created_at: string
-          etapa_id: string
-          evento_id: string
-          id: string
-          scenario: string
-        }
-        Insert: {
-          created_at?: string
-          etapa_id: string
-          evento_id: string
-          id?: string
-          scenario?: string
-        }
-        Update: {
-          created_at?: string
-          etapa_id?: string
-          evento_id?: string
-          id?: string
-          scenario?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "casc_evt_etp_etapa_fk"
-            columns: ["etapa_id", "scenario"]
-            isOneToOne: false
-            referencedRelation: "process_stages"
-            referencedColumns: ["id", "scenario"]
-          },
-          {
-            foreignKeyName: "cascata_evento_etapas_evento_id_fkey"
-            columns: ["evento_id"]
-            isOneToOne: false
-            referencedRelation: "cascata_eventos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cascata_eventos: {
-        Row: {
-          cluster_id: string | null
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          processo_raiz_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          cluster_id?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          processo_raiz_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          cluster_id?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          processo_raiz_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cascata_eventos_cluster_id_fk"
-            columns: ["cluster_id"]
-            isOneToOne: false
-            referencedRelation: "estrutura_clusters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cascata_eventos_processo_raiz_id_fkey"
-            columns: ["processo_raiz_id"]
-            isOneToOne: false
-            referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       catalog_clients: {
         Row: {
           color: string | null
@@ -2580,6 +2496,45 @@ export type Database = {
             columns: ["ciclo_id"]
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_etapas: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          gargalo_id: string
+          id: string
+          scenario: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          gargalo_id: string
+          id?: string
+          scenario?: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          gargalo_id?: string
+          id?: string
+          scenario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_etapas_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+          {
+            foreignKeyName: "gargalo_etapas_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
             referencedColumns: ["id"]
           },
         ]
