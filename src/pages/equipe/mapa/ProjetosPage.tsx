@@ -9,7 +9,9 @@ import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
 import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
 import PageStats from '@/components/equipe/mapa/PageStats';
-import { Tooltip, Popover } from '@/components/equipe/mapa/Tooltip';
+import ProjectCard from '@/components/equipe/mapa/ProjectCard';
+import StatusBadge from '@/components/equipe/mapa/StatusBadge';
+import { Popover } from '@/components/equipe/mapa/Tooltip';
 import { useHoverPopover } from '@/components/equipe/mapa/useHoverPopover';
 import { dica } from '@/utils/tooltips';
 import { useFocusParam } from '@/utils/useFocusParam';
@@ -280,14 +282,16 @@ export default function ProjetosPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Projetos</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Projetos</h1>
+          <p>Acompanhe os projetos vinculados ao mapeamento de processos.</p>
+        </div>
         <button className="btn-add" onClick={openNew}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar Projeto
         </button>
       </div>
-      <p>Acompanhe os projetos vinculados ao mapeamento de processos.</p>
       <PageStats stats={[
         { label: 'Projetos', value: String(items.length), tooltip: 'Total de projetos cadastrados.' },
         { label: 'Clusters', value: String(new Set(items.map(p => p.clusterName).filter(Boolean)).size), tooltip: 'Clusters distintos representados nos projetos (ex.: OSG agrupa P1..P6).' },
@@ -301,95 +305,27 @@ export default function ProjetosPage() {
           { id: 'f-status', label: 'Status', value: fStatus, onChange: setFStatus, options: STATUS_FILTRO_OPCOES, tooltip: dica('projetos.filtro.status') },
         ]}
       />
-      <div className="project-list">
-        {itensFiltrados.map((p) => {
-          const qtdProcessos = processosPorProjeto.get(p.id)?.length ?? 0;
-          return (
-            <div
-              key={p.id}
-              className="project-card"
-              style={{ position: 'relative', cursor: 'pointer' }}
-              role="button"
-              tabIndex={0}
-              onClick={() => setViewId(p.id)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewId(p.id); } }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                <h3><Tooltip text={dica('projetos.card.titulo')}>{p.name}</Tooltip></h3>
-                <div style={{ display: 'flex', gap: 4 }}>
-                  <button
-                    className="btn-edit"
-                    onClick={(e) => { e.stopPropagation(); setViewId(p.id); }}
-                    title="Ver detalhes do projeto"
-                    style={{ padding: '4px 6px' }}
-                    aria-label="Ver detalhes"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </button>
-                  <button
-                    className="btn-edit"
-                    onClick={(e) => { e.stopPropagation(); openEdit(p); }}
-                    title="Editar projeto"
-                    style={{ padding: '4px 6px' }}
-                    aria-label="Editar projeto"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  </button>
-                  <button
-                    className="btn-edit"
-                    onClick={(e) => { e.stopPropagation(); setConfirmDel(p); }}
-                    title="Excluir projeto"
-                    style={{ padding: '4px 6px', color: '#b91c1c' }}
-                    aria-label="Excluir projeto"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                  </button>
-                </div>
-              </div>
-              {p.clusterName && (
-                <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--primary-color)', fontWeight: 700, marginTop: 4, marginBottom: 6 }}>
-                  Cluster: {p.clusterName}
-                </div>
-              )}
-              {p.justificativas && p.justificativas.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
-                  {p.justificativas.map(j => (
-                    <span key={j} className="status-badge" style={{ background: '#ecfeff', color: '#155e75', fontSize: '0.7rem' }}>
-                      {j}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <p style={{ whiteSpace: 'pre-line' }}>{p.description || 'Sem descrição.'}</p>
-              <div style={{ marginTop: 8 }}>
-                <span className={`status-badge status-${(p.status || 'Mapeamento').toLowerCase().replace('ó', 'o')}`}>{p.status || 'Mapeamento'}</span>
-              </div>
-              <div style={{ display: 'flex', gap: 16, fontSize: '0.85rem', color: 'var(--text-secondary, #666)', marginTop: 8 }}>
-                <span><strong>Início:</strong> {formatarData(p.start_date)}</span>
-                <span><strong>Fim:</strong> {formatarData(p.end_date)}</span>
-              </div>
-              <div className="card-actions">
-                <button
-                  className="btn-action"
-                  onClick={(e) => { e.stopPropagation(); setProcessosProjetoId(p.id); }}
-                  disabled={!processosLoaded}
-                  title="Ver processos vinculados"
-                >
-                  Processos
-                  <span style={{
-                    marginLeft: 6,
-                    background: qtdProcessos > 0 ? '#0d9488' : '#cbd5e1',
-                    color: '#fff',
-                    borderRadius: 10,
-                    padding: '1px 8px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                  }}>{qtdProcessos}</span>
-                </button>
-              </div>
-            </div>
-          );
-        })}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: 20,
+          paddingBottom: 24,
+        }}
+      >
+        {itensFiltrados.map((p, i) => (
+          <ProjectCard
+            key={p.id}
+            projeto={p}
+            index={i}
+            qtdProcessos={processosPorProjeto.get(p.id)?.length ?? 0}
+            processosLoaded={processosLoaded}
+            onView={() => setViewId(p.id)}
+            onEdit={() => openEdit(p)}
+            onDelete={() => setConfirmDel(p)}
+            onShowProcessos={() => setProcessosProjetoId(p.id)}
+          />
+        ))}
       </div>
 
       {/* === Novo projeto === */}
@@ -499,7 +435,7 @@ export default function ProjetosPage() {
             <>
               <h2 style={{ marginBottom: 4 }}>{projetoEmFoco.name}</h2>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                <span className={`status-badge status-${(projetoEmFoco.status || 'Mapeamento').toLowerCase().replace('ó', 'o')}`}>{projetoEmFoco.status || 'Mapeamento'}</span>
+                <StatusBadge status={projetoEmFoco.status || 'Mapeamento'} />
               </div>
 
               {projetoEmFoco.clusterName && (
@@ -515,7 +451,7 @@ export default function ProjetosPage() {
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                     {projetoEmFoco.justificativas.map(j => (
-                      <span key={j} className="status-badge" style={{ background: '#ecfeff', color: '#155e75', fontSize: '0.72rem' }}>{j}</span>
+                      <StatusBadge key={j} variant="neutral">{j}</StatusBadge>
                     ))}
                   </div>
                 </div>

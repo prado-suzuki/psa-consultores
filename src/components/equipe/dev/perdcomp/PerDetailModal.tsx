@@ -59,8 +59,6 @@ interface PerData {
   vlr_ressarcido?: number | null;
   vlr_ressarcido_original?: number | null;
   nr_proc_ret?: string | null;
-  excluido?: string | null;
-  nr_cancelamento?: string | null;
   contribuinte?: { nome_razao_social: string } | null;
 }
 
@@ -212,7 +210,6 @@ export function PerDetailModal({
         .from('dcomp')
         .select('*')
         .eq('nr_per_orig', per.nr_per)
-        .or('excluido.is.null,excluido.eq.')
         .order('dt_envio', { ascending: false });
       if (error) throw error;
       return data || [];

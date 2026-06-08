@@ -1,31 +1,81 @@
 // Hook de Gargalo (tabela `gargalos` PT-native).
-// Hidrata JOIN cluster + junção `gargalo_processos` inline.
+// Hidrata JOIN cluster + 2 junções:
+//   - gargalo_processos (M:N, vínculo macro opcional para gargalos
+//     organizacionais sem etapa específica — NÃO usado pela cascata)
+//   - gargalo_etapas (M:N com FK composta etapa_id+scenario — etapas-origem
+//     que definem a cascata derivada em tempo real)
+//
+// Quando o array etapasOrigem tem ≥1 entrada, a CascataPage lista o gargalo
+// e deriva o grafo de impacto BFS jusante automaticamente.
 
 import { useQuery, useMutation, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Gargalo } from '@/types';
+import type { Gargalo, GargaloEtapaRef } from '@/types';
 
 const TABLE = 'gargalos';
-const SELECT = '*, estrutura_clusters(name), gargalo_processos(processo_id)';
-// Fallback quando a FK gargalos.cluster_id → estrutura_clusters não está
-// registrada no schema cache do PostgREST (acontece se a migration
-// 20260603150000 não foi aplicada). Sem a FK, o embed dá erro e a página
-// fica vazia — o fallback degrada gracefully omitindo o nome do cluster.
-const SELECT_FALLBACK = '*, gargalo_processos(processo_id)';
+const SELECT = `
+  *,
+  estrutura_clusters(name),
+  gargalo_processos(processo_id),
+  gargalo_melhorias(melhoria_id),
+  gargalo_etapas (
+    etapa_id, scenario,
+    process_stages ( name, stage_order, process_id, processes ( name ) )
+  )
+`;
+// Fallback sem JOIN com estrutura_clusters quando a FK não está no schema cache
+const SELECT_FALLBACK = `
+  *,
+  gargalo_processos(processo_id),
+  gargalo_melhorias(melhoria_id),
+  gargalo_etapas (
+    etapa_id, scenario,
+    process_stages ( name, stage_order, process_id, processes ( name ) )
+  )
+`;
 
-type DbRow = Record<string, unknown>;
+type DbGargaloEtapaRow = {
+  etapa_id: string;
+  scenario: string;
+  process_stages: {
+    name: string | null;
+    stage_order: number | null;
+    process_id: string | null;
+    processes: { name: string | null } | null;
+  } | null;
+};
+
+type DbRow = Record<string, unknown> & {
+  estrutura_clusters?: { name?: string } | null;
+  gargalo_processos?: Array<{ processo_id: string }> | null;
+  gargalo_melhorias?: Array<{ melhoria_id: string }> | null;
+  gargalo_etapas?: DbGargaloEtapaRow[] | null;
+};
 
 function pluck<T>(rel: unknown, key: string): T[] {
   if (!Array.isArray(rel)) return [];
   return (rel as Record<string, unknown>[]).map(r => r[key] as T).filter(v => v != null);
 }
 
+function hydrateEtapasOrigem(rel: DbGargaloEtapaRow[] | null | undefined): GargaloEtapaRef[] {
+  if (!Array.isArray(rel)) return [];
+  return rel.map((j) => ({
+    etapaId: j.etapa_id,
+    scenario: j.scenario as 'AS-IS' | 'TO-BE',
+    etapaNome: j.process_stages?.name ?? undefined,
+    stage_order: j.process_stages?.stage_order ?? undefined,
+    processo_id: j.process_stages?.process_id ?? undefined,
+    processoNome: j.process_stages?.processes?.name ?? undefined,
+  }));
+}
+
 function hydrate(row: DbRow): Gargalo {
-  const rel = row.estrutura_clusters as { name?: string } | null | undefined;
   return {
     ...(row as unknown as Gargalo),
-    clusterName: rel?.name,
+    clusterName: row.estrutura_clusters?.name,
     processos: pluck<string>(row.gargalo_processos, 'processo_id'),
+    melhorias: pluck<string>(row.gargalo_melhorias, 'melhoria_id'),
+    etapasOrigem: hydrateEtapasOrigem(row.gargalo_etapas),
   };
 }
 
@@ -33,12 +83,54 @@ function stripSyntheticFields(patch: Partial<Gargalo>): Record<string, unknown> 
   const out = { ...patch } as Record<string, unknown>;
   delete out.clusterName;
   delete out.processos;
+  delete out.melhorias;
+  delete out.etapasOrigem;
   delete out.responsaveisHoras;
   return out;
 }
 
-export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'responsaveisHoras'> & {
+/** Sincroniza gargalo_etapas (M:N delete-all + insert) */
+async function syncEtapasOrigem(gargaloId: string, etapas: GargaloEtapaRef[]): Promise<void> {
+  const { error: delErr } = await supabase
+    .from('gargalo_etapas' as never)
+    .delete()
+    .eq('gargalo_id', gargaloId);
+  if (delErr) throw new Error(delErr.message);
+
+  if (etapas.length > 0) {
+    const rows = etapas.map((e) => ({
+      gargalo_id: gargaloId,
+      etapa_id: e.etapaId,
+      scenario: e.scenario,
+    }));
+    const { error: insErr } = await supabase
+      .from('gargalo_etapas' as never)
+      .insert(rows as never);
+    if (insErr) throw new Error(insErr.message);
+  }
+}
+
+/** Sincroniza gargalo_melhorias (N:M delete-all + insert) */
+async function syncMelhorias(gargaloId: string, melhoriaIds: string[]): Promise<void> {
+  const { error: delErr } = await supabase
+    .from('gargalo_melhorias' as never)
+    .delete()
+    .eq('gargalo_id', gargaloId);
+  if (delErr) throw new Error(delErr.message);
+
+  if (melhoriaIds.length > 0) {
+    const rows = melhoriaIds.map((melhoria_id) => ({ gargalo_id: gargaloId, melhoria_id }));
+    const { error: insErr } = await supabase
+      .from('gargalo_melhorias' as never)
+      .insert(rows as never);
+    if (insErr) throw new Error(insErr.message);
+  }
+}
+
+export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'melhorias' | 'etapasOrigem' | 'responsaveisHoras'> & {
   processos?: string[];
+  melhorias?: string[];
+  etapasOrigem?: GargaloEtapaRef[];
   responsaveisHoras?: Gargalo['responsaveisHoras'];
 };
 
@@ -46,9 +138,6 @@ export function useGargalos(): UseQueryResult<Gargalo[]> {
   return useQuery<Gargalo[]>({
     queryKey: [TABLE],
     queryFn: async () => {
-      // 1ª tentativa com JOIN cluster — se a FK não estiver no schema cache
-      // do PostgREST, a query falha com "no relationship found". Aí cai no
-      // fallback sem o JOIN.
       let result = await supabase.from(TABLE as never).select(SELECT).order('nome');
       if (result.error && /relationship|not find/i.test(result.error.message)) {
         result = await supabase.from(TABLE as never).select(SELECT_FALLBACK).order('nome');
@@ -80,13 +169,30 @@ export function useCreateGargalo(): UseMutationResult<Gargalo, Error, GargaloInp
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: GargaloInput) => {
+      const etapas = input.etapasOrigem ?? [];
+      const melhorias = input.melhorias ?? [];
       const { data, error } = await supabase
         .from(TABLE as never)
         .insert(stripSyntheticFields(input as Partial<Gargalo>) as never)
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return data as unknown as Gargalo;
+      const created = data as unknown as Gargalo;
+
+      if (etapas.length > 0) {
+        await syncEtapasOrigem(created.id, etapas);
+      }
+      if (melhorias.length > 0) {
+        await syncMelhorias(created.id, melhorias);
+      }
+
+      // Re-fetch hidratado
+      const { data: full } = await supabase
+        .from(TABLE as never)
+        .select(SELECT)
+        .eq('id', created.id)
+        .maybeSingle();
+      return full ? hydrate(full as DbRow) : { ...created, etapasOrigem: etapas, processos: [] };
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
   });
@@ -100,14 +206,33 @@ export function useUpdateGargalo(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }) => {
-      const { data, error } = await supabase
+      const novasEtapas = patch.etapasOrigem;
+      const novasMelhorias = patch.melhorias;
+      const dbPatch = stripSyntheticFields(patch);
+
+      if (Object.keys(dbPatch).length > 0) {
+        const { error } = await supabase
+          .from(TABLE as never)
+          .update(dbPatch as never)
+          .eq('id', id);
+        if (error) throw new Error(error.message);
+      }
+
+      if (novasEtapas !== undefined) {
+        await syncEtapasOrigem(id, novasEtapas);
+      }
+      if (novasMelhorias !== undefined) {
+        await syncMelhorias(id, novasMelhorias);
+      }
+
+      const { data, error: selErr } = await supabase
         .from(TABLE as never)
-        .update(stripSyntheticFields(patch) as never)
+        .select(SELECT)
         .eq('id', id)
-        .select()
-        .single();
-      if (error) throw new Error(error.message);
-      return data as unknown as Gargalo;
+        .maybeSingle();
+      if (selErr) throw new Error(selErr.message);
+      if (!data) throw new Error('Gargalo não encontrado após update.');
+      return hydrate(data as DbRow);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
   });
@@ -117,6 +242,7 @@ export function useDeleteGargalo(): UseMutationResult<void, Error, { id: string;
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id }) => {
+      // ON DELETE CASCADE em gargalo_etapas e gargalo_processos cuida das junções.
       const { error } = await supabase.from(TABLE as never).delete().eq('id', id);
       if (error) throw new Error(error.message);
     },

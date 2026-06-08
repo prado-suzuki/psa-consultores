@@ -12,6 +12,7 @@ import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { agrupar } from '@/utils/agrupar';
 import PageStats from '@/components/equipe/mapa/PageStats';
+import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type {
   Processo, FrequenciaProcesso, StatusAvaliacao, Complexidade,
@@ -327,11 +328,9 @@ export default function ProcessosPage() {
       </div>
       {(p.evaluation_status || p.complexity_level) && (
         <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6, flexWrap: 'wrap' }}>
-          {p.complexity_level && (
-            <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{p.complexity_level}</span>
-          )}
+          {p.complexity_level && <StatusBadge variant="roi">{p.complexity_level}</StatusBadge>}
           {p.evaluation_status && p.evaluation_status !== 'Não avaliado' && (
-            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{p.evaluation_status}</span>
+            <StatusBadge variant="diagnostic">{p.evaluation_status}</StatusBadge>
           )}
         </div>
       )}
@@ -376,14 +375,16 @@ export default function ProcessosPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Processos</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Processos</h1>
+          <p>Cada processo agrupa o mapeamento, o cenário projetado e a configuração de ROI. Use <strong>"Mapear"</strong> para abrir a tela única com todas as abas do processo.</p>
+        </div>
         <button className="btn-add" onClick={() => { resetNovo(); setModalOpen(true); }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar Processo
         </button>
       </div>
-      <p>Cada processo agrupa o mapeamento, o cenário projetado e a configuração de ROI. Use <strong>"Mapear"</strong> para abrir a tela única com todas as abas do processo.</p>
 
       <PageStats stats={[
         { label: 'Processos', value: String(items.length), tooltip: 'Total de processos cadastrados' },
@@ -407,7 +408,7 @@ export default function ProcessosPage() {
         grupos={grupos}
         substantivo={['processo', 'processos']}
         emptyMessage="Nenhum processo encontrado para os filtros selecionados."
-        renderGrupo={(itens) => <div className="processo-list">{itens.map(renderCard)}</div>}
+        renderGrupo={(itens) => <div className="processo-list list-stagger">{itens.map(renderCard)}</div>}
       />
 
       {/* Modal Detalhes do Processo */}
@@ -419,15 +420,11 @@ export default function ProcessosPage() {
 
               {/* Badges */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                {detailItem.complexity_level && (
-                  <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.7rem' }}>{detailItem.complexity_level}</span>
-                )}
+                {detailItem.complexity_level && <StatusBadge variant="roi">{detailItem.complexity_level}</StatusBadge>}
                 {detailItem.evaluation_status && detailItem.evaluation_status !== 'Não avaliado' && (
-                  <span className="status-badge" style={{ background: '#dcfce7', color: '#166534', fontSize: '0.7rem' }}>{detailItem.evaluation_status}</span>
+                  <StatusBadge variant="diagnostic">{detailItem.evaluation_status}</StatusBadge>
                 )}
-                {detailItem.frequency && (
-                  <span className="status-badge" style={{ background: '#f0fdf4', color: '#15803d', fontSize: '0.7rem' }}>{detailItem.frequency}</span>
-                )}
+                {detailItem.frequency && <StatusBadge variant="accent">{detailItem.frequency}</StatusBadge>}
               </div>
 
               {/* Projeto vinculado */}

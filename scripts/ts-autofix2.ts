@@ -4,8 +4,25 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 
-// Por tipo: nome PT → snake_case EN destino
+// Por tipo: nome do campo errado → nome correto. Independente do tipo
+// (campo ambíguo onde o destino depende do tipo).
 const TYPE_FIELD_MAP: Record<string, Record<string, string>> = {
+  RoiProcesso: {
+    process_id: 'processoId',
+    annual_cost: 'custoAnual',
+    annual_hours: 'horasAnual',
+    annual_savings: 'economiaAnual',
+    hours_freed: 'horasLiberadas',
+    roi_percent: 'roiPercentual',
+    payback_months: 'paybackMeses',
+    investment: 'investimento',
+  },
+  RoiAgregado: {
+    annual_savings: 'economiaAnual',
+    hours_freed: 'horasLiberadas',
+    roi_percent: 'roiPercentual',
+    payback_months: 'paybackMeses',
+  },
   Projeto: {
     nome: 'name',
     descricao: 'description',

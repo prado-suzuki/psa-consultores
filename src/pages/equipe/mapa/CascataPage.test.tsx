@@ -22,9 +22,10 @@ describe('CascataPage smoke', () => {
         <CascataPage />
       </TestProviders>,
     );
-    // Botão "+ Novo Evento" único confirma render sem crash.
+    // Cascata é derivada dos gargalos (etapas-origem), sem eventos manuais.
+    // O heading confirma render sem crash.
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Novo Evento/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /^Cascata$/i })).toBeInTheDocument();
     });
   });
 });

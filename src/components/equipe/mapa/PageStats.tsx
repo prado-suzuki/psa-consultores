@@ -1,4 +1,5 @@
 import { Tooltip } from './Tooltip';
+import AnimatedCounter from './AnimatedCounter';
 
 export interface PageStat {
   /** Rótulo curto do indicador (ex.: "Processos", "Horas totais"). */
@@ -12,56 +13,29 @@ export interface PageStat {
 }
 
 /**
- * Faixa de indicadores globais exibida no topo das páginas de listagem
- * (Processos, Responsáveis, etc.). Layout responsivo em cards compactos —
- * estilo consistente com o restante do app sem depender de classes do CSS.
+ * Faixa de indicadores globais no topo das páginas de listagem.
+ * Cards com hover lift suave e contagem animada quando o valor é numérico.
  */
 export default function PageStats({ stats }: { stats: PageStat[] }) {
   if (!stats.length) return null;
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-        gap: 10,
-        margin: '4px 0 18px',
-      }}
-    >
-      {stats.map((s) => (
-        <div
-          key={s.label}
-          style={{
-            background: '#f8fafc',
-            border: '1px solid #e2e8f0',
-            borderRadius: 10,
-            padding: '10px 14px',
-          }}
-        >
-          <div
-            style={{
-              fontSize: '0.68rem',
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-              fontWeight: 700,
-              marginBottom: 2,
-            }}
-          >
-            {s.tooltip ? <Tooltip text={s.tooltip}>{s.label}</Tooltip> : s.label}
+    <div className="page-stats-v2">
+      {stats.map((s) => {
+        const num = Number(s.value.replace(/[^\d.-]/g, ''));
+        const isPureNumber = /^\d+$/.test(s.value);
+        return (
+          <div key={s.label} className="page-stat-v2">
+            <div className="page-stat-label">
+              {s.tooltip ? <Tooltip text={s.tooltip}>{s.label}</Tooltip> : s.label}
+            </div>
+            <div className="page-stat-value" style={s.cor ? { color: s.cor } : undefined}>
+              {isPureNumber && Number.isFinite(num)
+                ? <AnimatedCounter value={num} />
+                : s.value}
+            </div>
           </div>
-          <div
-            style={{
-              fontSize: '1.3rem',
-              fontWeight: 700,
-              color: s.cor || 'var(--accent-color)',
-              fontVariantNumeric: 'tabular-nums',
-              lineHeight: 1.1,
-            }}
-          >
-            {s.value}
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

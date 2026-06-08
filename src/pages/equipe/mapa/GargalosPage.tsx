@@ -12,10 +12,12 @@ import { dica } from '@/utils/tooltips';
 import { agrupar } from '@/utils/agrupar';
 import { formatDecimal } from '@/utils/format';
 import { useFocusParam } from '@/utils/useFocusParam';
-import type { Gargalo } from '@/types';
+import type { Gargalo, GargaloEtapaRef } from '@/types';
 import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useEtapas } from '@/hooks/useEtapas';
 import { useGargalos, useCreateGargalo, useUpdateGargalo, useDeleteGargalo } from '@/hooks/useGargalos';
 import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import SeletorEtapasOrigem from '@/components/equipe/mapa/SeletorEtapasOrigem';
 
 const ORIGEM_OPCOES = [
   { value: 'Processo', label: 'Processo' },
@@ -44,6 +46,7 @@ export default function GargalosPage() {
 
   const { data: processos = [] } = useProcessosLista();
   const { data: melhoriasList = [] } = useMelhoriasLista();
+  const { data: etapasAll = [] } = useEtapas();
 
   const procNomeById = useMemo(
     () => new Map(processos.map(p => [p.id, p.name])),
@@ -57,21 +60,32 @@ export default function GargalosPage() {
     () => [...processos].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
     [processos]
   );
+  // Rótulo curto da melhoria = título antes de " — " (descrições renomeadas).
+  const melhoriaLabel = (desc: string): string => {
+    const i = desc.indexOf(' — ');
+    if (i > 0) return desc.slice(0, i).trim();
+    return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
+  };
   const melhoriaNomeById = useMemo(
-    () => new Map(melhoriasList.map(m => [m.id, m.improvement_description])),
+    () => new Map(melhoriasList.map(m => [m.id, melhoriaLabel(m.improvement_description)])),
     [melhoriasList]
   );
-  const melhoriaOpcoes = useMemo(
-    () => [
-      { value: '', label: '— sem melhoria —' },
-      ...melhoriasList.map(m => ({ value: m.id, label: m.improvement_description })),
-    ],
+  const melhoriaIdByLabel = useMemo(
+    () => new Map(melhoriasList.map(m => [melhoriaLabel(m.improvement_description), m.id])),
+    [melhoriasList]
+  );
+  const melhoriaLabelOptions = useMemo(
+    () => melhoriasList.map(m => melhoriaLabel(m.improvement_description)),
     [melhoriasList]
   );
   const idsToNames = (ids: string[]) =>
     ids.map(id => procNomeById.get(id)).filter((n): n is string => Boolean(n));
   const namesToIds = (names: string[]) =>
     names.map(n => procIdByNome.get(n)).filter((id): id is string => Boolean(id));
+  const melhoriaIdsToLabels = (ids: string[]) =>
+    ids.map(id => melhoriaNomeById.get(id)).filter((n): n is string => Boolean(n));
+  const melhoriaLabelsToIds = (labels: string[]) =>
+    labels.map(l => melhoriaIdByLabel.get(l)).filter((id): id is string => Boolean(id));
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<Gargalo | null>(null);
@@ -94,7 +108,8 @@ export default function GargalosPage() {
   const [origem, setOrigem] = useState('');
   const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
-  const [melhoriaId, setMelhoriaId] = useState('');
+  const [etapasOrigem, setEtapasOrigem] = useState<GargaloEtapaRef[]>([]);
+  const [melhoriaNomes, setMelhoriaNomes] = useState<string[]>([]);
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -106,7 +121,8 @@ export default function GargalosPage() {
   const [editOrigem, setEditOrigem] = useState('');
   const [editClusterId, setEditClusterId] = useState('');
   const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
-  const [editMelhoriaId, setEditMelhoriaId] = useState('');
+  const [editEtapasOrigem, setEditEtapasOrigem] = useState<GargaloEtapaRef[]>([]);
+  const [editMelhoriaNomes, setEditMelhoriaNomes] = useState<string[]>([]);
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
@@ -120,14 +136,13 @@ export default function GargalosPage() {
         descricao: descricao.trim(),
         origem: origem.trim(),
         cluster_id: clusterId || undefined,
-        // TODO M:N junction (gargalo_processos) será gerenciada em hook
-        // dedicado no próximo refator com TDD — por ora, mantém o array em
-        // memória mas o INSERT só persiste a row do gargalo.
         processos: namesToIds(processosNomes),
-        melhoria_id: melhoriaId || null,
+        etapasOrigem,
+        melhorias: melhoriaLabelsToIds(melhoriaNomes),
       });
       toast.success('Gargalo criado');
-      setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
+      setNome(''); setDescricao(''); setOrigem(''); setClusterId('');
+      setProcessosNomes([]); setEtapasOrigem([]); setMelhoriaNomes([]);
       setModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -143,7 +158,8 @@ export default function GargalosPage() {
     setEditOrigem(g.origem || '');
     setEditClusterId(g.cluster_id || '');
     setEditProcessosNomes(idsToNames(g.processos || []));
-    setEditMelhoriaId(g.melhoria_id || '');
+    setEditEtapasOrigem(g.etapasOrigem || []);
+    setEditMelhoriaNomes(melhoriaIdsToLabels(g.melhorias || []));
     setEditError('');
     setEditOpen(true);
   };
@@ -166,7 +182,8 @@ export default function GargalosPage() {
           origem: editOrigem.trim(),
           cluster_id: editClusterId || undefined,
           processos: namesToIds(editProcessosNomes),
-          melhoria_id: editMelhoriaId || null,
+          etapasOrigem: editEtapasOrigem,
+          melhorias: melhoriaLabelsToIds(editMelhoriaNomes),
         },
       });
       toast.success('Gargalo atualizado');
@@ -202,7 +219,11 @@ export default function GargalosPage() {
     [items]
   );
   const gargalosResolvidos = useMemo(
-    () => items.filter(g => g.melhoria_id).length,
+    () => items.filter(g => (g.melhorias ?? []).length > 0).length,
+    [items]
+  );
+  const gargalosComCascata = useMemo(
+    () => items.filter(g => (g.etapasOrigem ?? []).length > 0).length,
     [items]
   );
 
@@ -221,21 +242,24 @@ export default function GargalosPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Gargalos</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Gargalos</h1>
+          <p>Gargalos afetam um ou mais processos. Cadastre-os de forma generalista para mapear o ROI corretamente em todos os processos impactados.</p>
+        </div>
         <button className="btn-add" onClick={() => {
-          setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
+          setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setEtapasOrigem([]); setMelhoriaNomes([]);
           setError(''); setModalOpen(true);
         }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar Gargalo
         </button>
       </div>
-      <p>Gargalos afetam um ou mais processos. Cadastre-os de forma generalista para mapear o ROI corretamente em todos os processos impactados.</p>
       <PageStats stats={[
         { label: 'Gargalos', value: String(items.length), tooltip: 'Total de gargalos cadastrados.' },
         { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês em todos os gargalos.' },
         { label: 'Processos afetados', value: String(processosDistintos), tooltip: 'Número de processos distintos impactados por pelo menos um gargalo.' },
+        { label: 'Com cascata', value: String(gargalosComCascata), tooltip: 'Gargalos que afetam ≥1 documento — aparecem na aba Cascata com o grafo derivado em tempo real.' },
         { label: 'Com melhoria', value: String(gargalosResolvidos), tooltip: 'Gargalos que possuem ao menos uma melhoria vinculada.' },
       ]} />
       <FiltrosBar
@@ -253,7 +277,7 @@ export default function GargalosPage() {
         substantivo={['gargalo', 'gargalos']}
         emptyMessage="Nenhum gargalo encontrado para os filtros selecionados."
         renderGrupo={(itens) => (
-          <div className="gargalo-list">
+          <div className="gargalo-list list-stagger">
             {itens.map((g) => (
               <div
                 key={g.id}
@@ -302,6 +326,11 @@ export default function GargalosPage() {
                     ))}
                   </div>
                 )}
+                {g.etapasOrigem && g.etapasOrigem.length > 0 && (
+                  <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
+                    📡 Cascata · {g.etapasOrigem.length} {g.etapasOrigem.length === 1 ? 'etapa-origem' : 'etapas-origem'}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -331,12 +360,22 @@ export default function GargalosPage() {
               addLabel="Adicionar processo"
             />
           </FormField>
-          <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
-            <Select
-              value={melhoriaId}
-              onChange={setMelhoriaId}
-              options={melhoriaOpcoes}
-              placeholder="— sem melhoria —"
+          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. Restritas aos processos afetados marcados acima. A cascata jusante é derivada em tempo real a partir dos docs de saída dessas etapas.">
+            <SeletorEtapasOrigem
+              etapas={etapasAll}
+              processos={processos}
+              clusterId={clusterId || null}
+              processoIds={namesToIds(processosNomes)}
+              value={etapasOrigem}
+              onChange={setEtapasOrigem}
+            />
+          </FormField>
+          <FormField label="Melhorias vinculadas" tooltip={dica('gargalos.form.melhoria')}>
+            <ChipSelector
+              options={melhoriaLabelOptions}
+              value={melhoriaNomes}
+              onChange={(v) => setMelhoriaNomes(v as string[])}
+              addLabel="Adicionar melhoria"
             />
           </FormField>
           <div className="modal-actions">
@@ -369,12 +408,22 @@ export default function GargalosPage() {
               addLabel="Adicionar processo"
             />
           </FormField>
-          <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
-            <Select
-              value={editMelhoriaId}
-              onChange={setEditMelhoriaId}
-              options={melhoriaOpcoes}
-              placeholder="— sem melhoria —"
+          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. Restritas aos processos afetados marcados acima.">
+            <SeletorEtapasOrigem
+              etapas={etapasAll}
+              processos={processos}
+              clusterId={editClusterId || null}
+              processoIds={namesToIds(editProcessosNomes)}
+              value={editEtapasOrigem}
+              onChange={setEditEtapasOrigem}
+            />
+          </FormField>
+          <FormField label="Melhorias vinculadas" tooltip={dica('gargalos.form.melhoria')}>
+            <ChipSelector
+              options={melhoriaLabelOptions}
+              value={editMelhoriaNomes}
+              onChange={(v) => setEditMelhoriaNomes(v as string[])}
+              addLabel="Adicionar melhoria"
             />
           </FormField>
           <div className="modal-actions">
@@ -424,6 +473,20 @@ export default function GargalosPage() {
                 )}
               </div>
               <div className="form-group compact">
+                <label>Etapas-origem (geram cascata)</label>
+                {detailItem.etapasOrigem && detailItem.etapasOrigem.length > 0 ? (
+                  <div className="tags">
+                    {detailItem.etapasOrigem.map((ref) => (
+                      <span key={`${ref.etapaId}-${ref.scenario}`} className="tag" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                        {ref.processoNome ? `${ref.processoNome} · ` : ''}{ref.etapaNome || ref.etapaId}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Nenhuma etapa-origem — este gargalo não aparece na aba Cascata.</div>
+                )}
+              </div>
+              <div className="form-group compact">
                 <label>Horas estimadas/mês</label>
                 <div>
                   {detailItem.horas_gastas
@@ -433,11 +496,13 @@ export default function GargalosPage() {
               </div>
               <div style={{ marginTop: 16 }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>
-                  Melhoria vinculada
+                  Melhorias vinculadas
                 </div>
-                {detailItem.melhoria_id ? (
+                {detailItem.melhorias && detailItem.melhorias.length > 0 ? (
                   <div className="tags">
-                    <span className="tag">{melhoriaNomeById.get(detailItem.melhoria_id) || detailItem.melhoria_id}</span>
+                    {detailItem.melhorias.map((mid) => (
+                      <span key={mid} className="tag">{melhoriaNomeById.get(mid) || mid}</span>
+                    ))}
                   </div>
                 ) : (
                   <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Nenhuma melhoria vinculada.</p>

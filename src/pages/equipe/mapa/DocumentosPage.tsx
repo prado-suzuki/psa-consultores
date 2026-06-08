@@ -252,14 +252,16 @@ export default function DocumentosPage() {
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Documentos</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Documentos</h1>
+          <p>Visualize e organize a documentação do projeto.</p>
+        </div>
         <button className="btn-add" onClick={openNew}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Adicionar Documento
         </button>
       </div>
-      <p>Visualize e organize a documentação do projeto.</p>
       <PageStats stats={[
         {
           label: 'Documentos',

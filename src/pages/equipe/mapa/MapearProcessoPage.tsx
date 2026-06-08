@@ -14,6 +14,7 @@ import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
 import DecimalInput from '@/components/equipe/mapa/DecimalInput';
 import Select from '@/components/equipe/mapa/Select';
+import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import WizardRoi from '@/components/equipe/mapa/WizardRoi';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
@@ -363,7 +364,7 @@ export default function MapearProcessoPage() {
   // ============================================================
   return (
     <div className="card">
-      <div className="card-header" style={{ flexWrap: 'wrap', gap: 8 }}>
+      <div className="page-header-v2" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <button
             onClick={() => navigate('/equipe/digital/mapa/processos')}
@@ -375,7 +376,7 @@ export default function MapearProcessoPage() {
           </button>
           <h1 style={{ margin: 0 }}>{processo.name}</h1>
           {processo.evaluation_status && processo.evaluation_status !== 'Não avaliado' && (
-            <span className="status-badge" style={{ background: '#dcfce7', color: '#166534' }}>{processo.evaluation_status}</span>
+            <StatusBadge variant="diagnostic">{processo.evaluation_status}</StatusBadge>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

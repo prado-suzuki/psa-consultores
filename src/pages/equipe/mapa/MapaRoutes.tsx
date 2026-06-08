@@ -6,6 +6,7 @@ import { Routes, Route } from 'react-router-dom';
 import { PageAccessGate } from '@/components/auth/PageAccessGate';
 import MapaLayout from '@/components/equipe/mapa/Layout';
 import './mapa.css';
+import './styles/roi.css';
 import ProjetosPage from '@/pages/equipe/mapa/ProjetosPage';
 import SistemasPage from '@/pages/equipe/mapa/SistemasPage';
 import DocumentosPage from '@/pages/equipe/mapa/DocumentosPage';

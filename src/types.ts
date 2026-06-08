@@ -154,15 +154,34 @@ export interface Processo extends BaseEntity {
 //  Gargalo — tabela `gargalos`
 // ═════════════════════════════════════════════════════════════════════════
 
+export interface GargaloEtapaRef {
+  etapaId: string;
+  scenario: 'AS-IS' | 'TO-BE';
+  /** Hidratado opcionalmente para a UI sem cruzamento. */
+  etapaNome?: string;
+  processo_id?: string;
+  processoNome?: string;
+  stage_order?: number;
+}
+
 export interface Gargalo {
   id: string;
   /** Coluna PT-native do DB (tabela `gargalos`). Mantém snake_case PT. */
   nome: string;
   descricao: string;
-  /** Hidratado via `gargalo_processos` (M:N). */
+  /** Hidratado via `gargalo_processos` (M:N). Vínculo MACRO opcional — para
+   *  gargalos "organizacionais" sem etapa específica. NÃO é usado pela
+   *  cascata derivada. */
   processos: string[];
-  /** Melhoria vinculada (1:N — cada gargalo tem no máximo 1 melhoria). */
+  /** Hidratado via `gargalo_etapas` (M:N com FK composta etapa_id+scenario).
+   *  Etapas onde o gargalo se manifesta. Cada etapa-origem inicia uma BFS
+   *  jusante (etapa → docsSaida → etapas que consomem → ...) que define a
+   *  cascata, derivada em tempo real e exibida na CascataPage. */
+  etapasOrigem: GargaloEtapaRef[];
+  /** @deprecated Use `melhorias` (N:M via gargalo_melhorias). Mantido por compat. */
   melhoria_id?: string | null;
+  /** Melhorias que atacam este gargalo. Hidratado via `gargalo_melhorias` (N:M). */
+  melhorias?: string[];
   origem?: string;
   cluster_id?: string | null;
   /** Nome do cluster, hidratado via JOIN. */
@@ -336,6 +355,8 @@ export interface Melhoria {
   treinamentoPor?: ResponsavelHoras[];
   /** Hidratado via `melhoria_acoes_td`. */
   acoesTd?: AcaoTd[];
+  /** Gargalos atacados por esta melhoria. Hidratado via `gargalo_melhorias` (N:M). */
+  gargalos?: string[];
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -358,30 +379,10 @@ export interface ProcessSnapshot {
 
 
 // =====================================================================
-// Cascata — Eventos de Disrupção com etapas de retrabalho marcadas manualmente.
+// Cascata — agora é derivada em tempo real a partir de gargalos que
+// afetam documentos (vide Gargalo.documentosAfetados). A entidade
+// CascataEvento e suas etapas marcadas manualmente foram removidas.
+// Mantemos só o type de cenário (ainda usado em process_stages).
 // =====================================================================
 
 export type CenarioEtapa = 'AS-IS' | 'TO-BE';
-
-export interface CascataEventoEtapaRef {
-  etapaId: string;
-  cenario: CenarioEtapa;
-  // Campos hidratados pelo backend (read-only) — facilitam a UI sem cruzamento.
-  etapaNome?: string;
-  etapaOrdem?: number;
-  process_id?: string;
-  processoNome?: string;
-}
-
-export interface CascataEvento {
-  id: string;
-  nome: string;
-  descricao?: string;
-  /** FK para processo raiz. */
-  processoRaizId?: string | null;
-  cluster?: string;
-  /** ISO 8601. */
-  createdAt?: string;
-  /** Etapas marcadas como retrabalho quando o evento ocorre. */
-  etapas: CascataEventoEtapaRef[];
-}

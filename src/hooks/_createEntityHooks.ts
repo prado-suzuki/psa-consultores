@@ -18,6 +18,13 @@ export interface EntityHooksConfig {
   defaultOrder?: string;
   /** Cláusula SELECT customizada — default '*'. Use pra incluir JOINs PostgREST. */
   selectClause?: string;
+  /**
+   * Colunas que devem ser NOT NULL na listagem. Útil pra esconder ruído de
+   * tabelas compartilhadas (ex.: `['cluster_id']` em `processes` esconde os
+   * 28 processos do Digital Rotina que ficaram com cluster_id NULL).
+   * Aplica apenas em `useList()` — `useById()` continua aberto pra navegação direta.
+   */
+  listNotNull?: string[];
 }
 
 export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
@@ -31,13 +38,16 @@ export interface EntityHooks<T extends { id: string }, Input = Omit<T, 'id'>> {
 export function createEntityHooks<T extends { id: string }, Input = Omit<T, 'id'>>(
   cfg: EntityHooksConfig,
 ): EntityHooks<T, Input> {
-  const { resource, defaultOrder, selectClause = '*' } = cfg;
+  const { resource, defaultOrder, selectClause = '*', listNotNull } = cfg;
 
   function useList(): UseQueryResult<T[]> {
     return useQuery<T[]>({
       queryKey: [resource],
       queryFn: async () => {
         let q = supabase.from(resource as never).select(selectClause);
+        for (const col of listNotNull ?? []) {
+          q = q.not(col, 'is', null);
+        }
         if (defaultOrder) q = q.order(defaultOrder);
         const { data, error } = await q;
         if (error) throw new Error(error.message);

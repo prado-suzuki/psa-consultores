@@ -11,7 +11,7 @@ import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { agrupar } from '@/utils/agrupar';
 import { parseDecimal, formatDecimal, formatarMoeda, parseMoeda } from '@/utils/format';
-import type { Melhoria, Gargalo, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
+import type { Melhoria, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
 import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { useFocusParam } from '@/utils/useFocusParam';
@@ -149,17 +149,14 @@ export default function MelhoriasPage() {
     () => new Map(processosList.map(p => [p.name, p.id])),
     [processosList]
   );
-  // Inverso da relação 1:N — para uma melhoria, lista os gargalos que ela resolve.
-  const gargalosPorMelhoria = useMemo(() => {
-    const m = new Map<string, Gargalo[]>();
-    for (const g of gargalosList) {
-      if (!g.melhoria_id) continue;
-      const arr = m.get(g.melhoria_id) ?? [];
-      arr.push(g);
-      m.set(g.melhoria_id, arr);
-    }
-    return m;
-  }, [gargalosList]);
+  // N:M via gargalo_melhorias: cada melhoria carrega `gargalos` (ids). Mapa
+  // id→nome para exibir os gargalos resolvidos.
+  const gargaloNomeById = useMemo(
+    () => new Map(gargalosList.map(g => [g.id, g.nome])),
+    [gargalosList]
+  );
+  const gargalosDaMelhoria = (m: Melhoria): { id: string; nome: string }[] =>
+    (m.gargalos ?? []).map(id => ({ id, nome: gargaloNomeById.get(id) || id }));
   const sistemaNomeById = useMemo(
     () => new Map(sistemasList.map(s => [s.id, s.nome])),
     [sistemasList]
@@ -236,17 +233,13 @@ export default function MelhoriasPage() {
   const [fGargalo, setFGargalo] = useState('');
   const filtrosAtivos = !!(fCluster || fStatus || fProcesso || fGargalo);
   const limparFiltros = () => { setFCluster(''); setFStatus(''); setFProcesso(''); setFGargalo(''); };
-  // Filtro por gargalo: agora a fonte é a FK gargalos.melhoria_id.
-  const melhoriaIdDoGargaloFiltro = useMemo(
-    () => (fGargalo ? gargalosList.find(g => g.id === fGargalo)?.melhoria_id ?? null : null),
-    [fGargalo, gargalosList]
-  );
+  // Filtro por gargalo: agora N:M (gargalo_melhorias) — a melhoria carrega `gargalos`.
   const itensFiltrados = useMemo(() => items.filter(m =>
     (!fCluster || m.cluster_id === fCluster) &&
     (!fStatus || (m.improvement_status || 'Não iniciado') === fStatus) &&
     (!fProcesso || (m.processos || []).includes(fProcesso)) &&
-    (!fGargalo || melhoriaIdDoGargaloFiltro === m.id)
-  ), [items, fCluster, fStatus, fProcesso, fGargalo, melhoriaIdDoGargaloFiltro]);
+    (!fGargalo || (m.gargalos || []).includes(fGargalo))
+  ), [items, fCluster, fStatus, fProcesso, fGargalo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('cluster');
@@ -395,20 +388,27 @@ export default function MelhoriasPage() {
     setModalOpen(true);
   };
 
+  const editGargalos = (() => {
+    const ed = items.find(x => x.id === editId);
+    return ed ? gargalosDaMelhoria(ed) : [];
+  })();
+
   if (!loaded) return (
     <div className="loading-container"><div className="spinner" /></div>
   );
 
   return (
     <div className="card">
-      <div className="card-header">
-        <h1>Melhorias</h1>
+      <div className="page-header-v2">
+        <div className="page-header-titles">
+          <h1>Melhorias</h1>
+          <p>Registre melhorias e os processos que cada uma atende (uma melhoria pode atender mais de um processo).</p>
+        </div>
         <button className="btn-add" onClick={openNew}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           Avaliar Melhorias
         </button>
       </div>
-      <p>Registre melhorias e os processos que cada uma atende (uma melhoria pode atender mais de um processo).</p>
       <PageStats stats={[
         { label: 'Melhorias', value: String(items.length), tooltip: 'Total de melhorias cadastradas.' },
         { label: 'Concluídas', value: String(items.filter(m => m.improvement_status === 'Concluído').length), tooltip: 'Melhorias com status Concluído.' },
@@ -432,7 +432,7 @@ export default function MelhoriasPage() {
         substantivo={['melhoria', 'melhorias']}
         emptyMessage="Nenhuma melhoria encontrada para os filtros selecionados."
         renderGrupo={(itens) => (
-          <div className="melhoria-list">
+          <div className="melhoria-list list-stagger">
             {itens.map((m) => (
               <div
                 key={m.id}
@@ -518,9 +518,9 @@ export default function MelhoriasPage() {
                 <span style={{ marginLeft: 6, color: '#94a3b8', fontStyle: 'italic' }}>(sem rateio)</span>
               </div>
             ) : null}
-            {(gargalosPorMelhoria.get(m.id) ?? []).length > 0 && (
+            {gargalosDaMelhoria(m).length > 0 && (
               <div className="tags" style={{ marginTop: 8 }}>
-                {(gargalosPorMelhoria.get(m.id) ?? []).map((g) => (
+                {gargalosDaMelhoria(m).map((g) => (
                   <span key={g.id} className="tag tag-etapa">{g.nome}</span>
                 ))}
               </div>
@@ -593,16 +593,16 @@ export default function MelhoriasPage() {
                   </ul>
                 </div>
               )}
-              {(gargalosPorMelhoria.get(detailItem.id) ?? []).length > 0 && (
+              {gargalosDaMelhoria(detailItem).length > 0 && (
                 <div className="form-group compact">
                   <label>Gargalos resolvidos</label>
                   <div className="tags">
-                    {(gargalosPorMelhoria.get(detailItem.id) ?? []).map((g) => (
+                    {gargalosDaMelhoria(detailItem).map((g) => (
                       <span key={g.id} className="tag tag-etapa">{g.nome}</span>
                     ))}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: 4 }}>
-                    Para vincular ou desvincular um gargalo, edite-o em <strong>Gargalos</strong> e ajuste o campo "Melhoria vinculada".
+                    Para vincular ou desvincular um gargalo, edite-o em <strong>Gargalos</strong> e ajuste o campo "Melhorias vinculadas".
                   </div>
                 </div>
               )}
@@ -834,11 +834,11 @@ export default function MelhoriasPage() {
               addLabel="Adicionar ação"
             />
           </FormField>
-          {(gargalosPorMelhoria.get(editId) ?? []).length > 0 ? (
+          {editGargalos.length > 0 ? (
             <div className="form-group compact">
               <label>Gargalos resolvidos (vinculam-se a partir da página de Gargalos)</label>
               <div className="tags">
-                {(gargalosPorMelhoria.get(editId) ?? []).map(g => (
+                {editGargalos.map(g => (
                   <span key={g.id} className="tag tag-etapa">{g.nome}</span>
                 ))}
               </div>

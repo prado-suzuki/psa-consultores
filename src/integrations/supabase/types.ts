@@ -667,90 +667,6 @@ export type Database = {
           },
         ]
       }
-      cascata_evento_etapas: {
-        Row: {
-          created_at: string
-          etapa_id: string
-          evento_id: string
-          id: string
-          scenario: string
-        }
-        Insert: {
-          created_at?: string
-          etapa_id: string
-          evento_id: string
-          id?: string
-          scenario?: string
-        }
-        Update: {
-          created_at?: string
-          etapa_id?: string
-          evento_id?: string
-          id?: string
-          scenario?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "casc_evt_etp_etapa_fk"
-            columns: ["etapa_id", "scenario"]
-            isOneToOne: false
-            referencedRelation: "process_stages"
-            referencedColumns: ["id", "scenario"]
-          },
-          {
-            foreignKeyName: "cascata_evento_etapas_evento_id_fkey"
-            columns: ["evento_id"]
-            isOneToOne: false
-            referencedRelation: "cascata_eventos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      cascata_eventos: {
-        Row: {
-          cluster_id: string | null
-          created_at: string
-          descricao: string | null
-          id: string
-          nome: string
-          processo_raiz_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          cluster_id?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome: string
-          processo_raiz_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          cluster_id?: string | null
-          created_at?: string
-          descricao?: string | null
-          id?: string
-          nome?: string
-          processo_raiz_id?: string | null
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cascata_eventos_cluster_id_fk"
-            columns: ["cluster_id"]
-            isOneToOne: false
-            referencedRelation: "estrutura_clusters"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cascata_eventos_processo_raiz_id_fkey"
-            columns: ["processo_raiz_id"]
-            isOneToOne: false
-            referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       catalog_clients: {
         Row: {
           color: string | null
@@ -1405,9 +1321,7 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_envio: string
-          excluido: string | null
           mes_ano_exercicio: string
-          nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1419,9 +1333,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio: string
-          excluido?: string | null
           mes_ano_exercicio: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1433,9 +1345,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio?: string
-          excluido?: string | null
           mes_ano_exercicio?: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
@@ -2586,6 +2496,45 @@ export type Database = {
             columns: ["ciclo_id"]
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_etapas: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          gargalo_id: string
+          id: string
+          scenario: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          gargalo_id: string
+          id?: string
+          scenario?: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          gargalo_id?: string
+          id?: string
+          scenario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_etapas_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+          {
+            foreignKeyName: "gargalo_etapas_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
             referencedColumns: ["id"]
           },
         ]
@@ -4225,10 +4174,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string
-          excluido: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento: string | null
           nr_per: string
           nr_proc_ret: string | null
           porcentagem_psa: number | null
@@ -4244,10 +4191,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada: string
-          excluido?: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento?: string | null
           nr_per: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -4263,10 +4208,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada?: string
-          excluido?: string | null
           exercicio?: number
           id_contribuinte?: string
-          nr_cancelamento?: string | null
           nr_per?: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -6991,6 +6934,7 @@ export type Database = {
           created_by: string | null
           fracao: number | null
           id: string
+          integralizador: boolean
           matricula_id: string | null
           tipo: string
           titular_pessoa_id: string
@@ -7003,6 +6947,7 @@ export type Database = {
           created_by?: string | null
           fracao?: number | null
           id?: string
+          integralizador?: boolean
           matricula_id?: string | null
           tipo: string
           titular_pessoa_id: string
@@ -7015,6 +6960,7 @@ export type Database = {
           created_by?: string | null
           fracao?: number | null
           id?: string
+          integralizador?: boolean
           matricula_id?: string | null
           tipo?: string
           titular_pessoa_id?: string
@@ -7499,9 +7445,11 @@ export type Database = {
       tmpl_flag: {
         Row: {
           ativo: boolean
+          campo: string | null
           created_at: string
           created_by: string | null
           descricao: string | null
+          entidade: string | null
           escopo: string
           expressao_sql: string | null
           id: string
@@ -7509,12 +7457,15 @@ export type Database = {
           tipo: string
           updated_at: string
           updated_by: string | null
+          valor: string | null
         }
         Insert: {
           ativo?: boolean
+          campo?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          entidade?: string | null
           escopo: string
           expressao_sql?: string | null
           id?: string
@@ -7522,12 +7473,15 @@ export type Database = {
           tipo: string
           updated_at?: string
           updated_by?: string | null
+          valor?: string | null
         }
         Update: {
           ativo?: boolean
+          campo?: string | null
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          entidade?: string | null
           escopo?: string
           expressao_sql?: string | null
           id?: string
@@ -7535,6 +7489,7 @@ export type Database = {
           tipo?: string
           updated_at?: string
           updated_by?: string | null
+          valor?: string | null
         }
         Relationships: [
           {
@@ -7707,10 +7662,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string | null
-          excluido: string | null
           exercicio: number | null
           id_contribuinte: string | null
-          nr_cancelamento: string | null
           nr_per: string | null
           nr_proc_ret: string | null
           porcentagem_psa: number | null
