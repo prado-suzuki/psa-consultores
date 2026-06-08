@@ -20,6 +20,10 @@ interface Props {
   etapas: Etapa[];
   processos: Processo[];
   clusterId: string | null;
+  /** Restringe a seleção às etapas DESSES processos. Se vazio, popover
+   *  mostra empty-state pedindo para o operador marcar "Processos afetados"
+   *  antes. */
+  processoIds: string[];
   value: GargaloEtapaRef[];
   onChange: (next: GargaloEtapaRef[]) => void;
 }
@@ -103,6 +107,7 @@ export default function SeletorEtapasOrigem({
   etapas,
   processos,
   clusterId,
+  processoIds,
   value,
   onChange,
 }: Props) {
@@ -111,12 +116,18 @@ export default function SeletorEtapasOrigem({
   const popoverRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
 
-  // Filtra processos do cluster
+  // Escopo de processos = SOMENTE os processos afetados marcados no gargalo.
+  // Cluster é usado apenas como segundo filtro defensivo (geralmente todos
+  // os processos afetados já estão no mesmo cluster).
+  const procIdsAfetados = useMemo(() => new Set(processoIds), [processoIds]);
   const procFiltrados = useMemo(() => {
-    if (!clusterId) return processos;
     type ProcessoComCluster = Processo & { cluster_id?: string | null };
-    return processos.filter((p) => (p as ProcessoComCluster).cluster_id === clusterId);
-  }, [processos, clusterId]);
+    return processos.filter((p) => {
+      if (!procIdsAfetados.has(p.id)) return false;
+      if (clusterId && (p as ProcessoComCluster).cluster_id !== clusterId) return false;
+      return true;
+    });
+  }, [processos, procIdsAfetados, clusterId]);
 
   const procIdsFiltrados = useMemo(() => new Set(procFiltrados.map((p) => p.id)), [procFiltrados]);
   const procNomeById = useMemo(() => new Map(procFiltrados.map((p) => [p.id, p.name])), [procFiltrados]);
@@ -230,15 +241,15 @@ export default function SeletorEtapasOrigem({
           ref={triggerRef}
           type="button"
           onClick={() => setOpen((v) => !v)}
-          disabled={!clusterId}
+          disabled={procIdsAfetados.size === 0}
           style={{
             padding: '4px 10px',
-            background: clusterId ? '#0f172a' : '#cbd5e1',
+            background: procIdsAfetados.size > 0 ? '#0f172a' : '#cbd5e1',
             color: '#fff',
             border: 0,
             borderRadius: 4,
             fontSize: '0.75rem',
-            cursor: clusterId ? 'pointer' : 'not-allowed',
+            cursor: procIdsAfetados.size > 0 ? 'pointer' : 'not-allowed',
             marginLeft: 'auto',
           }}
         >
@@ -246,14 +257,14 @@ export default function SeletorEtapasOrigem({
         </button>
       </div>
 
-      {!clusterId && (
+      {procIdsAfetados.size === 0 && (
         <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
-          Selecione o cluster do gargalo primeiro para habilitar a seleção de etapas.
+          Marque processos afetados acima primeiro — as etapas-origem ficam restritas a esses processos.
         </p>
       )}
 
       {/* Popover */}
-      {open && clusterId && (
+      {open && procIdsAfetados.size > 0 && (
         <div
           ref={popoverRef}
           className="seo-popover"
@@ -285,7 +296,7 @@ export default function SeletorEtapasOrigem({
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {grupos.length === 0 ? (
               <div style={{ padding: 16, color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center' }}>
-                {buscaNorm ? 'Nenhuma etapa corresponde à busca.' : 'Nenhum processo neste cluster.'}
+                {buscaNorm ? 'Nenhuma etapa corresponde à busca.' : 'Nenhuma etapa nos processos afetados.'}
               </div>
             ) : (
               grupos.map(({ processo, etapas }) => (

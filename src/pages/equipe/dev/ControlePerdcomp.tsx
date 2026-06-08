@@ -874,7 +874,7 @@ export default function ControlePerdcomp() {
                         <TooltipTrigger asChild>
                           <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
-                        <TooltipContent className="max-w-xs">
+                        <TooltipContent side="top" align="start" collisionPadding={16} className="max-w-xs">
                           <p>
                             Soma de <strong>todos os PERs</strong> que atendem aos filtros aplicados —
                             independente da página exibida e da ordenação. O valor não muda ao paginar.

@@ -349,11 +349,12 @@ export default function GargalosPage() {
               addLabel="Adicionar processo"
             />
           </FormField>
-          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. A cascata jusante é derivada automaticamente em tempo real a partir dos docs de saída dessas etapas. Selecione uma ou mais etapas (use o filtro para encontrar).">
+          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. Restritas aos processos afetados marcados acima. A cascata jusante é derivada em tempo real a partir dos docs de saída dessas etapas.">
             <SeletorEtapasOrigem
               etapas={etapasAll}
               processos={processos}
               clusterId={clusterId || null}
+              processoIds={namesToIds(processosNomes)}
               value={etapasOrigem}
               onChange={setEtapasOrigem}
             />
@@ -396,11 +397,12 @@ export default function GargalosPage() {
               addLabel="Adicionar processo"
             />
           </FormField>
-          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. A cascata jusante é derivada automaticamente em tempo real a partir dos docs de saída dessas etapas.">
+          <FormField label="Etapas-origem" tooltip="Etapas onde o gargalo se manifesta. Restritas aos processos afetados marcados acima.">
             <SeletorEtapasOrigem
               etapas={etapasAll}
               processos={processos}
               clusterId={editClusterId || null}
+              processoIds={namesToIds(editProcessosNomes)}
               value={editEtapasOrigem}
               onChange={setEditEtapasOrigem}
             />
