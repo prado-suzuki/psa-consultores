@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Melhoria, AcaoTd } from '@/types';
 
 const TABLE = 'process_improvements';
-const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td)';
+const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td), gargalo_melhorias(gargalo_id)';
 
 type DbRow = Record<string, unknown>;
 
@@ -24,6 +24,7 @@ function hydrate(row: DbRow): Melhoria {
     processos: pluck<string>(row.melhoria_processos, 'processo_id'),
     sistemas: pluck<string>(row.melhoria_sistemas, 'sistema_id'),
     acoesTd: pluck<AcaoTd>(row.melhoria_acoes_td, 'acao_td'),
+    gargalos: pluck<string>(row.gargalo_melhorias, 'gargalo_id'),
     executadoPor: [],
   };
 }
@@ -37,6 +38,7 @@ function stripSyntheticFields(patch: Partial<Melhoria>): Record<string, unknown>
   delete out.executadoPor;
   delete out.treinamentoPor;
   delete out.acoesTd;
+  delete out.gargalos;
   return out;
 }
 

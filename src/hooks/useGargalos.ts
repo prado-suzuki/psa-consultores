@@ -17,6 +17,7 @@ const SELECT = `
   *,
   estrutura_clusters(name),
   gargalo_processos(processo_id),
+  gargalo_melhorias(melhoria_id),
   gargalo_etapas (
     etapa_id, scenario,
     process_stages ( name, stage_order, process_id, processes ( name ) )
@@ -26,6 +27,7 @@ const SELECT = `
 const SELECT_FALLBACK = `
   *,
   gargalo_processos(processo_id),
+  gargalo_melhorias(melhoria_id),
   gargalo_etapas (
     etapa_id, scenario,
     process_stages ( name, stage_order, process_id, processes ( name ) )
@@ -46,6 +48,7 @@ type DbGargaloEtapaRow = {
 type DbRow = Record<string, unknown> & {
   estrutura_clusters?: { name?: string } | null;
   gargalo_processos?: Array<{ processo_id: string }> | null;
+  gargalo_melhorias?: Array<{ melhoria_id: string }> | null;
   gargalo_etapas?: DbGargaloEtapaRow[] | null;
 };
 
@@ -71,6 +74,7 @@ function hydrate(row: DbRow): Gargalo {
     ...(row as unknown as Gargalo),
     clusterName: row.estrutura_clusters?.name,
     processos: pluck<string>(row.gargalo_processos, 'processo_id'),
+    melhorias: pluck<string>(row.gargalo_melhorias, 'melhoria_id'),
     etapasOrigem: hydrateEtapasOrigem(row.gargalo_etapas),
   };
 }
@@ -79,6 +83,7 @@ function stripSyntheticFields(patch: Partial<Gargalo>): Record<string, unknown> 
   const out = { ...patch } as Record<string, unknown>;
   delete out.clusterName;
   delete out.processos;
+  delete out.melhorias;
   delete out.etapasOrigem;
   delete out.responsaveisHoras;
   return out;
@@ -105,8 +110,26 @@ async function syncEtapasOrigem(gargaloId: string, etapas: GargaloEtapaRef[]): P
   }
 }
 
-export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'etapasOrigem' | 'responsaveisHoras'> & {
+/** Sincroniza gargalo_melhorias (N:M delete-all + insert) */
+async function syncMelhorias(gargaloId: string, melhoriaIds: string[]): Promise<void> {
+  const { error: delErr } = await supabase
+    .from('gargalo_melhorias' as never)
+    .delete()
+    .eq('gargalo_id', gargaloId);
+  if (delErr) throw new Error(delErr.message);
+
+  if (melhoriaIds.length > 0) {
+    const rows = melhoriaIds.map((melhoria_id) => ({ gargalo_id: gargaloId, melhoria_id }));
+    const { error: insErr } = await supabase
+      .from('gargalo_melhorias' as never)
+      .insert(rows as never);
+    if (insErr) throw new Error(insErr.message);
+  }
+}
+
+export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'melhorias' | 'etapasOrigem' | 'responsaveisHoras'> & {
   processos?: string[];
+  melhorias?: string[];
   etapasOrigem?: GargaloEtapaRef[];
   responsaveisHoras?: Gargalo['responsaveisHoras'];
 };
@@ -147,6 +170,7 @@ export function useCreateGargalo(): UseMutationResult<Gargalo, Error, GargaloInp
   return useMutation({
     mutationFn: async (input: GargaloInput) => {
       const etapas = input.etapasOrigem ?? [];
+      const melhorias = input.melhorias ?? [];
       const { data, error } = await supabase
         .from(TABLE as never)
         .insert(stripSyntheticFields(input as Partial<Gargalo>) as never)
@@ -157,6 +181,9 @@ export function useCreateGargalo(): UseMutationResult<Gargalo, Error, GargaloInp
 
       if (etapas.length > 0) {
         await syncEtapasOrigem(created.id, etapas);
+      }
+      if (melhorias.length > 0) {
+        await syncMelhorias(created.id, melhorias);
       }
 
       // Re-fetch hidratado
@@ -180,6 +207,7 @@ export function useUpdateGargalo(): UseMutationResult<
   return useMutation({
     mutationFn: async ({ id, patch }) => {
       const novasEtapas = patch.etapasOrigem;
+      const novasMelhorias = patch.melhorias;
       const dbPatch = stripSyntheticFields(patch);
 
       if (Object.keys(dbPatch).length > 0) {
@@ -192,6 +220,9 @@ export function useUpdateGargalo(): UseMutationResult<
 
       if (novasEtapas !== undefined) {
         await syncEtapasOrigem(id, novasEtapas);
+      }
+      if (novasMelhorias !== undefined) {
+        await syncMelhorias(id, novasMelhorias);
       }
 
       const { data, error: selErr } = await supabase

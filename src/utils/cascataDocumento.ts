@@ -64,10 +64,12 @@ function canonDocId(docId: string, docsById: Map<string, Documento>): string {
   type DocComCanonico = Documento & { canonicoId?: string | null; canonico_id?: string | null };
   const dc = d as DocComCanonico;
   const canonicoId = dc.canonicoId ?? dc.canonico_id;
-  if (canonicoId && docsById.has(canonicoId)) {
-    return canon(docsById.get(canonicoId)!.nome);
-  }
-  return canon(d.nome);
+  // Identidade EXATA por documento_id (ou canonico_id de agrupamento). Evita
+  // falsos positivos entre documentos homônimos. Como etapa_documentos sempre
+  // grava documento_id, ambos os lados (saída/entrada) resolvem por id aqui.
+  // Fallback para nome canônico só em referências livres sem id (raro).
+  if (canonicoId && docsById.has(canonicoId)) return `doc:${canonicoId}`;
+  return `doc:${docId}`;
 }
 
 /**
