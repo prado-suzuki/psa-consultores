@@ -199,7 +199,6 @@ export function PerFormModal({
         .from('per') as any)
         .select('nr_per, exercicio, tri_exercicio, tp_credito')
         .eq('id_contribuinte', contribuinteId)
-        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (error) throw error;
       return data || [];

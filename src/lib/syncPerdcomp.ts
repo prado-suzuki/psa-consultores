@@ -12,8 +12,6 @@ interface PerSync {
   vlr_ressarcido?: number | null;
   nr_proc_ret?: string | null;
   porcentagem_psa?: number | null;
-  excluido?: string | null;
-  nr_cancelamento?: string | null;
 }
 
 interface PerSituacaoSync {
@@ -32,8 +30,6 @@ interface DcompSync {
   dt_envio: string;
   vlr_compensado: number;
   nr_dcomp_ret?: string | null;
-  excluido?: string | null;
-  nr_cancelamento?: string | null;
 }
 
 interface SyncPerdcompPayload {

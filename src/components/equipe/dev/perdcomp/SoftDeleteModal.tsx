@@ -1,71 +1,90 @@
-import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Loader2 } from 'lucide-react';
 
 interface SoftDeleteModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   type: 'per' | 'dcomp';
-  identifier: string; // nr_per or nr_documento
+  identifier: string; // nr_per ou nr_documento
 }
 
+/**
+ * Confirmação de exclusão DEFINITIVA (hard delete) de PER ou DCOMP.
+ * - PER: apaga em cascata `distribuicao_dcomp` -> `dcomp` -> `per_situacao` -> `per`.
+ * - DCOMP: apaga `distribuicao_dcomp` -> `dcomp`.
+ *
+ * Nome do componente mantido (`SoftDeleteModal`) por compatibilidade com os
+ * pontos de uso, mas a operação não é mais soft delete.
+ */
 export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDeleteModalProps) {
   const queryClient = useQueryClient();
   const { isAdmin, isLider, isSublider } = useAuth();
   const canWrite = isAdmin || isLider || isSublider;
-  const [action, setAction] = useState<'E' | 'C'>('E');
-  const [nrCancelamento, setNrCancelamento] = useState('');
 
   const mutation = useMutation({
     mutationFn: async () => {
-      const updatePayload = {
-        excluido: action,
-        nr_cancelamento: action === 'C' ? (nrCancelamento || null) : null,
-      };
-
       if (type === 'per') {
-        // Update the PER — cast to any to bypass auto-generated types until regeneration
-        const { error: perError } = await (supabase
-          .from('per') as any)
-          .update(updatePayload)
-          .eq('nr_per', identifier);
-        if (perError) throw perError;
+        // Buscar DCOMPs filhos para apagar as distribuições primeiro
+        const { data: dcompsFilhos, error: dcompsErr } = await (supabase
+          .from('dcomp') as any)
+          .select('nr_documento')
+          .eq('nr_per_orig', identifier);
+        if (dcompsErr) throw dcompsErr;
 
-        // Cascade: update all child DCOMPs that are not already soft-deleted
-        const { error: dcompError } = await (supabase
-          .from('dcomp') as any)
-          .update(updatePayload)
-          .eq('nr_per_orig', identifier)
-          .or('excluido.is.null,excluido.eq.');
-        if (dcompError) {
-          console.error('[SoftDelete] Erro ao atualizar DCOMPs em cascata:', dcompError);
+        const nrDocs = (dcompsFilhos || []).map((d: { nr_documento: string }) => d.nr_documento);
+        if (nrDocs.length > 0) {
+          const { error: distErr } = await supabase
+            .from('distribuicao_dcomp')
+            .delete()
+            .in('nr_documento', nrDocs);
+          if (distErr) throw distErr;
         }
+
+        const { error: dcompErr } = await supabase
+          .from('dcomp')
+          .delete()
+          .eq('nr_per_orig', identifier);
+        if (dcompErr) throw dcompErr;
+
+        const { error: sitErr } = await supabase
+          .from('per_situacao')
+          .delete()
+          .eq('nr_proc_per', identifier);
+        if (sitErr) throw sitErr;
+
+        const { error: perErr } = await supabase
+          .from('per')
+          .delete()
+          .eq('nr_per', identifier);
+        if (perErr) throw perErr;
       } else {
-        // Update just the DCOMP
-        const { error } = await (supabase
-          .from('dcomp') as any)
-          .update(updatePayload)
+        const { error: distErr } = await supabase
+          .from('distribuicao_dcomp')
+          .delete()
+          .eq('nr_documento', identifier);
+        if (distErr) throw distErr;
+
+        const { error } = await supabase
+          .from('dcomp')
+          .delete()
           .eq('nr_documento', identifier);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
       queryClient.invalidateQueries({ queryKey: ['per-dcomps'] });
@@ -74,100 +93,58 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
       queryClient.invalidateQueries({ queryKey: ['dcomps-existentes'] });
 
       const label = type === 'per' ? 'PER' : 'DCOMP';
-      const actionLabel = action === 'E' ? 'excluído' : 'cancelado';
-      toast.success(`${label} ${actionLabel} com sucesso!`);
-      handleClose();
+      toast.success(`${label} excluído definitivamente.`);
+      onOpenChange(false);
     },
-    onError: (error: any) => {
-      toast.error(`Erro ao processar: ${error.message}`);
+    onError: (error: { message?: string }) => {
+      toast.error(`Erro ao excluir: ${error?.message ?? 'erro desconhecido'}`);
     },
   });
-
-  const handleClose = () => {
-    setAction('E');
-    setNrCancelamento('');
-    onOpenChange(false);
-  };
-
-  const handleConfirm = () => {
-    if (!canWrite) {
-      toast.error('Você não tem permissão para editar/excluir este DCOMP');
-      return;
-    }
-    mutation.mutate();
-  };
 
   const label = type === 'per' ? 'PER' : 'DCOMP';
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else onOpenChange(v); }}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <div className="flex items-start justify-between gap-3">
-            <DialogTitle>Excluir / Cancelar {label}</DialogTitle>
-            {type === 'dcomp' && !canWrite && (
-              <span className="shrink-0 rounded-md border border-destructive/40 bg-destructive/10 px-2 py-0.5 text-[11px] font-medium text-destructive">
-                Você não tem permissão para editar/excluir este DCOMP
-              </span>
-            )}
-          </div>
-          <DialogDescription>
-            Selecione a ação para o {label} <span className="font-mono font-medium">{identifier}</span>
-          </DialogDescription>
-        </DialogHeader>
-        {type === 'per' && (
-          <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-black">
-            Atenção, esta ação valerá também para todos os DCOMPs vinculados a este PER.
-          </div>
-        )}
-
-        <RadioGroup value={action} onValueChange={(v) => setAction(v as 'E' | 'C')} className="space-y-3">
-          <div className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-muted/50 cursor-pointer" onClick={() => setAction('E')}>
-            <RadioGroupItem value="E" id="excluir" className="mt-0.5" />
-            <div>
-              <Label htmlFor="excluir" className="font-medium cursor-pointer">Excluir</Label>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Para processos cadastrados equivocamente na ferramenta.
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent className="max-w-md">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir {label} definitivamente</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              <p>
+                Esta ação apaga em definitivo o {label}{' '}
+                <span className="font-mono font-medium">{identifier}</span>
+                {type === 'per'
+                  ? ', incluindo todos os DCOMPs, situações e distribuições vinculados.'
+                  : ', incluindo suas distribuições.'}
               </p>
+              <p className="text-destructive font-medium">Não é possível desfazer.</p>
+              {!canWrite && (
+                <p className="rounded-md border border-destructive/40 bg-destructive/10 px-2 py-1 text-[12px] font-medium text-destructive">
+                  Você não tem permissão para excluir este {label}.
+                </p>
+              )}
             </div>
-          </div>
-          <div className="flex items-start space-x-3 rounded-lg border p-3 hover:bg-muted/50 cursor-pointer" onClick={() => setAction('C')}>
-            <RadioGroupItem value="C" id="cancelar" className="mt-0.5" />
-            <div>
-              <Label htmlFor="cancelar" className="font-medium cursor-pointer">Cancelar</Label>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                Selecione para processos cancelados no PERDCOMP WEB.
-              </p>
-            </div>
-          </div>
-        </RadioGroup>
-
-        {action === 'C' && (
-          <div className="space-y-2">
-            <Label>Nº Cancelamento (opcional)</Label>
-            <Input
-              placeholder="Informe o número de cancelamento..."
-              value={nrCancelamento}
-              onChange={(e) => setNrCancelamento(e.target.value)}
-            />
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={handleClose}>
-            Voltar
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleConfirm}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={mutation.isPending}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
             disabled={mutation.isPending || !canWrite}
-            title={!canWrite ? 'Você não tem permissão para editar/excluir este DCOMP' : undefined}
+            onClick={(e) => {
+              e.preventDefault();
+              if (!canWrite) {
+                toast.error(`Você não tem permissão para excluir este ${label}`);
+                return;
+              }
+              mutation.mutate();
+            }}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
             {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Confirmar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
