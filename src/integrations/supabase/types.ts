@@ -1405,9 +1405,7 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_envio: string
-          excluido: string | null
           mes_ano_exercicio: string
-          nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1419,9 +1417,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio: string
-          excluido?: string | null
           mes_ano_exercicio: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1433,9 +1429,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio?: string
-          excluido?: string | null
           mes_ano_exercicio?: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
@@ -4225,10 +4219,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string
-          excluido: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento: string | null
           nr_per: string
           nr_proc_ret: string | null
           porcentagem_psa: number | null
@@ -4244,10 +4236,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada: string
-          excluido?: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento?: string | null
           nr_per: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -4263,10 +4253,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada?: string
-          excluido?: string | null
           exercicio?: number
           id_contribuinte?: string
-          nr_cancelamento?: string | null
           nr_per?: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -7716,10 +7704,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string | null
-          excluido: string | null
           exercicio: number | null
           id_contribuinte: string | null
-          nr_cancelamento: string | null
           nr_per: string | null
           nr_proc_ret: string | null
           porcentagem_psa: number | null
