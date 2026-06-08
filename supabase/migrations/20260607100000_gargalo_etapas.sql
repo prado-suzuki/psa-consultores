@@ -87,4 +87,13 @@ BEGIN
   END IF;
 END $$;
 
+
+-- ─── 4. GRANTs explícitos para o PostgREST/Supabase ────────────────────
+-- Mesmo com RLS habilitada, o PostgREST exige privilégios de tabela ao
+-- role `authenticated` (e `service_role` para operações administrativas
+-- via supabase-js server-side). Padrão usado em todas as tabelas novas
+-- do projeto (tmpl_flag, tmpl_documento, projeto_flag_valor, etc.).
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated;
+GRANT ALL ON public.gargalo_etapas TO service_role;
+
 COMMIT;
