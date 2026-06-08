@@ -1,42 +1,55 @@
-// Derivação de Cascata por Documento — calculada em tempo real (sem
-// persistência). Dado N documentos-semente (vindos de gargalo.documentosAfetados),
+// Derivação de Cascata por Etapa-origem — calculada em tempo real (sem
+// persistência). Dado N etapas-origem (vindas de gargalo.etapasOrigem),
 // faz BFS jusante pelo grafo:
 //
-//   doc → etapas que TÊM doc como entrada → docs de saída dessas etapas →
-//         etapas que CONSUMEM essas saídas → ... (até esgotar)
+//   etapa-origem (incluída no grafo) → docs_saida dessa etapa →
+//   etapas que CONSOMEM esses docs → docs_saida delas →
+//   etapas consumidoras → ... (até esgotar)
 //
-// Comparação canônica via canon() — equivalente ao cascataEngine — reusa
-// canonico_id quando disponível para agrupar variações ("Matrícula" /
-// "Matrícula atualizada" etc.).
+// Resultado vem com duas classificações:
+//   • granular: lista plana de etapas afetadas (incluindo origens)
+//   • macro: processos únicos com intensidade Total/Parcial baseada em
+//     etapas_afetadas / etapas_totais do processo
 //
-// Não há limite de profundidade nem persistência: cada chamada recalcula.
+// Comparação canônica de documentos via canon() — reusa cascataEngine.
 
 import type { Documento, Etapa, Processo } from '@/types';
 import { canon } from '@/utils/cascataEngine';
 
+export type IntensidadeProcesso = 'TOTAL' | 'PARCIAL';
+
+export interface ProcessoAfetado {
+  processId: string;
+  etapasAfetadas: string[];       // ids
+  etapasTotais: number;
+  intensidade: IntensidadeProcesso;
+  razao: number;                   // afetadas / totais
+}
+
 export interface DerivacaoCascata {
-  /** IDs de etapas afetadas, na ordem em que entraram na BFS. */
+  /** IDs de etapas afetadas (inclui origens), ordem da BFS. */
   stageIds: string[];
-  /** IDs de processos afetados (deduplicado de stageIds). */
-  processIds: string[];
-  /** IDs de documentos visitados (inclui os seeds). */
+  /** IDs de etapas-origem (seeds), preservados para destacar na UI. */
+  origemStageIds: string[];
+  /** Processos afetados com intensidade Total/Parcial. */
+  processos: ProcessoAfetado[];
+  /** Documentos visitados pela BFS (canon → primeiro docId encontrado). */
   documentoIds: string[];
-  /** Arestas para renderização. */
+  /** Arestas para renderização do grafo. */
   edges: CascataEdge[];
-  /** Profundidade máxima alcançada pela BFS (0 = só seeds, 1 = primeiras etapas). */
+  /** Profundidade máxima alcançada pela BFS (0 = só etapas-origem). */
   profundidadeMax: number;
 }
 
 export interface CascataEdge {
   from: { kind: 'doc' | 'stage'; id: string };
   to:   { kind: 'doc' | 'stage'; id: string };
-  /** Distância da semente (camada da BFS). */
   depth: number;
 }
 
 interface DerivarOpts {
-  /** Limita escopo aos processos de um cluster específico (opcional). */
-  clusterId?: string | null;
+  /** Limiar de "Total" vs "Parcial" para classificar processo (default 0.6). */
+  thresholdTotal?: number;
 }
 
 interface EtapaIndexada {
@@ -45,14 +58,9 @@ interface EtapaIndexada {
   saidaCanon: Set<string>;
 }
 
-/**
- * Calcula o nome canônico de um documento, considerando canonico_id quando
- * presente (agrupa "Matrícula" e "Matrícula atualizada" sob o mesmo canon).
- */
 function canonDocId(docId: string, docsById: Map<string, Documento>): string {
   const d = docsById.get(docId);
   if (!d) return '';
-  // Documento pode ter canonico_id apontando ao "pai" canônico.
   type DocComCanonico = Documento & { canonicoId?: string | null; canonico_id?: string | null };
   const dc = d as DocComCanonico;
   const canonicoId = dc.canonicoId ?? dc.canonico_id;
@@ -63,41 +71,33 @@ function canonDocId(docId: string, docsById: Map<string, Documento>): string {
 }
 
 /**
- * BFS jusante a partir de N documentos-semente.
+ * BFS jusante a partir de N etapas-origem.
  *
  * Algoritmo:
- *   1. Para cada doc-semente, calcula seu canon e adiciona à fila de docs.
+ *   1. Etapas-origem entram em visitedStages e contribuem com docs_saida
+ *      como seeds iniciais.
  *   2. Loop BFS por camadas:
- *      - Para cada doc da camada atual: acha etapas onde doc ∈ entrada.
- *      - Para cada etapa nova: marca como afetada, coleta seus docs de saída.
- *      - Docs de saída ainda não visitados entram na próxima camada.
- *   3. Para quando não há mais docs novos para processar.
- *
- * Não persiste nada — apenas devolve estrutura para renderização.
+ *      - Para cada doc da camada atual: acha etapas onde doc ∈ entrada
+ *        (excluindo as já visitadas).
+ *      - Para cada etapa nova: marca como afetada, coleta seus docs de
+ *        saída, enfileira os ainda não visitados.
+ *   3. Classifica cada processo como TOTAL ou PARCIAL pela razão
+ *      etapas_afetadas / etapas_totais.
  */
-export function derivarCascataPorDocumentos(
-  seedDocIds: string[],
+export function derivarCascataPorEtapas(
+  seedEtapaIds: string[],
   todasEtapas: Etapa[],
   todosDocumentos: Documento[],
   todosProcessos: Processo[],
   opts: DerivarOpts = {},
 ): DerivacaoCascata {
-  // ─── Índices ────────────────────────────────────────────────────────
+  const thresholdTotal = opts.thresholdTotal ?? 0.6;
+
   const docsById = new Map(todosDocumentos.map((d) => [d.id, d]));
-  const processosById = new Map(todosProcessos.map((p) => [p.id, p]));
+  const etapaById = new Map(todasEtapas.map((e) => [e.id, e]));
 
-  // Se houver clusterId, filtra etapas cujos processos pertencem ao cluster.
-  const etapasEscopo = opts.clusterId
-    ? todasEtapas.filter((e) => {
-        const p = processosById.get(e.process_id);
-        type ProcessoComCluster = Processo & { cluster_id?: string | null; cluster?: string | null };
-        const pc = p as ProcessoComCluster | undefined;
-        return pc?.cluster_id === opts.clusterId || pc?.cluster === opts.clusterId;
-      })
-    : todasEtapas;
-
-  // Pré-calcula canon de entrada/saída de cada etapa
-  const etapasIndex: EtapaIndexada[] = etapasEscopo.map((e) => {
+  // Pré-calcula canon de entrada/saída por etapa
+  const etapasIndex: EtapaIndexada[] = todasEtapas.map((e) => {
     const entradaCanon = new Set<string>();
     const saidaCanon = new Set<string>();
     for (const de of e.docsEntrada ?? []) {
@@ -112,48 +112,72 @@ export function derivarCascataPorDocumentos(
     saidaCanon.delete('');
     return { etapa: e, entradaCanon, saidaCanon };
   });
+  const indexByEtapaId = new Map(etapasIndex.map((ei) => [ei.etapa.id, ei]));
 
-  // Map canon → docId real (primeiro encontrado) para reconstituir docs de saída
   const canonToDocId = new Map<string, string>();
   for (const d of todosDocumentos) {
     const c = canonDocId(d.id, docsById);
     if (c && !canonToDocId.has(c)) canonToDocId.set(c, d.id);
   }
 
-  // ─── BFS por camadas ───────────────────────────────────────────────
-  const seedCanons = new Set(seedDocIds.map((id) => canonDocId(id, docsById)).filter(Boolean));
-  if (seedCanons.size === 0) {
-    return { stageIds: [], processIds: [], documentoIds: [], edges: [], profundidadeMax: 0 };
+  // ─── Inicialização: etapas-origem entram + seedam docs ──────────────
+  const validSeedEtapaIds = seedEtapaIds.filter((id) => etapaById.has(id));
+  if (validSeedEtapaIds.length === 0) {
+    return {
+      stageIds: [], origemStageIds: [], processos: [],
+      documentoIds: [], edges: [], profundidadeMax: 0,
+    };
   }
 
-  const visitedDocs = new Set<string>(); // canons já enfileirados
-  const visitedStages = new Set<string>(); // etapa ids
+  const visitedStages = new Set<string>();
   const orderedStages: string[] = [];
+  const visitedDocs = new Set<string>(); // canons
   const orderedDocs: string[] = [];
   const edges: CascataEdge[] = [];
 
-  let layer: string[] = []; // canons na camada atual
-  for (const c of seedCanons) {
-    visitedDocs.add(c);
-    layer.push(c);
-    const docId = canonToDocId.get(c);
-    if (docId) orderedDocs.push(docId);
+  let seedDocsCanons: string[] = [];
+
+  for (const eid of validSeedEtapaIds) {
+    visitedStages.add(eid);
+    orderedStages.push(eid);
+
+    const ei = indexByEtapaId.get(eid);
+    if (!ei) continue;
+
+    for (const outCanon of ei.saidaCanon) {
+      const outDocId = canonToDocId.get(outCanon);
+      if (outDocId) {
+        edges.push({
+          from: { kind: 'stage', id: eid },
+          to:   { kind: 'doc',   id: outDocId },
+          depth: 1,
+        });
+      }
+      if (!visitedDocs.has(outCanon)) {
+        visitedDocs.add(outCanon);
+        if (outDocId) orderedDocs.push(outDocId);
+        seedDocsCanons.push(outCanon);
+      }
+    }
   }
 
-  let depth = 0;
-  let profundidadeMax = 0;
+  // ─── BFS por camadas (a partir de seedDocsCanons) ─────────────────
+  let layer: string[] = seedDocsCanons;
+  let depth = 1; // camada 1 já populada acima
+  let profundidadeMax = 1;
 
   while (layer.length > 0) {
     const nextLayer: string[] = [];
 
     for (const docCanon of layer) {
-      // Acha todas as etapas que TÊM esse doc como entrada
+      const docId = canonToDocId.get(docCanon);
       const consumidoras = etapasIndex.filter((ei) => ei.entradaCanon.has(docCanon));
 
       for (const ei of consumidoras) {
         const stageId = ei.etapa.id;
+        if (visitedStages.has(stageId)) continue;
+
         // Aresta doc → stage
-        const docId = canonToDocId.get(docCanon);
         if (docId) {
           edges.push({
             from: { kind: 'doc',   id: docId },
@@ -162,12 +186,11 @@ export function derivarCascataPorDocumentos(
           });
         }
 
-        if (visitedStages.has(stageId)) continue;
         visitedStages.add(stageId);
         orderedStages.push(stageId);
         profundidadeMax = Math.max(profundidadeMax, depth + 1);
 
-        // Adiciona saídas desta etapa à próxima camada
+        // Adiciona saídas dessa etapa à próxima camada
         for (const outCanon of ei.saidaCanon) {
           const outDocId = canonToDocId.get(outCanon);
           if (outDocId) {
@@ -190,69 +213,43 @@ export function derivarCascataPorDocumentos(
     depth += 1;
   }
 
-  // Processos derivados das etapas afetadas (deduplicados, mantendo ordem)
-  const processIds: string[] = [];
-  const seenProc = new Set<string>();
-  for (const sid of orderedStages) {
-    const e = etapasIndex.find((ei) => ei.etapa.id === sid);
-    const pid = e?.etapa.process_id;
-    if (pid && !seenProc.has(pid)) {
-      seenProc.add(pid);
-      processIds.push(pid);
-    }
+  // ─── Agrupa por processo + classifica TOTAL/PARCIAL ───────────────
+  const etapasPorProcesso = new Map<string, Etapa[]>();
+  for (const e of todasEtapas) {
+    const arr = etapasPorProcesso.get(e.process_id) ?? [];
+    arr.push(e);
+    etapasPorProcesso.set(e.process_id, arr);
   }
+
+  const procsAfetadosMap = new Map<string, string[]>();
+  for (const sid of orderedStages) {
+    const e = etapaById.get(sid);
+    if (!e) continue;
+    const arr = procsAfetadosMap.get(e.process_id) ?? [];
+    arr.push(sid);
+    procsAfetadosMap.set(e.process_id, arr);
+  }
+
+  const processos: ProcessoAfetado[] = [];
+  for (const [pid, etapasAfetadas] of procsAfetadosMap.entries()) {
+    const etapasTotaisP = etapasPorProcesso.get(pid)?.length ?? etapasAfetadas.length;
+    const razao = etapasTotaisP > 0 ? etapasAfetadas.length / etapasTotaisP : 0;
+    processos.push({
+      processId: pid,
+      etapasAfetadas,
+      etapasTotais: etapasTotaisP,
+      intensidade: razao >= thresholdTotal ? 'TOTAL' : 'PARCIAL',
+      razao,
+    });
+  }
+  void todosProcessos; // pode ser usado depois para ordenação
 
   return {
     stageIds: orderedStages,
-    processIds,
+    origemStageIds: validSeedEtapaIds,
+    processos,
     documentoIds: orderedDocs,
     edges,
     profundidadeMax,
-  };
-}
-
-/**
- * Agrupa as arestas granulares (doc↔stage) em arestas macro (doc↔processo).
- *
- * Para o modo "macro" do toggle: substitui cada nó-stage pelo seu processo
- * pai e deduplica arestas resultantes.
- */
-export function agruparPorProcesso(
-  derivacao: DerivacaoCascata,
-  todasEtapas: Etapa[],
-): DerivacaoCascata {
-  const stageToProc = new Map(todasEtapas.map((e) => [e.id, e.process_id]));
-
-  const edgeKey = (e: CascataEdge) =>
-    `${e.from.kind}:${e.from.id}->${e.to.kind}:${e.to.id}`;
-
-  const seen = new Set<string>();
-  const edgesMacro: CascataEdge[] = [];
-
-  for (const ed of derivacao.edges) {
-    const fromMacro = ed.from.kind === 'stage'
-      ? { kind: 'stage' as const, id: stageToProc.get(ed.from.id) ?? ed.from.id }
-      : ed.from;
-    const toMacro = ed.to.kind === 'stage'
-      ? { kind: 'stage' as const, id: stageToProc.get(ed.to.id) ?? ed.to.id }
-      : ed.to;
-
-    // No modo macro o nó "stage" representa o processo. Marcamos kind='stage'
-    // mas o id é processId — para o renderer saber, retornamos como 'stage'
-    // ainda; a UI sabe que está em modo macro e busca pelo processId.
-    const newEdge: CascataEdge = { from: fromMacro, to: toMacro, depth: ed.depth };
-    const k = edgeKey(newEdge);
-    if (seen.has(k)) continue;
-    if (newEdge.from.id === newEdge.to.id) continue; // self-loop dedupado
-    seen.add(k);
-    edgesMacro.push(newEdge);
-  }
-
-  return {
-    stageIds: derivacao.processIds,  // no modo macro, "stages" = processos
-    processIds: derivacao.processIds,
-    documentoIds: derivacao.documentoIds,
-    edges: edgesMacro,
-    profundidadeMax: derivacao.profundidadeMax,
   };
 }

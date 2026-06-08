@@ -154,17 +154,30 @@ export interface Processo extends BaseEntity {
 //  Gargalo — tabela `gargalos`
 // ═════════════════════════════════════════════════════════════════════════
 
+export interface GargaloEtapaRef {
+  etapaId: string;
+  scenario: 'AS-IS' | 'TO-BE';
+  /** Hidratado opcionalmente para a UI sem cruzamento. */
+  etapaNome?: string;
+  processo_id?: string;
+  processoNome?: string;
+  stage_order?: number;
+}
+
 export interface Gargalo {
   id: string;
   /** Coluna PT-native do DB (tabela `gargalos`). Mantém snake_case PT. */
   nome: string;
   descricao: string;
-  /** Hidratado via `gargalo_processos` (M:N). */
+  /** Hidratado via `gargalo_processos` (M:N). Vínculo MACRO opcional — para
+   *  gargalos "organizacionais" sem etapa específica. NÃO é usado pela
+   *  cascata derivada. */
   processos: string[];
-  /** Hidratado via `gargalo_documentos_afetados` (M:N). Quando ≥1 documento
-   *  está vinculado, o gargalo participa do grafo de cascata (derivada em
-   *  tempo real). */
-  documentosAfetados: string[];
+  /** Hidratado via `gargalo_etapas` (M:N com FK composta etapa_id+scenario).
+   *  Etapas onde o gargalo se manifesta. Cada etapa-origem inicia uma BFS
+   *  jusante (etapa → docsSaida → etapas que consomem → ...) que define a
+   *  cascata, derivada em tempo real e exibida na CascataPage. */
+  etapasOrigem: GargaloEtapaRef[];
   /** Melhoria vinculada (1:N — cada gargalo tem no máximo 1 melhoria). */
   melhoria_id?: string | null;
   origem?: string;
