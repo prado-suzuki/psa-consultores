@@ -13,7 +13,7 @@ import { agrupar } from '@/utils/agrupar';
 import { formatDecimal } from '@/utils/format';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Gargalo } from '@/types';
-import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useProcessosLista, useMelhoriasLista, useDocumentosLista } from '@/hooks/useDominioListas';
 import { useGargalos, useCreateGargalo, useUpdateGargalo, useDeleteGargalo } from '@/hooks/useGargalos';
 import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
 
@@ -44,6 +44,22 @@ export default function GargalosPage() {
 
   const { data: processos = [] } = useProcessosLista();
   const { data: melhoriasList = [] } = useMelhoriasLista();
+  const { data: documentos = [] } = useDocumentosLista();
+
+  // Maps para Documento ID ↔ Nome (usado no multi-select e no card)
+  const docNomeById = useMemo(
+    () => new Map(documentos.map(d => [d.id, d.nome])),
+    [documentos]
+  );
+  const docIdByNome = useMemo(
+    () => new Map(documentos.map(d => [d.nome, d.id])),
+    [documentos]
+  );
+  const docNomes = useMemo(() => documentos.map(d => d.nome), [documentos]);
+  const docIdsToNames = (ids: string[]) =>
+    ids.map(id => docNomeById.get(id)).filter((n): n is string => Boolean(n));
+  const docNamesToIds = (names: string[]) =>
+    names.map(n => docIdByNome.get(n)).filter((id): id is string => Boolean(id));
 
   const procNomeById = useMemo(
     () => new Map(processos.map(p => [p.id, p.name])),
@@ -94,6 +110,7 @@ export default function GargalosPage() {
   const [origem, setOrigem] = useState('');
   const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
+  const [documentosAfetadosNomes, setDocumentosAfetadosNomes] = useState<string[]>([]);
   const [melhoriaId, setMelhoriaId] = useState('');
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -106,6 +123,7 @@ export default function GargalosPage() {
   const [editOrigem, setEditOrigem] = useState('');
   const [editClusterId, setEditClusterId] = useState('');
   const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
+  const [editDocumentosAfetadosNomes, setEditDocumentosAfetadosNomes] = useState<string[]>([]);
   const [editMelhoriaId, setEditMelhoriaId] = useState('');
   const [editError, setEditError] = useState('');
   const [editSaving, setEditSaving] = useState(false);
@@ -120,14 +138,13 @@ export default function GargalosPage() {
         descricao: descricao.trim(),
         origem: origem.trim(),
         cluster_id: clusterId || undefined,
-        // TODO M:N junction (gargalo_processos) será gerenciada em hook
-        // dedicado no próximo refator com TDD — por ora, mantém o array em
-        // memória mas o INSERT só persiste a row do gargalo.
         processos: namesToIds(processosNomes),
+        documentosAfetados: docNamesToIds(documentosAfetadosNomes),
         melhoria_id: melhoriaId || null,
       });
       toast.success('Gargalo criado');
-      setNome(''); setDescricao(''); setOrigem(''); setClusterId(''); setProcessosNomes([]); setMelhoriaId('');
+      setNome(''); setDescricao(''); setOrigem(''); setClusterId('');
+      setProcessosNomes([]); setDocumentosAfetadosNomes([]); setMelhoriaId('');
       setModalOpen(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -143,6 +160,7 @@ export default function GargalosPage() {
     setEditOrigem(g.origem || '');
     setEditClusterId(g.cluster_id || '');
     setEditProcessosNomes(idsToNames(g.processos || []));
+    setEditDocumentosAfetadosNomes(docIdsToNames(g.documentosAfetados || []));
     setEditMelhoriaId(g.melhoria_id || '');
     setEditError('');
     setEditOpen(true);
@@ -166,6 +184,7 @@ export default function GargalosPage() {
           origem: editOrigem.trim(),
           cluster_id: editClusterId || undefined,
           processos: namesToIds(editProcessosNomes),
+          documentosAfetados: docNamesToIds(editDocumentosAfetadosNomes),
           melhoria_id: editMelhoriaId || null,
         },
       });
@@ -205,6 +224,10 @@ export default function GargalosPage() {
     () => items.filter(g => g.melhoria_id).length,
     [items]
   );
+  const gargalosComCascata = useMemo(
+    () => items.filter(g => (g.documentosAfetados ?? []).length > 0).length,
+    [items]
+  );
 
   // Focus param
   const focusId = useFocusParam();
@@ -238,6 +261,7 @@ export default function GargalosPage() {
         { label: 'Gargalos', value: String(items.length), tooltip: 'Total de gargalos cadastrados.' },
         { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês em todos os gargalos.' },
         { label: 'Processos afetados', value: String(processosDistintos), tooltip: 'Número de processos distintos impactados por pelo menos um gargalo.' },
+        { label: 'Com cascata', value: String(gargalosComCascata), tooltip: 'Gargalos que afetam ≥1 documento — aparecem na aba Cascata com o grafo derivado em tempo real.' },
         { label: 'Com melhoria', value: String(gargalosResolvidos), tooltip: 'Gargalos que possuem ao menos uma melhoria vinculada.' },
       ]} />
       <FiltrosBar
@@ -304,6 +328,11 @@ export default function GargalosPage() {
                     ))}
                   </div>
                 )}
+                {g.documentosAfetados && g.documentosAfetados.length > 0 && (
+                  <div style={{ marginTop: 6, fontSize: '0.72rem', color: '#b91c1c', fontWeight: 600 }}>
+                    📡 Cascata · {g.documentosAfetados.length} {g.documentosAfetados.length === 1 ? 'documento afetado' : 'documentos afetados'}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -331,6 +360,14 @@ export default function GargalosPage() {
               value={processosNomes}
               onChange={(v) => setProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
+            />
+          </FormField>
+          <FormField label="Documentos afetados" tooltip="Documentos impactados por este gargalo. Quando ≥1 documento é selecionado, o gargalo aparece na aba Cascata com o grafo de impacto derivado em tempo real (etapas que consomem o doc → suas saídas → etapas que consomem essas saídas).">
+            <ChipSelector
+              options={docNomes}
+              value={documentosAfetadosNomes}
+              onChange={(v) => setDocumentosAfetadosNomes(v as string[])}
+              addLabel="Adicionar documento"
             />
           </FormField>
           <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
@@ -369,6 +406,14 @@ export default function GargalosPage() {
               value={editProcessosNomes}
               onChange={(v) => setEditProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
+            />
+          </FormField>
+          <FormField label="Documentos afetados" tooltip="Documentos impactados por este gargalo. Quando ≥1 documento é selecionado, o gargalo aparece na aba Cascata com o grafo de impacto derivado em tempo real.">
+            <ChipSelector
+              options={docNomes}
+              value={editDocumentosAfetadosNomes}
+              onChange={(v) => setEditDocumentosAfetadosNomes(v as string[])}
+              addLabel="Adicionar documento"
             />
           </FormField>
           <FormField label="Melhoria vinculada" tooltip={dica('gargalos.form.melhoria')}>
@@ -423,6 +468,20 @@ export default function GargalosPage() {
                   </div>
                 ) : (
                   <div>—</div>
+                )}
+              </div>
+              <div className="form-group compact">
+                <label>Documentos afetados (geram cascata)</label>
+                {detailItem.documentosAfetados && detailItem.documentosAfetados.length > 0 ? (
+                  <div className="tags">
+                    {detailItem.documentosAfetados.map((did) => (
+                      <span key={did} className="tag" style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca' }}>
+                        {docNomeById.get(did) || did}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ color: '#94a3b8', fontSize: '0.88rem' }}>Nenhum documento — este gargalo não aparece na aba Cascata.</div>
                 )}
               </div>
               <div className="form-group compact">

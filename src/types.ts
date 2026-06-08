@@ -161,6 +161,10 @@ export interface Gargalo {
   descricao: string;
   /** Hidratado via `gargalo_processos` (M:N). */
   processos: string[];
+  /** Hidratado via `gargalo_documentos_afetados` (M:N). Quando ≥1 documento
+   *  está vinculado, o gargalo participa do grafo de cascata (derivada em
+   *  tempo real). */
+  documentosAfetados: string[];
   /** Melhoria vinculada (1:N — cada gargalo tem no máximo 1 melhoria). */
   melhoria_id?: string | null;
   origem?: string;
@@ -358,30 +362,10 @@ export interface ProcessSnapshot {
 
 
 // =====================================================================
-// Cascata — Eventos de Disrupção com etapas de retrabalho marcadas manualmente.
+// Cascata — agora é derivada em tempo real a partir de gargalos que
+// afetam documentos (vide Gargalo.documentosAfetados). A entidade
+// CascataEvento e suas etapas marcadas manualmente foram removidas.
+// Mantemos só o type de cenário (ainda usado em process_stages).
 // =====================================================================
 
 export type CenarioEtapa = 'AS-IS' | 'TO-BE';
-
-export interface CascataEventoEtapaRef {
-  etapaId: string;
-  cenario: CenarioEtapa;
-  // Campos hidratados pelo backend (read-only) — facilitam a UI sem cruzamento.
-  etapaNome?: string;
-  etapaOrdem?: number;
-  process_id?: string;
-  processoNome?: string;
-}
-
-export interface CascataEvento {
-  id: string;
-  nome: string;
-  descricao?: string;
-  /** FK para processo raiz. */
-  processoRaizId?: string | null;
-  cluster?: string;
-  /** ISO 8601. */
-  createdAt?: string;
-  /** Etapas marcadas como retrabalho quando o evento ocorre. */
-  etapas: CascataEventoEtapaRef[];
-}
