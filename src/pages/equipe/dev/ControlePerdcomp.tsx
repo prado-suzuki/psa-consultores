@@ -179,7 +179,6 @@ export default function ControlePerdcomp() {
         .from("per_with_contribuinte" as any)
         .select("*")
         .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.')
         .order("exercicio", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
@@ -193,12 +192,11 @@ export default function ControlePerdcomp() {
     queryFn: async () => {
       if (!contribuinteId || !searched) return {};
 
-      // Get all PERs for this contribuinte (exclude soft-deleted)
+      // Get all PERs for this contribuinte
       const { data: pers, error: perError } = await supabase
         .from("per")
         .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.');
+        .eq("id_contribuinte", contribuinteId);
       if (perError) throw perError;
 
       const perNumbers = pers?.map((p: any) => p.nr_per) || [];
@@ -233,12 +231,11 @@ export default function ControlePerdcomp() {
     queryKey: ["perdcomp-dcomp", contribuinteId, searched],
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
-      // First get PERs for this contribuinte (exclude soft-deleted)
+      // First get PERs for this contribuinte
       const { data: pers, error: perError } = await supabase
         .from("per")
         .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.');
+        .eq("id_contribuinte", contribuinteId);
       if (perError) throw perError;
 
       const perNumbers = pers?.map((p: any) => p.nr_per) || [];
@@ -248,7 +245,6 @@ export default function ControlePerdcomp() {
         .from("dcomp")
         .select("*")
         .in("nr_per_orig", perNumbers)
-        .or('excluido.is.null,excluido.eq.')
         .order("dt_envio", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -274,7 +270,6 @@ export default function ControlePerdcomp() {
           .from("per")
           .select("id_contribuinte")
           .like("nr_per", `%${filterDigits}%`)
-          .or('excluido.is.null,excluido.eq.')
           .limit(1);
 
         let contribId: string | null = matchedPers?.[0]?.id_contribuinte ?? null;
@@ -284,7 +279,6 @@ export default function ControlePerdcomp() {
             .from("dcomp")
             .select("nr_per_orig")
             .like("nr_documento", `%${filterDigits}%`)
-            .or('excluido.is.null,excluido.eq.')
             .limit(1);
 
           if (matchedDcomps?.[0]?.nr_per_orig) {

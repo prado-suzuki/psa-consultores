@@ -98,7 +98,6 @@ export function SituacaoFormModal({
       let query = (supabase
         .from('per') as any)
         .select('nr_per, id_contribuinte, exercicio, tri_exercicio')
-        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       
       if (contribuinteId) {

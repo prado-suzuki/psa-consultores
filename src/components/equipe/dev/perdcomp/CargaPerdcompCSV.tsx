@@ -23,8 +23,6 @@ interface ParsedPer {
   nr_proc_ret?: string;
   situacao?: string;
   dt_pagamento?: string;
-  excluido?: string;
-  nr_cancelamento?: string;
 }
 
 interface ParsedDcomp {
@@ -33,8 +31,6 @@ interface ParsedDcomp {
   mes_ano_exercicio: string;
   dt_envio: string;
   vlr_compensado: number;
-  excluido?: string;
-  nr_cancelamento?: string;
 }
 
 export function CargaPerdcompCSV() {
