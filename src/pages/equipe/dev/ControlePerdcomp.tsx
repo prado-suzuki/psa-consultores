@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import {
   Search,
@@ -864,6 +864,55 @@ export default function ControlePerdcomp() {
                 })
               )}
             </TableBody>
+            {searched && filteredPerData.length > 0 && (
+              <TableFooter className="sticky bottom-0 bg-muted/80 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
+                <TableRow className="hover:bg-muted/80">
+                  <TableCell colSpan={8} className="font-bold">
+                    <span className="inline-flex items-center gap-1.5">
+                      Total Geral
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          <p>
+                            Soma de <strong>todos os PERs</strong> que atendem aos filtros aplicados —
+                            independente da página exibida e da ordenação. O valor não muda ao paginar.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {formatCurrency(totals.credito)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {formatCurrency(totals.compensado)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : "-"}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    <span
+                      className={cn(
+                        totals.saldo > 0
+                          ? "text-green-600 dark:text-green-400"
+                          : totals.saldo < 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "",
+                      )}
+                    >
+                      {formatCurrency(totals.saldo)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap text-blue-600 dark:text-blue-400">
+                    {formatCurrency(totals.corrigido)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
 
           {/* Pagination */}
