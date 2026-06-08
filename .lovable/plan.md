@@ -1,41 +1,46 @@
-## Objetivo
-Eliminar completamente a lógica de soft delete (`excluido` / `nr_cancelamento`) do módulo PERDCOMP, fazer hard delete dos registros que hoje estão marcados como excluídos/cancelados e substituir o modal de soft delete por confirmação de exclusão definitiva.
+## Validação das duas migrações
 
-## Diagnóstico atual
-- `per` tem **1 registro** com `excluido='E'`: `nr_per = 111111111111111111111111`
-- `dcomp` tem **1 registro** com `excluido='E'`: `nr_documento = 565432531312312312321312`
-- Componentes/queries que ainda dependem da coluna no PERDCOMP:
-  - `SoftDeleteModal.tsx` (será deletado)
-  - `PerDetailModal.tsx`, `ControlePerdcomp.tsx`, `PerFormModal.tsx`, `DcompFormModal.tsx`, `SituacaoFormModal.tsx`, `CargaPerdcompCSV.tsx`
-- `useDevClients.ts` usa `excluido` na tabela `cliente` (não relacionado, **não será tocado**).
+### 1. `20260606200000_osg_v5_fix_enums.sql` — ✅ Seguro
 
-## Etapas
+**Risco para Digital Rotina: nenhum.**
 
-### 1. Migração de banco
-Em uma única migração transacional:
-1. Hard delete cascata do PER `111111111111111111111111` (e seu `per_situacao` / `dcomp` / `distribuicao_dcomp`, se houver).
-2. Hard delete do DCOMP `565432531312312312321312` (e sua `distribuicao_dcomp`).
-3. `ALTER TABLE public.per DROP COLUMN excluido, DROP COLUMN nr_cancelamento;`
-4. `ALTER TABLE public.dcomp DROP COLUMN excluido, DROP COLUMN nr_cancelamento;`
+- Todas as 6 UPDATEs estão envolvidas em `BEGIN/COMMIT` e travadas em `cluster_id = '0523512c-f980-4236-8a7c-53e06c9c7a80'` (cluster OSG do MAPA).
+- Validação inicial aborta a transação se o cluster OSG não existir (`RAISE EXCEPTION`).
+- As tabelas afetadas (`processes`, `process_stages`, `projects`, `documentos_processo`, `gargalos`, `process_improvements`) são do módulo **MAPA**, não do módulo **Digital Rotina**.
+- Confirmei no banco: `gargalos` com `cluster_id <> OSG` = **0 linhas**. Nenhum dado fora do escopo é tocado.
+- Os mapeamentos enum→valor aceito batem com os tipos TS em `src/types.ts` (`FrequenciaProcesso`, `ProjetoStatus`, `MelhoriaStatus`, `EstruturacaoDoc`, etc.).
 
-### 2. Frontend — remoção das referências
-- **Deletar** `src/components/equipe/dev/perdcomp/SoftDeleteModal.tsx`.
-- **`PerDetailModal.tsx`**: remover import e uso do `SoftDeleteModal`; trocar o botão "Excluir/Cancelar" por um novo `ConfirmDeleteModal` (AlertDialog simples) que faz `DELETE FROM per WHERE nr_per=...` + cascata DCOMP/per_situacao/distribuicao_dcomp. Remover campos `excluido` e `nr_cancelamento` da interface local. Remover `.or('excluido.is.null,excluido.eq.')` das queries.
-- **`ControlePerdcomp.tsx`**: remover import/uso do `SoftDeleteModal`, substituir por confirmação de hard delete. Remover todos os `.or('excluido.is.null,excluido.eq.')` (linhas 182, 201, 241, 251, 277, 287). Manter os filtros `excluido=false` sobre `cliente` (tabela diferente).
-- **`PerFormModal.tsx`**: remover `.or('excluido.is.null,excluido.eq.')` (linha 202). Remover lógica de "reativar registro soft-deleted" no upsert.
-- **`DcompFormModal.tsx`**: remover `.or` (linhas 253, 274). Remover bloco `isSoftDeleted`/reativação (linhas ~535-555) — se DCOMP já existe, apenas erro de duplicidade.
-- **`SituacaoFormModal.tsx`**: remover `.or` (linha 101).
-- **`CargaPerdcompCSV.tsx`**: remover campos `excluido` e `nr_cancelamento` dos types e do mapeamento CSV.
+**Observação menor (não bloqueante):** O patch de `process_stages.execution` filtra por `process_id IN (SELECT id FROM processes WHERE cluster_id = OSG)`. Funciona, mas se houver etapa TO-BE com `process_id` apontando para um processo de outro cluster (cenário improvável), ela não seria normalizada. Para OSG isso é inócuo.
 
-### 3. Sincronização DW
-- `src/lib/syncPerdcomp.ts` e `supabase/functions/sync-perdcomp/index.ts`: remover `excluido` e `nr_cancelamento` dos types `PerSync` / `DcompSync`. A função permanece, apenas sem esses campos.
+---
 
-### 4. Validação
-- Confirmar via `select column_name from information_schema.columns where table_name in ('per','dcomp')` que as colunas foram removidas.
-- Verificar build limpo (sem referências quebradas a `excluido`/`nr_cancelamento` no PERDCOMP).
-- Testar no preview: tentar cadastrar o PER `20563.10632.230524.1.1.19-6008` em dev (deve funcionar) e fluxo de delete (deve abrir confirmação simples).
+### 2. `20260607100000_gargalo_etapas.sql` — ✅ Seguro
 
-## Riscos / observações
-- Hard delete é **irreversível**. Os 2 registros soft-deleted (1 PER + 1 DCOMP) serão perdidos definitivamente, junto com situações/distribuições associadas.
-- O DW receberá no próximo sync apenas registros ativos; registros previamente sincronizados com `excluido='E'` no DW podem ficar órfãos lá — fora do escopo deste plano.
-- Nenhuma alteração em `cliente`, `contribuinte`, `representante` ou outras tabelas com `excluido`.
+**Risco para Digital Rotina: nenhum.**
+
+**Validações feitas:**
+
+| Item | Status |
+|------|--------|
+| `cascata_evento_etapas` / `cascata_eventos` referenciadas em código de runtime | ❌ Não. Só aparecem em migrações antigas e em `src/integrations/supabase/types.ts` (autogerado — será regenerado). `CascataPage.tsx` já consome `gargalo_etapas`. |
+| FK composta `(etapa_id, scenario) → process_stages(id, scenario)` | ✅ Confirmado: existe constraint `process_stages_id_scenario_key UNIQUE (id, scenario)`. |
+| `gargalo_etapas` já referenciada no frontend | ✅ `src/hooks/useGargalos.ts` e `src/types.ts` (`GargaloEtapaRef`). A tabela é pré-requisito do código atual. |
+| RLS + GRANTs | ⚠️ RLS habilitada com policies para `team_member`/`admin`. **Não há `GRANT` explícito** para `authenticated`/`service_role`. Pelas regras do projeto, toda tabela `public` nova deveria incluir `GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated; GRANT ALL TO service_role;`. Sem isso, PostgREST pode devolver erro de permissão mesmo com RLS passando. |
+| DROP CASCADE das cascatas legadas | ⚠️ Perde 5+20 linhas em `cascata_eventos` / `cascata_evento_etapas`. Confirmado que nada em runtime lê essas tabelas — perda intencional, conforme a refatoração. |
+
+**Digital Rotina:** módulo totalmente independente (tabelas `tickets`, `org_tasks`, `ordem_servico`, `cliente`, etc.). Nenhuma das tabelas tocadas (`cascata_*`, `gargalo_etapas`, `process_stages`) tem relação com o módulo Digital.
+
+---
+
+### Recomendação antes de rodar
+
+Adicionar ao final da migração `20260607100000_gargalo_etapas.sql`, antes do `COMMIT`:
+
+```sql
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated;
+GRANT ALL ON public.gargalo_etapas TO service_role;
+```
+
+Com esse ajuste, ambas as migrações estão prontas para aplicar sem impacto em Digital Rotina.
+
+Quer que eu adicione o bloco de GRANT na migração?
