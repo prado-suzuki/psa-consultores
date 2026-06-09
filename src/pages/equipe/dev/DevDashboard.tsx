@@ -237,24 +237,24 @@ const DevDashboard = () => {
           href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/estrutura-pastas-drive/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative block overflow-hidden rounded-2xl border-2 border-amber-300/70 bg-gradient-to-r from-amber-50 via-white to-teal-50 p-6 shadow-[0_4px_24px_-8px_rgba(217,119,6,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_12px_32px_-8px_rgba(217,119,6,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
+          className="group relative block overflow-hidden rounded-2xl border-2 border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-6 shadow-[0_4px_24px_-8px_rgba(5,150,105,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-[0_12px_32px_-8px_rgba(5,150,105,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >
-          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-amber-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-teal-200/30 blur-3xl" />
 
           <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white shadow-md">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-md">
                 <FolderTree className="h-7 w-7" />
               </div>
               <div className="min-w-0">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800">
                     <span className="relative flex h-1.5 w-1.5">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-600" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-600" />
                     </span>
-                    Fonte dos dados · Crítico
+                    Fonte dos dados
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                     <ShieldAlert className="h-3 w-3" /> Leitura obrigatória
@@ -267,23 +267,21 @@ const DevDashboard = () => {
                   Estrutura de Pastas do Google Drive
                 </h2>
                 <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  O Drive é onde os analistas carregam os arquivos dos clientes. Ele dispara a{" "}
+                  Carregue os arquivos dos clientes no Drive seguindo a estrutura padrão. A{" "}
                   <span className="inline-flex items-center gap-1 font-semibold text-slate-800">
-                    <Database className="h-3.5 w-3.5 text-teal-600" /> coleta para o BigQuery
+                    <Database className="h-3.5 w-3.5 text-emerald-600" /> coleta para o BigQuery
                   </span>{" "}
-                  que abastece <span className="font-semibold text-slate-800">todas as ferramentas Digital DEV</span>.
-                  Seguir a estrutura padrão é o que mantém a esteira de dados saudável.
+                  depende dessa organização e alimenta{" "}
+                  <span className="font-semibold text-slate-800">todas as ferramentas Digital DEV</span>.
+                  Siga o padrão para manter a esteira de dados saudável.
                 </p>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 md:flex-col md:items-end">
+            <div className="flex shrink-0 items-center md:flex-col md:items-end">
               <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform group-hover:translate-x-1">
                 Abrir manual
                 <ExternalLink className="h-4 w-4" />
-              </span>
-              <span className="text-[10px] uppercase tracking-wider text-slate-500">
-                hospedado no GitHub Pages
               </span>
             </div>
           </div>
