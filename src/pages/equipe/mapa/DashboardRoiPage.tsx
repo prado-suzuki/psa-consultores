@@ -13,7 +13,8 @@ import {
   useProjetosLista, useProcessosLista, useEtapasLista, useResponsaveisLista,
   useSistemasLista, useGargalosLista, useMelhoriasLista, useDocumentosLista,
 } from '@/hooks/useDominioListas';
-import { useSnapshotsLatest } from '@/hooks/useSnapshots';
+import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
+import { useQueryClient } from '@tanstack/react-query';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
 
 // `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
@@ -309,6 +310,7 @@ export default function DashboardRoiPage() {
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: snapshotsLatest = [] } = useSnapshotsLatest();
+  const queryClient = useQueryClient();
   const etapas = useMemo(
     () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
     [rawEtapas, documentos, sistemas, responsaveis],
@@ -445,12 +447,21 @@ export default function DashboardRoiPage() {
     setFiltroProcesso('');
   };
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     setExportando(true);
     try {
-      // Dados já estão no client via hooks — função pura monta o CSV.
+      // Refetch fresh dos snapshots ANTES de exportar — sem isso, alterações
+      // externas no banco (migrations SQL, edições em outra aba) ficam
+      // invisíveis aqui porque o QueryClient global está com
+      // `refetchOnWindowFocus: false` e `staleTime: 60s`.
+      const freshSnaps = await queryClient.fetchQuery({
+        queryKey: SNAPSHOTS_LATEST_QUERY_KEY as unknown as readonly unknown[],
+        queryFn: fetchSnapshotsLatest,
+        staleTime: 0,
+      });
       const csv = buildRoiCsv({
-        projetos, processos, snapshotsLatest,
+        projetos, processos,
+        snapshotsLatest: freshSnaps,
         project_id: filtroProjeto || undefined,
       });
       triggerCsvDownload(csv, filtroProjeto ? `roi-${filtroProjeto}.csv` : 'roi.csv');
@@ -545,7 +556,7 @@ export default function DashboardRoiPage() {
             {exportando ? 'Exportando…' : 'Exportar'}
           </button>
           <Link
-            to={filtroProjeto ? `/processos?focus=${encodeURIComponent(filtroProjeto)}` : '/processos'}
+            to={filtroProjeto ? `/equipe/digital/mapa/processos?focus=${encodeURIComponent(filtroProjeto)}` : '/equipe/digital/mapa/processos'}
             className="btn-primary"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, background: '#0d9488', color: '#fff', border: '1px solid #0d9488' }}
           >

@@ -13,6 +13,28 @@ import type { ProcessSnapshot } from '@/types';
 
 const TABLE = 'process_scenarios';
 
+// QueryFn isolada para `useSnapshotsLatest` — também é usada pelo Dashboard
+// no momento de exportar o CSV (`fetchQuery` força refetch ignorando o
+// cache stale, evitando exportar com dados antigos quando o banco foi
+// alterado externamente por uma migration).
+export async function fetchSnapshotsLatest(): Promise<ProcessSnapshot[]> {
+  const { data, error } = await supabase
+    .from(TABLE as never)
+    .select('*')
+    .order('snapshot_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  const seen = new Set<string>();
+  const out: ProcessSnapshot[] = [];
+  for (const row of (data ?? []) as unknown as ProcessSnapshot[]) {
+    if (seen.has(row.process_id)) continue;
+    seen.add(row.process_id);
+    out.push(row);
+  }
+  return out;
+}
+
+export const SNAPSHOTS_LATEST_QUERY_KEY = ['process_snapshots', '_latest'] as const;
+
 export function useSnapshots(processId?: string): UseQueryResult<ProcessSnapshot[]> {
   return useQuery<ProcessSnapshot[]>({
     queryKey: ['process_snapshots', processId ?? '_all'],
@@ -28,22 +50,8 @@ export function useSnapshots(processId?: string): UseQueryResult<ProcessSnapshot
 
 export function useSnapshotsLatest(): UseQueryResult<ProcessSnapshot[]> {
   return useQuery<ProcessSnapshot[]>({
-    queryKey: ['process_snapshots', '_latest'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from(TABLE as never)
-        .select('*')
-        .order('snapshot_at', { ascending: false });
-      if (error) throw new Error(error.message);
-      const seen = new Set<string>();
-      const out: ProcessSnapshot[] = [];
-      for (const row of (data ?? []) as unknown as ProcessSnapshot[]) {
-        if (seen.has(row.process_id)) continue;
-        seen.add(row.process_id);
-        out.push(row);
-      }
-      return out;
-    },
+    queryKey: SNAPSHOTS_LATEST_QUERY_KEY as unknown as readonly unknown[],
+    queryFn: fetchSnapshotsLatest,
   });
 }
 
