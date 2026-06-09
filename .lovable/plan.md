@@ -1,46 +1,63 @@
-## Validação das duas migrações
+## Análise das duas migrações
 
-### 1. `20260606200000_osg_v5_fix_enums.sql` — ✅ Seguro
+### 1. `20260609100000_osg_gargalos_melhorias_repopulate.sql` — ✅ SEGURA
 
-**Risco para Digital Rotina: nenhum.**
+**Alteração de schema:** apenas cria a tabela **nova** `gargalo_melhorias` (N:M) com RLS, policies e GRANTs corretos para `authenticated` / `service_role`. Nenhuma coluna de tabela existente é alterada.
 
-- Todas as 6 UPDATEs estão envolvidas em `BEGIN/COMMIT` e travadas em `cluster_id = '0523512c-f980-4236-8a7c-53e06c9c7a80'` (cluster OSG do MAPA).
-- Validação inicial aborta a transação se o cluster OSG não existir (`RAISE EXCEPTION`).
-- As tabelas afetadas (`processes`, `process_stages`, `projects`, `documentos_processo`, `gargalos`, `process_improvements`) são do módulo **MAPA**, não do módulo **Digital Rotina**.
-- Confirmei no banco: `gargalos` com `cluster_id <> OSG` = **0 linhas**. Nenhum dado fora do escopo é tocado.
-- Os mapeamentos enum→valor aceito batem com os tipos TS em `src/types.ts` (`FrequenciaProcesso`, `ProjetoStatus`, `MelhoriaStatus`, `EstruturacaoDoc`, etc.).
+**Escopo dos dados:**
+- `DELETE FROM public.gargalos WHERE cluster_id = '0523512c-…7a80'` — escopado por UUID OSG exato. Linhas Digital Rotina (`cluster_id IS NULL`) **não casam** e não são tocadas. ON DELETE CASCADE em `gargalo_etapas` / `gargalo_processos` / `gargalo_melhorias` só apaga junções dos gargalos OSG já apagados.
+- Todos os INSERTs em `gargalos`, `gargalo_etapas`, `gargalo_processos`, `etapa_documentos`, `melhoria_acoes_td`, `melhoria_processos`, `gargalo_melhorias` usam `mapa_uuid('…')` com slug OSG ou referenciam IDs já OSG.
+- Os UPDATEs em `process_improvements` filtram por `id = mapa_uuid('mel-osg-…')` (UUID derivado de slug OSG, determinístico) — só atualizam as 10 melhorias OSG.
+- Os 2 INSERTs novos em `process_improvements` setam `cluster_id = OSG`.
 
-**Observação menor (não bloqueante):** O patch de `process_stages.execution` filtra por `process_id IN (SELECT id FROM processes WHERE cluster_id = OSG)`. Funciona, mas se houver etapa TO-BE com `process_id` apontando para um processo de outro cluster (cenário improvável), ela não seria normalizada. Para OSG isso é inócuo.
+**Anti-regressão:** bloco final mede `count(cluster_id IS NULL)` antes/depois em `gargalos` e `process_improvements` e aborta a transação se mudar. Garantia explícita de zero impacto em Digital Rotina.
 
----
+### 2. `20260610100000_psa_consultores_full.sql` — ⚠️ ATENÇÃO
 
-### 2. `20260607100000_gargalo_etapas.sql` — ✅ Seguro
+**Alteração de schema:** apenas `CREATE TABLE IF NOT EXISTS gargalo_melhorias` (idempotente, caso a 1ª não tenha rodado). Nenhuma coluna existente é alterada.
 
-**Risco para Digital Rotina: nenhum.**
+**INSERTs novos (todos `ON CONFLICT DO NOTHING`, com `cluster_id = b21b0b89-…ee3` PSA Consultores):**
+- 1 projeto novo (P11), 78 documentos, 16 melhorias, 15 gargalos, junções (`gargalo_etapas`, `gargalo_processos`, `gargalo_melhorias`, `etapa_documentos` ponte para cascata), `projeto_justificativas`. **Nada deletado, nada sobrescrito.**
 
-**Validações feitas:**
-
-| Item | Status |
-|------|--------|
-| `cascata_evento_etapas` / `cascata_eventos` referenciadas em código de runtime | ❌ Não. Só aparecem em migrações antigas e em `src/integrations/supabase/types.ts` (autogerado — será regenerado). `CascataPage.tsx` já consome `gargalo_etapas`. |
-| FK composta `(etapa_id, scenario) → process_stages(id, scenario)` | ✅ Confirmado: existe constraint `process_stages_id_scenario_key UNIQUE (id, scenario)`. |
-| `gargalo_etapas` já referenciada no frontend | ✅ `src/hooks/useGargalos.ts` e `src/types.ts` (`GargaloEtapaRef`). A tabela é pré-requisito do código atual. |
-| RLS + GRANTs | ⚠️ RLS habilitada com policies para `team_member`/`admin`. **Não há `GRANT` explícito** para `authenticated`/`service_role`. Pelas regras do projeto, toda tabela `public` nova deveria incluir `GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated; GRANT ALL TO service_role;`. Sem isso, PostgREST pode devolver erro de permissão mesmo com RLS passando. |
-| DROP CASCADE das cascatas legadas | ⚠️ Perde 5+20 linhas em `cascata_eventos` / `cascata_evento_etapas`. Confirmado que nada em runtime lê essas tabelas — perda intencional, conforme a refatoração. |
-
-**Digital Rotina:** módulo totalmente independente (tabelas `tickets`, `org_tasks`, `ordem_servico`, `cliente`, etc.). Nenhuma das tabelas tocadas (`cascata_*`, `gargalo_etapas`, `process_stages`) tem relação com o módulo Digital.
-
----
-
-### Recomendação antes de rodar
-
-Adicionar ao final da migração `20260607100000_gargalo_etapas.sql`, antes do `COMMIT`:
+**Ponto que precisa de aprovação explícita — UPDATEs em linhas hoje "órfãs":**
 
 ```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated;
-GRANT ALL ON public.gargalo_etapas TO service_role;
+-- 10 projects: cluster_id NULL → PSA UUID
+UPDATE projects SET cluster_id='b21b0b89-…ee3'
+WHERE cluster_id IS NULL AND name IN ('Rotina PSA', 'P2 - Automação SPED', …);
+
+-- 27 processes: cluster_id NULL → PSA + project_id NULL → projeto PSA
+UPDATE processes SET cluster_id='b21b0b89-…ee3', project_id='…'
+WHERE id='…' AND cluster_id IS NULL;
 ```
 
-Com esse ajuste, ambas as migrações estão prontas para aplicar sem impacto em Digital Rotina.
+São registros do **mapeamento Fiscal/Tax** que hoje estão com `cluster_id NULL` (ficavam "limbo" entre Digital Rotina e MAPA). A migração os reatribui formalmente ao cluster PSA Consultores.
 
-Quer que eu adicione o bloco de GRANT na migração?
+**Impacto real no Digital Rotina:**
+| Consumidor | Impacto |
+|---|---|
+| `EquipeDaily.tsx`, `EquipeKanban.tsx`, `EquipeSprints.tsx`, `EquipeProjetos.tsx` (leem `processes`/`projects` sem filtrar por `cluster_id`) | **Nenhum** — continuam vendo as mesmas linhas. |
+| `useProcessos` / `useProjetos` (filtram `cluster_id NOT NULL` — MAPA) | Esses 27 processos + 10 projetos **passam a aparecer no MAPA** sob o cluster PSA. Intencional. |
+| `tickets`, `org_tasks`, `ordem_servico`, `sprints`, `cliente`, `contribuinte` | **Não tocados.** |
+| Colunas funcionais usadas pela Rotina (`name`, `description`, `code`, `status`, etc.) | **Não tocadas.** Só `cluster_id` (que era NULL) e `project_id` (que era NULL) são preenchidos. |
+
+**Anti-regressão:** bloco final aborta se `count(processes WHERE cluster_id IS NULL)` **aumentar**. Permite (e espera) que diminua — é o efeito do backfill.
+
+### Validação dos critérios
+
+| Critério solicitado | Migração 1 | Migração 2 |
+|---|---|---|
+| Não altera **colunas** das tabelas Digital Rotina | ✅ | ✅ |
+| Não **deleta** dados Digital Rotina | ✅ | ✅ |
+| Não **sobrescreve** dados Digital Rotina | ✅ | ⚠️ Sobrescreve `cluster_id` e `project_id` em 27 processes + 10 projects que **hoje têm esses campos = NULL**. Demais colunas intactas. |
+| Migração 1 só altera cluster OSG | ✅ | n/a |
+
+### Decisão necessária
+
+A migração 2 faz o backfill `cluster_id NULL → PSA UUID` em 27 processes + 10 projects. Tecnicamente são "dados do Digital Rotina" (já que cluster NULL = Rotina/legado), mas só preenche campos hoje vazios; nenhuma coluna funcional é alterada e a UI da Rotina (Daily/Kanban/Sprints/Projetos) não filtra por cluster, então continuará vendo tudo igual.
+
+**Opções:**
+- **A) Executar as duas na ordem** (recomendado, é o objetivo declarado nas próprias migrações): 1ª, depois 2ª.
+- **B) Executar só a 1ª** (OSG) e segurar a 2ª se você quiser revisar o backfill PSA com mais calma.
+
+Aguardando sua escolha (A ou B) para executar via `supabase--migration`.
