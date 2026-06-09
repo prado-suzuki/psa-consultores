@@ -16,9 +16,10 @@ describe('export .docx (formatação do modelo de referência)', () => {
   it('aplica margens, fonte padrão e formatação por tipo estrutural', async () => {
     const doc = await montarDocx([
       bloco('cab', 'livre', 'INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE SOCIEDADE LIMITADA'),
-      bloco('cap', 'capitulo', 'CAPÍTULO I\nDenominação, Sede e Prazo de Duração'),
-      bloco('cl', 'clausula', 'CLÁUSULA PRIMEIRA: A sociedade girará sob o nome X.\n    a) Primeira alínea;'),
-      bloco('par', 'paragrafo', 'Parágrafo Único: Texto do parágrafo.'),
+      // Conteúdos como saem de numerarBlocos: rótulos já envolvidos em *negrito*.
+      bloco('cap', 'capitulo', '*CAPÍTULO I*\nDenominação, Sede e Prazo de Duração'),
+      bloco('cl', 'clausula', '*CLÁUSULA PRIMEIRA:* A sociedade girará sob o nome X.\n    a) Primeira alínea;'),
+      bloco('par', 'paragrafo', '*Parágrafo Único:* Texto do parágrafo.'),
       bloco('fecho', 'livre', '_______________________________________\nFulano de Tal'),
     ]);
     const xml = await parteXml(doc, /word\/document\.xml$/);
@@ -35,13 +36,13 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(styles).toContain('Arial Narrow');
     expect(styles).toContain('w:val="24"'); // 12pt
 
-    // Capítulo: sublinhado presente no documento (só capítulos usam <w:u>)
-    expect(xml).toContain('<w:u w:val="single"/>');
+    // Rótulos em negrito (runs separados, sem as marcas literais)
+    expect(xml).toContain('<w:b/>');
     expect(xml).toContain('CAPÍTULO I');
-
-    // Rótulos preservados como runs separados (negrito no rótulo)
-    expect(xml).toContain('CLÁUSULA PRIMEIRA: ');
-    expect(xml).toContain('Parágrafo Único: ');
+    expect(xml).toContain('CLÁUSULA PRIMEIRA:');
+    expect(xml).toContain('Parágrafo Único:');
+    expect(xml).not.toContain('*CAPÍTULO');
+    expect(xml).not.toContain('*CLÁUSULA');
 
     // Alínea com recuo de 1,27 cm
     expect(xml).toContain('w:left="720"');
@@ -49,6 +50,49 @@ describe('export .docx (formatação do modelo de referência)', () => {
     // Título 18pt (36 half-points) e justificação no corpo
     expect(xml).toContain('w:val="36"');
     expect(xml).toContain('w:val="both"');
+  });
+
+  it('marcas inline viram runs formatados (e não aparecem literais)', async () => {
+    const doc = await montarDocx([
+      bloco('cl', 'clausula', 'CLÁUSULA PRIMEIRA: O prazo é de *30 (trinta)* dias, _improrrogáveis_, contados ~da assinatura~.'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+
+    expect(xml).toContain('<w:b/>');
+    expect(xml).toContain('<w:i/>');
+    expect(xml).toContain('<w:u w:val="single"/>');
+    expect(xml).toContain('30 (trinta)');
+    expect(xml).not.toContain('*30');
+    expect(xml).not.toContain('_improrrogáveis');
+    expect(xml).not.toContain('~da');
+  });
+
+  it('corrida de linhas-pipe vira Table com cabeçalho em negrito e células formatadas', async () => {
+    const doc = await montarDocx([
+      bloco(
+        'tab',
+        'livre',
+        'Quadro de sócios:\n| Sócio | Quotas |\n| :--- | ---: |\n| *Fulano* | 100 |\n| Beltrano | 200 |\nFim.',
+      ),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+
+    // Estrutura de tabela do OOXML
+    expect(xml).toContain('<w:tbl>');
+    expect(xml).toContain('<w:tr>');
+    expect(xml).toContain('<w:tc>');
+    // Conteúdo das células (separadora | --- | NÃO vira linha)
+    expect(xml).toContain('Sócio');
+    expect(xml).toContain('Beltrano');
+    expect(xml).not.toContain('---');
+    // Marca inline dentro da célula vira run em negrito, sem o literal
+    expect(xml).toContain('Fulano');
+    expect(xml).not.toContain('*Fulano');
+    // Alinhamento da coluna (right na 2ª via ---:)
+    expect(xml).toContain('w:val="right"');
+    // Texto fora da tabela continua parágrafo
+    expect(xml).toContain('Quadro de sócios:');
+    expect(xml).toContain('Fim.');
   });
 
   it('rodapé tem "Página X de Y" com campos dinâmicos em Arial 9pt à direita', async () => {

@@ -20,6 +20,7 @@ export const PARES = {
   portador: (g: Genero) => concordar(g, 'portador', 'portadora'),
   residente: (g: Genero) => concordar(g, 'residente e domiciliado', 'residente e domiciliada'),
   inscrito: (g: Genero) => concordar(g, 'inscrito', 'inscrita'),
+  senhor: (g: Genero) => concordar(g, 'o senhor', 'a senhora'),
 } as const;
 
 export type ParJuridico = keyof typeof PARES;

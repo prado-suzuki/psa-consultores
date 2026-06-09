@@ -12,6 +12,7 @@ import {
   avaliarFlags,
   comporBlocos,
   gerarBlocos,
+  removerMarcas,
   unirBlocos,
   type Bloco,
   type FlagDeclarativa,
@@ -28,8 +29,8 @@ import {
 import { detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
 import {
   mapearAdministrador,
+  mapearQuadroSocietario,
   mapearRegistro,
-  mapearSocio,
   montarContexto,
   type ItemLista,
 } from '@/lib/templates/mapeadores';
@@ -37,6 +38,7 @@ import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { useFlags } from '@/hooks/useBibliotecaModelos';
 import { useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 const GerarDocumento = () => {
@@ -109,12 +111,23 @@ const GerarDocumento = () => {
     usaListas ? empresaId : null,
   );
 
+  // `socio.percentual` e a linha `total` são derivados (calculados aqui, não vêm
+  // do banco): dependem da soma das quotas, que só existe no nível da lista.
+  const quadro = useMemo(() => mapearQuadroSocietario(socios), [socios]);
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
-      socios: socios.map(mapearSocio),
+      socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
     }),
-    [socios, administradores],
+    [quadro, administradores],
+  );
+
+  // `total.*` é injetado automaticamente quando há a lista de sócios; não deve
+  // virar campo de texto livre na UI (seria editável e ignorado).
+  const usaTotalSocios = listas.some((l) => l.nome === 'socios');
+  const desconhecidosVisiveis = useMemo(
+    () => (usaTotalSocios ? desconhecidos.filter((ph) => !ph.startsWith('total.')) : desconhecidos),
+    [usaTotalSocios, desconhecidos],
   );
 
   // Campos editáveis (base, não-derivados) de cada binding, conforme o que o modelo referencia.
@@ -143,8 +156,12 @@ const GerarDocumento = () => {
       for (const campoId of referenciados) {
         const campo = campoDaEntidade(b.tipo, campoId);
         if (campo?.derivadoDe) {
-          const base = campoDaEntidade(b.tipo, campo.derivadoDe);
-          if (base) adicionar(base);
+          // Derivados compostos (ex.: qualificação) listam vários campos-base.
+          const bases = Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe];
+          for (const baseId of bases) {
+            const base = campoDaEntidade(b.tipo, baseId);
+            if (base) adicionar(base);
+          }
         } else if (campo) {
           adicionar(campo);
         } else {
@@ -194,20 +211,24 @@ const GerarDocumento = () => {
       // Texto livre: todo placeholder sem binding resolve em branco quando vazio,
       // para a prévia não travar antes de preencher (diferente dos bindings, que
       // exigem seleção de registro).
-      const livres = Object.fromEntries(desconhecidos.map((ph) => [ph, valoresLivres[ph] ?? '']));
+      const livres = Object.fromEntries(desconhecidosVisiveis.map((ph) => [ph, valoresLivres[ph] ?? '']));
       // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
       for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
       const ctx = montarContexto(bindings, selecao, livres, itensPorLista, listas);
+      // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
+      // ser escolhida; preenchem quando as quotas carregam.
+      if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...quadro.total };
       const blocos = gerarBlocos(template, ctx, flagsAtivas);
       return { blocos, texto: unirBlocos(blocos), erro: null };
     } catch (e) {
       return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, bindings, selecao, valoresLivres, desconhecidos, secoesDesconhecidas, itensPorLista, listas, flagsAtivas]);
+  }, [template, bindings, selecao, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
-    await navigator.clipboard.writeText(resultado.texto);
+    // Texto puro na área de transferência: as marcas (*, _, ~) saem.
+    await navigator.clipboard.writeText(removerMarcas(resultado.texto));
     setCopiado(true);
     setTimeout(() => setCopiado(false), 1500);
   };
@@ -242,7 +263,7 @@ const GerarDocumento = () => {
   );
 
   const totalCampos =
-    bindings.reduce((acc, b) => acc + (camposPorBinding[b.nome]?.length ?? 0), 0) + desconhecidos.length;
+    bindings.reduce((acc, b) => acc + (camposPorBinding[b.nome]?.length ?? 0), 0) + desconhecidosVisiveis.length;
 
   return (
     <OsgLayout
@@ -300,7 +321,7 @@ const GerarDocumento = () => {
                 <CardTitle className="text-base">Dados</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
-                {bindings.length === 0 && desconhecidos.length === 0 && !precisaEmpresa && (
+                {bindings.length === 0 && desconhecidosVisiveis.length === 0 && !precisaEmpresa && (
                   <p className="text-sm text-muted-foreground">Este modelo não usa variáveis.</p>
                 )}
 
@@ -497,17 +518,17 @@ const GerarDocumento = () => {
                   </div>
                 )}
 
-                {desconhecidos.length > 0 && (
+                {desconhecidosVisiveis.length > 0 && (
                   <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50/60 p-3">
                     <div className="flex items-start gap-2 text-xs text-amber-800">
                       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
                       <span>
                         Variáveis sem binding (modelo legado ou papel desconhecido), tratadas como texto livre:{' '}
-                        <code>{desconhecidos.join(', ')}</code>.
+                        <code>{desconhecidosVisiveis.join(', ')}</code>.
                       </span>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {desconhecidos.map((ph) => (
+                      {desconhecidosVisiveis.map((ph) => (
                         <div key={ph} className="space-y-1.5">
                           <Label className="text-xs font-semibold text-muted-foreground">{ph}</Label>
                           <Input
@@ -562,9 +583,9 @@ const GerarDocumento = () => {
                     <span>{resultado.erro}</span>
                   </div>
                 ) : (
-                  <p className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">
-                    {resultado.texto}
-                  </p>
+                  <div className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">
+                    <TextoFormatado texto={resultado.texto} />
+                  </div>
                 )}
                 <div className="mt-3 flex items-center gap-1.5 flex-wrap border-t pt-2">
                   <Badge variant="outline" className="text-[10px]">

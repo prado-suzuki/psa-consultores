@@ -7,6 +7,7 @@ import { concordarTexto } from './concordancia';
 import {
   mapearMatricula,
   mapearPessoa,
+  mapearSocio,
   montarContexto,
   type MatriculaParaMapear,
 } from './mapeadores';
@@ -128,5 +129,99 @@ describe('concordância de gênero', () => {
     expect(concordarTexto('Solteiro(a)', 'M')).toBe('Solteiro');
     expect(concordarTexto('União Estável', 'F')).toBe('União Estável');
     expect(concordarTexto(null, 'M')).toBe('');
+  });
+});
+
+describe('qualificação completa (pessoa.qualificacao)', () => {
+  // Casos calcados no Contrato Social da Agropecuária Bom Pastor (modelo real).
+  function pf(extra: Record<string, unknown>): PessoaRow {
+    return { ...pessoa('M'), tipo_pessoa: 'PF', ...extra } as unknown as PessoaRow;
+  }
+
+  it('PF casado injeta o regime de bens e o endereço em prosa', () => {
+    const campos = mapearPessoa(pf({
+      denominacao: 'Wilson Carlos Galera', genero: 'M',
+      estado_civil: 'Casado(a)', regime_bens: 'Comunhão Universal',
+      profissao: 'engenheiro civil', cpf_cnpj: '803.465.108-72',
+      documento_identidade_numero: '498924-0', documento_identidade_orgao: 'SSP', documento_identidade_uf: 'SP',
+      nacionalidade: 'Brasileiro',
+      endereco_logradouro: 'Rua Professor Estevão Correa', endereco_numero: '119',
+      endereco_complemento: null, endereco_bairro: null,
+      endereco_municipio: 'Cuiabá', endereco_uf: 'MT', endereco_cep: '78000-000',
+    }));
+    expect(campos.qualificacao).toBe(
+      '*WILSON CARLOS GALERA*, brasileiro, casado em regime de comunhão universal de bens, ' +
+      'engenheiro civil, portador do RG nº 498924-0 SSP/SP, inscrito no CPF/MF sob o nº 803.465.108-72, ' +
+      'residente e domiciliado na Rua Professor Estevão Correa, nº 119, ' +
+      'no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+    );
+  });
+
+  it('PF solteira ganha "nascida em" (exigência da Junta) e concorda no feminino', () => {
+    const campos = mapearPessoa(pf({
+      denominacao: 'MARIA LUIZA SANSÃO', genero: 'F',
+      estado_civil: 'Solteiro(a)', regime_bens: null, data_nascimento: '1969-06-04',
+      profissao: 'administradora de empresas', cpf_cnpj: '452.895.221-15',
+      documento_identidade_numero: '622.505', documento_identidade_orgao: 'SSP', documento_identidade_uf: 'MT',
+      nacionalidade: 'Brasileira',
+    }));
+    expect(campos.qualificacao).toContain('brasileira, solteira, nascida em 04/06/1969, administradora de empresas');
+    expect(campos.qualificacao).toContain('portadora do RG nº 622.505 SSP/MT, inscrita no CPF/MF sob o nº 452.895.221-15');
+  });
+
+  it('PF viúva sai sem regime e sem data de nascimento; campos ausentes são omitidos', () => {
+    const campos = mapearPessoa(pf({
+      denominacao: 'MARTA BOIAGO SANSÃO', genero: 'F',
+      estado_civil: 'Viúvo(a)', regime_bens: null, profissao: 'do lar',
+      cpf_cnpj: '406.174.831-91',
+      documento_identidade_numero: null, documento_identidade_orgao: null, documento_identidade_uf: null,
+      nacionalidade: 'Brasileira',
+    }));
+    expect(campos.qualificacao).toBe(
+      '*MARTA BOIAGO SANSÃO*, brasileira, viúva, do lar, inscrita no CPF/MF sob o nº 406.174.831-91',
+    );
+  });
+
+  it('PJ qualifica com CNPJ, NIRE na Junta e sede estabelecida em prosa', () => {
+    const campos = mapearPessoa({
+      ...pessoa('M'), tipo_pessoa: 'PJ',
+      denominacao: 'Agropecuária Bom Pastor Ltda.', cpf_cnpj: '07.013.633/0001-83',
+      nire: '51200912501', junta_comercial_uf: 'MT',
+      estado_civil: null, profissao: null, nacionalidade: null,
+      documento_identidade_numero: null, documento_identidade_orgao: null, documento_identidade_uf: null,
+      endereco_logradouro: 'Rodovia MT 343, km 10', endereco_numero: 's/n', endereco_complemento: 'lado direito',
+      endereco_bairro: 'zona rural', endereco_municipio: 'Barra do Bugres', endereco_uf: 'MT',
+      endereco_cep: '78393-970',
+    } as unknown as PessoaRow);
+    expect(campos.qualificacao).toBe(
+      '*AGROPECUÁRIA BOM PASTOR LTDA.*, pessoa jurídica de direito privado, ' +
+      'inscrita no CNPJ/MF sob o nº 07.013.633/0001-83, ' +
+      'registrada na Junta Comercial do Estado de Mato Grosso sob o nº 51200912501, ' +
+      'com sede estabelecida na Rodovia MT 343, km 10, s/nº, lado direito, zona rural, ' +
+      'no município de Barra do Bugres, Estado de Mato Grosso, CEP: 78393-970',
+    );
+  });
+
+  it('sócia PJ em lista incorpora o representante qualificado, com "por" contraído', () => {
+    const item = mapearSocio({
+      pessoa: { ...pessoa('M'), tipo_pessoa: 'PJ', denominacao: 'BOM PASTOR LTDA.', cpf_cnpj: '07.013.633/0001-83' } as unknown as PessoaRow,
+      quotas: 100, vlr_total: 1000,
+      representante: 'o senhor WILSON CARLOS GALERA, brasileiro, casado em regime de comunhão universal de bens, e, o senhor DANTE PETRONI NETO, brasileiro',
+    });
+    const socio = item.socio as Record<string, string>;
+    expect(socio.qualificacao).toContain(
+      'neste ato representada pelo senhor WILSON CARLOS GALERA, brasileiro, casado em regime de comunhão universal de bens, e, o senhor DANTE PETRONI NETO, brasileiro',
+    );
+    expect(item.sePJ).toBe(true);
+  });
+
+  it('re-deriva a qualificação a partir de valores editados manualmente', () => {
+    const editado = derivarCampos('pessoa', {
+      nome: 'EUDA DIAS DE OLIVEIRA', genero: 'F', nacionalidade: 'Brasileira',
+      estadoCivil: 'Separada Judicialmente', profissao: 'agropecuarista',
+    });
+    expect(editado.qualificacao).toBe(
+      '*EUDA DIAS DE OLIVEIRA*, brasileira, separada judicialmente, agropecuarista',
+    );
   });
 });

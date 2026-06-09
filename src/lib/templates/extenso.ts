@@ -180,3 +180,26 @@ export function formatarValor(valor: number): string {
 export function formatarInteiro(valor: number): string {
   return agruparMilhar(String(Math.floor(Math.abs(valor))));
 }
+
+/** Percentual pt-BR com 3 casas e sufixo "%". Ex.: 23.8999 → "23,900%". */
+export function formatarPercentual(valor: number): string {
+  const [inteiro, decimais] = Math.abs(valor).toFixed(3).split('.');
+  return `${agruparMilhar(inteiro)},${decimais}%`;
+}
+
+/**
+ * Percentual por extenso na forma cartorial "inteiros … por cento", com a parte
+ * decimal em milésimos (3 casas, espelhando formatarPercentual).
+ * Ex.: 50 → "cinquenta inteiros por cento"; 33,333 → "trinta e três inteiros e
+ * trezentos e trinta e três milésimos por cento".
+ */
+export function percentualExtenso(valor: number): string {
+  const total = Math.round(Math.abs(valor) * 1000);
+  const inteiro = Math.floor(total / 1000);
+  const milesimos = total % 1000;
+  const partes: string[] = [];
+  if (inteiro > 0) partes.push(`${cardinalExtenso(inteiro)} ${inteiro === 1 ? 'inteiro' : 'inteiros'}`);
+  if (milesimos > 0) partes.push(`${cardinalExtenso(milesimos)} ${milesimos === 1 ? 'milésimo' : 'milésimos'}`);
+  if (partes.length === 0) return 'zero por cento';
+  return `${partes.join(' e ')} por cento`;
+}

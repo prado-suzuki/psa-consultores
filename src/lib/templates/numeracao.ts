@@ -18,6 +18,9 @@ function capitalizarPalavras(texto: string): string {
  * - paragrafo: agrupa a sequência consecutiva sob a cláusula anterior;
  *              1 só → "Parágrafo Único:"; 2+ → "Parágrafo {Ordinal Masculino}:"
  * - livre (ou sem tipo): passa intacto
+ *
+ * Os rótulos saem envolvidos na marca de negrito (*…* — ver marcas.ts), então
+ * ficam em negrito por padrão na prévia e no .docx, sem etapa extra.
  */
 export function numerarBlocos(blocos: Bloco[]): Bloco[] {
   let nCapitulo = 0;
@@ -27,11 +30,11 @@ export function numerarBlocos(blocos: Bloco[]): Bloco[] {
     switch (bloco.tipo) {
       case 'capitulo': {
         nCapitulo += 1;
-        return { ...bloco, conteudo: `CAPÍTULO ${romano(nCapitulo)}\n${bloco.conteudo}` };
+        return { ...bloco, conteudo: `*CAPÍTULO ${romano(nCapitulo)}*\n${bloco.conteudo}` };
       }
       case 'clausula': {
         nClausula += 1;
-        return { ...bloco, conteudo: `CLÁUSULA ${ordinalExtenso(nClausula, 'f').toUpperCase()}: ${bloco.conteudo}` };
+        return { ...bloco, conteudo: `*CLÁUSULA ${ordinalExtenso(nClausula, 'f').toUpperCase()}:* ${bloco.conteudo}` };
       }
       case 'paragrafo': {
         // Posição dentro da sequência consecutiva de parágrafos e tamanho dela.
@@ -44,7 +47,7 @@ export function numerarBlocos(blocos: Bloco[]): Bloco[] {
           fim === inicio
             ? 'Parágrafo Único'
             : `Parágrafo ${capitalizarPalavras(ordinalExtenso(i - inicio + 1, 'm'))}`;
-        return { ...bloco, conteudo: `${rotulo}: ${bloco.conteudo}` };
+        return { ...bloco, conteudo: `*${rotulo}:* ${bloco.conteudo}` };
       }
       default:
         return bloco;

@@ -1,5 +1,7 @@
-import type { Document, Paragraph } from 'docx';
+import type { Document, Paragraph, Table, TextRun } from 'docx';
 import type { Bloco } from './types';
+import { extrairRunsLinha, removerMarcas } from './marcas';
+import { segmentar, type Alinhamento, type Segmento } from './tabela';
 
 // Adapter de saída .docx: converte os blocos gerados pelo engine (numerados e
 // renderizados) num documento Word formatado por tipo estrutural. A formatação
@@ -35,45 +37,115 @@ function ehCaixaAlta(linha: string): boolean {
   return /[A-ZÀ-Ý]/.test(linha) && linha === linha.toUpperCase();
 }
 
+/** Estilos estruturais do parágrafo, mesclados sobre as marcas inline de cada run. */
+interface EstiloBase {
+  bold?: boolean;
+  underline?: boolean;
+  size?: number;
+}
+
+/**
+ * Converte as marcas inline (*…*, _…_, ~…~) de um trecho em TextRuns,
+ * compondo com o estilo estrutural do parágrafo (negrito de rótulo/título soma
+ * com as marcas; nunca as desliga).
+ */
+function runsInline(docx: DocxModule, texto: string, base: EstiloBase = {}): TextRun[] {
+  const { TextRun, UnderlineType } = docx;
+  return extrairRunsLinha(texto).map(
+    (r) =>
+      new TextRun({
+        text: r.texto,
+        bold: base.bold || r.negrito || undefined,
+        italics: r.italico || undefined,
+        underline: base.underline || r.sublinhado ? { type: UnderlineType.SINGLE } : undefined,
+        size: base.size,
+      }),
+  );
+}
+
 /** Linha justificada com o rótulo ("CLÁUSULA X:" / "Parágrafo X:") em negrito. */
 function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
   const { AlignmentType, Paragraph, TextRun } = docx;
   const m = linha.match(ROTULO);
   const children = m
-    ? [new TextRun({ text: m[0], bold: true }), new TextRun({ text: linha.slice(m[0].length) })]
-    : [new TextRun({ text: linha })];
+    ? [new TextRun({ text: m[0], bold: true }), ...runsInline(docx, linha.slice(m[0].length))]
+    : runsInline(docx, linha.replace(/^\s+/, ''));
   return new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
     spacing: { after: ESPACO_DEPOIS },
-    indent: ALINEA.test(linha) ? { left: RECUO_ALINEA } : undefined,
-    children: m ? children : [new TextRun({ text: linha.replace(/^\s+/, '') })],
+    indent: ALINEA.test(removerMarcas(linha)) ? { left: RECUO_ALINEA } : undefined,
+    children,
   });
 }
 
-/** Converte um bloco em parágrafos Word conforme o tipo estrutural. */
-function paragrafosDoBloco(docx: DocxModule, bloco: Bloco, primeiroBloco: boolean): Paragraph[] {
-  const { AlignmentType, Paragraph, TextRun, UnderlineType } = docx;
-  const linhas = bloco.conteudo.split('\n');
-  const saida: Paragraph[] = [];
+const ALINHAMENTO_CELULA = {
+  left: 'LEFT',
+  center: 'CENTER',
+  right: 'RIGHT',
+} as const satisfies Record<Alinhamento, keyof typeof import('docx').AlignmentType>;
+
+/** Converte um segmento de tabela (corrida de linhas-pipe) num Table do Word. */
+function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela' }>): Table {
+  const { AlignmentType, BorderStyle, Paragraph, Table, TableCell, TableRow, WidthType } = docx;
+  const borda = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
+  const colunas = Math.max(seg.cabecalho.length, ...seg.corpo.map((l) => l.length));
+
+  const celula = (texto: string, coluna: number, cabecalho: boolean) =>
+    new TableCell({
+      margins: { top: 40, bottom: 40, left: 80, right: 80 },
+      children: [
+        new Paragraph({
+          alignment: AlignmentType[ALINHAMENTO_CELULA[seg.alinhamentos[coluna] ?? 'left']],
+          children: runsInline(docx, texto, cabecalho ? { bold: true } : {}),
+        }),
+      ],
+    });
+
+  // Normaliza cada linha ao nº de colunas (células faltantes viram vazias).
+  const completar = (cels: string[]) => Array.from({ length: colunas }, (_, c) => cels[c] ?? '');
+
+  const linhaCabecalho = new TableRow({
+    tableHeader: true,
+    children: completar(seg.cabecalho).map((c, i) => celula(c, i, true)),
+  });
+  const linhasCorpo = seg.corpo.map(
+    (cels) => new TableRow({ children: completar(cels).map((c, i) => celula(c, i, false)) }),
+  );
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: borda, bottom: borda, left: borda, right: borda, insideHorizontal: borda, insideVertical: borda },
+    rows: [linhaCabecalho, ...linhasCorpo],
+  });
+}
+
+/** Converte um bloco em parágrafos (e tabelas) Word conforme o tipo estrutural. */
+function paragrafosDoBloco(docx: DocxModule, bloco: Bloco, primeiroBloco: boolean): (Paragraph | Table)[] {
+  const { AlignmentType, Paragraph, TextRun } = docx;
+  const saida: (Paragraph | Table)[] = [];
   let linhaAnteriorEraRegua = false;
 
-  for (const bruta of linhas) {
-    const linha = bruta.replace(/\s+$/, '');
+  for (const seg of segmentar(bloco.conteudo.split('\n'))) {
+    if (seg.tipo === 'tabela') {
+      saida.push(tabelaParaDocx(docx, seg));
+      linhaAnteriorEraRegua = false;
+      continue;
+    }
+    const linha = seg.texto.replace(/\s+$/, '');
     if (linha.trim() === '') {
       saida.push(new Paragraph({}));
       linhaAnteriorEraRegua = false;
       continue;
     }
 
-    // capitulo: "CAPÍTULO {romano}" e o título — centralizados, negrito, sublinhado.
+    // capitulo: linhas centralizadas; o negrito do "*CAPÍTULO {romano}*" vem da
+    // marca inserida pela numeração — o título só fica em negrito se o autor marcar.
     if (bloco.tipo === 'capitulo') {
       saida.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200, after: ESPACO_DEPOIS },
-          children: [
-            new TextRun({ text: linha.trim(), bold: true, underline: { type: UnderlineType.SINGLE } }),
-          ],
+          children: runsInline(docx, linha.trim()),
         }),
       );
       continue;
@@ -85,14 +157,15 @@ function paragrafosDoBloco(docx: DocxModule, bloco: Bloco, primeiroBloco: boolea
       continue;
     }
 
-    // livre: heurísticas do modelo de referência.
+    // livre: heurísticas do modelo de referência (sobre o texto SEM marcas).
     const texto = linha.trim();
-    if (REGUA_ASSINATURA.test(texto)) {
+    const limpo = removerMarcas(texto);
+    if (REGUA_ASSINATURA.test(limpo)) {
       saida.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200 },
-          children: [new TextRun({ text: texto })],
+          children: [new TextRun({ text: limpo })],
         }),
       );
       linhaAnteriorEraRegua = true;
@@ -104,26 +177,23 @@ function paragrafosDoBloco(docx: DocxModule, bloco: Bloco, primeiroBloco: boolea
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: ESPACO_DEPOIS },
-          children: [new TextRun({ text: texto, bold: true })],
+          children: runsInline(docx, texto, { bold: true }),
         }),
       );
       linhaAnteriorEraRegua = false;
       continue;
     }
-    if (ehCaixaAlta(texto)) {
+    if (ehCaixaAlta(limpo)) {
       // Título do instrumento (e razão social) — 18pt sublinhado na abertura do documento.
       saida.push(
         new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { before: 200, after: ESPACO_DEPOIS },
-          children: [
-            new TextRun({
-              text: texto,
-              bold: true,
-              size: primeiroBloco ? PT18 : PT12,
-              underline: primeiroBloco ? { type: UnderlineType.SINGLE } : undefined,
-            }),
-          ],
+          children: runsInline(docx, texto, {
+            bold: true,
+            size: primeiroBloco ? PT18 : PT12,
+            underline: primeiroBloco,
+          }),
         }),
       );
       continue;

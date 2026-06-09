@@ -254,21 +254,36 @@ export function useReordenarBlocos() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ documentoId, idsOrdenados }: { documentoId: string; idsOrdenados: string[] }) => {
-      // ordem não tem unique constraint, então atualizar uma a uma é seguro.
-      for (let i = 0; i < idsOrdenados.length; i++) {
-        const { error } = await supabase
-          .from('tmpl_documento_bloco')
-          .update({ ordem: i + 1 })
-          .eq('id', idsOrdenados[i]);
-        if (error) throw error;
-      }
+      // ordem não tem unique constraint, então atualizar em paralelo é seguro.
+      const resultados = await Promise.all(
+        idsOrdenados.map((id, i) =>
+          supabase.from('tmpl_documento_bloco').update({ ordem: i + 1 }).eq('id', id),
+        ),
+      );
+      const erro = resultados.find((r) => r.error)?.error;
+      if (erro) throw erro;
       return documentoId;
     },
-    onSuccess: (documentoId) => {
-      queryClient.invalidateQueries({ queryKey: keyBlocos(documentoId) });
+    // Update otimista: a lista reordena na hora, sem esperar o banco.
+    onMutate: async ({ documentoId, idsOrdenados }) => {
+      const key = keyBlocos(documentoId);
+      await queryClient.cancelQueries({ queryKey: key });
+      const anterior = queryClient.getQueryData<DocumentoBlocoComBloco[]>(key);
+      if (anterior) {
+        const porId = new Map(anterior.map((b) => [b.id, b]));
+        const reordenado = idsOrdenados
+          .map((id) => porId.get(id))
+          .filter((b): b is DocumentoBlocoComBloco => Boolean(b));
+        queryClient.setQueryData<DocumentoBlocoComBloco[]>(key, reordenado);
+      }
+      return { anterior, key };
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.anterior) queryClient.setQueryData(context.key, context.anterior);
       toast({ title: 'Erro ao reordenar', description: error.message, variant: 'destructive' });
+    },
+    onSettled: (documentoId) => {
+      if (documentoId) queryClient.invalidateQueries({ queryKey: keyBlocos(documentoId) });
     },
   });
 }

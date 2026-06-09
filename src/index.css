@@ -871,3 +871,30 @@ All colors MUST be HSL.
     display: none;
   }
 }
+
+/* Editor de conteúdo de modelos (TipTap) — ver EditorConteudoModelo.tsx */
+.editor-modelo .ProseMirror {
+  min-height: var(--editor-min-h, 11rem);
+  max-height: var(--editor-max-h, none);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: min-height 300ms ease, max-height 300ms ease;
+}
+
+.editor-modelo .ProseMirror p {
+  margin: 0;
+}
+
+.editor-modelo .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Chip de placeholder selecionado (clique no chip = NodeSelection) */
+.editor-modelo .ProseMirror .osg-var-chip.ProseMirror-selectednode {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
+}

@@ -6,7 +6,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Plus, Pencil, X, Copy } from 'lucide-react';
+import { Loader2, Plus, Pencil, X, Copy, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { fieldCls, FieldSection } from '@/components/equipe/osg/formKit';
 import {
@@ -14,6 +14,7 @@ import {
   useTitularidadesByBem,
   useUpsertTitularidade,
   useDeleteTitularidade,
+  useSetIntegralizador,
   titularidadeAnchorValues,
   type TitularidadeAnchor,
   type TitularidadeRow,
@@ -41,6 +42,7 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const matriculaQuery = useTitularidadesByMatricula(anchor.kind === 'matricula' ? anchor.id : null);
   const bemQuery = useTitularidadesByBem(anchor.kind === 'bem' ? anchor.id : null);
   const { data: titularidades = [], isLoading } = anchor.kind === 'matricula' ? matriculaQuery : bemQuery;
+  const setIntegralizador = useSetIntegralizador();
 
   if (isLoading) {
     return <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>;
@@ -49,6 +51,11 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
   const fato = titularidades.filter((t) => t.tipo === 'FATO');
   const direito = titularidades.filter((t) => t.tipo !== 'FATO');
   const totalTitulares = titularidades.length;
+
+  // Integralizador é "um por imóvel" (entre FATO e DIREITO): alterna o alvo e a
+  // mutation limpa os demais da âncora. Só faz sentido com mais de um titular.
+  const toggleIntegralizador = (t: TitularidadeRow) =>
+    setIntegralizador.mutate({ anchor, titularidadeId: t.id, value: !t.integralizador });
 
   return (
     <div>
@@ -60,6 +67,8 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
         pessoasCliente={pessoasCliente}
         totalTitulares={totalTitulares}
         requireAtLeastOne={requireAtLeastOne}
+        onToggleIntegralizador={toggleIntegralizador}
+        integralizadorPending={setIntegralizador.isPending}
       />
       <TitularBucket
         number="02"
@@ -70,6 +79,8 @@ export function TitularidadesPanel({ anchor, pessoasCliente, requireAtLeastOne =
         totalTitulares={totalTitulares}
         requireAtLeastOne={requireAtLeastOne}
         copySource={fato}
+        onToggleIntegralizador={toggleIntegralizador}
+        integralizadorPending={setIntegralizador.isPending}
       />
     </div>
   );
@@ -85,10 +96,13 @@ interface TitularBucketProps {
   requireAtLeastOne: boolean;
   // Quando presente (seção PD), habilita o botão de copiar titulares da PT.
   copySource?: TitularidadeEnriched[];
+  onToggleIntegralizador: (t: TitularidadeRow) => void;
+  integralizadorPending: boolean;
 }
 
 function TitularBucket({
   number, anchor, tipo, titularidades, pessoasCliente, totalTitulares, requireAtLeastOne, copySource,
+  onToggleIntegralizador, integralizadorPending,
 }: TitularBucketProps) {
   const upsert = useUpsertTitularidade();
   const deleteMutation = useDeleteTitularidade();
@@ -219,6 +233,9 @@ function TitularBucket({
                 titularidade={t}
                 isEditing={editingId === t.id}
                 canDelete={canDelete}
+                showIntegralizador={totalTitulares > 1}
+                integralizadorPending={integralizadorPending}
+                onToggleIntegralizador={() => onToggleIntegralizador(t)}
                 onEdit={() => startEdit(t)}
                 onDelete={() => deleteMutation.mutate(t)}
               />
@@ -297,11 +314,19 @@ interface TitularidadeRowItemProps {
   titularidade: TitularidadeEnriched;
   isEditing: boolean;
   canDelete: boolean;
+  // Só mostra a estrela de integralizador quando há mais de um titular no imóvel.
+  showIntegralizador: boolean;
+  integralizadorPending: boolean;
+  onToggleIntegralizador: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function TitularidadeRowItem({ titularidade, isEditing, canDelete, onEdit, onDelete }: TitularidadeRowItemProps) {
+function TitularidadeRowItem({
+  titularidade, isEditing, canDelete, showIntegralizador, integralizadorPending,
+  onToggleIntegralizador, onEdit, onDelete,
+}: TitularidadeRowItemProps) {
+  const isIntegralizador = titularidade.integralizador;
   return (
     <div
       className={`group flex items-center gap-3 rounded-lg border px-3 py-2 transition-colors ${isEditing ? 'bg-osg-50 border-osg-200' : 'bg-card hover:bg-muted/40'}`}
@@ -311,7 +336,26 @@ function TitularidadeRowItem({ titularidade, isEditing, canDelete, onEdit, onDel
         {titularidade.titular_tipo && (
           <span className="shrink-0 text-[11px] text-muted-foreground">{titularidade.titular_tipo}</span>
         )}
+        {isIntegralizador && (
+          <span className="shrink-0 rounded bg-osg-moss/10 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-osg-moss">
+            Integralizador
+          </span>
+        )}
       </div>
+      {showIntegralizador && (
+        <Button
+          size="icon"
+          variant="ghost"
+          className={`h-7 w-7 shrink-0 transition-opacity ${isIntegralizador ? 'text-osg-moss' : 'text-muted-foreground/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100'}`}
+          disabled={integralizadorPending}
+          title={isIntegralizador
+            ? 'Integralizador (lidera a descrição do imóvel) — clique para desmarcar'
+            : 'Marcar como integralizador (lidera a descrição; os demais viram a área remanescente)'}
+          onClick={onToggleIntegralizador}
+        >
+          <Star className={`h-3.5 w-3.5 ${isIntegralizador ? 'fill-osg-moss' : ''}`} />
+        </Button>
+      )}
       <span
         className={`shrink-0 text-sm font-mono tabular-nums ${titularidade.fracao != null ? 'font-medium text-foreground' : 'text-muted-foreground/60'}`}
       >

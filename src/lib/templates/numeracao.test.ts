@@ -20,12 +20,12 @@ describe('numerarBlocos', () => {
       bloco('c2', 'capitulo', 'Objeto Social'),
       bloco('cl3', 'clausula', 'O objeto será Z.'),
     ]);
-    expect(numerados[0].conteudo).toBe('CAPÍTULO I\nDenominação');
-    expect(numerados[1].conteudo).toBe('CLÁUSULA PRIMEIRA: A sociedade girará sob o nome X.');
-    expect(numerados[2].conteudo).toBe('CLÁUSULA SEGUNDA: A sede será em Y.');
-    expect(numerados[3].conteudo).toBe('CAPÍTULO II\nObjeto Social');
+    expect(numerados[0].conteudo).toBe('*CAPÍTULO I*\nDenominação');
+    expect(numerados[1].conteudo).toBe('*CLÁUSULA PRIMEIRA:* A sociedade girará sob o nome X.');
+    expect(numerados[2].conteudo).toBe('*CLÁUSULA SEGUNDA:* A sede será em Y.');
+    expect(numerados[3].conteudo).toBe('*CAPÍTULO II*\nObjeto Social');
     // contínua: não reseta ao trocar de capítulo
-    expect(numerados[4].conteudo).toBe('CLÁUSULA TERCEIRA: O objeto será Z.');
+    expect(numerados[4].conteudo).toBe('*CLÁUSULA TERCEIRA:* O objeto será Z.');
   });
 
   it('parágrafo solitário vira Parágrafo Único', () => {
@@ -33,7 +33,7 @@ describe('numerarBlocos', () => {
       bloco('cl', 'clausula', 'Caput.'),
       bloco('p1', 'paragrafo', 'Texto do parágrafo.'),
     ]);
-    expect(numerados[1].conteudo).toBe('Parágrafo Único: Texto do parágrafo.');
+    expect(numerados[1].conteudo).toBe('*Parágrafo Único:* Texto do parágrafo.');
   });
 
   it('parágrafos consecutivos ganham ordinais masculinos resetando por cláusula', () => {
@@ -44,9 +44,9 @@ describe('numerarBlocos', () => {
       bloco('cl2', 'clausula', 'Administração.'),
       bloco('p3', 'paragrafo', 'Vedação.'),
     ]);
-    expect(numerados[1].conteudo).toBe('Parágrafo Primeiro: Responsabilidade.');
-    expect(numerados[2].conteudo).toBe('Parágrafo Segundo: Integralização.');
-    expect(numerados[4].conteudo).toBe('Parágrafo Único: Vedação.');
+    expect(numerados[1].conteudo).toBe('*Parágrafo Primeiro:* Responsabilidade.');
+    expect(numerados[2].conteudo).toBe('*Parágrafo Segundo:* Integralização.');
+    expect(numerados[4].conteudo).toBe('*Parágrafo Único:* Vedação.');
   });
 
   it('blocos livres (ou sem tipo) passam intactos', () => {
@@ -87,14 +87,14 @@ describe('gerarDocumento com numeração', () => {
 
     // Com a flag: dois parágrafos numerados.
     expect(gerarDocumento(template, ctx, ['tem_imovel'])).toBe(
-      'CLÁUSULA PRIMEIRA: O capital será de R$ 100,00.\n' +
-        'Parágrafo Primeiro: A responsabilidade é restrita.\n' +
-        'Parágrafo Segundo: Bens integralizados.',
+      '*CLÁUSULA PRIMEIRA:* O capital será de R$ 100,00.\n' +
+        '*Parágrafo Primeiro:* A responsabilidade é restrita.\n' +
+        '*Parágrafo Segundo:* Bens integralizados.',
     );
 
     // Sem a flag: o sobrevivente vira Parágrafo Único — sem renumeração manual.
     expect(gerarDocumento(template, ctx)).toBe(
-      'CLÁUSULA PRIMEIRA: O capital será de R$ 100,00.\nParágrafo Único: A responsabilidade é restrita.',
+      '*CLÁUSULA PRIMEIRA:* O capital será de R$ 100,00.\n*Parágrafo Único:* A responsabilidade é restrita.',
     );
   });
 });

@@ -11,6 +11,7 @@ import {
   FileStack, Lock, LockOpen, AlertTriangle, Layers,
 } from 'lucide-react';
 import { useBlocos } from '@/hooks/useBibliotecaModelos';
+import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
 import { LABEL_TIPO_BLOCO, numerarBlocos, unirBlocos, type TipoBloco } from '@/lib/templates';
 import {
   useModelos, useModeloBlocos, useSalvarModelo, useToggleModeloAtivo,
@@ -327,7 +328,9 @@ function EditorModelo({
             <CardTitle className="text-sm">Estrutura do documento</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">{estrutura}</p>
+            <div className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">
+              <TextoFormatado texto={estrutura} />
+            </div>
             <p className="mt-3 text-xs text-muted-foreground border-t pt-2">
               Prévia da estrutura com a numeração automática (capítulos, cláusulas e parágrafos pela ordem)
               e os campos ({'{{ }}'}) ainda não preenchidos. O preenchimento dos campos acontece na geração

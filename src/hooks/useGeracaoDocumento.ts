@@ -4,10 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
-import type {
-  AdministradorParaMapear,
-  MatriculaParaMapear,
-  SocioParaMapear,
+import { PARES } from '@/lib/templates/concordancia';
+import {
+  mapearPessoa,
+  type AdministradorParaMapear,
+  type MatriculaParaMapear,
+  type SocioParaMapear,
 } from '@/lib/templates/mapeadores';
 
 // Glue entre o cadastro OSG (pessoa/bem/matrícula/cartório) e o binding por entidade
@@ -28,7 +30,7 @@ const MATRICULA_GERACAO_SELECT = `
   area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
   bem:bem_id ( denominacao, vlr_contabil, ccir_codigo, cliente_id ),
   cartorio:cartorio_id ( nome_completo, comarca, uf ),
-  titularidade ( titular:titular_pessoa_id ( denominacao, cliente_id ) )
+  titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
 `;
 
 interface RawMatriculaGeracao {
@@ -39,7 +41,11 @@ interface RawMatriculaGeracao {
   confrontacoes_texto: string | null; descricao_psa_completa: string | null;
   bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null; cliente_id: string | null } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
-  titularidade: Array<{ titular: { denominacao: string | null; cliente_id: string | null } | null }> | null;
+  titularidade: Array<{
+    integralizador: boolean | null;
+    fracao: number | null;
+    titular: { id: string; denominacao: string | null; cliente_id: string | null } | null;
+  }> | null;
 }
 
 function useMatriculasGeracao(clienteId: string | null) {
@@ -106,7 +112,12 @@ export function useRegistrosPorTipo(clienteId: string | null) {
             ? { denominacao: m.bem.denominacao, vlr_contabil: m.bem.vlr_contabil, ccir_codigo: m.bem.ccir_codigo }
             : null,
           cartorio: m.cartorio,
-          titulares: (m.titularidade ?? []).map((t) => ({ denominacao: t.titular?.denominacao ?? null })),
+          titulares: (m.titularidade ?? []).map((t) => ({
+            pessoaId: t.titular?.id ?? null,
+            denominacao: t.titular?.denominacao ?? null,
+            integralizador: !!t.integralizador,
+            fracao: t.fracao ?? null,
+          })),
         },
       }));
 
@@ -158,26 +169,29 @@ export function useListasDaEmpresa(empresaId: string | null) {
       if (error) throw error;
       const linhas = ((data ?? []) as unknown as RawQuadroSocietario[]).filter((l) => l.socio);
 
-      // Representantes das sócias PJ (administradores delas, juntados com " e ").
+      // Representantes das sócias PJ: administradores delas com qualificação
+      // completa ("o senhor FULANO, brasileiro, casado…"), no padrão do preâmbulo
+      // real — a qualificação da sócia PJ contrai o primeiro ("representada pelo
+      // senhor…") e os demais entram juntados com ", e, ".
       const idsPj = linhas.filter((l) => l.socio!.tipo_pessoa === 'PJ').map((l) => l.socio!.id);
       const representantes = new Map<string, string>();
       if (idsPj.length > 0) {
         const { data: adms, error: errAdms } = await supabase
           .from('administracao')
-          .select('pj_pessoa_id, administrador:administrador_pessoa_id ( denominacao )')
+          .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
           .in('pj_pessoa_id', idsPj)
           .order('created_at');
         if (errAdms) throw errAdms;
         for (const a of (adms ?? []) as unknown as Array<{
           pj_pessoa_id: string;
-          administrador: { denominacao: string | null } | null;
+          administrador: PessoaRow | null;
         }>) {
           if (!a.administrador?.denominacao) continue;
+          const qualificado =
+            `${PARES.senhor(a.administrador.genero as 'M' | 'F' | null)} ` +
+            mapearPessoa(a.administrador).qualificacao;
           const atual = representantes.get(a.pj_pessoa_id);
-          representantes.set(
-            a.pj_pessoa_id,
-            atual ? `${atual} e ${a.administrador.denominacao}` : a.administrador.denominacao,
-          );
+          representantes.set(a.pj_pessoa_id, atual ? `${atual}, e, ${qualificado}` : qualificado);
         }
       }
 

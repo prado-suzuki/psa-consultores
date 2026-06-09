@@ -1,170 +1,37 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
+import { EditorContent, useEditor, useEditorState } from '@tiptap/react';
+import Document from '@tiptap/extension-document';
+import Paragraph from '@tiptap/extension-paragraph';
+import Text from '@tiptap/extension-text';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import Underline from '@tiptap/extension-underline';
+import { Placeholder, UndoRedo } from '@tiptap/extensions';
+import { exitSuggestion, type SuggestionProps } from '@tiptap/suggestion';
+import { Bold as BoldIcon, Italic as ItalicIcon, Table as TableIcon, Underline as UnderlineIcon } from 'lucide-react';
+import type { JSONContent } from '@tiptap/core';
 import { cn } from '@/lib/utils';
-import { listarPlaceholders, type PlaceholderSugerido } from '@/lib/templates/binding';
+import type { PlaceholderSugerido } from '@/lib/templates/binding';
+import { docParaString, stringParaDoc } from '@/lib/templates/editorDoc';
+import { PlaceholderChip } from './extensions/PlaceholderChip';
+import { SUGESTAO_PLUGIN_KEY, SugestaoPlaceholders } from './extensions/sugestaoPlaceholders';
 
-// Editor de conteúdo de modelos: um contentEditable que (1) renderiza variáveis
-// fechadas {{ nome }} — e tokens de seção {{#lista}} / {{/lista}} — como "chips",
-// e (2) abre um autocomplete ao digitar {{, filtrando conforme se digita.
+// Editor de conteúdo de modelos (TipTap): WYSIWYG de verdade — negrito/itálico/
+// sublinhado renderizados (sem delimitadores visíveis) e placeholders {{ }}
+// como chips atômicos.
 //
-// O modelo de dados é a STRING de origem (prop `value`). O DOM é só uma vista:
-// a cada edição reserializamos o DOM de volta para a string, e só repintamos
-// (re-tokenizando em chips) quando o conjunto de variáveis fechadas muda — o
-// que evita resetar o cursor a cada tecla em texto comum.
+// O modelo de dados continua sendo a STRING de origem (prop `value`): cada
+// edição serializa o doc de volta via docParaString (marcas *_~ + tokens), e o
+// pipeline downstream (prévia, .docx, extrairCampos) não muda.
+//
+// Comportamentos-chave (implementados nas extensions):
+// - Backspace/Delete encostado num chip degrada para texto literal menos um
+//   caractere ({{ nome }} → "{{ nome }"), editável; completar o token reconverte.
+// - Digitar {{ abre o autocomplete de variáveis (dropdown abaixo).
 
-// Variável {{ nome }}, abertura de seção {{#nome attr="v"}} ou fechamento {{/nome}}.
-const TOKEN_COMPLETO =
-  /\{\{\s*((?:#[\w.]+(?:\s+\w+="(?:[^"\\]|\\.)*")*)|\/[\w.]+|[\w.]+)\s*\}\}/g;
-const ZERO_WIDTH = /[\uFEFF\u200B]/g;
-const ehZeroWidth = (c: string) => c === '\uFEFF' || c === '\u200B';
-
-type Segmento =
-  | { tipo: 'texto'; texto: string }
-  | { tipo: 'chip'; nome: string; source: string };
-
-function tokenizar(source: string): Segmento[] {
-  const segs: Segmento[] = [];
-  let ultimo = 0;
-  const re = new RegExp(TOKEN_COMPLETO.source, 'g');
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(source)) !== null) {
-    if (m.index > ultimo) segs.push({ tipo: 'texto', texto: source.slice(ultimo, m.index) });
-    // Seções mostram só "#nome"/"/nome" no chip (atributos ficam no title/source).
-    segs.push({ tipo: 'chip', nome: m[1].split(/\s/)[0], source: m[0] });
-    ultimo = m.index + m[0].length;
-  }
-  if (ultimo < source.length) segs.push({ tipo: 'texto', texto: source.slice(ultimo) });
-  return segs;
-}
-
-/** Assinatura do conjunto de chips — só repintamos o DOM quando ela muda. */
-function assinaturaChips(source: string): string {
-  return tokenizar(source)
-    .map((s) => (s.tipo === 'chip' ? s.source : ''))
-    .join('');
-}
-
-const CHIP_CLASS =
-  'osg-var-chip inline-flex items-center align-baseline rounded px-1.5 py-px mx-[1px] ' +
-  'text-[0.85em] font-medium leading-snug bg-osg-100 text-osg-700 ring-1 ring-osg-200/70 ' +
-  'select-none whitespace-nowrap cursor-default';
-
-function pintar(editor: HTMLElement, source: string) {
-  editor.replaceChildren();
-  for (const seg of tokenizar(source)) {
-    if (seg.tipo === 'texto') {
-      editor.appendChild(document.createTextNode(seg.texto));
-    } else {
-      const chip = document.createElement('span');
-      chip.contentEditable = 'false';
-      chip.dataset.chip = 'true';
-      chip.dataset.source = seg.source;
-      chip.className = CHIP_CLASS;
-      chip.title = seg.source;
-      chip.textContent = seg.nome;
-      editor.appendChild(chip);
-    }
-  }
-}
-
-function tamanhoOrigem(node: ChildNode): number {
-  const el = node as HTMLElement;
-  if (node.nodeType === Node.TEXT_NODE) return (node.textContent ?? '').replace(ZERO_WIDTH, '').length;
-  if (el.dataset?.chip) return (el.dataset.source ?? '').length;
-  return (node.textContent ?? '').length;
-}
-
-/** Offset do cursor em coordenadas da string de origem (chips contam o tamanho do source). */
-function lerOffset(editor: HTMLElement): number | null {
-  const sel = window.getSelection();
-  if (!sel || sel.rangeCount === 0) return null;
-  const range = sel.getRangeAt(0);
-  const sc = range.startContainer;
-  const so = range.startOffset;
-  if (sc !== editor && !editor.contains(sc)) return null;
-
-  let offset = 0;
-  if (sc === editor) {
-    for (let i = 0; i < so; i++) offset += tamanhoOrigem(editor.childNodes[i]);
-    return offset;
-  }
-  for (const node of Array.from(editor.childNodes)) {
-    if (node === sc) {
-      offset += (node.textContent ?? '').slice(0, so).replace(ZERO_WIDTH, '').length;
-      return offset;
-    }
-    if (node.contains(sc)) {
-      offset += tamanhoOrigem(node);
-      return offset;
-    }
-    offset += tamanhoOrigem(node);
-  }
-  return offset;
-}
-
-/** Posiciona o cursor no offset de origem dado (não entra dentro de chips). */
-function gravarOffset(editor: HTMLElement, alvo: number) {
-  const sel = window.getSelection();
-  if (!sel) return;
-  const range = document.createRange();
-  let resto = alvo;
-  for (const node of Array.from(editor.childNodes)) {
-    const len = tamanhoOrigem(node);
-    if (node.nodeType === Node.TEXT_NODE) {
-      if (resto <= len) {
-        const texto = node.textContent ?? '';
-        let idx = 0;
-        let contados = 0;
-        while (idx < texto.length && contados < resto) {
-          if (!ehZeroWidth(texto[idx])) contados++;
-          idx++;
-        }
-        range.setStart(node, idx);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-      resto -= len;
-    } else {
-      if (resto <= 0) {
-        range.setStartBefore(node);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-      if (resto < len) {
-        range.setStartAfter(node);
-        range.collapse(true);
-        sel.removeAllRanges();
-        sel.addRange(range);
-        return;
-      }
-      resto -= len;
-    }
-  }
-  range.selectNodeContents(editor);
-  range.collapse(false);
-  sel.removeAllRanges();
-  sel.addRange(range);
-}
-
-function serializar(editor: HTMLElement): string {
-  let s = '';
-  for (const node of Array.from(editor.childNodes)) {
-    const el = node as HTMLElement;
-    if (node.nodeType === Node.TEXT_NODE) s += node.textContent ?? '';
-    else if (el.dataset?.chip) s += el.dataset.source ?? '';
-    else if (el.tagName === 'BR') s += '\n';
-    else s += node.textContent ?? '';
-  }
-  return s.replace(ZERO_WIDTH, '');
-}
-
-interface EstadoDropdown {
-  query: string;
-  inicioToken: number;
-  caret: number;
+interface EstadoSugestao {
+  items: PlaceholderSugerido[];
+  command: (item: PlaceholderSugerido) => void;
   x: number;
   y: number;
 }
@@ -179,8 +46,6 @@ export interface EditorConteudoModeloProps {
   className?: string;
 }
 
-const MAX_SUGESTOES = 50;
-
 export function EditorConteudoModelo({
   value,
   onChange,
@@ -190,239 +55,242 @@ export function EditorConteudoModelo({
   className,
 }: EditorConteudoModeloProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const sourceRef = useRef(value);
-  const assinaturaRef = useRef(assinaturaChips(value));
-  const composingRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const ultimoEmitido = useRef(value);
 
-  const [drop, setDrop] = useState<EstadoDropdown | null>(null);
+  const [sug, setSug] = useState<EstadoSugestao | null>(null);
   const [sel, setSel] = useState(0);
+  const sugRef = useRef<EstadoSugestao | null>(null);
+  const selRef = useRef(0);
   const itemSelRef = useRef<HTMLButtonElement>(null);
 
-  const TODOS = useMemo(() => listarPlaceholders(), []);
-  // Ordem dos grupos (papéis) conforme aparecem no catálogo, para manter contígua.
-  const ordemGrupo = useMemo(() => {
-    const m = new Map<string, number>();
-    TODOS.forEach((s) => {
-      if (!m.has(s.grupo)) m.set(s.grupo, m.size);
-    });
-    return m;
-  }, [TODOS]);
+  const atualizarSugestao = (props: SuggestionProps<PlaceholderSugerido, PlaceholderSugerido>) => {
+    const rect = props.clientRect?.();
+    const cont = containerRef.current?.getBoundingClientRect();
+    const estado: EstadoSugestao = {
+      items: props.items,
+      command: props.command,
+      x: rect && cont ? rect.left - cont.left : 8,
+      y: rect && cont ? rect.bottom - cont.top + 4 : 8,
+    };
+    sugRef.current = estado;
+    selRef.current = 0;
+    setSug(estado);
+    setSel(0);
+  };
 
-  const sugestoes = useMemo<PlaceholderSugerido[]>(() => {
-    if (!drop) return [];
-    const q = drop.query.trim().toLowerCase();
-    const lista = !q
-      ? TODOS
-      : TODOS.filter(
-          (s) => s.placeholder.toLowerCase().includes(q) || s.label.toLowerCase().includes(q),
-        );
-    // Mantém os grupos contíguos (na ordem do catálogo) e, dentro de cada grupo,
-    // quem começa com a query primeiro.
-    const ordenada = [...lista].sort((a, b) => {
-      const ga = ordemGrupo.get(a.grupo) ?? Infinity;
-      const gb = ordemGrupo.get(b.grupo) ?? Infinity;
-      if (ga !== gb) return ga - gb;
-      const ai = a.placeholder.toLowerCase().startsWith(q) ? 0 : 1;
-      const bi = b.placeholder.toLowerCase().startsWith(q) ? 0 : 1;
-      return ai - bi;
-    });
-    return ordenada.slice(0, MAX_SUGESTOES);
-  }, [drop, TODOS, ordemGrupo]);
+  const fecharSugestao = () => {
+    sugRef.current = null;
+    setSug(null);
+  };
 
-  // Pintura inicial.
-  useLayoutEffect(() => {
-    if (editorRef.current) pintar(editorRef.current, value);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const moverSel = (delta: number) => {
+    const n = sugRef.current?.items.length ?? 0;
+    if (n === 0) return;
+    selRef.current = (selRef.current + delta + n) % n;
+    setSel(selRef.current);
+  };
+
+  const editor = useEditor({
+    extensions: [
+      Document,
+      Paragraph,
+      Text,
+      Bold,
+      Italic,
+      Underline,
+      UndoRedo,
+      Placeholder.configure({ placeholder: placeholder ?? '' }),
+      PlaceholderChip,
+      SugestaoPlaceholders.configure({
+        render: () => ({
+          onStart: atualizarSugestao,
+          onUpdate: atualizarSugestao,
+          onExit: fecharSugestao,
+          onKeyDown: ({ view, event }) => {
+            const estado = sugRef.current;
+            if (!estado || estado.items.length === 0) return false;
+            if (event.key === 'ArrowDown') {
+              moverSel(1);
+              return true;
+            }
+            if (event.key === 'ArrowUp') {
+              moverSel(-1);
+              return true;
+            }
+            if (event.key === 'Tab' || event.key === 'Enter') {
+              estado.command(estado.items[selRef.current]);
+              return true;
+            }
+            if (event.key === 'Escape') {
+              fecharSugestao();
+              exitSuggestion(view, SUGESTAO_PLUGIN_KEY);
+              return true;
+            }
+            return false;
+          },
+        }),
+      }),
+    ],
+    content: stringParaDoc(value),
+    editorProps: {
+      attributes: {
+        role: 'textbox',
+        'aria-multiline': 'true',
+        spellcheck: 'false',
+        class: cn(
+          'w-full rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed',
+          'whitespace-pre-wrap break-words outline-none ring-offset-background',
+          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+          className,
+        ),
+      },
+      // Cola como texto puro parseado pelo nosso formato: tokens viram chips e
+      // marcas *_~ viram formatação de verdade.
+      handlePaste: (_view, event) => {
+        const texto = event.clipboardData?.getData('text/plain');
+        if (!texto || !editorRef.current) return false;
+        event.preventDefault();
+        const paragrafos = stringParaDoc(texto).content ?? [];
+        const conteudo = paragrafos.length === 1 ? (paragrafos[0].content ?? []) : paragrafos;
+        if (conteudo.length > 0) {
+          // insertContent substitui a seleção e aproveita o parse de JSON do TipTap.
+          editorRef.current.chain().focus().insertContent(conteudo).run();
+        }
+        return true;
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      const s = docParaString(ed.getJSON());
+      ultimoEmitido.current = s;
+      onChangeRef.current(s);
+    },
+    onBlur: () => {
+      // Atraso curto: deixa o clique numa sugestão acontecer antes de fechar.
+      window.setTimeout(fecharSugestao, 120);
+    },
+  });
+
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
 
   // Mudança externa de `value` (abrir/editar bloco, reset do form).
-  useLayoutEffect(() => {
-    if (value === sourceRef.current) return;
-    sourceRef.current = value;
-    assinaturaRef.current = assinaturaChips(value);
-    if (editorRef.current) pintar(editorRef.current, value);
-    setDrop(null);
-  }, [value]);
+  useEffect(() => {
+    if (!editor || value === ultimoEmitido.current) return;
+    ultimoEmitido.current = value;
+    editor.commands.setContent(stringParaDoc(value), { emitUpdate: false });
+    fecharSugestao();
+  }, [value, editor]);
 
   // Scroll do item selecionado para dentro da vista.
   useLayoutEffect(() => {
     itemSelRef.current?.scrollIntoView({ block: 'nearest' });
   }, [sel]);
 
-  const rectCursor = (): DOMRect | null => {
-    const selObj = window.getSelection();
-    if (!selObj || selObj.rangeCount === 0) return null;
-    const range = selObj.getRangeAt(0).cloneRange();
-    let rect = range.getBoundingClientRect();
-    if (!rect || (rect.x === 0 && rect.y === 0 && rect.width === 0 && rect.height === 0)) {
-      const node = range.startContainer;
-      const alvo = node.nodeType === Node.ELEMENT_NODE ? (node as HTMLElement) : node.parentElement;
-      rect = alvo?.getBoundingClientRect() ?? rect;
-    }
-    return rect;
-  };
+  const ativo = useEditorState({
+    editor,
+    selector: ({ editor: ed }) =>
+      ed
+        ? {
+            bold: ed.isActive('bold'),
+            italic: ed.isActive('italic'),
+            underline: ed.isActive('underline'),
+          }
+        : null,
+  });
 
-  const atualizarDropdown = (source: string, caret: number | null) => {
-    if (caret == null) {
-      setDrop(null);
-      return;
-    }
-    const m = source.slice(0, caret).match(/\{\{\s*#?([\w.]*)$/);
-    if (!m) {
-      setDrop(null);
-      return;
-    }
-    const rect = rectCursor();
-    const cont = containerRef.current?.getBoundingClientRect();
-    const x = rect && cont ? rect.left - cont.left : 8;
-    const y = rect && cont ? rect.bottom - cont.top + 4 : 8;
-    setDrop({ query: m[1], inicioToken: caret - m[0].length, caret, x, y });
-    setSel(0);
-  };
+  const BOTOES: Array<{
+    mark: 'bold' | 'italic' | 'underline';
+    titulo: string;
+    Icone: typeof BoldIcon;
+    aplicar: () => void;
+  }> = [
+    {
+      mark: 'bold',
+      titulo: 'Negrito (Ctrl+B)',
+      Icone: BoldIcon,
+      aplicar: () => editor?.chain().focus().toggleBold().run(),
+    },
+    {
+      mark: 'italic',
+      titulo: 'Itálico (Ctrl+I)',
+      Icone: ItalicIcon,
+      aplicar: () => editor?.chain().focus().toggleItalic().run(),
+    },
+    {
+      mark: 'underline',
+      titulo: 'Sublinhado (Ctrl+U)',
+      Icone: UnderlineIcon,
+      aplicar: () => editor?.chain().focus().toggleUnderline().run(),
+    },
+  ];
 
-  const sincronizar = () => {
-    const ed = editorRef.current;
-    if (!ed || composingRef.current) return;
-
-    const novo = serializar(ed);
-    const caret = lerOffset(ed);
-    sourceRef.current = novo;
-
-    const assinatura = assinaturaChips(novo);
-    if (assinatura !== assinaturaRef.current) {
-      assinaturaRef.current = assinatura;
-      pintar(ed, novo);
-      if (caret != null) gravarOffset(ed, caret);
-    }
-
-    onChange(novo);
-    atualizarDropdown(novo, caret);
-  };
-
-  const inserirTexto = (texto: string) => {
-    document.execCommand('insertText', false, texto);
-  };
-
-  const aceitarSugestao = (s: PlaceholderSugerido) => {
-    const ed = editorRef.current;
-    if (!ed || !drop) return;
-    const source = sourceRef.current;
-    const insercao = s.insercao ?? `{{ ${s.placeholder} }}`;
-    const novo = source.slice(0, drop.inicioToken) + insercao + source.slice(drop.caret);
-    // Seções: cursor entra no corpo (logo após o "}}" da abertura); variável: após o token.
-    const idxCorpo = s.insercao ? insercao.indexOf('}}{{/') : -1;
-    const novoCaret = drop.inicioToken + (idxCorpo >= 0 ? idxCorpo + 2 : insercao.length);
-
-    sourceRef.current = novo;
-    assinaturaRef.current = assinaturaChips(novo);
-    pintar(ed, novo);
-    ed.focus();
-    gravarOffset(ed, novoCaret);
-
-    setDrop(null);
-    onChange(novo);
-  };
-
-  const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (drop && sugestoes.length > 0) {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSel((s) => (s + 1) % sugestoes.length);
-        return;
-      }
-      if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSel((s) => (s - 1 + sugestoes.length) % sugestoes.length);
-        return;
-      }
-      if (e.key === 'Tab' || e.key === 'Enter') {
-        e.preventDefault();
-        aceitarSugestao(sugestoes[sel]);
-        return;
-      }
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        setDrop(null);
-        return;
-      }
-    }
-
-    // Sem dropdown: Enter insere quebra de linha como texto (evita <div>/<br>).
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      inserirTexto('\n');
-    }
-  };
-
-  const onKeyUp = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-      const ed = editorRef.current;
-      if (ed) atualizarDropdown(sourceRef.current, lerOffset(ed));
-    }
-  };
-
-  const onPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    const texto = e.clipboardData.getData('text/plain');
-    inserirTexto(texto);
-  };
-
-  const onInput = () => {
-    if (composingRef.current) {
-      const ed = editorRef.current;
-      if (ed) {
-        sourceRef.current = serializar(ed);
-        onChange(sourceRef.current);
-      }
-      return;
-    }
-    sincronizar();
+  // Insere o esqueleto de uma tabela como linhas de texto na convenção do engine
+  // (cabeçalho + separadora + 1 linha de corpo). A linha em branco na frente
+  // garante que a tabela comece em parágrafo próprio mesmo com o cursor no meio
+  // de um texto; o pipeline (segmentar) cuida do resto na prévia e no .docx.
+  const inserirTabela = () => {
+    if (!editor) return;
+    const linhas = ['| Coluna 1 | Coluna 2 |', '| --- | --- |', '| Célula | Célula |'];
+    const conteudo: JSONContent[] = [
+      { type: 'paragraph' },
+      ...linhas.map((texto) => ({ type: 'paragraph', content: [{ type: 'text', text: texto }] })),
+    ];
+    editor.chain().focus().insertContent(conteudo).run();
   };
 
   return (
     <div ref={containerRef} className="relative">
-      <div
-        ref={editorRef}
-        role="textbox"
-        aria-multiline="true"
-        contentEditable
-        suppressContentEditableWarning
-        spellCheck={false}
-        data-placeholder={placeholder}
-        onInput={onInput}
-        onKeyDown={onKeyDown}
-        onKeyUp={onKeyUp}
-        onMouseUp={() => {
-          const ed = editorRef.current;
-          if (ed) atualizarDropdown(sourceRef.current, lerOffset(ed));
-        }}
-        onPaste={onPaste}
-        onCompositionStart={() => {
-          composingRef.current = true;
-        }}
-        onCompositionEnd={() => {
-          composingRef.current = false;
-          sincronizar();
-        }}
-        onBlur={() => {
-          // Atraso curto: deixa o clique numa sugestão acontecer antes de fechar.
-          window.setTimeout(() => setDrop(null), 120);
-        }}
-        style={{ minHeight, maxHeight, overflowY: maxHeight ? 'auto' : undefined }}
-        className={cn(
-          'w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono leading-relaxed',
-          'whitespace-pre-wrap break-words outline-none ring-offset-background',
-          'focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground empty:before:pointer-events-none',
-          className,
-        )}
+      <div className="mb-1.5 flex items-center gap-0.5">
+        {BOTOES.map(({ mark, titulo, Icone, aplicar }) => (
+          <button
+            key={mark}
+            type="button"
+            title={titulo}
+            // preventDefault no mousedown: não rouba o foco nem desfaz a seleção do editor.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={aplicar}
+            className={cn(
+              'rounded p-1.5 transition-colors',
+              ativo?.[mark]
+                ? 'bg-osg-100 text-osg-700'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            )}
+          >
+            <Icone className="h-3.5 w-3.5" />
+          </button>
+        ))}
+        <span className="mx-1 h-4 w-px bg-border" aria-hidden />
+        <button
+          type="button"
+          title="Inserir tabela"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={inserirTabela}
+          className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <TableIcon className="h-3.5 w-3.5" />
+        </button>
+        <span className="ml-1.5 text-[10px] text-muted-foreground/70">
+          a formatação sai igual na prévia e no .docx
+        </span>
+      </div>
+
+      <EditorContent
+        editor={editor}
+        className="editor-modelo"
+        style={
+          {
+            '--editor-min-h': minHeight,
+            '--editor-max-h': maxHeight ?? 'none',
+          } as CSSProperties
+        }
       />
 
-      {drop && sugestoes.length > 0 && (
+      {sug && sug.items.length > 0 && (
         <div
           className="absolute z-50 w-72 max-w-[min(20rem,90vw)] overflow-hidden rounded-md border border-border bg-popover shadow-md animate-in fade-in-0 zoom-in-95"
-          style={{ top: drop.y, left: Math.max(0, drop.x) }}
+          style={{ top: sug.y, left: Math.max(0, sug.x) }}
           onMouseDown={(e) => e.preventDefault()}
         >
           <div className="flex items-center justify-between border-b border-border/60 px-2.5 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground">
@@ -430,8 +298,8 @@ export function EditorConteudoModelo({
             <span className="font-mono normal-case">↹ Tab insere</span>
           </div>
           <div className="max-h-60 overflow-y-auto py-1">
-            {sugestoes.map((s, i) => {
-              const cabecalho = i === 0 || sugestoes[i - 1].grupo !== s.grupo;
+            {sug.items.map((s, i) => {
+              const cabecalho = i === 0 || sug.items[i - 1].grupo !== s.grupo;
               return (
                 <div key={s.placeholder}>
                   {cabecalho && (
@@ -442,8 +310,11 @@ export function EditorConteudoModelo({
                   <button
                     ref={i === sel ? itemSelRef : undefined}
                     type="button"
-                    onMouseEnter={() => setSel(i)}
-                    onClick={() => aceitarSugestao(s)}
+                    onMouseEnter={() => {
+                      selRef.current = i;
+                      setSel(i);
+                    }}
+                    onClick={() => sug.command(s)}
                     className={cn(
                       'flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-sm',
                       i === sel ? 'bg-osg-50 text-osg-700' : 'hover:bg-muted',

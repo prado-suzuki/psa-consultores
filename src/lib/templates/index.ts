@@ -26,6 +26,8 @@ export { TIPOS_BLOCO, LABEL_TIPO_BLOCO } from './types';
 export { comporBlocos } from './composition';
 export { numerarBlocos, unirBlocos } from './numeracao';
 export { renderConteudo, extrairCampos } from './render';
+export { extrairRunsLinha, removerMarcas, MARCA } from './marcas';
+export type { Marcas, RunMarcado } from './marcas';
 export { avaliarFlags } from './flags';
 export type { FlagDeclarativa, FontesFlags } from './flags';
 export * as extenso from './extenso';

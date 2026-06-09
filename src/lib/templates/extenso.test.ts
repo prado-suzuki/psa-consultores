@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { areaExtenso, cardinalExtenso, formatarArea, formatarValor, ordinalExtenso, romano, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, formatarArea, formatarPercentual, formatarValor, ordinalExtenso, percentualExtenso, romano, valorExtenso } from './extenso';
 
 describe('cardinalExtenso', () => {
   it.each([
@@ -87,4 +87,24 @@ describe('romano', () => {
 describe('formatação numérica pt-BR', () => {
   it('área com 4 casas', () => expect(formatarArea(396.4)).toBe('396,4000 ha'));
   it('valor com milhar e 2 casas', () => expect(formatarValor(558413.55)).toBe('558.413,55'));
+  it('percentual com 3 casas e sufixo %', () => {
+    expect(formatarPercentual(100)).toBe('100,000%');
+    // Valores do quadro societário real (quotas ÷ 185.757 × 100).
+    expect(formatarPercentual((44395 / 185757) * 100)).toBe('23,900%');
+    expect(formatarPercentual((906 / 185757) * 100)).toBe('0,488%');
+  });
+});
+
+describe('percentualExtenso (forma cartorial "inteiros … por cento")', () => {
+  it.each([
+    [50, 'cinquenta inteiros por cento'],
+    [1, 'um inteiro por cento'],
+    [100, 'cem inteiros por cento'],
+    [33.333, 'trinta e três inteiros e trezentos e trinta e três milésimos por cento'],
+    [50.5, 'cinquenta inteiros e quinhentos milésimos por cento'],
+    [0.5, 'quinhentos milésimos por cento'],
+    [0, 'zero por cento'],
+  ])('%s%% → %s', (n, esperado) => {
+    expect(percentualExtenso(n)).toBe(esperado);
+  });
 });
