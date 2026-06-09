@@ -5162,13 +5162,6 @@ export type Database = {
             referencedRelation: "processes"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "process_stages_stage_as_is_fk"
-            columns: ["stage_as_is_id"]
-            isOneToOne: false
-            referencedRelation: "process_stages"
-            referencedColumns: ["id"]
-          },
         ]
       }
       processes: {
