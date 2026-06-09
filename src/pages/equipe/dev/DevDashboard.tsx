@@ -267,13 +267,12 @@ const DevDashboard = () => {
                   Estrutura de Pastas do Google Drive
                 </h2>
                 <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-600">
-                  Carregue os arquivos dos clientes no Drive seguindo a estrutura padrão. A{" "}
-                  <span className="inline-flex items-center gap-1 font-semibold text-slate-800">
-                    <Database className="h-3.5 w-3.5 text-emerald-600" /> coleta para o BigQuery
-                  </span>{" "}
-                  depende dessa organização e alimenta{" "}
-                  <span className="font-semibold text-slate-800">todas as ferramentas Digital DEV</span>.
-                  Siga o padrão para manter a esteira de dados saudável.
+                  Cada pasta de cliente no Drive alimenta o banco de dados que abastece{" "}
+                  <span className="font-semibold text-slate-800">todas as aplicações Digital DEV</span>.
+                  O envio correto dos documentos na estrutura padrão é essencial para garantir a
+                  integridade da coleta e o funcionamento das ferramentas. Clique em{" "}
+                  <span className="font-semibold text-slate-800">Abrir manual</span> para consultar a
+                  estrutura completa e evitar erros de organização.
                 </p>
               </div>
             </div>
