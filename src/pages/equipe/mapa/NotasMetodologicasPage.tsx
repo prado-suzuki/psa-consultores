@@ -183,8 +183,8 @@ const DASHBOARD: Bloco[] = [
       },
       {
         indicador: 'De → Para (gargalo × melhoria)',
-        formula: 'liga cada gargalo à melhoria apontada pela FK gargalos.melhoria_id (1:N — um gargalo tem no máximo 1 melhoria)',
-        fontes: ['gargalos.melhoria_id', 'processos[] — Gargalos'],
+        formula: 'liga cada gargalo às melhorias que o atacam via a tabela N:M gargalo_melhorias (um gargalo pode ter várias melhorias e vice-versa)',
+        fontes: ['gargalo_melhorias', 'processos[] — Gargalos'],
       },
     ],
   },

@@ -12,6 +12,7 @@ import type {
 } from '@/types';
 import { styles, PDF_COLORS } from './theme';
 import { fmtPercent, joinDocs, joinPeople, todayBR, pad2 } from './helpers';
+import { melhoriaIdsDoGargalo } from '../gargaloMelhorias';
 
 export type SOPMode = 'era' | 'ficou';
 
@@ -76,7 +77,7 @@ export function SopDocument(props: SopDocumentProps) {
   // Cross-cuts — replicar lógica do sopHtmlTemplate em forma funcional simples
   const gargalosDoProcesso = gargalos.filter(g => (g.processos || []).includes(processo.id));
   const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProcesso.filter(g => g.melhoria_id).map(g => g.melhoria_id as string),
+    gargalosDoProcesso.flatMap(g => melhoriaIdsDoGargalo(g)),
   );
   const procMelhorias = isFicou
     ? melhorias.filter(m =>

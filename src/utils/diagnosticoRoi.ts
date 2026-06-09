@@ -13,6 +13,7 @@
 import type {
   Processo, Etapa, Responsavel, Sistema, Gargalo, Melhoria,
 } from '../types';
+import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
 import { execucoesAnuais } from './roiCalculator';
 import { formatDecimal, formatarMoeda } from './format';
 
@@ -363,8 +364,8 @@ export function diagnosticarRoi(
   );
   const melhoriaIdsViaGargalos = new Set(
     gargalos
-      .filter(g => gargalosDoProc.has(g.id) && g.melhoria_id)
-      .map(g => g.melhoria_id as string)
+      .filter(g => gargalosDoProc.has(g.id))
+      .flatMap(g => melhoriaIdsDoGargalo(g))
   );
   const melhoriasRelevantes = melhorias.filter(m =>
     (m.processos || []).includes(processo.id) ||
@@ -379,7 +380,7 @@ export function diagnosticarRoi(
       status: 'zerado',
       impacto: 'investment em melhorias (treinamento, execução, custo externo)',
       formula: 'Σ horas_treinamento×CH + executadoPor.horas×CH + custo_externo_unico',
-      camposFonte: ['melhoria_processos', 'gargalos.melhoria_id', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
+      camposFonte: ['melhoria_processos', 'gargalo_melhorias', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
     }));
   } else {
     for (const m of melhoriasRelevantes) {

@@ -19,6 +19,7 @@ import {
   calcEtapa, generateHeadline, isEtapaEliminada,
   fmtMoney, fmtPercent, joinDocs, joinPeople, todayBR, pad2,
 } from './helpers';
+import { melhoriaIdsDoGargalo } from '../gargaloMelhorias';
 
 export interface SopComparativoDocumentProps {
   processo: Processo;
@@ -91,7 +92,7 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
 
   const gargalosDoProc = gargalos.filter(g => (g.processos || []).includes(processo.id));
   const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProc.filter(g => g.melhoria_id).map(g => g.melhoria_id as string),
+    gargalosDoProc.flatMap(g => melhoriaIdsDoGargalo(g)),
   );
   const melhoriasDoProc = melhorias.filter(m =>
     (m.processos || []).includes(processo.id) ||

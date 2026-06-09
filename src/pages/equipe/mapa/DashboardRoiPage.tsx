@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
 import type { RoiAgregado } from '@/utils/roiCalculator';
+import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
@@ -877,7 +878,7 @@ export default function DashboardRoiPage() {
               <KPICard label="Melhorias Planejadas" valor={String(v.qtdMelhorias)} hint="Iniciativas catalogadas" />
               <KPICard
                 label="Gargalos Atacados"
-                valor={`${gargalos.filter(g => g.melhoria_id).length} / ${v.qtdGargalos}`}
+                valor={`${gargalosFiltrados.filter(g => melhoriaIdsDoGargalo(g).length > 0).length} / ${v.qtdGargalos}`}
                 hint="Resolvidos pelas melhorias"
               />
               <KPICard
@@ -916,14 +917,16 @@ export default function DashboardRoiPage() {
                 </thead>
                 <tbody>
                   {gargalosFiltrados.length === 0 ? <EmptyRow cols={4} /> : gargalosFiltrados.map(g => {
-                    const m = g.melhoria_id ? melhorias.find(x => x.id === g.melhoria_id) : null;
+                    const ms = melhoriaIdsDoGargalo(g)
+                      .map(id => melhorias.find(x => x.id === id))
+                      .filter((x): x is NonNullable<typeof x> => Boolean(x));
                     const procs = (g.processos || []).map(pid => procNomeById.get(pid) || pid);
                     return (
                       <tr key={g.id}>
                         <td>{g.nome}</td>
                         <td>{procs.length ? procs.join(', ') : '—'}</td>
-                        <td>{m ? m.improvement_description : '—'}</td>
-                        <td>{m ? 'Coberto' : 'Aberto'}</td>
+                        <td>{ms.length ? ms.map(m => m.improvement_description).join('; ') : '—'}</td>
+                        <td>{ms.length ? 'Coberto' : 'Aberto'}</td>
                       </tr>
                     );
                   })}

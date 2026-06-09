@@ -10,6 +10,7 @@ import type {
   DocRef,
   ResponsavelEtapa,
 } from '../types';
+import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
 
 export interface BuildDiagramInput {
   processo: Processo;
@@ -87,9 +88,9 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
 
   const procGargalos = gargalos.filter(g => (g.processos || []).includes(processo.id));
 
-  // Pós-refator 1:N: o vínculo gargalo↔melhoria vive em gargalos.melhoria_id.
+  // Vínculo gargalo↔melhoria via N:M `gargalo_melhorias` (g.melhorias[]).
   const melhoriaIdsViaGargalos = new Set(
-    procGargalos.filter(g => g.melhoria_id).map(g => g.melhoria_id as string)
+    procGargalos.flatMap(g => melhoriaIdsDoGargalo(g))
   );
   const procMelhorias = melhorias.filter(
     m =>
@@ -177,11 +178,11 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   sis.forEach(s => lines.push(`  ${pId} -.-> ${idSis(s)}`));
   procGargalos.forEach(g => lines.push(`  ${idGar(g)} -. impacta .-> ${pId}`));
 
-  // Melhorias: linkam ao processo e aos gargalos resolvidos (via gargalos.melhoria_id).
+  // Melhorias: linkam ao processo e aos gargalos resolvidos (via gargalo_melhorias N:M).
   procMelhorias.forEach(m => {
     lines.push(`  ${idMel(m)} -. resolve .-> ${pId}`);
     procGargalos
-      .filter(g => g.melhoria_id === m.id)
+      .filter(g => melhoriaIdsDoGargalo(g).includes(m.id))
       .forEach(g => {
         lines.push(`  ${idMel(m)} ==> ${idGar(g)}`);
       });
