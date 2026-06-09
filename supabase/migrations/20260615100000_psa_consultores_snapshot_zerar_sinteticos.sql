@@ -1,0 +1,115 @@
+-- ============================================================
+-- PSA Consultores — Zerar snapshots sintéticos sem PDF de medição
+-- ============================================================
+--
+-- Contexto: A migration 20260613110000_psa_consultores_snapshot_recalc.sql
+-- aplicou ROI sintético uniforme (233,33%) em 17 processos sem PDF detalhado.
+-- Auditoria 09/06/2026 revelou que 14 desses sintéticos inflavam o consolidado
+-- em ~R$ 26.595/ano vs PDF (R$ 327.485 dashboard vs R$ 300.890 PDF).
+--
+-- Tratamento por grupo:
+--   A. 4 P8_Revisão (GER-279/704/603/167): clones puros de etapas do
+--      PROC-FIXO-009 — duplicação direta. ZERAR.
+--   B. 7 filhos Quebra SPEDs (GER-030/350/249/294/002/313/221): PROC-001
+--      (pai) é guarda-chuva sem etapas próprias; PDF 1.7 mede o agregado
+--      sob PROC-001. ZERAR os filhos, manter pai.
+--   C. NCM ICMS (GER-938), CNPJ CNAE (GER-719), Contratos Fixos (BI-001):
+--      atividades reais SEM PDF de medição. Zerar sintético é mais honesto
+--      que inflar — recalcular se/quando houver medição real.
+--   D. Planejamento Tributário (FISCAL-008): atividade real (4 etapas
+--      cadastradas) sem PDF. MANTÉM sintético R$ 4.125/ano — conservador.
+--
+-- Toca APENAS snapshots criados pelo MAPA (name LIKE 'Snapshot ROI MAPA — %').
+-- NÃO toca em processes, process_stages, documents, systems ou qualquer
+-- outra tabela do Digital Rotina.
+-- ============================================================
+
+-- Grupo A — 4 P8_Revisão Tributos (clones de etapas do PROC-FIXO-009)
+UPDATE process_scenarios ps
+SET annual_cost     = 0,
+    annual_hours    = 0,
+    annual_savings  = 0,
+    investment      = 0,
+    roi_percent     = 0,
+    payback_months  = 0,
+    hours_freed     = 0,
+    notes           = 'Snapshot zerado pelo MAPA: este processo é clone de uma etapa do PROC-FIXO-009 (Revisão de Tributos). O PDF 2.0 mede o agregado em PROC-FIXO-009 (ROI 586%, R$ 55.080/ano). Processo mantido no Digital Rotina sem alteração.',
+    snapshot_at     = NOW(),
+    updated_at      = NOW()
+FROM processes p
+WHERE ps.process_id = p.id
+  AND p.code IN ('PROC-GER-279','PROC-GER-704','PROC-GER-603','PROC-GER-167')
+  AND ps.name LIKE 'Snapshot ROI MAPA — %';
+
+-- Grupo B — 7 filhos Quebra SPEDs (pai PROC-001 é guarda-chuva)
+UPDATE process_scenarios ps
+SET annual_cost     = 0,
+    annual_hours    = 0,
+    annual_savings  = 0,
+    investment      = 0,
+    roi_percent     = 0,
+    payback_months  = 0,
+    hours_freed     = 0,
+    notes           = 'Snapshot zerado pelo MAPA: atividade contemplada no PROC-001 (Quebra SPEDs) cuja medição vem do PDF 1.7 (ROI 592%, R$ 21.312/ano). Processo mantido no Digital Rotina sem alteração.',
+    snapshot_at     = NOW(),
+    updated_at      = NOW()
+FROM processes p
+WHERE ps.process_id = p.id
+  AND p.code IN ('PROC-GER-030','PROC-GER-350','PROC-GER-249','PROC-GER-294','PROC-GER-002','PROC-GER-313','PROC-GER-221')
+  AND ps.name LIKE 'Snapshot ROI MAPA — %';
+
+-- Grupo C — Processos sem PDF de medição
+UPDATE process_scenarios ps
+SET annual_cost     = 0,
+    annual_hours    = 0,
+    annual_savings  = 0,
+    investment      = 0,
+    roi_percent     = 0,
+    payback_months  = 0,
+    hours_freed     = 0,
+    notes           = 'Snapshot zerado pelo MAPA: processo sem PDF de medição. ROI sintético (233,33%) removido para não inflar o consolidado. Recalcular quando houver medição real. Processo mantido no Digital Rotina sem alteração.',
+    snapshot_at     = NOW(),
+    updated_at      = NOW()
+FROM processes p
+WHERE ps.process_id = p.id
+  AND p.code IN ('PROC-GER-938','PROC-GER-719','PROC-BI-001')
+  AND ps.name LIKE 'Snapshot ROI MAPA — %';
+
+-- Validação: confirma que pegou exatamente 4+7+3 = 14 snapshots.
+DO $$
+DECLARE
+  n_a int;
+  n_b int;
+  n_c int;
+BEGIN
+  SELECT COUNT(*) INTO n_a
+  FROM process_scenarios ps
+  JOIN processes p ON p.id = ps.process_id
+  WHERE p.code IN ('PROC-GER-279','PROC-GER-704','PROC-GER-603','PROC-GER-167')
+    AND ps.name LIKE 'Snapshot ROI MAPA — %'
+    AND ps.annual_savings = 0;
+
+  SELECT COUNT(*) INTO n_b
+  FROM process_scenarios ps
+  JOIN processes p ON p.id = ps.process_id
+  WHERE p.code IN ('PROC-GER-030','PROC-GER-350','PROC-GER-249','PROC-GER-294','PROC-GER-002','PROC-GER-313','PROC-GER-221')
+    AND ps.name LIKE 'Snapshot ROI MAPA — %'
+    AND ps.annual_savings = 0;
+
+  SELECT COUNT(*) INTO n_c
+  FROM process_scenarios ps
+  JOIN processes p ON p.id = ps.process_id
+  WHERE p.code IN ('PROC-GER-938','PROC-GER-719','PROC-BI-001')
+    AND ps.name LIKE 'Snapshot ROI MAPA — %'
+    AND ps.annual_savings = 0;
+
+  IF n_a <> 4 THEN
+    RAISE EXCEPTION 'Grupo A (P8_Revisão): esperava 4 snapshots zerados, obteve %', n_a;
+  END IF;
+  IF n_b <> 7 THEN
+    RAISE EXCEPTION 'Grupo B (SPEDs filhos): esperava 7 snapshots zerados, obteve %', n_b;
+  END IF;
+  IF n_c <> 3 THEN
+    RAISE EXCEPTION 'Grupo C (sem PDF): esperava 3 snapshots zerados, obteve %', n_c;
+  END IF;
+END$$;
