@@ -162,7 +162,7 @@ export function useApiAuth() {
         
         // Não fazer retry para timeout (já demorou muito)
         if (err.name === 'AbortError') {
-          throw new Error('Tempo limite excedido. A requisição demorou mais de 30 segundos.');
+          throw new Error(`Tempo limite excedido. A requisição demorou mais de ${Math.round(timeoutMs / 1000)} segundos.`);
         }
         
         // Para erros de rede, tentar novamente com backoff exponencial
