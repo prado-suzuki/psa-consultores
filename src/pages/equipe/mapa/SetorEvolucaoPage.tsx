@@ -12,6 +12,7 @@
 import { useMemo, useState } from 'react';
 import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
+import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
@@ -112,7 +113,7 @@ export default function SetorEvolucaoPage() {
   );
 
   // Cálculo ao vivo — mesma fonte do Dashboard ROI.
-  const roi: RoiAgregado = useMemo(() => calcularRoi({
+  const roiLive: RoiAgregado = useMemo(() => calcularRoi({
     processos: processosFiltrados,
     etapas: etapasFiltradas,
     responsaveis,
@@ -121,6 +122,22 @@ export default function SetorEvolucaoPage() {
     melhorias,
     projetos,
   }), [processosFiltrados, etapasFiltradas, responsaveis, sistemas, gargalosFiltrados, melhorias, projetos]);
+
+  // Quando há snapshots no escopo, substitui os totais/breakdown pelo snapshot
+  // validado (mesma estratégia do DashboardRoiPage) — garante que economia/
+  // horas/ROI por processo aqui batam com a aba ROI Consolidado.
+  const snapshotsLatestDoEscopo = useMemo(() => {
+    const byProc = new Map<string, typeof snapshots[number]>();
+    for (const s of [...snapshots].sort((a, b) => a.snapshot_at < b.snapshot_at ? 1 : -1)) {
+      if (!idsProc.has(s.process_id)) continue;
+      if (!byProc.has(s.process_id)) byProc.set(s.process_id, s);
+    }
+    return [...byProc.values()];
+  }, [snapshots, idsProc]);
+  const roi: RoiAgregado = useMemo(
+    () => combinarRoiComSnapshots(roiLive, snapshotsLatestDoEscopo),
+    [roiLive, snapshotsLatestDoEscopo],
+  );
 
   // Comparativo por processo: Como Era × Como Ficará (live).
   const comparativoPorProcesso = useMemo(() => {

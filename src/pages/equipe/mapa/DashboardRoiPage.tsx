@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
+import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
@@ -15,66 +16,11 @@ import {
 import { useSnapshotsLatest } from '@/hooks/useSnapshots';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
 
-// Combina cálculo ao vivo (calcularRoi) com snapshots históricos. O cálculo ao
-// vivo dá o BREAKDOWN (porProcesso, custosCategoria, taxaRetrabalho,
-// investimentoBreakdown) que o snapshot agregado não conhece. Quando há
-// snapshots salvos, os TOTAIS (annual_cost/savings/investment/hours) vêm deles
-// (refletem o ROI consolidado já validado); senão, vêm do cálculo ao vivo.
+// `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
+// também ser usado pelo SetorEvolucaoPage. Manter a função local apenas como
+// alias para reduzir o diff nesta página.
 function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregado {
-  if (snaps.length === 0) return calculo;
-  const sum = (k: keyof ProcessSnapshot) => snaps.reduce((s, x) => s + (Number(x[k]) || 0), 0);
-  const custoAtualAno = sum('annual_cost');
-  const economiaAnual = sum('annual_savings');
-  const investimento = sum('investment');
-  const horasAtualAno = sum('annual_hours');
-  const hoursFreed = sum('hours_freed');
-  const economiaMensal = economiaAnual / 12;
-  // Reescala o breakdown do cálculo ao vivo para casar com o total do snapshot —
-  // mantém as PROPORÇÕES (pessoas vs sistemas vs retrabalho) calculadas mas com
-  // o VOLUME dos snapshots. Se custoAtualAno do snapshot = X e do cálculo = Y,
-  // multiplica cada categoria por X/Y.
-  const ratio = calculo.custoAtualAno > 0 ? custoAtualAno / calculo.custoAtualAno : 1;
-  const cat = calculo.custosCategoria;
-  const catF = calculo.custosCategoriaFicou;
-  const escalado = {
-    pessoas: cat.pessoas * ratio,
-    sistemas: cat.sistemas * ratio,
-    retrabalho: cat.retrabalho * ratio,
-    externo: cat.externo * ratio,
-  };
-  const escaladoF = {
-    pessoas: catF.pessoas * ratio,
-    sistemas: catF.sistemas * ratio,
-    retrabalho: catF.retrabalho * ratio,
-    externo: catF.externo * ratio,
-  };
-  // Reescala também o breakdown do INVESTIMENTO pelo ratio (snapshot.investment /
-  // calc.investimentoTotal) — sem isso "Execução de Melhorias" do cálculo ao vivo
-  // (centenas de milhares) coexistiria com Investimento Total do snapshot (R$ 36k).
-  const inv = calculo.investimentoBreakdown;
-  const ratioInv = calculo.investimentoTotal > 0 ? investimento / calculo.investimentoTotal : 1;
-  const investBreakdown = {
-    treinamentoMelhorias: inv.treinamentoMelhorias * ratioInv,
-    sistemas: inv.sistemas * ratioInv,
-    execucaoMelhorias: inv.execucaoMelhorias * ratioInv,
-    externo: inv.externo * ratioInv,
-  };
-  return {
-    ...calculo,
-    custoAtualAno,
-    custoFuturoAno: Math.max(0, custoAtualAno - economiaAnual),
-    horasAtualAno,
-    horasFuturoAno: Math.max(0, horasAtualAno - hoursFreed),
-    economiaAnual,
-    economiaMensal,
-    horasLiberadas: hoursFreed,
-    investimentoTotal: investimento,
-    investimentoBreakdown: investBreakdown,
-    custosCategoria: escalado,
-    custosCategoriaFicou: escaladoF,
-    roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
-    paybackMeses: economiaMensal > 0 ? investimento / economiaMensal : 0,
-  };
+  return combinarRoiComSnapshots(calculo, snaps);
 }
 
 type Aba = 'sumario' | 'mapeamento' | 'diagnostico' | 'melhorias' | 'futuro' | 'roi';
