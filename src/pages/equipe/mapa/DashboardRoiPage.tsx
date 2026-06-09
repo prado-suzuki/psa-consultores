@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
-import type { RoiAgregado } from '@/utils/roiCalculator';
+import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
@@ -15,31 +15,51 @@ import {
 import { useSnapshotsLatest } from '@/hooks/useSnapshots';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
 
-// Consolida a ÚLTIMA mensuração de cada processo (MAX(snapshot_em) por processo_id)
-// em um RoiAgregado. Esta é a única fonte do Dashboard de ROI — sem cálculo
-// ao vivo e sem agregação por data.
-function agregaUltimasMensuracoes(snaps: ProcessSnapshot[]): RoiAgregado {
-  // sum() acessa colunas do DB (ProcessSnapshot) — strings ficam snake_case.
+// Combina cálculo ao vivo (calcularRoi) com snapshots históricos. O cálculo ao
+// vivo dá o BREAKDOWN (porProcesso, custosCategoria, taxaRetrabalho,
+// investimentoBreakdown) que o snapshot agregado não conhece. Quando há
+// snapshots salvos, os TOTAIS (annual_cost/savings/investment/hours) vêm deles
+// (refletem o ROI consolidado já validado); senão, vêm do cálculo ao vivo.
+function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregado {
+  if (snaps.length === 0) return calculo;
   const sum = (k: keyof ProcessSnapshot) => snaps.reduce((s, x) => s + (Number(x[k]) || 0), 0);
   const custoAtualAno = sum('annual_cost');
   const economiaAnual = sum('annual_savings');
   const investimento = sum('investment');
+  const horasAtualAno = sum('annual_hours');
+  const hoursFreed = sum('hours_freed');
   const economiaMensal = economiaAnual / 12;
+  // Reescala o breakdown do cálculo ao vivo para casar com o total do snapshot —
+  // mantém as PROPORÇÕES (pessoas vs sistemas vs retrabalho) calculadas mas com
+  // o VOLUME dos snapshots. Se custoAtualAno do snapshot = X e do cálculo = Y,
+  // multiplica cada categoria por X/Y.
+  const ratio = calculo.custoAtualAno > 0 ? custoAtualAno / calculo.custoAtualAno : 1;
+  const cat = calculo.custosCategoria;
+  const catF = calculo.custosCategoriaFicou;
+  const escalado = {
+    pessoas: cat.pessoas * ratio,
+    sistemas: cat.sistemas * ratio,
+    retrabalho: cat.retrabalho * ratio,
+    externo: cat.externo * ratio,
+  };
+  const escaladoF = {
+    pessoas: catF.pessoas * ratio,
+    sistemas: catF.sistemas * ratio,
+    retrabalho: catF.retrabalho * ratio,
+    externo: catF.externo * ratio,
+  };
   return {
-    porProcesso: [],
+    ...calculo,
     custoAtualAno,
     custoFuturoAno: Math.max(0, custoAtualAno - economiaAnual),
-    horasAtualAno: sum('annual_hours'),
-    horasFuturoAno: Math.max(0, sum('annual_hours') - sum('hours_freed')),
+    horasAtualAno,
+    horasFuturoAno: Math.max(0, horasAtualAno - hoursFreed),
     economiaAnual,
     economiaMensal,
-    horasLiberadas: sum('hours_freed'),
-    taxaRetrabalhoAtual: 0,
-    taxaRetrabalhoFuturo: 0,
+    horasLiberadas: hoursFreed,
     investimentoTotal: investimento,
-    investimentoBreakdown: { treinamentoMelhorias: 0, sistemas: 0, execucaoMelhorias: 0, externo: investimento },
-    custosCategoria: { pessoas: custoAtualAno, sistemas: 0, retrabalho: 0, externo: 0 },
-    custosCategoriaFicou: { pessoas: Math.max(0, custoAtualAno - economiaAnual), sistemas: 0, retrabalho: 0, externo: 0 },
+    custosCategoria: escalado,
+    custosCategoriaFicou: escaladoF,
     roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
     paybackMeses: economiaMensal > 0 ? investimento / economiaMensal : 0,
   };
@@ -387,11 +407,21 @@ export default function DashboardRoiPage() {
     return snapshotsLatest.filter(s => idsProc.has(s.process_id));
   }, [snapshotsLatest, processosFiltrados]);
 
-  // Agregado de ROI: sempre a SOMA das últimas mensurações por processo.
-  // O Dashboard nunca recalcula em memória — depende exclusivamente do que foi
-  // registrado em process_snapshots (MAX(snapshot_em) por processo).
+  // Agregado de ROI: cálculo AO VIVO (calcularRoi) preenche o BREAKDOWN
+  // (porProcesso, custosCategoria, taxaRetrabalho, investimentoBreakdown). Os
+  // TOTAIS (annual_cost/savings/investment/hours) vêm dos snapshots quando
+  // existem (refletem o ROI consolidado já validado) — senão, vêm do cálculo.
   const v: RoiAgregado & { qtdProjetos: number; qtdProcessos: number; qtdEtapas: number; qtdGargalos: number; qtdMelhorias: number; qtdSistemas: number; qtdSistemasNovos: number; qtdSistemasAposMelhorias: number; qtdDocumentos: number; qtdResponsaveis: number } = useMemo(() => {
-    const agregado = agregaUltimasMensuracoes(latestDoEscopo);
+    const calculo = calcularRoi({
+      processos: processosFiltrados,
+      etapas: etapasFiltradas,
+      responsaveis,
+      sistemas,
+      gargalos: gargalosFiltrados,
+      melhorias,
+      projetos,
+    });
+    const agregado = combinarRoi(calculo, latestDoEscopo);
     // Sistemas novos (internos/Digital) só existem no "Como Ficou" — são os
     // referenciados pelas melhorias. Não contam no escopo atual (AS-IS).
     const novosSisIds = new Set(melhorias.flatMap(m => m.sistemas || []));
@@ -410,7 +440,7 @@ export default function DashboardRoiPage() {
       qtdDocumentos: documentos.length,
       qtdResponsaveis: responsaveis.length,
     };
-  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados.length, etapasFiltradas.length, gargalosFiltrados.length, melhorias, sistemas, documentos.length, responsaveis.length]);
+  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhorias, sistemas, documentos.length, responsaveis, projetos]);
 
   // Métricas dependentes do horizonte de análise selecionado (12/24/36 meses).
   // Os campos *Ano em `v` são sempre anuais; multiplicamos por `horizonteFator`
