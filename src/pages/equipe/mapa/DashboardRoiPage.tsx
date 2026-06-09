@@ -48,6 +48,17 @@ function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregad
     retrabalho: catF.retrabalho * ratio,
     externo: catF.externo * ratio,
   };
+  // Reescala também o breakdown do INVESTIMENTO pelo ratio (snapshot.investment /
+  // calc.investimentoTotal) — sem isso "Execução de Melhorias" do cálculo ao vivo
+  // (centenas de milhares) coexistiria com Investimento Total do snapshot (R$ 36k).
+  const inv = calculo.investimentoBreakdown;
+  const ratioInv = calculo.investimentoTotal > 0 ? investimento / calculo.investimentoTotal : 1;
+  const investBreakdown = {
+    treinamentoMelhorias: inv.treinamentoMelhorias * ratioInv,
+    sistemas: inv.sistemas * ratioInv,
+    execucaoMelhorias: inv.execucaoMelhorias * ratioInv,
+    externo: inv.externo * ratioInv,
+  };
   return {
     ...calculo,
     custoAtualAno,
@@ -58,6 +69,7 @@ function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregad
     economiaMensal,
     horasLiberadas: hoursFreed,
     investimentoTotal: investimento,
+    investimentoBreakdown: investBreakdown,
     custosCategoria: escalado,
     custosCategoriaFicou: escaladoF,
     roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
@@ -413,36 +425,52 @@ export default function DashboardRoiPage() {
   // (porProcesso, custosCategoria, taxaRetrabalho, investimentoBreakdown). Os
   // TOTAIS (annual_cost/savings/investment/hours) vêm dos snapshots quando
   // existem (refletem o ROI consolidado já validado) — senão, vêm do cálculo.
+  // Filtros de cluster aplicados aos catálogos (melhorias/sistemas/documentos)
+  // para não vazar entidades de outros clusters quando filtroCluster está setado.
+  // job_roles (responsáveis) é catálogo GLOBAL — fica sem filtro de cluster.
+  const melhoriasDoEscopo = useMemo(
+    () => (filtroCluster ? melhorias.filter(m => (m.cluster_id || '') === filtroCluster) : melhorias),
+    [melhorias, filtroCluster],
+  );
+  const sistemasDoEscopo = useMemo(
+    () => (filtroCluster ? sistemas.filter(s => ((s as unknown as { cluster_id?: string }).cluster_id || '') === filtroCluster) : sistemas),
+    [sistemas, filtroCluster],
+  );
+  const documentosDoEscopo = useMemo(
+    () => (filtroCluster ? documentos.filter(d => ((d as unknown as { cluster_id?: string }).cluster_id || '') === filtroCluster) : documentos),
+    [documentos, filtroCluster],
+  );
+
   const v: RoiAgregado & { qtdProjetos: number; qtdProcessos: number; qtdEtapas: number; qtdGargalos: number; qtdMelhorias: number; qtdSistemas: number; qtdSistemasNovos: number; qtdSistemasAposMelhorias: number; qtdDocumentos: number; qtdResponsaveis: number } = useMemo(() => {
     const calculo = calcularRoi({
       processos: processosFiltrados,
       etapas: etapasFiltradas,
       responsaveis,
-      sistemas,
+      sistemas: sistemasDoEscopo,
       gargalos: gargalosFiltrados,
-      melhorias,
+      melhorias: melhoriasDoEscopo,
       projetos,
     });
     const agregado = combinarRoi(calculo, latestDoEscopo);
     // Sistemas novos (internos/Digital) só existem no "Como Ficou" — são os
-    // referenciados pelas melhorias. Não contam no escopo atual (AS-IS).
-    const novosSisIds = new Set(melhorias.flatMap(m => m.sistemas || []));
+    // referenciados pelas melhorias do escopo. Não contam no escopo atual (AS-IS).
+    const novosSisIds = new Set(melhoriasDoEscopo.flatMap(m => m.sistemas || []));
     const ehNovo = (s: Sistema) => novosSisIds.has(s.id) || novosSisIds.has(s.nome);
-    const sistemasAtuais = sistemas.filter(s => !ehNovo(s));
+    const sistemasAtuais = sistemasDoEscopo.filter(s => !ehNovo(s));
     return {
       ...agregado,
       qtdProjetos: filtroProjeto ? 1 : projetosDoCluster.length,
       qtdProcessos: processosFiltrados.length,
       qtdEtapas: etapasFiltradas.length,
       qtdGargalos: gargalosFiltrados.length,
-      qtdMelhorias: melhorias.length,
+      qtdMelhorias: melhoriasDoEscopo.length,
       qtdSistemas: sistemasAtuais.length,
       qtdSistemasNovos: novosSisIds.size,
       qtdSistemasAposMelhorias: sistemasAtuais.length + novosSisIds.size,
-      qtdDocumentos: documentos.length,
+      qtdDocumentos: documentosDoEscopo.length,
       qtdResponsaveis: responsaveis.length,
     };
-  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhorias, sistemas, documentos.length, responsaveis, projetos]);
+  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
 
   // Métricas dependentes do horizonte de análise selecionado (12/24/36 meses).
   // Os campos *Ano em `v` são sempre anuais; multiplicamos por `horizonteFator`
