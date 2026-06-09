@@ -81,22 +81,24 @@ export default function SetorEvolucaoPage() {
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
 
-  const clusterPorProjetoId = useMemo(
-    () => new Map(projetos.map(p => [p.id, p.clusterName || ''])),
+  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
+  const clusterIdPorProjetoId = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
   );
   const projetosDoCluster = useMemo(
-    () => (filtroCluster ? projetos.filter(p => (p.clusterName || '') === filtroCluster) : projetos),
+    () => (filtroCluster ? projetos.filter(p => (p.cluster_id || '') === filtroCluster) : projetos),
     [projetos, filtroCluster],
   );
 
   // Escopo (processos do cluster + projeto selecionados, ou todos)
   const processosFiltrados = useMemo(() => {
     let arr = processos;
-    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterPorProjetoId.get(p.project_id) === filtroCluster);
+    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterIdPorProjetoId.get(p.project_id) === filtroCluster);
     if (filtroProjeto) arr = arr.filter(p => p.project_id === filtroProjeto);
     return arr;
-  }, [processos, filtroCluster, filtroProjeto, clusterPorProjetoId]);
+  }, [processos, filtroCluster, filtroProjeto, clusterIdPorProjetoId]);
 
   const idsProc = useMemo(() => new Set(processosFiltrados.map(p => p.id)), [processosFiltrados]);
 
@@ -172,7 +174,7 @@ export default function SetorEvolucaoPage() {
 
   const onChangeCluster = (c: string) => {
     setFiltroCluster(c);
-    if (c && filtroProjeto && clusterPorProjetoId.get(filtroProjeto) !== c) setFiltroProjeto('');
+    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) setFiltroProjeto('');
   };
 
   const handleExportarPdf = () => {
