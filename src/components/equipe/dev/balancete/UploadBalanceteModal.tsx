@@ -242,7 +242,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
       const response = await fetchWithAuth(getApiUrl('/api/v1/contabil/balancetes'), {
         method: 'POST',
         body: formData,
-      });
+      }, 120000);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
