@@ -159,6 +159,19 @@ export function romano(n: number): string {
   return saida;
 }
 
+/** Letra de alínea (1-based): 1 → "a", 26 → "z", 27 → "aa" (estilo planilha). */
+export function letraAlinea(n: number): string {
+  if (!Number.isInteger(n) || n < 1) throw new Error(`Alínea fora do intervalo (≥1): ${n}`);
+  let resto = n;
+  let saida = '';
+  while (resto > 0) {
+    resto -= 1;
+    saida = String.fromCharCode(97 + (resto % 26)) + saida;
+    resto = Math.floor(resto / 26);
+  }
+  return saida;
+}
+
 /** Agrupa milhares com ponto: "558413" → "558.413". */
 function agruparMilhar(inteiro: string): string {
   return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');

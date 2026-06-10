@@ -1,5 +1,5 @@
 import { extrairEstrutura } from './render';
-import { ENTIDADES, type TipoCampo, type TipoEntidade } from './vocabulario';
+import { campoDaEntidade, ENTIDADES, type TipoCampo, type TipoEntidade } from './vocabulario';
 
 // Modelo de binding: cada placeholder é `<binding>.<campo>`. O binding é um papel
 // (proprietario, imovel, socio2…) que resolve para um TIPO de entidade. Na geração,
@@ -45,7 +45,7 @@ export const PAPEIS: Record<string, Papel> = {
 // --- Papéis de lista (seções de repetição) -----------------------------------
 
 /** Fonte relacional de uma lista: de onde os itens vêm, dada a empresa (PJ). */
-export type FonteLista = 'quadro_societario' | 'administracao';
+export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao';
 
 export interface CampoExtra {
   id: string;
@@ -58,6 +58,10 @@ export interface PapelLista {
   tipo: TipoEntidade;
   /** Chave singular do item dentro da seção ({{ socio.nome }} em {{#socios}}). */
   itemKey: string;
+  /** Chaves adicionais de escopo do item (listas aninhadas: {{ imovel.* }} em {{#imoveis}}). */
+  itemKeysExtras?: string[];
+  /** Seções conhecidas dentro do item (listas aninhadas e condicionais próprias). */
+  secoesItem?: string[];
   fonte: FonteLista;
   /** Campos da RELAÇÃO (não da pessoa), mesclados ao item pelo mapeador. */
   camposExtras: CampoExtra[];
@@ -83,6 +87,18 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     itemKey: 'administrador',
     fonte: 'administracao',
     camposExtras: [{ id: 'cargo', label: 'Cargo' }],
+  },
+  integralizacoes: {
+    label: 'Integralizações (imóveis aprovados, por sócio)',
+    tipo: 'pessoa',
+    itemKey: 'socio',
+    itemKeysExtras: ['imovel'],
+    secoesItem: ['imoveis', 'completa', 'referencia'],
+    fonte: 'integralizacao',
+    camposExtras: [
+      { id: 'paragrafo', label: 'Rótulo do parágrafo (Segundo, Terceiro…)' },
+      { id: 'ordem', label: 'Ordem do sócio na integralização (1, 2…)' },
+    ],
   },
 };
 
@@ -110,6 +126,19 @@ export function resolverTipoDoBinding(nome: string): TipoEntidade | null {
   const radical = radicalDoBinding(nome);
   if (radical !== nome && PAPEIS[radical]) return PAPEIS[radical].tipo;
   return null;
+}
+
+/**
+ * Seção condicional sobre um campo de binding ({{#imovel.fracionado}}…): o nome
+ * é `papel.campo` com papel conhecido e campo existente na entidade. O valor vem
+ * do registro mapeado — diferente das seções desconhecidas, que a tela Gerar
+ * resolve como '' (o que sobrescreveria o campo derivado dentro do binding).
+ */
+export function condicionalDeBinding(nome: string): boolean {
+  const ponto = nome.indexOf('.');
+  if (ponto <= 0) return false;
+  const tipo = resolverTipoDoBinding(nome.slice(0, ponto));
+  return tipo != null && campoDaEntidade(tipo, nome.slice(ponto + 1)) != null;
 }
 
 /** Rótulo legível de um binding ("socio2" → "Sócio 2"; desconhecido → o próprio nome). */
@@ -181,20 +210,36 @@ export function detectarBindingsDeConteudo(conteudo: string): DeteccaoConteudo {
   for (const secao of secoes) {
     const papel = PAPEIS_LISTA[secao.nome];
     if (!papel) {
+      if (condicionalDeBinding(secao.nome)) {
+        // O nome da seção entra como campo para registrar o binding mesmo
+        // quando o campo só aparece na condicional.
+        campos.push(secao.nome, ...secao.campos);
+        continue;
+      }
       secoesDesconhecidas.push(secao.nome);
       campos.push(...secao.campos);
       continue;
     }
     listas.push({ nome: secao.nome, papel });
-    // Condicionais internas fora de sePF/sePJ também são desconhecidas.
+    const chavesItem = [papel.itemKey, ...(papel.itemKeysExtras ?? [])];
+    // Condicionais internas conhecidas: sePF/sePJ, seções do próprio item
+    // (listas aninhadas), condicionais de binding e condicionais sobre campos
+    // do escopo do item ({{#socio.vlrTotal}} — inclui extras da relação).
     for (const interna of secao.secoesInternas) {
-      if (!(CONDICIONAIS_ITEM as readonly string[]).includes(interna) && !PAPEIS_LISTA[interna]) {
+      if (
+        !(CONDICIONAIS_ITEM as readonly string[]).includes(interna) &&
+        !PAPEIS_LISTA[interna] &&
+        !(papel.secoesItem ?? []).includes(interna) &&
+        !chavesItem.some((k) => interna.startsWith(`${k}.`)) &&
+        !condicionalDeBinding(interna)
+      ) {
         secoesDesconhecidas.push(interna);
       }
     }
-    // Campos que não são do item vazam para a detecção de topo.
+    // Campos que não são do item (nem das chaves extras das listas aninhadas)
+    // vazam para a detecção de topo.
     for (const campo of secao.campos) {
-      if (!campo.startsWith(`${papel.itemKey}.`)) campos.push(campo);
+      if (!chavesItem.some((k) => campo.startsWith(`${k}.`))) campos.push(campo);
     }
   }
 
@@ -263,6 +308,45 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
         tipo: 'texto',
       });
     }
+  }
+  // Específicos da lista de integralizações: alíneas aninhadas, campos de
+  // referência cruzada e as condicionais completa/referência.
+  const grupoInteg = PAPEIS_LISTA.integralizacoes.label;
+  out.push({
+    placeholder: 'integralizacoes.alineas',
+    label: 'Integralizações — esqueleto sócio + alíneas',
+    grupo: grupoInteg,
+    tipo: 'texto',
+    insercao:
+      '{{#integralizacoes sep="\\n"}}*Parágrafo {{ socio.paragrafo }}:* ' +
+      'O sócio {{ socio.nome }} subscreve e integraliza neste ato:\n' +
+      '{{#imoveis sep="\\n"}}{{ imovel.alinea }}) {{#completa}}…descrição completa…{{/completa}}' +
+      '{{#referencia}}…referência à alínea "{{ imovel.refAlinea }}" do parágrafo {{ imovel.refParagrafo }}…{{/referencia}}{{/imoveis}}{{/integralizacoes}}',
+  });
+  for (const [id, label] of [
+    ['alinea', 'Letra da alínea (a, b…)'],
+    ['refAlinea', 'Alínea da descrição original (referência)'],
+    ['refParagrafo', 'Parágrafo da descrição original (referência)'],
+    ['refSocio', 'Sócio da descrição original (referência)'],
+  ] as const) {
+    out.push({
+      placeholder: `imovel.${id}`,
+      label: `Integralizações — ${label}`,
+      grupo: grupoInteg,
+      tipo: 'texto',
+    });
+  }
+  for (const [cond, label] of [
+    ['completa', 'Trecho da 1ª descrição do imóvel (por extenso)'],
+    ['referencia', 'Trecho de referência a imóvel já descrito'],
+  ] as const) {
+    out.push({
+      placeholder: cond,
+      label: `Integralizações — ${label}`,
+      grupo: grupoInteg,
+      tipo: 'texto',
+      insercao: `{{#${cond}}}{{/${cond}}}`,
+    });
   }
   for (const cond of CONDICIONAIS_ITEM) {
     out.push({

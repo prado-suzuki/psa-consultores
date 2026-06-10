@@ -2,14 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { extrairCampos } from './render';
 import { gerarDocumento } from './index';
 import { derivarCampos } from './vocabulario';
-import { detectarBindings, resolverTipoDoBinding } from './binding';
+import { condicionalDeBinding, detectarBindings, detectarBindingsDeConteudo, resolverTipoDoBinding } from './binding';
 import { concordarTexto } from './concordancia';
 import {
+  mapearIntegralizacoes,
   mapearMatricula,
   mapearPessoa,
   mapearSocio,
   montarContexto,
   type MatriculaParaMapear,
+  type SocioParaMapear,
 } from './mapeadores';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
@@ -70,6 +72,128 @@ describe('binding', () => {
     const { bindings, desconhecidos } = detectarBindings(['campoLivre', 'foo.bar', 'proprietario.nome']);
     expect(bindings.map((b) => b.nome)).toEqual(['proprietario']);
     expect(desconhecidos).toEqual(['campoLivre', 'foo.bar']);
+  });
+
+  it('reconhece condicionais de binding (papel + campo do catálogo)', () => {
+    expect(condicionalDeBinding('imovel.fracionado')).toBe(true);
+    expect(condicionalDeBinding('proprietario.profissao')).toBe(true);
+    expect(condicionalDeBinding('imovel.naoExiste')).toBe(false);
+    expect(condicionalDeBinding('foo.bar')).toBe(false);
+    expect(condicionalDeBinding('socios')).toBe(false);
+  });
+});
+
+describe('condicional de binding na tela Gerar — regressão Agroaliança 13.1809', () => {
+  // Conteúdo real do bloco "Teste de Matriculas" (com a seção {{#imovel.fracionado}}).
+  const CONTEUDO_FRACIONADO =
+    '{{#imovel.fracionado}}*{{ imovel.percentual }}* ({{ imovel.percentualExtenso }}) de um {{/imovel.fracionado}}' +
+    'imóvel rural com área de {{ imovel.area }}, denominado {{ imovel.denominacao }}, ' +
+    'de propriedade de {{ imovel.proprietario }}' +
+    '{{#imovel.fracionado}}. Sendo a área remanescente deste imóvel de {{ imovel.remanescente }}.{{/imovel.fracionado}}';
+
+  const AGROALIANCA: MatriculaParaMapear = {
+    numero: '13.1809', livro: null, folha: null,
+    municipio_imovel: null, uf_imovel: null,
+    area_documento: 387.6829, area_unidade: 'ha', vlr_contabil: null,
+    confrontacoes_texto: null, descricao_psa_completa: null,
+    bem: { denominacao: 'Agroaliança Porto II', vlr_contabil: null, ccir_codigo: null },
+    cartorio: null,
+    titulares: [
+      { pessoaId: 'a', denominacao: 'Avelino Neri Bocolli', fracao: 50 },
+      { pessoaId: 'c', denominacao: 'Cristina Kileba Bocolli Bordignon', fracao: 50 },
+      { pessoaId: 'a', denominacao: 'Avelino Neri Bocolli', integralizador: true, fracao: 50 },
+      { pessoaId: 'c', denominacao: 'Cristina Kileba Bocolli Bordignon', fracao: 50 },
+    ],
+  };
+
+  // Espelha o fluxo da tela Gerar: detecção estrutural → seções desconhecidas
+  // forçadas a '' (prévia viva) → contexto montado → render.
+  function gerarComoATela(titulares: MatriculaParaMapear['titulares']): string {
+    const { bindings, secoesDesconhecidas } = detectarBindingsDeConteudo(CONTEUDO_FRACIONADO);
+    const livres = Object.fromEntries(secoesDesconhecidas.map((nome) => [nome, '']));
+    const ctx = montarContexto(bindings, { imovel: mapearMatricula({ ...AGROALIANCA, titulares }) }, livres);
+    const template: Template = { id: 't', nome: 'n', blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_FRACIONADO }] };
+    return gerarDocumento(template, ctx);
+  }
+
+  it('a seção {{#imovel.fracionado}} NÃO é desconhecida (não pode ser forçada a vazio)', () => {
+    const { bindings, secoesDesconhecidas } = detectarBindingsDeConteudo(CONTEUDO_FRACIONADO);
+    expect(secoesDesconhecidas).toEqual([]);
+    expect(bindings.map((b) => b.nome)).toEqual(['imovel']);
+  });
+
+  it('com integralizador marcado, renderiza fração + remanescente', () => {
+    const texto = gerarComoATela(AGROALIANCA.titulares);
+    expect(texto).toBe(
+      '*50,000%* (cinquenta inteiros por cento) de um imóvel rural com área de 387,6829 ha, ' +
+      'denominado Agroaliança Porto II, de propriedade de Avelino Neri Bocolli. ' +
+      'Sendo a área remanescente deste imóvel de Cristina Kileba Bocolli Bordignon.',
+    );
+  });
+
+  it('sem integralizador, renderiza a forma inteira ("A e B"), sem fração', () => {
+    const titulares = AGROALIANCA.titulares.map((t) => ({ ...t, integralizador: false }));
+    const texto = gerarComoATela(titulares);
+    expect(texto).toBe(
+      'imóvel rural com área de 387,6829 ha, denominado Agroaliança Porto II, ' +
+      'de propriedade de Avelino Neri Bocolli e Cristina Kileba Bocolli Bordignon',
+    );
+  });
+});
+
+describe('seção {{#integralizacoes}} — detecção e render aninhado (padrão MMS)', () => {
+  const CONTEUDO =
+    '{{#integralizacoes sep="\\n"}}*Parágrafo {{ socio.paragrafo }}:* O sócio {{ socio.nome }} integraliza:\n' +
+    '{{#imoveis sep="\\n"}}{{ imovel.alinea }}) ' +
+    '{{#completa}}{{ imovel.percentual }} de um imóvel rural, matrícula {{ imovel.numero }}, ' +
+    'de propriedade de {{ imovel.proprietario }}, no valor de R$ {{ imovel.valor }}. ' +
+    'Área remanescente de {{ imovel.remanescente }}.{{/completa}}' +
+    '{{#referencia}}{{ imovel.percentual }} do imóvel descrito na alínea "{{ imovel.refAlinea }}" ' +
+    'do parágrafo {{ imovel.refParagrafo }}, matrícula {{ imovel.numero }}, ' +
+    'de propriedade de {{ imovel.proprietario }}, no valor de R$ {{ imovel.valor }}.{{/referencia}}' +
+    '{{/imoveis}}{{/integralizacoes}}';
+
+  const socios: SocioParaMapear[] = [
+    { pessoa: { id: 'j', denominacao: 'José Eduardo', tipo_pessoa: 'PF' } as unknown as PessoaRow, quotas: 1, vlr_total: 1, representante: null },
+    { pessoa: { id: 'm', denominacao: 'Maria Auxiliadora', tipo_pessoa: 'PF' } as unknown as PessoaRow, quotas: 1, vlr_total: 1, representante: null },
+  ];
+  const matriculas = [{
+    id: 'm1', numero: '2.424', livro: null, folha: null,
+    municipio_imovel: null, uf_imovel: null,
+    area_documento: null, area_unidade: null, vlr_contabil: 250000,
+    confrontacoes_texto: null, descricao_psa_completa: null,
+    bem: null, cartorio: null,
+    titulares: [
+      { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 50 },
+      { pessoaId: 'm', denominacao: 'Maria Auxiliadora', fracao: 50 },
+    ],
+  }];
+
+  it('detecta a lista sem seções desconhecidas e sem binding unitário de imóvel', () => {
+    const det = detectarBindingsDeConteudo(CONTEUDO);
+    expect(det.listas.map((l) => l.nome)).toEqual(['integralizacoes']);
+    expect(det.secoesDesconhecidas).toEqual([]);
+    expect(det.bindings).toEqual([]);
+    expect(det.desconhecidos).toEqual([]);
+  });
+
+  it('renderiza a descrição completa no 1º sócio e a referência cruzada no 2º', () => {
+    const det = detectarBindingsDeConteudo(CONTEUDO);
+    const itens = mapearIntegralizacoes(socios, matriculas);
+    const ctx = montarContexto(det.bindings, {}, {}, { integralizacoes: itens }, det.listas);
+    const template: Template = { id: 't', nome: 'n', blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO }] };
+    const texto = gerarDocumento(template, ctx);
+
+    expect(texto).toContain('*Parágrafo Segundo:* O sócio José Eduardo integraliza:');
+    expect(texto).toContain(
+      'a) 50,000% de um imóvel rural, matrícula 2.424, de propriedade de José Eduardo, ' +
+      'no valor de R$ 125.000,00. Área remanescente de Maria Auxiliadora.',
+    );
+    expect(texto).toContain('*Parágrafo Terceiro:* O sócio Maria Auxiliadora integraliza:');
+    expect(texto).toContain(
+      'a) 50,000% do imóvel descrito na alínea "a" do parágrafo segundo, matrícula 2.424, ' +
+      'de propriedade de Maria Auxiliadora, no valor de R$ 125.000,00.',
+    );
   });
 });
 

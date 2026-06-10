@@ -294,6 +294,15 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: ['percentual', 'remanescente'],
         derivar: (v) => (v.percentual && v.remanescente ? 'sim' : ''),
       },
+      {
+        // Oposto de fracionado ("Um imóvel rural…" × "X% de um imóvel rural…"):
+        // o engine não tem "else", então cada ramo tem sua condicional.
+        id: 'inteiro',
+        label: 'É imóvel inteiro? (condicional, oposto de fracionado)',
+        tipo: 'texto',
+        derivadoDe: ['percentual', 'remanescente'],
+        derivar: (v) => (v.percentual && v.remanescente ? '' : 'sim'),
+      },
       { id: 'cartorio', label: 'Cartório', tipo: 'texto' },
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
       { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },

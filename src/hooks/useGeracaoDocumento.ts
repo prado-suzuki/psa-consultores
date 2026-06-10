@@ -8,6 +8,7 @@ import { PARES } from '@/lib/templates/concordancia';
 import {
   mapearPessoa,
   type AdministradorParaMapear,
+  type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
 } from '@/lib/templates/mapeadores';
@@ -220,9 +221,81 @@ export function useListasDaEmpresa(empresaId: string | null) {
     },
   });
 
+  // Matrículas dos bens APROVADOS para integralização nesta empresa, sem
+  // impedimento ativo — a matéria-prima da seção {{#integralizacoes}}.
+  const integralizacoesQ = useQuery<MatriculaIntegralizacao[]>({
+    queryKey: ['integralizacoes-geracao', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bem')
+        .select(`
+          id, denominacao, vlr_contabil, ccir_codigo,
+          matricula (
+            id, numero, livro, folha, municipio_imovel, uf_imovel,
+            area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
+            cartorio:cartorio_id ( nome_completo, comarca, uf ),
+            titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao ) ),
+            impedimento ( id, cancelado )
+          )
+        `)
+        .eq('empresa_destino_pessoa_id', empresaId!)
+        .eq('status_integralizacao', 'Aprovado');
+      if (error) throw error;
+
+      const bens = (data ?? []) as unknown as Array<{
+        id: string; denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null;
+        matricula: Array<{
+          id: string; numero: string | null; livro: string | null; folha: string | null;
+          municipio_imovel: string | null; uf_imovel: string | null;
+          area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
+          confrontacoes_texto: string | null; descricao_psa_completa: string | null;
+          cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
+          titularidade: Array<{
+            integralizador: boolean | null; fracao: number | null;
+            titular: { id: string; denominacao: string | null } | null;
+          }> | null;
+          impedimento: Array<{ id: string; cancelado: boolean | null }> | null;
+        }> | null;
+      }>;
+
+      const matriculas: MatriculaIntegralizacao[] = [];
+      for (const b of bens) {
+        for (const m of b.matricula ?? []) {
+          // Impedimento ativo (não cancelado) trava a integralização do imóvel.
+          if ((m.impedimento ?? []).some((i) => !i.cancelado)) continue;
+          matriculas.push({
+            id: m.id,
+            numero: m.numero,
+            livro: m.livro,
+            folha: m.folha,
+            municipio_imovel: m.municipio_imovel,
+            uf_imovel: m.uf_imovel,
+            area_documento: m.area_documento,
+            area_unidade: m.area_unidade,
+            vlr_contabil: m.vlr_contabil,
+            confrontacoes_texto: m.confrontacoes_texto,
+            descricao_psa_completa: m.descricao_psa_completa,
+            bem: { denominacao: b.denominacao, vlr_contabil: b.vlr_contabil, ccir_codigo: b.ccir_codigo },
+            cartorio: m.cartorio,
+            titulares: (m.titularidade ?? []).map((t) => ({
+              pessoaId: t.titular?.id ?? null,
+              denominacao: t.titular?.denominacao ?? null,
+              integralizador: !!t.integralizador,
+              fracao: t.fracao ?? null,
+            })),
+          });
+        }
+      }
+      // Ordem estável das alíneas: pelo número da matrícula.
+      return matriculas.sort((a, z) => (a.numero ?? '').localeCompare(z.numero ?? '', 'pt-BR', { numeric: true }));
+    },
+  });
+
   return {
     socios: sociosQ.data ?? [],
     administradores: administradoresQ.data ?? [],
-    isFetching: sociosQ.isFetching || administradoresQ.isFetching,
+    integralizacoes: integralizacoesQ.data ?? [],
+    isFetching: sociosQ.isFetching || administradoresQ.isFetching || integralizacoesQ.isFetching,
   };
 }

@@ -1,6 +1,6 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, valorExtenso } from './extenso';
+import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, ordinalExtenso, valorExtenso } from './extenso';
 import { ufPorExtenso } from './concordancia';
-import { derivarCampos } from './vocabulario';
+import { camposDaEntidade, derivarCampos } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
 import type { Contexto } from './types';
 import type { TipoEntidade } from './vocabulario';
@@ -209,10 +209,11 @@ export function mapearCartorio(row: CartorioRow): Campos {
 /**
  * Item de uma lista no contexto do render: a chave singular do papel carrega os
  * campos ({ socio: {...} }) e as condicionais sePF/sePJ ficam no topo do escopo
- * do item, onde as seções {{#sePF}}/{{#sePJ}} as resolvem.
+ * do item, onde as seções {{#sePF}}/{{#sePJ}} as resolvem. Valores-array são
+ * listas ANINHADAS ({{#imoveis}} dentro de {{#integralizacoes}}).
  */
 export interface ItemLista {
-  [chave: string]: Campos | boolean;
+  [chave: string]: Campos | boolean | ItemLista[];
 }
 
 /** Linha do quadro societário com a pessoa do sócio juntada (e o representante, se sócia PJ). */
@@ -276,6 +277,141 @@ export function mapearQuadroSocietario(socios: SocioParaMapear[]): QuadroSocieta
     total.percentual = formatarPercentual(100);
   }
   return { itens, total };
+}
+
+// --- Integralização de imóveis (seção {{#integralizacoes}}) -------------------
+
+/** Matrícula de bem aprovado para integralização (o id cruza as referências entre sócios). */
+export interface MatriculaIntegralizacao extends MatriculaParaMapear {
+  id: string;
+}
+
+/** "décimo quinto" → "Décimo Quinto" (rótulo de parágrafo no meio do bloco). */
+function capitalizarPalavras(texto: string): string {
+  return texto.replace(/\S+/g, (p) => p[0].toUpperCase() + p.slice(1));
+}
+
+/**
+ * Itens da seção {{#integralizacoes}}: um item por sócio que integraliza (na
+ * ordem do quadro societário), cada um com suas alíneas {{#imoveis}} — uma por
+ * matrícula em que o sócio é titular. A primeira ocorrência de cada matrícula
+ * no documento sai COMPLETA (descrição por extenso, com a fração do sócio à
+ * frente e os demais titulares como área remanescente); as seguintes saem como
+ * REFERÊNCIA à descrição original (alínea/parágrafo/sócio), no padrão da casa:
+ * "descrito na alínea 'a' do parágrafo segundo".
+ *
+ * O rótulo {{ socio.paragrafo }} assume o modelo da casa: o Parágrafo Primeiro
+ * é a responsabilidade solidária, então o primeiro sócio integraliza no Segundo.
+ *
+ * Valor da alínea = fração × valor da matrícula. Quando as frações fecham 100%
+ * entre os sócios, o último absorve a diferença de centavos do arredondamento
+ * (ex.: R$ 138.027,21 → 69.013,61 + 69.013,60, como nos contratos registrados).
+ */
+export function mapearIntegralizacoes(
+  socios: SocioParaMapear[],
+  matriculas: MatriculaIntegralizacao[],
+): ItemLista[] {
+  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
+
+  // Pré-passada por matrícula: quantos sócios-titulares faltam processar e se a
+  // divisão "fecha" (todos os titulares são sócios, com fração somando 100%).
+  const pendentes = new Map<string, number>();
+  const fechadas = new Set<string>();
+  for (const m of matriculas) {
+    const tits = dedupTitulares(m.titulares);
+    const deSocios = tits.filter((t) => t.pessoaId && sociosIds.has(t.pessoaId));
+    pendentes.set(m.id, deSocios.length);
+    const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+    if (
+      vlr != null &&
+      deSocios.length === tits.length &&
+      tits.every((t) => t.fracao != null) &&
+      Math.abs(tits.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001
+    ) {
+      fechadas.add(m.id);
+    }
+  }
+
+  // Onde cada matrícula foi descrita pela primeira vez + centavos já alocados.
+  const descritas = new Map<string, { alinea: string; paragrafo: string; socio: string }>();
+  const alocado = new Map<string, number>();
+  const itens: ItemLista[] = [];
+
+  for (const s of socios) {
+    const doSocio = matriculas.filter((m) =>
+      dedupTitulares(m.titulares).some((t) => t.pessoaId === s.pessoa.id),
+    );
+    if (doSocio.length === 0) continue;
+
+    const ordem = itens.length + 1;
+    const imoveis: ItemLista[] = doSocio.map((m, j) => {
+      // O sócio do parágrafo lidera a descrição desta alínea — o flag do banco
+      // não importa aqui (cada sócio é o "integralizador" das próprias alíneas).
+      const tits = dedupTitulares(m.titulares).map((t) => ({
+        ...t,
+        integralizador: t.pessoaId === s.pessoa.id,
+      }));
+      const titular = tits.find((t) => t.integralizador)!;
+      const campos = mapearMatricula({ ...m, titulares: tits });
+
+      // Valor da fração (em centavos, para o fechamento exato do último sócio).
+      const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+      const pend = pendentes.get(m.id)!;
+      if (vlr != null && titular.fracao != null) {
+        const totalCent = Math.round(vlr * 100);
+        const jaAlocado = alocado.get(m.id) ?? 0;
+        const cent =
+          fechadas.has(m.id) && pend === 1
+            ? totalCent - jaAlocado
+            : Math.round((totalCent * titular.fracao) / 100);
+        alocado.set(m.id, jaAlocado + cent);
+        campos.valor = formatarValor(cent / 100);
+      }
+      pendentes.set(m.id, pend - 1);
+
+      const alinea = letraAlinea(j + 1);
+      campos.alinea = alinea;
+      const original = descritas.get(m.id);
+      if (original) {
+        campos.refAlinea = original.alinea;
+        campos.refParagrafo = original.paragrafo;
+        campos.refSocio = original.socio;
+      } else {
+        descritas.set(m.id, {
+          alinea,
+          paragrafo: ordinalExtenso(ordem + 1, 'm'),
+          socio: s.pessoa.denominacao,
+        });
+      }
+
+      // Dentro de lista não há formulário para completar campo faltante na mão
+      // (diferente do binding unitário): campo do catálogo ausente vira '' para
+      // o condicional {{#imovel.livro}}…{{/imovel.livro}} pular o trecho em vez
+      // de derrubar a prévia inteira.
+      const imovel = derivarCampos('matricula', campos);
+      for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
+
+      return {
+        imovel,
+        completa: !original,
+        referencia: !!original,
+      };
+    });
+
+    const base = mapearSocio(s);
+    const socioCampos: Campos = {
+      ...(base.socio as Campos),
+      ordem: String(ordem),
+      paragrafo: capitalizarPalavras(ordinalExtenso(ordem + 1, 'm')),
+    };
+    // Extras da relação ausentes (sócio sem quotas/valor) também viram ''.
+    for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
+      socioCampos[id] = socioCampos[id] ?? '';
+    }
+    itens.push({ socio: socioCampos, sePF: base.sePF, sePJ: base.sePJ, imoveis });
+  }
+
+  return itens;
 }
 
 /** Linha de administração com a pessoa do administrador juntada. */

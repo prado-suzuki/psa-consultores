@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
+  mapearIntegralizacoes,
   mapearMatricula,
   mapearQuadroSocietario,
+  type ItemLista,
+  type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
   type TitularParaMapear,
@@ -109,5 +112,111 @@ describe('mapearMatricula — titularidade (forma inteira × fracionada)', () =>
     // José aparece uma vez (líder); Maria é o remanescente — sem duplicar.
     expect(c.proprietario).toBe('José Eduardo');
     expect(c.remanescente).toBe('Maria Auxiliadora');
+  });
+});
+
+describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada (padrão MMS)', () => {
+  function socioIntegralizante(id: string, denominacao: string): SocioParaMapear {
+    return {
+      pessoa: { id, denominacao, tipo_pessoa: 'PF', genero: 'M' } as unknown as PessoaRow,
+      quotas: 100,
+      vlr_total: 100,
+      representante: null,
+    };
+  }
+
+  function matIntegralizacao(
+    id: string,
+    numero: string,
+    vlr: number | null,
+    titulares: TitularParaMapear[],
+  ): MatriculaIntegralizacao {
+    return {
+      id, numero, livro: null, folha: null,
+      municipio_imovel: null, uf_imovel: null,
+      area_documento: null, area_unidade: null, vlr_contabil: vlr,
+      confrontacoes_texto: null, descricao_psa_completa: null,
+      bem: null, cartorio: null, titulares,
+    };
+  }
+
+  const jose = socioIntegralizante('j', 'José Eduardo');
+  const maria = socioIntegralizante('m', 'Maria Auxiliadora');
+  const meio = (pessoaId: string, denominacao: string): TitularParaMapear =>
+    ({ pessoaId, denominacao, fracao: 50 });
+
+  // m1: condomínio 50/50 exato; m2: 50/50 com centavo ímpar (caso MMS real);
+  // m3: só do José (titular único, sem fração).
+  const matriculas = [
+    matIntegralizacao('m1', '2.424', 250000, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+    matIntegralizacao('m2', '2.623', 138027.21, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+    matIntegralizacao('m3', '9.617', 558413.55, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+  ];
+
+  const imovel = (item: ItemLista, i: number) =>
+    ((item.imoveis as ItemLista[])[i].imovel as Record<string, string>);
+  const flag = (item: ItemLista, i: number, chave: string) =>
+    (item.imoveis as ItemLista[])[i][chave] as boolean;
+
+  it('um item por sócio (ordem do quadro), com rótulo de parágrafo a partir do Segundo', () => {
+    const itens = mapearIntegralizacoes([jose, maria], matriculas);
+    expect(itens).toHaveLength(2);
+    expect((itens[0].socio as Record<string, string>).paragrafo).toBe('Segundo');
+    expect((itens[1].socio as Record<string, string>).paragrafo).toBe('Terceiro');
+    expect((itens[0].imoveis as ItemLista[])).toHaveLength(3);
+    expect((itens[1].imoveis as ItemLista[])).toHaveLength(2);
+  });
+
+  it('1ª ocorrência sai completa (fração à frente, remanescente); o sócio do parágrafo lidera', () => {
+    const [pJose] = mapearIntegralizacoes([jose, maria], matriculas);
+    const a = imovel(pJose, 0);
+    expect(flag(pJose, 0, 'completa')).toBe(true);
+    expect(flag(pJose, 0, 'referencia')).toBe(false);
+    expect(a.alinea).toBe('a');
+    expect(a.proprietario).toBe('José Eduardo');
+    expect(a.percentual).toBe('50,000%');
+    expect(a.percentualExtenso).toBe('cinquenta inteiros por cento');
+    expect(a.remanescente).toBe('Maria Auxiliadora');
+    expect(a.valor).toBe('125.000,00');
+    expect(a.fracionado).toBe('sim');
+  });
+
+  it('ocorrência seguinte sai como referência à alínea/parágrafo da descrição original', () => {
+    const [, pMaria] = mapearIntegralizacoes([jose, maria], matriculas);
+    const a = imovel(pMaria, 0);
+    expect(flag(pMaria, 0, 'referencia')).toBe(true);
+    expect(flag(pMaria, 0, 'completa')).toBe(false);
+    expect(a.alinea).toBe('a');
+    expect(a.refAlinea).toBe('a');
+    expect(a.refParagrafo).toBe('segundo');
+    expect(a.refSocio).toBe('José Eduardo');
+    expect(a.numero).toBe('2.424');
+    expect(a.proprietario).toBe('Maria Auxiliadora');
+    expect(a.remanescente).toBe('José Eduardo');
+  });
+
+  it('fecha os centavos no último sócio (69.013,61 + 69.013,60 = 138.027,21, como no MMS)', () => {
+    const [pJose, pMaria] = mapearIntegralizacoes([jose, maria], matriculas);
+    expect(imovel(pJose, 1).valor).toBe('69.013,61');
+    expect(imovel(pMaria, 1).valor).toBe('69.013,60');
+  });
+
+  it('titular único sem fração: forma inteira, valor cheio, sem percentual', () => {
+    const [pJose] = mapearIntegralizacoes([jose, maria], matriculas);
+    const c = imovel(pJose, 2);
+    expect(c.alinea).toBe('c');
+    expect(c.proprietario).toBe('José Eduardo');
+    expect(c.percentual).toBe(''); // ausente vira '' na lista (condicional pula o trecho)
+    expect(c.valor).toBe('558.413,55');
+    expect(c.fracionado).toBe('');
+    expect(c.inteiro).toBe('sim');
+    expect(c.livro).toBe(''); // campo de cadastro vazio não derruba a prévia
+  });
+
+  it('sócio sem imóvel fica fora da lista (não ganha parágrafo)', () => {
+    const semImovel = socioIntegralizante('x', 'Sócio Capitalista');
+    const itens = mapearIntegralizacoes([jose, semImovel, maria], matriculas);
+    expect(itens).toHaveLength(2);
+    expect((itens[1].socio as Record<string, string>).paragrafo).toBe('Terceiro');
   });
 });

@@ -29,6 +29,7 @@ import {
 import { detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
 import {
   mapearAdministrador,
+  mapearIntegralizacoes,
   mapearQuadroSocietario,
   mapearRegistro,
   montarContexto,
@@ -107,7 +108,7 @@ const GerarDocumento = () => {
   // a empresa também alimenta as flags, então o card aparece em ambos os casos.
   const usaListas = listas.length > 0;
   const precisaEmpresa = usaListas || temBlocosComFlags;
-  const { socios, administradores, isFetching: carregandoListas } = useListasDaEmpresa(
+  const { socios, administradores, integralizacoes, isFetching: carregandoListas } = useListasDaEmpresa(
     usaListas ? empresaId : null,
   );
 
@@ -118,8 +119,9 @@ const GerarDocumento = () => {
     () => ({
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
+      integralizacoes: mapearIntegralizacoes(socios, integralizacoes),
     }),
-    [quadro, administradores],
+    [quadro, socios, administradores, integralizacoes],
   );
 
   // `total.*` é injetado automaticamente quando há a lista de sócios; não deve
