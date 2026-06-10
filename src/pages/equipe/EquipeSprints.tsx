@@ -104,29 +104,12 @@ const EquipeSprints = () => {
 
   const fetchData = async () => {
     try {
-      // Buscar cliente "Transversal" do catálogo (área Digital)
-      const { data: digitalClients } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%transversal%,name.ilike.%digital%');
-
-      const digitalClientIds = digitalClients?.map(c => c.id) || [];
-
-      // Fetch projects (filtrados por área Digital)
-      let projectsQuery = supabase
+      const { data: projectsData } = await supabase
         .from('projects')
         .select('id, name')
         .eq('status', 'active')
         .order('name');
 
-      if (digitalClientIds.length > 0) {
-        projectsQuery = projectsQuery.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
-      } else {
-        projectsQuery = projectsQuery.is('client_id', null);
-      }
-
-      const { data: projectsData } = await projectsQuery;
-      
       setProjects(projectsData || []);
 
       // Fetch sprints
