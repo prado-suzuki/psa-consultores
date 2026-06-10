@@ -9,6 +9,7 @@ import type {
 } from '@/types';
 import type { ItemDiagnostico } from '@/utils/diagnosticoRoi';
 import { calcularRoi, execucoesAnuais } from '@/utils/roiCalculator';
+import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import {
   diagnosticarRoi,
   type StatusItem,
@@ -408,8 +409,8 @@ export default function WizardRoi({
     );
     const melhoriaIdsViaGargalos = new Set(
       gargalos
-        .filter(g => gargalosIds.has(g.id) && g.melhoria_id)
-        .map(g => g.melhoria_id as string)
+        .filter(g => gargalosIds.has(g.id))
+        .flatMap(g => melhoriaIdsDoGargalo(g))
     );
     return melhorias.filter(m =>
       (m.processos || []).includes(processo.id) ||

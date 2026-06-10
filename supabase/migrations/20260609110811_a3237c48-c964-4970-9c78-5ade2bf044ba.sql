@@ -1,0 +1,2 @@
+-- Conteúdo carregado via arquivo supabase/migrations/20260611100000_psa_consultores_fixes.sql
+-- Placeholder; ver bloco a seguir

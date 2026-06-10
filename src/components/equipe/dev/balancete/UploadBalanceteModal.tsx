@@ -26,6 +26,14 @@ const DESCRICAO_MAX = 500;
 
 const ALLOWED_EXTENSIONS = ['.xlsx', '.xls'];
 
+// O processamento do balancete (conversao + upload no data lake) e assincrono:
+// o POST retorna 202 com status `processing` e o resultado e acompanhado via
+// polling do endpoint de status ate ficar `success` ou `error`.
+const POLL_INTERVAL_MS = 3000;
+const POLL_TIMEOUT_MS = 6 * 60 * 1000;
+
+type BalanceteStatus = 'processing' | 'success' | 'error' | 'timeout';
+
 function isValidFile(file: File): boolean {
   const ext = '.' + file.name.split('.').pop()?.toLowerCase();
   return ALLOWED_EXTENSIONS.includes(ext);
@@ -57,6 +65,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
   const [descricao, setDescricao] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const [detalhamento, setDetalhamento] = useState<boolean | null>(null);
   const [showDetalhamentoPrompt, setShowDetalhamentoPrompt] = useState(false);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -214,6 +223,31 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
     setShowDetalhamentoPrompt(false);
     setDragging(false);
     setShowConfirm(false);
+    setProcessing(false);
+  };
+
+  // Faz polling do status de processamento do balancete ate um estado terminal
+  // (success/error) ou estourar o tempo limite (timeout).
+  const pollBalanceteStatus = async (
+    idBalancete: string,
+  ): Promise<{ status: BalanceteStatus; mensagem?: string | null }> => {
+    const deadline = Date.now() + POLL_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      try {
+        const res = await fetchWithAuth(
+          getApiUrl(`/api/v1/contabil/balancetes/${idBalancete}/status`),
+        );
+        if (!res.ok) continue; // tolera transientes; segue tentando ate o deadline
+        const data = await res.json();
+        if (data?.status === 'success' || data?.status === 'error') {
+          return { status: data.status, mensagem: data.status_mensagem };
+        }
+      } catch {
+        // erro transiente de rede: ignora e tenta de novo no proximo ciclo
+      }
+    }
+    return { status: 'timeout' };
   };
 
   const handleClose = (value: boolean) => {
@@ -239,10 +273,11 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
       formData.append('descricao', descricao.trim());
       formData.append('file', file);
 
+      // 1) Cria o balancete: retorna 202 com { id_balancete, status: 'processing' }
       const response = await fetchWithAuth(getApiUrl('/api/v1/contabil/balancetes'), {
         method: 'POST',
         body: formData,
-      });
+      }, 120000);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
@@ -255,13 +290,37 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
         throw new Error(message);
       }
 
+      const created = await response.json().catch(() => null);
+      const idBalancete: string | undefined = created?.id_balancete;
+      if (!idBalancete) {
+        throw new Error('Resposta invalida do servidor ao criar o balancete.');
+      }
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ clienteId, contribuinteId }));
-      toast({ title: 'Balancete enviado com sucesso!' });
-      handleClose(false);
+
+      // 2) Processamento assincrono: faz polling do status ate concluir
+      setProcessing(true);
+      const result = await pollBalanceteStatus(idBalancete);
+
+      if (result.status === 'success') {
+        toast({ title: 'Balancete processado com sucesso!' });
+        handleClose(false);
+      } else if (result.status === 'error') {
+        // Mantem o modal aberto para o usuario corrigir e reenviar
+        throw new Error(result.mensagem || 'Falha ao processar o balancete.');
+      } else {
+        // timeout: ainda processando — informa e fecha (a lista atualiza depois)
+        toast({
+          title: 'Processamento em andamento',
+          description: 'O balancete ainda esta sendo processado. Atualize a lista em instantes.',
+        });
+        handleClose(false);
+      }
     } catch (err: any) {
       toast({ title: 'Erro ao enviar balancete', description: err.message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
+      setProcessing(false);
     }
   };
 
@@ -421,7 +480,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
           <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>Cancelar</Button>
           <Button onClick={() => setShowConfirm(true)} disabled={!isValid || submitting} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            Enviar
+            {processing ? 'Processando...' : submitting ? 'Enviando...' : 'Enviar'}
           </Button>
         </DialogFooter>
       </DialogContent>

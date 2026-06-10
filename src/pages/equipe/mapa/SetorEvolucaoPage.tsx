@@ -12,6 +12,7 @@
 import { useMemo, useState } from 'react';
 import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
+import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
@@ -81,22 +82,24 @@ export default function SetorEvolucaoPage() {
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
 
-  const clusterPorProjetoId = useMemo(
-    () => new Map(projetos.map(p => [p.id, p.clusterName || ''])),
+  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
+  const clusterIdPorProjetoId = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
   );
   const projetosDoCluster = useMemo(
-    () => (filtroCluster ? projetos.filter(p => (p.clusterName || '') === filtroCluster) : projetos),
+    () => (filtroCluster ? projetos.filter(p => (p.cluster_id || '') === filtroCluster) : projetos),
     [projetos, filtroCluster],
   );
 
   // Escopo (processos do cluster + projeto selecionados, ou todos)
   const processosFiltrados = useMemo(() => {
     let arr = processos;
-    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterPorProjetoId.get(p.project_id) === filtroCluster);
+    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterIdPorProjetoId.get(p.project_id) === filtroCluster);
     if (filtroProjeto) arr = arr.filter(p => p.project_id === filtroProjeto);
     return arr;
-  }, [processos, filtroCluster, filtroProjeto, clusterPorProjetoId]);
+  }, [processos, filtroCluster, filtroProjeto, clusterIdPorProjetoId]);
 
   const idsProc = useMemo(() => new Set(processosFiltrados.map(p => p.id)), [processosFiltrados]);
 
@@ -110,7 +113,7 @@ export default function SetorEvolucaoPage() {
   );
 
   // Cálculo ao vivo — mesma fonte do Dashboard ROI.
-  const roi: RoiAgregado = useMemo(() => calcularRoi({
+  const roiLive: RoiAgregado = useMemo(() => calcularRoi({
     processos: processosFiltrados,
     etapas: etapasFiltradas,
     responsaveis,
@@ -119,6 +122,22 @@ export default function SetorEvolucaoPage() {
     melhorias,
     projetos,
   }), [processosFiltrados, etapasFiltradas, responsaveis, sistemas, gargalosFiltrados, melhorias, projetos]);
+
+  // Quando há snapshots no escopo, substitui os totais/breakdown pelo snapshot
+  // validado (mesma estratégia do DashboardRoiPage) — garante que economia/
+  // horas/ROI por processo aqui batam com a aba ROI Consolidado.
+  const snapshotsLatestDoEscopo = useMemo(() => {
+    const byProc = new Map<string, typeof snapshots[number]>();
+    for (const s of [...snapshots].sort((a, b) => a.snapshot_at < b.snapshot_at ? 1 : -1)) {
+      if (!idsProc.has(s.process_id)) continue;
+      if (!byProc.has(s.process_id)) byProc.set(s.process_id, s);
+    }
+    return [...byProc.values()];
+  }, [snapshots, idsProc]);
+  const roi: RoiAgregado = useMemo(
+    () => combinarRoiComSnapshots(roiLive, snapshotsLatestDoEscopo),
+    [roiLive, snapshotsLatestDoEscopo],
+  );
 
   // Comparativo por processo: Como Era × Como Ficará (live).
   const comparativoPorProcesso = useMemo(() => {
@@ -172,7 +191,7 @@ export default function SetorEvolucaoPage() {
 
   const onChangeCluster = (c: string) => {
     setFiltroCluster(c);
-    if (c && filtroProjeto && clusterPorProjetoId.get(filtroProjeto) !== c) setFiltroProjeto('');
+    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) setFiltroProjeto('');
   };
 
   const handleExportarPdf = () => {

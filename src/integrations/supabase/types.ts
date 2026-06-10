@@ -2539,6 +2539,42 @@ export type Database = {
           },
         ]
       }
+      gargalo_melhorias: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          id: string
+          melhoria_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          id?: string
+          melhoria_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          id?: string
+          melhoria_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_melhorias_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_melhorias_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gargalo_processos: {
         Row: {
           created_at: string
@@ -5124,13 +5160,6 @@ export type Database = {
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "process_stages_stage_as_is_fk"
-            columns: ["stage_as_is_id"]
-            isOneToOne: false
-            referencedRelation: "process_stages"
             referencedColumns: ["id"]
           },
         ]

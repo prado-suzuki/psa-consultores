@@ -98,7 +98,7 @@ DELETE FROM public.gargalos
 WHERE cluster_id = '0523512c-f980-4236-8a7c-53e06c9c7a80';
 
 
--- ─── 3. INSERT gargalos consolidados (6 eventos + 9 qualidade = 15) ──────────
+-- ─── 3. INSERT gargalos consolidados (6 eventos + 13 qualidade = 19) ─────────
 INSERT INTO public.gargalos (id, nome, descricao, origem, cluster_id, created_at, updated_at)
 VALUES
   -- ===== A1 — Gargalos-EVENTO de cascata (origem em gargalo_etapas) =====
@@ -163,7 +163,25 @@ VALUES
   (mapa_uuid('gar-osg-q-docs-cliente'),
    'Documentos do cliente incompletos ou atrasados',
    'O envio dos documentos preliminares pelo cliente (IR, matrículas, CCIR, IPTU, escrituras, documentos pessoais) é o maior atraso do início do projeto. Sem documentação completa o DP não fecha e todo o trabalho dependente não avança.',
-   'Cliente', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW());
+   'Cliente', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW()),
+
+  -- ===== A2b — Gargalos-raiz do garimpo de docs (reuniões/formulários/ata) =====
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'),
+   'Minutas sem biblioteca de cláusulas padronizada',
+   'Não há biblioteca versionada de blocos/cláusulas: preâmbulo e cláusulas são redigidos do zero no Word a cada projeto, sem regras de formatação documentadas, e a própria equipe diverge sobre o nível de padronização (notas 3 a 5). É a causa-raiz do retrabalho de revisão.',
+   'Processo', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW()),
+  (mapa_uuid('gar-osg-q-itcmd-manual'),
+   'Cálculo de ITCMD manual e variável por UF',
+   'Os três cenários de ITCMD (contábil, ITR, mercado) são calculados manualmente em planilha, com alíquotas e regras que variam por estado. Trabalhoso, propenso a erro de arredondamento e difícil de reaproveitar entre projetos.',
+   'Processo', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW()),
+  (mapa_uuid('gar-osg-q-conhecimento-nao-institucionalizado'),
+   'Conhecimento e padrões não institucionalizados (SOPs/manuais)',
+   'O conhecimento de governança, acordos e protocolos está concentrado em poucas pessoas (sócios pediram "sucessão interna"). Manuais que existem (cadastro no Docbox) não são seguidos por todos, e modelos de governança ainda referenciam uma apresentação de 2022. Falta uma base viva de SOPs/manuais.',
+   'Processo', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW()),
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'),
+   'Geração manual de documentos no OSG Work (organograma, preâmbulo, PPTX)',
+   'Organograma societário (PF/PJ) é montado à mão, o preâmbulo da matrícula é redigido manualmente no Word e as apresentações (PPTX) são re-digitadas a partir do DP — frequentemente de última hora ("noites de virada"), com risco de inconsistência. Tudo poderia ser gerado dos dados estruturados do OSG Work.',
+   'Processo', '0523512c-f980-4236-8a7c-53e06c9c7a80', NOW(), NOW());
 
 
 -- ─── 4. gargalo_etapas — 1 etapa-origem por gargalo-EVENTO (A1) ──────────────
@@ -221,7 +239,25 @@ FROM (VALUES
   (mapa_uuid('gar-osg-q-osg-fiscal'), mapa_uuid('prc-osg-p4-01')),
   -- Q9 docs do cliente
   (mapa_uuid('gar-osg-q-docs-cliente'), mapa_uuid('prc-osg-p6-01')),
-  (mapa_uuid('gar-osg-q-docs-cliente'), mapa_uuid('prc-osg-p1-01'))
+  (mapa_uuid('gar-osg-q-docs-cliente'), mapa_uuid('prc-osg-p1-01')),
+  -- Q10 sem biblioteca de cláusulas (processos de minuta)
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p2-01')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p2-02')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p2-04')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p2-05')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p3-03')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p4-03')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'), mapa_uuid('prc-osg-p5-02')),
+  -- Q11 ITCMD manual
+  (mapa_uuid('gar-osg-q-itcmd-manual'), mapa_uuid('prc-osg-p4-01')),
+  -- Q12 conhecimento/padrões não institucionalizados (governança + cadastro)
+  (mapa_uuid('gar-osg-q-conhecimento-nao-institucionalizado'), mapa_uuid('prc-osg-p5-01')),
+  (mapa_uuid('gar-osg-q-conhecimento-nao-institucionalizado'), mapa_uuid('prc-osg-p5-02')),
+  (mapa_uuid('gar-osg-q-conhecimento-nao-institucionalizado'), mapa_uuid('prc-osg-p6-01')),
+  -- Q13 geração manual OSG Work (DP/organograma, apresentações)
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'), mapa_uuid('prc-osg-p1-01')),
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'), mapa_uuid('prc-osg-p4-02')),
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'), mapa_uuid('prc-osg-p6-03'))
 ) AS m(gargalo_id, processo_id);
 
 
@@ -282,6 +318,36 @@ UPDATE public.process_improvements SET improvement_description =
   WHERE id = mapa_uuid('mel-osg-dashboard-cascata-rastreavel');
 
 
+-- ─── 7b. Melhorias NOVAS (pernas (c) SOPs/manuais e (a) geradores OSG Work) ──
+-- Justificadas pelo garimpo dos docs (conhecimento concentrado, padrões não
+-- seguidos, geração manual de organograma/preâmbulo/PPTX) — gaps que as 10
+-- melhorias anteriores não cobriam.
+INSERT INTO public.process_improvements
+  (id, process_id, cluster_id, improvement_description, improvement_status, evaluation_status, created_at, updated_at)
+VALUES
+  (mapa_uuid('mel-osg-biblioteca-sops-manuais'), mapa_uuid('prc-osg-p5-01'), '0523512c-f980-4236-8a7c-53e06c9c7a80',
+   'Biblioteca de SOPs e Manuais (MAPA) — base viva de procedimentos-padrão: manuais por UF/Junta Comercial, modelos de governança versionados e o padrão de cadastro/salvamento, institucionalizando o conhecimento hoje concentrado em poucas pessoas e destravando seniores. Ataca a dependência de pessoas-chave e a não-adesão aos padrões existentes.',
+   'Não iniciado', 'Não avaliado', NOW(), NOW()),
+  (mapa_uuid('mel-osg-geradores-osg-work'), mapa_uuid('prc-osg-p1-01'), '0523512c-f980-4236-8a7c-53e06c9c7a80',
+   'Geradores do OSG Work — geração assistida, a partir dos dados estruturados do OSG Work, de: organograma societário (PF e PJ), preâmbulo da matrícula e apresentações (PPTX) sincronizadas com o DP. Elimina a re-digitação manual e as "noites de virada" de apresentações de última hora.',
+   'Não iniciado', 'Não avaliado', NOW(), NOW());
+
+INSERT INTO public.melhoria_acoes_td (id, melhoria_id, acao_td, ordem, created_at)
+VALUES
+  (gen_random_uuid(), mapa_uuid('mel-osg-biblioteca-sops-manuais'), 'Documentar',  1, NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-biblioteca-sops-manuais'), 'Padronizar',  2, NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-biblioteca-sops-manuais'), 'Treinar',     3, NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-geradores-osg-work'),      'Automatizar', 1, NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-geradores-osg-work'),      'Padronizar',  2, NOW());
+
+INSERT INTO public.melhoria_processos (id, melhoria_id, processo_id, created_at)
+VALUES
+  (gen_random_uuid(), mapa_uuid('mel-osg-biblioteca-sops-manuais'), mapa_uuid('prc-osg-p5-02'), NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-biblioteca-sops-manuais'), mapa_uuid('prc-osg-p6-01'), NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-geradores-osg-work'),      mapa_uuid('prc-osg-p4-02'), NOW()),
+  (gen_random_uuid(), mapa_uuid('mel-osg-geradores-osg-work'),      mapa_uuid('prc-osg-p6-03'), NOW());
+
+
 -- ─── 8. gargalo_melhorias — vínculo N:M (cada gargalo tem ≥1 melhoria) ───────
 INSERT INTO public.gargalo_melhorias (id, gargalo_id, melhoria_id, created_at)
 SELECT gen_random_uuid(), m.gargalo_id, m.melhoria_id, NOW()
@@ -312,7 +378,14 @@ FROM (VALUES
   (mapa_uuid('gar-osg-q-visibilidade'),         mapa_uuid('mel-osg-hub-lovable-portal-cliente')),
   (mapa_uuid('gar-osg-q-osg-fiscal'),           mapa_uuid('mel-osg-protocolo-osg-fiscal')),
   (mapa_uuid('gar-osg-q-docs-cliente'),         mapa_uuid('mel-osg-hub-lovable-portal-cliente')),
-  (mapa_uuid('gar-osg-q-docs-cliente'),         mapa_uuid('mel-osg-google-workspace-unificado'))
+  (mapa_uuid('gar-osg-q-docs-cliente'),         mapa_uuid('mel-osg-google-workspace-unificado')),
+  -- Gargalos-raiz novos
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'),            mapa_uuid('mel-osg-biblioteca-clausulas')),
+  (mapa_uuid('gar-osg-q-sem-biblioteca-clausulas'),            mapa_uuid('mel-osg-biblioteca-sops-manuais')),
+  (mapa_uuid('gar-osg-q-itcmd-manual'),                        mapa_uuid('mel-osg-calculadora-itcmd')),
+  (mapa_uuid('gar-osg-q-conhecimento-nao-institucionalizado'), mapa_uuid('mel-osg-biblioteca-sops-manuais')),
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'),              mapa_uuid('mel-osg-geradores-osg-work')),
+  (mapa_uuid('gar-osg-q-geracao-manual-osgwork'),              mapa_uuid('mel-osg-dp-inteligente'))
 ) AS m(gargalo_id, melhoria_id);
 
 
@@ -375,8 +448,8 @@ BEGIN
 
   RAISE NOTICE 'OSG gargalos: % (eventos com origem: %, etapa-origens: %)', v_total_garg, v_eventos, v_etapa_origens;
 
-  IF v_total_garg <> 15 THEN
-    RAISE EXCEPTION 'Esperados 15 gargalos OSG, encontrados %.', v_total_garg;
+  IF v_total_garg <> 19 THEN
+    RAISE EXCEPTION 'Esperados 19 gargalos OSG (6 eventos + 13 qualidade), encontrados %.', v_total_garg;
   END IF;
   IF v_eventos <> 6 OR v_etapa_origens <> 6 THEN
     RAISE EXCEPTION 'Esperados 6 gargalos-evento com 1 etapa-origem cada (eventos=%, origens=%).', v_eventos, v_etapa_origens;

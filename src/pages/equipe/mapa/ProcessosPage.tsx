@@ -11,6 +11,7 @@ import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { agrupar } from '@/utils/agrupar';
+import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import { useFocusParam } from '@/utils/useFocusParam';
@@ -99,7 +100,7 @@ export default function ProcessosPage() {
   const melhoriasDoProcesso = (pid: string) => {
     const garsDoProc = gargalosDoProcesso(pid);
     const melhoriaIdsViaGargalos = new Set(
-      garsDoProc.filter(g => g.melhoria_id).map(g => g.melhoria_id as string)
+      garsDoProc.flatMap(g => melhoriaIdsDoGargalo(g))
     );
     return melhorias.filter(m =>
       (m.processos || []).includes(pid) ||

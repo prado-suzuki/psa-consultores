@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
-import type { RoiAgregado } from '@/utils/roiCalculator';
+import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
+import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
+import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
@@ -11,37 +13,15 @@ import {
   useProjetosLista, useProcessosLista, useEtapasLista, useResponsaveisLista,
   useSistemasLista, useGargalosLista, useMelhoriasLista, useDocumentosLista,
 } from '@/hooks/useDominioListas';
-import { useSnapshotsLatest } from '@/hooks/useSnapshots';
+import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
+import { useQueryClient } from '@tanstack/react-query';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
 
-// Consolida a ÚLTIMA mensuração de cada processo (MAX(snapshot_em) por processo_id)
-// em um RoiAgregado. Esta é a única fonte do Dashboard de ROI — sem cálculo
-// ao vivo e sem agregação por data.
-function agregaUltimasMensuracoes(snaps: ProcessSnapshot[]): RoiAgregado {
-  // sum() acessa colunas do DB (ProcessSnapshot) — strings ficam snake_case.
-  const sum = (k: keyof ProcessSnapshot) => snaps.reduce((s, x) => s + (Number(x[k]) || 0), 0);
-  const custoAtualAno = sum('annual_cost');
-  const economiaAnual = sum('annual_savings');
-  const investimento = sum('investment');
-  const economiaMensal = economiaAnual / 12;
-  return {
-    porProcesso: [],
-    custoAtualAno,
-    custoFuturoAno: Math.max(0, custoAtualAno - economiaAnual),
-    horasAtualAno: sum('annual_hours'),
-    horasFuturoAno: Math.max(0, sum('annual_hours') - sum('hours_freed')),
-    economiaAnual,
-    economiaMensal,
-    horasLiberadas: sum('hours_freed'),
-    taxaRetrabalhoAtual: 0,
-    taxaRetrabalhoFuturo: 0,
-    investimentoTotal: investimento,
-    investimentoBreakdown: { treinamentoMelhorias: 0, sistemas: 0, execucaoMelhorias: 0, externo: investimento },
-    custosCategoria: { pessoas: custoAtualAno, sistemas: 0, retrabalho: 0, externo: 0 },
-    custosCategoriaFicou: { pessoas: Math.max(0, custoAtualAno - economiaAnual), sistemas: 0, retrabalho: 0, externo: 0 },
-    roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
-    paybackMeses: economiaMensal > 0 ? investimento / economiaMensal : 0,
-  };
+// `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
+// também ser usado pelo SetorEvolucaoPage. Manter a função local apenas como
+// alias para reduzir o diff nesta página.
+function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregado {
+  return combinarRoiComSnapshots(calculo, snaps);
 }
 
 type Aba = 'sumario' | 'mapeamento' | 'diagnostico' | 'melhorias' | 'futuro' | 'roi';
@@ -330,6 +310,7 @@ export default function DashboardRoiPage() {
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: snapshotsLatest = [] } = useSnapshotsLatest();
+  const queryClient = useQueryClient();
   const etapas = useMemo(
     () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
     [rawEtapas, documentos, sistemas, responsaveis],
@@ -352,23 +333,25 @@ export default function DashboardRoiPage() {
   const statusIdx = STATUS_ORDEM.indexOf(projetoStatus);
 
   // Cluster do projeto → usado para filtrar projetos/processos por cluster.
-  const clusterPorProjetoId = useMemo(
-    () => new Map(projetos.map(p => [p.id, p.clusterName || ''])),
+  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
+  const clusterIdPorProjetoId = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
   );
   const projetosDoCluster = useMemo(
-    () => (filtroCluster ? projetos.filter(p => (p.clusterName || '') === filtroCluster) : projetos),
+    () => (filtroCluster ? projetos.filter(p => (p.cluster_id || '') === filtroCluster) : projetos),
     [projetos, filtroCluster],
   );
 
   // Escopo filtrado
   const processosFiltrados = useMemo(() => {
     let arr = processos;
-    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterPorProjetoId.get(p.project_id) === filtroCluster);
+    if (filtroCluster) arr = arr.filter(p => p.project_id && clusterIdPorProjetoId.get(p.project_id) === filtroCluster);
     if (filtroProjeto) arr = arr.filter(p => p.project_id === filtroProjeto);
     if (filtroProcesso) arr = arr.filter(p => p.id === filtroProcesso);
     return arr;
-  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, clusterPorProjetoId]);
+  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, clusterIdPorProjetoId]);
 
   const etapasFiltradas = useMemo(() => {
     const idsProc = new Set(processosFiltrados.map(p => p.id));
@@ -386,30 +369,56 @@ export default function DashboardRoiPage() {
     return snapshotsLatest.filter(s => idsProc.has(s.process_id));
   }, [snapshotsLatest, processosFiltrados]);
 
-  // Agregado de ROI: sempre a SOMA das últimas mensurações por processo.
-  // O Dashboard nunca recalcula em memória — depende exclusivamente do que foi
-  // registrado em process_snapshots (MAX(snapshot_em) por processo).
+  // Agregado de ROI: cálculo AO VIVO (calcularRoi) preenche o BREAKDOWN
+  // (porProcesso, custosCategoria, taxaRetrabalho, investimentoBreakdown). Os
+  // TOTAIS (annual_cost/savings/investment/hours) vêm dos snapshots quando
+  // existem (refletem o ROI consolidado já validado) — senão, vêm do cálculo.
+  // Filtros de cluster aplicados aos catálogos (melhorias/sistemas/documentos)
+  // para não vazar entidades de outros clusters quando filtroCluster está setado.
+  // job_roles (responsáveis) é catálogo GLOBAL — fica sem filtro de cluster.
+  const melhoriasDoEscopo = useMemo(
+    () => (filtroCluster ? melhorias.filter(m => (m.cluster_id || '') === filtroCluster) : melhorias),
+    [melhorias, filtroCluster],
+  );
+  const sistemasDoEscopo = useMemo(
+    () => (filtroCluster ? sistemas.filter(s => ((s as unknown as { cluster_id?: string }).cluster_id || '') === filtroCluster) : sistemas),
+    [sistemas, filtroCluster],
+  );
+  const documentosDoEscopo = useMemo(
+    () => (filtroCluster ? documentos.filter(d => ((d as unknown as { cluster_id?: string }).cluster_id || '') === filtroCluster) : documentos),
+    [documentos, filtroCluster],
+  );
+
   const v: RoiAgregado & { qtdProjetos: number; qtdProcessos: number; qtdEtapas: number; qtdGargalos: number; qtdMelhorias: number; qtdSistemas: number; qtdSistemasNovos: number; qtdSistemasAposMelhorias: number; qtdDocumentos: number; qtdResponsaveis: number } = useMemo(() => {
-    const agregado = agregaUltimasMensuracoes(latestDoEscopo);
+    const calculo = calcularRoi({
+      processos: processosFiltrados,
+      etapas: etapasFiltradas,
+      responsaveis,
+      sistemas: sistemasDoEscopo,
+      gargalos: gargalosFiltrados,
+      melhorias: melhoriasDoEscopo,
+      projetos,
+    });
+    const agregado = combinarRoi(calculo, latestDoEscopo);
     // Sistemas novos (internos/Digital) só existem no "Como Ficou" — são os
-    // referenciados pelas melhorias. Não contam no escopo atual (AS-IS).
-    const novosSisIds = new Set(melhorias.flatMap(m => m.sistemas || []));
+    // referenciados pelas melhorias do escopo. Não contam no escopo atual (AS-IS).
+    const novosSisIds = new Set(melhoriasDoEscopo.flatMap(m => m.sistemas || []));
     const ehNovo = (s: Sistema) => novosSisIds.has(s.id) || novosSisIds.has(s.nome);
-    const sistemasAtuais = sistemas.filter(s => !ehNovo(s));
+    const sistemasAtuais = sistemasDoEscopo.filter(s => !ehNovo(s));
     return {
       ...agregado,
       qtdProjetos: filtroProjeto ? 1 : projetosDoCluster.length,
       qtdProcessos: processosFiltrados.length,
       qtdEtapas: etapasFiltradas.length,
       qtdGargalos: gargalosFiltrados.length,
-      qtdMelhorias: melhorias.length,
+      qtdMelhorias: melhoriasDoEscopo.length,
       qtdSistemas: sistemasAtuais.length,
       qtdSistemasNovos: novosSisIds.size,
       qtdSistemasAposMelhorias: sistemasAtuais.length + novosSisIds.size,
-      qtdDocumentos: documentos.length,
+      qtdDocumentos: documentosDoEscopo.length,
       qtdResponsaveis: responsaveis.length,
     };
-  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados.length, etapasFiltradas.length, gargalosFiltrados.length, melhorias, sistemas, documentos.length, responsaveis.length]);
+  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
 
   // Métricas dependentes do horizonte de análise selecionado (12/24/36 meses).
   // Os campos *Ano em `v` são sempre anuais; multiplicamos por `horizonteFator`
@@ -432,18 +441,27 @@ export default function DashboardRoiPage() {
   // Ao trocar de cluster, zera projeto/processo se saírem do escopo do cluster.
   const onChangeCluster = (c: string) => {
     setFiltroCluster(c);
-    if (c && filtroProjeto && clusterPorProjetoId.get(filtroProjeto) !== c) {
+    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) {
       setFiltroProjeto('');
     }
     setFiltroProcesso('');
   };
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
     setExportando(true);
     try {
-      // Dados já estão no client via hooks — função pura monta o CSV.
+      // Refetch fresh dos snapshots ANTES de exportar — sem isso, alterações
+      // externas no banco (migrations SQL, edições em outra aba) ficam
+      // invisíveis aqui porque o QueryClient global está com
+      // `refetchOnWindowFocus: false` e `staleTime: 60s`.
+      const freshSnaps = await queryClient.fetchQuery({
+        queryKey: SNAPSHOTS_LATEST_QUERY_KEY as unknown as readonly unknown[],
+        queryFn: fetchSnapshotsLatest,
+        staleTime: 0,
+      });
       const csv = buildRoiCsv({
-        projetos, processos, snapshotsLatest,
+        projetos, processos,
+        snapshotsLatest: freshSnaps,
         project_id: filtroProjeto || undefined,
       });
       triggerCsvDownload(csv, filtroProjeto ? `roi-${filtroProjeto}.csv` : 'roi.csv');
@@ -538,7 +556,7 @@ export default function DashboardRoiPage() {
             {exportando ? 'Exportando…' : 'Exportar'}
           </button>
           <Link
-            to={filtroProjeto ? `/processos?focus=${encodeURIComponent(filtroProjeto)}` : '/processos'}
+            to={filtroProjeto ? `/equipe/digital/mapa/processos?focus=${encodeURIComponent(filtroProjeto)}` : '/equipe/digital/mapa/processos'}
             className="btn-primary"
             style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 16px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 600, background: '#0d9488', color: '#fff', border: '1px solid #0d9488' }}
           >
@@ -877,7 +895,7 @@ export default function DashboardRoiPage() {
               <KPICard label="Melhorias Planejadas" valor={String(v.qtdMelhorias)} hint="Iniciativas catalogadas" />
               <KPICard
                 label="Gargalos Atacados"
-                valor={`${gargalos.filter(g => g.melhoria_id).length} / ${v.qtdGargalos}`}
+                valor={`${gargalosFiltrados.filter(g => melhoriaIdsDoGargalo(g).length > 0).length} / ${v.qtdGargalos}`}
                 hint="Resolvidos pelas melhorias"
               />
               <KPICard
@@ -916,14 +934,16 @@ export default function DashboardRoiPage() {
                 </thead>
                 <tbody>
                   {gargalosFiltrados.length === 0 ? <EmptyRow cols={4} /> : gargalosFiltrados.map(g => {
-                    const m = g.melhoria_id ? melhorias.find(x => x.id === g.melhoria_id) : null;
+                    const ms = melhoriaIdsDoGargalo(g)
+                      .map(id => melhorias.find(x => x.id === id))
+                      .filter((x): x is NonNullable<typeof x> => Boolean(x));
                     const procs = (g.processos || []).map(pid => procNomeById.get(pid) || pid);
                     return (
                       <tr key={g.id}>
                         <td>{g.nome}</td>
                         <td>{procs.length ? procs.join(', ') : '—'}</td>
-                        <td>{m ? m.improvement_description : '—'}</td>
-                        <td>{m ? 'Coberto' : 'Aberto'}</td>
+                        <td>{ms.length ? ms.map(m => m.improvement_description).join('; ') : '—'}</td>
+                        <td>{ms.length ? 'Coberto' : 'Aberto'}</td>
                       </tr>
                     );
                   })}

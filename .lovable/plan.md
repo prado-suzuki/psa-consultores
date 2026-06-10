@@ -1,46 +1,29 @@
-## Validação das duas migrações
+## Diagnóstico
 
-### 1. `20260606200000_osg_v5_fix_enums.sql` — ✅ Seguro
+A migration `20260615100000_psa_consultores_snapshot_zerar_sinteticos.sql` **não foi aplicada** ao banco. Evidências consultadas agora:
 
-**Risco para Digital Rotina: nenhum.**
+- `supabase_migrations.schema_migrations`: o último registro é `20260609192218` — não há nenhuma entrada `20260615100000`.
+- O arquivo `supabase/migrations/20260609192219_5540d98c-….sql` (criado pela última chamada do migration tool) está **vazio (0 linhas)** — placeholder que ficou em disco sem SQL.
+- Os 14 snapshots-alvo continuam intactos no banco:
+  - `roi_percent = 233.33` em todos os 14 (GER-279/704/603/167, GER-030/350/249/294/002/313/221, GER-938/719, BI-001)
+  - `annual_savings` ainda nos valores sintéticos antigos (792 a 8.976)
+  - `notes IS NULL` em todos
+  - `updated_at = 2026-06-09 13:30:44` (timestamp da migration anterior `…_snapshot_recalc.sql`), não da execução de ontem
 
-- Todas as 6 UPDATEs estão envolvidas em `BEGIN/COMMIT` e travadas em `cluster_id = '0523512c-f980-4236-8a7c-53e06c9c7a80'` (cluster OSG do MAPA).
-- Validação inicial aborta a transação se o cluster OSG não existir (`RAISE EXCEPTION`).
-- As tabelas afetadas (`processes`, `process_stages`, `projects`, `documentos_processo`, `gargalos`, `process_improvements`) são do módulo **MAPA**, não do módulo **Digital Rotina**.
-- Confirmei no banco: `gargalos` com `cluster_id <> OSG` = **0 linhas**. Nenhum dado fora do escopo é tocado.
-- Os mapeamentos enum→valor aceito batem com os tipos TS em `src/types.ts` (`FrequenciaProcesso`, `ProjetoStatus`, `MelhoriaStatus`, `EstruturacaoDoc`, etc.).
+Conclusão: o relatório anterior de "14 registros afetados" foi **incorreto** — a transação não chegou a commitar (provável recusa/cancelamento na etapa de aprovação do migration tool, com o arquivo placeholder permanecendo em disco). O arquivo `20260615100000…` existe completo no repo, mas nunca foi enviado ao banco.
 
-**Observação menor (não bloqueante):** O patch de `process_stages.execution` filtra por `process_id IN (SELECT id FROM processes WHERE cluster_id = OSG)`. Funciona, mas se houver etapa TO-BE com `process_id` apontando para um processo de outro cluster (cenário improvável), ela não seria normalizada. Para OSG isso é inócuo.
+## Plano de re-execução
 
----
+1. Reabrir o migration tool com o **mesmo conteúdo** de `supabase/migrations/20260615100000_psa_consultores_snapshot_zerar_sinteticos.sql` (115 linhas, três blocos `UPDATE` + bloco `DO` de validação `4+7+3=14`).
+2. O migration tool gerará um novo arquivo com timestamp atual (`20260609xxxxxx_…`). Não há conflito: o arquivo `20260615100000…` em disco pode permanecer como referência documental (ou ser removido após sucesso — opcional, sem efeito no banco).
+3. Aprovar a execução. Como existe o `DO $$ … RAISE EXCEPTION …` ao final, se algum grupo não bater 4/7/3, a transação aborta inteira — sem risco de aplicação parcial.
+4. **Validação pós-execução** (read_query):
+   - `SELECT code, annual_savings, roi_percent, notes, updated_at FROM process_scenarios ps JOIN processes p ON p.id=ps.process_id WHERE p.code IN (…14 códigos…)` — esperado: todos com `annual_savings=0`, `roi_percent=0`, `notes` preenchido e `updated_at` recente.
+   - Conferir consolidado do dashboard: economia anual deve cair de ~R$ 327.485 para ~R$ 300.890 (alinhado ao PDF).
+5. Limpar o placeholder vazio `supabase/migrations/20260609192219_5540d98c-….sql` (0 linhas) para não poluir histórico.
 
-### 2. `20260607100000_gargalo_etapas.sql` — ✅ Seguro
+## Escopo
 
-**Risco para Digital Rotina: nenhum.**
-
-**Validações feitas:**
-
-| Item | Status |
-|------|--------|
-| `cascata_evento_etapas` / `cascata_eventos` referenciadas em código de runtime | ❌ Não. Só aparecem em migrações antigas e em `src/integrations/supabase/types.ts` (autogerado — será regenerado). `CascataPage.tsx` já consome `gargalo_etapas`. |
-| FK composta `(etapa_id, scenario) → process_stages(id, scenario)` | ✅ Confirmado: existe constraint `process_stages_id_scenario_key UNIQUE (id, scenario)`. |
-| `gargalo_etapas` já referenciada no frontend | ✅ `src/hooks/useGargalos.ts` e `src/types.ts` (`GargaloEtapaRef`). A tabela é pré-requisito do código atual. |
-| RLS + GRANTs | ⚠️ RLS habilitada com policies para `team_member`/`admin`. **Não há `GRANT` explícito** para `authenticated`/`service_role`. Pelas regras do projeto, toda tabela `public` nova deveria incluir `GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated; GRANT ALL TO service_role;`. Sem isso, PostgREST pode devolver erro de permissão mesmo com RLS passando. |
-| DROP CASCADE das cascatas legadas | ⚠️ Perde 5+20 linhas em `cascata_eventos` / `cascata_evento_etapas`. Confirmado que nada em runtime lê essas tabelas — perda intencional, conforme a refatoração. |
-
-**Digital Rotina:** módulo totalmente independente (tabelas `tickets`, `org_tasks`, `ordem_servico`, `cliente`, etc.). Nenhuma das tabelas tocadas (`cascata_*`, `gargalo_etapas`, `process_stages`) tem relação com o módulo Digital.
-
----
-
-### Recomendação antes de rodar
-
-Adicionar ao final da migração `20260607100000_gargalo_etapas.sql`, antes do `COMMIT`:
-
-```sql
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.gargalo_etapas TO authenticated;
-GRANT ALL ON public.gargalo_etapas TO service_role;
-```
-
-Com esse ajuste, ambas as migrações estão prontas para aplicar sem impacto em Digital Rotina.
-
-Quer que eu adicione o bloco de GRANT na migração?
+- Apenas `UPDATE` em `process_scenarios` filtrando por `p.code IN (…)` e `ps.name LIKE 'Snapshot ROI MAPA — %'`.
+- Nenhum DDL, nenhuma alteração em `processes`, `process_stages`, `documents`, `sistemas_processo` ou RLS.
+- Sem impacto em outras áreas (fiscal, tickets, board).

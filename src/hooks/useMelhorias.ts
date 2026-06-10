@@ -4,12 +4,13 @@
 
 import { useQuery, useMutation, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { Melhoria, AcaoTd } from '@/types';
+import type { Melhoria, AcaoTd, ResponsavelHoras } from '@/types';
 
 const TABLE = 'process_improvements';
-const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td), gargalo_melhorias(gargalo_id)';
+const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td), gargalo_melhorias(gargalo_id), melhoria_responsaveis(responsavel_id, papel, horas)';
 
 type DbRow = Record<string, unknown>;
+type MelhoriaRespRow = { responsavel_id: string; papel: string; horas: number | null };
 
 function pluck<T>(rel: unknown, key: string): T[] {
   if (!Array.isArray(rel)) return [];
@@ -18,6 +19,14 @@ function pluck<T>(rel: unknown, key: string): T[] {
 
 function hydrate(row: DbRow): Melhoria {
   const rel = row.estrutura_clusters as { name?: string } | null | undefined;
+  const respRows = (row.melhoria_responsaveis as MelhoriaRespRow[] | null | undefined) ?? [];
+  const exec: ResponsavelHoras[] = [];
+  const treino: ResponsavelHoras[] = [];
+  for (const r of respRows) {
+    const ref: ResponsavelHoras = { responsavelId: r.responsavel_id, nome: '', horas: r.horas ?? 0 };
+    if (r.papel === 'treinando') treino.push(ref);
+    else exec.push(ref);
+  }
   return {
     ...(row as unknown as Melhoria),
     clusterName: rel?.name,
@@ -25,7 +34,8 @@ function hydrate(row: DbRow): Melhoria {
     sistemas: pluck<string>(row.melhoria_sistemas, 'sistema_id'),
     acoesTd: pluck<AcaoTd>(row.melhoria_acoes_td, 'acao_td'),
     gargalos: pluck<string>(row.gargalo_melhorias, 'gargalo_id'),
-    executadoPor: [],
+    executadoPor: exec,
+    treinamentoPor: treino,
   };
 }
 

@@ -5,6 +5,7 @@
 import type {
   Processo, Projeto, Etapa, Responsavel, Sistema, Gargalo, Melhoria, FrequenciaProcesso,
 } from '../types';
+import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
 
 // Multiplicador anual derivado da frequência declarada do processo.
 // 'Anual' = 1 execução/ano (volumes já são anuais).
@@ -189,11 +190,11 @@ function calcProcesso(
     ficouS.forEach(s => sistemasIdsFicou.add(s));
   });
   const gargalosDoProcIds = new Set(gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id));
-  // Pós-refator: vínculo gargalo→melhoria virou 1:N (gargalos.melhoria_id).
+  // Vínculo gargalo→melhoria via N:M `gargalo_melhorias` (g.melhorias[]).
   const melhoriaIdsViaGargalosDoProc = new Set(
     gargalos
-      .filter(g => gargalosDoProcIds.has(g.id) && g.melhoria_id)
-      .map(g => g.melhoria_id as string)
+      .filter(g => gargalosDoProcIds.has(g.id))
+      .flatMap(g => melhoriaIdsDoGargalo(g))
   );
   const melhoriasDoProc = melhorias.filter(m =>
     (m.processos || []).includes(proc.id) ||
@@ -232,8 +233,8 @@ function calcProcesso(
   );
   const melhoriaIdsViaGargalos = new Set(
     gargalos
-      .filter(g => gargalosDoProc.has(g.id) && g.melhoria_id)
-      .map(g => g.melhoria_id as string)
+      .filter(g => gargalosDoProc.has(g.id))
+      .flatMap(g => melhoriaIdsDoGargalo(g))
   );
   const melhoriasRelevantes = melhorias.filter(m =>
     (m.processos || []).includes(proc.id) ||
