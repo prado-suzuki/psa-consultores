@@ -18,7 +18,6 @@ import GargalosPage from '@/pages/equipe/mapa/GargalosPage';
 import MelhoriasPage from '@/pages/equipe/mapa/MelhoriasPage';
 import DashboardRoiPage from '@/pages/equipe/mapa/DashboardRoiPage';
 import SetorEvolucaoPage from '@/pages/equipe/mapa/SetorEvolucaoPage';
-import NotasMetodologicasPage from '@/pages/equipe/mapa/NotasMetodologicasPage';
 
 export default function MapaRoutes() {
   return (
@@ -35,7 +34,6 @@ export default function MapaRoutes() {
         <Route path="melhorias" element={<PageAccessGate pagePath="/equipe/digital/mapa/melhorias"><MelhoriasPage /></PageAccessGate>} />
         <Route path="dashboard-roi" element={<PageAccessGate pagePath="/equipe/digital/mapa/dashboard-roi"><DashboardRoiPage /></PageAccessGate>} />
         <Route path="setor-evolucao" element={<PageAccessGate pagePath="/equipe/digital/mapa/setor-evolucao"><SetorEvolucaoPage /></PageAccessGate>} />
-        <Route path="notas-metodologicas" element={<PageAccessGate pagePath="/equipe/digital/mapa/notas-metodologicas"><NotasMetodologicasPage /></PageAccessGate>} />
       </Route>
     </Routes>
   );

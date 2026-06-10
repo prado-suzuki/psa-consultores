@@ -30,6 +30,9 @@ import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatDecimal, formatarMoeda } from '@/utils/format';
 import { buildProcessDiagram } from '@/utils/processDiagram';
 import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
+import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
+import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
+import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
 import {
   useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
   useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
@@ -103,6 +106,11 @@ export default function MapearProcessoPage() {
 
   // Histórico
   const [historicoOpen, setHistoricoOpen] = useState(false);
+
+  // Cadastro rápido a partir das listas suspensas do editor de etapas —
+  // permite criar documento/sistema/responsável sem sair do fluxo. As listas
+  // de opções atualizam sozinhas via invalidação do React Query.
+  const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | null>(null);
 
   // Diagrama
   const [diagramaOpen, setDiagramaOpen] = useState(false);
@@ -588,11 +596,13 @@ export default function MapearProcessoPage() {
                   </div>
                   <FormField label="Docs Entrada" compact tooltip={dica('mapear.etapa.docsEntrada')}>
                     <ChipSelector options={docNames} value={active.docsEntrada || []}
-                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsEntrada', v as DocRef[])} withVolume compact />
+                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsEntrada', v as DocRef[])} withVolume compact
+                      onAddNew={() => setCadastroRapido('documento')} addNewLabel="Cadastrar novo documento" />
                   </FormField>
                   <FormField label="Docs Saída" compact tooltip={dica('mapear.etapa.docsSaida')}>
                     <ChipSelector options={docNames} value={active.docsSaida || []}
-                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsSaida', v as DocRef[])} withVolume compact />
+                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsSaida', v as DocRef[])} withVolume compact
+                      onAddNew={() => setCadastroRapido('documento')} addNewLabel="Cadastrar novo documento" />
                   </FormField>
                 </div>
 
@@ -606,6 +616,8 @@ export default function MapearProcessoPage() {
                       withHours
                       compact
                       addLabel="Adicionar executor"
+                      onAddNew={() => setCadastroRapido('responsavel')}
+                      addNewLabel="Cadastrar novo responsável"
                     />
                   </FormField>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
@@ -644,7 +656,8 @@ export default function MapearProcessoPage() {
                   <div className="modal-section-title"><Tooltip text={dica('mapear.secao.sistemas')}>Sistemas</Tooltip></div>
                   <FormField label="Sistemas" compact tooltip={dica('mapear.etapa.sistemas')}>
                     <ChipSelector options={sisNames} value={active.sistemas || []}
-                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'sistemas', v as string[])} compact />
+                      onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'sistemas', v as string[])} compact
+                      onAddNew={() => setCadastroRapido('sistema')} addNewLabel="Cadastrar novo sistema" />
                   </FormField>
                   {(active.sistemas || []).filter(Boolean).length > 0 && (
                     <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#64748b' }}>
@@ -747,6 +760,11 @@ export default function MapearProcessoPage() {
         filename={diagramaFilename}
         title={`Diagrama: ${processo.name}`}
       />
+
+      {/* Cadastro rápido a partir do editor de etapas */}
+      <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
+      <NovoSistemaModal isOpen={cadastroRapido === 'sistema'} onClose={() => setCadastroRapido(null)} />
+      <NovoResponsavelModal isOpen={cadastroRapido === 'responsavel'} onClose={() => setCadastroRapido(null)} />
     </div>
   );
 }

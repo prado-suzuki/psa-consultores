@@ -2,7 +2,9 @@ import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useProjetos, useCreateProjeto, useUpdateProjeto, useDeleteProjeto, type ProjetoInput } from '@/hooks/useProjetos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useClusterFiltroOpcoes, useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useEtapasLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
@@ -18,6 +20,8 @@ import { useFocusParam } from '@/utils/useFocusParam';
 import {
   JUSTIFICATIVAS_PROJETO,
   type JustificativaProjeto,
+  type Etapa,
+  type Melhoria,
   type Processo,
   type Projeto,
   type ProjetoStatus,
@@ -34,7 +38,31 @@ const formatarData = (iso?: string) => {
   return `${d}/${m}/${y}`;
 };
 
+const getProjetoOrder = (name: string) => {
+  const normalized = name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const match = normalized.match(/^p\s*(\d+)/i);
+
+  return {
+    prefix: match ? Number(match[1]) : Number.MAX_SAFE_INTEGER,
+    normalized,
+  };
+};
+
+const compareProjetosPorOrdem = (a: Projeto, b: Projeto) => {
+  const ordemA = getProjetoOrder(a.name);
+  const ordemB = getProjetoOrder(b.name);
+
+  return ordemA.prefix - ordemB.prefix
+    || ordemA.normalized.localeCompare(ordemB.normalized, 'pt-BR', {
+      numeric: true,
+      sensitivity: 'base',
+    });
+};
+
 const EMPTY_JUSTIFICATIVAS: JustificativaProjeto[] = [];
+
+type ProjetoDetailTab = 'info' | 'processos' | 'backlog';
+type MelhoriaComProjeto = Melhoria & { project_id?: string | null };
 
 interface ProjetoFormState {
   nome: string;
@@ -144,8 +172,9 @@ export default function ProjetosPage() {
   const deleteMut = useDeleteProjeto();
   const { data: processos = [], isLoading: processosLoading } = useProcessos();
   const processosLoaded = !processosLoading;
+  const { data: etapas = [] } = useEtapasLista();
+  const { data: melhorias = [] } = useMelhoriasLista();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
 
   const [confirmDel, setConfirmDel] = useState<Projeto | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -162,25 +191,34 @@ export default function ProjetosPage() {
   const [editSaving, setEditSaving] = useState(false);
 
   const [viewId, setViewId] = useState<string | null>(null);
-  const [processosProjetoId, setProcessosProjetoId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<ProjetoDetailTab>('info');
+  const [expandedProcessIds, setExpandedProcessIds] = useState<Set<string>>(new Set());
 
-  // Filtros
-  const [fCluster, setFCluster] = useState('');
+  // Filtros (cluster vem do seletor global no header)
+  const { cluster: fCluster } = useClusterGlobal();
   const [fStatus, setFStatus] = useState('');
-  const filtrosAtivos = !!(fCluster || fStatus);
-  const limparFiltros = () => { setFCluster(''); setFStatus(''); };
-  const itensFiltrados = useMemo(() => items.filter(p =>
-    (!fCluster || p.cluster_id === fCluster) &&
-    (!fStatus || (p.status || 'Mapeamento') === fStatus)
-  ), [items, fCluster, fStatus]);
+  const filtrosAtivos = !!fStatus;
+  const limparFiltros = () => { setFStatus(''); };
+  const itensFiltrados = useMemo(() => items
+    .filter(p =>
+      (!fCluster || p.cluster_id === fCluster) &&
+      (!fStatus || (p.status || 'Mapeamento') === fStatus)
+    )
+    .sort(compareProjetosPorOrdem), [items, fCluster, fStatus]);
+
+  const projetoIdsFiltrados = useMemo(
+    () => new Set(itensFiltrados.map(p => p.id)),
+    [itensFiltrados],
+  );
+
+  const processosFiltrados = useMemo(
+    () => processos.filter(p => p.project_id && projetoIdsFiltrados.has(p.project_id)),
+    [processos, projetoIdsFiltrados],
+  );
 
   const projetoEmFoco = useMemo(
     () => items.find(p => p.id === viewId) || null,
     [items, viewId],
-  );
-  const projetoProcessos = useMemo(
-    () => processos.find(p => p.id === processosProjetoId) || null,
-    [processos, processosProjetoId],
   );
 
   const processosPorProjeto = useMemo(() => {
@@ -198,7 +236,36 @@ export default function ProjetosPage() {
     return map;
   }, [processos]);
 
-  const processosDoModal = processosProjetoId ? processosPorProjeto.get(processosProjetoId) || [] : [];
+  const etapasPorProcesso = useMemo(() => {
+    const map = new Map<string, Etapa[]>();
+    for (const etapa of etapas) {
+      const arr = map.get(etapa.process_id) || [];
+      arr.push(etapa);
+      map.set(etapa.process_id, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0) || a.name.localeCompare(b.name));
+    }
+    return map;
+  }, [etapas]);
+
+  const processosDoProjetoEmFoco = useMemo(
+    () => projetoEmFoco ? processosPorProjeto.get(projetoEmFoco.id) || [] : [],
+    [projetoEmFoco, processosPorProjeto],
+  );
+
+  const melhoriasBacklogDoProjeto = useMemo(() => {
+    if (!projetoEmFoco) return [] as Melhoria[];
+    const processIds = new Set(processosDoProjetoEmFoco.map((p) => p.id));
+    return melhorias
+      .filter((melhoria) => {
+        if ((melhoria.improvement_status || 'Não iniciado') !== 'Backlog') return false;
+        const melhoriaProjectId = (melhoria as MelhoriaComProjeto).project_id;
+        if (melhoriaProjectId === projetoEmFoco.id) return true;
+        return (melhoria.processos || []).some((processoId) => processIds.has(processoId));
+      })
+      .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
+  }, [melhorias, processosDoProjetoEmFoco, projetoEmFoco]);
 
   const validate = (f: ProjetoFormState): string => {
     if (!f.nome.trim()) return 'Preencha o nome do projeto.';
@@ -241,6 +308,27 @@ export default function ProjetosPage() {
     setModalOpen(true);
   };
 
+  const openProjetoDetail = (projectId: string, tab: ProjetoDetailTab = 'info') => {
+    setViewId(projectId);
+    setDetailTab(tab);
+    setExpandedProcessIds(new Set());
+  };
+
+  const closeProjetoDetail = () => {
+    setViewId(null);
+    setDetailTab('info');
+    setExpandedProcessIds(new Set());
+  };
+
+  const toggleProcessoExpandido = (processoId: string) => {
+    setExpandedProcessIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(processoId)) next.delete(processoId);
+      else next.add(processoId);
+      return next;
+    });
+  };
+
   const openEdit = (p: Projeto) => {
     setEditId(p.id);
     setEditForm(projetoToForm(p));
@@ -273,7 +361,11 @@ export default function ProjetosPage() {
   useEffect(() => {
     if (!loaded || !focusId) return;
     const p = items.find(x => x.id === focusId);
-    if (p) setViewId(p.id);
+    if (p) {
+      setViewId(p.id);
+      setDetailTab('info');
+      setExpandedProcessIds(new Set());
+    }
   }, [loaded, focusId, items]);
 
   if (!loaded) return (
@@ -293,15 +385,13 @@ export default function ProjetosPage() {
         </button>
       </div>
       <PageStats stats={[
-        { label: 'Projetos', value: String(items.length), tooltip: 'Total de projetos cadastrados.' },
-        { label: 'Clusters', value: String(new Set(items.map(p => p.clusterName).filter(Boolean)).size), tooltip: 'Clusters distintos representados nos projetos (ex.: OSG agrupa P1..P6).' },
-        { label: 'Processos', value: String(processos.length), tooltip: 'Total de processos cadastrados e vinculáveis a projetos.' },
+        { label: 'Projetos', value: String(itensFiltrados.length), tooltip: 'Projetos no escopo atual dos filtros.' },
+        { label: 'Processos', value: String(processosFiltrados.length), tooltip: 'Processos vinculados aos projetos do escopo atual.' },
       ]} />
       <FiltrosBar
         ativo={filtrosAtivos}
         onLimpar={limparFiltros}
         filtros={[
-          { id: 'f-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'f-status', label: 'Status', value: fStatus, onChange: setFStatus, options: STATUS_FILTRO_OPCOES, tooltip: dica('projetos.filtro.status') },
         ]}
       />
@@ -320,10 +410,10 @@ export default function ProjetosPage() {
             index={i}
             qtdProcessos={processosPorProjeto.get(p.id)?.length ?? 0}
             processosLoaded={processosLoaded}
-            onView={() => setViewId(p.id)}
+            onView={() => openProjetoDetail(p.id)}
             onEdit={() => openEdit(p)}
             onDelete={() => setConfirmDel(p)}
-            onShowProcessos={() => setProcessosProjetoId(p.id)}
+            onShowProcessos={() => openProjetoDetail(p.id, 'processos')}
           />
         ))}
       </div>
@@ -429,75 +519,210 @@ export default function ProjetosPage() {
       </Modal>
 
       {/* === Ver detalhes (read-only) === */}
-      <Modal isOpen={!!projetoEmFoco} onClose={() => setViewId(null)}>
-        <div className="modal">
+      <Modal isOpen={!!projetoEmFoco} onClose={closeProjetoDetail}>
+        <div className="modal projeto-detail-modal">
           {projetoEmFoco && (
             <>
-              <h2 style={{ marginBottom: 4 }}>{projetoEmFoco.name}</h2>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                <StatusBadge status={projetoEmFoco.status || 'Mapeamento'} />
-              </div>
-
-              {projetoEmFoco.clusterName && (
-                <div style={{ fontSize: '0.85rem', marginBottom: 10 }}>
-                  <strong style={{ color: 'var(--primary-color)' }}>Cluster:</strong> {projetoEmFoco.clusterName}
-                </div>
-              )}
-
-              {projetoEmFoco.justificativas && projetoEmFoco.justificativas.length > 0 && (
-                <div style={{ marginBottom: 12 }}>
-                  <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>
-                    Justificativas
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {projetoEmFoco.justificativas.map(j => (
-                      <StatusBadge key={j} variant="neutral">{j}</StatusBadge>
-                    ))}
+              <div className="projeto-detail-header">
+                <div className="projeto-detail-title">
+                  <span className="projeto-detail-icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 7h6l2 2h10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                      <path d="M3 7V5a2 2 0 0 1 2-2h4l2 2h4" />
+                    </svg>
+                  </span>
+                  <div>
+                    <h2>{projetoEmFoco.name}</h2>
+                    <p>{projetoEmFoco.clusterName || 'Sem cluster definido'}</p>
                   </div>
                 </div>
-              )}
-
-              <div style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 700, marginBottom: 4 }}>
-                  Descrição
-                </div>
-                <div style={{ whiteSpace: 'pre-line', fontSize: '0.9rem', lineHeight: 1.5, color: '#334155' }}>
-                  {projetoEmFoco.description || 'Sem descrição.'}
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 24, fontSize: '0.85rem', color: '#475569', marginBottom: 16 }}>
-                <span><strong>Início:</strong> {formatarData(projetoEmFoco.start_date)}</span>
-                <span><strong>Fim:</strong> {formatarData(projetoEmFoco.end_date)}</span>
-              </div>
-
-              <div>
-                <div style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', fontWeight: 700, marginBottom: 6 }}>
-                  Processos vinculados ({processosPorProjeto.get(projetoEmFoco.id)?.length ?? 0})
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 180, overflowY: 'auto' }}>
-                  {(processosPorProjeto.get(projetoEmFoco.id) || []).map(pr => (
-                    <li key={pr.id} style={{ padding: '6px 0', borderBottom: '1px solid #f1f5f9', fontSize: '0.86rem' }}>
-                      <Link to={`/equipe/digital/mapa/processos/${encodeURIComponent(pr.id)}/mapear`} style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
-                        {pr.name}
-                      </Link>
-                    </li>
+                <div className="projeto-detail-badges">
+                  <StatusBadge status={projetoEmFoco.status || 'Mapeamento'} />
+                  {(projetoEmFoco.justificativas || []).map(j => (
+                    <StatusBadge key={j} variant="neutral">{j}</StatusBadge>
                   ))}
-                  {(processosPorProjeto.get(projetoEmFoco.id) || []).length === 0 && (
-                    <li style={{ padding: '6px 0', fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic' }}>
-                      Nenhum processo vinculado.
-                    </li>
-                  )}
-                </ul>
+                </div>
               </div>
+
+              <div className="projeto-detail-metrics">
+                <div>
+                  <span>Processos</span>
+                  <strong>{processosDoProjetoEmFoco.length}</strong>
+                </div>
+                <div>
+                  <span>Etapas</span>
+                  <strong>
+                    {processosDoProjetoEmFoco.reduce((sum, processo) => sum + (etapasPorProcesso.get(processo.id)?.length || 0), 0)}
+                  </strong>
+                </div>
+                <div>
+                  <span>Backlog</span>
+                  <strong>{melhoriasBacklogDoProjeto.length}</strong>
+                </div>
+              </div>
+
+              <div className="projeto-detail-tabs" role="tablist" aria-label="Detalhes do projeto">
+                {([
+                  ['info', 'Informações'],
+                  ['processos', `Processos (${processosDoProjetoEmFoco.length})`],
+                  ['backlog', `Backlog (${melhoriasBacklogDoProjeto.length})`],
+                ] as const).map(([tab, label]) => (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={detailTab === tab}
+                    className={detailTab === tab ? 'active' : ''}
+                    onClick={() => setDetailTab(tab)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {detailTab === 'info' && (
+                <div className="projeto-detail-panel">
+                  <section className="projeto-detail-section">
+                    <h3>Informações</h3>
+                    <div className="projeto-detail-description">
+                      {projetoEmFoco.description || 'Sem descrição.'}
+                    </div>
+                  </section>
+                  <div className="projeto-detail-info-grid">
+                    <div>
+                      <span>Cluster</span>
+                      <strong>{projetoEmFoco.clusterName || 'Não definido'}</strong>
+                    </div>
+                    <div>
+                      <span>Status</span>
+                      <strong>{projetoEmFoco.status || 'Mapeamento'}</strong>
+                    </div>
+                    <div>
+                      <span>Início</span>
+                      <strong>{formatarData(projetoEmFoco.start_date)}</strong>
+                    </div>
+                    <div>
+                      <span>Fim</span>
+                      <strong>{formatarData(projetoEmFoco.end_date)}</strong>
+                    </div>
+                  </div>
+                  <section className="projeto-detail-section">
+                    <h3>Justificativas</h3>
+                    {(projetoEmFoco.justificativas || []).length > 0 ? (
+                      <div className="projeto-detail-chip-row">
+                        {(projetoEmFoco.justificativas || []).map(j => (
+                          <StatusBadge key={j} variant="neutral">{j}</StatusBadge>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="projeto-detail-empty-inline">Nenhuma justificativa cadastrada.</p>
+                    )}
+                  </section>
+                </div>
+              )}
+
+              {detailTab === 'processos' && (
+                <div className="projeto-detail-panel">
+                  <div className="projeto-detail-list-header">
+                    <span>Processo</span>
+                    <span>Status</span>
+                    <span>Etapas</span>
+                    <span>Ação</span>
+                  </div>
+                  <div className="projeto-detail-row-list">
+                    {processosDoProjetoEmFoco.map((processo, index) => {
+                      const etapasDoProcesso = etapasPorProcesso.get(processo.id) || [];
+                      const expanded = expandedProcessIds.has(processo.id);
+                      return (
+                        <div key={processo.id} className={`projeto-process-row${expanded ? ' expanded' : ''}`}>
+                          <button
+                            type="button"
+                            className="projeto-process-summary"
+                            onClick={() => toggleProcessoExpandido(processo.id)}
+                            aria-expanded={expanded}
+                          >
+                            <span className="projeto-process-index">{String(index + 1).padStart(2, '0')}</span>
+                            <span className="projeto-process-name">{processo.name}</span>
+                            <span className="projeto-process-status">
+                              <StatusBadge variant="neutral">{processo.evaluation_status || 'Não avaliado'}</StatusBadge>
+                            </span>
+                            <span className="projeto-process-count">{etapasDoProcesso.length} etapa{etapasDoProcesso.length === 1 ? '' : 's'}</span>
+                            <span className="projeto-process-chevron" aria-hidden="true">⌄</span>
+                          </button>
+                          {expanded && (
+                            <div className="projeto-process-details">
+                              <p>{processo.description || 'Sem descrição.'}</p>
+                              <div className="projeto-process-etapas">
+                                {etapasDoProcesso.length > 0 ? etapasDoProcesso.map((etapa) => (
+                                  <span key={etapa.id}>
+                                    {etapa.stage_order ?? '•'}. {etapa.name}
+                                  </span>
+                                )) : (
+                                  <em>Nenhuma etapa mapeada.</em>
+                                )}
+                              </div>
+                              <Link to={`/equipe/digital/mapa/processos/${encodeURIComponent(processo.id)}/mapear`}>
+                                Abrir mapeamento
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                    {processosDoProjetoEmFoco.length === 0 && (
+                      <div className="projeto-detail-empty">
+                        Nenhum processo vinculado.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {detailTab === 'backlog' && (
+                <div className="projeto-detail-panel">
+                  <div className="projeto-detail-list-header projeto-backlog-header">
+                    <span>Melhoria</span>
+                    <span>Processos</span>
+                    <span>Esforço</span>
+                    <span>Status</span>
+                  </div>
+                  <div className="projeto-detail-row-list">
+                    {melhoriasBacklogDoProjeto.map((melhoria) => {
+                      const processosVinculados = (melhoria.processos || [])
+                        .map((processoId) => processos.find((processo) => processo.id === processoId)?.name)
+                        .filter((nome): nome is string => Boolean(nome));
+                      const horas = (melhoria.training_hours || 0) +
+                        (melhoria.executadoPor || []).reduce((sum, resp) => sum + (resp.horas || 0), 0);
+                      return (
+                        <div key={melhoria.id} className="projeto-backlog-row">
+                          <div className="projeto-backlog-main">
+                            <strong>{melhoria.improvement_description}</strong>
+                            <p>{melhoria.acoesTd?.length ? melhoria.acoesTd.join(' · ') : 'Sem ações TD cadastradas.'}</p>
+                          </div>
+                          <div className="projeto-backlog-processes">
+                            {processosVinculados.length > 0 ? processosVinculados.join(', ') : 'Projeto'}
+                          </div>
+                          <div className="projeto-backlog-effort">{horas > 0 ? `${horas.toLocaleString('pt-BR')}h` : '—'}</div>
+                          <div><StatusBadge variant="neutral">Backlog</StatusBadge></div>
+                        </div>
+                      );
+                    })}
+                    {melhoriasBacklogDoProjeto.length === 0 && (
+                      <div className="projeto-detail-empty">
+                        Nenhuma melhoria em Backlog vinculada a este projeto.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="modal-actions">
-                <button className="btn-cancel" onClick={() => setViewId(null)}>Fechar</button>
+                <button className="btn-cancel" onClick={closeProjetoDetail}>Fechar</button>
                 <button
                   className="btn-save"
                   onClick={() => {
                     const target = projetoEmFoco;
-                    setViewId(null);
+                    closeProjetoDetail();
                     if (target) openEdit(target);
                   }}
                 >
@@ -546,54 +771,6 @@ export default function ProjetosPage() {
         </div>
       </Modal>
 
-      {/* === Lista de Processos do projeto (acionada pelo botão "Processos") === */}
-      <Modal isOpen={!!projetoProcessos} onClose={() => setProcessosProjetoId(null)}>
-        <div className="modal">
-          {projetoProcessos && (
-            <>
-              <h2 style={{ marginBottom: 4 }}>Processos — {projetoProcessos.name}</h2>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: 12 }}>
-                {processosDoModal.length} processo(s) vinculado(s). Clique em um deles para abrir o mapeamento.
-              </p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0, maxHeight: 360, overflowY: 'auto' }}>
-                {processosDoModal.map(pr => (
-                  <li key={pr.id} style={{ padding: '10px 0', borderBottom: '1px solid #f1f5f9' }}>
-                    <Link
-                      to={`/equipe/digital/mapa/processos/${encodeURIComponent(pr.id)}/mapear`}
-                      style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 600 }}
-                    >
-                      {pr.name}
-                    </Link>
-                    {pr.description && (
-                      <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2, lineHeight: 1.4 }}>
-                        {pr.description}
-                      </div>
-                    )}
-                    {(pr.frequency || pr.complexity_level) && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                        {pr.frequency && (
-                          <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569', fontSize: '0.68rem' }}>{pr.frequency}</span>
-                        )}
-                        {pr.complexity_level && (
-                          <span className="status-badge" style={{ background: '#fce7f3', color: '#9d174d', fontSize: '0.68rem' }}>{pr.complexity_level}</span>
-                        )}
-                      </div>
-                    )}
-                  </li>
-                ))}
-                {processosDoModal.length === 0 && (
-                  <li style={{ padding: '14px 0', fontSize: '0.88rem', color: '#94a3b8', fontStyle: 'italic', textAlign: 'center' }}>
-                    Nenhum processo vinculado a este projeto.
-                  </li>
-                )}
-              </ul>
-              <div className="modal-actions">
-                <button className="btn-cancel" onClick={() => setProcessosProjetoId(null)}>Fechar</button>
-              </div>
-            </>
-          )}
-        </div>
-      </Modal>
     </div>
   );
 }

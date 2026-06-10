@@ -9,13 +9,14 @@
 // Visual: usa o design-system dashv2 (mesmo do DashboardRoiPage) — hero,
 // filtros, kpi-grid, section-header, card, table-wrap.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
@@ -61,7 +62,6 @@ function KPICard({ label, valor, hint, variacao, positivo, tooltip }: KPICardPro
 // ============================================================
 
 export default function SetorEvolucaoPage() {
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -77,12 +77,14 @@ export default function SetorEvolucaoPage() {
     [rawEtapas, docs, sistemas, responsaveis],
   );
 
-  const [filtroCluster, setFiltroCluster] = useState<string>('');
+  // Cluster vem do seletor global no header.
+  const { cluster: filtroCluster } = useClusterGlobal();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [dataInicio, setDataInicio] = useState<string>('');
   const [dataFim, setDataFim] = useState<string>('');
+  const [notasOpen, setNotasOpen] = useState(false);
 
-  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // filtroCluster vem do seletor global no header (value = cluster_id UUID),
   // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
   const clusterIdPorProjetoId = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
@@ -183,16 +185,18 @@ export default function SetorEvolucaoPage() {
   }, [snapshotsFiltrados]);
 
   const limparFiltros = () => {
-    setFiltroCluster('');
     setFiltroProjeto('');
     setDataInicio('');
     setDataFim('');
   };
 
-  const onChangeCluster = (c: string) => {
-    setFiltroCluster(c);
-    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) setFiltroProjeto('');
-  };
+  // Ao trocar o cluster global, zera o projeto se sair do escopo do cluster.
+  const clusterAnterior = useRef(filtroCluster);
+  useEffect(() => {
+    if (clusterAnterior.current === filtroCluster) return;
+    clusterAnterior.current = filtroCluster;
+    if (filtroCluster && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== filtroCluster) setFiltroProjeto('');
+  }, [filtroCluster, filtroProjeto, clusterIdPorProjetoId]);
 
   const handleExportarPdf = () => {
     window.print();
@@ -212,18 +216,15 @@ export default function SetorEvolucaoPage() {
             wizard "Configurar ROI" e ganha forma à medida que novas medições são registradas.
           </p>
         </div>
+        <div className="dashv2-hero-actions">
+          <NotasInfoButton onClick={() => setNotasOpen(true)} />
+        </div>
       </div>
+
+      <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="setor" />
 
       {/* Filtros */}
       <div className="dashv2-filters">
-        <div className="dashv2-filter">
-          <label><Tooltip text={dica('comum.filtro.cluster')}>Cluster</Tooltip></label>
-          <Select
-            value={filtroCluster}
-            onChange={onChangeCluster}
-            options={CLUSTER_FILTRO_OPCOES}
-          />
-        </div>
         <div className="dashv2-filter">
           <label><Tooltip text={dica('setor.filtro.projeto')}>Projeto</Tooltip></label>
           <Select

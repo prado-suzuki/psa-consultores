@@ -15,6 +15,7 @@ import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type {
   Processo, FrequenciaProcesso, StatusAvaliacao, Complexidade,
   Etapa,
@@ -23,12 +24,7 @@ import {
   useEtapasLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { useProcessos, useCreateProcesso, useUpdateProcesso, useDeleteProcesso } from '@/hooks/useProcessos';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
-
-const ORGANIZAR_OPCOES = [
-  { value: 'projeto', label: 'Por projeto' },
-  { value: 'cluster', label: 'Por cluster' },
-];
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
 
 const STATUS_AVAL_FILTRO_OPCOES = [
   { value: '', label: 'Todos os status' },
@@ -60,6 +56,21 @@ const COMPLEXIDADE_OPCOES = [
   { value: 'Alta',  label: 'Alta' },
 ];
 
+const COMPLEXIDADE_MAP: Record<string, Complexidade> = {
+  baixa: 'Baixa',
+  low: 'Baixa',
+  media: 'Média',
+  medium: 'Média',
+  alta: 'Alta',
+  high: 'Alta',
+};
+
+function normalizarComplexidade(value?: string | null): Complexidade | '' {
+  if (!value) return '';
+  const key = value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  return COMPLEXIDADE_MAP[key] || '';
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
 /** Horas por execução de uma etapa (somente executadoPor — revisado foi extraído para etapas próprias). */
@@ -77,6 +88,11 @@ function fmtH(h: number): string {
   return h.toLocaleString('pt-BR', { maximumFractionDigits: 1 }) + 'h';
 }
 
+function getProjectCode(projectName?: string): string | null {
+  const match = projectName?.trim().match(/^(P\d+)/i);
+  return match ? match[1].toUpperCase() : null;
+}
+
 export default function ProcessosPage() {
   const { data: items = [], isLoading: processosLoading } = useProcessos();
   const loaded = !processosLoading;
@@ -89,10 +105,12 @@ export default function ProcessosPage() {
   const { data: etapas = [] } = useEtapasLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
 
   // ── Per-process helpers ───────────────────────────────────────────────────────
-  const etapasDoProcesso = (pid: string) => etapas.filter(e => e.process_id === pid);
+  const etapasDoProcesso = (pid: string) =>
+    etapas
+      .filter(e => e.process_id === pid)
+      .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
 
   const gargalosDoProcesso = (pid: string) =>
     gargalos.filter(g => (g.processos || []).includes(pid));
@@ -113,55 +131,87 @@ export default function ProcessosPage() {
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
   );
+  const projetoNomePorId = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.name])),
+    [projetos],
+  );
 
-  // Opções pro organizador "Por cluster" — extrai os clusters distintos
-  // presentes nos projetos atuais (nome via projeto.cluster, key = uuid).
-  const clusterOpcoesDinamicas = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const p of projetos) {
-      if (p.cluster_id && !seen.has(p.cluster_id)) {
-        seen.set(p.cluster_id, p.clusterName || p.cluster_id);
-      }
-    }
-    return Array.from(seen, ([value, label]) => ({ value, label }));
-  }, [projetos]);
-
-  // ── Filtros ───────────────────────────────────────────────────────────────────
-  const [fCluster, setFCluster] = useState('');
+  // ── Filtros (cluster vem do seletor global no header) ─────────────────────────
+  const { cluster: fCluster } = useClusterGlobal();
   const [fProjeto, setFProjeto] = useState('');
   const [fStatus, setFStatus] = useState('');
-  const filtrosAtivos = !!(fCluster || fProjeto || fStatus);
-  const limparFiltros = () => { setFCluster(''); setFProjeto(''); setFStatus(''); };
+  const filtrosAtivos = !!(fProjeto || fStatus);
+  const limparFiltros = () => { setFProjeto(''); setFStatus(''); };
   const itensFiltrados = useMemo(() => items.filter(p =>
     (!fCluster || (p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : '') === fCluster) &&
     (!fProjeto || p.project_id === fProjeto) &&
     (!fStatus || (p.evaluation_status || 'Não avaliado') === fStatus)
   ), [items, fCluster, fProjeto, fStatus, clusterIdPorProjeto]);
 
-  // ── Organizador ───────────────────────────────────────────────────────────────
-  const [organizar, setOrganizar] = useState('projeto');
-
-  const grupos = useMemo(() => {
-    if (organizar === 'cluster') {
-      return agrupar(
-        itensFiltrados,
-        (p) => [p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : ''],
-        clusterOpcoesDinamicas,
-        'Sem cluster',
-      );
-    }
-    return agrupar(
+  const grupos = useMemo(() =>
+    agrupar(
       itensFiltrados,
       (p) => [p.project_id || ''],
       projetos.map((p) => ({ value: p.id, label: p.name })),
       'Sem projeto',
+    ), [itensFiltrados, projetos]);
+
+  const processoIdsFiltrados = useMemo(
+    () => new Set(itensFiltrados.map(p => p.id)),
+    [itensFiltrados],
+  );
+  const etapasFiltradas = useMemo(
+    () => etapas.filter(e => processoIdsFiltrados.has(e.process_id)),
+    [etapas, processoIdsFiltrados],
+  );
+  const gargalosFiltrados = useMemo(
+    () => gargalos.filter(g => (g.processos || []).some(pid => processoIdsFiltrados.has(pid))),
+    [gargalos, processoIdsFiltrados],
+  );
+  const melhoriasFiltradas = useMemo(() => {
+    const melhoriaIdsViaGargalos = new Set(gargalosFiltrados.flatMap(g => melhoriaIdsDoGargalo(g)));
+    return melhorias.filter(m =>
+      (m.processos || []).some(pid => processoIdsFiltrados.has(pid)) ||
+      melhoriaIdsViaGargalos.has(m.id),
     );
-  }, [organizar, itensFiltrados, projetos, clusterIdPorProjeto, clusterOpcoesDinamicas]);
+  }, [melhorias, processoIdsFiltrados, gargalosFiltrados]);
+
+  const ordemVisualPorProcesso = useMemo(() => {
+    const porProjeto = new Map<string, Processo[]>();
+    const semProjeto: Processo[] = [];
+    for (const processoItem of itensFiltrados) {
+      if (!processoItem.project_id) {
+        semProjeto.push(processoItem);
+        continue;
+      }
+      const lista = porProjeto.get(processoItem.project_id) ?? [];
+      lista.push(processoItem);
+      porProjeto.set(processoItem.project_id, lista);
+    }
+
+    const ordem = new Map<string, number>();
+    porProjeto.forEach((lista) => {
+      lista
+        .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name))
+        .forEach((processoItem, index) => ordem.set(processoItem.id, index + 1));
+    });
+    semProjeto
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name))
+      .forEach((processoItem, index) => ordem.set(processoItem.id, index + 1));
+    return ordem;
+  }, [itensFiltrados]);
+
+  const codigoVisualProcesso = (p: Processo, fallbackIndex: number): string => {
+    const ordem = ordemVisualPorProcesso.get(p.id) ?? fallbackIndex + 1;
+    const ordemFormatada = String(ordem).padStart(2, '0');
+    const projetoCodigo = getProjectCode(p.project_id ? projetoNomePorId.get(p.project_id) : undefined);
+    return projetoCodigo ? `${projetoCodigo}.${ordemFormatada}` : `#${ordemFormatada}`;
+  };
 
   // ── Global KPI strip ─────────────────────────────────────────────────────────
   const totalHoras = useMemo(() =>
-    etapas.reduce((s, e) => s + cargaMensalEtapa(e), 0),
-  [etapas]);
+    etapasFiltradas.reduce((s, e) => s + cargaMensalEtapa(e), 0),
+  [etapasFiltradas]);
 
   // ── Detail modal ──────────────────────────────────────────────────────────────
   const [detailItem, setDetailItem] = useState<Processo | null>(null);
@@ -242,7 +292,7 @@ export default function ProcessosPage() {
         project_id: projetoId,
         frequency: (frequencia || undefined) as FrequenciaProcesso | undefined,
         evaluation_status: statusAvaliacao,
-        complexity_level: (complexidade || undefined) as Complexidade | undefined,
+        complexity_level: normalizarComplexidade(complexidade) || undefined,
       });
       toast.success('Processo criado');
       resetNovo();
@@ -261,7 +311,7 @@ export default function ProcessosPage() {
     setEditProjetoId(p.project_id || '');
     setEditFrequencia(p.frequency || '');
     setEditStatusAvaliacao(p.evaluation_status || 'Não avaliado');
-    setEditComplexidade(p.complexity_level || '');
+    setEditComplexidade(normalizarComplexidade(p.complexity_level));
     setEditOpen(true);
   };
 
@@ -281,7 +331,7 @@ export default function ProcessosPage() {
           project_id: editProjetoId,
           frequency: (editFrequencia || undefined) as FrequenciaProcesso | undefined,
           evaluation_status: editStatusAvaliacao,
-          complexity_level: (editComplexidade || undefined) as Complexidade | undefined,
+          complexity_level: normalizarComplexidade(editComplexidade) || undefined,
         },
       });
       toast.success('Processo atualizado');
@@ -296,19 +346,31 @@ export default function ProcessosPage() {
   };
 
   // ── Card render ───────────────────────────────────────────────────────────────
-  const renderCard = (p: Processo) => (
+  const renderCard = (p: Processo, index: number) => (
     <div
       key={p.id}
       className="processo-card"
       role="button"
       tabIndex={0}
       style={{ cursor: 'pointer' }}
-      onClick={() => openDetail(p)}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(p); } }}
+      onClick={(e) => {
+        if (shouldIgnoreOpenClick(e)) return;
+        openDetail(p);
+      }}
+      onKeyDown={(e) => openOnActivationKey(e, () => openDetail(p))}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <h3><Tooltip text={dica('processos.card.titulo')}>{p.name}</Tooltip></h3>
-        <div style={{ display: 'flex', gap: 4 }}>
+      <div className="processo-card-header">
+        <div className="processo-card-title-wrap">
+          <span
+            className="processo-card-order"
+            title="Ordem visual do processo dentro do projeto"
+            aria-label={`Ordem ${codigoVisualProcesso(p, index)}`}
+          >
+            {codigoVisualProcesso(p, index)}
+          </span>
+          <h3><Tooltip text={dica('processos.card.titulo')}>{p.name}</Tooltip></h3>
+        </div>
+        <div className="processo-card-actions-top">
           <button
             className="btn-edit"
             onClick={(e) => { e.stopPropagation(); openEdit(p); }}
@@ -327,15 +389,32 @@ export default function ProcessosPage() {
           </button>
         </div>
       </div>
-      {(p.evaluation_status || p.complexity_level) && (
+      {(p.evaluation_status || normalizarComplexidade(p.complexity_level)) && (
         <div style={{ display: 'flex', gap: 6, marginTop: 4, marginBottom: 6, flexWrap: 'wrap' }}>
-          {p.complexity_level && <StatusBadge variant="roi">{p.complexity_level}</StatusBadge>}
+          {normalizarComplexidade(p.complexity_level) && (
+            <StatusBadge variant="roi">{normalizarComplexidade(p.complexity_level)}</StatusBadge>
+          )}
           {p.evaluation_status && p.evaluation_status !== 'Não avaliado' && (
             <StatusBadge variant="diagnostic">{p.evaluation_status}</StatusBadge>
           )}
         </div>
       )}
-      <p>{p.description || 'Sem descrição.'}</p>
+      {(() => {
+        const etapasProc = etapasDoProcesso(p.id);
+        if (etapasProc.length === 0) {
+          return <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Nenhuma etapa mapeada.</p>;
+        }
+        return (
+          <div className="processo-card-etapas">
+            {etapasProc.map((e, i) => (
+              <div key={e.id} className="processo-card-etapa" title={e.name}>
+                <span className="processo-card-etapa-num">{i + 1}</span>
+                <span className="processo-card-etapa-nome">{e.name}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
       {p.frequency && (
         <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
           <strong>Frequência:</strong> {p.frequency}
@@ -346,7 +425,7 @@ export default function ProcessosPage() {
           to={`/equipe/digital/mapa/processos/${encodeURIComponent(p.id)}/mapear`}
           className="btn-era"
           style={{ background: 'var(--accent-color)', color: 'white', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-          title="Abrir tela de mapeamento (4 abas)"
+          title="Abrir tela de detalhes do processo"
           onClick={(e) => e.stopPropagation()}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -355,7 +434,7 @@ export default function ProcessosPage() {
             <line x1="21" y1="6" x2="12" y2="9"/>
             <line x1="12" y1="9" x2="12" y2="24"/>
           </svg>
-          Mapear
+          Detalhes
         </Link>
       </div>
     </div>
@@ -379,7 +458,7 @@ export default function ProcessosPage() {
       <div className="page-header-v2">
         <div className="page-header-titles">
           <h1>Processos</h1>
-          <p>Cada processo agrupa o mapeamento, o cenário projetado e a configuração de ROI. Use <strong>"Mapear"</strong> para abrir a tela única com todas as abas do processo.</p>
+          <p>Cada processo agrupa o mapeamento, o cenário projetado e a configuração de ROI. Use <strong>"Detalhes"</strong> para abrir a tela única com todas as abas do processo.</p>
         </div>
         <button className="btn-add" onClick={() => { resetNovo(); setModalOpen(true); }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -388,19 +467,17 @@ export default function ProcessosPage() {
       </div>
 
       <PageStats stats={[
-        { label: 'Processos', value: String(items.length), tooltip: 'Total de processos cadastrados' },
-        { label: 'Etapas', value: String(etapas.length), tooltip: 'Total de etapas mapeadas em todos os processos' },
-        { label: 'Carga mensal', value: fmtH(totalHoras), tooltip: 'Carga mensal total: Σ (horas/exec × volume mensal) das etapas. Já considera todos os projetos ativos.' },
-        { label: 'Gargalos', value: String(gargalos.length), tooltip: 'Total de gargalos identificados' },
-        { label: 'Melhorias', value: String(melhorias.length), tooltip: 'Total de melhorias planejadas' },
+        { label: 'Processos', value: String(itensFiltrados.length), tooltip: 'Processos no escopo atual dos filtros.' },
+        { label: 'Etapas', value: String(etapasFiltradas.length), tooltip: 'Etapas mapeadas nos processos do escopo atual.' },
+        { label: 'Carga mensal', value: fmtH(totalHoras), tooltip: 'Carga mensal do escopo atual: Σ (horas/exec × volume mensal).' },
+        { label: 'Gargalos', value: String(gargalosFiltrados.length), tooltip: 'Gargalos vinculados aos processos do escopo atual.' },
+        { label: 'Melhorias', value: String(melhoriasFiltradas.length), tooltip: 'Melhorias vinculadas aos processos e gargalos do escopo atual.' },
       ]} />
 
       <FiltrosBar
         ativo={filtrosAtivos}
         onLimpar={limparFiltros}
         filtros={[
-          { id: 'fp-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('processos.filtro.organizar') },
-          { id: 'fp-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fp-projeto', label: 'Projeto', value: fProjeto, onChange: setFProjeto, options: [{ value: '', label: 'Todos os projetos' }, ...projetos.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('processos.filtro.projeto') },
           { id: 'fp-status', label: 'Status de avaliação', value: fStatus, onChange: setFStatus, options: STATUS_AVAL_FILTRO_OPCOES, tooltip: dica('processos.filtro.status') },
         ]}
@@ -409,7 +486,7 @@ export default function ProcessosPage() {
         grupos={grupos}
         substantivo={['processo', 'processos']}
         emptyMessage="Nenhum processo encontrado para os filtros selecionados."
-        renderGrupo={(itens) => <div className="processo-list list-stagger">{itens.map(renderCard)}</div>}
+        renderGrupo={(itens) => <div className="processo-list list-stagger">{itens.map((p, index) => renderCard(p, index))}</div>}
       />
 
       {/* Modal Detalhes do Processo */}
@@ -421,7 +498,9 @@ export default function ProcessosPage() {
 
               {/* Badges */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                {detailItem.complexity_level && <StatusBadge variant="roi">{detailItem.complexity_level}</StatusBadge>}
+                {normalizarComplexidade(detailItem.complexity_level) && (
+                  <StatusBadge variant="roi">{normalizarComplexidade(detailItem.complexity_level)}</StatusBadge>
+                )}
                 {detailItem.evaluation_status && detailItem.evaluation_status !== 'Não avaliado' && (
                   <StatusBadge variant="diagnostic">{detailItem.evaluation_status}</StatusBadge>
                 )}
@@ -522,7 +601,7 @@ export default function ProcessosPage() {
                 style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                 onClick={() => setDetailOpen(false)}
               >
-                Abrir mapeamento
+                Abrir detalhes
               </Link>
             )}
             {detailItem && (
@@ -562,7 +641,11 @@ export default function ProcessosPage() {
               <Select value={frequencia} onChange={setFrequencia} options={FREQUENCIA_OPCOES} />
             </FormField>
             <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
-              <Select value={complexidade} onChange={setComplexidade} options={COMPLEXIDADE_OPCOES} />
+              <Select
+                value={normalizarComplexidade(complexidade)}
+                onChange={(value) => setComplexidade(normalizarComplexidade(value))}
+                options={COMPLEXIDADE_OPCOES}
+              />
             </FormField>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>
@@ -603,7 +686,11 @@ export default function ProcessosPage() {
               <Select value={editFrequencia} onChange={setEditFrequencia} options={FREQUENCIA_OPCOES} />
             </FormField>
             <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
-              <Select value={editComplexidade} onChange={setEditComplexidade} options={COMPLEXIDADE_OPCOES} />
+              <Select
+                value={normalizarComplexidade(editComplexidade)}
+                onChange={(value) => setEditComplexidade(normalizarComplexidade(value))}
+                options={COMPLEXIDADE_OPCOES}
+              />
             </FormField>
           </div>
           <div style={{ display: 'flex', gap: 12 }}>

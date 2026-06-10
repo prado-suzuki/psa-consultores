@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
@@ -6,7 +6,8 @@ import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
@@ -299,7 +300,6 @@ function EmptyRow({ cols, msg = 'Sem dados — preencha o cadastro para visualiz
 
 export default function DashboardRoiPage() {
   const [aba, setAba] = useState<Aba>('mapeamento');
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -316,11 +316,13 @@ export default function DashboardRoiPage() {
     [rawEtapas, documentos, sistemas, responsaveis],
   );
 
-  const [filtroCluster, setFiltroCluster] = useState<string>('');
+  // Cluster vem do seletor global no header.
+  const { cluster: filtroCluster } = useClusterGlobal();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
   const [exportando, setExportando] = useState(false);
+  const [notasOpen, setNotasOpen] = useState(false);
 
   // Quando a lista de projetos chega, seleciona o primeiro como filtro default.
   useEffect(() => {
@@ -333,7 +335,7 @@ export default function DashboardRoiPage() {
   const statusIdx = STATUS_ORDEM.indexOf(projetoStatus);
 
   // Cluster do projeto → usado para filtrar projetos/processos por cluster.
-  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // filtroCluster vem do seletor global no header (value = cluster_id UUID),
   // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
   const clusterIdPorProjetoId = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
@@ -433,19 +435,20 @@ export default function DashboardRoiPage() {
   const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
 
   const limparFiltros = () => {
-    setFiltroCluster('');
     setFiltroProjeto(projetos[0]?.id || '');
     setFiltroProcesso('');
   };
 
-  // Ao trocar de cluster, zera projeto/processo se saírem do escopo do cluster.
-  const onChangeCluster = (c: string) => {
-    setFiltroCluster(c);
-    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) {
+  // Ao trocar o cluster global, zera projeto/processo se saírem do escopo do cluster.
+  const clusterAnterior = useRef(filtroCluster);
+  useEffect(() => {
+    if (clusterAnterior.current === filtroCluster) return;
+    clusterAnterior.current = filtroCluster;
+    if (filtroCluster && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== filtroCluster) {
       setFiltroProjeto('');
     }
     setFiltroProcesso('');
-  };
+  }, [filtroCluster, filtroProjeto, clusterIdPorProjetoId]);
 
   const handleExportCsv = async () => {
     setExportando(true);
@@ -546,6 +549,7 @@ export default function DashboardRoiPage() {
           <p>Esta apresentação percorre, em uma linha narrativa única, o caminho do projeto: o escopo mapeado, os gargalos diagnosticados, as melhorias propostas, o cenário futuro projetado e o retorno consolidado do investment.</p>
         </div>
         <div className="dashv2-hero-actions">
+          <NotasInfoButton onClick={() => setNotasOpen(true)} />
           <button
             className="btn-secondary"
             onClick={handleExportCsv}
@@ -566,16 +570,10 @@ export default function DashboardRoiPage() {
         </div>
       </div>
 
+      <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
+
       {/* Filtros */}
       <div className="dashv2-filters">
-        <div className="dashv2-filter">
-          <label><Tooltip text={dica('comum.filtro.cluster')}>Cluster</Tooltip></label>
-          <Select
-            value={filtroCluster}
-            onChange={onChangeCluster}
-            options={CLUSTER_FILTRO_OPCOES}
-          />
-        </div>
         <div className="dashv2-filter">
           <label><Tooltip text={dica('dashboard.filtro.projeto')}>Projeto</Tooltip></label>
           <Select

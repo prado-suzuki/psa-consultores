@@ -1,14 +1,15 @@
-import { useState } from 'react';
-import { Tooltip } from '@/components/equipe/mapa/Tooltip';
-import { dica } from '@/utils/tooltips';
-
-// Notas Metodológicas — 3 abas alinhadas às três telas de ROI:
-//   1. ROI do processo   → wizard "Configurar ROI" + roiCalculator.calcProcesso
-//   2. Dashboard ROI     → DashboardRoiPage (agrega calcularRoi sobre o escopo)
-//   3. Evolução do setor → SetorEvolucaoPage (série histórica de snapshots)
+// Notas Metodológicas — antes uma página própria, agora dois modais
+// contextuais, um por dashboard:
+//   - escopo "dashboard" → Dashboard ROI (com a aba ROI do processo, cujo
+//     cálculo individual é o que o dashboard agrega)
+//   - escopo "setor"     → Evolução do Setor (série histórica de snapshots)
+// Cada dashboard abre o seu via <NotasInfoButton> (ícone ⓘ com tooltip).
 // Foco: qual campo de qual página abastece cada indicador e qual o cálculo.
 
-type Aba = 'processo' | 'dashboard' | 'setor';
+import { useState } from 'react';
+import Modal from './Modal';
+import { Tooltip } from './Tooltip';
+import { dica } from '@/utils/tooltips';
 
 interface Linha {
   indicador: string;
@@ -22,7 +23,7 @@ interface Bloco {
   linhas: Linha[];
 }
 
-// ───────────────────────────── ABA 1 — ROI do processo ─────────────────────────────
+// ───────────────────────────── ROI do processo ─────────────────────────────
 const PROCESSO: Bloco[] = [
   {
     titulo: 'Base anual',
@@ -135,7 +136,7 @@ const PROCESSO: Bloco[] = [
   },
 ];
 
-// ───────────────────────────── ABA 2 — Dashboard ROI ─────────────────────────────
+// ───────────────────────────── Dashboard ROI ─────────────────────────────
 const DASHBOARD: Bloco[] = [
   {
     titulo: 'Agregação e filtros',
@@ -205,7 +206,7 @@ const DASHBOARD: Bloco[] = [
   },
 ];
 
-// ───────────────────────────── ABA 3 — Evolução do setor ─────────────────────────────
+// ───────────────────────────── Evolução do setor ─────────────────────────────
 const SETOR: Bloco[] = [
   {
     titulo: 'Fonte: snapshots',
@@ -244,72 +245,134 @@ const SETOR: Bloco[] = [
   },
 ];
 
-const ABAS: { id: Aba; label: string; intro: string; blocos: Bloco[] }[] = [
-  { id: 'processo', label: 'ROI do processo', intro: 'Cálculo de um único processo (wizard "Configurar ROI"). Compara Como Era × Como Ficou e atribui o investment das melhorias. No diagnóstico, cada item pendente é clicável e leva direto ao campo de origem — a etapa exata no editor, ou o modal de detalhe do sistema, responsável, melhoria ou gargalo.', blocos: PROCESSO },
-  { id: 'dashboard', label: 'Dashboard ROI', intro: 'Consolida os processos do escopo filtrado, somando os resultados individuais e exibindo a narrativa em 6 etapas.', blocos: DASHBOARD },
-  { id: 'setor', label: 'Evolução do setor', intro: 'Série histórica do portfólio, lida exclusivamente dos snapshots salvos ao longo do tempo.', blocos: SETOR },
-];
+interface AbaInterna {
+  id: string;
+  label: string;
+  dicaKey: string;
+  intro: string;
+  blocos: Bloco[];
+}
 
-export default function NotasMetodologicasPage() {
-  const [aba, setAba] = useState<Aba>('processo');
-  const ativa = ABAS.find(a => a.id === aba)!;
+const ABAS_POR_ESCOPO: Record<'dashboard' | 'setor', AbaInterna[]> = {
+  dashboard: [
+    {
+      id: 'dashboard',
+      label: 'Dashboard ROI',
+      dicaKey: 'notas.aba.dashboard',
+      intro: 'Consolida os processos do escopo filtrado, somando os resultados individuais e exibindo a narrativa em 6 etapas.',
+      blocos: DASHBOARD,
+    },
+    {
+      id: 'processo',
+      label: 'ROI do processo',
+      dicaKey: 'notas.aba.processo',
+      intro: 'Cálculo de um único processo (wizard "Configurar ROI") — é este resultado que o Dashboard agrega. Compara Como Era × Como Ficou e atribui o investment das melhorias.',
+      blocos: PROCESSO,
+    },
+  ],
+  setor: [
+    {
+      id: 'setor',
+      label: 'Evolução do setor',
+      dicaKey: 'notas.aba.setor',
+      intro: 'Série histórica do portfólio, lida exclusivamente dos snapshots salvos ao longo do tempo.',
+      blocos: SETOR,
+    },
+  ],
+};
+
+const TITULOS: Record<'dashboard' | 'setor', string> = {
+  dashboard: 'Notas Metodológicas — Dashboard ROI',
+  setor: 'Notas Metodológicas — Evolução do Setor',
+};
+
+interface NotasMetodologicasModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** Qual dashboard este modal documenta. */
+  escopo: 'dashboard' | 'setor';
+}
+
+export function NotasMetodologicasModal({ isOpen, onClose, escopo }: NotasMetodologicasModalProps) {
+  const abas = ABAS_POR_ESCOPO[escopo];
+  const [abaId, setAbaId] = useState(abas[0].id);
+  const ativa = abas.find(a => a.id === abaId) ?? abas[0];
 
   return (
-    <div className="notasv2">
-      <div className="notasv2-hero">
-        <div className="notasv2-hero-text">
-          <div className="notasv2-hero-eyebrow">Documentação interna</div>
-          <h1>Notas Metodológicas</h1>
-          <p>
-            Como cada número de ROI é calculado e <strong>qual campo de qual página</strong> o abastece.
-            Três abas, uma por tela de ROI.
-          </p>
-        </div>
-        <div className="notasv2-hero-card">
-          <div className="notasv2-hero-stat"><span>Telas de ROI</span><strong>3</strong></div>
-          <div className="notasv2-hero-stat"><span>Versão</span><strong>3.1</strong></div>
-        </div>
-      </div>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <div className="modal" style={{ maxWidth: 960 }}>
+        <h2>{TITULOS[escopo]}</h2>
+        <p style={{ marginTop: -12, marginBottom: 16, color: '#475569', fontSize: '0.9rem' }}>
+          Como cada número é calculado e <strong>qual campo de qual página</strong> o abastece.
+        </p>
 
-      <nav className="notasv2-nav">
-        {ABAS.map(a => (
-          <button key={a.id} className={aba === a.id ? 'active' : ''} onClick={() => setAba(a.id)}>
-            <Tooltip text={dica(a.id === 'processo' ? 'notas.aba.processo' : a.id === 'dashboard' ? 'notas.aba.dashboard' : 'notas.aba.setor')}>{a.label}</Tooltip>
-          </button>
-        ))}
-      </nav>
+        {abas.length > 1 && (
+          <nav className="notasv2-nav" style={{ marginBottom: 8 }}>
+            {abas.map(a => (
+              <button key={a.id} className={abaId === a.id ? 'active' : ''} onClick={() => setAbaId(a.id)}>
+                <Tooltip text={dica(a.dicaKey)}>{a.label}</Tooltip>
+              </button>
+            ))}
+          </nav>
+        )}
 
-      <div className="notasv2-content">
-        <section className="notasv2-section">
-          <div className="notasv2-callout"><strong>{ativa.label}:</strong> {ativa.intro}</div>
+        <div className="notasv2-callout"><strong>{ativa.label}:</strong> {ativa.intro}</div>
 
-          {ativa.blocos.map((b) => (
-            <div key={b.titulo} style={{ marginTop: 24 }}>
-              <h3 style={{ marginBottom: 4 }}>{b.titulo}</h3>
-              {b.intro && <p style={{ marginTop: 0, color: '#475569', fontSize: '0.9rem' }}>{b.intro}</p>}
-              <div className="notasv2-dict-table">
-                <div className="notasv2-dict-head" style={{ gridTemplateColumns: '1.1fr 1.6fr 1.5fr' }}>
-                  <div><Tooltip text={dica('notas.col.indicador')}>Indicador</Tooltip></div>
-                  <div><Tooltip text={dica('notas.col.calculo')}>Cálculo</Tooltip></div>
-                  <div><Tooltip text={dica('notas.col.fontes')}>Campos-fonte → página</Tooltip></div>
-                </div>
-                {b.linhas.map((l) => (
-                  <div key={l.indicador} className="notasv2-dict-row" style={{ gridTemplateColumns: '1.1fr 1.6fr 1.5fr', alignItems: 'start' }}>
-                    <div><strong>{l.indicador}</strong></div>
-                    <div>
-                      <code style={{ whiteSpace: 'normal' }}>{l.formula}</code>
-                      {l.nota && <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>{l.nota}</div>}
-                    </div>
-                    <div style={{ fontSize: '0.82rem' }}>
-                      {l.fontes.map((f, i) => <div key={i}>{f}</div>)}
-                    </div>
-                  </div>
-                ))}
+        {ativa.blocos.map((b) => (
+          <div key={b.titulo} style={{ marginTop: 24 }}>
+            <h3 style={{ marginBottom: 4 }}>{b.titulo}</h3>
+            {b.intro && <p style={{ marginTop: 0, color: '#475569', fontSize: '0.9rem' }}>{b.intro}</p>}
+            <div className="notasv2-dict-table">
+              <div className="notasv2-dict-head" style={{ gridTemplateColumns: '1.1fr 1.6fr 1.5fr' }}>
+                <div><Tooltip text={dica('notas.col.indicador')}>Indicador</Tooltip></div>
+                <div><Tooltip text={dica('notas.col.calculo')}>Cálculo</Tooltip></div>
+                <div><Tooltip text={dica('notas.col.fontes')}>Campos-fonte → página</Tooltip></div>
               </div>
+              {b.linhas.map((l) => (
+                <div key={l.indicador} className="notasv2-dict-row" style={{ gridTemplateColumns: '1.1fr 1.6fr 1.5fr', alignItems: 'start' }}>
+                  <div><strong>{l.indicador}</strong></div>
+                  <div>
+                    <code style={{ whiteSpace: 'normal' }}>{l.formula}</code>
+                    {l.nota && <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>{l.nota}</div>}
+                  </div>
+                  <div style={{ fontSize: '0.82rem' }}>
+                    {l.fontes.map((f, i) => <div key={i}>{f}</div>)}
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </section>
+          </div>
+        ))}
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+          <button type="button" className="btn-cancel" onClick={onClose}>Fechar</button>
+        </div>
       </div>
-    </div>
+    </Modal>
+  );
+}
+
+interface NotasInfoButtonProps {
+  onClick: () => void;
+}
+
+/** Botão ⓘ que abre o modal de notas metodológicas do dashboard. */
+export function NotasInfoButton({ onClick }: NotasInfoButtonProps) {
+  return (
+    <Tooltip text="Acesse as notas metodológicas: fórmulas, indicadores e campos-fonte deste dashboard.">
+      <button
+        type="button"
+        className="btn-secondary"
+        onClick={onClick}
+        aria-label="Abrir notas metodológicas"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+        Notas metodológicas
+      </button>
+    </Tooltip>
   );
 }

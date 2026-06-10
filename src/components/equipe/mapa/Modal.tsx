@@ -36,7 +36,19 @@ export default function Modal({ isOpen, onClose, children }: ModalProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
         >
-          {children}
+          <div className="modal-shell">
+            <button
+              type="button"
+              className="modal-exit-button"
+              onClick={onClose}
+              aria-label="Sair do modal"
+              title="Sair"
+            >
+              <span aria-hidden="true">×</span>
+              <span>Sair</span>
+            </button>
+            {children}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

@@ -1,13 +1,13 @@
 // Teste-âncora pra ProcessosPage.
-// Cobre o bug #C (60 cards vazios "Sem descrição" + sem nome) — garante que
-// os cards renderizam name E description visíveis quando o DB devolve linhas
-// MAPA realistas.
+// O card mostra o NOME e as ETAPAS do processo empilhadas em ordem — a
+// descrição foi movida pra tela de detalhes (/processos/:id/mapear) e não
+// deve mais aparecer na listagem.
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TestProviders } from '@/test/queryWrapper';
 import { mockSupabaseChain } from '@/test/supabaseMock';
-import { PROCESSO_OSG_ROW, PROJETO_OSG_ROW, CLUSTER_ROW } from '@/test/fixtures';
+import { PROCESSO_OSG_ROW, PROJETO_OSG_ROW, CLUSTER_ROW, ETAPA_ROW } from '@/test/fixtures';
 import ProcessosPage from './ProcessosPage';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,11 +30,11 @@ describe('ProcessosPage', () => {
     vi.clearAllMocks();
   });
 
-  it('renderiza cards de processo MAPA com nome e descrição visíveis (bug #C)', async () => {
+  it('card mostra nome e etapas em ordem; descrição fica só na tela de detalhes', async () => {
     setupSupabaseMocks({
       processes: [PROCESSO_OSG_ROW],
       projects: [PROJETO_OSG_ROW],
-      process_stages: [],
+      process_stages: [ETAPA_ROW],
       gargalos: [],
       process_improvements: [],
       estrutura_clusters: [CLUSTER_ROW],
@@ -51,13 +51,13 @@ describe('ProcessosPage', () => {
       await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i),
     ).toBeInTheDocument();
 
-    // A descrição aparece (não cai no fallback "Sem descrição.").
-    expect(
-      screen.getByText(/Levantamento completo do patrimônio do cliente/i),
-    ).toBeInTheDocument();
+    // As etapas do processo aparecem empilhadas no card.
+    expect(await screen.findByText(/Solicitar documentos/i)).toBeInTheDocument();
 
-    // O placeholder do bug NÃO aparece.
-    expect(screen.queryByText('Sem descrição.')).not.toBeInTheDocument();
+    // A descrição NÃO aparece no card (vive na tela de detalhes).
+    expect(
+      screen.queryByText(/Levantamento completo do patrimônio do cliente/i),
+    ).not.toBeInTheDocument();
   });
 
   it('smoke: renderiza sem crash com data vazia', async () => {
@@ -80,5 +80,31 @@ describe('ProcessosPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Adicionar Processo/i })).toBeInTheDocument();
     });
+  });
+
+  it('normaliza complexidade legada em inglês no card e no modal de edição', async () => {
+    setupSupabaseMocks({
+      processes: [{ ...PROCESSO_OSG_ROW, complexity_level: 'medium' }],
+      projects: [PROJETO_OSG_ROW],
+      process_stages: [ETAPA_ROW],
+      gargalos: [],
+      process_improvements: [],
+      estrutura_clusters: [CLUSTER_ROW],
+    });
+
+    render(
+      <TestProviders>
+        <ProcessosPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByText('Média')).toBeInTheDocument();
+    expect(screen.queryByText(/^medium$/i)).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('Editar metadados do processo'));
+
+    const modal = (await screen.findByText('Editar Processo')).closest('.modal');
+    expect(modal).not.toBeNull();
+    expect(within(modal as HTMLElement).getByRole('button', { name: /Média/i })).toBeInTheDocument();
   });
 });

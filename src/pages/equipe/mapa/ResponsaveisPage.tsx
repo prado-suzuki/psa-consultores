@@ -13,19 +13,17 @@ import { agrupar } from '@/utils/agrupar';
 import { formatarMoeda, parseMoeda } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Responsavel } from '@/types';
 import { useEtapasLista, useDocumentosLista, useSistemasLista, useProcessosLista } from '@/hooks/useDominioListas';
-import { useResponsaveis, useCreateResponsavel, useUpdateResponsavel, useDeleteResponsavel } from '@/hooks/useResponsaveis';
-import { useClusterFiltroOpcoes, useClusterCadastroOpcoes, useClusters } from '@/hooks/useClusters';
+import { useResponsaveis, useUpdateResponsavel, useDeleteResponsavel } from '@/hooks/useResponsaveis';
+import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import NovoResponsavelModal, { TIPO_OPCOES } from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
 
-const TIPO_OPCOES = [
-  { value: 'Interno', label: 'Interno' },
-  { value: 'Externo', label: 'Externo' },
-];
 const TIPO_FILTRO_OPCOES = [{ value: '', label: 'Todos os tipos' }, ...TIPO_OPCOES];
 
 const ORGANIZAR_OPCOES = [
-  { value: 'cluster', label: 'Por cluster' },
   { value: 'tipo', label: 'Por tipo' },
   { value: 'cargo', label: 'Por cargo' },
 ];
@@ -42,26 +40,15 @@ const RESP_GRID = '44px minmax(180px, 1.6fr) minmax(120px, 1fr) 100px 90px 110px
 export default function ResponsaveisPage() {
   const { data: items = [], isLoading: respLoading } = useResponsaveis();
   const loaded = !respLoading;
-  const createResp = useCreateResponsavel();
   const updateResp = useUpdateResponsavel();
   const deleteResp = useDeleteResponsavel();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
-  const { data: clusters = [] } = useClusters();
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Responsavel | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [nome, setNome] = useState('');
-  const [cargo, setCargo] = useState('');
-  const [categoria, setCategoria] = useState('');
-  const [custoHora, setCustoHora] = useState('');
-  const [tipo, setTipo] = useState('Interno');
-  const [clusterId, setClusterId] = useState('');
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
-  // Filtros
-  const [fCluster, setFCluster] = useState('');
+  // Filtros (cluster vem do seletor global no header)
+  const { cluster: fCluster } = useClusterGlobal();
   const [fTipo, setFTipo] = useState('');
   const [fCargo, setFCargo] = useState('');
 
@@ -137,29 +124,6 @@ export default function ResponsaveisPage() {
     return vinculos;
   };
 
-  const handleSave = async () => {
-    if (!nome.trim()) { setError('Preencha o nome do responsável.'); return; }
-    setError('');
-    setIsSaving(true);
-    try {
-      await createResp.mutateAsync({
-        name: nome.trim(),
-        level: cargo.trim(),
-        category: categoria.trim() || undefined,
-        hourly_rate: parseMoeda(custoHora),
-        type: tipo,
-        cluster_id: clusterId || undefined,
-      });
-      toast.success('Responsável criado');
-      setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId('');
-      setModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleUpdate = async () => {
     if (!editNome.trim()) { setEditError('Preencha o nome do responsável.'); return; }
     const old = items.find(r => r.id === editId);
@@ -189,7 +153,7 @@ export default function ResponsaveisPage() {
     }
   };
 
-  const openNew = () => { setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId(''); setError(''); setModalOpen(true); };
+  const openNew = () => setModalOpen(true);
   const openDetail = (r: Responsavel) => {
     setDetailItem(r);
     setDetailOpen(true);
@@ -216,8 +180,8 @@ export default function ResponsaveisPage() {
     const set = Array.from(new Set(items.map(r => r.level).filter(Boolean))).sort();
     return [{ value: '', label: 'Todos os cargos' }, ...set.map(c => ({ value: c as string, label: c as string }))];
   }, [items]);
-  const filtrosAtivos = !!(fCluster || fTipo || fCargo);
-  const limparFiltros = () => { setFCluster(''); setFTipo(''); setFCargo(''); };
+  const filtrosAtivos = !!(fTipo || fCargo);
+  const limparFiltros = () => { setFTipo(''); setFCargo(''); };
   // Normaliza tipo: null/undefined são tratados como 'Interno' (default coerente
   // com o KPI Internos e com o default do form de edição).
   const tipoDe = (r: { type?: string | null }): string => r.type === 'Externo' ? 'Externo' : 'Interno';
@@ -229,11 +193,10 @@ export default function ResponsaveisPage() {
   ), [items, fCluster, fTipo, fCargo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
-  const [organizar, setOrganizar] = useState('cluster');
+  const [organizar, setOrganizar] = useState('tipo');
   const grupos = useMemo(() => {
-    if (organizar === 'tipo') return agrupar(itensFiltrados, (r) => [tipoDe(r)], TIPO_OPCOES, 'Sem tipo');
     if (organizar === 'cargo') return agrupar(itensFiltrados, (r) => [r.level || ''], cargoFiltroOpcoes, 'Sem cargo');
-    return agrupar(itensFiltrados, (r) => [r.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
+    return agrupar(itensFiltrados, (r) => [tipoDe(r)], TIPO_OPCOES, 'Sem tipo');
   }, [organizar, itensFiltrados, cargoFiltroOpcoes]);
 
   const focusId = useFocusParam();
@@ -250,9 +213,9 @@ export default function ResponsaveisPage() {
   const vinculos = detailItem ? getVinculos(detailItem.name) : [];
 
   // KPI strip calculations
-  const totalHorasMapeadas = items.reduce((sum, r) => sum + getHorasMapeadas(r.name), 0);
-  const internos = items.filter(r => r.type !== 'Externo').length;
-  const itemsComCusto = items.filter(r => (r.hourly_rate || 0) > 0);
+  const totalHorasMapeadas = itensFiltrados.reduce((sum, r) => sum + getHorasMapeadas(r.name), 0);
+  const internos = itensFiltrados.filter(r => r.type !== 'Externo').length;
+  const itemsComCusto = itensFiltrados.filter(r => (r.hourly_rate || 0) > 0);
   const custoMedio = itemsComCusto.length > 0
     ? itemsComCusto.reduce((sum, r) => sum + (r.hourly_rate || 0), 0) / itemsComCusto.length
     : 0;
@@ -272,23 +235,23 @@ export default function ResponsaveisPage() {
       <PageStats stats={[
         {
           label: 'Responsáveis',
-          value: String(items.length),
-          tooltip: 'Total de responsáveis cadastrados.',
+          value: String(itensFiltrados.length),
+          tooltip: 'Responsáveis no escopo atual dos filtros.',
         },
         {
           label: 'Internos',
           value: String(internos),
-          tooltip: 'Responsáveis com tipo diferente de Externo.',
+          tooltip: 'Responsáveis internos no escopo atual.',
         },
         {
           label: 'Custo/hora médio',
           value: formatarMoeda(custoMedio),
-          tooltip: 'Média do custo por hora entre os responsáveis com custo cadastrado.',
+          tooltip: 'Média do custo por hora entre responsáveis visíveis com custo cadastrado.',
         },
         {
           label: 'Horas mapeadas',
           value: fmtHoras(totalHorasMapeadas),
-          tooltip: 'Carga mensal total (horas × volume) somada entre todos os responsáveis e projetos.',
+          tooltip: 'Carga mensal somada entre os responsáveis visíveis.',
         },
       ]} />
       <FiltrosBar
@@ -296,7 +259,6 @@ export default function ResponsaveisPage() {
         onLimpar={limparFiltros}
         filtros={[
           { id: 'fr-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
-          { id: 'fr-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fr-tipo', label: 'Tipo', value: fTipo, onChange: setFTipo, options: TIPO_FILTRO_OPCOES, tooltip: dica('responsaveis.filtro.tipo') },
           { id: 'fr-cargo', label: 'Cargo', value: fCargo, onChange: setFCargo, options: cargoFiltroOpcoes, tooltip: dica('responsaveis.filtro.cargo') },
         ]}
@@ -328,8 +290,11 @@ export default function ResponsaveisPage() {
               className="doc-table-row clickable"
               role="button"
               tabIndex={0}
-              onClick={() => openDetail(r)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(r); } }}
+              onClick={(e) => {
+                if (shouldIgnoreOpenClick(e)) return;
+                openDetail(r);
+              }}
+              onKeyDown={(e) => openOnActivationKey(e, () => openDetail(r))}
               style={{ gridTemplateColumns: RESP_GRID }}
             >
               <div className="doc-col-icon">
@@ -377,33 +342,7 @@ export default function ResponsaveisPage() {
         )}
       />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <div className="modal">
-          <h2>Novo Responsável</h2>
-          <FormField label="Nome" error={error} required tooltip={dica('responsaveis.form.nome')}>
-            <input type="text" value={nome} onChange={(e) => { setNome(e.target.value); if (error) setError(''); }} placeholder="Digite o nome do responsável" />
-          </FormField>
-          <FormField label="Cargo" tooltip={dica('responsaveis.form.cargo')}>
-            <input type="text" value={cargo} onChange={(e) => setCargo(e.target.value)} placeholder="Digite o cargo" />
-          </FormField>
-          <FormField label="Categoria" tooltip="Senioridade do cargo (ex.: Pleno, Júnior, Sênior).">
-            <input type="text" value={categoria} onChange={(e) => setCategoria(e.target.value)} placeholder="Ex: Pleno, Júnior, Sênior" />
-          </FormField>
-          <FormField label="Tipo" tooltip={dica('responsaveis.form.tipo')}>
-            <Select value={tipo} onChange={setTipo} options={TIPO_OPCOES} />
-          </FormField>
-          <FormField label="Cluster" tooltip={dica('responsaveis.form.cluster')}>
-            <Select value={clusterId} onChange={setClusterId} options={CLUSTER_OPCOES} />
-          </FormField>
-          <FormField label="Custo por Hora Trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')}>
-            <input type="text" value={custoHora} onChange={(e) => setCustoHora(e.target.value)} placeholder="Ex: 90,00" />
-          </FormField>
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>
-            <button className="btn-save" onClick={handleSave} disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </Modal>
+      <NovoResponsavelModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)}>
         <div className="modal">

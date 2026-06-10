@@ -12,11 +12,13 @@ import { dica } from '@/utils/tooltips';
 import { agrupar } from '@/utils/agrupar';
 import { formatDecimal } from '@/utils/format';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Gargalo, GargaloEtapaRef } from '@/types';
 import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
 import { useEtapas } from '@/hooks/useEtapas';
 import { useGargalos, useCreateGargalo, useUpdateGargalo, useDeleteGargalo } from '@/hooks/useGargalos';
-import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
 import SeletorEtapasOrigem from '@/components/equipe/mapa/SeletorEtapasOrigem';
 
 const ORIGEM_OPCOES = [
@@ -29,7 +31,6 @@ const ORIGEM_OPCOES = [
 const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
 
 const ORGANIZAR_OPCOES = [
-  { value: 'cluster', label: 'Por cluster' },
   { value: 'origem', label: 'Por origem' },
   { value: 'processo', label: 'Por processo afetado' },
 ];
@@ -41,8 +42,6 @@ export default function GargalosPage() {
   const updateGargalo = useUpdateGargalo();
   const deleteGargalo = useDeleteGargalo();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
-  const { data: clusters = [] } = useClusters();
 
   const { data: processos = [] } = useProcessosLista();
   const { data: melhoriasList = [] } = useMelhoriasLista();
@@ -94,12 +93,12 @@ export default function GargalosPage() {
   const [confirmDel, setConfirmDel] = useState<Gargalo | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Filtros
-  const [fCluster, setFCluster] = useState('');
+  // Filtros (cluster vem do seletor global no header)
+  const { cluster: fCluster } = useClusterGlobal();
   const [fOrigem, setFOrigem] = useState('');
   const [fProcesso, setFProcesso] = useState('');
-  const filtrosAtivos = !!(fCluster || fOrigem || fProcesso);
-  const limparFiltros = () => { setFCluster(''); setFOrigem(''); setFProcesso(''); };
+  const filtrosAtivos = !!(fOrigem || fProcesso);
+  const limparFiltros = () => { setFOrigem(''); setFProcesso(''); };
 
   // Criação
   const [modalOpen, setModalOpen] = useState(false);
@@ -202,29 +201,28 @@ export default function GargalosPage() {
   ), [items, fCluster, fOrigem, fProcesso]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
-  const [organizar, setOrganizar] = useState('cluster');
+  const [organizar, setOrganizar] = useState('origem');
   const grupos = useMemo(() => {
-    if (organizar === 'origem') return agrupar(itensFiltrados, (g) => [g.origem || ''], ORIGEM_OPCOES, 'Sem origem');
     if (organizar === 'processo') return agrupar(itensFiltrados, (g) => g.processos || [], procOptionsOrdenado.map((p) => ({ value: p.id, label: p.name })), 'Sem processo');
-    return agrupar(itensFiltrados, (g) => [g.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
+    return agrupar(itensFiltrados, (g) => [g.origem || ''], ORIGEM_OPCOES, 'Sem origem');
   }, [organizar, itensFiltrados, procOptionsOrdenado]);
 
   // KPI computations
   const totalHoras = useMemo(
-    () => items.reduce((acc, g) => acc + (g.horas_gastas || 0), 0),
-    [items]
+    () => itensFiltrados.reduce((acc, g) => acc + (g.horas_gastas || 0), 0),
+    [itensFiltrados]
   );
   const processosDistintos = useMemo(
-    () => new Set(items.flatMap(g => g.processos || [])).size,
-    [items]
+    () => new Set(itensFiltrados.flatMap(g => g.processos || [])).size,
+    [itensFiltrados]
   );
   const gargalosResolvidos = useMemo(
-    () => items.filter(g => (g.melhorias ?? []).length > 0).length,
-    [items]
+    () => itensFiltrados.filter(g => (g.melhorias ?? []).length > 0).length,
+    [itensFiltrados]
   );
   const gargalosComCascata = useMemo(
-    () => items.filter(g => (g.etapasOrigem ?? []).length > 0).length,
-    [items]
+    () => itensFiltrados.filter(g => (g.etapasOrigem ?? []).length > 0).length,
+    [itensFiltrados]
   );
 
   // Focus param
@@ -256,18 +254,17 @@ export default function GargalosPage() {
         </button>
       </div>
       <PageStats stats={[
-        { label: 'Gargalos', value: String(items.length), tooltip: 'Total de gargalos cadastrados.' },
-        { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês em todos os gargalos.' },
-        { label: 'Processos afetados', value: String(processosDistintos), tooltip: 'Número de processos distintos impactados por pelo menos um gargalo.' },
-        { label: 'Com cascata', value: String(gargalosComCascata), tooltip: 'Gargalos que afetam ≥1 documento — aparecem na aba Cascata com o grafo derivado em tempo real.' },
-        { label: 'Com melhoria', value: String(gargalosResolvidos), tooltip: 'Gargalos que possuem ao menos uma melhoria vinculada.' },
+        { label: 'Gargalos', value: String(itensFiltrados.length), tooltip: 'Gargalos no escopo atual dos filtros.' },
+        { label: 'Horas/mês', value: formatDecimal(totalHoras, 'h'), tooltip: 'Soma das horas gastas por mês no escopo atual.' },
+        { label: 'Processos afetados', value: String(processosDistintos), tooltip: 'Processos distintos impactados por gargalos no escopo atual.' },
+        { label: 'Com cascata', value: String(gargalosComCascata), tooltip: 'Gargalos do escopo atual que afetam ao menos uma etapa-origem.' },
+        { label: 'Com melhoria', value: String(gargalosResolvidos), tooltip: 'Gargalos do escopo atual que possuem ao menos uma melhoria vinculada.' },
       ]} />
       <FiltrosBar
         ativo={filtrosAtivos}
         onLimpar={limparFiltros}
         filtros={[
           { id: 'fg-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
-          { id: 'fg-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fg-origem', label: 'Origem', value: fOrigem, onChange: setFOrigem, options: ORIGEM_FILTRO_OPCOES, tooltip: dica('gargalos.filtro.origem') },
           { id: 'fg-processo', label: 'Processo afetado', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...procOptionsOrdenado.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('gargalos.filtro.processo') },
         ]}
@@ -285,8 +282,11 @@ export default function GargalosPage() {
                 style={{ position: 'relative', cursor: 'pointer' }}
                 role="button"
                 tabIndex={0}
-                onClick={() => openDetail(g)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(g); } }}
+                onClick={(e) => {
+                  if (shouldIgnoreOpenClick(e)) return;
+                  openDetail(g);
+                }}
+                onKeyDown={(e) => openOnActivationKey(e, () => openDetail(g))}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <h3><Tooltip text={dica('gargalos.detalhe.processos')}>{g.nome}</Tooltip></h3>

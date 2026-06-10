@@ -12,15 +12,14 @@ import { agrupar } from '@/utils/agrupar';
 import { formatarMoeda, parseMoeda } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Sistema } from '@/types';
-import { useEtapasLista, useDocumentosLista, useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
-import { useSistemas, useCreateSistema, useUpdateSistema, useDeleteSistema } from '@/hooks/useSistemas';
+import { useEtapasLista, useDocumentosLista, useProcessosLista, useMelhoriasLista, useProjetosLista } from '@/hooks/useDominioListas';
+import { useSistemas, useUpdateSistema, useDeleteSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import NovoSistemaModal, { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
 
-const ORIGEM_OPCOES = [
-  { value: 'Interno', label: 'Interno' },
-  { value: 'Externo', label: 'Externo' },
-];
 const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
 
 const ORGANIZAR_OPCOES = [
@@ -30,7 +29,6 @@ const ORGANIZAR_OPCOES = [
 export default function SistemasPage() {
   const { data: items = [], isLoading: sistemasLoading } = useSistemas();
   const loaded = !sistemasLoading;
-  const createSistema = useCreateSistema();
   const updateSistema = useUpdateSistema();
   const deleteSistema = useDeleteSistema();
   const { data: clustersList = [] } = useClusters();
@@ -41,20 +39,45 @@ export default function SistemasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Sistema | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [origem, setOrigem] = useState('Interno');
-  const [variavel, setVariavel] = useState('');
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
+  const { cluster: fCluster } = useClusterGlobal();
 
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: docs = [] } = useDocumentosLista();
   const { data: processos = [] } = useProcessosLista();
+  const { data: projetos = [] } = useProjetosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const etapas = useMemo(
     () => enrichEtapas(rawEtapas, docs, items, []),
     [rawEtapas, docs, items],
+  );
+  const clusterIdPorProjeto = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
+    [projetos],
+  );
+  const processoIdsDoEscopo = useMemo(
+    () => new Set(
+      processos
+        .filter(p => !fCluster || (p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : '') === fCluster)
+        .map(p => p.id),
+    ),
+    [processos, fCluster, clusterIdPorProjeto],
+  );
+  const etapasDoEscopo = useMemo(
+    () => etapas.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
+    [etapas, fCluster, processoIdsDoEscopo],
+  );
+  const nomesSistemasDoEscopo = useMemo(() => {
+    if (!fCluster) return null;
+    const nomes = new Set<string>();
+    for (const etapa of etapasDoEscopo) {
+      for (const nome of etapa.sistemas || []) nomes.add(nome);
+      for (const nome of etapa.ficou?.sistemas || []) nomes.add(nome);
+    }
+    return nomes;
+  }, [fCluster, etapasDoEscopo]);
+  const clusterSelecionado = useMemo(
+    () => clustersList.find(c => c.id === fCluster),
+    [clustersList, fCluster],
   );
 
   const [detailOpen, setDetailOpen] = useState(false);
@@ -87,37 +110,12 @@ export default function SistemasPage() {
     return vinculos;
   };
 
-  const handleSave = async () => {
-    if (!nome.trim()) { setError('Preencha o nome do sistema.'); return; }
-    setError('');
-    setIsSaving(true);
-    try {
-      await createSistema.mutateAsync({
-        nome: nome.trim(),
-        descricao: descricao.trim(),
-        origem,
-        custo_licenca_mensal: 0,
-        custo_variavel_por_uso: parseMoeda(variavel),
-      });
-      toast.success('Sistema criado');
-      setNome(''); setDescricao(''); setOrigem('Interno'); setVariavel('');
-      setModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const openDetail = (s: Sistema) => {
     setDetailItem(s);
     setDetailOpen(true);
   };
 
-  const openNew = () => {
-    setNome(''); setDescricao(''); setOrigem('Interno'); setVariavel('');
-    setError(''); setModalOpen(true);
-  };
+  const openNew = () => setModalOpen(true);
   const openEdit = (s: Sistema) => {
     setDetailItem(s);
     setEditId(s.id);
@@ -163,9 +161,22 @@ export default function SistemasPage() {
   const [fOrigem, setFOrigem] = useState('');
   const filtrosAtivos = !!fOrigem;
   const limparFiltros = () => { setFOrigem(''); };
+  const sistemaTemRateioNoCluster = (s: Sistema) =>
+    !!fCluster && !!clusterSelecionado && (s.clustersRateio || []).some(c =>
+      c.cluster === clusterSelecionado.nome || c.cluster === fCluster,
+    );
+  const fatorRateioCluster = (s: Sistema): number => {
+    if (!fCluster || !clusterSelecionado) return 1;
+    const rateio = (s.clustersRateio || []).find(c =>
+      c.cluster === clusterSelecionado.nome || c.cluster === fCluster,
+    )?.rateio;
+    return (rateio ?? 100) / 100;
+  };
+  const custoMensalEscopo = (s: Sistema) => (s.custo_variavel_por_uso || 0) * fatorRateioCluster(s);
   const itensFiltrados = useMemo(() => items.filter(s =>
+    (!fCluster || nomesSistemasDoEscopo?.has(s.nome) || sistemaTemRateioNoCluster(s)) &&
     (!fOrigem || s.origem === fOrigem)
-  ), [items, fOrigem]);
+  ), [items, fCluster, nomesSistemasDoEscopo, clusterSelecionado, fOrigem]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('origem');
@@ -199,16 +210,16 @@ export default function SistemasPage() {
         </button>
       </div>
       <PageStats stats={[
-        { label: 'Sistemas', value: String(items.length), tooltip: 'Total de sistemas cadastrados.' },
+        { label: 'Sistemas', value: String(itensFiltrados.length), tooltip: 'Sistemas no escopo atual dos filtros.' },
         {
           label: 'Custo mensal total',
-          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custo_variavel_por_uso || 0), 0)),
-          tooltip: 'Soma dos custos mensais de todos os sistemas.',
+          value: formatarMoeda(itensFiltrados.reduce((acc, s) => acc + custoMensalEscopo(s), 0)),
+          tooltip: 'Soma dos custos mensais dos sistemas no escopo atual.',
         },
         {
           label: 'Custo anual total',
-          value: formatarMoeda(items.reduce((acc, s) => acc + (s.custo_variavel_por_uso || 0), 0) * 12),
-          tooltip: 'Projeção anual dos custos mensais (× 12).',
+          value: formatarMoeda(itensFiltrados.reduce((acc, s) => acc + custoMensalEscopo(s), 0) * 12),
+          tooltip: 'Projeção anual dos custos mensais do escopo atual.',
         },
       ]} />
       <FiltrosBar
@@ -232,8 +243,11 @@ export default function SistemasPage() {
                 style={{ position: 'relative', cursor: 'pointer' }}
                 role="button"
                 tabIndex={0}
-                onClick={() => openDetail(s)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(s); } }}
+                onClick={(e) => {
+                  if (shouldIgnoreOpenClick(e)) return;
+                  openDetail(s);
+                }}
+                onKeyDown={(e) => openOnActivationKey(e, () => openDetail(s))}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <h3><Tooltip text={dica('sistemas.card.titulo')}>{s.nome}</Tooltip></h3>
@@ -271,27 +285,7 @@ export default function SistemasPage() {
         )}
       />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <div className="modal">
-          <h2>Novo Sistema</h2>
-          <FormField label="Nome do Sistema" error={error} required tooltip={dica('sistemas.form.nome')}>
-            <input type="text" value={nome} onChange={(e) => { setNome(e.target.value); if (error) setError(''); }} placeholder="Digite o nome do sistema" />
-          </FormField>
-          <FormField label="Descrição" tooltip={dica('sistemas.form.descricao')}>
-            <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Digite a descrição do sistema" />
-          </FormField>
-          <FormField label="Origem" tooltip={dica('sistemas.form.origem')}>
-            <Select value={origem} onChange={setOrigem} options={ORIGEM_OPCOES} />
-          </FormField>
-          <FormField label="Custo mensal" tooltip={dica('sistemas.form.custoVariavel')}>
-            <input type="text" value={variavel} onChange={(e) => setVariavel(e.target.value)} placeholder="Ex: R$ 500,00 / mês" />
-          </FormField>
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>
-            <button className="btn-save" onClick={handleSave} disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </Modal>
+      <NovoSistemaModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)}>
         <div className="modal">

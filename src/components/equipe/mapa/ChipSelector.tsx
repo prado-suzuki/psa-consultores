@@ -12,6 +12,9 @@ interface ChipSelectorProps {
   withHours?: boolean;
   compact?: boolean;
   addLabel?: string;
+  /** Abre o cadastro da entidade direto da lista suspensa ("+ Cadastrar novo"). */
+  onAddNew?: () => void;
+  addNewLabel?: string;
 }
 
 const isString = (v: ChipItem): v is string => typeof v === 'string';
@@ -32,6 +35,8 @@ export default function ChipSelector({
   withHours,
   compact,
   addLabel = 'Adicionar',
+  onAddNew,
+  addNewLabel = 'Cadastrar novo',
 }: ChipSelectorProps) {
   const getNome = (item: ChipItem) => (isString(item) ? item : item.nome);
 
@@ -102,6 +107,7 @@ export default function ChipSelector({
                 options={options.map((o) => ({ value: o, label: o, disabled: otherNames.includes(o) }))}
                 placeholder="Selecione..."
                 compact={compact}
+                footerAction={onAddNew ? { label: addNewLabel, onClick: onAddNew } : undefined}
               />
               {withVolume && isDocRef(item) && (
                 <DecimalInput
@@ -137,7 +143,7 @@ export default function ChipSelector({
           type="button"
           className="btn-chip-add"
           onClick={handleAdd}
-          disabled={options.length === 0}
+          disabled={options.length === 0 && !onAddNew}
         >
           {addLabel}
         </button>

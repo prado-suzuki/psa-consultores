@@ -12,24 +12,14 @@ import { agrupar } from '@/utils/agrupar';
 import { formatDecimal } from '@/utils/format';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Documento, EstruturacaoDoc } from '@/types';
-import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
-import { useDocumentos, useCreateDocumento, useUpdateDocumento, useDeleteDocumento } from '@/hooks/useDocumentos';
-
-const ESTRUTURADO_OPCOES: EstruturacaoDoc[] = ['Não Estruturado', 'Semi Estruturado', 'Estruturado'];
-const FORMATO_OPCOES_LIST = ['PDF', 'Word', 'Excel', 'PowerPoint', 'Markdown', 'Texto'];
-const TIPO_OPCOES = [
-  { value: 'Planilha', label: 'Planilha' },
-  { value: 'Registro digital', label: 'Registro digital' },
-  { value: 'Protocolo', label: 'Protocolo' },
-  { value: 'Relatório', label: 'Relatório' },
-  { value: 'Comprovante', label: 'Comprovante' },
-];
-const ORIGEM_OPCOES = [
-  { value: 'Interno', label: 'Interno' },
-  { value: 'Cliente', label: 'Cliente' },
-];
-const ESTRUTURADO_SELECT_OPCOES = ESTRUTURADO_OPCOES.map((o) => ({ value: o, label: o }));
+import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
+import { useDocumentos, useUpdateDocumento, useDeleteDocumento } from '@/hooks/useDocumentos';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import NovoDocumentoModal, {
+  FORMATO_OPCOES_LIST, TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, deriveEstruturado,
+} from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
 
 // Opções de filtro (com "Todos")
 const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
@@ -44,46 +34,64 @@ const ORGANIZAR_OPCOES = [
   { value: 'formato', label: 'Por formato' },
 ];
 
-// Condicionamento da estrutura derivado do formato do documento.
-const deriveEstruturado = (formato: string): EstruturacaoDoc | '' => {
-  if (formato === 'Excel') return 'Estruturado';
-  if (formato === 'Word' || formato === 'Texto') return 'Semi Estruturado';
-  if (formato === 'PDF' || formato === 'PowerPoint' || formato === 'Markdown') return 'Não Estruturado';
-  return '';
-};
-
 export default function DocumentosPage() {
   const { data: items = [], isLoading: docsLoading } = useDocumentos();
   const loaded = !docsLoading;
-  const createDoc = useCreateDocumento();
   const updateDoc = useUpdateDocumento();
   const deleteDoc = useDeleteDocumento();
   const [modalOpen, setModalOpen] = useState(false);
   const [confirmDel, setConfirmDel] = useState<Documento | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [nome, setNome] = useState('');
-  const [tipo, setTipo] = useState('');
-  const [formato, setFormato] = useState('');
-  const [origem, setOrigem] = useState('Interno');
-  const [estrutura, setEstrutura] = useState('');
-  const [estruturado, setEstruturado] = useState<EstruturacaoDoc | ''>('');
-  const [error, setError] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
 
   // Filtros
   const [fOrigem, setFOrigem] = useState('');
   const [fFormato, setFFormato] = useState('');
   const [fEstruturado, setFEstruturado] = useState('');
   const [fTipo, setFTipo] = useState('');
+  const { cluster: fCluster } = useClusterGlobal();
 
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: sis = [] } = useSistemasLista();
   const { data: resps = [] } = useResponsaveisLista();
   const { data: processos = [] } = useProcessosLista();
+  const { data: projetos = [] } = useProjetosLista();
   const etapas = useMemo(
     () => enrichEtapas(rawEtapas, items, sis, resps),
     [rawEtapas, items, sis, resps],
   );
+  const clusterIdPorProjeto = useMemo(
+    () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
+    [projetos],
+  );
+  const processoIdsDoEscopo = useMemo(
+    () => new Set(
+      processos
+        .filter(p => !fCluster || (p.project_id ? clusterIdPorProjeto.get(p.project_id) || '' : '') === fCluster)
+        .map(p => p.id),
+    ),
+    [processos, fCluster, clusterIdPorProjeto],
+  );
+  const etapasDoEscopo = useMemo(
+    () => etapas.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
+    [etapas, fCluster, processoIdsDoEscopo],
+  );
+  const nomesDocumentosDoEscopo = useMemo(() => {
+    if (!fCluster) return null;
+    const nomes = new Set<string>();
+    const addRefs = (refs?: ({ nome?: string } | string)[]) => {
+      for (const ref of refs || []) {
+        if (typeof ref === 'string') nomes.add(ref);
+        else if (ref?.nome) nomes.add(ref.nome);
+      }
+    };
+    for (const etapa of etapasDoEscopo) {
+      addRefs(etapa.docsEntrada);
+      addRefs(etapa.docsSaida);
+      addRefs(etapa.ficou?.docsEntrada);
+      addRefs(etapa.ficou?.docsSaida);
+    }
+    return nomes;
+  }, [fCluster, etapasDoEscopo]);
 
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<Documento | null>(null);
@@ -133,7 +141,7 @@ export default function DocumentosPage() {
   // volume de todos os projetos ativos. Calculado por cenário.
   const tempoElaboracao = (docNome: string, ficou: boolean): number => {
     let total = 0;
-    for (const e of etapas) {
+    for (const e of etapasDoEscopo) {
       const docsSaida = (ficou ? (e.ficou?.docsSaida ?? e.docsSaida) : e.docsSaida) || [];
       const ehSaida = docsSaida.some((d) => (typeof d === 'string' ? d : d.nome) === docNome);
       if (!ehSaida) continue;
@@ -146,31 +154,7 @@ export default function DocumentosPage() {
     return total;
   };
 
-  const handleSave = async () => {
-    if (!nome.trim()) { setError('Preencha o nome do documento.'); return; }
-    setError('');
-    setIsSaving(true);
-    try {
-      await createDoc.mutateAsync({
-        nome: nome.trim(),
-        tipo: tipo.trim(),
-        formato,
-        origem,
-        tempo_minutos: 0,
-        estrutura_entrada: (estrutura || undefined) as Documento['estrutura_entrada'],
-        estruturado: (estruturado || undefined) as EstruturacaoDoc | undefined,
-      });
-      toast.success('Documento criado');
-      setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado('');
-      setModalOpen(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const openNew = () => { setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado(''); setError(''); setModalOpen(true); };
+  const openNew = () => setModalOpen(true);
   const openDetail = (d: Documento) => {
     setDetailItem(d);
     setDetailOpen(true);
@@ -230,11 +214,12 @@ export default function DocumentosPage() {
   const filtrosAtivos = !!(fOrigem || fFormato || fEstruturado || fTipo);
   const limparFiltros = () => { setFOrigem(''); setFFormato(''); setFEstruturado(''); setFTipo(''); };
   const filtered = useMemo(() => items.filter((d) =>
+    (!fCluster || nomesDocumentosDoEscopo?.has(d.nome)) &&
     (!fOrigem || d.origem === fOrigem) &&
     (!fFormato || d.formato === fFormato) &&
     (!fEstruturado || d.estruturado === fEstruturado) &&
     (!fTipo || d.tipo === fTipo)
-  ), [items, fOrigem, fFormato, fEstruturado, fTipo]);
+  ), [items, fCluster, nomesDocumentosDoEscopo, fOrigem, fFormato, fEstruturado, fTipo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
   const [organizar, setOrganizar] = useState('tipo');
@@ -265,23 +250,23 @@ export default function DocumentosPage() {
       <PageStats stats={[
         {
           label: 'Documentos',
-          value: String(items.length),
-          tooltip: 'Total de documentos cadastrados no projeto.',
+          value: String(filtered.length),
+          tooltip: 'Documentos no escopo atual dos filtros.',
         },
         {
           label: 'Internos',
-          value: String(items.filter(d => d.origem === 'Interno').length),
-          tooltip: 'Documentos produzidos internamente pela equipe PSA.',
+          value: String(filtered.filter(d => d.origem === 'Interno').length),
+          tooltip: 'Documentos internos no escopo atual.',
         },
         {
           label: 'Do cliente',
-          value: String(items.filter(d => d.origem === 'Cliente').length),
-          tooltip: 'Documentos fornecidos pelo cliente.',
+          value: String(filtered.filter(d => d.origem === 'Cliente').length),
+          tooltip: 'Documentos do cliente no escopo atual.',
         },
         {
           label: 'Tempo elab./mês',
-          value: formatDecimal(items.reduce((sum, d) => sum + tempoElaboracao(d.nome, false), 0), 'h'),
-          tooltip: 'Carga mensal de elaboração: Σ (horas exec + revisão) × volume mensal das etapas que produzem cada documento. Já considera todos os projetos ativos.',
+          value: formatDecimal(filtered.reduce((sum, d) => sum + tempoElaboracao(d.nome, false), 0), 'h'),
+          tooltip: 'Carga mensal de elaboração dos documentos no escopo atual.',
         },
       ]} />
       <FiltrosBar
@@ -318,8 +303,11 @@ export default function DocumentosPage() {
               className="doc-table-row clickable"
               role="button"
               tabIndex={0}
-              onClick={() => openDetail(d)}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(d); } }}
+              onClick={(e) => {
+                if (shouldIgnoreOpenClick(e)) return;
+                openDetail(d);
+              }}
+              onKeyDown={(e) => openOnActivationKey(e, () => openDetail(d))}
             >
               <div className="doc-col-icon">
                 <span className="doc-format-icon" title={d.formato || ''}>DOC</span>
@@ -361,48 +349,7 @@ export default function DocumentosPage() {
         )}
       />
 
-      <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)}>
-        <div className="modal">
-          <h2>Novo Documento</h2>
-          <FormField label="Nome do Documento" error={error} required tooltip={dica('documentos.form.nome')}>
-            <input type="text" value={nome} onChange={(e) => { setNome(e.target.value); if (error) setError(''); }} placeholder="Digite o nome" />
-          </FormField>
-          <FormField label="Tipo" tooltip={dica('documentos.form.tipo')}>
-            <Select value={tipo} onChange={setTipo} options={TIPO_OPCOES} placeholder="Selecione..." />
-          </FormField>
-          <FormField label="Formato" tooltip={dica('documentos.form.formato')}>
-            <Select
-              value={formato}
-              onChange={(v) => { setFormato(v); const derivado = deriveEstruturado(v); if (derivado) setEstruturado(derivado); }}
-              options={FORMATO_SELECT_OPCOES}
-              placeholder="Selecione..."
-            />
-          </FormField>
-          <FormField label="Origem" tooltip={dica('documentos.form.origem')}>
-            <Select value={origem} onChange={setOrigem} options={ORIGEM_OPCOES} />
-          </FormField>
-          <FormField label="Estruturado" tooltip={dica('documentos.form.estruturado')}>
-            <Select
-              value={estruturado}
-              onChange={(v) => setEstruturado(v as EstruturacaoDoc | '')}
-              options={ESTRUTURADO_SELECT_OPCOES}
-              placeholder="Selecione..."
-            />
-          </FormField>
-          <FormField label="Descrição" tooltip={dica('documentos.form.descricao')}>
-            <textarea
-              value={estrutura}
-              onChange={(e) => setEstrutura(e.target.value)}
-              placeholder="Descrição do documento e como é usado no processo"
-              rows={3}
-            />
-          </FormField>
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setModalOpen(false)}>Cancelar</button>
-            <button className="btn-save" onClick={handleSave} disabled={isSaving}>{isSaving ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </Modal>
+      <NovoDocumentoModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
 
       <Modal isOpen={editOpen} onClose={() => setEditOpen(false)}>
         <div className="modal">

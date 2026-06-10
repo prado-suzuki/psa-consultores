@@ -15,14 +15,15 @@ import type { Melhoria, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
 import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import { useFocusParam } from '@/utils/useFocusParam';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import { useGargalosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
 import { useMelhorias, useCreateMelhoria, useUpdateMelhoria, useDeleteMelhoria } from '@/hooks/useMelhorias';
-import { useClusters, useClusterCadastroOpcoes, useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
 
 const STATUS_FILTRO_OPCOES = [{ value: '', label: 'Todos os status' }, ...MELHORIA_STATUSES.map(s => ({ value: s, label: s }))];
 
 const ORGANIZAR_OPCOES = [
-  { value: 'cluster', label: 'Por cluster' },
   { value: 'status', label: 'Por status' },
   { value: 'processo', label: 'Por processo' },
 ];
@@ -132,8 +133,6 @@ export default function MelhoriasPage() {
   const updateMelhoria = useUpdateMelhoria();
   const deleteMelhoria = useDeleteMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
-  const { data: clusters = [] } = useClusters();
   const focusId = useFocusParam();
 
   const { data: gargalosList = [] } = useGargalosLista();
@@ -182,7 +181,6 @@ export default function MelhoriasPage() {
   // Estados — criação
   const [modalOpen, setModalOpen] = useState(false);
   const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
   const [status, setStatus] = useState<MelhoriaStatus>('Não iniciado');
   const [clusterId, setClusterId] = useState('');
   const [processosNomes, setProcessosNomes] = useState<string[]>([]);
@@ -198,7 +196,6 @@ export default function MelhoriasPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editId, setEditId] = useState<string>('');
   const [editNome, setEditNome] = useState('');
-  const [editDescricao, setEditDescricao] = useState('');
   const [editStatus, setEditStatus] = useState<MelhoriaStatus>('Não iniciado');
   const [editClusterId, setEditClusterId] = useState('');
   const [editProcessosNomes, setEditProcessosNomes] = useState<string[]>([]);
@@ -226,13 +223,13 @@ export default function MelhoriasPage() {
     if (m) openDetail(m);
   }, [loaded, focusId, items]);
 
-  // Filtros
-  const [fCluster, setFCluster] = useState('');
+  // Filtros (cluster vem do seletor global no header)
+  const { cluster: fCluster } = useClusterGlobal();
   const [fStatus, setFStatus] = useState('');
   const [fProcesso, setFProcesso] = useState('');
   const [fGargalo, setFGargalo] = useState('');
-  const filtrosAtivos = !!(fCluster || fStatus || fProcesso || fGargalo);
-  const limparFiltros = () => { setFCluster(''); setFStatus(''); setFProcesso(''); setFGargalo(''); };
+  const filtrosAtivos = !!(fStatus || fProcesso || fGargalo);
+  const limparFiltros = () => { setFStatus(''); setFProcesso(''); setFGargalo(''); };
   // Filtro por gargalo: agora N:M (gargalo_melhorias) — a melhoria carrega `gargalos`.
   const itensFiltrados = useMemo(() => items.filter(m =>
     (!fCluster || m.cluster_id === fCluster) &&
@@ -242,11 +239,10 @@ export default function MelhoriasPage() {
   ), [items, fCluster, fStatus, fProcesso, fGargalo]);
 
   // Organizador (primeiro filtro): agrupa em cards expansíveis.
-  const [organizar, setOrganizar] = useState('cluster');
+  const [organizar, setOrganizar] = useState('status');
   const grupos = useMemo(() => {
-    if (organizar === 'status') return agrupar(itensFiltrados, (m) => [m.improvement_status || 'Não iniciado'], MELHORIA_STATUSES.map((s) => ({ value: s, label: s })), 'Sem status');
     if (organizar === 'processo') return agrupar(itensFiltrados, (m) => m.processos || [], processoOptionsOrdenado.map((p) => ({ value: p.id, label: p.name })), 'Sem processo');
-    return agrupar(itensFiltrados, (m) => [m.cluster_id || ''], clusters.map(c => ({ value: c.id, label: c.nome })), 'Sem cluster');
+    return agrupar(itensFiltrados, (m) => [m.improvement_status || 'Não iniciado'], MELHORIA_STATUSES.map((s) => ({ value: s, label: s })), 'Sem status');
   }, [organizar, itensFiltrados, processoOptionsOrdenado]);
 
   // ----- helpers genéricos de rateio (DRY entre executadoPor / treinamentoPor) -----
@@ -280,7 +276,6 @@ export default function MelhoriasPage() {
   const openEdit = (m: Melhoria) => {
     setEditId(m.id);
     setEditNome(m.improvement_description);
-    setEditDescricao(m.improvement_description || '');
     setEditStatus((m.improvement_status as MelhoriaStatus) || 'Não iniciado');
     setEditClusterId(m.cluster_id || '');
     setEditProcessosNomes(idsToNames(m.processos || []));
@@ -319,9 +314,7 @@ export default function MelhoriasPage() {
         id: editId,
         old,
         patch: {
-          // DB tem só `improvement_description` — concatenamos título + corpo
-          // (antes do refator, melhoriaFromDb retornava ambos como o mesmo valor).
-          improvement_description: editDescricao.trim() || editNome.trim(),
+          improvement_description: editNome.trim(),
           improvement_status: editStatus,
           cluster_id: editClusterId || undefined,
           processos: namesToIds(editProcessosNomes),
@@ -350,7 +343,7 @@ export default function MelhoriasPage() {
     const horasTotal  = sumHoras(treinoLimpo);
     try {
       await createMelhoria.mutateAsync({
-        improvement_description: descricao.trim() || nome.trim(),
+        improvement_description: nome.trim(),
         improvement_status: status,
         cluster_id: clusterId || undefined,
         processos: namesToIds(processosNomes),
@@ -362,7 +355,7 @@ export default function MelhoriasPage() {
         one_time_external_cost: parseMoeda(custoExternoUnico),
       });
       toast.success('Melhoria criada');
-      setNome(''); setDescricao(''); setStatus('Não iniciado'); setClusterId('');
+      setNome(''); setStatus('Não iniciado'); setClusterId('');
       setProcessosNomes([]); setSistemas([]); setAcoesTd([]);
       setExecutadoPor([]); setTreinamentoPor([]); setCustoExternoUnico('');
       setModalOpen(false);
@@ -375,7 +368,6 @@ export default function MelhoriasPage() {
 
   const openNew = () => {
     setNome('');
-    setDescricao('');
     setStatus('Não iniciado');
     setClusterId('');
     setProcessosNomes([]);
@@ -410,18 +402,17 @@ export default function MelhoriasPage() {
         </button>
       </div>
       <PageStats stats={[
-        { label: 'Melhorias', value: String(items.length), tooltip: 'Total de melhorias cadastradas.' },
-        { label: 'Concluídas', value: String(items.filter(m => m.improvement_status === 'Concluído').length), tooltip: 'Melhorias com status Concluído.' },
-        { label: 'Em progresso', value: String(items.filter(m => m.improvement_status === 'Em progresso').length), tooltip: 'Melhorias atualmente em execução.' },
-        { label: 'Horas treino', value: formatDecimal(items.reduce((s, m) => s + (m.training_hours || 0), 0), 'h'), tooltip: 'Soma das horas de treinamento estimadas.' },
-        { label: 'Custo externo', value: formatarMoeda(items.reduce((s, m) => s + (m.one_time_external_cost || 0), 0)), tooltip: 'Soma dos custos externos únicos registrados.' },
+        { label: 'Melhorias', value: String(itensFiltrados.length), tooltip: 'Melhorias no escopo atual dos filtros.' },
+        { label: 'Concluídas', value: String(itensFiltrados.filter(m => m.improvement_status === 'Concluído').length), tooltip: 'Melhorias concluídas no escopo atual.' },
+        { label: 'Em progresso', value: String(itensFiltrados.filter(m => m.improvement_status === 'Em progresso').length), tooltip: 'Melhorias em execução no escopo atual.' },
+        { label: 'Horas treino', value: formatDecimal(itensFiltrados.reduce((s, m) => s + (m.training_hours || 0), 0), 'h'), tooltip: 'Horas de treinamento estimadas no escopo atual.' },
+        { label: 'Custo externo', value: formatarMoeda(itensFiltrados.reduce((s, m) => s + (m.one_time_external_cost || 0), 0)), tooltip: 'Custos externos únicos no escopo atual.' },
       ]} />
       <FiltrosBar
         ativo={filtrosAtivos}
         onLimpar={limparFiltros}
         filtros={[
           { id: 'fm-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
-          { id: 'fm-cluster', label: 'Cluster', value: fCluster, onChange: setFCluster, options: CLUSTER_FILTRO_OPCOES, tooltip: dica('comum.filtro.cluster') },
           { id: 'fm-status', label: 'Status', value: fStatus, onChange: setFStatus, options: STATUS_FILTRO_OPCOES, tooltip: dica('melhorias.filtro.status') },
           { id: 'fm-processo', label: 'Processo', value: fProcesso, onChange: setFProcesso, options: [{ value: '', label: 'Todos os processos' }, ...processoOptionsOrdenado.map(p => ({ value: p.id, label: p.name }))], tooltip: dica('melhorias.filtro.processo') },
           { id: 'fm-gargalo', label: 'Gargalo resolvido', value: fGargalo, onChange: setFGargalo, options: [{ value: '', label: 'Todos os gargalos' }, ...gargalosList.map(g => ({ value: g.id, label: g.nome }))], tooltip: dica('melhorias.filtro.gargalo') },
@@ -440,8 +431,11 @@ export default function MelhoriasPage() {
                 style={{ position: 'relative', cursor: 'pointer' }}
                 role="button"
                 tabIndex={0}
-                onClick={() => openDetail(m)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(m); } }}
+                onClick={(e) => {
+                  if (shouldIgnoreOpenClick(e)) return;
+                  openDetail(m);
+                }}
+                onKeyDown={(e) => openOnActivationKey(e, () => openDetail(m))}
                 aria-label={`Ver detalhes de ${m.improvement_description}`}
               >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -475,7 +469,6 @@ export default function MelhoriasPage() {
                 ))}
               </div>
             )}
-            <p>{m.improvement_description || 'Sem descrição.'}</p>
             {m.acoesTd && m.acoesTd.length > 0 && (
               <div style={{ marginTop: 8 }}>
                 <div style={{
@@ -577,12 +570,6 @@ export default function MelhoriasPage() {
                       </span>
                     ))}
                   </div>
-                </div>
-              )}
-              {detailItem.improvement_description && (
-                <div className="form-group compact">
-                  <label>Descrição</label>
-                  <div>{detailItem.improvement_description}</div>
                 </div>
               )}
               {detailItem.acoesTd && detailItem.acoesTd.length > 0 && (
@@ -744,13 +731,6 @@ export default function MelhoriasPage() {
               addLabel="Adicionar processo"
             />
           </FormField>
-          <FormField label="Descrição" tooltip={dica('melhorias.form.descricao')}>
-            <textarea
-              value={descricao}
-              onChange={(e) => setDescricao(e.target.value)}
-              placeholder="Descreva a melhoria implementada"
-            />
-          </FormField>
           <FormField label="Ações TD" tooltip={dica('melhorias.form.acoesTd')}>
             <ChipSelector
               options={ACOES_TD as unknown as string[]}
@@ -817,13 +797,6 @@ export default function MelhoriasPage() {
               value={editProcessosNomes}
               onChange={(v) => setEditProcessosNomes(v as string[])}
               addLabel="Adicionar processo"
-            />
-          </FormField>
-          <FormField label="Descrição" tooltip={dica('melhorias.form.descricao')}>
-            <textarea
-              value={editDescricao}
-              onChange={(e) => setEditDescricao(e.target.value)}
-              placeholder="Descreva a melhoria implementada"
             />
           </FormField>
           <FormField label="Ações TD" tooltip={dica('melhorias.form.acoesTd')}>

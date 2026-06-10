@@ -5,8 +5,9 @@
 // etapas que o consomem re-executam (e as seguintes do processo também) →
 // seus documentos de saída ficam desatualizados → propaga. Esta página:
 //
-//   1. Rail esquerdo: gargalos com etapasOrigem.length > 0, com busca e
-//      filtro de cluster integrados, seleção com indicador animado.
+//   1. Rail esquerdo: gargalos com etapasOrigem.length > 0, com busca
+//      integrada (cluster vem do seletor global no header), seleção com
+//      indicador animado.
 //   2. Ao selecionar, deriva a BFS em tempo real (cascataDocumento) e monta
 //      o grafo executivo por ondas (cascataGraph), renderizado pelo
 //      CascataCanvas: colunas Gargalo → Origem → 1ª onda → ... com conectores
@@ -19,9 +20,8 @@ import { useGargalos } from '@/hooks/useGargalos';
 import { useEtapas } from '@/hooks/useEtapas';
 import { useDocumentos } from '@/hooks/useDocumentos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/contexts/MapaClusterContext';
 import PageStats from '@/components/equipe/mapa/PageStats';
-import Select from '@/components/equipe/mapa/Select';
 import CascataCanvas from '@/components/equipe/mapa/cascata/CascataCanvas';
 import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataDocumento';
 import { buildCascataGraph } from '@/utils/cascataGraph';
@@ -39,11 +39,11 @@ export default function CascataPage() {
   const { data: etapas = [], isLoading: eLoading } = useEtapas();
   const { data: docs = [], isLoading: dLoading } = useDocumentos();
   const { data: processos = [], isLoading: pLoading } = useProcessos();
-  const CLUSTER_OPCOES = useClusterFiltroOpcoes();
 
   const loaded = !gLoading && !eLoading && !dLoading && !pLoading;
 
-  const [fCluster, setFCluster] = useState('');
+  // Cluster vem do seletor global no header.
+  const { cluster: fCluster } = useClusterGlobal();
   const [busca, setBusca] = useState('');
 
   const gargalosComCascata = useMemo<Gargalo[]>(() => {
@@ -156,14 +156,6 @@ export default function CascataPage() {
                 aria-label="Buscar gargalo"
               />
             </div>
-            <Select
-              id="casc-cluster"
-              value={fCluster}
-              onChange={setFCluster}
-              options={CLUSTER_OPCOES}
-              compact
-              ariaLabel="Filtrar por cluster"
-            />
           </div>
 
           <div className="cascata-rail-count">

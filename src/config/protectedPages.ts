@@ -451,15 +451,6 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  {
-    page_path: '/equipe/digital/mapa/notas-metodologicas',
-    page_name: 'MAPA - Notas metodológicas',
-    page_description: 'Premissas, fórmulas e referências do diagnóstico',
-    category: 'mapa',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-
   // =============================================
   // === TAX PAGES ===
   // =============================================
