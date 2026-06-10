@@ -24,7 +24,7 @@ export function gerarDocumento(template: Template, contexto: Contexto, flagsAtiv
 export type { Bloco, Template, Contexto, TipoBloco } from './types';
 export { TIPOS_BLOCO, LABEL_TIPO_BLOCO } from './types';
 export { comporBlocos } from './composition';
-export { numerarBlocos, unirBlocos } from './numeracao';
+export { numerarBlocos, unirBlocos, rotulosNumeracao } from './numeracao';
 export { renderConteudo, extrairCampos } from './render';
 export { extrairRunsLinha, removerMarcas, MARCA } from './marcas';
 export type { Marcas, RunMarcado } from './marcas';

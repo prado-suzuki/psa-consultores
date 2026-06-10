@@ -56,6 +56,39 @@ export function numerarBlocos(blocos: Bloco[]): Bloco[] {
 }
 
 /**
+ * Calcula apenas o RÓTULO de numeração de cada bloco (sem mexer no conteúdo),
+ * seguindo a mesma regra de `numerarBlocos`. Usado pela UI da Montagem para
+ * exibir o chip "CAPÍTULO I" / "CLÁUSULA 1ª" / "Parágrafo Único" em cada bloco
+ * sem duplicar a lógica. Blocos livres (ou sem tipo) devolvem `null`.
+ */
+export function rotulosNumeracao(blocos: Bloco[]): (string | null)[] {
+  let nCapitulo = 0;
+  let nClausula = 0;
+
+  return blocos.map((bloco, i) => {
+    switch (bloco.tipo) {
+      case 'capitulo':
+        nCapitulo += 1;
+        return `CAPÍTULO ${romano(nCapitulo)}`;
+      case 'clausula':
+        nClausula += 1;
+        return `CLÁUSULA ${ordinalExtenso(nClausula, 'f').toUpperCase()}`;
+      case 'paragrafo': {
+        let inicio = i;
+        while (inicio > 0 && blocos[inicio - 1].tipo === 'paragrafo') inicio -= 1;
+        let fim = i;
+        while (fim < blocos.length - 1 && blocos[fim + 1].tipo === 'paragrafo') fim += 1;
+        return fim === inicio
+          ? 'Parágrafo Único'
+          : `Parágrafo ${capitalizarPalavras(ordinalExtenso(i - inicio + 1, 'm'))}`;
+      }
+      default:
+        return null;
+    }
+  });
+}
+
+/**
  * Une os conteúdos em texto final: parágrafo cola na cláusula anterior com
  * quebra simples; os demais blocos separam-se com linha em branco.
  */
