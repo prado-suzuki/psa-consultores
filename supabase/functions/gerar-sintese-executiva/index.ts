@@ -26,6 +26,15 @@ serve(async (req) => {
     // Use service role for cross-user data access
     const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Role guard: only lider/admin may access HR performance data
+    const callerId = claims.claims.sub as string;
+    const { data: roleRows } = await adminClient.from("user_roles").select("role").eq("user_id", callerId);
+    const roles = new Set((roleRows ?? []).map((r: any) => r.role));
+    if (!roles.has("admin") && !roles.has("lider")) {
+      return new Response(JSON.stringify({ error: "Forbidden: requires lider role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+
     // Check cache first (6 hours)
     const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString();
     const { data: cached } = await adminClient
