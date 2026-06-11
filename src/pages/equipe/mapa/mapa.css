@@ -12,6 +12,14 @@
   --secondary-color: #1e293b;
   --accent-color: #0d9488;
   --accent-green: #8bc63f;
+
+  /* Rampa tonal do accent (teal Tailwind) — barra global de cliente */
+  --accent-50:  #f0fdfa;
+  --accent-100: #ccfbf1;
+  --accent-200: #99f6e4;
+  --accent-400: #2dd4bf;
+  --accent-700: #0f766e;
+  --accent-800: #115e59;
   --text-color: #f1f5f9;
   --bg-color: #f8fafc;
   --danger-color: #ef4444;
@@ -2493,15 +2501,119 @@ h1{
   align-self: center;
 }
 
+/* ---------- Barra global de cliente (paridade visual OSG Work) ---------- */
+.app-root .cluster-bar{
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 30px;
+  background: rgba(240, 253, 250, 0.45);   /* accent-50 a 45% — estado calmo */
+  border-bottom: 1px solid var(--accent-100);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.app-root .cluster-bar.sem-cluster{
+  background: var(--accent-50);
+}
+
+.cluster-bar-id{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+.cluster-bar-icon{
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-100);
+  color: var(--accent-700);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.cluster-bar.sem-cluster .cluster-bar-icon{
+  background: var(--accent-color);
+  color: #fff;
+  transition: none;
+  animation: cluster-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+.cluster-bar-label{
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-700);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cluster-bar-select{
+  flex: 1;
+  max-width: 448px;
+}
+.cluster-bar-select .custom-select-trigger{
+  background: #fff;
+  font-weight: 500;
+  border-color: var(--accent-200);
+}
+.cluster-bar.sem-cluster .cluster-bar-select .custom-select-trigger{
+  border: 2px solid var(--accent-400);
+  box-shadow: 0 0 0 2px var(--accent-100);
+}
+
+.cluster-bar-hint{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-800);
+}
+.cluster-bar-working{
+  font-size: 0.78rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: cluster-fade-in 0.3s ease;
+}
+.cluster-bar-working strong{
+  color: var(--on-surface);
+  font-weight: 600;
+}
+
+@keyframes cluster-pulse{
+  0%, 100%{
+    opacity: 1;
+    box-shadow: 0 0 0 0   rgba(13,148,136,0.5),
+                0 0 0 4px rgba(13,148,136,0.15);
+  }
+  50%{
+    opacity: 0.5;
+    box-shadow: 0 0 0 6px rgba(13,148,136,0.0),
+                0 0 0 0   rgba(13,148,136,0.0);
+  }
+}
+@keyframes cluster-fade-in{
+  from{ opacity: 0; transform: translateY(2px); }
+  to{ opacity: 1; transform: none; }
+}
+
+@media (max-width: 768px){
+  .app-root .cluster-bar{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px 16px;
+  }
+  .cluster-bar-id{ gap: 8px; }
+  .cluster-bar-select{ max-width: none; }
+}
+
 /* ---------- Header top com indicador "Status: Online" ---------- */
 .main-content header .header-right{
   display: inline-flex;
   align-items: center;
   gap: 20px;
-}
-.main-content header .header-cluster{
-  display: inline-flex;
-  align-items: center;
 }
 .main-content header .header-status{
   display: inline-flex;

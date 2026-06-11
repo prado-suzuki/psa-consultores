@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
-import { useClusterGlobal } from '@/hooks/useClusterGlobal';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
-import Select from './Select';
+import ClusterBar from './ClusterBar';
 
 export const MAPA_BASE = '/equipe/digital/mapa';
 
@@ -55,24 +53,6 @@ const linksDashboards = [
   { to: `${MAPA_BASE}/setor-evolucao`, label: 'Evolução do Setor' },
 ];
 
-/** Seletor global de cluster — filtra todas as páginas do MAPA. */
-function HeaderClusterSelect() {
-  const { cluster, setCluster } = useClusterGlobal();
-  const opcoes = useClusterFiltroOpcoes();
-  return (
-    <div className="header-cluster">
-      <Select
-        id="cluster-global"
-        value={cluster}
-        onChange={setCluster}
-        options={opcoes}
-        compact
-        ariaLabel="Filtrar todas as páginas por cluster"
-        style={{ minWidth: 200 }}
-      />
-    </div>
-  );
-}
 
 export default function Layout() {
   const location = useLocation();
@@ -225,13 +205,13 @@ export default function Layout() {
         <header>
           <div className="page-title">{pageTitle}</div>
           <div className="header-right">
-            <HeaderClusterSelect />
             <div className="header-status">
               <span className="status-dot" aria-hidden="true" />
               Status: <span className="status-label">Online</span>
             </div>
           </div>
         </header>
+        <ClusterBar />
         <main className="content-body">
           <Outlet />
         </main>
