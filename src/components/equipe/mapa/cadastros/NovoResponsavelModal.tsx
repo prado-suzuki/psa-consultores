@@ -11,11 +11,7 @@ import { parseMoeda } from '@/utils/format';
 import type { Responsavel } from '@/types';
 import { useCreateResponsavel } from '@/hooks/useResponsaveis';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
-
-export const TIPO_OPCOES = [
-  { value: 'Interno', label: 'Interno' },
-  { value: 'Externo', label: 'Externo' },
-];
+import { TIPO_OPCOES } from '@/components/equipe/mapa/cadastros/responsavelOpcoes';
 
 interface NovoResponsavelModalProps {
   isOpen: boolean;

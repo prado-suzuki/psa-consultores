@@ -18,7 +18,7 @@ import { useProcessosLista, useMelhoriasLista } from '@/hooks/useDominioListas';
 import { useEtapas } from '@/hooks/useEtapas';
 import { useGargalos, useCreateGargalo, useUpdateGargalo, useDeleteGargalo } from '@/hooks/useGargalos';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import SeletorEtapasOrigem from '@/components/equipe/mapa/SeletorEtapasOrigem';
 
 const ORIGEM_OPCOES = [

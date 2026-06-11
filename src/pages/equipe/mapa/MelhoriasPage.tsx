@@ -19,7 +19,7 @@ import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGua
 import { useGargalosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
 import { useMelhorias, useCreateMelhoria, useUpdateMelhoria, useDeleteMelhoria } from '@/hooks/useMelhorias';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
 const STATUS_FILTRO_OPCOES = [{ value: '', label: 'Todos os status' }, ...MELHORIA_STATUSES.map(s => ({ value: s, label: s }))];
 

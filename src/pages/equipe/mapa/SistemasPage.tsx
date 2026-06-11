@@ -17,14 +17,20 @@ import type { Sistema } from '@/types';
 import { useEtapasLista, useDocumentosLista, useProcessosLista, useMelhoriasLista, useProjetosLista } from '@/hooks/useDominioListas';
 import { useSistemas, useUpdateSistema, useDeleteSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
-import NovoSistemaModal, { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
+import { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/sistemaOpcoes';
 
 const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
 
 const ORGANIZAR_OPCOES = [
   { value: 'origem', label: 'Por origem' },
 ];
+
+// Rateio do sistema no cluster selecionado — entradas antigas guardam o nome
+// do cluster, as novas o id, por isso o match aceita os dois.
+const rateioNoCluster = (s: Sistema, fCluster: string, clusterNome: string) =>
+  (s.clustersRateio || []).find(c => c.cluster === clusterNome || c.cluster === fCluster);
 
 export default function SistemasPage() {
   const { data: items = [], isLoading: sistemasLoading } = useSistemas();
@@ -161,20 +167,15 @@ export default function SistemasPage() {
   const [fOrigem, setFOrigem] = useState('');
   const filtrosAtivos = !!fOrigem;
   const limparFiltros = () => { setFOrigem(''); };
-  const sistemaTemRateioNoCluster = (s: Sistema) =>
-    !!fCluster && !!clusterSelecionado && (s.clustersRateio || []).some(c =>
-      c.cluster === clusterSelecionado.nome || c.cluster === fCluster,
-    );
   const fatorRateioCluster = (s: Sistema): number => {
     if (!fCluster || !clusterSelecionado) return 1;
-    const rateio = (s.clustersRateio || []).find(c =>
-      c.cluster === clusterSelecionado.nome || c.cluster === fCluster,
-    )?.rateio;
+    const rateio = rateioNoCluster(s, fCluster, clusterSelecionado.nome)?.rateio;
     return (rateio ?? 100) / 100;
   };
   const custoMensalEscopo = (s: Sistema) => (s.custo_variavel_por_uso || 0) * fatorRateioCluster(s);
   const itensFiltrados = useMemo(() => items.filter(s =>
-    (!fCluster || nomesSistemasDoEscopo?.has(s.nome) || sistemaTemRateioNoCluster(s)) &&
+    (!fCluster || nomesSistemasDoEscopo?.has(s.nome) ||
+      (!!clusterSelecionado && !!rateioNoCluster(s, fCluster, clusterSelecionado.nome))) &&
     (!fOrigem || s.origem === fOrigem)
   ), [items, fCluster, nomesSistemasDoEscopo, clusterSelecionado, fOrigem]);
 

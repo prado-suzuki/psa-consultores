@@ -16,15 +16,15 @@ import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGua
 import type { Documento, EstruturacaoDoc } from '@/types';
 import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
 import { useDocumentos, useUpdateDocumento, useDeleteDocumento } from '@/hooks/useDocumentos';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
-import NovoDocumentoModal, {
-  FORMATO_OPCOES_LIST, TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, deriveEstruturado,
-} from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
+import {
+  TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, FORMATO_SELECT_OPCOES, deriveEstruturado,
+} from '@/components/equipe/mapa/cadastros/documentoOpcoes';
 
 // Opções de filtro (com "Todos")
 const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
-const FORMATO_FILTRO_OPCOES = [{ value: '', label: 'Todos os formatos' }, ...FORMATO_OPCOES_LIST.map(f => ({ value: f, label: f }))];
-const FORMATO_SELECT_OPCOES = FORMATO_OPCOES_LIST.map(f => ({ value: f, label: f }));
+const FORMATO_FILTRO_OPCOES = [{ value: '', label: 'Todos os formatos' }, ...FORMATO_SELECT_OPCOES];
 const ESTRUTURADO_FILTRO_OPCOES = [{ value: '', label: 'Todas as estruturas' }, ...ESTRUTURADO_SELECT_OPCOES];
 const TIPO_FILTRO_OPCOES = [{ value: '', label: 'Todos os tipos' }, ...TIPO_OPCOES];
 
@@ -225,7 +225,7 @@ export default function DocumentosPage() {
   const [organizar, setOrganizar] = useState('tipo');
   const grupos = useMemo(() => {
     if (organizar === 'origem') return agrupar(filtered, (d) => [d.origem || ''], ORIGEM_OPCOES, 'Sem origem');
-    if (organizar === 'formato') return agrupar(filtered, (d) => [d.formato || ''], FORMATO_OPCOES_LIST.map(f => ({ value: f, label: f })), 'Sem formato');
+    if (organizar === 'formato') return agrupar(filtered, (d) => [d.formato || ''], FORMATO_SELECT_OPCOES, 'Sem formato');
     return agrupar(filtered, (d) => [d.tipo || ''], TIPO_OPCOES, 'Sem tipo');
   }, [organizar, filtered]);
 

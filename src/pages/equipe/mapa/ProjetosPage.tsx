@@ -4,7 +4,7 @@ import { useProjetos, useCreateProjeto, useUpdateProjeto, useDeleteProjeto, type
 import { useProcessos } from '@/hooks/useProcessos';
 import { useEtapasLista, useMelhoriasLista } from '@/hooks/useDominioListas';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';

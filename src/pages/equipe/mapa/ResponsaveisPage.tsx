@@ -18,8 +18,9 @@ import type { Responsavel } from '@/types';
 import { useEtapasLista, useDocumentosLista, useSistemasLista, useProcessosLista } from '@/hooks/useDominioListas';
 import { useResponsaveis, useUpdateResponsavel, useDeleteResponsavel } from '@/hooks/useResponsaveis';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
-import NovoResponsavelModal, { TIPO_OPCOES } from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
+import { TIPO_OPCOES } from '@/components/equipe/mapa/cadastros/responsavelOpcoes';
 
 const TIPO_FILTRO_OPCOES = [{ value: '', label: 'Todos os tipos' }, ...TIPO_OPCOES];
 

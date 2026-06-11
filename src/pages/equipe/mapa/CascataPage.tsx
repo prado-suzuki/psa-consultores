@@ -20,7 +20,7 @@ import { useGargalos } from '@/hooks/useGargalos';
 import { useEtapas } from '@/hooks/useEtapas';
 import { useDocumentos } from '@/hooks/useDocumentos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import CascataCanvas from '@/components/equipe/mapa/cascata/CascataCanvas';
 import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataDocumento';

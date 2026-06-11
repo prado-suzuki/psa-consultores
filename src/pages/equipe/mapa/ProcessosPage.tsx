@@ -24,7 +24,7 @@ import {
   useEtapasLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { useProcessos, useCreateProcesso, useUpdateProcesso, useDeleteProcesso } from '@/hooks/useProcessos';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
 const STATUS_AVAL_FILTRO_OPCOES = [
   { value: '', label: 'Todos os status' },

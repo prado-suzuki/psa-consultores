@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { MapaClusterProvider, useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import Select from './Select';
 

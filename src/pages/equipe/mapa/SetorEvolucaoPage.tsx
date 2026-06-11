@@ -15,7 +15,7 @@ import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
-import { useClusterGlobal } from '@/contexts/MapaClusterContext';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';

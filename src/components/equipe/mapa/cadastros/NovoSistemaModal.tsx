@@ -10,11 +10,7 @@ import { dica } from '@/utils/tooltips';
 import { parseMoeda } from '@/utils/format';
 import type { Sistema } from '@/types';
 import { useCreateSistema } from '@/hooks/useSistemas';
-
-export const ORIGEM_OPCOES = [
-  { value: 'Interno', label: 'Interno' },
-  { value: 'Externo', label: 'Externo' },
-];
+import { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/sistemaOpcoes';
 
 interface NovoSistemaModalProps {
   isOpen: boolean;
