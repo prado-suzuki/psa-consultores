@@ -8,7 +8,9 @@ function ensureMermaidInit() {
   if (mermaidInitialized) return;
   mermaid.initialize({
     startOnLoad: false,
-    securityLevel: 'loose',
+    // 'strict' re-habilita o sanitizer do Mermaid (DOMPurify) — protege contra XSS
+    // ao injetarmos o SVG via dangerouslySetInnerHTML.
+    securityLevel: 'strict',
     theme: 'base',
     themeVariables: {
       fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
@@ -21,7 +23,9 @@ function ensureMermaidInit() {
       tertiaryColor: '#ffffff',
     },
     flowchart: {
-      htmlLabels: true,
+      // htmlLabels:false força labels via <text> SVG — evita decodificação
+      // de entidades HTML em labels controlados por usuário.
+      htmlLabels: false,
       curve: 'basis',
       padding: 14,
     },

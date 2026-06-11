@@ -30,6 +30,14 @@ serve(async (req) => {
 
     const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
+    // Role guard: only lider/admin may access HR performance data
+    const callerId = claims.claims.sub as string;
+    const { data: roleRows } = await adminClient.from("user_roles").select("role").eq("user_id", callerId);
+    const roles = new Set((roleRows ?? []).map((r: any) => r.role));
+    if (!roles.has("admin") && !roles.has("lider")) {
+      return new Response(JSON.stringify({ error: "Forbidden: requires lider role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // Fetch all member data
     const [metasRes, feedbacksRes, profilesRes, reunioesRes] = await Promise.all([
       adminClient.from("metas").select("*").eq("ciclo_id", ciclo_id).eq("nivel", "individual"),

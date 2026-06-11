@@ -34,7 +34,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.processar-procedimento]
-verify_jwt = false
+verify_jwt = true
 
 [functions.gerar-sintese-executiva]
 verify_jwt = false
