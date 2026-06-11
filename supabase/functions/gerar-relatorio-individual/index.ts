@@ -4,7 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  const preflight = handleCorsPreflightRequest(req);
+  if (preflight) return preflight;
+  const corsHeaders = buildCorsHeaders(req);
 
   try {
     const authHeader = req.headers.get("Authorization");
@@ -22,12 +24,20 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Role guard: only lider/admin may access HR performance data
+    const callerId = claims.claims.sub as string;
+    const { data: roleRows } = await adminClient.from("user_roles").select("role").eq("user_id", callerId);
+    const roles = new Set((roleRows ?? []).map((r: any) => r.role));
+    if (!roles.has("admin") && !roles.has("lider")) {
+      return new Response(JSON.stringify({ error: "Forbidden: requires lider role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const { member_id, ciclo_id, tipo } = await req.json();
     if (!member_id || !ciclo_id || !tipo) {
       return new Response(JSON.stringify({ error: "member_id, ciclo_id e tipo sao obrigatorios" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-
-    const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Create placeholder record
     const { data: relatorio, error: insertErr } = await adminClient.from("relatorios_gerados").insert({
