@@ -1,13 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileOutput, Copy, Check, Loader2, AlertTriangle, Database, Pencil, Download, Users, Flag } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  AlertTriangle,
+  ChevronDown,
+  Database,
+  Landmark,
+  Loader2,
+  Map as MapIcon,
+  Pencil,
+  PieChart,
+  Sparkles,
+  UserCog,
+  Users,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import {
   avaliarFlags,
   comporBlocos,
@@ -28,21 +42,85 @@ import {
 } from '@/lib/templates/vocabulario';
 import { detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
 import {
+  calcularCapitalSociedade,
   mapearAdministrador,
   mapearIntegralizacoes,
   mapearQuadroSocietario,
   mapearRegistro,
+  mapearSociedade,
   montarContexto,
   type ItemLista,
 } from '@/lib/templates/mapeadores';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { useFlags } from '@/hooks/useBibliotecaModelos';
-import { useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
+import { PESSOA_LEGADA_PREFIX, useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
+import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
+import { PassoCard, NumeroPasso, type EstadoPasso } from '@/components/equipe/osg/gerar/gerarKit';
+import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
+import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
+import { FolhaDocumento, type EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
+
+// --- Peças do painel de conferência ----------------------------------------
+
+const SecaoPainel = ({
+  icone,
+  titulo,
+  contagem,
+  children,
+}: {
+  icone: ReactNode;
+  titulo: string;
+  contagem?: number;
+  children: ReactNode;
+}) => (
+  <div className="space-y-2.5">
+    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+      <span className="text-osg-600 [&>svg]:h-3.5 [&>svg]:w-3.5">{icone}</span>
+      {titulo}
+      {contagem != null && (
+        <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-[10px] font-bold tabular-nums text-osg-700">
+          {contagem}
+        </span>
+      )}
+    </div>
+    {children}
+  </div>
+);
+
+const AvisoPendencia = ({
+  children,
+  acao,
+  onAcao,
+}: {
+  children: ReactNode;
+  acao?: string;
+  onAcao?: () => void;
+}) => (
+  <div className="space-y-2 rounded-md border border-amber-300/70 bg-amber-50/70 p-3 text-xs text-amber-800">
+    <div className="flex items-start gap-1.5">
+      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <span>{children}</span>
+    </div>
+    {acao && (
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-7 border-amber-300 bg-white text-xs text-amber-900 hover:bg-amber-100 hover:text-amber-900"
+        onClick={onAcao}
+      >
+        {acao}
+      </Button>
+    )}
+  </div>
+);
+
+// ----------------------------------------------------------------------------
 
 const GerarDocumento = () => {
+  const navigate = useNavigate();
   const { data: modelos = [], isLoading: carregandoModelos } = useModelos();
   const [modeloId, setModeloId] = useState<string | null>(null);
   const { data: docBlocos = [], isLoading: carregandoBlocos } = useModeloBlocos(modeloId);
@@ -57,6 +135,9 @@ const GerarDocumento = () => {
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
+  // Passo reaberto pelo botão "Trocar" (volta a fechar na próxima escolha).
+  const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
+  const [ajustesAbertos, setAjustesAbertos] = useState(false);
 
   // Template do engine: blocos do modelo com tipo, obrigatório e flags requeridas.
   const template = useMemo<Template>(() => {
@@ -105,11 +186,25 @@ const GerarDocumento = () => {
   );
 
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
-  // a empresa também alimenta as flags, então o card aparece em ambos os casos.
+  // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
   const usaListas = listas.length > 0;
-  const precisaEmpresa = usaListas || temBlocosComFlags;
+  // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
+  // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
+  // aparecer mesmo num modelo que só usa sociedade.* (sem listas nem flags).
+  const temSociedade = bindings.some((b) => b.tipo === 'sociedade');
+  const precisaEmpresa = usaListas || temBlocosComFlags || temSociedade;
+  // A sociedade também precisa das listas: capital social e total de quotas são
+  // calculados das integralizações (PR) ou do quadro societário (demais). Na PR
+  // os próprios sócios são derivados das integralizações (daí o tipo da empresa).
   const { socios, administradores, integralizacoes, isFetching: carregandoListas } = useListasDaEmpresa(
-    usaListas ? empresaId : null,
+    usaListas || temSociedade ? empresaId : null,
+    empresaRow?.tipo_empresa,
+  );
+  const ehEmpresaPR = empresaRow?.tipo_empresa === 'PR';
+  // Sócios derivados de titular sem pessoa cadastrada: qualificação sai incompleta.
+  const sociosSemCadastro = useMemo(
+    () => socios.filter((s) => s.pessoa.id?.startsWith(PESSOA_LEGADA_PREFIX)),
+    [socios],
   );
 
   // `socio.percentual` e a linha `total` são derivados (calculados aqui, não vêm
@@ -191,11 +286,35 @@ const GerarDocumento = () => {
     setEmpresaId(null);
   }, [modeloId, clienteId]);
 
+  // Capital social + total de quotas da sociedade: PR soma as integralizações
+  // aprovadas (quota = R$ 1,00); demais somam o quadro societário.
+  const { capitalValor, totalQuotas } = useMemo(
+    () => calcularCapitalSociedade(empresaRow, socios, integralizacoes),
+    [empresaRow, socios, integralizacoes],
+  );
+
+  // A Sociedade (objeto do contrato) espelha a Empresa selecionada: escolher/trocar
+  // a empresa (ou carregar o capital calculado) repreenche os campos sociedade.* do
+  // cadastro (editáveis depois); sem empresa, ficam em branco. Não tem seletor de
+  // registro próprio. Deps primitivas: as listas trocam de identidade a cada render
+  // enquanto carregam — depender delas aqui criaria loop de setState.
+  useEffect(() => {
+    const sociedadeBindings = bindings.filter((b) => b.tipo === 'sociedade');
+    if (sociedadeBindings.length === 0) return;
+    const campos = empresaRow ? mapearSociedade(empresaRow, { capitalValor, totalQuotas }) : {};
+    setSelecao((prev) => {
+      const next = { ...prev };
+      for (const b of sociedadeBindings) next[b.nome] = campos;
+      return next;
+    });
+  }, [empresaRow, bindings, capitalValor, totalQuotas]);
+
   const escolherRegistro = (nome: string, tipo: TipoEntidade, registroId: string) => {
     const reg = registros[tipo].find((r) => r.id === registroId);
     if (!reg) return;
     setRegistroPorBinding((prev) => ({ ...prev, [nome]: registroId }));
     setSelecao((prev) => ({ ...prev, [nome]: mapearRegistro(tipo, reg.row) }));
+    setPassoAberto(null);
   };
 
   const editarCampo = (nome: string, tipo: TipoEntidade, campoId: string, valor: string) => {
@@ -254,7 +373,10 @@ const GerarDocumento = () => {
   // Bindings ainda não preenchidos (sem registro escolhido e sem edição manual):
   // a prévia só resolve depois de ligar um registro a cada entidade.
   const bindingsPendentes = bindings.filter(
-    (b) => !registroPorBinding[b.nome] && Object.keys(selecao[b.nome] ?? {}).length === 0,
+    (b) =>
+      b.tipo !== 'sociedade' &&
+      !registroPorBinding[b.nome] &&
+      Object.keys(selecao[b.nome] ?? {}).length === 0,
   );
   const listasPendentes = precisaEmpresa && !empresaId;
 
@@ -264,348 +386,534 @@ const GerarDocumento = () => {
     [registros.pessoa],
   );
 
-  const totalCampos =
-    bindings.reduce((acc, b) => acc + (camposPorBinding[b.nome]?.length ?? 0), 0) + desconhecidosVisiveis.length;
+  // --- Fluxo guiado: estado de cada passo -----------------------------------
+
+  const bindingsNaoSociedade = bindings.filter((b) => b.tipo !== 'sociedade');
+  const precisaSelecoes = precisaEmpresa || bindingsNaoSociedade.length > 0;
+  const selecoesCompletas = !listasPendentes && bindingsPendentes.length === 0;
+  const modeloPronto = !!modeloId && !carregandoBlocos && template.blocos.length > 0;
+
+  const passo1Estado: EstadoPasso = !modeloId || passoAberto === 1 ? 'aberto' : 'concluido';
+  const passo2Estado: EstadoPasso =
+    !selecoesCompletas || passoAberto === 2 ? 'aberto' : 'concluido';
+  const numeroPassoFinal = precisaSelecoes ? 3 : 2;
+
+  const empresaLabel = empresas.find((r) => r.id === empresaId)?.label;
+  const resumoPasso2 = [
+    precisaEmpresa ? empresaLabel : null,
+    ...bindingsNaoSociedade.map(
+      (b) => registros[b.tipo].find((r) => r.id === registroPorBinding[b.nome])?.label ?? null,
+    ),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const pendencias = [
+    listasPendentes ? 'escolha a empresa do contrato' : null,
+    bindingsPendentes.length > 0
+      ? `selecione ${bindingsPendentes.map((b) => labelDoBinding(b.nome)).join(', ')}`
+      : null,
+  ].filter(Boolean);
+  const mensagemPendente = `Para gerar o documento, ${pendencias.join(' e ')}.`;
+
+  const folhaEstado: EstadoFolha = !selecoesCompletas
+    ? 'pendente'
+    : carregandoListas
+      ? 'carregando'
+      : resultado.erro
+        ? 'erro'
+        : 'pronto';
+
+  const infoFolha =
+    blocosCompostos.length === template.blocos.length
+      ? `${template.blocos.length} blocos · preenchido do cadastro`
+      : `${blocosCompostos.length} de ${template.blocos.length} blocos · ajustado ao perfil da empresa`;
+
+  // O painel de conferência só existe quando há algo a conferir/ajustar.
+  const temPainel =
+    precisaEmpresa ||
+    bindings.length > 0 ||
+    desconhecidosVisiveis.length > 0 ||
+    secoesDesconhecidas.length > 0;
+
+  const mostraSocios = listas.some((l) => l.nome === 'socios');
+  const mostraAdministradores = listas.some((l) => l.nome === 'administradores');
+  const mostraIntegralizacoes = listas.some((l) => l.nome === 'integralizacoes');
 
   return (
     <OsgLayout
       title="Gerar Documento"
-      subtitle="Escolha um modelo, ligue as entidades do cliente e visualize o documento gerado"
+      subtitle="Etapa final da oficina: escolha o modelo e a empresa — o documento sai pronto, preenchido do cadastro"
     >
-      <div className="space-y-4">
-        <Card>
-          <CardContent className="py-4 space-y-3">
-            <div className="space-y-1.5 sm:max-w-md">
-              <Label className="text-xs font-semibold text-muted-foreground">Modelo de documento</Label>
-              <Select value={modeloId ?? undefined} onValueChange={setModeloId}>
-                <SelectTrigger>
-                  <SelectValue placeholder={carregandoModelos ? 'Carregando…' : 'Selecione um modelo'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {modelos.filter((m) => m.ativo).map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.nome} {m.num_blocos > 0 ? `(${m.num_blocos} blocos)` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {carregandoRegistros && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" /> Carregando registros do cliente…
-              </span>
-            )}
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-6xl space-y-6 py-2">
+        {/* Passo 1 — modelo */}
+        <PassoCard
+          numero={1}
+          titulo="Escolha o modelo"
+          descricao="Qual documento você quer gerar?"
+          estado={passo1Estado}
+          resumo={
+            carregandoBlocos
+              ? nomeModelo
+              : `${nomeModelo} · ${template.blocos.length} blocos`
+          }
+          onTrocar={() => setPassoAberto(1)}
+        >
+          <EscolhaModelo
+            modelos={modelos}
+            carregando={carregandoModelos}
+            modeloId={modeloId}
+            onEscolher={(id) => {
+              setModeloId(id);
+              setPassoAberto(null);
+            }}
+          />
+        </PassoCard>
 
-        {!modeloId ? (
-          <Card>
-            <CardContent className="py-16 text-center text-muted-foreground">
-              <FileOutput className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              Selecione um modelo para começar.
-            </CardContent>
-          </Card>
-        ) : carregandoBlocos ? (
-          <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
+        {modeloId && carregandoBlocos && (
+          <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando modelo…
           </div>
-        ) : template.blocos.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-sm text-muted-foreground">
-              Este modelo ainda não tem blocos com conteúdo. Monte a sequência em "Montagem de Documentos".
+        )}
+
+        {modeloId && !carregandoBlocos && template.blocos.length === 0 && (
+          <Card className="rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30">
+            <CardContent className="py-10 text-center">
+              <p className="text-sm text-slate-600">
+                Este modelo ainda não tem blocos com conteúdo.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => navigate('/equipe/osg/work/montagem-documentos')}
+              >
+                Abrir Montagem de Documentos
+              </Button>
             </CardContent>
           </Card>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Bindings + formulário dinâmico */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Dados</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {bindings.length === 0 && desconhecidosVisiveis.length === 0 && !precisaEmpresa && (
-                  <p className="text-sm text-muted-foreground">Este modelo não usa variáveis.</p>
-                )}
+        )}
 
-                {precisaEmpresa && (
-                  <div className="space-y-3 rounded-lg border border-border/60 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-semibold text-osg-700 flex items-center gap-1.5">
-                        <Users className="h-4 w-4" /> Empresa
-                        <span className="font-normal text-muted-foreground">
-                          ({[usaListas ? 'listas' : '', temBlocosComFlags ? 'flags' : ''].filter(Boolean).join(' + ')})
-                        </span>
-                      </span>
-                      <code className="text-[10px] text-muted-foreground">
-                        {listas.map((l) => `#${l.nome}`).join(' ')}
-                      </code>
-                    </div>
-                    <Select
-                      value={empresaId ?? undefined}
-                      onValueChange={setEmpresaId}
-                      disabled={!clienteId}
-                    >
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            !clienteId
-                              ? 'Selecione um cliente na barra acima'
-                              : empresas.length === 0
-                                ? 'Nenhuma PJ cadastrada para o cliente'
-                                : 'Selecione a empresa'
-                          }
-                        />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {empresas.map((r) => (
-                          <SelectItem key={r.id} value={r.id}>
-                            {r.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {empresaId && temBlocosComFlags && (
-                      <div className="flex items-start gap-1.5 flex-wrap text-xs">
-                        <Flag className="h-3 w-3 mt-0.5 text-osg-600 shrink-0" />
-                        {flagsAtivas.length > 0 ? (
-                          flagsAtivas.map((f) => (
-                            <Badge key={f} className="text-[10px] bg-osg-100 text-osg-700 hover:bg-osg-100">
-                              {f}
-                            </Badge>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground">
-                            Nenhuma flag ativa para esta empresa (verifique o tipo da empresa no cadastro).
-                          </span>
-                        )}
-                        {blocosExcluidos.length > 0 && (
-                          <span className="text-muted-foreground basis-full">
-                            {blocosExcluidos.length} bloco{blocosExcluidos.length > 1 ? 's' : ''} fora da
-                            composição: {blocosExcluidos.map((b) => nomePorBlocoId.get(b.id)).join(', ')}
-                          </span>
-                        )}
+        {/* Passo 2 — empresa-alvo (e demais papéis, quando o modelo pedir) */}
+        {modeloPronto && precisaSelecoes && (
+          <PassoCard
+            numero={2}
+            titulo={precisaEmpresa ? 'Escolha a empresa do contrato' : 'Escolha os registros do documento'}
+            descricao={
+              precisaEmpresa
+                ? 'Sócios, administradores e capital carregam sozinhos do cadastro dela'
+                : 'Aponte de quem é cada papel do documento'
+            }
+            estado={passo2Estado}
+            resumo={resumoPasso2}
+            onTrocar={() => setPassoAberto(2)}
+            delay={60}
+          >
+            <div className="space-y-4">
+              {precisaEmpresa && (
+                <EscolhaEmpresa
+                  empresas={empresas.map((r) => ({ id: r.id, row: r.row as PessoaRow }))}
+                  empresaId={empresaId}
+                  onEscolher={(id) => {
+                    setEmpresaId(id);
+                    setPassoAberto(null);
+                  }}
+                  temCliente={!!clienteId}
+                  carregando={carregandoRegistros}
+                />
+              )}
+
+              {bindingsNaoSociedade.length > 0 && (
+                <div className="space-y-3">
+                  {precisaEmpresa && (
+                    <p className="text-xs font-semibold text-slate-600">
+                      Este modelo também precisa de:
+                    </p>
+                  )}
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {bindingsNaoSociedade.map((b) => {
+                      const precisaCliente = b.tipo !== 'cartorio' && !clienteId;
+                      return (
+                        <div key={b.nome} className="space-y-1.5">
+                          <Label className={labelCls}>{labelDoBinding(b.nome)}</Label>
+                          <Select
+                            value={registroPorBinding[b.nome] ?? undefined}
+                            onValueChange={(id) => escolherRegistro(b.nome, b.tipo, id)}
+                            disabled={precisaCliente}
+                          >
+                            <SelectTrigger className={fieldCls}>
+                              <SelectValue
+                                placeholder={
+                                  precisaCliente
+                                    ? 'Escolha um cliente na barra acima'
+                                    : registros[b.tipo].length === 0
+                                      ? 'Nenhum registro cadastrado'
+                                      : 'Selecione…'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {registros[b.tipo].map((r) => (
+                                <SelectItem key={r.id} value={r.id}>
+                                  {r.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </PassoCard>
+        )}
+
+        {/* Passo final — conferir e baixar */}
+        {modeloPronto && (
+          <section className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '120ms' }}>
+            <header className="flex items-center gap-4 px-1 pb-5 pt-4">
+              <NumeroPasso
+                numero={numeroPassoFinal}
+                estado={selecoesCompletas ? 'aberto' : 'bloqueado'}
+              />
+              <div>
+                <h2 className="text-[15px] font-semibold text-slate-900">Confira e baixe o documento</h2>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  Revise os dados carregados do cadastro e baixe o arquivo final
+                </p>
+              </div>
+            </header>
+
+            <div
+              className={cn(
+                'grid grid-cols-1 items-start gap-6',
+                temPainel && 'lg:grid-cols-[minmax(300px,360px)_1fr]',
+              )}
+            >
+              {temPainel && (
+                <Card className="rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 lg:sticky lg:top-4">
+                  <CardHeader className="space-y-2 pb-4">
+                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                      <Database className="h-4 w-4 text-osg-600" /> Conferência dos dados
+                    </CardTitle>
+                    <span aria-hidden className="block h-[3px] w-10 rounded-full bg-osg-moss" />
+                    <CardDescription className="text-xs">
+                      Tudo abaixo veio do cadastro — confira antes de baixar.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {precisaEmpresa && !empresaId ? (
+                      <p className="text-xs text-slate-500">
+                        Escolha a empresa no passo 2 para conferir os dados aqui.
+                      </p>
+                    ) : carregandoListas ? (
+                      <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando dados do cadastro…
                       </div>
-                    )}
-                    {empresaId && usaListas && carregandoListas && (
-                      <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Carregando sócios e administradores…
-                      </span>
-                    )}
-                    {empresaId && !carregandoListas && (
-                      <div className="space-y-2">
-                        {listas.some((l) => l.nome === 'socios') && (
-                          <div className="text-xs">
-                            <span className="font-semibold text-muted-foreground">
-                              Sócios ({socios.length})
-                            </span>
-                            {socios.length === 0 ? (
-                              <p className="text-amber-700 mt-0.5">
-                                Nenhum sócio no Quadro Societário desta empresa.
+                    ) : (
+                      <>
+                        {empresaId && (capitalValor != null || totalQuotas != null) && (
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-md border border-osg-200/70 bg-osg-50/50 p-3">
+                              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                <Landmark className="h-3 w-3 text-osg-600" /> Capital social
                               </p>
+                              <p className="mt-1.5 text-sm font-bold tabular-nums text-osg-700">
+                                {capitalValor != null ? fmtBRL.format(capitalValor) : '—'}
+                              </p>
+                            </div>
+                            <div className="rounded-md border border-osg-200/70 bg-osg-50/50 p-3">
+                              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                                <PieChart className="h-3 w-3 text-osg-600" /> Quotas
+                              </p>
+                              <p className="mt-1.5 text-sm font-bold tabular-nums text-osg-700">
+                                {totalQuotas != null ? fmtInt.format(totalQuotas) : '—'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {empresaId && mostraSocios && (
+                          <SecaoPainel icone={<Users />} titulo="Sócios" contagem={socios.length}>
+                            {socios.length === 0 ? (
+                              <AvisoPendencia
+                                acao={ehEmpresaPR ? 'Abrir Diagnóstico Patrimonial' : 'Abrir Quadro Societário'}
+                                onAcao={() =>
+                                  navigate(
+                                    ehEmpresaPR
+                                      ? '/equipe/osg/work/diagnostico-patrimonial'
+                                      : '/equipe/osg/work/quadro-societario',
+                                  )
+                                }
+                              >
+                                {ehEmpresaPR
+                                  ? 'Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Diagnóstico Patrimonial.'
+                                  : 'Nenhum sócio no Quadro Societário desta empresa.'}
+                              </AvisoPendencia>
                             ) : (
-                              <ul className="mt-0.5 space-y-0.5">
+                              <ul className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
                                 {socios.map((s, i) => (
-                                  <li key={s.pessoa.id} className="flex items-center gap-1.5 text-slate-700">
-                                    <span className="text-muted-foreground">{i + 1}.</span>
-                                    {s.pessoa.denominacao}
-                                    <Badge variant="outline" className="text-[10px] px-1 py-0">
-                                      {s.pessoa.tipo_pessoa}
-                                    </Badge>
+                                  <li
+                                    key={s.pessoa.id}
+                                    className="flex items-baseline gap-2 text-xs text-slate-700"
+                                  >
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                      {i + 1}.
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate" title={s.pessoa.denominacao}>
+                                      {s.pessoa.denominacao}
+                                    </span>
                                     {s.quotas != null && (
-                                      <span className="text-muted-foreground">{s.quotas} quotas</span>
+                                      <span className="shrink-0 tabular-nums text-slate-500">
+                                        {fmtInt.format(s.quotas)} quotas
+                                      </span>
                                     )}
                                   </li>
                                 ))}
                               </ul>
                             )}
-                          </div>
+                            {sociosSemCadastro.length > 0 && (
+                              <AvisoPendencia
+                                acao="Abrir Controle de Matrículas"
+                                onAcao={() => navigate('/equipe/osg/work/controle-matriculas')}
+                              >
+                                {sociosSemCadastro.length} titular(es) sem cadastro (
+                                {sociosSemCadastro.map((s) => s.pessoa.denominacao).join(', ')}): entram
+                                como sócios, mas a qualificação sai incompleta. Vincule a pessoa na
+                                titularidade da matrícula.
+                              </AvisoPendencia>
+                            )}
+                          </SecaoPainel>
                         )}
-                        {listas.some((l) => l.nome === 'administradores') && (
-                          <div className="text-xs">
-                            <span className="font-semibold text-muted-foreground">
-                              Administradores ({administradores.length})
-                            </span>
+
+                        {empresaId && mostraAdministradores && (
+                          <SecaoPainel
+                            icone={<UserCog />}
+                            titulo="Administradores"
+                            contagem={administradores.length}
+                          >
                             {administradores.length === 0 ? (
-                              <p className="text-amber-700 mt-0.5">
+                              <AvisoPendencia>
                                 Nenhum administrador cadastrado para esta empresa.
-                              </p>
+                              </AvisoPendencia>
                             ) : (
-                              <ul className="mt-0.5 space-y-0.5">
+                              <ul className="space-y-1.5">
                                 {administradores.map((a, i) => (
-                                  <li key={a.pessoa.id} className="flex items-center gap-1.5 text-slate-700">
-                                    <span className="text-muted-foreground">{i + 1}.</span>
-                                    {a.pessoa.denominacao}
-                                    {a.cargo && <span className="text-muted-foreground">{a.cargo}</span>}
+                                  <li
+                                    key={a.pessoa.id}
+                                    className="flex items-baseline gap-2 text-xs text-slate-700"
+                                  >
+                                    <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
+                                      {i + 1}.
+                                    </span>
+                                    <span className="min-w-0 flex-1 truncate" title={a.pessoa.denominacao}>
+                                      {a.pessoa.denominacao}
+                                    </span>
+                                    {a.cargo && (
+                                      <span className="shrink-0 text-slate-500">{a.cargo}</span>
+                                    )}
                                   </li>
                                 ))}
                               </ul>
                             )}
-                          </div>
+                          </SecaoPainel>
                         )}
-                        <span className="text-[11px] text-osg-700 flex items-center gap-1.5">
-                          <Database className="h-3 w-3" /> Preenchido do cadastro, na ordem do registro
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
 
-                {bindings.map((b) => {
-                  const precisaCliente = b.tipo !== 'cartorio' && !clienteId;
-                  return (
-                    <div key={b.nome} className="space-y-3 rounded-lg border border-border/60 p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-semibold text-osg-700">{labelDoBinding(b.nome)}</span>
-                        <code className="text-[10px] text-muted-foreground">{b.nome}</code>
-                      </div>
-                      <Select
-                        value={registroPorBinding[b.nome] ?? undefined}
-                        onValueChange={(id) => escolherRegistro(b.nome, b.tipo, id)}
-                        disabled={precisaCliente}
-                      >
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              precisaCliente
-                                ? 'Selecione um cliente na barra acima'
-                                : registros[b.tipo].length === 0
-                                  ? 'Nenhum registro cadastrado'
-                                  : 'Selecione um registro'
-                            }
-                          />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {registros[b.tipo].map((r) => (
-                            <SelectItem key={r.id} value={r.id}>
-                              {r.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {registroPorBinding[b.nome] && (
-                        <span className="text-xs text-osg-700 flex items-center gap-1.5">
-                          <Database className="h-3 w-3" /> Preenchido do cadastro
-                          <span className="text-muted-foreground inline-flex items-center gap-1">
-                            <Pencil className="h-3 w-3" /> editável abaixo
-                          </span>
-                        </span>
-                      )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {(camposPorBinding[b.nome] ?? []).map((c) => {
-                          const valor = selecao[b.nome]?.[c.id] ?? '';
-                          const onChange = (v: string) => editarCampo(b.nome, b.tipo, c.id, v);
-                          return (
-                            <div key={c.id} className={c.tipo === 'textarea' ? 'sm:col-span-2 space-y-1.5' : 'space-y-1.5'}>
-                              <Label className="text-xs font-semibold text-muted-foreground">{c.label}</Label>
-                              {c.tipo === 'textarea' ? (
-                                <Textarea value={valor} onChange={(e) => onChange(e.target.value)} rows={4} className="text-sm" />
-                              ) : (
-                                <Input value={valor} onChange={(e) => onChange(e.target.value)} className="text-sm" />
-                              )}
+                        {empresaId && mostraIntegralizacoes && (
+                          <SecaoPainel
+                            icone={<MapIcon />}
+                            titulo="Imóveis integralizados"
+                            contagem={integralizacoes.length}
+                          >
+                            {integralizacoes.length === 0 ? (
+                              <AvisoPendencia
+                                acao="Abrir Diagnóstico Patrimonial"
+                                onAcao={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
+                              >
+                                Nenhum imóvel aprovado para integralização nesta empresa.
+                              </AvisoPendencia>
+                            ) : (
+                              <ul className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
+                                {integralizacoes.map((m) => (
+                                  <li key={m.id} className="flex items-baseline gap-2 text-xs text-slate-700">
+                                    <span className="shrink-0 tabular-nums text-slate-500">
+                                      Matr. {m.numero ?? 's/ nº'}
+                                    </span>
+                                    <span
+                                      className="min-w-0 flex-1 truncate"
+                                      title={m.bem?.denominacao ?? undefined}
+                                    >
+                                      {m.bem?.denominacao ?? ''}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </SecaoPainel>
+                        )}
+
+                        {empresaId && temBlocosComFlags && (
+                          flagsAtivas.length === 0 ? (
+                            <AvisoPendencia
+                              acao="Abrir Qualificação das Partes"
+                              onAcao={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
+                            >
+                              Não foi possível identificar o tipo desta empresa — as cláusulas
+                              condicionais podem sair erradas. Confira o tipo da empresa no cadastro.
+                            </AvisoPendencia>
+                          ) : (
+                            <div className="space-y-1.5 rounded-md border border-osg-moss/25 bg-osg-moss/[0.05] p-3 text-xs">
+                              <p className="flex items-center gap-1.5 font-semibold text-osg-700">
+                                <Sparkles className="h-3.5 w-3.5" /> Ajustado ao perfil da empresa
+                              </p>
+                              <p className="text-slate-600">
+                                {blocosExcluidos.length > 0
+                                  ? `${blocosExcluidos.length} cláusula${blocosExcluidos.length > 1 ? 's' : ''} não se aplica${blocosExcluidos.length > 1 ? 'm' : ''} a esta empresa e ficou${blocosExcluidos.length > 1 ? 'aram' : ''} de fora: ${blocosExcluidos.map((b) => nomePorBlocoId.get(b.id)).join(', ')}.`
+                                  : 'Todas as cláusulas do modelo se aplicam a esta empresa.'}
+                              </p>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
+                          )
+                        )}
 
-                {secoesDesconhecidas.length > 0 && (
-                  <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-800">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>
-                      Seções desconhecidas (não são listas nem condicionais do catálogo), removidas da prévia:{' '}
-                      <code>{secoesDesconhecidas.map((s) => `#${s}`).join(', ')}</code>.
-                    </span>
-                  </div>
-                )}
+                        {empresaId && (mostraSocios || mostraIntegralizacoes) && (
+                          <p className="flex items-start gap-1.5 text-[11px] text-slate-500">
+                            <Database className="mt-0.5 h-3 w-3 shrink-0 text-osg-600" />
+                            {ehEmpresaPR
+                              ? 'Sócios calculados das integralizações aprovadas (participação decrescente); administradores do cadastro.'
+                              : 'Preenchido do cadastro, na ordem do registro.'}
+                          </p>
+                        )}
+                      </>
+                    )}
 
-                {desconhecidosVisiveis.length > 0 && (
-                  <div className="space-y-3 rounded-lg border border-amber-300 bg-amber-50/60 p-3">
-                    <div className="flex items-start gap-2 text-xs text-amber-800">
-                      <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                      <span>
-                        Variáveis sem binding (modelo legado ou papel desconhecido), tratadas como texto livre:{' '}
-                        <code>{desconhecidosVisiveis.join(', ')}</code>.
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {desconhecidosVisiveis.map((ph) => (
-                        <div key={ph} className="space-y-1.5">
-                          <Label className="text-xs font-semibold text-muted-foreground">{ph}</Label>
-                          <Input
-                            value={valoresLivres[ph] ?? ''}
-                            onChange={(e) => setValoresLivres((prev) => ({ ...prev, [ph]: e.target.value }))}
-                            className="text-sm"
-                          />
+                    {secoesDesconhecidas.length > 0 && (
+                      <AvisoPendencia>
+                        Partes do modelo não foram reconhecidas e ficaram fora do documento:{' '}
+                        <code>{secoesDesconhecidas.map((s) => `#${s}`).join(', ')}</code>. Avise quem
+                        montou o modelo.
+                      </AvisoPendencia>
+                    )}
+
+                    {desconhecidosVisiveis.length > 0 && (
+                      <SecaoPainel
+                        icone={<Pencil />}
+                        titulo="Preencher à mão"
+                        contagem={desconhecidosVisiveis.length}
+                      >
+                        <p className="text-[11px] text-slate-500">
+                          Estes campos do modelo não vêm do cadastro.
+                        </p>
+                        <div className="space-y-3">
+                          {desconhecidosVisiveis.map((ph) => (
+                            <div key={ph} className="space-y-1.5">
+                              <Label className={labelCls}>{ph}</Label>
+                              <Input
+                                value={valoresLivres[ph] ?? ''}
+                                onChange={(e) =>
+                                  setValoresLivres((prev) => ({ ...prev, [ph]: e.target.value }))
+                                }
+                                className={cn(fieldCls, 'text-sm')}
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      </SecaoPainel>
+                    )}
 
-            {/* Documento gerado */}
-            <Card>
-              <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileOutput className="h-4 w-4 text-osg-600" /> Documento gerado
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={copiar} disabled={!resultado.texto}>
-                    {copiado ? <Check className="h-4 w-4 mr-1.5" /> : <Copy className="h-4 w-4 mr-1.5" />}
-                    {copiado ? 'Copiado' : 'Copiar'}
-                  </Button>
-                  <Button size="sm" onClick={baixar} disabled={!resultado.texto || baixando}>
-                    {baixando ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Download className="h-4 w-4 mr-1.5" />}
-                    Baixar .docx
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {bindingsPendentes.length > 0 || listasPendentes ? (
-                  <div className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <Database className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>
-                      {[
-                        listasPendentes ? 'Selecione a empresa' : '',
-                        bindingsPendentes.length > 0
-                          ? `Selecione um registro para ${bindingsPendentes.map((b) => labelDoBinding(b.nome)).join(', ')}`
-                          : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' e ')}{' '}
-                      para ver o documento.
-                    </span>
-                  </div>
-                ) : resultado.erro ? (
-                  <div className="flex items-start gap-2 text-sm text-destructive">
-                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                    <span>{resultado.erro}</span>
-                  </div>
-                ) : (
-                  <div className="text-sm leading-relaxed text-justify text-slate-800 whitespace-pre-wrap">
-                    <TextoFormatado texto={resultado.texto} />
-                  </div>
-                )}
-                <div className="mt-3 flex items-center gap-1.5 flex-wrap border-t pt-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {blocosCompostos.length === template.blocos.length
-                      ? `${template.blocos.length} blocos`
-                      : `${blocosCompostos.length}/${template.blocos.length} blocos (flags)`}
-                  </Badge>
-                  <Badge variant="outline" className="text-[10px]">{bindings.length} entidades</Badge>
-                  {usaListas && (
-                    <Badge variant="outline" className="text-[10px]">
-                      {listas.map((l) => l.nome).join(' + ')}
-                    </Badge>
-                  )}
-                  <Badge variant="outline" className="text-[10px]">{totalCampos} campos</Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    {bindings.length > 0 && (
+                      <Collapsible open={ajustesAbertos} onOpenChange={setAjustesAbertos}>
+                        <CollapsibleTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-1.5 rounded-md border border-osg-200/70 bg-osg-50/40 px-3 py-2 text-xs font-semibold text-osg-700 transition-colors hover:bg-osg-50"
+                          >
+                            <Pencil className="h-3.5 w-3.5" /> Ajustar dados manualmente
+                            <ChevronDown
+                              className={cn(
+                                'ml-auto h-4 w-4 transition-transform duration-200',
+                                ajustesAbertos && 'rotate-180',
+                              )}
+                            />
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="space-y-5 pt-4">
+                          <p className="text-[11px] text-slate-500">
+                            Os ajustes valem só para este documento — o cadastro não muda.
+                          </p>
+                          {bindings.map((b) => (
+                            <div key={b.nome} className="space-y-2.5">
+                              <p className="text-xs font-semibold text-slate-600">
+                                {labelDoBinding(b.nome)}
+                              </p>
+                              {b.tipo === 'sociedade' && !empresaId && (
+                                <p className="text-[11px] text-slate-500">
+                                  Selecione a empresa para preencher.
+                                </p>
+                              )}
+                              <div className="space-y-3">
+                                {(camposPorBinding[b.nome] ?? []).map((c) => {
+                                  const valor = selecao[b.nome]?.[c.id] ?? '';
+                                  const onChange = (v: string) => editarCampo(b.nome, b.tipo, c.id, v);
+                                  // Placeholder com campo que não existe no catálogo da
+                                  // entidade (ex.: sociedade.objetoSocial em vez de
+                                  // sociedade.objeto): não preenche do cadastro — avisar
+                                  // em vez de deixar vazio em silêncio.
+                                  const foraDoCatalogo = !campoDaEntidade(b.tipo, c.id);
+                                  return (
+                                    <div key={c.id} className="space-y-1">
+                                      <Label className={labelCls}>{c.label}</Label>
+                                      {c.tipo === 'textarea' ? (
+                                        <Textarea
+                                          value={valor}
+                                          onChange={(e) => onChange(e.target.value)}
+                                          rows={4}
+                                          className={cn(textareaCls, 'text-sm')}
+                                        />
+                                      ) : (
+                                        <Input
+                                          value={valor}
+                                          onChange={(e) => onChange(e.target.value)}
+                                          className={cn(fieldCls, 'text-sm')}
+                                        />
+                                      )}
+                                      {foraDoCatalogo && (
+                                        <p className="flex items-start gap-1 text-[11px] text-amber-700">
+                                          <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                                          <span>
+                                            "{c.id}" não existe no cadastro de {labelDoBinding(b.nome)} —
+                                            preencha à mão (ou corrija o campo no modelo).
+                                          </span>
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              <FolhaDocumento
+                titulo={nomeModelo}
+                estado={folhaEstado}
+                mensagemPendente={mensagemPendente}
+                erro={resultado.erro}
+                texto={resultado.texto}
+                info={infoFolha}
+                onCopiar={copiar}
+                copiado={copiado}
+                onBaixar={baixar}
+                baixando={baixando}
+              />
+            </div>
+          </section>
         )}
       </div>
     </OsgLayout>
