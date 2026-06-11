@@ -15,7 +15,6 @@ import {
 import {
   Building2, ChartPie, Landmark, Pencil, PieChart, Plus, Search, Tag, Trash2, Users,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useCountUp } from '@/hooks/useCountUp';
@@ -27,6 +26,9 @@ import {
   type SocioEnriched,
 } from '@/hooks/useQuadroSocietario';
 import { SocioModal } from '@/components/equipe/osg/quadro-societario/SocioModal';
+import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
+import { fmtBRL, fmtInt, fmtPct, iniciais } from '@/components/equipe/osg/quadro-societario/quadroFmt';
+import { KpiCard } from '@/components/equipe/osg/quadro-societario/quadroKit';
 
 // Só PJs Proprietária (PR) e Controladora (CN) têm quadro societário nesta tela.
 const TIPOS_EMPRESA_ELEGIVEIS = ['PR', 'CN'] as const;
@@ -35,74 +37,21 @@ const TIPO_EMPRESA_LABELS: Record<string, string> = {
   CN: 'Controladora',
 };
 
-const fmtBRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtInt = new Intl.NumberFormat('pt-BR');
-const fmtPct = (v: number) =>
-  `${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
-
-// Iniciais para o avatar do sócio (duas primeiras palavras, ex.: "AB").
-const iniciais = (denominacao: string) =>
-  denominacao
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase() || '—';
-
-interface KpiCardProps {
-  icone: React.ReactNode;
-  titulo: string;
-  valor: string;
-  destaque?: boolean;
-  // Atraso da entrada (ms) — cascata: KPIs primeiro, tabela depois.
-  delay?: number;
-}
-
-// Cartão indicador no topo: o primeiro (Capital Social Total) ganha fundo
-// verde-musgo de destaque, os demais ficam na superfície padrão.
-const KpiCard = ({ icone, titulo, valor, destaque, delay = 0 }: KpiCardProps) => (
-  <Card
-    className={cn(
-      'animate-osg-rise motion-reduce:animate-none',
-      destaque && 'border-osg-moss bg-osg-moss text-white',
-    )}
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    <CardContent className="p-4">
-      <div className="flex items-center gap-2.5">
-        <div
-          className={cn(
-            'h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
-            destaque ? 'bg-white/15 text-white' : 'bg-osg-100 text-osg-600',
-          )}
-        >
-          {icone}
-        </div>
-        <p
-          className={cn(
-            'text-[11px] font-bold uppercase tracking-[0.14em]',
-            destaque ? 'text-white/80' : 'text-slate-500',
-          )}
-        >
-          {titulo}
-        </p>
-      </div>
-      <p className={cn('mt-4 text-xl font-bold tabular-nums', destaque ? 'text-white' : 'text-osg-700')}>
-        {valor}
-      </p>
-    </CardContent>
-  </Card>
-);
-
 interface QuadroEmpresaProps {
   empresa: PessoaRow;
   pessoasCliente: PessoaRow[];
 }
 
-// Quadro societário de uma empresa: KPIs + lista de sócios com participação
-// derivada de quotas/Σquotas (percentual e data_referencia não são usados).
+// Quadro societário de uma empresa: na Proprietária (PR) a participação é
+// DERIVADA das integralizações aprovadas (visão só leitura); nas demais (CN),
+// KPIs + lista de sócios manuais com participação quotas/Σquotas (percentual
+// e data_referencia não são usados).
 const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
+  if (empresa.tipo_empresa === 'PR') return <QuadroEmpresaProprietaria empresa={empresa} />;
+  return <QuadroEmpresaManual empresa={empresa} pessoasCliente={pessoasCliente} />;
+};
+
+const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
   const [busca, setBusca] = useState('');
   const [socioModal, setSocioModal] = useState<{ open: boolean; socio: SocioEnriched | null }>({
     open: false, socio: null,

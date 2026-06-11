@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
+  calcularCapitalSociedade,
+  calcularParticipacoesPR,
   mapearIntegralizacoes,
   mapearMatricula,
   mapearQuadroSocietario,
+  mapearSociedade,
   type ItemLista,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
@@ -55,6 +58,120 @@ describe('mapearQuadroSocietario — percentual calculado e total', () => {
     const { itens, total } = mapearQuadroSocietario([socio('Sócio sem quota', 0, 0)]);
     expect(total).toEqual({});
     expect((itens[0].socio as Campos).percentual).toBeUndefined();
+  });
+});
+
+describe('mapearSociedade — PJ objeto do contrato', () => {
+  const pj = {
+    tipo_pessoa: 'PJ',
+    denominacao: 'MMS Agro Ltda',
+    cpf_cnpj: '12.345.678/0001-90',
+    nire: '5320000000',
+    junta_comercial_uf: 'MT',
+    data_constituicao: '2024-03-01',
+    objeto_social: 'Exploração da atividade rural',
+    endereco_logradouro: 'Rua das Acácias',
+    endereco_numero: '119',
+    endereco_bairro: 'Centro',
+    endereco_municipio: 'Cuiabá',
+    endereco_uf: 'MT',
+    endereco_cep: '78000-000',
+  } as unknown as PessoaRow;
+
+  it('mapeia razão social, CNPJ, NIRE e objeto', () => {
+    const c = mapearSociedade(pj);
+    expect(c.razaoSocial).toBe('MMS Agro Ltda');
+    expect(c.cnpj).toBe('12.345.678/0001-90');
+    expect(c.nire).toBe('5320000000');
+    expect(c.objeto).toBe('Exploração da atividade rural');
+  });
+
+  it('expande UF por extenso (junta e sede) e formata a data', () => {
+    const c = mapearSociedade(pj);
+    expect(c.juntaUfExtenso).toBe('Mato Grosso');
+    expect(c.sedeUfExtenso).toBe('Mato Grosso');
+    expect(c.dataConstituicao).toBe('01/03/2024');
+  });
+
+  it('monta a sede em prosa e nas partes atômicas', () => {
+    const c = mapearSociedade(pj);
+    expect(c.sede).toContain('Rua das Acácias');
+    expect(c.sede).toContain('nº 119');
+    expect(c.sede).toContain('no município de Cuiabá');
+    expect(c.sedeEndereco).toBe('Rua das Acácias, nº 119');
+    expect(c.sedeBairro).toBe('Centro');
+    expect(c.sedeMunicipio).toBe('Cuiabá');
+    expect(c.sedeCep).toBe('78000-000');
+  });
+
+  it('campos do catálogo ausentes viram "" (cadastro incompleto não trava a prévia)', () => {
+    const c = mapearSociedade({ tipo_pessoa: 'PJ', denominacao: 'Vazia Ltda' } as unknown as PessoaRow);
+    expect(c.objeto).toBe('');
+    expect(c.sedeMunicipio).toBe('');
+    expect(c.razaoSocial).toBe('Vazia Ltda');
+  });
+
+  it('formata o capital calculado e deriva os extensos', () => {
+    const c = mapearSociedade(pj, { capitalValor: 1500, totalQuotas: 1500 });
+    expect(c.capitalValor).toBe('1.500,00');
+    expect(c.capitalExtenso).toBe('mil e quinhentos reais');
+    expect(c.totalQuotas).toBe('1.500');
+    expect(c.totalQuotasExtenso).toBe('mil e quinhentos');
+  });
+
+  it('sem capital calculado, os campos resolvem em branco (condicionais pulam)', () => {
+    const c = mapearSociedade(pj, { capitalValor: null, totalQuotas: null });
+    expect(c.capitalValor).toBe('');
+    expect(c.capitalExtenso).toBe('');
+    expect(c.totalQuotas).toBe('');
+    expect(c.totalQuotasExtenso).toBe('');
+  });
+});
+
+describe('calcularCapitalSociedade — PR (integralizações) × demais (quadro societário)', () => {
+  const empresaPR = { tipo_empresa: 'PR' } as unknown as PessoaRow;
+  const empresaCN = { tipo_empresa: 'CN' } as unknown as PessoaRow;
+
+  const matDeValor = (vlr: number | null, vlrBem: number | null = null): MatriculaParaMapear => ({
+    ...matriculaCom([]),
+    vlr_contabil: vlr,
+    bem: vlrBem != null ? { denominacao: null, vlr_contabil: vlrBem, ccir_codigo: null } : null,
+  });
+
+  it('PR: capital = Σ valor contábil das integralizações (fallback no bem), quotas a R$ 1,00', () => {
+    const { capitalValor, totalQuotas } = calcularCapitalSociedade(
+      empresaPR,
+      [socio('Ignorado', 999, 999)], // quadro NÃO entra no cálculo de PR
+      [matDeValor(558413.55), matDeValor(null, 314260.45)],
+    );
+    expect(capitalValor).toBe(872674);
+    expect(totalQuotas).toBe(872674);
+  });
+
+  it('PR: capital com centavos arredonda o total de quotas', () => {
+    const { capitalValor, totalQuotas } = calcularCapitalSociedade(empresaPR, [], [matDeValor(100.6)]);
+    expect(capitalValor).toBe(100.6);
+    expect(totalQuotas).toBe(101);
+  });
+
+  it('PR sem integralização aprovada → nulls', () => {
+    const r = calcularCapitalSociedade(empresaPR, [socio('A', 10, 10)], []);
+    expect(r).toEqual({ capitalValor: null, totalQuotas: null });
+  });
+
+  it('CN: Σ quotas e Σ vlr_total do quadro societário', () => {
+    const { capitalValor, totalQuotas } = calcularCapitalSociedade(
+      empresaCN,
+      [socio('A', 600, 600), socio('B', 900, 900)],
+      [matDeValor(999999)], // integralizações NÃO entram fora de PR
+    );
+    expect(capitalValor).toBe(1500);
+    expect(totalQuotas).toBe(1500);
+  });
+
+  it('quadro vazio fora de PR → nulls', () => {
+    const r = calcularCapitalSociedade(empresaCN, [], []);
+    expect(r).toEqual({ capitalValor: null, totalQuotas: null });
   });
 });
 
@@ -218,5 +335,116 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     const itens = mapearIntegralizacoes([jose, semImovel, maria], matriculas);
     expect(itens).toHaveLength(2);
     expect((itens[1].socio as Record<string, string>).paragrafo).toBe('Terceiro');
+  });
+});
+
+describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
+  function matPR(
+    id: string,
+    vlr: number | null,
+    titulares: TitularParaMapear[],
+  ): MatriculaIntegralizacao {
+    return {
+      id, numero: id, livro: null, folha: null,
+      municipio_imovel: null, uf_imovel: null,
+      area_documento: null, area_unidade: null, vlr_contabil: vlr,
+      confrontacoes_texto: null, descricao_psa_completa: null,
+      bem: null, cartorio: null, titulares,
+    };
+  }
+
+  const meio = (pessoaId: string, denominacao: string): TitularParaMapear =>
+    ({ pessoaId, denominacao, fracao: 50 });
+
+  it('titular único sem fração leva 100% da matrícula', () => {
+    const [p] = calcularParticipacoesPR([
+      matPR('m1', 558413.55, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+    ]);
+    expect(p.denominacao).toBe('José Eduardo');
+    expect(p.valor).toBe(558413.55);
+    expect(p.quotas).toBe(558414);
+    expect(p.percentual).toBe(100);
+  });
+
+  it('50/50 com centavo ímpar: último titular absorve (69.013,61 + 69.013,60)', () => {
+    const [a, b] = calcularParticipacoesPR([
+      matPR('m2', 138027.21, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+    ]);
+    // Ordenado por valor desc: José (primeiro do rateio) leva o centavo a mais.
+    expect(a.denominacao).toBe('José Eduardo');
+    expect(a.valor).toBe(69013.61);
+    expect(b.denominacao).toBe('Maria Auxiliadora');
+    expect(b.valor).toBe(69013.6);
+    // Σ quotas fecha com Math.round(capital) = 138.027 (último absorve −1).
+    expect(a.quotas + b.quotas).toBe(138027);
+  });
+
+  it('agrega a mesma pessoa através de várias matrículas', () => {
+    const participacoes = calcularParticipacoesPR([
+      matPR('m1', 250000, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+      matPR('m3', 558413.55, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+    ]);
+    expect(participacoes).toHaveLength(2);
+    const jose = participacoes.find((p) => p.pessoaId === 'j')!;
+    expect(jose.valor).toBe(125000 + 558413.55);
+  });
+
+  it('deduplica posse de fato + de direito da mesma pessoa na matrícula', () => {
+    const participacoes = calcularParticipacoesPR([
+      matPR('m1', 100000, [
+        { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 50 },
+        { pessoaId: 'j', denominacao: 'José Eduardo', fracao: 50 },
+        { pessoaId: 'm', denominacao: 'Maria Auxiliadora', fracao: 50 },
+      ]),
+    ]);
+    expect(participacoes).toHaveLength(2);
+    expect(participacoes[0].valor).toBe(50000);
+    expect(participacoes[1].valor).toBe(50000);
+  });
+
+  it('matrícula sem valor (nem no bem) fica fora do cálculo', () => {
+    const participacoes = calcularParticipacoesPR([
+      matPR('m1', null, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+      matPR('m2', 100, [{ pessoaId: 'm', denominacao: 'Maria Auxiliadora' }]),
+    ]);
+    expect(participacoes).toHaveLength(1);
+    expect(participacoes[0].denominacao).toBe('Maria Auxiliadora');
+  });
+
+  it('propaga tipoPessoa/cpfCnpj do titular enriquecido', () => {
+    const [p] = calcularParticipacoesPR([
+      matPR('m1', 100, [{
+        pessoaId: 'j', denominacao: 'José Eduardo',
+        tipoPessoa: 'PF', cpfCnpj: '111.222.333-44',
+      }]),
+    ]);
+    expect(p.tipoPessoa).toBe('PF');
+    expect(p.cpfCnpj).toBe('111.222.333-44');
+  });
+
+  it('invariantes: Σ valor = capital, Σ quotas = Math.round(capital), coerência com calcularCapitalSociedade', () => {
+    const matriculas = [
+      matPR('m1', 250000, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+      matPR('m2', 138027.21, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
+      matPR('m3', 558413.55, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+    ];
+    const participacoes = calcularParticipacoesPR(matriculas);
+    const capitalEsperado = calcularCapitalSociedade(
+      { tipo_empresa: 'PR' } as unknown as PessoaRow,
+      [],
+      matriculas,
+    );
+
+    const somaCent = participacoes.reduce((s, p) => s + Math.round(p.valor * 100), 0);
+    expect(somaCent).toBe(Math.round(capitalEsperado.capitalValor! * 100));
+    expect(participacoes.reduce((s, p) => s + p.quotas, 0)).toBe(capitalEsperado.totalQuotas);
+    expect(participacoes.reduce((s, p) => s + p.percentual, 0)).toBeCloseTo(100, 9);
+  });
+
+  it('sem matrículas (ou sem valores) ⇒ []', () => {
+    expect(calcularParticipacoesPR([])).toEqual([]);
+    expect(calcularParticipacoesPR([
+      matPR('m1', null, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
+    ])).toEqual([]);
   });
 });

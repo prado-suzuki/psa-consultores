@@ -1,11 +1,13 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
 import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import {
   Plus,
   Pencil,
@@ -15,17 +17,25 @@ import {
   Loader2,
   Braces,
   Flag,
-  ChevronDown,
-  ChevronRight,
   BookOpen,
   ScrollText,
   Pilcrow,
   StickyNote,
   FilterX,
   Tag,
+  SlidersHorizontal,
+  LibraryBig,
+  Repeat2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
+import {
+  extrairCampos,
+  extrairRunsLinha,
+  removerMarcas,
+  TIPOS_BLOCO,
+  type TipoBloco,
+} from '@/lib/templates';
+import { compilar, type No } from '@/lib/templates/render';
 import {
   useBlocos,
   useFlags,
@@ -41,7 +51,17 @@ const GRUPO_POR_TIPO: Record<TipoBloco, { label: string; Icone: typeof BookOpen 
   livre: { label: 'Blocos livres', Icone: StickyNote },
 };
 
+
 type FiltroStatus = 'todos' | 'ativos' | 'inativos';
+type Prateleira = 'todos' | TipoBloco;
+
+const PRATELEIRAS: Array<{ valor: Prateleira; label: string; Icone: typeof BookOpen }> = [
+  { valor: 'todos', label: 'Tudo', Icone: LibraryBig },
+  { valor: 'capitulo', label: 'Capítulos', Icone: BookOpen },
+  { valor: 'clausula', label: 'Cláusulas', Icone: ScrollText },
+  { valor: 'paragrafo', label: 'Parágrafos', Icone: Pilcrow },
+  { valor: 'livre', label: 'Livres', Icone: StickyNote },
+];
 
 // Prefixo do tipo no nome ("Capítulo — …") é redundante dentro do grupo — só na exibição.
 const PREFIXO_TIPO: Partial<Record<TipoBloco, RegExp>> = {
@@ -55,6 +75,214 @@ const nomeExibido = (nome: string, tipo: TipoBloco) => {
   return semPrefixo.trim() || nome;
 };
 
+// Categorias são slugs (descricao_imovel) — na tela viram texto de gente.
+const nomeCategoria = (categoria: string) => categoria.replace(/_/g, ' ');
+
+// Resumo de uma linha para a ficha: o texto do bloco lido como prosa — campos
+// viram lacunas de formulário e seções somem. Usado só quando o autor não
+// escreveu uma descrição.
+const resumoConteudo = (conteudo: string) =>
+  removerMarcas(conteudo)
+    .replace(/\{\{\s*[#/][^}]*\}\}/g, ' ')
+    .replace(/\{\{[^}]*\}\}/g, '____')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+// --- Folha de prévia (hover) -------------------------------------------------
+
+/** Texto de um nó com as marcas *_~ aplicadas de verdade (como sairá no .docx). */
+const TextoComMarcas = ({ texto }: { texto: string }) => (
+  <>
+    {texto.split('\n').map((linha, i) => (
+      <Fragment key={i}>
+        {i > 0 && '\n'}
+        {extrairRunsLinha(linha).map((r, j) =>
+          r.negrito || r.italico || r.sublinhado ? (
+            <span
+              key={j}
+              className={cn(r.negrito && 'font-semibold', r.italico && 'italic', r.sublinhado && 'underline')}
+            >
+              {r.texto}
+            </span>
+          ) : (
+            <Fragment key={j}>{r.texto}</Fragment>
+          ),
+        )}
+      </Fragment>
+    ))}
+  </>
+);
+
+const ChipCampo = ({ caminho }: { caminho: string }) => (
+  <span className="mx-[1px] inline-flex items-center rounded bg-osg-100 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-700 ring-1 ring-osg-200/70 whitespace-nowrap">
+    {caminho}
+  </span>
+);
+
+const ChipSecao = ({ nome }: { nome: string }) => (
+  <span className="mx-[1px] inline-flex items-center gap-1 rounded border border-dashed border-osg-300 bg-osg-50 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-600 whitespace-nowrap">
+    <Repeat2 className="h-3 w-3" />
+    {nome}
+  </span>
+);
+
+const renderNos = (nos: No[]): ReactNode =>
+  nos.map((no, i) => {
+    if (no.tipo === 'texto') return <TextoComMarcas key={i} texto={no.texto} />;
+    if (no.tipo === 'placeholder') return <ChipCampo key={i} caminho={no.caminho} />;
+    return (
+      <Fragment key={i}>
+        <ChipSecao nome={no.nome} />
+        {renderNos(no.filhos)}
+      </Fragment>
+    );
+  });
+
+/**
+ * A prévia é uma "folha de contrato": papel branco, serifa, formatação real e
+ * campos como chips. Toda a informação técnica da ficha (campos, flags, versão)
+ * mora no rodapé desta folha — fora da visão inicial da biblioteca.
+ */
+const FolhaPreview = ({ bloco, nomeDaFlag }: { bloco: BlocoComVersao; nomeDaFlag: Map<string, string> }) => {
+  const conteudo = bloco.versao_atual?.conteudo ?? '';
+  const nos = useMemo(() => compilar(conteudo, { tolerante: true }), [conteudo]);
+  const campos = useMemo(() => extrairCampos(conteudo), [conteudo]);
+
+  return (
+    <div className="bg-white">
+      <div className="flex items-center justify-between border-b border-osg-100 px-4 py-2">
+        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-osg-600">
+          <FileText className="h-3 w-3" />
+          Prévia do texto
+        </span>
+        <span className="text-[10px] tabular-nums text-muted-foreground">
+          v{bloco.versao_atual?.numero_versao ?? '—'}
+        </span>
+      </div>
+      <div className="max-h-[50vh] overflow-y-auto px-4 py-3">
+        {conteudo ? (
+          <div className="whitespace-pre-wrap font-serif text-[13px] leading-relaxed text-osg-700">
+            {renderNos(nos)}
+          </div>
+        ) : (
+          <p className="text-sm italic text-muted-foreground">sem conteúdo</p>
+        )}
+      </div>
+      {(campos.length > 0 || bloco.flag_ids.length > 0) && (
+        <div className="flex flex-wrap items-center gap-1 border-t border-osg-100 bg-osg-50/60 px-4 py-2">
+          {campos.length > 0 && (
+            <>
+              <Braces className="h-3 w-3 text-osg-600" />
+              {campos.map((c) => (
+                <code key={c} className="rounded bg-osg-100/80 px-1 py-0.5 text-[10px] text-osg-700">
+                  {c}
+                </code>
+              ))}
+            </>
+          )}
+          {bloco.flag_ids.map((id) => (
+            <Badge key={id} className="ml-auto gap-1 bg-amber-100 text-[10px] text-amber-800 hover:bg-amber-100 first:ml-0">
+              <Flag className="h-2.5 w-2.5" />
+              {nomeDaFlag.get(id) ?? '…'}
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- Ficha (card compacto) -----------------------------------------------------
+
+interface FichaBlocoProps {
+  bloco: BlocoComVersao;
+  tipo: TipoBloco;
+  nomeDaFlag: Map<string, string>;
+  delay: number;
+  onEditar: () => void;
+  onToggleAtivo: () => void;
+}
+
+const FichaBloco = ({ bloco: b, tipo, nomeDaFlag, delay, onEditar, onToggleAtivo }: FichaBlocoProps) => {
+  const resumo = b.descricao?.trim() || resumoConteudo(b.versao_atual?.conteudo ?? '');
+
+  return (
+    <HoverCard openDelay={400} closeDelay={80}>
+      <HoverCardTrigger asChild>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onEditar}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onEditar();
+            }
+          }}
+          className={cn(
+            // Padrão de card OSG: borda marrom-areia atenuada + sombra tonal.
+            'group relative flex cursor-pointer flex-col gap-1.5 rounded-md border border-osg-300/60 bg-card p-3.5 pl-4 shadow-sm shadow-osg-300/30 animate-osg-card-in',
+            'transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md hover:shadow-osg-300/40',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/50',
+            !b.ativo && 'opacity-55',
+          )}
+          style={{ animationDelay: `${delay}ms` }}
+        >
+          <span aria-hidden className="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-osg-moss" />
+          <div className="flex items-start gap-2">
+            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{nomeExibido(b.nome, tipo)}</p>
+            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <Pencil aria-hidden className="h-3.5 w-3.5 self-center text-osg-600/70" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7"
+                title={b.ativo ? 'Desativar' : 'Ativar'}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleAtivo();
+                }}
+              >
+                <Power className={cn('h-3.5 w-3.5', b.ativo ? 'text-osg-600' : 'text-muted-foreground')} />
+              </Button>
+            </div>
+          </div>
+          {resumo && <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground">{resumo}</p>}
+          {(b.flag_ids.length > 0 || !b.ativo) && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {b.flag_ids.length > 0 && (
+                <span
+                  className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-800"
+                  title={b.flag_ids.map((id) => nomeDaFlag.get(id) ?? '…').join(', ')}
+                >
+                  <Flag className="h-2.5 w-2.5" />
+                  {b.flag_ids.length}
+                </span>
+              )}
+              {!b.ativo && (
+                <Badge variant="outline" className="text-[10px]">
+                  inativo
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </HoverCardTrigger>
+      <HoverCardContent
+        side="bottom"
+        align="start"
+        sideOffset={8}
+        collisionPadding={16}
+        className="w-[26rem] max-w-[90vw] overflow-hidden border-osg-300/70 p-0 shadow-xl shadow-osg-300/30"
+      >
+        <FolhaPreview bloco={b} nomeDaFlag={nomeDaFlag} />
+      </HoverCardContent>
+    </HoverCard>
+  );
+};
+
+// --- Página ---------------------------------------------------------------------
+
 const BibliotecaModelos = () => {
   const { data: blocos = [], isLoading } = useBlocos();
   const { data: flags = [] } = useFlags();
@@ -63,10 +291,10 @@ const BibliotecaModelos = () => {
   const nomeDaFlag = useMemo(() => new Map(flags.map((f) => [f.id, f.nome])), [flags]);
 
   const [busca, setBusca] = useState('');
+  const [prateleira, setPrateleira] = useState<Prateleira>('todos');
   const [filtroCategoria, setFiltroCategoria] = useState('todas');
   const [filtroFlag, setFiltroFlag] = useState('todas');
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('todos');
-  const [gruposRecolhidos, setGruposRecolhidos] = useState<Set<TipoBloco>>(new Set());
   const [dialog, setDialog] = useState<{ open: boolean; bloco: BlocoComVersao | null }>({ open: false, bloco: null });
 
   const categorias = useMemo(
@@ -74,15 +302,17 @@ const BibliotecaModelos = () => {
     [blocos],
   );
 
-  const temFiltro = busca.trim() !== '' || filtroCategoria !== 'todas' || filtroFlag !== 'todas' || filtroStatus !== 'todos';
+  const filtrosAvancadosAtivos =
+    (filtroCategoria !== 'todas' ? 1 : 0) + (filtroFlag !== 'todas' ? 1 : 0) + (filtroStatus !== 'todos' ? 1 : 0);
 
   const limparFiltros = () => {
-    setBusca('');
     setFiltroCategoria('todas');
     setFiltroFlag('todas');
     setFiltroStatus('todos');
   };
 
+  // Busca + filtros avançados, ANTES do recorte por prateleira — assim as
+  // contagens das abas continuam vivas e mostram onde estão os resultados.
   const blocosFiltrados = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return blocos.filter((b) => {
@@ -99,11 +329,25 @@ const BibliotecaModelos = () => {
     });
   }, [blocos, busca, filtroCategoria, filtroFlag, filtroStatus]);
 
+  const contagemPorTipo = useMemo(() => {
+    const contagem = new Map<TipoBloco, number>(TIPOS_BLOCO.map((t) => [t, 0]));
+    for (const b of blocosFiltrados) {
+      const tipo = (b.tipo as TipoBloco) ?? 'livre';
+      contagem.set(tipo, (contagem.get(tipo) ?? 0) + 1);
+    }
+    return contagem;
+  }, [blocosFiltrados]);
+
+  const blocosVisiveis = useMemo(
+    () => (prateleira === 'todos' ? blocosFiltrados : blocosFiltrados.filter((b) => ((b.tipo as TipoBloco) ?? 'livre') === prateleira)),
+    [blocosFiltrados, prateleira],
+  );
+
   // Agrupa por tipo estrutural (ordem de TIPOS_BLOCO) e, dentro dele, por categoria
   // (alfabética, sem categoria por último). Grupos vazios não aparecem.
   const grupos = useMemo(() => {
     const porTipo = new Map<TipoBloco, BlocoComVersao[]>(TIPOS_BLOCO.map((t) => [t, []]));
-    for (const b of blocosFiltrados) porTipo.get((b.tipo as TipoBloco) ?? 'livre')!.push(b);
+    for (const b of blocosVisiveis) porTipo.get((b.tipo as TipoBloco) ?? 'livre')!.push(b);
     return TIPOS_BLOCO.map((tipo) => {
       const doTipo = porTipo.get(tipo)!;
       const porCategoria = new Map<string | null, BlocoComVersao[]>();
@@ -121,7 +365,7 @@ const BibliotecaModelos = () => {
         });
       return { tipo, total: doTipo.length, subgrupos };
     }).filter((g) => g.total > 0);
-  }, [blocosFiltrados]);
+  }, [blocosVisiveis]);
 
   // Stagger da entrada dos cards: delay na ordem de exibição, com teto para
   // bibliotecas grandes (depois do 15º card todos entram juntos — a onda já
@@ -134,14 +378,6 @@ const BibliotecaModelos = () => {
         for (const b of sg.blocos) delays.set(b.id, Math.min(i++, 15) * 30);
     return delays;
   }, [grupos]);
-
-  const alternarGrupo = (tipo: TipoBloco) =>
-    setGruposRecolhidos((s) => {
-      const next = new Set(s);
-      if (next.has(tipo)) next.delete(tipo);
-      else next.add(tipo);
-      return next;
-    });
 
   const abrirNovo = () => setDialog({ open: true, bloco: null });
   const abrirEdicao = (b: BlocoComVersao) => setDialog({ open: true, bloco: b });
@@ -159,214 +395,189 @@ const BibliotecaModelos = () => {
     >
       <div className="space-y-5">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
+          {/* Prateleiras: um tipo por vez no lugar dos grupos empilhados. */}
+          <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
+            {PRATELEIRAS.map(({ valor, label, Icone }) => {
+              const ativo = prateleira === valor;
+              const total = valor === 'todos' ? blocosFiltrados.length : contagemPorTipo.get(valor) ?? 0;
+              return (
+                <button
+                  key={valor}
+                  type="button"
+                  onClick={() => setPrateleira(valor)}
+                  className={cn(
+                    'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                    ativo
+                      ? 'bg-white text-osg-700 shadow-sm'
+                      : 'text-muted-foreground hover:bg-osg-100/60 hover:text-osg-700',
+                  )}
+                >
+                  <Icone className="h-3.5 w-3.5" />
+                  {label}
+                  <span className={cn('text-[10px] tabular-nums', ativo ? 'text-osg-600' : 'text-muted-foreground/70')}>
+                    {total}
+                  </span>
+                  {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-osg-moss" />}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="relative ml-auto w-full min-w-[200px] sm:w-auto sm:flex-1 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar por nome, categoria ou conteúdo"
+              placeholder="Buscar bloco por nome ou texto…"
               className="pl-9"
             />
           </div>
-          <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Categoria" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas as categorias</SelectItem>
-              {categorias.map((c) => (
-                <SelectItem key={c} value={c}>
-                  {c}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {flags.length > 0 && (
-            <Select value={filtroFlag} onValueChange={setFiltroFlag}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Flag" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todas">Todas as flags</SelectItem>
-                {flags.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    {f.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as FiltroStatus)}>
-            <SelectTrigger className="w-[130px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value="ativos">Ativos</SelectItem>
-              <SelectItem value="inativos">Inativos</SelectItem>
-            </SelectContent>
-          </Select>
-          {temFiltro && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={limparFiltros}
-              className="h-9 px-2.5 text-xs text-muted-foreground hover:text-osg-700"
-            >
-              <FilterX className="h-3.5 w-3.5 mr-1.5" />
-              Limpar
-            </Button>
-          )}
+
+          {/* Filtros avançados fora da visão inicial: categoria, flag e status
+              interessam de vez em quando — moram num popover único. */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-10 gap-1.5">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                Filtros
+                {filtrosAvancadosAtivos > 0 && (
+                  <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-osg-moss px-1 text-[10px] font-bold text-white">
+                    {filtrosAvancadosAtivos}
+                  </span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Categoria</Label>
+                <Select value={filtroCategoria} onValueChange={setFiltroCategoria}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todas">Todas as categorias</SelectItem>
+                    {categorias.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {nomeCategoria(c)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {flags.length > 0 && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Flag de composição</Label>
+                  <Select value={filtroFlag} onValueChange={setFiltroFlag}>
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Flag" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="todas">Todas as flags</SelectItem>
+                      {flags.map((f) => (
+                        <SelectItem key={f.id} value={f.id}>
+                          {f.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Status</Label>
+                <Select value={filtroStatus} onValueChange={(v) => setFiltroStatus(v as FiltroStatus)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="ativos">Ativos</SelectItem>
+                    <SelectItem value="inativos">Inativos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {filtrosAvancadosAtivos > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={limparFiltros}
+                  className="h-8 w-full text-xs text-muted-foreground hover:text-osg-700"
+                >
+                  <FilterX className="h-3.5 w-3.5 mr-1.5" />
+                  Limpar filtros
+                </Button>
+              )}
+            </PopoverContent>
+          </Popover>
         </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground py-12 justify-center">
             <Loader2 className="h-4 w-4 animate-spin" /> Carregando blocos…
           </div>
-        ) : blocosFiltrados.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              <FileText className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              {blocos.length === 0
-                ? 'Nenhum bloco ainda. Crie o primeiro com "Novo bloco".'
-                : 'Nenhum bloco corresponde aos filtros.'}
-            </CardContent>
-          </Card>
+        ) : blocosVisiveis.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-osg-200 py-16 text-center">
+            <LibraryBig className="mx-auto mb-3 h-8 w-8 text-osg-300" />
+            {blocos.length === 0 ? (
+              <>
+                <p className="font-medium text-osg-700">A biblioteca ainda está vazia</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Crie o primeiro bloco de texto — ele vira peça dos documentos gerados.
+                </p>
+                <Button size="sm" onClick={abrirNovo} className="mt-4 bg-osg-600 hover:bg-osg-700">
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Criar primeiro bloco
+                </Button>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Nenhum bloco encontrado{busca.trim() ? ` para “${busca.trim()}”` : ''} nesta prateleira.
+              </p>
+            )}
+          </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-7">
             {grupos.map(({ tipo, total, subgrupos }) => {
               const { label, Icone } = GRUPO_POR_TIPO[tipo];
-              const recolhido = gruposRecolhidos.has(tipo);
               // Sub-cabeçalho de categoria só quando há o que distinguir.
               const mostrarCategorias = subgrupos.length > 1 || subgrupos[0]?.categoria !== null;
               return (
                 <section key={tipo}>
-                  <button
-                    type="button"
-                    onClick={() => alternarGrupo(tipo)}
-                    className={cn(
-                      'w-full flex items-center gap-3 rounded-lg border border-osg-100 bg-osg-50 px-3 py-2.5 text-left transition-colors hover:bg-osg-100',
-                      !recolhido && 'mb-3',
-                    )}
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-osg-600 text-white">
-                      <Icone className="h-4 w-4" />
-                    </span>
-                    <h2 className="text-sm font-bold uppercase tracking-wide text-osg-700">{label}</h2>
-                    <Badge className="bg-white text-osg-700 border border-osg-200 hover:bg-white text-[11px] font-semibold">
-                      {total}
-                    </Badge>
-                    {recolhido ? (
-                      <ChevronRight className="h-4 w-4 text-osg-600 ml-auto" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-osg-600 ml-auto" />
-                    )}
-                  </button>
-                  {!recolhido && (
-                    <div className="space-y-5">
-                      {subgrupos.map(({ categoria, blocos: blocosDaCategoria }) => (
-                        <div key={categoria ?? '__sem_categoria'}>
-                          {mostrarCategorias && (
-                            <div className="flex items-center gap-1.5 mb-2 pl-1">
-                              <Tag className="h-3 w-3 text-osg-moss" />
-                              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                {categoria ?? 'Sem categoria'}
-                              </h3>
-                              <span className="text-[10px] text-muted-foreground">{blocosDaCategoria.length}</span>
-                            </div>
-                          )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                            {blocosDaCategoria.map((b) => {
-                              const campos = extrairCampos(b.versao_atual?.conteudo ?? '');
-                              return (
-                                <Card
-                                  key={b.id}
-                                  className={cn(
-                                    // Borda marrom-areia atenuada + sombra tonal — delimita sem cara de sépia.
-                                    'group flex flex-col rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 animate-osg-card-in',
-                                    // Hover: o card "flutua" acima dos vizinhos (z + translate + scale)
-                                    // para ampliar um pouco o preview; relative habilita o z-index.
-                                    // Scale discreto: quem amplia a leitura é o painel sobreposto do preview.
-                                    'relative transition-all duration-200 hover:z-10 hover:-translate-y-1.5 hover:scale-[1.02] hover:border-osg-300 hover:shadow-xl hover:shadow-osg-300/40',
-                                    !b.ativo && 'opacity-60',
-                                  )}
-                                  style={{ animationDelay: `${delayPorBloco.get(b.id) ?? 0}ms` }}
-                                >
-                                  <CardHeader className="pb-3">
-                                    <div className="flex items-start justify-between gap-2">
-                                      <CardTitle className="text-base font-semibold leading-tight">
-                                        {nomeExibido(b.nome, tipo)}
-                                        {/* Traço-destaque moss: quebra a homogeneidade sem colorir o texto. */}
-                                        <span aria-hidden className="block mt-1.5 h-1 w-10 rounded-full bg-osg-moss" />
-                                      </CardTitle>
-                                      <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => abrirEdicao(b)}>
-                                          <Pencil className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          className="h-7 w-7"
-                                          title={b.ativo ? 'Desativar' : 'Ativar'}
-                                          onClick={() => toggleAtivo.mutate({ id: b.id, ativo: !b.ativo })}
-                                        >
-                                          <Power className={`h-3.5 w-3.5 ${b.ativo ? 'text-osg-600' : 'text-muted-foreground'}`} />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                    {(b.flag_ids.length > 0 || !b.ativo) && (
-                                      <div className="flex items-center gap-1.5 flex-wrap">
-                                        {b.flag_ids.map((id) => (
-                                          <Badge key={id} className="text-[10px] bg-amber-100 text-amber-800 hover:bg-amber-100 gap-1">
-                                            <Flag className="h-2.5 w-2.5" />
-                                            {nomeDaFlag.get(id) ?? '…'}
-                                          </Badge>
-                                        ))}
-                                        {!b.ativo && <Badge variant="outline" className="text-[10px]">inativo</Badge>}
-                                      </div>
-                                    )}
-                                  </CardHeader>
-                                  <CardContent className="pt-0 flex flex-col flex-1">
-                                    <div className="relative">
-                                      <p className="text-sm text-muted-foreground italic line-clamp-3 leading-relaxed border-l-2 border-osg-100 pl-2.5">
-                                        {b.versao_atual?.conteudo || 'sem conteúdo'}
-                                      </p>
-                                      {/* Preview completo no hover: painel sobreposto alinhado ao trecho
-                                          clampado — o texto "cresce no lugar" por cima dos vizinhos, sem
-                                          mexer no grid. pointer-events-none: o hover é regido só pelo card,
-                                          então o painel não gruda quando vaza para fora dele. O delay-300
-                                          (só na entrada — na saída vale o delay-0 do estado base) evita
-                                          abrir quando o mouse está só de passagem pelo grid. */}
-                                      <div className="pointer-events-none invisible opacity-0 group-hover:visible group-hover:opacity-100 transition-opacity duration-200 delay-0 group-hover:delay-300 absolute -inset-x-2 -top-2 z-30 rounded-md border border-osg-300 bg-card p-2 shadow-xl shadow-osg-300/40 max-h-[60vh] overflow-hidden">
-                                        <p className="text-sm text-muted-foreground italic leading-relaxed border-l-2 border-osg-100 pl-2.5 whitespace-pre-wrap">
-                                          {b.versao_atual?.conteudo || 'sem conteúdo'}
-                                        </p>
-                                      </div>
-                                    </div>
-                                    <div className="mt-auto pt-3">
-                                      <div className="flex items-center gap-1 flex-wrap border-t border-border/60 pt-2">
-                                        {campos.length > 0 && (
-                                          <>
-                                            <Braces className="h-3 w-3 text-osg-600" />
-                                            {campos.map((c) => (
-                                              <code key={c} className="text-[10px] bg-osg-50 text-osg-700 rounded px-1 py-0.5">{c}</code>
-                                            ))}
-                                          </>
-                                        )}
-                                        <span className="text-[10px] text-muted-foreground ml-auto">
-                                          v{b.versao_atual?.numero_versao ?? '—'}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
+                  {prateleira === 'todos' && (
+                    <div className="mb-3 flex items-center gap-2">
+                      <Icone className="h-4 w-4 text-osg-600" />
+                      <h2 className="text-sm font-bold uppercase tracking-wide text-osg-700">{label}</h2>
+                      <span className="text-xs tabular-nums text-muted-foreground">{total}</span>
+                      <span aria-hidden className="h-px flex-1 bg-osg-100" />
                     </div>
                   )}
+                  <div className="space-y-5">
+                    {subgrupos.map(({ categoria, blocos: blocosDaCategoria }) => (
+                      <div key={categoria ?? '__sem_categoria'}>
+                        {mostrarCategorias && (
+                          <div className="mb-2 flex items-center gap-1.5 pl-1">
+                            <Tag className="h-3 w-3 text-osg-moss" />
+                            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                              {categoria ? nomeCategoria(categoria) : 'Sem categoria'}
+                            </h3>
+                            <span className="text-[10px] text-muted-foreground">{blocosDaCategoria.length}</span>
+                          </div>
+                        )}
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                          {blocosDaCategoria.map((b) => (
+                            <FichaBloco
+                              key={b.id}
+                              bloco={b}
+                              tipo={tipo}
+                              nomeDaFlag={nomeDaFlag}
+                              delay={delayPorBloco.get(b.id) ?? 0}
+                              onEditar={() => abrirEdicao(b)}
+                              onToggleAtivo={() => toggleAtivo.mutate({ id: b.id, ativo: !b.ativo })}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </section>
               );
             })}

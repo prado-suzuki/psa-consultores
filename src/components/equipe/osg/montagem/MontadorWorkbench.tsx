@@ -7,6 +7,8 @@ import {
 import { ArrowLeft, Pencil, Power, Blocks, Eye } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModeloBlocos, type ModeloComContagem } from '@/hooks/useModelosDocumento';
+import { useBlocos, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
 import { DocumentoCanvas } from './DocumentoCanvas';
 import { BibliotecaPalette } from './BibliotecaPalette';
 import { FolhaPreview } from './FolhaPreview';
@@ -24,9 +26,16 @@ interface Props {
 
 export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, onEditarMeta, onToggleAtivo }: Props) {
   const { data: docBlocos = [], isLoading } = useModeloBlocos(modelo.id);
+  const { data: blocos = [] } = useBlocos();
   const [aba, setAba] = useState<Aba>('montagem');
+  const [blocoEditando, setBlocoEditando] = useState<BlocoComVersao | null>(null);
 
   const idsNoModelo = useMemo(() => new Set(docBlocos.map((b) => b.bloco_id)), [docBlocos]);
+
+  const abrirEdicaoBloco = (blocoId: string) => {
+    const bloco = blocos.find((b) => b.id === blocoId) ?? null;
+    if (bloco) setBlocoEditando(bloco);
+  };
 
   return (
     <div className="space-y-3">
@@ -84,7 +93,7 @@ export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, o
       {/* Corpo */}
       {aba === 'montagem' ? (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_minmax(300px,360px)] lg:items-start">
-          <DocumentoCanvas modeloId={modelo.id} docBlocos={docBlocos} isLoading={isLoading} />
+          <DocumentoCanvas modeloId={modelo.id} docBlocos={docBlocos} isLoading={isLoading} onEditarBloco={abrirEdicaoBloco} />
           <div className="lg:sticky lg:top-4 lg:max-h-[calc(100vh-7rem)]">
             <BibliotecaPalette documentoId={modelo.id} idsNoModelo={idsNoModelo} />
           </div>
@@ -92,6 +101,11 @@ export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, o
       ) : (
         <FolhaPreview docBlocos={docBlocos} />
       )}
+      <EditorBlocoDialog
+        open={blocoEditando !== null}
+        bloco={blocoEditando}
+        onOpenChange={(open) => { if (!open) setBlocoEditando(null); }}
+      />
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   GripVertical, ChevronDown, Trash2, Lock, LockOpen, AlertTriangle,
-  ChevronUp, Flag,
+  ChevronUp, Flag, Pencil,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DocumentoBlocoComBloco } from '@/hooks/useModelosDocumento';
@@ -32,13 +32,14 @@ interface Props {
   onRemove: () => void;
   onToggleObrigatorio: () => void;
   onSaveObservacao: (valor: string | null) => void;
+  onEditar?: () => void;
   onDragStart: () => void;
   onCommitReorder: () => void;
 }
 
 export function BlocoMontadoCard({
   db, rotulo, numero, aninhado, carregados, podeSubir, podeDescer,
-  onMove, onRemove, onToggleObrigatorio, onSaveObservacao, onDragStart, onCommitReorder,
+  onMove, onRemove, onToggleObrigatorio, onSaveObservacao, onEditar, onDragStart, onCommitReorder,
 }: Props) {
   const controls = useDragControls();
   const [aberto, setAberto] = useState(false);
@@ -168,9 +169,16 @@ export function BlocoMontadoCard({
                     <ChevronDown className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-destructive hover:bg-destructive/10" onClick={onRemove}>
-                  <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover
-                </Button>
+                <div className="flex items-center gap-1">
+                  {onEditar && bloco && (
+                    <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-osg-600 hover:bg-osg-50" onClick={onEditar}>
+                      <Pencil className="mr-1 h-3.5 w-3.5" /> Editar bloco
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-destructive hover:bg-destructive/10" onClick={onRemove}>
+                    <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover
+                  </Button>
+                </div>
               </div>
             </div>
           )}

@@ -84,6 +84,74 @@ export function mapearPessoa(row: PessoaRow): Campos {
   return derivarCampos('pessoa', out);
 }
 
+/** Capital social e total de quotas da sociedade — calculados, não digitados. */
+export interface CapitalSociedade {
+  capitalValor: number | null;
+  totalQuotas: number | null;
+}
+
+/**
+ * Calcula capital social e total de quotas conforme o tipo da empresa:
+ * - PR (Proprietária): capital = Σ valor contábil das matrículas APROVADAS para
+ *   integralização (é daí que a distribuição de quotas nasce), com quotas de
+ *   R$ 1,00 — totalQuotas = capital arredondado para inteiro.
+ * - Demais (CN/Controladora…): Σ vlr_total e Σ quotas do quadro societário.
+ * Sem dados, devolve null — os placeholders resolvem em branco e os condicionais
+ * {{#sociedade.capitalValor}} pulam o trecho.
+ */
+export function calcularCapitalSociedade(
+  empresa: Pick<PessoaRow, 'tipo_empresa'> | undefined,
+  socios: SocioParaMapear[],
+  integralizacoes: MatriculaParaMapear[],
+): CapitalSociedade {
+  if (empresa?.tipo_empresa === 'PR') {
+    const valores = integralizacoes
+      .map((m) => m.vlr_contabil ?? m.bem?.vlr_contabil)
+      .filter((v): v is number => v != null);
+    if (valores.length === 0) return { capitalValor: null, totalQuotas: null };
+    const capital = valores.reduce((s, v) => s + v, 0);
+    return { capitalValor: capital, totalQuotas: Math.round(capital) };
+  }
+  const comQuotas = socios.filter((s) => s.quotas != null);
+  const comVlr = socios.filter((s) => s.vlr_total != null);
+  return {
+    capitalValor: comVlr.length ? comVlr.reduce((s, x) => s + x.vlr_total!, 0) : null,
+    totalQuotas: comQuotas.length ? comQuotas.reduce((s, x) => s + x.quotas!, 0) : null,
+  };
+}
+
+/**
+ * Mapeia a pessoa PJ que é OBJETO do documento (a "Sociedade") para os campos do
+ * vocabulário `sociedade`: razão social, CNPJ, NIRE/Junta, objeto e a sede tanto em
+ * prosa (`sede`) quanto em partes atômicas. Diferente de `mapearPessoa` (sócios), que
+ * monta a QUALIFICAÇÃO da pessoa no preâmbulo; aqui os campos entram avulsos nas
+ * cláusulas ("a Sociedade tem sede…", "tem por objeto…"). O capital (calculado por
+ * calcularCapitalSociedade) entra como segundo argumento; os extensos derivam.
+ */
+export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Campos {
+  const { out, set } = coletor();
+  set('razaoSocial', row.denominacao);
+  set('cnpj', row.cpf_cnpj);
+  set('nire', row.nire);
+  set('juntaUf', row.junta_comercial_uf);
+  set('dataConstituicao', formatarDataBR(row.data_constituicao));
+  set('objeto', row.objeto_social);
+  set('sede', enderecoProsa(row));
+  set('sedeEndereco', [row.endereco_logradouro, numeroProsa(row.endereco_numero)].filter(Boolean).join(', '));
+  set('sedeBairro', row.endereco_bairro);
+  set('sedeMunicipio', row.endereco_municipio);
+  set('sedeUf', row.endereco_uf);
+  set('sedeCep', row.endereco_cep);
+  if (capital?.capitalValor != null) set('capitalValor', formatarValor(capital.capitalValor));
+  if (capital?.totalQuotas != null) set('totalQuotas', formatarInteiro(capital.totalQuotas));
+  // Campo do catálogo ausente vira '' (cadastro incompleto) para o condicional
+  // {{#sociedade.objeto}}…{{/sociedade.objeto}} pular o trecho em vez de a prévia
+  // travar — a sociedade é preenchida da empresa, sem formulário que complete a mão.
+  const campos = derivarCampos('sociedade', out);
+  for (const c of camposDaEntidade('sociedade')) campos[c.id] = campos[c.id] ?? '';
+  return campos;
+}
+
 export function mapearBem(row: BemRow): Campos {
   const { out, set } = coletor();
   set('denominacao', row.denominacao);
@@ -116,12 +184,15 @@ export interface MatriculaParaMapear {
 // Titular de uma matrícula. `integralizador`/`fracao` vêm da titularidade e só
 // importam para a forma fracionada (composse/condomínio); `pessoaId` permite
 // deduplicar as duas linhas (posse de fato + de direito) de uma mesma pessoa.
+// `tipoPessoa`/`cpfCnpj` enriquecem a visão derivada do Quadro Societário (PR).
 // Todos opcionais: titulares legados (`{ denominacao }`) seguem válidos.
 export interface TitularParaMapear {
   denominacao: string | null;
   pessoaId?: string | null;
   integralizador?: boolean;
   fracao?: number | null;
+  tipoPessoa?: string | null;
+  cpfCnpj?: string | null;
 }
 
 /**
@@ -286,6 +357,115 @@ export interface MatriculaIntegralizacao extends MatriculaParaMapear {
   id: string;
 }
 
+/** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
+export interface ParticipacaoPR {
+  /** null para titular legado sem pessoa vinculada (agregado pela denominação). */
+  pessoaId: string | null;
+  denominacao: string;
+  tipoPessoa: string | null;
+  cpfCnpj: string | null;
+  /** R$ — Σ frações × valores das matrículas (centavos exatos). */
+  valor: number;
+  /** Inteiro — quota de R$ 1,00; Σ quotas === Math.round(Σ valor). */
+  quotas: number;
+  /** valor ÷ capital × 100. */
+  percentual: number;
+}
+
+/**
+ * Quadro societário DERIVADO da empresa PR: rateia o valor contábil de cada
+ * matrícula aprovada para integralização pela fração de titularidade (em
+ * centavos, espelhando mapearIntegralizacoes — quando as frações fecham 100%,
+ * o último titular absorve o resíduo de arredondamento), agrega por pessoa e
+ * converte em quotas de R$ 1,00. Titulares sem fração dividem igualmente o que
+ * sobra (titular único sem fração leva 100%). Matrícula sem valor contábil
+ * fica fora do cálculo. Ordena por valor decrescente; o último absorve a
+ * diferença de quotas para fechar com calcularCapitalSociedade.
+ */
+export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): ParticipacaoPR[] {
+  interface Acumulado {
+    pessoaId: string | null; denominacao: string;
+    tipoPessoa: string | null; cpfCnpj: string | null;
+    cent: number;
+  }
+  const porChave = new Map<string, Acumulado>();
+
+  for (const m of matriculas) {
+    const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+    if (vlr == null) continue; // sem valor contábil ⇒ matrícula fora do cálculo
+    const titulares = dedupTitulares(m.titulares);
+    if (titulares.length === 0) continue;
+
+    const totalCent = Math.round(vlr * 100);
+    const comFracao = titulares.filter((t) => t.fracao != null);
+    const semFracao = titulares.filter((t) => t.fracao == null);
+    // Matrícula "fechada": todos com fração e Σ frações ≈ 100 — o último titular
+    // absorve o resíduo de arredondamento (padrão dos contratos registrados).
+    const fechada =
+      semFracao.length === 0 &&
+      Math.abs(comFracao.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001;
+
+    const centDe = new Map<TitularParaMapear, number>();
+    let alocado = 0;
+    comFracao.forEach((t, i) => {
+      const cent = fechada && i === comFracao.length - 1
+        ? totalCent - alocado
+        : Math.round((totalCent * t.fracao!) / 100);
+      alocado += cent;
+      centDe.set(t, cent);
+    });
+    // Sem fração: dividem igualmente o restante (último absorve o resíduo).
+    const restante = totalCent - alocado;
+    let alocadoSem = 0;
+    semFracao.forEach((t, i) => {
+      const cent = i === semFracao.length - 1
+        ? restante - alocadoSem
+        : Math.round(restante / semFracao.length);
+      alocadoSem += cent;
+      centDe.set(t, cent);
+    });
+
+    for (const t of titulares) {
+      const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
+      const atual = porChave.get(chave);
+      if (atual) {
+        atual.cent += centDe.get(t) ?? 0;
+      } else {
+        porChave.set(chave, {
+          pessoaId: t.pessoaId ?? null,
+          denominacao: t.denominacao ?? '—',
+          tipoPessoa: t.tipoPessoa ?? null,
+          cpfCnpj: t.cpfCnpj ?? null,
+          cent: centDe.get(t) ?? 0,
+        });
+      }
+    }
+  }
+
+  const capitalCent = [...porChave.values()].reduce((s, a) => s + a.cent, 0);
+  if (capitalCent === 0) return [];
+
+  const participacoes = [...porChave.values()]
+    .sort((a, z) => z.cent - a.cent)
+    .map((a) => ({
+      pessoaId: a.pessoaId,
+      denominacao: a.denominacao,
+      tipoPessoa: a.tipoPessoa,
+      cpfCnpj: a.cpfCnpj,
+      valor: a.cent / 100,
+      quotas: Math.round(a.cent / 100),
+      percentual: (a.cent / capitalCent) * 100,
+    }));
+
+  // Quota a R$ 1,00: o último absorve a diferença para Σ quotas fechar com
+  // Math.round(capital) — paridade com calcularCapitalSociedade (totalQuotas).
+  const totalQuotas = Math.round(capitalCent / 100);
+  const somaQuotas = participacoes.reduce((s, p) => s + p.quotas, 0);
+  participacoes[participacoes.length - 1].quotas += totalQuotas - somaQuotas;
+
+  return participacoes;
+}
+
 /** "décimo quinto" → "Décimo Quinto" (rótulo de parágrafo no meio do bloco). */
 function capitalizarPalavras(texto: string): string {
   return texto.replace(/\S+/g, (p) => p[0].toUpperCase() + p.slice(1));
@@ -435,6 +615,8 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
   switch (tipo) {
     case 'pessoa':
       return mapearPessoa(row as PessoaRow);
+    case 'sociedade':
+      return mapearSociedade(row as PessoaRow);
     case 'bem':
       return mapearBem(row as BemRow);
     case 'matricula':

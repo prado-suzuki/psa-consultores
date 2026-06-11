@@ -6,6 +6,7 @@ import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonia
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
 import { PARES } from '@/lib/templates/concordancia';
 import {
+  calcularParticipacoesPR,
   mapearPessoa,
   type AdministradorParaMapear,
   type MatriculaIntegralizacao,
@@ -128,7 +129,12 @@ export function useRegistrosPorTipo(clienteId: string | null) {
       row: c,
     }));
 
-    return { pessoa, bem, matricula, cartorio };
+    // Sociedade (objeto do contrato) é uma pessoa PJ; na tela Gerar ela é dirigida
+    // pelo seletor único de Empresa, não por um seletor próprio — mas o catálogo de
+    // registros segue exaustivo por TipoEntidade.
+    const sociedade: Registro[] = pessoa.filter((r) => (r.row as PessoaRow).tipo_pessoa === 'PJ');
+
+    return { pessoa, sociedade, bem, matricula, cartorio };
   }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, clienteId]);
 
   return {
@@ -152,15 +158,106 @@ interface RawAdministracao {
 }
 
 /**
- * Itens das seções de lista, dada a empresa (PJ) escolhida na tela Gerar:
- * sócios do quadro societário e administradores da administração, na ordem do
- * cadastro. Para sócia PJ, busca em administracao quem a representa
- * ("neste ato representada por…").
+ * Matrículas dos bens APROVADOS para integralização na empresa (PJ destino),
+ * sem impedimento ativo — fonte única do gerador (seção {{#integralizacoes}})
+ * E da visão derivada do Quadro Societário (empresa PR).
  */
-export function useListasDaEmpresa(empresaId: string | null) {
+export function useIntegralizacoesAprovadas(empresaId: string | null) {
+  return useQuery<MatriculaIntegralizacao[]>({
+    // Key compartilhada com a tela Gerar — não renomear (cache único).
+    queryKey: ['integralizacoes-geracao', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('bem')
+        .select(`
+          id, denominacao, vlr_contabil, ccir_codigo,
+          matricula (
+            id, numero, livro, folha, municipio_imovel, uf_imovel,
+            area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
+            cartorio:cartorio_id ( nome_completo, comarca, uf ),
+            titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
+            impedimento ( id, cancelado )
+          )
+        `)
+        .eq('empresa_destino_pessoa_id', empresaId!)
+        .eq('status_integralizacao', 'Aprovado');
+      if (error) throw error;
+
+      const bens = (data ?? []) as unknown as Array<{
+        id: string; denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null;
+        matricula: Array<{
+          id: string; numero: string | null; livro: string | null; folha: string | null;
+          municipio_imovel: string | null; uf_imovel: string | null;
+          area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
+          confrontacoes_texto: string | null; descricao_psa_completa: string | null;
+          cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
+          titularidade: Array<{
+            integralizador: boolean | null; fracao: number | null;
+            titular: { id: string; denominacao: string | null; tipo_pessoa: string | null; cpf_cnpj: string | null } | null;
+          }> | null;
+          impedimento: Array<{ id: string; cancelado: boolean | null }> | null;
+        }> | null;
+      }>;
+
+      const matriculas: MatriculaIntegralizacao[] = [];
+      for (const b of bens) {
+        for (const m of b.matricula ?? []) {
+          // Impedimento ativo (não cancelado) trava a integralização do imóvel.
+          if ((m.impedimento ?? []).some((i) => !i.cancelado)) continue;
+          matriculas.push({
+            id: m.id,
+            numero: m.numero,
+            livro: m.livro,
+            folha: m.folha,
+            municipio_imovel: m.municipio_imovel,
+            uf_imovel: m.uf_imovel,
+            area_documento: m.area_documento,
+            area_unidade: m.area_unidade,
+            vlr_contabil: m.vlr_contabil,
+            confrontacoes_texto: m.confrontacoes_texto,
+            descricao_psa_completa: m.descricao_psa_completa,
+            bem: { denominacao: b.denominacao, vlr_contabil: b.vlr_contabil, ccir_codigo: b.ccir_codigo },
+            cartorio: m.cartorio,
+            titulares: (m.titularidade ?? []).map((t) => ({
+              pessoaId: t.titular?.id ?? null,
+              denominacao: t.titular?.denominacao ?? null,
+              tipoPessoa: t.titular?.tipo_pessoa ?? null,
+              cpfCnpj: t.titular?.cpf_cnpj ?? null,
+              integralizador: !!t.integralizador,
+              fracao: t.fracao ?? null,
+            })),
+          });
+        }
+      }
+      // Ordem estável das alíneas: pelo número da matrícula.
+      return matriculas.sort((a, z) => (a.numero ?? '').localeCompare(z.numero ?? '', 'pt-BR', { numeric: true }));
+    },
+  });
+}
+
+/** Prefixo do id sintético do sócio derivado sem pessoa cadastrada (titular legado). */
+export const PESSOA_LEGADA_PREFIX = 'legado:';
+
+/**
+ * Itens das seções de lista, dada a empresa (PJ) escolhida na tela Gerar:
+ * sócios e administradores, na ordem do cadastro. Para sócia PJ, busca em
+ * administracao quem a representa ("neste ato representada por…").
+ *
+ * Empresa Proprietária (PR, via `tipoEmpresa`): o quadro societário não é
+ * digitado — os sócios são DERIVADOS dos titulares das integralizações
+ * aprovadas (calcularParticipacoesPR: quotas a R$ 1,00, ordem de participação
+ * decrescente), com a PessoaRow completa buscada para a qualificação. Titular
+ * sem pessoa vinculada também entra como sócio, com uma linha sintética
+ * (id "legado:<nome>") e qualificação incompleta — decisão registrada em
+ * docs/osg/plano-quadro-societario-pr.md §12.
+ */
+export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: string | null) {
+  const ehPR = tipoEmpresa === 'PR';
+
   const sociosQ = useQuery<SocioParaMapear[]>({
     queryKey: ['socios-geracao', empresaId],
-    enabled: !!empresaId,
+    enabled: !!empresaId && !ehPR,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quadro_societario')
@@ -223,79 +320,100 @@ export function useListasDaEmpresa(empresaId: string | null) {
 
   // Matrículas dos bens APROVADOS para integralização nesta empresa, sem
   // impedimento ativo — a matéria-prima da seção {{#integralizacoes}}.
-  const integralizacoesQ = useQuery<MatriculaIntegralizacao[]>({
-    queryKey: ['integralizacoes-geracao', empresaId],
-    enabled: !!empresaId,
+  const integralizacoesQ = useIntegralizacoesAprovadas(empresaId);
+
+  // --- PR: sócios derivados das integralizações ------------------------------
+
+  // Na PR, o titular legado ganha o mesmo id sintético do sócio derivado, para
+  // mapearIntegralizacoes casar as alíneas dele em {{#integralizacoes}}.
+  const integralizacoes = useMemo<MatriculaIntegralizacao[]>(() => {
+    const base = integralizacoesQ.data ?? [];
+    if (!ehPR) return base;
+    return base.map((m) => ({
+      ...m,
+      titulares: m.titulares.map((t) =>
+        t.pessoaId ? t : { ...t, pessoaId: `${PESSOA_LEGADA_PREFIX}${t.denominacao ?? '—'}` },
+      ),
+    }));
+  }, [ehPR, integralizacoesQ.data]);
+
+  const participacoes = useMemo(
+    () => (ehPR ? calcularParticipacoesPR(integralizacoesQ.data ?? []) : []),
+    [ehPR, integralizacoesQ.data],
+  );
+  const idsPessoas = useMemo(
+    () => participacoes.map((p) => p.pessoaId).filter((id): id is string => !!id).sort(),
+    [participacoes],
+  );
+
+  // PessoaRow completa dos titulares (a qualificação do preâmbulo precisa da
+  // linha inteira) + representante das sócias PJ, como no fluxo manual.
+  const pessoasPRQ = useQuery<{
+    pessoas: Record<string, PessoaRow>;
+    representantes: Record<string, string>;
+  }>({
+    queryKey: ['socios-geracao-pr', empresaId, idsPessoas.join(',')],
+    enabled: ehPR && idsPessoas.length > 0,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('bem')
-        .select(`
-          id, denominacao, vlr_contabil, ccir_codigo,
-          matricula (
-            id, numero, livro, folha, municipio_imovel, uf_imovel,
-            area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
-            cartorio:cartorio_id ( nome_completo, comarca, uf ),
-            titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao ) ),
-            impedimento ( id, cancelado )
-          )
-        `)
-        .eq('empresa_destino_pessoa_id', empresaId!)
-        .eq('status_integralizacao', 'Aprovado');
+      const { data, error } = await supabase.from('pessoa').select('*').in('id', idsPessoas);
       if (error) throw error;
+      const pessoas: Record<string, PessoaRow> = {};
+      for (const p of (data ?? []) as PessoaRow[]) pessoas[p.id] = p;
 
-      const bens = (data ?? []) as unknown as Array<{
-        id: string; denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null;
-        matricula: Array<{
-          id: string; numero: string | null; livro: string | null; folha: string | null;
-          municipio_imovel: string | null; uf_imovel: string | null;
-          area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
-          confrontacoes_texto: string | null; descricao_psa_completa: string | null;
-          cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
-          titularidade: Array<{
-            integralizador: boolean | null; fracao: number | null;
-            titular: { id: string; denominacao: string | null } | null;
-          }> | null;
-          impedimento: Array<{ id: string; cancelado: boolean | null }> | null;
-        }> | null;
-      }>;
-
-      const matriculas: MatriculaIntegralizacao[] = [];
-      for (const b of bens) {
-        for (const m of b.matricula ?? []) {
-          // Impedimento ativo (não cancelado) trava a integralização do imóvel.
-          if ((m.impedimento ?? []).some((i) => !i.cancelado)) continue;
-          matriculas.push({
-            id: m.id,
-            numero: m.numero,
-            livro: m.livro,
-            folha: m.folha,
-            municipio_imovel: m.municipio_imovel,
-            uf_imovel: m.uf_imovel,
-            area_documento: m.area_documento,
-            area_unidade: m.area_unidade,
-            vlr_contabil: m.vlr_contabil,
-            confrontacoes_texto: m.confrontacoes_texto,
-            descricao_psa_completa: m.descricao_psa_completa,
-            bem: { denominacao: b.denominacao, vlr_contabil: b.vlr_contabil, ccir_codigo: b.ccir_codigo },
-            cartorio: m.cartorio,
-            titulares: (m.titularidade ?? []).map((t) => ({
-              pessoaId: t.titular?.id ?? null,
-              denominacao: t.titular?.denominacao ?? null,
-              integralizador: !!t.integralizador,
-              fracao: t.fracao ?? null,
-            })),
-          });
+      const idsPj = Object.values(pessoas).filter((p) => p.tipo_pessoa === 'PJ').map((p) => p.id);
+      const representantes: Record<string, string> = {};
+      if (idsPj.length > 0) {
+        const { data: adms, error: errAdms } = await supabase
+          .from('administracao')
+          .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
+          .in('pj_pessoa_id', idsPj)
+          .order('created_at');
+        if (errAdms) throw errAdms;
+        for (const a of (adms ?? []) as unknown as Array<{
+          pj_pessoa_id: string;
+          administrador: PessoaRow | null;
+        }>) {
+          if (!a.administrador?.denominacao) continue;
+          const qualificado =
+            `${PARES.senhor(a.administrador.genero as 'M' | 'F' | null)} ` +
+            mapearPessoa(a.administrador).qualificacao;
+          const atual = representantes[a.pj_pessoa_id];
+          representantes[a.pj_pessoa_id] = atual ? `${atual}, e, ${qualificado}` : qualificado;
         }
       }
-      // Ordem estável das alíneas: pelo número da matrícula.
-      return matriculas.sort((a, z) => (a.numero ?? '').localeCompare(z.numero ?? '', 'pt-BR', { numeric: true }));
+      return { pessoas, representantes };
     },
   });
 
+  const sociosDerivados = useMemo<SocioParaMapear[]>(() => {
+    if (!ehPR) return [];
+    // Espera as PessoaRow chegarem para não renderizar a prévia com a
+    // qualificação em branco e repreencher em seguida.
+    if (idsPessoas.length > 0 && !pessoasPRQ.data) return [];
+    const pessoas = pessoasPRQ.data?.pessoas ?? {};
+    const representantes = pessoasPRQ.data?.representantes ?? {};
+    return participacoes.map((p) => ({
+      pessoa:
+        (p.pessoaId ? pessoas[p.pessoaId] : undefined) ??
+        ({
+          id: p.pessoaId ?? `${PESSOA_LEGADA_PREFIX}${p.denominacao}`,
+          denominacao: p.denominacao,
+          tipo_pessoa: p.tipoPessoa,
+          cpf_cnpj: p.cpfCnpj,
+        } as unknown as PessoaRow),
+      quotas: p.quotas,
+      vlr_total: p.valor,
+      representante: p.pessoaId ? (representantes[p.pessoaId] ?? null) : null,
+    }));
+  }, [ehPR, participacoes, idsPessoas, pessoasPRQ.data]);
+
   return {
-    socios: sociosQ.data ?? [],
+    socios: ehPR ? sociosDerivados : (sociosQ.data ?? []),
     administradores: administradoresQ.data ?? [],
-    integralizacoes: integralizacoesQ.data ?? [],
-    isFetching: sociosQ.isFetching || administradoresQ.isFetching || integralizacoesQ.isFetching,
+    integralizacoes,
+    isFetching:
+      (ehPR ? pessoasPRQ.isFetching : sociosQ.isFetching) ||
+      administradoresQ.isFetching ||
+      integralizacoesQ.isFetching,
   };
 }

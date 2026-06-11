@@ -13,6 +13,7 @@ interface Props {
   modeloId: string;
   docBlocos: DocumentoBlocoComBloco[];
   isLoading: boolean;
+  onEditarBloco?: (blocoId: string) => void;
 }
 
 const ehCapitulo = (d: DocumentoBlocoComBloco) => d.bloco?.tipo === 'capitulo';
@@ -33,7 +34,7 @@ function segmentar(lista: DocumentoBlocoComBloco[]): DocumentoBlocoComBloco[][] 
   return segs;
 }
 
-export function DocumentoCanvas({ modeloId, docBlocos, isLoading }: Props) {
+export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco }: Props) {
   const remover = useRemoverDocumentoBloco();
   const atualizar = useAtualizarDocumentoBloco();
   const reordenar = useReordenarBlocos();
@@ -162,6 +163,7 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading }: Props) {
                   onRemove={() => remover.mutate({ id: db.id, documentoId: modeloId })}
                   onToggleObrigatorio={() => atualizar.mutate({ id: db.id, documentoId: modeloId, patch: { obrigatorio: !db.obrigatorio } })}
                   onSaveObservacao={(v) => atualizar.mutate({ id: db.id, documentoId: modeloId, patch: { observacao: v } })}
+                  onEditar={db.bloco && onEditarBloco ? () => onEditarBloco(db.bloco_id) : undefined}
                   onDragStart={() => iniciarArrasto(db)}
                   onCommitReorder={commitReorder}
                 />

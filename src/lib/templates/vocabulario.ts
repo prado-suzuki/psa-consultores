@@ -9,7 +9,7 @@ import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia
 
 export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro';
 
-export type TipoEntidade = 'pessoa' | 'bem' | 'matricula' | 'cartorio';
+export type TipoEntidade = 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio';
 
 export interface CampoEntidade {
   /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
@@ -41,6 +41,12 @@ function paraInteiro(bruto: string | undefined): number {
   const t = (bruto ?? '').trim();
   if (t === '') return NaN;
   return Number(t);
+}
+
+/** Lê um inteiro pt-BR com separador de milhar ("4.234.822") ou cru ("1500"). */
+function paraInteiroBR(bruto: string | undefined): number {
+  const digitos = (bruto ?? '').replace(/\D/g, '');
+  return digitos ? Number(digitos) : NaN;
 }
 
 // --- Campos derivados reutilizáveis -----------------------------------------
@@ -77,6 +83,17 @@ function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEnti
       const n = paraInteiro(v[derivadoDe]);
       return Number.isFinite(n) ? cardinalExtenso(n) : '';
     },
+  };
+}
+
+/** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
+function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => ufPorExtenso(v[derivadoDe]),
   };
 }
 
@@ -236,6 +253,58 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         ],
         derivar: montarQualificacao,
       },
+    ],
+  },
+  // A PJ que é OBJETO do documento (a sociedade sendo constituída/alterada) —
+  // distinta de `pessoa` (sócios, administradores…). Campos atômicos da sede
+  // (município/UF/CEP) e a redação em prosa (`sede`), preenchidos pelo mapeador
+  // a partir da pessoa PJ; o contrato a chama de "a Sociedade".
+  sociedade: {
+    tipo: 'sociedade',
+    label: 'Sociedade',
+    campos: [
+      { id: 'razaoSocial', label: 'Razão social', tipo: 'texto' },
+      { id: 'cnpj', label: 'CNPJ', tipo: 'texto' },
+      { id: 'nire', label: 'NIRE (registro na Junta)', tipo: 'texto' },
+      { id: 'juntaUf', label: 'UF da Junta Comercial', tipo: 'texto' },
+      ufExtensoCampo('juntaUfExtenso', 'Junta Comercial — Estado por extenso', 'juntaUf'),
+      { id: 'dataConstituicao', label: 'Data de constituição', tipo: 'texto' },
+      { id: 'objeto', label: 'Objeto social', tipo: 'textarea' },
+      // Capital social e quotas: calculados na geração (calcularCapitalSociedade
+      // em mapeadores.ts — PR soma as integralizações aprovadas; demais somam o
+      // quadro societário), aqui só os campos + extensos derivados (editáveis).
+      { id: 'capitalValor', label: 'Capital social (R$)', tipo: 'valor' },
+      {
+        id: 'capitalExtenso',
+        label: 'Capital social (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'capitalValor',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.capitalValor);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      { id: 'totalQuotas', label: 'Total de quotas', tipo: 'inteiro' },
+      {
+        id: 'totalQuotasExtenso',
+        label: 'Total de quotas (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'totalQuotas',
+        derivar: (v) => {
+          const n = paraInteiroBR(v.totalQuotas);
+          return Number.isFinite(n) ? cardinalExtenso(n) : '';
+        },
+      },
+      // Sede completa em prosa ("Rua X, nº 119, bairro Centro, no município de…")
+      // mais as partes atômicas (cobrem os placeholders legados sedeEndereco/
+      // sedeMunicipio/sedeUf/sedeCep, agora sob o namespace sociedade.*).
+      { id: 'sede', label: 'Sede (endereço completo)', tipo: 'textarea' },
+      { id: 'sedeEndereco', label: 'Sede — logradouro e número', tipo: 'texto' },
+      { id: 'sedeBairro', label: 'Sede — bairro', tipo: 'texto' },
+      { id: 'sedeMunicipio', label: 'Sede — município', tipo: 'texto' },
+      { id: 'sedeUf', label: 'Sede — UF', tipo: 'texto' },
+      ufExtensoCampo('sedeUfExtenso', 'Sede — Estado por extenso', 'sedeUf'),
+      { id: 'sedeCep', label: 'Sede — CEP', tipo: 'texto' },
     ],
   },
   bem: {

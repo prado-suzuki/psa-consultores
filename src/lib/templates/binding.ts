@@ -36,6 +36,7 @@ export const PAPEIS: Record<string, Papel> = {
   donatario: { tipo: 'pessoa', label: 'Donatário' },
   administrador: { tipo: 'pessoa', label: 'Administrador' },
   pessoa: { tipo: 'pessoa', label: 'Pessoa' },
+  sociedade: { tipo: 'sociedade', label: 'Sociedade' },
   imovel: { tipo: 'matricula', label: 'Imóvel' },
   matricula: { tipo: 'matricula', label: 'Matrícula' },
   bem: { tipo: 'bem', label: 'Bem' },
