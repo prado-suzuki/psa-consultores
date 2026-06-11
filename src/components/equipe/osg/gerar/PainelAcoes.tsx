@@ -14,8 +14,9 @@ interface PainelAcoesProps {
 }
 
 /**
- * Rail de ações ao lado da folha: baixar/copiar sempre à vista, sem competir
- * com o documento — que é o elemento central da etapa final.
+ * Ações do documento no rail ao lado da folha: baixar/copiar sempre à vista,
+ * sem competir com o documento — que é o elemento central da tela. O rail
+ * (posicionamento, sticky) fica por conta de quem monta a página.
  */
 export const PainelAcoes = ({
   pronto,
@@ -26,9 +27,9 @@ export const PainelAcoes = ({
   baixando,
   className,
 }: PainelAcoesProps) => (
-  <aside
+  <div
     className={cn(
-      'flex flex-wrap items-center gap-2 xl:sticky xl:top-4 xl:flex-col xl:items-stretch xl:gap-2.5',
+      'flex flex-wrap items-center gap-2 xl:flex-col xl:items-stretch xl:gap-2.5',
       className,
     )}
   >
@@ -54,5 +55,5 @@ export const PainelAcoes = ({
         {info}
       </p>
     )}
-  </aside>
+  </div>
 );

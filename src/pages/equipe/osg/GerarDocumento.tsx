@@ -51,17 +51,19 @@ import {
   montarContexto,
   type ItemLista,
 } from '@/lib/templates/mapeadores';
+import { useQueryClient } from '@tanstack/react-query';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
-import { useFlags } from '@/hooks/useBibliotecaModelos';
+import { useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
 import { PESSOA_LEGADA_PREFIX, useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
-import { PassoCard, NumeroPasso, type EstadoPasso } from '@/components/equipe/osg/gerar/gerarKit';
+import { PassoCard, SeletorRail, OpcaoRail, type EstadoPasso } from '@/components/equipe/osg/gerar/gerarKit';
 import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
-import { FolhaDocumento, type EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
+import { FolhaDocumento, type BlocoFolha, type EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
 import { PainelAcoes } from '@/components/equipe/osg/gerar/PainelAcoes';
 
 // --- Peças do painel de conferência ----------------------------------------
@@ -139,6 +141,8 @@ const GerarDocumento = () => {
   // Passo reaberto pelo botão "Trocar" (volta a fechar na próxima escolha).
   const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
   const [ajustesAbertos, setAjustesAbertos] = useState(false);
+  // Seletor expandido no rail ao lado da folha (um por vez, estilo acordeão).
+  const [railAberto, setRailAberto] = useState<'modelo' | 'empresa' | 'registros' | null>(null);
 
   // Template do engine: blocos do modelo com tipo, obrigatório e flags requeridas.
   const template = useMemo<Template>(() => {
@@ -158,6 +162,21 @@ const GerarDocumento = () => {
     () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),
     [docBlocos],
   );
+  // Posição no modelo → bloco da Biblioteca, para a edição a partir da prévia.
+  const bibliotecaIdPorBlocoId = useMemo(
+    () => new Map(docBlocos.map((b) => [b.id, b.bloco?.id ?? null])),
+    [docBlocos],
+  );
+
+  // Edição de bloco direto da prévia: clicar num trecho abre o popover e, dele,
+  // o mesmo dialog da Biblioteca/Montagem com o bloco carregado.
+  const queryClient = useQueryClient();
+  const { data: catalogoBlocos = [] } = useBlocos();
+  const [blocoEditando, setBlocoEditando] = useState<BlocoComVersao | null>(null);
+  const abrirEdicaoBloco = (blocoId: string | null) => {
+    const bloco = blocoId ? (catalogoBlocos.find((b) => b.id === blocoId) ?? null) : null;
+    if (bloco) setBlocoEditando(bloco);
+  };
 
   // Flags derivadas declarativas avaliadas sobre a empresa selecionada.
   const { data: catalogoFlags = [] } = useFlags();
@@ -397,15 +416,17 @@ const GerarDocumento = () => {
   const passo1Estado: EstadoPasso = !modeloId || passoAberto === 1 ? 'aberto' : 'concluido';
   const passo2Estado: EstadoPasso =
     !selecoesCompletas || passoAberto === 2 ? 'aberto' : 'concluido';
-  const numeroPassoFinal = precisaSelecoes ? 3 : 2;
+
+  // Com tudo escolhido, os passos saem de cena e a folha assume a tela; trocar
+  // modelo/empresa passa a ser feito nos seletores compactos do rail. Trocar o
+  // modelo zera as seleções (useEffect acima) e devolve o fluxo aos passos.
+  const modoDocumento = modeloPronto && selecoesCompletas;
 
   const empresaLabel = empresas.find((r) => r.id === empresaId)?.label;
-  const resumoPasso2 = [
-    precisaEmpresa ? empresaLabel : null,
-    ...bindingsNaoSociedade.map(
-      (b) => registros[b.tipo].find((r) => r.id === registroPorBinding[b.nome])?.label ?? null,
-    ),
-  ]
+  const labelsRegistros = bindingsNaoSociedade
+    .map((b) => registros[b.tipo].find((r) => r.id === registroPorBinding[b.nome])?.label)
+    .filter((l): l is string => !!l);
+  const resumoPasso2 = [precisaEmpresa ? empresaLabel : null, ...labelsRegistros]
     .filter(Boolean)
     .join(' · ');
 
@@ -416,6 +437,20 @@ const GerarDocumento = () => {
       : null,
   ].filter(Boolean);
   const mensagemPendente = `Para gerar o documento, ${pendencias.join(' e ')}.`;
+
+  // Blocos da folha com o nome de exibição: a prévia destaca, no hover, qual
+  // trecho do documento veio de qual bloco do modelo.
+  const blocosFolha = useMemo<BlocoFolha[]>(
+    () =>
+      (resultado.blocos ?? []).map((b) => ({
+        id: b.id,
+        blocoId: bibliotecaIdPorBlocoId.get(b.id) ?? null,
+        nome: nomePorBlocoId.get(b.id) ?? '',
+        tipo: b.tipo,
+        conteudo: b.conteudo,
+      })),
+    [resultado.blocos, nomePorBlocoId, bibliotecaIdPorBlocoId],
+  );
 
   const folhaEstado: EstadoFolha = !selecoesCompletas
     ? 'pendente'
@@ -447,8 +482,9 @@ const GerarDocumento = () => {
       subtitle="Etapa final da oficina: escolha o modelo e a empresa — o documento sai pronto, preenchido do cadastro"
     >
       <div className="space-y-6 py-2">
-        {/* Passos de escolha numa coluna central estreita: a tela "afunila"
-            na direção do documento, que é o palco da etapa final. */}
+        {/* Fase de escolhas: só os passos, numa coluna central estreita — a
+            folha não aparece enquanto faltar decisão. */}
+        {!modoDocumento && (
         <div className="mx-auto w-full max-w-4xl space-y-6">
         {/* Passo 1 — modelo */}
         <PassoCard
@@ -574,30 +610,19 @@ const GerarDocumento = () => {
           </PassoCard>
         )}
         </div>
+        )}
 
-        {/* Passo final — conferir e baixar: a folha é o elemento central; a
-            conferência e as ações ficam em rails discretos nas laterais. */}
-        {modeloPronto && (
-          <section className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '120ms' }}>
-            <header className="flex items-center justify-center gap-4 px-1 pb-6 pt-4">
-              <NumeroPasso
-                numero={numeroPassoFinal}
-                estado={selecoesCompletas ? 'aberto' : 'bloqueado'}
-              />
-              <div className="text-left">
-                <h2 className="text-[15px] font-semibold text-slate-900">Confira e baixe o documento</h2>
-                <p className="mt-0.5 text-xs text-slate-500">
-                  Revise os dados carregados do cadastro e baixe o arquivo final
-                </p>
-              </div>
-            </header>
-
+        {/* Documento em cena: os passos somem e a folha vira o centro da tela —
+            conferência à esquerda; ações e seletores compactos (trocar modelo/
+            empresa sem sair daqui) à direita. */}
+        {modoDocumento && (
+          <section className="animate-osg-rise motion-reduce:animate-none">
             <div
               className={cn(
                 'mx-auto grid max-w-[1400px] grid-cols-1 items-start gap-6',
                 temPainel
-                  ? 'xl:grid-cols-[300px_minmax(0,1fr)_200px]'
-                  : 'xl:grid-cols-[minmax(0,1fr)_200px]',
+                  ? 'xl:grid-cols-[300px_minmax(0,1fr)_240px]'
+                  : 'xl:grid-cols-[minmax(0,1fr)_240px]',
               )}
             >
               {temPainel && (
@@ -612,11 +637,7 @@ const GerarDocumento = () => {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {precisaEmpresa && !empresaId ? (
-                      <p className="text-xs text-slate-500">
-                        Escolha a empresa no passo 2 para conferir os dados aqui.
-                      </p>
-                    ) : carregandoListas ? (
+                    {carregandoListas ? (
                       <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
                         <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando dados do cadastro…
                       </div>
@@ -914,23 +935,121 @@ const GerarDocumento = () => {
                   estado={folhaEstado}
                   mensagemPendente={mensagemPendente}
                   erro={resultado.erro}
-                  texto={resultado.texto}
+                  blocos={blocosFolha}
+                  onEditarBloco={(b) => abrirEdicaoBloco(b.blocoId)}
                 />
               </div>
 
-              <PainelAcoes
-                className="order-1 xl:order-3"
-                pronto={folhaEstado === 'pronto'}
-                info={infoFolha}
-                onCopiar={copiar}
-                copiado={copiado}
-                onBaixar={baixar}
-                baixando={baixando}
-              />
+              <aside className="order-1 space-y-4 xl:sticky xl:top-4 xl:order-3">
+                <PainelAcoes
+                  pronto={folhaEstado === 'pronto'}
+                  info={infoFolha}
+                  onCopiar={copiar}
+                  copiado={copiado}
+                  onBaixar={baixar}
+                  baixando={baixando}
+                />
+
+                {/* As escolhas dos passos, agora compactas: trocar o modelo
+                    volta o fluxo aos passos (as seleções zeram); trocar a
+                    empresa atualiza a folha na hora. */}
+                <div className="space-y-3">
+                  <SeletorRail
+                    titulo="Modelo"
+                    resumo={nomeModelo}
+                    aberto={railAberto === 'modelo'}
+                    onAbertoChange={(aberto) => setRailAberto(aberto ? 'modelo' : null)}
+                  >
+                    <div className="space-y-0.5">
+                      {modelos
+                        .filter((m) => m.ativo)
+                        .map((m) => (
+                          <OpcaoRail
+                            key={m.id}
+                            selecionado={m.id === modeloId}
+                            onEscolher={() => {
+                              setModeloId(m.id);
+                              setRailAberto(null);
+                            }}
+                          >
+                            {m.nome}
+                          </OpcaoRail>
+                        ))}
+                    </div>
+                  </SeletorRail>
+
+                  {precisaEmpresa && (
+                    <SeletorRail
+                      titulo="Empresa do contrato"
+                      resumo={empresaLabel}
+                      aberto={railAberto === 'empresa'}
+                      onAbertoChange={(aberto) => setRailAberto(aberto ? 'empresa' : null)}
+                    >
+                      <div className="space-y-0.5">
+                        {empresas.map((r) => (
+                          <OpcaoRail
+                            key={r.id}
+                            selecionado={r.id === empresaId}
+                            onEscolher={() => {
+                              setEmpresaId(r.id);
+                              setRailAberto(null);
+                            }}
+                          >
+                            {r.label}
+                          </OpcaoRail>
+                        ))}
+                      </div>
+                    </SeletorRail>
+                  )}
+
+                  {bindingsNaoSociedade.length > 0 && (
+                    <SeletorRail
+                      titulo="Demais papéis"
+                      resumo={labelsRegistros.join(' · ')}
+                      aberto={railAberto === 'registros'}
+                      onAbertoChange={(aberto) => setRailAberto(aberto ? 'registros' : null)}
+                    >
+                      <div className="space-y-3 p-1.5">
+                        {bindingsNaoSociedade.map((b) => (
+                          <div key={b.nome} className="space-y-1.5">
+                            <Label className={labelCls}>{labelDoBinding(b.nome)}</Label>
+                            <Select
+                              value={registroPorBinding[b.nome] ?? undefined}
+                              onValueChange={(id) => escolherRegistro(b.nome, b.tipo, id)}
+                            >
+                              <SelectTrigger className={fieldCls}>
+                                <SelectValue placeholder="Selecione…" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {registros[b.tipo].map((r) => (
+                                  <SelectItem key={r.id} value={r.id}>
+                                    {r.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        ))}
+                      </div>
+                    </SeletorRail>
+                  )}
+                </div>
+              </aside>
             </div>
           </section>
         )}
       </div>
+
+      <EditorBlocoDialog
+        open={blocoEditando !== null}
+        bloco={blocoEditando}
+        onOpenChange={(open) => {
+          if (!open) setBlocoEditando(null);
+        }}
+        // Salvar cria versão nova do bloco: recarrega os blocos do modelo para a
+        // prévia refletir o conteúdo na hora (o hook só invalida a Biblioteca).
+        onSaved={() => queryClient.invalidateQueries({ queryKey: ['modelo-blocos'] })}
+      />
     </OsgLayout>
   );
 };
