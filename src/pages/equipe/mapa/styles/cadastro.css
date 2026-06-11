@@ -168,6 +168,13 @@
   outline: none;
   box-shadow: 0 0 0 4px rgba(13,148,136,0.32);
 }
+.cadastro-cta:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.14);
+}
 
 /* ===========================================================================
    Toolbar — busca em pílula + contagem discreta
@@ -586,6 +593,275 @@ textarea.cadastro-form-textarea{
 }
 
 /* ===========================================================================
+   Processos — linha com código + ação "Mapear" persistente
+   =========================================================================== */
+.processo-item-linha1{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.processo-item-linha1 .cadastro-item-titulo{ min-width: 0; }
+.processo-code{
+  flex-shrink: 0;
+  font-family: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-700);
+  background: var(--accent-50);
+  border: 1px solid var(--accent-100);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.processo-item-acoes{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+/* Ação primária sempre visível, discreta — vira sólida no hover */
+.processo-mapear{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--accent-200);
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+.processo-mapear:hover{
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(13,148,136,0.6);
+}
+.processo-mapear:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.28);
+}
+
+/* ---------- Modal da Paz (detalhe do processo) ---------- */
+/* Layout: cabeçalho fixo (título + ações) + corpo rolável */
+.processo-det{
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.processo-det-head{
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid #eef1f6;
+  background: #fff;
+}
+.processo-det-head-main{ flex: 1 1 auto; min-width: 0; }
+.processo-det-acoes{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.processo-det-body{
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 28px 24px;
+}
+.processo-det-head h2{ margin: 0; }
+.processo-det-topo{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.processo-code-lg{ font-size: 0.8rem; padding: 3px 9px; }
+/* Form de processo: eyebrow/sub do cabeçalho (espelha o detalhe) */
+.processo-form-eyebrow{
+  margin: 0 0 6px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-700);
+}
+.processo-form-sub{
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+.processo-det-body > .cadastro-form-secao:first-child{ margin-top: 2px; }
+.processo-det-badges{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+.processo-det-projeto{
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.processo-det-descricao{
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-md);
+  color: #374151;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.processo-acc-grupo{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.processo-acc{
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-md);
+  background: #fff;
+  overflow: hidden;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.processo-acc.aberta{
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 22px -18px rgba(15,23,42,0.30);
+}
+.processo-acc-head{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  transition: background var(--transition-fast);
+}
+.processo-acc-head:hover{ background: #fafbfc; }
+.processo-acc-icone{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.processo-acc-label{
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+.processo-acc-count{
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.processo-acc-chevron{
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: transform var(--transition-base);
+}
+.processo-acc.aberta .processo-acc-chevron{ transform: rotate(180deg); }
+.processo-acc-body{
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-base);
+}
+.processo-acc.aberta .processo-acc-body{ grid-template-rows: 1fr; }
+.processo-acc-body-inner{
+  overflow: hidden;
+  padding: 0 16px 0 51px;
+}
+.processo-acc.aberta .processo-acc-body-inner{ padding-bottom: 14px; }
+/* Fluxo de etapas numerado */
+.processo-fluxo{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.processo-fluxo-item{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 0;
+}
+.processo-fluxo-num{
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.processo-fluxo-nome{
+  font-size: 0.88rem;
+  color: var(--on-surface);
+}
+.processo-det-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.processo-det-chip{
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  background: #f4f6f9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.processo-det-vazio{
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #94a3b8;
+}
+.processo-det-editar{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===========================================================================
    Mobile
    =========================================================================== */
 @media (max-width: 640px){
@@ -598,6 +874,15 @@ textarea.cadastro-form-textarea{
   .cadastro-item{ gap: 13px; padding: 13px 14px; }
   .cadastro-item-orb{ width: 40px; height: 40px; border-radius: 12px; }
   .cadastro-item-trailing{ gap: 8px; }
+  /* Processos: oculta o rótulo do "Mapear" (mantém o ícone) e reduz o recuo do acordeão */
+  .processo-mapear span{ display: none; }
+  .processo-mapear{ padding: 0 10px; }
+  .processo-acc-body-inner{ padding-left: 16px; }
+  /* Modal da Paz: cabeçalho empilha e ações ocupam a largura toda */
+  .processo-det-head{ flex-direction: column; }
+  .processo-det-head,
+  .processo-det-body{ padding-left: 18px; padding-right: 18px; }
+  .processo-det-acoes{ flex-direction: column; align-items: stretch; width: 100%; }
 }
 
 /* ===========================================================================
@@ -624,4 +909,9 @@ textarea.cadastro-form-textarea{
   .cadastro-item:hover::before,
   .cadastro-item:focus-within::before{ transform: scaleY(1); }
   .cadastro-item-acoes{ opacity: 1; transform: none; }
+  /* Processos */
+  .processo-mapear,
+  .processo-acc-chevron,
+  .processo-acc-body{ transition: none; }
+  .processo-mapear:hover{ transform: none; }
 }

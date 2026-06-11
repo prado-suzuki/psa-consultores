@@ -1,7 +1,7 @@
-// Teste-âncora pra ProcessosPage.
-// O card mostra o NOME e as ETAPAS do processo empilhadas em ordem — a
-// descrição foi movida pra tela de detalhes (/processos/:id/mapear) e não
-// deve mais aparecer na listagem.
+// Teste-âncora pra ProcessosPage (redesign "Cadastro Puro").
+// A listagem é enxuta: só nome + código + projeto. Etapas, descrição e demais
+// vínculos vivem na "Modal da Paz" (detalhe), aberta ao clicar na linha.
+// A complexidade legada em inglês é normalizada no selo e no form de edição.
 
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -30,7 +30,7 @@ describe('ProcessosPage', () => {
     vi.clearAllMocks();
   });
 
-  it('card mostra nome e etapas em ordem; descrição fica só na tela de detalhes', async () => {
+  it('lista mostra o nome; etapas e descrição vivem no detalhe', async () => {
     setupSupabaseMocks({
       processes: [PROCESSO_OSG_ROW],
       projects: [PROJETO_OSG_ROW],
@@ -46,18 +46,18 @@ describe('ProcessosPage', () => {
       </TestProviders>,
     );
 
-    // O nome aparece — não deve estar vazio.
-    expect(
-      await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i),
-    ).toBeInTheDocument();
+    // O nome aparece na linha.
+    const nome = await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i);
 
-    // As etapas do processo aparecem empilhadas no card.
-    expect(await screen.findByText(/Solicitar documentos/i)).toBeInTheDocument();
-
-    // A descrição NÃO aparece no card (vive na tela de detalhes).
+    // Etapas e descrição NÃO aparecem na lista (vivem no detalhe).
+    expect(screen.queryByText(/Solicitar documentos/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Levantamento completo do patrimônio do cliente/i),
     ).not.toBeInTheDocument();
+
+    // Clicar na linha abre a "Modal da Paz" — aí a etapa aparece.
+    fireEvent.click(nome);
+    expect(await screen.findByText(/Solicitar documentos/i)).toBeInTheDocument();
   });
 
   it('smoke: renderiza sem crash com data vazia', async () => {
@@ -82,7 +82,7 @@ describe('ProcessosPage', () => {
     });
   });
 
-  it('normaliza complexidade legada em inglês no card e no modal de edição', async () => {
+  it('normaliza complexidade legada em inglês no selo e no modal de edição', async () => {
     setupSupabaseMocks({
       processes: [{ ...PROCESSO_OSG_ROW, complexity_level: 'medium' }],
       projects: [PROJETO_OSG_ROW],
@@ -101,10 +101,12 @@ describe('ProcessosPage', () => {
     expect(await screen.findByText('Média')).toBeInTheDocument();
     expect(screen.queryByText(/^medium$/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Editar metadados do processo'));
+    fireEvent.click(screen.getByTitle('Editar'));
 
-    const modal = (await screen.findByText('Editar Processo')).closest('.modal');
+    // O form de edição abre com a seção "Identificação" e o sub "Editar processo".
+    const modal = (await screen.findByText('Identificação')).closest('.modal');
     expect(modal).not.toBeNull();
+    expect(within(modal as HTMLElement).getByText('Editar processo')).toBeInTheDocument();
     expect(within(modal as HTMLElement).getByRole('button', { name: /Média/i })).toBeInTheDocument();
   });
 });
