@@ -1,9 +1,5 @@
 import { AlertTriangle, FileSignature, Loader2 } from 'lucide-react';
-import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
-
-// Tipografia da prévia: serifada, como o contrato impresso — a "folha" branca
-// sobre o canvas bege é o artefato final da oficina e o centro da tela.
-const FONTE_DOCUMENTO = "'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif";
+import { FolhaPaginada } from '@/components/equipe/osg/gerar/FolhaPaginada';
 
 export type EstadoFolha = 'pendente' | 'carregando' | 'erro' | 'pronto';
 
@@ -61,27 +57,6 @@ export const FolhaDocumento = ({
       </div>
     )}
 
-    {estado === 'pronto' && (
-      <article className="rounded-sm border border-osg-200/70 bg-white px-7 py-9 shadow-[0_1px_2px_rgba(28,25,23,0.06),0_16px_40px_-20px_rgba(68,52,40,0.35)] animate-osg-card-in motion-reduce:animate-none sm:px-12 sm:py-12">
-        <header className="mb-8 text-center">
-          <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-osg-500">
-            Prévia do documento
-          </p>
-          <h3
-            className="mt-1.5 text-lg font-semibold text-slate-900"
-            style={{ fontFamily: FONTE_DOCUMENTO }}
-          >
-            {titulo}
-          </h3>
-          <span aria-hidden className="mx-auto mt-3 block h-[3px] w-12 rounded-full bg-osg-moss" />
-        </header>
-        <div
-          className="whitespace-pre-wrap text-justify text-[15px] leading-[1.9] text-stone-800"
-          style={{ fontFamily: FONTE_DOCUMENTO }}
-        >
-          <TextoFormatado texto={texto ?? ''} />
-        </div>
-      </article>
-    )}
+    {estado === 'pronto' && <FolhaPaginada titulo={titulo} texto={texto ?? ''} />}
   </div>
 );
