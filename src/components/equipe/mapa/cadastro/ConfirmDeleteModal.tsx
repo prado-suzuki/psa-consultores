@@ -3,6 +3,7 @@
 // toast de sucesso) dentro de `onConfirm`.
 
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 
@@ -12,11 +13,13 @@ interface Props {
   nomeItem: string;
   /** Substantivo no singular (ex.: "gargalo"). */
   substantivo: string;
+  /** Aviso opcional sobre efeitos colaterais da exclusão (ex.: cascata). */
+  aviso?: ReactNode;
   onConfirm: () => Promise<void>;
   onClose: () => void;
 }
 
-export default function ConfirmDeleteModal({ aberto, nomeItem, substantivo, onConfirm, onClose }: Props) {
+export default function ConfirmDeleteModal({ aberto, nomeItem, substantivo, aviso, onConfirm, onClose }: Props) {
   const [excluindo, setExcluindo] = useState(false);
 
   const handleConfirm = async () => {
@@ -36,7 +39,8 @@ export default function ConfirmDeleteModal({ aberto, nomeItem, substantivo, onCo
       <div className="modal">
         <h2>Excluir {substantivo}</h2>
         <p>
-          Tem certeza que deseja excluir <strong>{nomeItem}</strong>? Esta ação não pode ser desfeita.
+          Tem certeza que deseja excluir <strong>{nomeItem}</strong>?{aviso ? ' ' : ''}
+          {aviso}{aviso ? ' ' : ''}Esta ação não pode ser desfeita.
         </p>
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose} disabled={excluindo}>Cancelar</button>

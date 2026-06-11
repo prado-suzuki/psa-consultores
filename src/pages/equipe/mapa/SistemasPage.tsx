@@ -1,61 +1,60 @@
-import { useState, useEffect, useMemo } from 'react';
+// Sistemas — página de cadastro (padrão "Cadastro Puro").
+// Só cadastro: busca + lista enxuta + form modal + confirmação de exclusão.
+// Sem KPIs/relatórios — custo e rateio vivem no form; análise no Dashboard ROI.
+// O escopo por cluster (quais sistemas aparecem) é preservado do fluxo legado:
+// sistemas usados em etapas de processos do cluster, ou com rateio para ele.
+
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
-import Modal from '@/components/equipe/mapa/Modal';
-import FormField from '@/components/equipe/mapa/FormField';
-import Select from '@/components/equipe/mapa/Select';
-import FiltrosBar from '@/components/equipe/mapa/FiltrosBar';
-import GrupoAccordion from '@/components/equipe/mapa/GrupoAccordion';
-import PageStats from '@/components/equipe/mapa/PageStats';
-import { Tooltip } from '@/components/equipe/mapa/Tooltip';
-import { dica } from '@/utils/tooltips';
-import { agrupar } from '@/utils/agrupar';
-import { formatarMoeda, parseMoeda } from '@/utils/format';
+import { Cloud, MonitorCog, SearchX, Server } from 'lucide-react';
+import CadastroPageShell from '@/components/equipe/mapa/cadastro/CadastroPageShell';
+import CadastroToolbar from '@/components/equipe/mapa/cadastro/CadastroToolbar';
+import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
+import CadastroItem from '@/components/equipe/mapa/cadastro/CadastroItem';
+import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
+import ConfirmDeleteModal from '@/components/equipe/mapa/cadastro/ConfirmDeleteModal';
+import SistemaFormModal from '@/components/equipe/mapa/cadastro/SistemaFormModal';
+import { canon } from '@/utils/cascataEngine';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
-import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Sistema } from '@/types';
-import { useEtapasLista, useDocumentosLista, useProcessosLista, useMelhoriasLista, useProjetosLista } from '@/hooks/useDominioListas';
-import { useSistemas, useUpdateSistema, useDeleteSistema } from '@/hooks/useSistemas';
+import { useEtapasLista, useDocumentosLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
+import { useSistemas, useDeleteSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
-import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
-import { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/sistemaOpcoes';
 
-const ORIGEM_FILTRO_OPCOES = [{ value: '', label: 'Todas as origens' }, ...ORIGEM_OPCOES];
+const ORIGEM_CORES: Record<string, string> = {
+  Interno: '#0d9488',
+  Externo: '#6366f1',
+};
+const ORIGEM_ICONE: Record<string, ReactNode> = {
+  Interno: <Server size={20} strokeWidth={2} />,
+  Externo: <Cloud size={20} strokeWidth={2} />,
+};
 
-const ORGANIZAR_OPCOES = [
-  { value: 'origem', label: 'Por origem' },
-];
-
-// Rateio do sistema no cluster selecionado — entradas antigas guardam o nome
-// do cluster, as novas o id, por isso o match aceita os dois.
+// Rateio do sistema no cluster — entradas antigas guardam o nome do cluster,
+// as novas o id; o match aceita os dois.
 const rateioNoCluster = (s: Sistema, fCluster: string, clusterNome: string) =>
   (s.clustersRateio || []).find(c => c.cluster === clusterNome || c.cluster === fCluster);
 
 export default function SistemasPage() {
-  const { data: items = [], isLoading: sistemasLoading } = useSistemas();
-  const loaded = !sistemasLoading;
-  const updateSistema = useUpdateSistema();
+  const { data: items = [], isLoading } = useSistemas();
   const deleteSistema = useDeleteSistema();
   const { data: clustersList = [] } = useClusters();
-  const CLUSTERS_DISPONIVEIS = useMemo(
-    () => clustersList.filter(c => c.ativo).map(c => c.nome),
-    [clustersList],
-  );
-  const [modalOpen, setModalOpen] = useState(false);
-  const [confirmDel, setConfirmDel] = useState<Sistema | null>(null);
-  const [deleting, setDeleting] = useState(false);
   const { cluster: fCluster } = useClusterGlobal();
 
+  const [busca, setBusca] = useState('');
+  const [formAberto, setFormAberto] = useState(false);
+  const [emEdicao, setEmEdicao] = useState<Sistema | null>(null);
+  const [confirmDel, setConfirmDel] = useState<Sistema | null>(null);
+
+  // --- Escopo por cluster (preservado do fluxo legado) ---
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: docs = [] } = useDocumentosLista();
   const { data: processos = [] } = useProcessosLista();
   const { data: projetos = [] } = useProjetosLista();
-  const { data: melhorias = [] } = useMelhoriasLista();
-  const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, docs, items, []),
-    [rawEtapas, docs, items],
-  );
+  const etapas = useMemo(() => enrichEtapas(rawEtapas, docs, items, []), [rawEtapas, docs, items]);
   const clusterIdPorProjeto = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
@@ -86,352 +85,104 @@ export default function SistemasPage() {
     [clustersList, fCluster],
   );
 
-  const [detailOpen, setDetailOpen] = useState(false);
-  const [detailItem, setDetailItem] = useState<Sistema | null>(null);
+  const noEscopo = useMemo(() => items.filter(s =>
+    !fCluster || nomesSistemasDoEscopo?.has(s.nome) ||
+    (!!clusterSelecionado && !!rateioNoCluster(s, fCluster, clusterSelecionado.nome))
+  ), [items, fCluster, nomesSistemasDoEscopo, clusterSelecionado]);
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [editId, setEditId] = useState('');
-  const [editNome, setEditNome] = useState('');
-  const [editDescricao, setEditDescricao] = useState('');
-  const [editOrigem, setEditOrigem] = useState('Interno');
-  const [editVariavel, setEditVariavel] = useState('');
-  const [editClustersRateio, setEditClustersRateio] = useState<Record<string, number>>({});
-  const [editError, setEditError] = useState('');
-  const [editSaving, setEditSaving] = useState(false);
+  const visiveis = useMemo(() => {
+    const q = canon(busca.trim());
+    if (!q) return noEscopo;
+    return noEscopo.filter(s =>
+      canon(s.nome).includes(q) || canon(s.descricao || '').includes(q) || canon(s.origem || '').includes(q)
+    );
+  }, [noEscopo, busca]);
 
-  const procMap = new Map(processos.map(p => [p.id, p.name]));
-
-  const getVinculos = (sistemaNome: string) => {
-    const vinculos: { procId: string; procName: string; etapas: string[] }[] = [];
-    const etapasRel = etapas.filter(e => (e.sistemas || []).includes(sistemaNome));
-    const grouped = new Map<string, string[]>();
-    etapasRel.forEach(e => {
-      const list = grouped.get(e.process_id) || [];
-      list.push(e.name);
-      grouped.set(e.process_id, list);
-    });
-    grouped.forEach((etapasList, procId) => {
-      vinculos.push({ procId, procName: procMap.get(procId) || procId, etapas: etapasList });
-    });
-    return vinculos;
-  };
-
-  const openDetail = (s: Sistema) => {
-    setDetailItem(s);
-    setDetailOpen(true);
-  };
-
-  const openNew = () => setModalOpen(true);
-  const openEdit = (s: Sistema) => {
-    setDetailItem(s);
-    setEditId(s.id);
-    setEditNome(s.nome);
-    setEditDescricao(s.descricao);
-    setEditOrigem(s.origem || 'Interno');
-    setEditVariavel(formatarMoeda(s.custo_variavel_por_uso));
-    setEditClustersRateio(Object.fromEntries((s.clustersRateio || []).map(c => [c.cluster, c.rateio])));
-    setEditError('');
-    setEditOpen(true);
-  };
-
-  const handleUpdate = async () => {
-    if (!editNome.trim()) { setEditError('Preencha o nome do sistema.'); return; }
-    const old = items.find(s => s.id === editId);
-    if (!old) return;
-    setEditError('');
-    setEditSaving(true);
-    const clustersRateio = Object.entries(editClustersRateio)
-      .filter(([, r]) => r != null && r !== 100)
-      .map(([cluster, rateio]) => ({ cluster, rateio }));
-    try {
-      await updateSistema.mutateAsync({
-        id: editId,
-        old,
-        patch: {
-          nome: editNome.trim(),
-          descricao: editDescricao.trim(),
-          origem: editOrigem,
-          custo_variavel_por_uso: parseMoeda(editVariavel),
-          clustersRateio,
-        },
-      });
-      toast.success('Sistema atualizado');
-      setEditOpen(false);
-    } catch (err) {
-      setEditError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setEditSaving(false);
-    }
-  };
-
-  const [fOrigem, setFOrigem] = useState('');
-  const filtrosAtivos = !!fOrigem;
-  const limparFiltros = () => { setFOrigem(''); };
-  const fatorRateioCluster = (s: Sistema): number => {
-    if (!fCluster || !clusterSelecionado) return 1;
-    const rateio = rateioNoCluster(s, fCluster, clusterSelecionado.nome)?.rateio;
-    return (rateio ?? 100) / 100;
-  };
-  const custoMensalEscopo = (s: Sistema) => (s.custo_variavel_por_uso || 0) * fatorRateioCluster(s);
-  const itensFiltrados = useMemo(() => items.filter(s =>
-    (!fCluster || nomesSistemasDoEscopo?.has(s.nome) ||
-      (!!clusterSelecionado && !!rateioNoCluster(s, fCluster, clusterSelecionado.nome))) &&
-    (!fOrigem || s.origem === fOrigem)
-  ), [items, fCluster, nomesSistemasDoEscopo, clusterSelecionado, fOrigem]);
-
-  // Organizador (primeiro filtro): agrupa em cards expansíveis.
-  const [organizar, setOrganizar] = useState('origem');
-  const grupos = useMemo(() => (
-    agrupar(itensFiltrados, (s) => [s.origem || ''], ORIGEM_OPCOES, 'Sem origem')
-  ), [itensFiltrados]);
+  const abrirCriar = () => { setEmEdicao(null); setFormAberto(true); };
+  const abrirEditar = (s: Sistema) => { setEmEdicao(s); setFormAberto(true); };
 
   const focusId = useFocusParam();
+  const focusConsumido = useRef(false);
   useEffect(() => {
-    if (!loaded || !focusId) return;
-    const it = items.find(s => s.id === focusId);
-    if (it) openDetail(it);
-  }, [loaded, focusId, items]);
-
-  if (!loaded) return (
-    <div className="loading-container"><div className="spinner" /></div>
-  );
-
-  const vinculos = detailItem ? getVinculos(detailItem.nome) : [];
+    if (focusConsumido.current || isLoading || !focusId) return;
+    const s = items.find(x => x.id === focusId);
+    if (s) { focusConsumido.current = true; setEmEdicao(s); setFormAberto(true); }
+  }, [isLoading, focusId, items]);
 
   return (
-    <div className="card">
-      <div className="page-header-v2">
-        <div className="page-header-titles">
-          <h1>Sistemas</h1>
-          <p>Gerencie os sistemas integrados ao projeto de mapeamento.</p>
-        </div>
-        <button className="btn-add" onClick={openNew}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Adicionar Sistema
-        </button>
-      </div>
-      <PageStats stats={[
-        { label: 'Sistemas', value: String(itensFiltrados.length), tooltip: 'Sistemas no escopo atual dos filtros.' },
-        {
-          label: 'Custo mensal total',
-          value: formatarMoeda(itensFiltrados.reduce((acc, s) => acc + custoMensalEscopo(s), 0)),
-          tooltip: 'Soma dos custos mensais dos sistemas no escopo atual.',
-        },
-        {
-          label: 'Custo anual total',
-          value: formatarMoeda(itensFiltrados.reduce((acc, s) => acc + custoMensalEscopo(s), 0) * 12),
-          tooltip: 'Projeção anual dos custos mensais do escopo atual.',
-        },
-      ]} />
-      <FiltrosBar
-        ativo={filtrosAtivos}
-        onLimpar={limparFiltros}
-        filtros={[
-          { id: 'fs-organizar', label: 'Organizar por', value: organizar, onChange: setOrganizar, options: ORGANIZAR_OPCOES, tooltip: dica('comum.filtro.organizar') },
-          { id: 'fs-origem', label: 'Origem', value: fOrigem, onChange: setFOrigem, options: ORIGEM_FILTRO_OPCOES, tooltip: dica('sistemas.filtro.origem') },
-        ]}
-      />
-      <GrupoAccordion
-        grupos={grupos}
-        substantivo={['sistema', 'sistemas']}
-        emptyMessage="Nenhum sistema encontrado para os filtros selecionados."
-        renderGrupo={(itens) => (
-          <div className="system-list list-stagger">
-            {itens.map((s) => (
-              <div
-                key={s.id}
-                className="system-card"
-                style={{ position: 'relative', cursor: 'pointer' }}
-                role="button"
-                tabIndex={0}
-                onClick={(e) => {
-                  if (shouldIgnoreOpenClick(e)) return;
-                  openDetail(s);
-                }}
-                onKeyDown={(e) => openOnActivationKey(e, () => openDetail(s))}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                  <h3><Tooltip text={dica('sistemas.card.titulo')}>{s.nome}</Tooltip></h3>
-                  <div style={{ display: 'flex', gap: 4 }}>
-                    <button
-                      className="btn-edit"
-                      onClick={(e) => { e.stopPropagation(); openEdit(s); }}
-                      title="Editar sistema"
-                      style={{ padding: '4px 6px' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    </button>
-                    <button
-                      className="btn-edit"
-                      onClick={(e) => { e.stopPropagation(); setConfirmDel(s); }}
-                      title="Excluir sistema"
-                      style={{ padding: '4px 6px', color: '#b91c1c' }}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-                    </button>
-                  </div>
-                </div>
-                <p>{s.descricao || 'Sem descrição.'}</p>
-                {s.origem && (
-                  <div className="cost">Origem: <span>{s.origem}</span></div>
-                )}
-                <div className="cost">Custo mensal: <span>{formatarMoeda(s.custo_variavel_por_uso)}</span> / mês</div>
-                <div className="card-actions">
-                  <button className="btn-action" onClick={(e) => { e.stopPropagation(); openEdit(s); }}>Editar</button>
-                  <button className="btn-action" style={{ color: '#b91c1c' }} onClick={(e) => { e.stopPropagation(); setConfirmDel(s); }}>Excluir</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+    <CadastroPageShell
+      eyebrow="Mapa · Digital"
+      titulo="Sistemas"
+      subtitulo="Cadastre os sistemas e ferramentas que sustentam o seu trabalho."
+      ctaLabel="Adicionar Sistema"
+      onCta={abrirCriar}
+      carregando={isLoading}
+    >
+      {noEscopo.length > 0 && (
+        <CadastroToolbar
+          busca={busca}
+          onBusca={setBusca}
+          total={noEscopo.length}
+          visiveis={visiveis.length}
+          substantivo={['sistema', 'sistemas']}
+          placeholder="Buscar por nome, descrição ou origem..."
+        />
+      )}
+      <CadastroLista
+        vazio={noEscopo.length === 0}
+        semResultadoBusca={visiveis.length === 0}
+        emptyState={
+          <EmptyStateCadastro
+            icone={<MonitorCog size={32} strokeWidth={1.8} />}
+            titulo="Nenhum sistema cadastrado"
+            texto="Sistemas são as ferramentas que apoiam seus processos. Cadastre o primeiro para mapear custos e vínculos."
+            ctaLabel="Cadastrar primeiro sistema"
+            onCta={abrirCriar}
+          />
+        }
+        semResultados={
+          <EmptyStateCadastro
+            compacto
+            icone={<SearchX size={20} />}
+            titulo={`Nenhum sistema para "${busca.trim()}"`}
+            ctaLabel="Limpar busca"
+            onCta={() => setBusca('')}
+          />
+        }
+      >
+        {visiveis.map((s) => (
+          <CadastroItem
+            key={s.id}
+            titulo={s.nome}
+            descricao={s.descricao || undefined}
+            leading={ORIGEM_ICONE[s.origem || ''] ?? <Server size={20} strokeWidth={2} />}
+            accent={ORIGEM_CORES[s.origem || ''] ?? '#0d9488'}
+            badge={s.origem ? { label: s.origem } : undefined}
+            onOpen={() => abrirEditar(s)}
+            onEdit={() => abrirEditar(s)}
+            onDelete={() => setConfirmDel(s)}
+          />
+        ))}
+      </CadastroLista>
+
+      <SistemaFormModal
+        aberto={formAberto}
+        sistema={emEdicao}
+        onClose={() => setFormAberto(false)}
       />
 
-      <NovoSistemaModal isOpen={modalOpen} onClose={() => setModalOpen(false)} />
-
-      <Modal isOpen={editOpen} onClose={() => setEditOpen(false)}>
-        <div className="modal">
-          <h2>Editar Sistema</h2>
-          <FormField label="Nome do Sistema" error={editError} required tooltip={dica('sistemas.form.nome')}>
-            <input type="text" value={editNome} onChange={(e) => { setEditNome(e.target.value); if (editError) setEditError(''); }} />
-          </FormField>
-          <FormField label="Descrição" tooltip={dica('sistemas.form.descricao')}>
-            <textarea value={editDescricao} onChange={(e) => setEditDescricao(e.target.value)} />
-          </FormField>
-          <FormField label="Origem" tooltip={dica('sistemas.form.origem')}>
-            <Select value={editOrigem} onChange={setEditOrigem} options={ORIGEM_OPCOES} />
-          </FormField>
-          <FormField label="Custo mensal" tooltip={dica('sistemas.form.custoVariavel')}>
-            <input type="text" value={editVariavel} onChange={(e) => setEditVariavel(e.target.value)} placeholder="Ex: R$ 500,00 / mês" />
-          </FormField>
-          <div style={{ marginTop: 16, marginBottom: 12 }}>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, marginBottom: 4 }}>
-              <Tooltip text="Quanto do custo deste sistema é atribuído a cada cluster (0–100%). Não definido = 100%.">Rateio por cluster</Tooltip>
-            </div>
-            <div style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 6 }}>
-              Multiplicador aplicado no ROI: custo recorrente × rateio% do cluster do projeto.
-            </div>
-            {CLUSTERS_DISPONIVEIS.map(c => {
-              const r = editClustersRateio[c] ?? 100;
-              return (
-                <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ flex: '0 0 30%', fontSize: '0.8rem' }}>{c}</span>
-                  <input type="range" min={0} max={100} step={5} value={r}
-                    onChange={(ev) => setEditClustersRateio(prev => ({ ...prev, [c]: Number(ev.target.value) }))}
-                    style={{ flex: 1 }} aria-label={`Rateio de ${c}`} />
-                  <span style={{ flex: '0 0 44px', textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: '0.8rem', fontWeight: 600 }}>{r}%</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setEditOpen(false)}>Cancelar</button>
-            <button className="btn-save" onClick={handleUpdate} disabled={editSaving}>{editSaving ? 'Salvando...' : 'Salvar'}</button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal isOpen={detailOpen} onClose={() => setDetailOpen(false)}>
-        <div className="modal">
-          <h2>Detalhes do Sistema</h2>
-          {detailItem && (
-            <>
-              <div className="form-group compact">
-                <label>Nome</label>
-                <div style={{ fontWeight: 600, color: 'var(--primary-color)' }}>{detailItem.nome}</div>
-              </div>
-              <div className="form-group compact">
-                <label>Descrição</label>
-                <div>{detailItem.descricao || '—'}</div>
-              </div>
-              <div className="form-row">
-                <div className="form-group compact">
-                  <label>Origem</label>
-                  <div>{detailItem.origem || '—'}</div>
-                </div>
-              </div>
-              <div className="form-row">
-                <div className="form-group compact">
-                  <label>Custo mensal</label>
-                  <div>{formatarMoeda(detailItem.custo_variavel_por_uso)} / mês</div>
-                </div>
-                <div className="form-group compact">
-                  <label>Custo anual (× 12)</label>
-                  <div>{formatarMoeda((detailItem.custo_variavel_por_uso || 0) * 12)} / ano</div>
-                </div>
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>Vinculado a</div>
-                {vinculos.length === 0 ? (
-                  <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Este sistema não está vinculado a nenhuma etapa.</p>
-                ) : (
-                  vinculos.map((v) => (
-                    <div key={v.procId} style={{ marginBottom: 10 }}>
-                      <div style={{ fontWeight: 600, color: 'var(--primary-color)', fontSize: '0.92rem' }}>{v.procName}</div>
-                      <div className="tags" style={{ marginTop: 4 }}>
-                        {v.etapas.map((et) => <span key={et} className="tag">{et}</span>)}
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-              {(() => {
-                const melhoriasDoSistema = melhorias.filter(m =>
-                  (m.sistemas || []).includes(detailItem.id) || (m.sistemas || []).includes(detailItem.nome)
-                );
-                return (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: 8, paddingBottom: 4, borderBottom: '1px solid #f1f5f9' }}>Adotado/usado em melhorias</div>
-                    {melhoriasDoSistema.length === 0 ? (
-                      <p style={{ color: '#64748b', fontSize: '0.88rem' }}>Nenhuma melhoria utiliza este sistema.</p>
-                    ) : (
-                      <div className="tags">
-                        {melhoriasDoSistema.map((m) => <span key={m.id} className="tag tag-sistema">{m.improvement_description}</span>)}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </>
-          )}
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setDetailOpen(false)}>Fechar</button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal Confirmar Exclusão */}
-      <Modal isOpen={!!confirmDel} onClose={() => setConfirmDel(null)}>
-        <div className="modal">
-          <h2>Excluir sistema</h2>
-          <p>
-            Tem certeza que deseja excluir <strong>{confirmDel?.nome}</strong>? Ele será
-            removido das etapas e melhorias que o utilizam. Esta ação não pode ser desfeita.
-          </p>
-          <div className="modal-actions">
-            <button className="btn-cancel" onClick={() => setConfirmDel(null)} disabled={deleting}>Cancelar</button>
-            <button
-              className="btn-save"
-              style={{ background: '#b91c1c' }}
-              disabled={deleting}
-              onClick={async () => {
-                if (!confirmDel) return;
-                setDeleting(true);
-                try {
-                  await deleteSistema.mutateAsync({ id: confirmDel.id, old: confirmDel });
-                  toast.success('Sistema excluído');
-                  setConfirmDel(null);
-                } catch (err) {
-                  toast.error('Erro ao excluir', { description: err instanceof Error ? err.message : String(err) });
-                } finally {
-                  setDeleting(false);
-                }
-              }}
-            >
-              {deleting ? 'Excluindo...' : 'Excluir'}
-            </button>
-          </div>
-        </div>
-      </Modal>
-    </div>
+      <ConfirmDeleteModal
+        aberto={!!confirmDel}
+        nomeItem={confirmDel?.nome ?? ''}
+        substantivo="sistema"
+        aviso="Ele será removido das etapas e melhorias que o utilizam."
+        onClose={() => setConfirmDel(null)}
+        onConfirm={async () => {
+          if (!confirmDel) return;
+          await deleteSistema.mutateAsync({ id: confirmDel.id, old: confirmDel });
+          toast.success('Sistema excluído');
+        }}
+      />
+    </CadastroPageShell>
   );
 }
