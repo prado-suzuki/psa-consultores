@@ -33,6 +33,7 @@ import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
 import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
 import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
 import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
+import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
 import {
   useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
   useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
@@ -110,7 +111,7 @@ export default function MapearProcessoPage() {
   // Cadastro rápido a partir das listas suspensas do editor de etapas —
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
   // de opções atualizam sozinhas via invalidação do React Query.
-  const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | null>(null);
+  const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | 'gargalo' | null>(null);
 
   // Diagrama
   const [diagramaOpen, setDiagramaOpen] = useState(false);
@@ -118,6 +119,16 @@ export default function MapearProcessoPage() {
   const docNames = useMemo(() => documentos.map(d => d.nome), [documentos]);
   const sisNames = useMemo(() => sistemas.map(s => s.nome), [sistemas]);
   const respNames = useMemo(() => responsaveis.map(r => r.name), [responsaveis]);
+  const gargaloNames = useMemo(() => gargalos.map(g => g.nome), [gargalos]);
+
+  // Mapas nome↔id para resolver os vínculos no save (o editor opera por nome;
+  // as junções persistem por id). O nome é a fonte de verdade na UI — o
+  // ChipSelector mantém o id antigo ao trocar o nome do chip.
+  const docIdByNome = useMemo(() => new Map(documentos.map(d => [d.nome, d.id])), [documentos]);
+  const sisIdByNome = useMemo(() => new Map(sistemas.map(s => [s.nome, s.id])), [sistemas]);
+  const respIdByNome = useMemo(() => new Map(responsaveis.map(r => [r.name, r.id])), [responsaveis]);
+  const gargaloNomeById = useMemo(() => new Map(gargalos.map(g => [g.id, g.nome])), [gargalos]);
+  const gargaloIdByNome = useMemo(() => new Map(gargalos.map(g => [g.nome, g.id])), [gargalos]);
 
   if (loading) {
     return <div className="loading-container"><div className="spinner" /></div>;
@@ -207,6 +218,7 @@ export default function MapearProcessoPage() {
     docsSaida: (e.docsSaida || []).filter(d => d.nome?.trim()),
     executadoPor: (e.executadoPor || []).filter(r => r.nome?.trim()),
     sistemas: (e.sistemas || []).filter(s => s?.trim()),
+    gargalos: (e.gargalos || []).filter(g => g?.trim()),
   });
 
   const openEditEtapas = (mode: 'era' | 'ficou', focusEtapaId?: string) => {
@@ -221,7 +233,7 @@ export default function MapearProcessoPage() {
         const f = eraEtapa.ficou;
         return {
           ...eraEtapa,
-          descricao: f?.description ?? eraEtapa.description,
+          description: f?.description ?? eraEtapa.description,
           execution: f?.execution ?? eraEtapa.execution,
           lead_time_days: f?.lead_time_days ?? eraEtapa.lead_time_days,
           volume_per_process: f?.volume_per_process ?? eraEtapa.volume_per_process,
@@ -304,22 +316,36 @@ export default function MapearProcessoPage() {
     setEditEtapasActiveIndex(prev => Math.min(prev, tamanhoAntes - 2));
   };
 
+  // O editor opera por nome (ChipSelector); as junções persistem por id.
+  // O nome manda: trocar o nome de um chip troca o vínculo, mesmo que o id
+  // antigo tenha ficado no objeto.
+  const resolverVinculos = (e: Etapa): Etapa => ({
+    ...e,
+    docsEntrada: (e.docsEntrada || []).map(d => ({ ...d, documentoId: docIdByNome.get(d.nome) ?? d.documentoId })),
+    docsSaida: (e.docsSaida || []).map(d => ({ ...d, documentoId: docIdByNome.get(d.nome) ?? d.documentoId })),
+    executadoPor: (e.executadoPor || []).map(r => ({ ...r, responsavelId: respIdByNome.get(r.nome) ?? r.responsavelId })),
+    sistemas: (e.sistemas || []).map(s => sisIdByNome.get(s) ?? s),
+  });
+
   const handleSaveEtapas = async () => {
     if (!processo) return;
     setEditEtapasSaving(true);
-    const cleaned = editEtapasList.map(cleanEtapa);
+    const cleaned = editEtapasList.map(cleanEtapa).map(resolverVinculos);
     try {
       const existingIds = new Set(etapas.map(e => e.id));
       for (let i = 0; i < cleaned.length; i++) {
-        const e = { ...cleaned[i], ordem: i + 1 };
+        const e = { ...cleaned[i], stage_order: i + 1 };
         if (editEtapasMode === 'era') {
           if (existingIds.has(e.id)) {
             await updateEtapa.mutateAsync({ id: e.id, patch: e as Partial<Etapa>, old: e });
           } else {
-            await createEtapa.mutateAsync({ ...e, cenario: 'AS-IS' } as Partial<Etapa> as never);
+            // Etapa nova: o id local é provisório — o banco gera o uuid.
+            const { id: _tempId, ...semId } = e;
+            void _tempId;
+            await createEtapa.mutateAsync(semId as Partial<Etapa> as never);
           }
         } else {
-          // mode === 'ficou' — projeção TO-BE via hook (upsert id+cenario).
+          // mode === 'ficou' — projeção TO-BE via hook (upsert id+scenario).
           if (!existingIds.has(e.id)) continue;
           await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
         }
@@ -666,6 +692,29 @@ export default function MapearProcessoPage() {
                   )}
                 </div>
 
+                {!isFicou && (
+                  <div className="modal-section">
+                    <div className="modal-section-title">
+                      <Tooltip text="Gargalos que se manifestam nesta etapa. A cascata e o diagnóstico de ROI derivam deste vínculo.">Gargalos</Tooltip>
+                    </div>
+                    <FormField label="Gargalos da etapa" compact tooltip="Selecione os gargalos que se manifestam nesta etapa, ou cadastre um novo sem sair do fluxo.">
+                      <ChipSelector
+                        options={gargaloNames}
+                        value={(active.gargalos || []).map(gid => gargaloNomeById.get(gid) ?? gid)}
+                        onChange={(v) => handleUpdateEtapaField(
+                          editEtapasActiveIndex,
+                          'gargalos',
+                          (v as string[]).map(n => gargaloIdByNome.get(n) ?? n),
+                        )}
+                        compact
+                        addLabel="Adicionar gargalo"
+                        onAddNew={() => setCadastroRapido('gargalo')}
+                        addNewLabel="Cadastrar novo gargalo"
+                      />
+                    </FormField>
+                  </div>
+                )}
+
                 </div>
               </div>
               <div className="modal-footer">
@@ -765,6 +814,15 @@ export default function MapearProcessoPage() {
       <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
       <NovoSistemaModal isOpen={cadastroRapido === 'sistema'} onClose={() => setCadastroRapido(null)} />
       <NovoResponsavelModal isOpen={cadastroRapido === 'responsavel'} onClose={() => setCadastroRapido(null)} />
+      <NovoGargaloModal
+        isOpen={cadastroRapido === 'gargalo'}
+        onClose={() => setCadastroRapido(null)}
+        onCreated={(g) => {
+          const atual = editEtapasList[editEtapasActiveIndex];
+          if (!atual) return;
+          handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...(atual.gargalos || []), g.id]);
+        }}
+      />
     </div>
   );
 }

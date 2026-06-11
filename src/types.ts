@@ -274,6 +274,9 @@ export interface Etapa extends BaseEntity {
   executadoPor: ResponsavelEtapa[];
   /** Hidratado via etapa_sistemas cenario=AS-IS. */
   sistemas: string[];
+  /** IDs de gargalos que se manifestam nesta etapa. Hidratado via
+   *  gargalo_etapas scenario=AS-IS — mesma junção que alimenta a cascata. */
+  gargalos?: string[];
   /** Computado: soma do volume mensal agregando todos os projetos ativos. */
   volumeMensal: number;
   // Cenário "Como Ficou" — null/ausente quando sem projeção salva.

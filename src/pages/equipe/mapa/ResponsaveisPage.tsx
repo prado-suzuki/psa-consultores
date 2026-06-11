@@ -187,8 +187,13 @@ export default function ResponsaveisPage() {
   // com o KPI Internos e com o default do form de edição).
   const tipoDe = (r: { type?: string | null }): string => r.type === 'Externo' ? 'Externo' : 'Interno';
 
+  // Responsáveis (job_roles) são um catálogo COMPARTILHADO: a maioria não tem
+  // cluster_id (NULL = global, sem dono). Por isso, com um cluster ativo no
+  // seletor global, mostramos os daquele cluster + os sem cluster (compartilhados).
+  // Sem o `!r.cluster_id`, a página ficaria vazia em qualquer cluster, já que
+  // nenhum job_role foi vinculado a um cluster específico.
   const itensFiltrados = useMemo(() => items.filter(r =>
-    (!fCluster || r.cluster_id === fCluster) &&
+    (!fCluster || !r.cluster_id || r.cluster_id === fCluster) &&
     (!fTipo || tipoDe(r) === fTipo) &&
     (!fCargo || r.level === fCargo)
   ), [items, fCluster, fTipo, fCargo]);
