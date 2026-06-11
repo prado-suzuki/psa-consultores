@@ -62,6 +62,7 @@ import { PassoCard, NumeroPasso, type EstadoPasso } from '@/components/equipe/os
 import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
 import { FolhaDocumento, type EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
+import { PainelAcoes } from '@/components/equipe/osg/gerar/PainelAcoes';
 
 // --- Peças do painel de conferência ----------------------------------------
 
@@ -445,7 +446,10 @@ const GerarDocumento = () => {
       title="Gerar Documento"
       subtitle="Etapa final da oficina: escolha o modelo e a empresa — o documento sai pronto, preenchido do cadastro"
     >
-      <div className="mx-auto max-w-6xl space-y-6 py-2">
+      <div className="space-y-6 py-2">
+        {/* Passos de escolha numa coluna central estreita: a tela "afunila"
+            na direção do documento, que é o palco da etapa final. */}
+        <div className="mx-auto w-full max-w-4xl space-y-6">
         {/* Passo 1 — modelo */}
         <PassoCard
           numero={1}
@@ -569,16 +573,18 @@ const GerarDocumento = () => {
             </div>
           </PassoCard>
         )}
+        </div>
 
-        {/* Passo final — conferir e baixar */}
+        {/* Passo final — conferir e baixar: a folha é o elemento central; a
+            conferência e as ações ficam em rails discretos nas laterais. */}
         {modeloPronto && (
           <section className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '120ms' }}>
-            <header className="flex items-center gap-4 px-1 pb-5 pt-4">
+            <header className="flex items-center justify-center gap-4 px-1 pb-6 pt-4">
               <NumeroPasso
                 numero={numeroPassoFinal}
                 estado={selecoesCompletas ? 'aberto' : 'bloqueado'}
               />
-              <div>
+              <div className="text-left">
                 <h2 className="text-[15px] font-semibold text-slate-900">Confira e baixe o documento</h2>
                 <p className="mt-0.5 text-xs text-slate-500">
                   Revise os dados carregados do cadastro e baixe o arquivo final
@@ -588,12 +594,14 @@ const GerarDocumento = () => {
 
             <div
               className={cn(
-                'grid grid-cols-1 items-start gap-6',
-                temPainel && 'lg:grid-cols-[minmax(300px,360px)_1fr]',
+                'mx-auto grid max-w-[1400px] grid-cols-1 items-start gap-6',
+                temPainel
+                  ? 'xl:grid-cols-[300px_minmax(0,1fr)_200px]'
+                  : 'xl:grid-cols-[minmax(0,1fr)_200px]',
               )}
             >
               {temPainel && (
-                <Card className="rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 lg:sticky lg:top-4">
+                <Card className="order-3 rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 xl:sticky xl:top-4 xl:order-1">
                   <CardHeader className="space-y-2 pb-4">
                     <CardTitle className="flex items-center gap-2 text-sm font-semibold">
                       <Database className="h-4 w-4 text-osg-600" /> Conferência dos dados
@@ -900,12 +908,19 @@ const GerarDocumento = () => {
                 </Card>
               )}
 
-              <FolhaDocumento
-                titulo={nomeModelo}
-                estado={folhaEstado}
-                mensagemPendente={mensagemPendente}
-                erro={resultado.erro}
-                texto={resultado.texto}
+              <div className="order-2 mx-auto w-full min-w-0 max-w-[860px]">
+                <FolhaDocumento
+                  titulo={nomeModelo}
+                  estado={folhaEstado}
+                  mensagemPendente={mensagemPendente}
+                  erro={resultado.erro}
+                  texto={resultado.texto}
+                />
+              </div>
+
+              <PainelAcoes
+                className="order-1 xl:order-3"
+                pronto={folhaEstado === 'pronto'}
                 info={infoFolha}
                 onCopiar={copiar}
                 copiado={copiado}
