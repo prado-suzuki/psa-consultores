@@ -5,7 +5,7 @@
 // de detalhe (a "Modal da Paz").
 
 import { Link } from 'react-router-dom';
-import { Pencil, Trash2, Waypoints, Workflow } from 'lucide-react';
+import { Eye, Pencil, Trash2, Waypoints, Workflow } from 'lucide-react';
 import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 
 interface Props {
@@ -17,8 +17,10 @@ interface Props {
   accent: string;
   /** Selo categórico discreto (ex.: complexidade). */
   badge?: string;
-  /** URL da tela de mapeamento de etapas. */
+  /** URL da tela de mapeamento/detalhe do processo. */
   mapearTo: string;
+  /** Já mapeado (tem etapas) ⇒ ação vira "Ver detalhes"; senão, "Mapear". */
+  mapeado?: boolean;
   onOpen: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -33,7 +35,7 @@ function tint(hex: string, alpha: number): string {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-export default function ProcessoItem({ codigo, nome, meta, accent, badge, mapearTo, onOpen, onEdit, onDelete }: Props) {
+export default function ProcessoItem({ codigo, nome, meta, accent, badge, mapearTo, mapeado, onOpen, onEdit, onDelete }: Props) {
   return (
     <div
       className="cadastro-item processo-item"
@@ -87,11 +89,11 @@ export default function ProcessoItem({ codigo, nome, meta, accent, badge, mapear
         <Link
           to={mapearTo}
           className="processo-mapear"
-          title="Mapear etapas do processo"
+          title={mapeado ? 'Ver detalhes do processo' : 'Mapear etapas do processo'}
           onClick={(e) => e.stopPropagation()}
         >
-          <Waypoints size={15} strokeWidth={2.2} />
-          <span>Mapear</span>
+          {mapeado ? <Eye size={15} strokeWidth={2.2} /> : <Waypoints size={15} strokeWidth={2.2} />}
+          <span>{mapeado ? 'Ver detalhes' : 'Mapear'}</span>
         </Link>
       </div>
     </div>

@@ -8,6 +8,7 @@ import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
+import HistoricoMedicoes from '@/components/equipe/mapa/HistoricoMedicoes';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
@@ -1132,6 +1133,18 @@ export default function DashboardRoiPage() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div className="dashv2-section-header">
+              <h3>Histórico de medições</h3>
+              <span className="dashv2-section-sub">
+                {filtroProcesso ? 'Evolução das baselines de ROI salvas deste processo' : 'Selecione um processo no filtro acima para ver a evolução das medições'}
+              </span>
+            </div>
+            <div className="dashv2-card">
+              {filtroProcesso
+                ? <HistoricoMedicoes processId={filtroProcesso} processoNome={procNomeById.get(filtroProcesso)} />
+                : <p className="dashv2-empty-row" style={{ padding: 16 }}>Selecione um processo no filtro <strong>Processo</strong> (acima) para ver o histórico de medições dele.</p>}
             </div>
 
             <div className="dashv2-quote dashv2-quote-final">

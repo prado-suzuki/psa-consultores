@@ -247,6 +247,62 @@
   white-space: nowrap;
 }
 
+/* Filtro de projeto (agrupamento) na toolbar */
+.cadastro-toolbar-projeto{
+  flex-shrink: 0;
+  min-width: 190px;
+}
+/* Tags de indicadores numéricos (logo após os filtros, não no canto) */
+.cadastro-tags{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cadastro-tag{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #5b6b7f;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+.cadastro-tag strong{
+  font-weight: 800;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.cadastro-tag-ok{ background: var(--accent-50); color: var(--accent-700); }
+
+/* Cabeçalho de grupo (agrupamento por projeto) dentro da lista */
+.cadastro-grupo-titulo{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 2px 2px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-700);
+}
+.cadastro-grupo-titulo:first-child{ margin-top: 0; }
+.cadastro-grupo-count{
+  min-width: 20px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ===========================================================================
    Lista — cartões flutuantes (sem números, sem tabela)
    =========================================================================== */
@@ -862,6 +918,281 @@ textarea.cadastro-form-textarea{
 }
 
 /* ===========================================================================
+   Mapeamento — a casa do analista (Como era / Como ficou / Configurar ROI)
+   =========================================================================== */
+.mapear-shell{ padding-top: 22px; }
+.mapear-topbar{ position: relative; z-index: 1; margin-bottom: 14px; }
+.mapear-voltar{
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px 0 11px;
+  border: 1px solid #e6eaf0;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+.mapear-voltar svg{ transition: transform var(--transition-base); }
+.mapear-voltar:hover{
+  border-color: var(--accent-200);
+  color: var(--accent-700);
+  transform: translateX(-2px);
+  box-shadow: 0 6px 16px -10px rgba(13,148,136,0.5);
+}
+.mapear-voltar:hover svg{ transform: translateX(-2px); }
+
+.mapear-header{ position: relative; z-index: 1; margin-bottom: 22px; }
+.mapear-title{
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2rem);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--on-surface);
+}
+.mapear-desc{
+  margin: 8px 0 0;
+  font: var(--font-body-md);
+  color: var(--on-surface-variant);
+  max-width: 70ch;
+  line-height: 1.55;
+}
+.mapear-badges{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.mapear-etapas-chip{
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.mapear-etapas-chip.vazio{ background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+/* Abas com indicador deslizante */
+.mapear-tabs{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e6eaf0;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.mapear-tab{
+  position: relative;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 12px 18px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #64748b;
+  transition: color var(--transition-base);
+}
+.mapear-tab:hover{ color: var(--on-surface); }
+.mapear-tab.ativa{ color: var(--accent-color); }
+.mapear-tab-ind{
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent-color);
+}
+
+.mapear-painel{ position: relative; z-index: 1; }
+
+/* Cabeçalho da aba: título + CTA "Editar etapas" */
+.mapear-tab-head{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.mapear-tab-head-txt{ min-width: 0; }
+.mapear-tab-titulo{
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--on-surface);
+}
+.mapear-tab-sub{
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: var(--on-surface-variant);
+}
+
+/* Gargalos DA ETAPA — faixa âmbar dentro do card (gargalos são da etapa) */
+.mapear-etapa-gargalos{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+}
+.mapear-etapa-gargalos-label{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+/* Fluxo de etapas */
+.mapear-fluxo{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mapear-etapa{
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.mapear-etapa:hover{
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 28px -20px rgba(15,23,42,0.30);
+}
+.mapear-etapa-top{ display: flex; align-items: center; gap: 12px; }
+.mapear-etapa-num{
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mapear-etapa-nome{
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+.mapear-exec{
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mapear-etapa-desc{
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+  white-space: pre-line;
+}
+.mapear-campos{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  margin-top: 14px;
+}
+.mapear-campo{ min-width: 0; }
+.mapear-campo-label{
+  display: block;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.mapear-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
+.mapear-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: #f4f6f9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.mapear-chip.teal{ background: var(--accent-50); color: var(--accent-700); }
+.mapear-chip.indigo{ background: #eef2ff; color: #4338ca; }
+.mapear-chip.amber{ background: #fff7ed; color: #b45309; }
+.mapear-chip-vol{
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.72rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.mapear-vazio{ color: #cbd5e1; font-size: 0.85rem; }
+
+/* Métricas inline da etapa (dados do mapeamento, não KPIs) */
+.mapear-metrics{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.mapear-metric{ display: flex; flex-direction: column; gap: 1px; }
+.mapear-metric-label{
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+.mapear-metric-val{
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================================
    Mobile
    =========================================================================== */
 @media (max-width: 640px){
@@ -870,6 +1201,7 @@ textarea.cadastro-form-textarea{
   .cadastro-cta{ width: 100%; justify-content: center; }
   .cadastro-toolbar{ flex-wrap: wrap; }
   .cadastro-busca{ max-width: none; flex-basis: 100%; }
+  .cadastro-toolbar-projeto{ flex-basis: 100%; min-width: 0; }
   .cadastro-contagem{ margin-left: 0; }
   .cadastro-item{ gap: 13px; padding: 13px 14px; }
   .cadastro-item-orb{ width: 40px; height: 40px; border-radius: 12px; }
@@ -883,6 +1215,9 @@ textarea.cadastro-form-textarea{
   .processo-det-head,
   .processo-det-body{ padding-left: 18px; padding-right: 18px; }
   .processo-det-acoes{ flex-direction: column; align-items: stretch; width: 100%; }
+  /* Mapeamento: campos da etapa em coluna; CTA da aba ocupa a largura */
+  .mapear-campos{ grid-template-columns: 1fr; }
+  .mapear-tab-head .cadastro-cta{ width: 100%; justify-content: center; }
 }
 
 /* ===========================================================================
@@ -914,4 +1249,11 @@ textarea.cadastro-form-textarea{
   .processo-acc-chevron,
   .processo-acc-body{ transition: none; }
   .processo-mapear:hover{ transform: none; }
+  /* Mapeamento */
+  .mapear-voltar,
+  .mapear-voltar svg,
+  .mapear-tab,
+  .mapear-etapa{ transition: none; }
+  .mapear-voltar:hover,
+  .mapear-voltar:hover svg{ transform: none; }
 }

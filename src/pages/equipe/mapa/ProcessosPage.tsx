@@ -5,10 +5,11 @@
 // linha e no modal; o ROI/análise vive no Dashboard ROI e em /mapear.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
-import { SearchX, Workflow } from 'lucide-react';
+import { Search, SearchX, Workflow, X } from 'lucide-react';
+import Select from '@/components/equipe/mapa/Select';
 import CadastroPageShell from '@/components/equipe/mapa/cadastro/CadastroPageShell';
-import CadastroToolbar from '@/components/equipe/mapa/cadastro/CadastroToolbar';
 import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import ConfirmDeleteModal from '@/components/equipe/mapa/cadastro/ConfirmDeleteModal';
@@ -68,6 +69,7 @@ export default function ProcessosPage() {
   );
 
   const [busca, setBusca] = useState('');
+  const [fProjeto, setFProjeto] = useState('');
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<Processo | null>(null);
   const [detalhe, setDetalhe] = useState<Processo | null>(null);
@@ -106,12 +108,17 @@ export default function ProcessosPage() {
     return projCode ? `${projCode}.${ordemFmt}` : `#${ordemFmt}`;
   };
 
+  // Processos "mapeados" = que já têm ao menos uma etapa.
+  const processosComEtapas = useMemo(() => new Set(etapas.map(e => e.process_id)), [etapas]);
+
   const visiveis = useMemo(() => {
     const q = canon(busca.trim());
-    const filtrados = !q ? noEscopo : noEscopo.filter(p =>
-      canon(p.name).includes(q) ||
-      canon(projetoNomePorId.get(p.project_id || '') || '').includes(q) ||
-      canon(p.description || '').includes(q)
+    const filtrados = noEscopo.filter(p =>
+      (!fProjeto || p.project_id === fProjeto) &&
+      (!q ||
+        canon(p.name).includes(q) ||
+        canon(projetoNomePorId.get(p.project_id || '') || '').includes(q) ||
+        canon(p.description || '').includes(q))
     );
     // Mantém processos do mesmo projeto adjacentes e na ordem visual.
     return [...filtrados].sort((a, b) => {
@@ -121,7 +128,21 @@ export default function ProcessosPage() {
         || (ordemVisualPorProcesso.get(a.id) ?? 0) - (ordemVisualPorProcesso.get(b.id) ?? 0)
         || a.name.localeCompare(b.name);
     });
-  }, [noEscopo, busca, projetoNomePorId, ordemVisualPorProcesso]);
+  }, [noEscopo, busca, fProjeto, projetoNomePorId, ordemVisualPorProcesso]);
+
+  const nMapeados = useMemo(
+    () => visiveis.filter(p => processosComEtapas.has(p.id)).length,
+    [visiveis, processosComEtapas],
+  );
+
+  // Opções do filtro de projeto — só projetos com processos no escopo do cluster.
+  const projetoOpcoes = useMemo(() => {
+    const ids = [...new Set(noEscopo.map(p => p.project_id).filter((x): x is string => Boolean(x)))];
+    const opts = ids
+      .map(id => ({ value: id, label: projetoNomePorId.get(id) || id }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+    return [{ value: '', label: 'Todos os projetos' }, ...opts];
+  }, [noEscopo, projetoNomePorId]);
 
   // ── Vínculos por processo (para a Modal da Paz) ──
   const etapasDoProcesso = (pid: string) =>
@@ -155,6 +176,44 @@ export default function ProcessosPage() {
   const detalheMelhorias = detalhe ? melhoriasDoProcesso(detalhe.id).map(m => ({ id: m.id, nome: m.improvement_description })) : [];
   const mapearUrl = (p: Processo) => `/equipe/digital/mapa/processos/${encodeURIComponent(p.id)}/mapear`;
 
+  const renderItem = (p: Processo) => (
+    <ProcessoItem
+      key={p.id}
+      codigo={codigoDe(p)}
+      nome={p.name}
+      meta={metaDe(p)}
+      accent={STATUS_CORES[p.evaluation_status || 'Não avaliado'] ?? '#64748b'}
+      badge={normalizarComplexidade(p.complexity_level) || undefined}
+      mapearTo={mapearUrl(p)}
+      mapeado={processosComEtapas.has(p.id)}
+      onOpen={() => setDetalhe(p)}
+      onEdit={() => abrirEditar(p)}
+      onDelete={() => setConfirmDel(p)}
+    />
+  );
+
+  // Lista: agrupada por projeto quando "Todos os projetos"; plana quando filtrada.
+  const renderLista = (): ReactNode => {
+    if (fProjeto) return visiveis.map(renderItem);
+    const out: ReactNode[] = [];
+    let grupoAtual: string | null = null;
+    for (const p of visiveis) {
+      const pid = p.project_id || '__sem__';
+      if (pid !== grupoAtual) {
+        grupoAtual = pid;
+        const nome = p.project_id ? (projetoNomePorId.get(p.project_id) || p.project_id) : 'Sem projeto';
+        const total = visiveis.filter(x => (x.project_id || '__sem__') === pid).length;
+        out.push(
+          <div key={`grp-${pid}`} className="cadastro-grupo-titulo">
+            {nome}<span className="cadastro-grupo-count">{total}</span>
+          </div>,
+        );
+      }
+      out.push(renderItem(p));
+    }
+    return out;
+  };
+
   return (
     <CadastroPageShell
       eyebrow="Mapa · Digital"
@@ -165,14 +224,30 @@ export default function ProcessosPage() {
       carregando={isLoading}
     >
       {noEscopo.length > 0 && (
-        <CadastroToolbar
-          busca={busca}
-          onBusca={setBusca}
-          total={noEscopo.length}
-          visiveis={visiveis.length}
-          substantivo={['processo', 'processos']}
-          placeholder="Buscar por nome, projeto ou descrição..."
-        />
+        <div className="cadastro-toolbar">
+          <label className="cadastro-busca">
+            <Search size={15} strokeWidth={2.2} />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome, projeto ou descrição..."
+              aria-label="Buscar"
+            />
+            {busca && (
+              <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca" title="Limpar busca">
+                <X size={14} />
+              </button>
+            )}
+          </label>
+          <div className="cadastro-toolbar-projeto">
+            <Select value={fProjeto} onChange={setFProjeto} options={projetoOpcoes} compact ariaLabel="Agrupar / filtrar por projeto" />
+          </div>
+          <div className="cadastro-tags">
+            <span className="cadastro-tag"><strong>{visiveis.length}</strong> {visiveis.length === 1 ? 'processo' : 'processos'}</span>
+            <span className="cadastro-tag cadastro-tag-ok"><strong>{nMapeados}</strong> {nMapeados === 1 ? 'mapeado' : 'mapeados'}</span>
+          </div>
+        </div>
       )}
       <CadastroLista
         vazio={noEscopo.length === 0}
@@ -190,26 +265,13 @@ export default function ProcessosPage() {
           <EmptyStateCadastro
             compacto
             icone={<SearchX size={20} />}
-            titulo={`Nenhum processo para "${busca.trim()}"`}
-            ctaLabel="Limpar busca"
-            onCta={() => setBusca('')}
+            titulo={busca.trim() ? `Nenhum processo para "${busca.trim()}"` : 'Nenhum processo neste projeto'}
+            ctaLabel="Limpar filtros"
+            onCta={() => { setBusca(''); setFProjeto(''); }}
           />
         }
       >
-        {visiveis.map((p) => (
-          <ProcessoItem
-            key={p.id}
-            codigo={codigoDe(p)}
-            nome={p.name}
-            meta={metaDe(p)}
-            accent={STATUS_CORES[p.evaluation_status || 'Não avaliado'] ?? '#64748b'}
-            badge={normalizarComplexidade(p.complexity_level) || undefined}
-            mapearTo={mapearUrl(p)}
-            onOpen={() => setDetalhe(p)}
-            onEdit={() => abrirEditar(p)}
-            onDelete={() => setConfirmDel(p)}
-          />
-        ))}
+        {renderLista()}
       </CadastroLista>
 
       <ProcessoDetalheModal

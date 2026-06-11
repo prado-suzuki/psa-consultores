@@ -6,9 +6,12 @@
 //   - Configurar ROI (wizard inline)
 // Histórico de medições fica acessível via botão no header.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertTriangle, ArrowLeft, Layers, Pencil } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
@@ -16,29 +19,21 @@ import DecimalInput from '@/components/equipe/mapa/DecimalInput';
 import Select from '@/components/equipe/mapa/Select';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import WizardRoi from '@/components/equipe/mapa/WizardRoi';
+import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { toast } from 'sonner';
-import type {
-  Etapa, DocRef, Gargalo, Melhoria,
-  ResponsavelEtapa, ProcessSnapshot,
-} from '@/types';
-import { generateSOP, generateSOPComparativo } from '@/utils/pdf/generators';
-import { calcularRoi } from '@/utils/roiCalculator';
-import { diagnosticarRoi } from '@/utils/diagnosticoRoi';
+import type { Etapa, DocRef, ResponsavelEtapa } from '@/types';
 import { enrichEtapas } from '@/utils/enrichEtapas';
-import { formatDecimal, formatarMoeda } from '@/utils/format';
-import { buildProcessDiagram } from '@/utils/processDiagram';
-import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
+import { formatDecimal } from '@/utils/format';
 import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
 import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
 import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
 import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
 import {
   useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
-  useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
+  useResponsaveisLista, useGargalosLista, useMelhoriasLista,
 } from '@/hooks/useDominioListas';
-import { useSnapshots } from '@/hooks/useSnapshots';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
 
 const EXECUCAO_OPCOES = [
@@ -73,8 +68,6 @@ export default function MapearProcessoPage() {
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
-  const { data: snapshotsRaw = [] } = useSnapshots(id);
-  const { data: projetos = [] } = useProjetosLista();
   const processo = processoQuery.data ?? null;
   const loading = processoQuery.isLoading;
   // Etapas hidratadas e filtradas para este processo.
@@ -83,11 +76,6 @@ export default function MapearProcessoPage() {
     const filtered = rawEtapas.filter(e => e.process_id === id).sort(ordenarPorOrdem);
     return enrichEtapas(filtered, documentos, sistemas, responsaveis);
   }, [id, rawEtapas, documentos, sistemas, responsaveis]);
-  // `snapshots` é local porque podemos querer apppendar otimisticamente
-  // após `useCreateSnapshot` — quando uma nova mensuração é gerada pelo
-  // WizardRoi, espelhamos no state local.
-  const [snapshots, setSnapshots] = useState<ProcessSnapshot[]>([]);
-  useEffect(() => { setSnapshots(snapshotsRaw); }, [snapshotsRaw]);
 
   // ── Mutations (Hook-First) ─────────────────────────────────────────────
   const createEtapa = useCreateEtapa();
@@ -105,16 +93,10 @@ export default function MapearProcessoPage() {
   // IDs de etapas existentes removidas no modal — deletadas no banco ao salvar.
   const [removedEtapaIds, setRemovedEtapaIds] = useState<Set<string>>(new Set());
 
-  // Histórico
-  const [historicoOpen, setHistoricoOpen] = useState(false);
-
   // Cadastro rápido a partir das listas suspensas do editor de etapas —
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
   // de opções atualizam sozinhas via invalidação do React Query.
   const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | 'gargalo' | null>(null);
-
-  // Diagrama
-  const [diagramaOpen, setDiagramaOpen] = useState(false);
 
   const docNames = useMemo(() => documentos.map(d => d.nome), [documentos]);
   const sisNames = useMemo(() => sistemas.map(s => s.nome), [sistemas]);
@@ -142,67 +124,6 @@ export default function MapearProcessoPage() {
       </div>
     );
   }
-
-  // ============================================================
-  //  Handlers — SOP
-  // ============================================================
-  const handleGenerateSOP = async (mode: 'era' | 'ficou') => {
-    try {
-      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode);
-    } catch (err) {
-      toast.error('Erro ao gerar SOP', { description: err instanceof Error ? err.message : String(err) });
-    }
-  };
-
-  const handleGenerateSOPComparativo = async () => {
-    try {
-      const gargalosDoProc = gargalos.filter(g => (g.processos || []).includes(processo.id));
-      // calcularRoi recebe TODAS as melhorias do projeto e elege internamente as
-      // relevantes (vínculo direto OU via gargalo). Passar só as filtradas aqui
-      // poderia esconder melhorias que resolvem gargalos do processo.
-      const roi = calcularRoi({
-        processos: [processo],
-        etapas,
-        responsaveis,
-        sistemas,
-        gargalos,
-        melhorias,
-        projetos,
-      });
-      const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
-      const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
-      await generateSOPComparativo({
-        processo,
-        etapas,
-        sistemas,
-        responsaveis,
-        gargalos: gargalosDoProc,
-        melhorias,
-        projeto: projetoDoProcesso,
-        roi,
-        diagnostico,
-        horizonteMeses: 24,
-      });
-    } catch (err) {
-      toast.error('Erro ao gerar SOP Comparativo', { description: err instanceof Error ? err.message : String(err) });
-    }
-  };
-
-  // ============================================================
-  //  Diagrama (Mermaid) — Processo + 6 grupos de ligações
-  // ============================================================
-  const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
-  const diagramaCode = buildProcessDiagram({
-    processo,
-    etapas,
-    documentos,
-    sistemas,
-    responsaveis,
-    gargalos,
-    melhorias,
-    projeto: projetoDoProcesso,
-  });
-  const diagramaFilename = `Diagrama_${processo.id}_${new Date().toISOString().slice(0, 10)}`;
 
   // ============================================================
   //  Handlers — Editar Etapas (Como era / Como ficou)
@@ -366,8 +287,7 @@ export default function MapearProcessoPage() {
     }
   };
 
-  const handleSnapshotCriado = (snap: ProcessSnapshot) => {
-    setSnapshots(prev => [...prev, snap]);
+  const handleSnapshotCriado = () => {
     // Invalida o processo para refletir `mapeado_em` (atualizado quando a
     // 1ª mensuração é salva). React Query refaz o GET sob demanda.
     if (id) queryClient.invalidateQueries({ queryKey: ['processes', id] });
@@ -386,132 +306,123 @@ export default function MapearProcessoPage() {
     return sum(exec);
   };
 
-  const fmtDocs = (arr: DocRef[]) => {
-    if (!arr?.length) return 'Nenhum';
-    return arr.map(d => `${d.nome || ''} (${(d.volume || 0).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })})`).join('; ');
-  };
-
   const fmtPct = (v: number) => formatDecimal((v || 0) * 100);
 
   // ============================================================
   //  Render
   // ============================================================
   return (
-    <div className="card">
-      <div className="page-header-v2" style={{ flexWrap: 'wrap', gap: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => navigate('/equipe/digital/mapa/processos')}
-            className="btn-cancel"
-            style={{ padding: '4px 10px' }}
-            title="Voltar à listagem de processos"
-          >
-            ← Voltar
-          </button>
-          <h1 style={{ margin: 0 }}>{processo.name}</h1>
+    <div className="card cadastro-shell mapear-shell">
+      <div className="mapear-topbar">
+        <button
+          className="mapear-voltar"
+          onClick={() => navigate('/equipe/digital/mapa/processos')}
+          title="Voltar à listagem de processos"
+        >
+          <ArrowLeft size={16} strokeWidth={2.2} />
+          <span>Processos</span>
+        </button>
+      </div>
+
+      <div className="mapear-header">
+        <span className="cadastro-eyebrow">
+          <span className="cadastro-eyebrow-dot" aria-hidden="true" />
+          Mapeamento
+        </span>
+        <h1 className="mapear-title">{processo.name}</h1>
+        {processo.description && <p className="mapear-desc">{processo.description}</p>}
+        <div className="mapear-badges">
           {processo.evaluation_status && processo.evaluation_status !== 'Não avaliado' && (
             <StatusBadge variant="diagnostic">{processo.evaluation_status}</StatusBadge>
           )}
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button className="btn-sop-header" onClick={() => handleGenerateSOP('era')} title="Gerar SOP (Como Era)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            SOP (era)
-          </button>
-          <button className="btn-sop-header" onClick={() => handleGenerateSOP('ficou')} title="Gerar SOP (Como Ficou)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            SOP (ficou)
-          </button>
-          <button className="btn-sop-header" onClick={handleGenerateSOPComparativo} title="Gera PDF comparativo Como Era × Como Ficou, lado a lado, com ganhos por etapa e ROI consolidado.">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            SOP Comparativo
-          </button>
-          <button className="btn-sop-header" onClick={() => setDiagramaOpen(true)} title="Visualizar diagrama de ligações do processo">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="18" r="2"/><circle cx="12" cy="12" r="2"/><line x1="12" y1="12" x2="6" y2="6"/><line x1="12" y1="12" x2="18" y2="6"/><line x1="12" y1="12" x2="6" y2="18"/><line x1="12" y1="12" x2="18" y2="18"/></svg>
-            Diagrama
-          </button>
-          <button className="btn-sop-header" onClick={() => setHistoricoOpen(true)} title="Histórico de medições">
-            Histórico ({snapshots.length})
-          </button>
+          <span className={`mapear-etapas-chip${etapas.length === 0 ? ' vazio' : ''}`}>
+            {etapas.length === 0
+              ? 'Sem etapas ainda'
+              : `${etapas.length} ${etapas.length === 1 ? 'etapa mapeada' : 'etapas mapeadas'}`}
+          </span>
         </div>
       </div>
 
-      {processo.description && (
-        <p style={{ color: '#475569', marginTop: 6 }}>{processo.description}</p>
-      )}
-
-      {/* Navegação por abas */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '2px solid #e2e8f0', marginTop: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        {ABAS.map(a => (
-          <button
-            key={a.id}
-            onClick={() => setAba(a.id)}
-            style={{
-              padding: '10px 16px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: aba === a.id ? 600 : 500,
-              color: aba === a.id ? 'var(--accent-color)' : '#64748b',
-              borderBottom: '2px solid ' + (aba === a.id ? 'var(--accent-color)' : 'transparent'),
-              marginBottom: -2,
-              transition: 'color 0.15s, border-color 0.15s',
-            }}
-          >
-            <Tooltip text={dica(
-              a.id === 'como-era' ? 'mapear.aba.comoEra'
-              : a.id === 'como-ficou' ? 'mapear.aba.comoFicou'
-              : 'mapear.aba.configurarRoi'
-            )}>{a.label}</Tooltip>
-          </button>
-        ))}
+      {/* Navegação por abas — indicador deslizante (framer) */}
+      <div className="mapear-tabs" role="tablist">
+        {ABAS.map(a => {
+          const ativa = aba === a.id;
+          return (
+            <button
+              key={a.id}
+              role="tab"
+              aria-selected={ativa}
+              className={`mapear-tab${ativa ? ' ativa' : ''}`}
+              onClick={() => setAba(a.id)}
+            >
+              <Tooltip text={dica(
+                a.id === 'como-era' ? 'mapear.aba.comoEra'
+                : a.id === 'como-ficou' ? 'mapear.aba.comoFicou'
+                : 'mapear.aba.configurarRoi'
+              )}>{a.label}</Tooltip>
+              {ativa && (
+                <motion.span
+                  layoutId="mapearTabInd"
+                  className="mapear-tab-ind"
+                  transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+                />
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Conteúdo das abas — todas montadas, visibilidade alternada para troca instantânea */}
-      <div style={{ display: aba === 'como-era' ? 'block' : 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button className="btn-sop-header" onClick={() => openEditEtapas('era')} title="Editar etapas (como era)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Editar etapas
-          </button>
+      {/* Painel das abas */}
+      <div className="mapear-painel">
+        {/* "Configurar ROI" fica sempre montado para preservar o estado do wizard */}
+        <div style={{ display: aba === 'configurar-roi' ? 'block' : 'none' }}>
+          <WizardRoi
+            processo={processo}
+            etapas={etapas}
+            responsaveis={responsaveis}
+            sistemas={sistemas}
+            gargalos={gargalos.filter(g => (g.processos || []).includes(processo.id))}
+            melhorias={melhorias}
+            onSnapshotCriado={handleSnapshotCriado}
+            onEditarEtapas={(etapaId) => openEditEtapas('era', etapaId)}
+          />
         </div>
-        <ComoEraView
-          etapas={etapas}
-          fmtDocs={fmtDocs}
-          fmtPct={fmtPct}
-          sumHorasEtapa={sumHorasEtapa}
-          gargalosDoProcesso={gargalos.filter(g => (g.processos || []).includes(processo.id))}
-        />
-      </div>
 
-      <div style={{ display: aba === 'como-ficou' ? 'block' : 'none' }}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-          <button className="btn-sop-header" onClick={() => openEditEtapas('ficou')} title="Editar etapas (como ficou)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            Editar etapas
-          </button>
-        </div>
-        <ComoFicouView
-          etapas={etapas}
-          melhoriasDoProcesso={melhorias.filter(m => (m.processos || []).includes(processo.id))}
-          fmtDocs={fmtDocs}
-          fmtPct={fmtPct}
-          sumHorasEtapa={sumHorasEtapa}
-        />
-      </div>
-
-      <div style={{ display: aba === 'configurar-roi' ? 'block' : 'none' }}>
-        <WizardRoi
-          processo={processo}
-          etapas={etapas}
-          responsaveis={responsaveis}
-          sistemas={sistemas}
-          gargalos={gargalos.filter(g => (g.processos || []).includes(processo.id))}
-          melhorias={melhorias}
-          onSnapshotCriado={handleSnapshotCriado}
-          onEditarEtapas={(etapaId) => openEditEtapas('era', etapaId)}
-        />
+        <AnimatePresence mode="wait">
+          {aba === 'como-era' && (
+            <motion.div
+              key="como-era"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ComoEraView
+                etapas={etapas}
+                fmtPct={fmtPct}
+                sumHorasEtapa={sumHorasEtapa}
+                gargaloNomeById={gargaloNomeById}
+                onEditar={() => openEditEtapas('era')}
+              />
+            </motion.div>
+          )}
+          {aba === 'como-ficou' && (
+            <motion.div
+              key="como-ficou"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ComoFicouView
+                etapas={etapas}
+                fmtPct={fmtPct}
+                sumHorasEtapa={sumHorasEtapa}
+                onEditar={() => openEditEtapas('ficou')}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Modal Editar Etapas */}
@@ -744,72 +655,6 @@ export default function MapearProcessoPage() {
         })()}
       </Modal>
 
-      {/* Modal Histórico */}
-      <Modal isOpen={historicoOpen} onClose={() => setHistoricoOpen(false)}>
-        <div className="modal-etapas">
-          <div className="modal-header">
-            <h2>Histórico de Medições: {processo.name}</h2>
-            <button
-              className="btn-sop-header"
-              onClick={() => { setHistoricoOpen(false); setAba('configurar-roi'); }}
-              title="Abrir o wizard para nova medição"
-            >
-              Nova medição
-            </button>
-          </div>
-          <div className="modal-body">
-            {snapshots.length === 0 ? (
-              <p style={{ color: '#64748b' }}>
-                Nenhum snapshot salvo para este processo. Use a aba <strong>"Configurar ROI"</strong> e clique em <strong>"Salvar como baseline"</strong> ao final do wizard.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {snapshots.map((s, i) => {
-                  const anterior = i > 0 ? snapshots[i - 1] : null;
-                  const deltaCusto = anterior ? s.annual_cost - anterior.annual_cost : 0;
-                  return (
-                    <div key={s.id} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 6, padding: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                        <div>
-                          <strong>Mensuração</strong>
-                          <span style={{ marginLeft: 8, fontSize: '0.75rem', color: '#64748b' }}>
-                            {new Date(s.snapshot_at).toLocaleString('pt-BR')}
-                          </span>
-                        </div>
-                        {anterior && (
-                          <span style={{ fontSize: '0.8rem', color: deltaCusto < 0 ? '#16a34a' : '#dc2626' }}>
-                            Δ custo: {formatarMoeda(deltaCusto)} ({deltaCusto < 0 ? 'redução' : 'aumento'})
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8, marginTop: 8, fontSize: '0.8rem' }}>
-                        <div><span style={{ color: '#64748b' }}>Custo / ano</span><br/><strong>{formatarMoeda(s.annual_cost)}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Horas / ano</span><br/><strong>{formatDecimal(s.annual_hours, ' h')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Economia / ano</span><br/><strong>{formatarMoeda(s.annual_savings)}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>ROI</span><br/><strong>{formatDecimal(s.roi_percent, '%')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Payback</span><br/><strong>{formatDecimal(s.payback_months, ' meses')}</strong></div>
-                        <div><span style={{ color: '#64748b' }}>Horas liberadas</span><br/><strong>{formatDecimal(s.hours_freed, ' h')}</strong></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-          <div className="modal-footer">
-            <button className="btn-cancel" onClick={() => setHistoricoOpen(false)}>Fechar</button>
-          </div>
-        </div>
-      </Modal>
-
-      <DiagramViewer
-        isOpen={diagramaOpen}
-        onClose={() => setDiagramaOpen(false)}
-        code={diagramaCode}
-        filename={diagramaFilename}
-        title={`Diagrama: ${processo.name}`}
-      />
-
       {/* Cadastro rápido a partir do editor de etapas */}
       <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
       <NovoSistemaModal isOpen={cadastroRapido === 'sistema'} onClose={() => setCadastroRapido(null)} />
@@ -831,156 +676,190 @@ export default function MapearProcessoPage() {
 //  Sub-views (puramente apresentacionais)
 // ============================================================
 
+const EXEC_LABEL: Record<string, string> = {
+  manual: 'Manual',
+  semi_automatica: 'Semi-automática',
+  automatica: 'Automática',
+};
+const execLabel = (v?: string) => (v ? (EXEC_LABEL[v] ?? v) : '—');
+
+function docChips(arr?: DocRef[]) {
+  const itens = (arr || []).filter(d => d.nome?.trim());
+  if (!itens.length) return <span className="mapear-vazio">—</span>;
+  return itens.map((d, i) => (
+    <span key={`${d.nome}-${i}`} className="mapear-chip">
+      {d.nome}{(d.volume || 0) > 0 && <em className="mapear-chip-vol">{formatDecimal(d.volume)}</em>}
+    </span>
+  ));
+}
+function pessoaChips(arr?: ResponsavelEtapa[]) {
+  const itens = (arr || []).filter(r => r.nome?.trim());
+  if (!itens.length) return <span className="mapear-vazio">—</span>;
+  return itens.map((r, i) => (
+    <span key={`${r.nome}-${i}`} className="mapear-chip teal">
+      {r.nome}{r.horas != null && <em className="mapear-chip-vol">{formatDecimal(r.horas || 0, 'h')}</em>}
+    </span>
+  ));
+}
+function sistemaChips(arr?: string[]) {
+  const itens = (arr || []).filter(Boolean);
+  if (!itens.length) return <span className="mapear-vazio">—</span>;
+  return itens.map((s, i) => <span key={`${s}-${i}`} className="mapear-chip indigo">{s}</span>);
+}
+
+function EtapaCampo({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="mapear-campo">
+      <span className="mapear-campo-label">{label}</span>
+      <div className="mapear-chips">{children}</div>
+    </div>
+  );
+}
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="mapear-metric">
+      <span className="mapear-metric-label">{label}</span>
+      <strong className="mapear-metric-val">{value}</strong>
+    </div>
+  );
+}
+function MapearTabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtitulo: string; onEditar: () => void }) {
+  return (
+    <div className="mapear-tab-head">
+      <div className="mapear-tab-head-txt">
+        <h3 className="mapear-tab-titulo">{titulo}</h3>
+        <p className="mapear-tab-sub">{subtitulo}</p>
+      </div>
+      <button className="cadastro-cta" onClick={onEditar} title="Abrir o editor de etapas">
+        <Pencil size={15} strokeWidth={2.2} />
+        <span>Editar etapas</span>
+      </button>
+    </div>
+  );
+}
+
+function GargalosDaEtapa({ ids, gargaloNomeById }: { ids?: string[]; gargaloNomeById: Map<string, string> }) {
+  const nomes = (ids || []).map(gid => gargaloNomeById.get(gid) ?? gid).filter(Boolean);
+  if (!nomes.length) return null;
+  return (
+    <div className="mapear-etapa-gargalos">
+      <span className="mapear-etapa-gargalos-label"><AlertTriangle size={13} /> Gargalos</span>
+      <div className="mapear-chips">
+        {nomes.map((n, i) => <span key={`${n}-${i}`} className="mapear-chip amber">{n}</span>)}
+      </div>
+    </div>
+  );
+}
+
 interface ComoEraProps {
   etapas: Etapa[];
-  fmtDocs: (arr: DocRef[]) => string;
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
-  gargalosDoProcesso: Gargalo[];
+  gargaloNomeById: Map<string, string>;
+  onEditar: () => void;
 }
-function ComoEraView({ etapas, fmtDocs, fmtPct, sumHorasEtapa, gargalosDoProcesso }: ComoEraProps) {
-  if (etapas.length === 0) return <p>Nenhuma etapa mapeada para este processo.</p>;
+function ComoEraView({ etapas, fmtPct, sumHorasEtapa, gargaloNomeById, onEditar }: ComoEraProps) {
   return (
-    <>
-      {gargalosDoProcesso.length > 0 && (
-        <div className="etapa-item" style={{ borderLeft: '3px solid #f59e0b' }}>
-          <div className="etapa-section">
-            <div className="etapa-section-title">Gargalos do processo</div>
-            <div className="tags" style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
-              {gargalosDoProcesso.map(g => (
-                <span key={g.id} className="tag tag-etapa" title={g.descricao}>{g.nome}</span>
-              ))}
-            </div>
-          </div>
-        </div>
+    <div className="mapear-tab-content">
+      <MapearTabHead titulo="Como era" subtitulo="O retrato atual do processo, etapa por etapa." onEditar={onEditar} />
+
+      {etapas.length === 0 ? (
+        <EmptyStateCadastro
+          icone={<Layers size={32} strokeWidth={1.8} />}
+          titulo="Comece a mapear"
+          texto="Este processo ainda não tem etapas. Adicione a primeira e descreva como o trabalho acontece hoje."
+          ctaLabel="Mapear primeira etapa"
+          onCta={onEditar}
+        />
+      ) : (
+        <ol className="mapear-fluxo list-stagger">
+          {etapas.map((e, i) => (
+            <li key={e.id} className="mapear-etapa">
+              <div className="mapear-etapa-top">
+                <span className="mapear-etapa-num">{i + 1}</span>
+                <h4 className="mapear-etapa-nome">{e.name}</h4>
+                <span className="mapear-exec">{execLabel(e.execution)}</span>
+              </div>
+              {e.description && <p className="mapear-etapa-desc">{e.description}</p>}
+              <div className="mapear-campos">
+                <EtapaCampo label="Entrada">{docChips(e.docsEntrada)}</EtapaCampo>
+                <EtapaCampo label="Saída">{docChips(e.docsSaida)}</EtapaCampo>
+                <EtapaCampo label="Equipe">{pessoaChips(e.executadoPor)}</EtapaCampo>
+                <EtapaCampo label="Sistemas">{sistemaChips(e.sistemas)}</EtapaCampo>
+              </div>
+              <GargalosDaEtapa ids={e.gargalos} gargaloNomeById={gargaloNomeById} />
+              <div className="mapear-metrics">
+                <Metric label="Horas/projeto" value={formatDecimal(sumHorasEtapa(e), 'h')} />
+                <Metric label="Volume" value={formatDecimal(e.volume_per_process || 0)} />
+                <Metric label="Erros" value={`${fmtPct(e.error_rate ?? 0)}%`} />
+                <Metric label="Retrabalho" value={`${fmtPct(e.rework_rate)}%`} />
+              </div>
+            </li>
+          ))}
+        </ol>
       )}
-      {etapas.map((e) => (
-        <div key={e.id} className="etapa-item">
-          <div className="etapa-section">
-            <div className="etapa-section-title">Identificação</div>
-            <h4>{e.name}</h4>
-            <div className="campo" style={{ whiteSpace: 'pre-line' }}>{e.description}</div>
-          </div>
-
-          <div className="etapa-section">
-            <div className="etapa-section-title">Operação</div>
-            <div className="campo"><strong>Execução:</strong> {e.execution || '—'}</div>
-          </div>
-
-          <div className="etapa-section">
-            <div className="etapa-section-title">Documentos</div>
-            <div className="campo"><strong>Entrada:</strong> {fmtDocs(e.docsEntrada)}</div>
-            <div className="campo"><strong>Saída:</strong> {fmtDocs(e.docsSaida)}</div>
-          </div>
-
-          <div className="etapa-section">
-            <div className="etapa-section-title">Equipe</div>
-            <div className="tags">
-              {(e.executadoPor || []).map(r => (
-                <span key={`ex-${r.responsavelId || r.nome}`} className="tag tag-pessoa">
-                  {r.nome} <span style={{ opacity: 0.7 }}>· {formatDecimal(r.horas || 0, 'h')}</span>
-                </span>
-              ))}
-              {(e.sistemas || []).map(s => (
-                <span key={`sis-${s}`} className="tag tag-sistema">{s}</span>
-              ))}
-            </div>
-          </div>
-
-          <div className="etapa-section">
-            <div className="etapa-section-title">Métricas</div>
-            <div className="meta">
-              <div>Horas gasta por projeto: <span>{formatDecimal(sumHorasEtapa(e), 'h')}</span></div>
-              <div>Volume por processo: <span>{formatDecimal(e.volume_per_process || 0)}</span></div>
-              <div>Taxa Erros: <span>{fmtPct(e.error_rate ?? 0)}%</span></div>
-              <div>Retrabalho: <span>{fmtPct(e.rework_rate)}%</span></div>
-            </div>
-          </div>
-        </div>
-      ))}
-    </>
+    </div>
   );
 }
 
 interface ComoFicouProps {
   etapas: Etapa[];
-  melhoriasDoProcesso: Melhoria[];
-  fmtDocs: (arr: DocRef[]) => string;
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
+  onEditar: () => void;
 }
-function ComoFicouView({ etapas, melhoriasDoProcesso, fmtDocs, fmtPct, sumHorasEtapa }: ComoFicouProps) {
-  if (etapas.length === 0) return <p>Nenhuma etapa mapeada para este processo.</p>;
+function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouProps) {
   return (
-    <>
-      {etapas.map((e) => {
-        // Resolve campos do cenário ficou — usa etapa.ficou.* quando há
-        // projeção salva, senão faz fallback para os valores da era.
-        const f = e.ficou;
-        const descricao  = f?.description        ?? e.description;
-        const execution   = f?.execution        ?? e.execution;
-        const volProjeto = f?.volume_per_process ?? e.volume_per_process;
-        const taxaRetrab = f?.rework_rate   ?? e.rework_rate;
-        const execArr    = f?.executadoPor     ?? e.executadoPor;
-        const sistArr    = f?.sistemas         ?? e.sistemas;
-        const docsEnt    = f?.docsEntrada      ?? e.docsEntrada;
-        const docsSai    = f?.docsSaida        ?? e.docsSaida;
+    <div className="mapear-tab-content">
+      <MapearTabHead titulo="Como ficou" subtitulo="O cenário projetado depois das melhorias." onEditar={onEditar} />
 
-        const horasFuturas = sumHorasEtapa(e, true);
-        return (
-          <div key={e.id} className="etapa-item">
-            <div className="etapa-section">
-              <div className="etapa-section-title">Identificação</div>
-              <h4>{e.name}</h4>
-              <div className="campo" style={{ whiteSpace: 'pre-line' }}>{descricao}</div>
-            </div>
-
-            <div className="etapa-section">
-              <div className="etapa-section-title">Operação</div>
-              <div className="campo">
-                <strong>Melhorias do processo:</strong>{' '}
-                {melhoriasDoProcesso.length === 0 ? '—' : (
-                  <span className="tags" style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4 }}>
-                    {melhoriasDoProcesso.map(m => (
-                      <span key={m.id} className="tag tag-etapa">{m.improvement_description}</span>
-                    ))}
-                  </span>
-                )}
-              </div>
-              <div className="campo"><strong>Execução:</strong> {execution || '—'}</div>
-            </div>
-
-            <div className="etapa-section">
-              <div className="etapa-section-title">Documentos</div>
-              <div className="campo"><strong>Entrada:</strong> {fmtDocs(docsEnt || [])}</div>
-              <div className="campo"><strong>Saída:</strong> {fmtDocs(docsSai || [])}</div>
-            </div>
-
-            <div className="etapa-section">
-              <div className="etapa-section-title">Equipe</div>
-              <div className="tags">
-                {(execArr || []).map(r => (
-                  <span key={`ex-${r.responsavelId || r.nome}`} className="tag tag-pessoa">
-                    {r.nome} <span style={{ opacity: 0.7 }}>· {(r.horas != null) ? formatDecimal(r.horas, 'h') : '—'}</span>
-                  </span>
-                ))}
-                {(sistArr || []).map(s => (
-                  <span key={`sis-${s}`} className="tag tag-sistema">{s}</span>
-                ))}
-              </div>
-            </div>
-
-            <div className="etapa-section">
-              <div className="etapa-section-title">Métricas</div>
-              <div className="meta">
-                <div>Horas gasta por projeto (futuro): <span>{horasFuturas > 0 ? formatDecimal(horasFuturas, 'h') : 'Não definido'}</span></div>
-                <div>Volume por processo: <span>{formatDecimal(volProjeto || 0)}</span></div>
-                <div>Retrabalho: <span>{taxaRetrab != null ? fmtPct(taxaRetrab) + '%' : 'Não definido'}</span></div>
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </>
+      {etapas.length === 0 ? (
+        <EmptyStateCadastro
+          icone={<Layers size={32} strokeWidth={1.8} />}
+          titulo="Nada para projetar ainda"
+          texto="Mapeie o 'Como era' primeiro. Depois, projete aqui como cada etapa fica após as melhorias."
+          ctaLabel="Editar etapas"
+          onCta={onEditar}
+        />
+      ) : (
+        <ol className="mapear-fluxo list-stagger">
+            {etapas.map((e, i) => {
+              // Resolve campos do cenário ficou — usa etapa.ficou.* quando há
+              // projeção salva, senão faz fallback para os valores da era.
+              const f = e.ficou;
+              const descricao  = f?.description        ?? e.description;
+              const execution  = f?.execution          ?? e.execution;
+              const volProjeto = f?.volume_per_process  ?? e.volume_per_process;
+              const taxaRetrab = f?.rework_rate         ?? e.rework_rate;
+              const execArr    = f?.executadoPor        ?? e.executadoPor;
+              const sistArr    = f?.sistemas            ?? e.sistemas;
+              const docsEnt    = f?.docsEntrada         ?? e.docsEntrada;
+              const docsSai    = f?.docsSaida           ?? e.docsSaida;
+              const horasFuturas = sumHorasEtapa(e, true);
+              return (
+                <li key={e.id} className="mapear-etapa">
+                  <div className="mapear-etapa-top">
+                    <span className="mapear-etapa-num">{i + 1}</span>
+                    <h4 className="mapear-etapa-nome">{e.name}</h4>
+                    <span className="mapear-exec">{execLabel(execution)}</span>
+                  </div>
+                  {descricao && <p className="mapear-etapa-desc">{descricao}</p>}
+                  <div className="mapear-campos">
+                    <EtapaCampo label="Entrada">{docChips(docsEnt)}</EtapaCampo>
+                    <EtapaCampo label="Saída">{docChips(docsSai)}</EtapaCampo>
+                    <EtapaCampo label="Equipe">{pessoaChips(execArr)}</EtapaCampo>
+                    <EtapaCampo label="Sistemas">{sistemaChips(sistArr)}</EtapaCampo>
+                  </div>
+                  <div className="mapear-metrics">
+                    <Metric label="Horas/projeto" value={horasFuturas > 0 ? formatDecimal(horasFuturas, 'h') : 'Não definido'} />
+                    <Metric label="Volume" value={formatDecimal(volProjeto || 0)} />
+                    <Metric label="Retrabalho" value={taxaRetrab != null ? `${fmtPct(taxaRetrab)}%` : 'Não definido'} />
+                  </div>
+                </li>
+              );
+            })}
+        </ol>
+      )}
+    </div>
   );
 }
