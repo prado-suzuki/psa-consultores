@@ -23,7 +23,7 @@ export default function EmptyStateCadastro({ icone, titulo, texto, ctaLabel, onC
         compacto ? (
           <button type="button" className="cadastro-empty-link" onClick={onCta}>{ctaLabel}</button>
         ) : (
-          <button type="button" className="btn-add" onClick={onCta}>{ctaLabel}</button>
+          <button type="button" className="cadastro-cta" onClick={onCta}>{ctaLabel}</button>
         )
       )}
     </div>

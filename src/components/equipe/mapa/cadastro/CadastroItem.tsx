@@ -1,6 +1,8 @@
-// Linha genérica da lista de cadastro: título + descrição truncada + badge
-// categórico + indicadores discretos de vínculo + ações reveladas no hover.
-// Clique/Enter na linha abre o item (edição); a11y via clickOpenGuard.
+// Linha da lista de cadastro (padrão "Cadastro Puro", redesign premium):
+// um cartão flutuante com orb de identidade à esquerda, título + descrição,
+// um selo categórico discreto e ações reveladas no hover. Clique/Enter na
+// linha abre o item (edição); a11y via clickOpenGuard. Sem números/KPIs —
+// a análise quantitativa vive no Dashboard ROI.
 
 import type { ReactNode } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -17,15 +19,30 @@ interface Props {
   titulo: string;
   descricao?: string;
   badge?: { label: string; cor?: string };
-  /** Indicadores de vínculo; só renderizam quando valor > 0. */
+  /** Ícone de identidade exibido no orb à esquerda. */
+  leading?: ReactNode;
+  /** Cor de destaque do orb (tinge fundo e ícone). */
+  accent?: string;
+  /** Indicadores de vínculo; só renderizam quando valor > 0 (uso opcional). */
   metas?: CadastroItemMeta[];
   onOpen: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-export default function CadastroItem({ titulo, descricao, badge, metas, onOpen, onEdit, onDelete }: Props) {
+/** Converte um hex (#rrggbb) em rgba com a opacidade dada — usado para tingir o orb. */
+function tint(hex: string, alpha: number): string {
+  const h = hex.replace('#', '');
+  if (h.length !== 6) return hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+export default function CadastroItem({ titulo, descricao, badge, leading, accent, metas, onOpen, onEdit, onDelete }: Props) {
   const metasVisiveis = (metas || []).filter((m) => m.valor > 0);
+  const temTrailing = Boolean(badge) || metasVisiveis.length > 0;
   return (
     <div
       className="cadastro-item"
@@ -34,26 +51,37 @@ export default function CadastroItem({ titulo, descricao, badge, metas, onOpen, 
       onClick={(e) => { if (!shouldIgnoreOpenClick(e)) onOpen(); }}
       onKeyDown={(e) => openOnActivationKey(e, onOpen)}
     >
+      {leading && (
+        <span
+          className="cadastro-item-orb"
+          style={accent ? { color: accent, background: tint(accent, 0.12) } : undefined}
+          aria-hidden="true"
+        >
+          {leading}
+        </span>
+      )}
       <div className="cadastro-item-main">
-        <div className="cadastro-item-linha1">
-          <span className="cadastro-item-titulo">{titulo}</span>
+        <span className="cadastro-item-titulo">{titulo}</span>
+        {descricao && <p className="cadastro-item-descricao">{descricao}</p>}
+      </div>
+      {temTrailing && (
+        <div className="cadastro-item-trailing">
           {badge && (
             <span className="cadastro-item-badge">
               {badge.cor && <span className="cadastro-item-badge-dot" style={{ background: badge.cor }} />}
               {badge.label}
             </span>
           )}
-        </div>
-        {descricao && <p className="cadastro-item-descricao">{descricao}</p>}
-      </div>
-      {metasVisiveis.length > 0 && (
-        <div className="cadastro-item-metas">
-          {metasVisiveis.map((m) => (
-            <span key={m.hint} className="cadastro-item-meta" title={m.hint}>
-              {m.icone}
-              {m.valor}
-            </span>
-          ))}
+          {metasVisiveis.length > 0 && (
+            <div className="cadastro-item-metas">
+              {metasVisiveis.map((m) => (
+                <span key={m.hint} className="cadastro-item-meta" title={m.hint}>
+                  {m.icone}
+                  {m.valor}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <div className="cadastro-item-acoes">

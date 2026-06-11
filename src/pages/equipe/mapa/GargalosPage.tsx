@@ -1,11 +1,13 @@
 // Gargalos — página auxiliar de cadastro (padrão "Cadastro Puro", onda 1).
-// Só cadastro: busca + lista compacta + form modal + confirmação de exclusão.
-// Análise (horas, processos afetados, cascata) vive no Dashboard ROI e na
-// CascataPage; aqui cada linha mostra apenas indicadores discretos de vínculo.
+// Só cadastro: busca + lista enxuta + form modal + confirmação de exclusão.
+// Zero números/relatórios — a análise (horas, processos afetados, cascata)
+// vive no Dashboard ROI e na CascataPage. Cada linha mostra apenas a
+// identidade do gargalo, ancorada por um orb colorido pela origem.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { toast } from 'sonner';
-import { AlertTriangle, GitBranch, SearchX, Sparkles, Zap } from 'lucide-react';
+import { AlertTriangle, Building2, Cpu, Globe, SearchX, Users, Workflow } from 'lucide-react';
 import CadastroPageShell from '@/components/equipe/mapa/cadastro/CadastroPageShell';
 import CadastroToolbar from '@/components/equipe/mapa/cadastro/CadastroToolbar';
 import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
@@ -25,6 +27,15 @@ const ORIGEM_CORES: Record<string, string> = {
   Pessoas: '#d97706',
   Cliente: '#db2777',
   Externo: '#64748b',
+};
+
+// Ícone do orb por origem — anima a identidade visual da linha sem números.
+const ORIGEM_ICONE: Record<string, ReactNode> = {
+  Processo: <Workflow size={20} strokeWidth={2} />,
+  Sistema: <Cpu size={20} strokeWidth={2} />,
+  Pessoas: <Users size={20} strokeWidth={2} />,
+  Cliente: <Building2 size={20} strokeWidth={2} />,
+  Externo: <Globe size={20} strokeWidth={2} />,
 };
 
 export default function GargalosPage() {
@@ -68,8 +79,9 @@ export default function GargalosPage() {
 
   return (
     <CadastroPageShell
+      eyebrow="Mapa · Digital"
       titulo="Gargalos"
-      subtitulo="Cadastre os gargalos que afetam seus processos. Eles alimentam a Cascata e o Dashboard ROI."
+      subtitulo="Dê nome aos pontos de atrito que travam seus processos — um de cada vez, com calma."
       ctaLabel="Novo gargalo"
       onCta={abrirCriar}
       carregando={isLoading}
@@ -89,9 +101,9 @@ export default function GargalosPage() {
         semResultadoBusca={visiveis.length === 0}
         emptyState={
           <EmptyStateCadastro
-            icone={<AlertTriangle size={26} />}
+            icone={<AlertTriangle size={32} strokeWidth={1.8} />}
             titulo="Nenhum gargalo cadastrado"
-            texto="Gargalos são pontos de atrito nos seus processos. Cadastre-os para mapear impactos na Cascata e calcular o ROI das melhorias."
+            texto="Gargalos são os pontos de atrito que travam seus processos. Comece registrando o primeiro — leva só alguns segundos."
             ctaLabel="Cadastrar primeiro gargalo"
             onCta={abrirCriar}
           />
@@ -106,27 +118,19 @@ export default function GargalosPage() {
           />
         }
       >
-        {visiveis.map((g) => {
-          const nProc = (g.processos || []).length;
-          const nEtapas = (g.etapasOrigem || []).length;
-          const nMelhorias = (g.melhorias || []).length;
-          return (
-            <CadastroItem
-              key={g.id}
-              titulo={g.nome}
-              descricao={g.descricao || undefined}
-              badge={g.origem ? { label: g.origem, cor: ORIGEM_CORES[g.origem] } : undefined}
-              metas={[
-                { icone: <GitBranch size={13} />, valor: nProc, hint: `${nProc} ${nProc === 1 ? 'processo afetado' : 'processos afetados'}` },
-                { icone: <Zap size={13} />, valor: nEtapas, hint: `${nEtapas} ${nEtapas === 1 ? 'etapa-origem (gera cascata)' : 'etapas-origem (geram cascata)'}` },
-                { icone: <Sparkles size={13} />, valor: nMelhorias, hint: `${nMelhorias} ${nMelhorias === 1 ? 'melhoria vinculada' : 'melhorias vinculadas'}` },
-              ]}
-              onOpen={() => abrirEditar(g)}
-              onEdit={() => abrirEditar(g)}
-              onDelete={() => setConfirmDel(g)}
-            />
-          );
-        })}
+        {visiveis.map((g) => (
+          <CadastroItem
+            key={g.id}
+            titulo={g.nome}
+            descricao={g.descricao || undefined}
+            leading={ORIGEM_ICONE[g.origem] ?? <AlertTriangle size={20} strokeWidth={2} />}
+            accent={ORIGEM_CORES[g.origem] ?? '#0d9488'}
+            badge={g.origem ? { label: g.origem } : undefined}
+            onOpen={() => abrirEditar(g)}
+            onEdit={() => abrirEditar(g)}
+            onDelete={() => setConfirmDel(g)}
+          />
+        ))}
       </CadastroLista>
 
       <GargaloFormModal
