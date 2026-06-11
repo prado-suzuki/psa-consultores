@@ -37,16 +37,18 @@ const titles: Record<string, string> = {
 
 // Links agrupados: cadastros vivem num card colapsável "Cadastros".
 const linksPrincipais = [
-  { to: MAPA_BASE,                 label: 'Projetos', end: true },
-  { to: `${MAPA_BASE}/processos`,  label: 'Processos' },
+  { to: MAPA_BASE,                label: 'Projetos', end: true },
+  { to: `${MAPA_BASE}/processos`, label: 'Processos' },
 ];
 const linksCadastros = [
   { to: `${MAPA_BASE}/responsaveis`, label: 'Responsáveis' },
   { to: `${MAPA_BASE}/documentos`,   label: 'Documentos' },
   { to: `${MAPA_BASE}/sistemas`,     label: 'Sistemas' },
   { to: `${MAPA_BASE}/gargalos`,     label: 'Gargalos' },
-  { to: `${MAPA_BASE}/cascata`,      label: 'Cascata' },
   { to: `${MAPA_BASE}/melhorias`,    label: 'Melhorias' },
+];
+const linksStandalone = [
+  { to: `${MAPA_BASE}/cascata`, label: 'Cascata' },
 ];
 const linksDashboards = [
   { to: `${MAPA_BASE}/dashboard-roi`,  label: 'Dashboard ROI' },
@@ -164,6 +166,14 @@ export default function Layout() {
               </ul>
             )}
           </li>
+          {linksStandalone.map((l) => (
+            <li key={l.to}>
+              <NavLink to={l.to} onClick={closeSidebar} title={l.label}>
+                {icons[l.to]}
+                <span className="sidebar-label">{l.label}</span>
+              </NavLink>
+            </li>
+          ))}
           {linksDashboards.map((l) => (
             <li key={l.to}>
               <NavLink to={l.to} onClick={closeSidebar} title={l.label}>

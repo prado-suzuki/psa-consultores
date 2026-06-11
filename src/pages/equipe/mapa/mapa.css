@@ -50,6 +50,10 @@
   --radius-xl: 16px;
   --radius-pill: 999px;
 
+  /* === Alturas de controle interativo === */
+  --ctrl-h:    38px;  /* botão primário, input, select trigger  */
+  --ctrl-h-sm: 32px;  /* botão secundário, select compact       */
+
   /* === Sombras === */
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
@@ -366,7 +370,8 @@ h1{
   background: var(--accent-color);
   color: white;
   border: 1px solid var(--accent-color);
-  padding: 10px 20px;
+  height: var(--ctrl-h);
+  padding: 0 20px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.92rem;
@@ -397,7 +402,8 @@ h1{
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 6px 10px;
+  height: var(--ctrl-h-sm);
+  padding: 0 10px;
   border-radius: var(--radius-sm);
   transition: background var(--transition-fast);
 }
@@ -413,7 +419,8 @@ h1{
   background: #f1f5f9;
   color: #475569;
   border: 1px solid #e2e8f0;
-  padding: 7px 16px;
+  height: var(--ctrl-h-sm);
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 600;
@@ -425,7 +432,8 @@ h1{
   background: var(--accent-color);
   color: white;
   border: 1px solid var(--accent-color);
-  padding: 7px 16px;
+  height: var(--ctrl-h);
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-weight: 600;
@@ -622,7 +630,8 @@ h1{
   background: var(--accent-color);
   color: white;
   border: 1px solid var(--accent-color);
-  padding: 8px 14px;
+  height: var(--ctrl-h);
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
@@ -868,7 +877,8 @@ h1{
   background: var(--accent-color);
   color: white;
   border: 1px solid var(--accent-color);
-  padding: 8px 14px;
+  height: var(--ctrl-h);
+  padding: 0 16px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   font-size: 0.85rem;
@@ -933,15 +943,13 @@ h1{
   min-width: 180px;
 }
 .filtros-bar .filtro label{
-  font-size: 0.72rem;
+  font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #475569;
-  font-weight: 600;
+  color: var(--on-surface-variant);
 }
 .filtros-bar-limpar{
   margin-left: auto;
-  padding: 6px 14px;
   align-self: flex-end;
 }
 
@@ -1642,7 +1650,8 @@ h1{
   cursor: pointer;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 6px 12px;
+  height: var(--ctrl-h-sm);
+  padding: 0 12px;
   border-radius: var(--radius-sm);
   transition: all var(--transition-fast);
   display: inline-flex;
@@ -1939,7 +1948,8 @@ h1{
   color: #b91c1c;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 6px 12px;
+  height: var(--ctrl-h-sm);
+  padding: 0 12px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -2734,6 +2744,78 @@ h1{
   transition: box-shadow var(--transition-base);
 }
 .app-root .filtros-bar:hover{ box-shadow: var(--shadow-md); }
+
+/* ---------- Custom Select base (Select.tsx) — centralizado aqui para todos os contextos ---------- */
+.custom-select-wrapper{
+  position: relative;
+  width: 100%;
+}
+.custom-select-trigger{
+  width: 100%;
+  height: var(--ctrl-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  background: #fafafa;
+  font-size: 0.92rem;
+  font-family: inherit;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.custom-select-trigger:hover:not(.is-disabled){
+  border-color: #cbd5e1;
+  background: #fff;
+}
+.custom-select-trigger:focus-visible,
+.custom-select-trigger.is-open{
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.15);
+  background: #fff;
+}
+.custom-select-trigger.has-error{
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.12);
+}
+.custom-select-trigger.is-disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f1f5f9;
+}
+.custom-select-trigger.is-placeholder .custom-select-value{
+  color: #94a3b8;
+}
+.custom-select-value{
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.custom-select-caret{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: transform 0.18s ease;
+  flex: 0 0 auto;
+}
+.custom-select-trigger.is-open .custom-select-caret{
+  transform: rotate(180deg);
+  color: var(--accent-color);
+}
+/* Variante compacta — header global, filtros contextuais */
+.custom-select-compact{
+  height: var(--ctrl-h-sm);
+  padding: 0 10px;
+  font-size: 0.88rem;
+}
 
 /* ---------- Modal entrance (framer-motion compatível) ---------- */
 .modal-overlay-v2{

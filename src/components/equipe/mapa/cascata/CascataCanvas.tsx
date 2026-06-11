@@ -76,6 +76,7 @@ export default function CascataCanvas({
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const nodeEls = useRef(new Map<string, HTMLElement>());
+  const roRef = useRef<ResizeObserver | null>(null);
 
   const waveByProcess = useMemo(() => {
     const m = new Map<string, number>();
@@ -97,8 +98,10 @@ export default function CascataCanvas({
   const measure = useCallback(() => {
     const stage = stageRef.current;
     if (!stage) return;
-    // Offsets de layout (ignoram transforms das animações de entrada)
-    const within = (el: HTMLElement) => {
+    // Pré-calcula posições de todos os nós uma única vez por chamada (evita
+    // múltiplas forçadas de layout por aresta via offsetLeft/offsetTop repetidos).
+    const posById = new Map<string, { x: number; y: number; w: number; h: number }>();
+    nodeEls.current.forEach((el, id) => {
       let x = 0;
       let y = 0;
       let n: HTMLElement | null = el;
@@ -107,29 +110,27 @@ export default function CascataCanvas({
         y += n.offsetTop;
         n = n.offsetParent as HTMLElement | null;
       }
-      return { x, y };
-    };
+      posById.set(id, { x, y, w: el.offsetWidth, h: el.offsetHeight });
+    });
     const next: MeasuredEdge[] = [];
     for (const e of graph.edges) {
-      const fromEl = nodeEls.current.get(e.from);
-      const toEl = nodeEls.current.get(e.to);
-      if (!fromEl || !toEl) continue;
-      const f = within(fromEl);
-      const t = within(toEl);
-      const y1 = f.y + fromEl.offsetHeight / 2;
-      const y2 = t.y + toEl.offsetHeight / 2;
+      const f = posById.get(e.from);
+      const t = posById.get(e.to);
+      if (!f || !t) continue;
+      const y1 = f.y + f.h / 2;
+      const y2 = t.y + t.h / 2;
       // Retorno: destino à esquerda da origem (ciclo de atualização
       // documental, ex.: matrícula atualizada reabre o DP). Sai pela
       // borda esquerda e entra pela direita, com bezier espelhado.
-      const retorno = t.x + toEl.offsetWidth < f.x + fromEl.offsetWidth;
+      const retorno = t.x + t.w < f.x + f.w;
       let d: string;
       if (retorno) {
         const x1 = f.x;
-        const x2 = t.x + toEl.offsetWidth;
+        const x2 = t.x + t.w;
         const dx = Math.max(36, (x1 - x2) * 0.5);
         d = `M ${x1} ${y1} C ${x1 - dx} ${y1}, ${x2 + dx} ${y2}, ${x2} ${y2}`;
       } else {
-        const x1 = f.x + fromEl.offsetWidth;
+        const x1 = f.x + f.w;
         const x2 = t.x;
         const dx = Math.max(36, (x2 - x1) * 0.5);
         d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
@@ -153,26 +154,32 @@ export default function CascataCanvas({
     );
   }, [graph, waveByProcess]);
 
+  // Ref para measure: permite que o ResizeObserver estável chame sempre a versão
+  // atual sem precisar ser recriado quando graph/waveByProcess mudam.
+  const measureRef = useRef(measure);
+  useLayoutEffect(() => { measureRef.current = measure; }, [measure]);
+
   useLayoutEffect(() => {
     measure();
   }, [measure, expandedIds, replayKey]);
 
-  // Re-mede durante expansão/colapso animado e em resize
+  // ResizeObserver criado uma única vez — estável, não recria em cada expand/colapso.
   useEffect(() => {
     const stage = stageRef.current;
     if (!stage || typeof ResizeObserver === 'undefined') return;
     let raf = 0;
     const ro = new ResizeObserver(() => {
       cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measure);
+      raf = requestAnimationFrame(() => measureRef.current());
     });
+    roRef.current = ro;
     ro.observe(stage);
-    nodeEls.current.forEach((el) => ro.observe(el));
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      roRef.current = null;
     };
-  }, [measure, expandedIds, replayKey]);
+  }, []);
 
   const fitToView = useCallback(() => {
     const vp = viewportRef.current;
@@ -181,10 +188,14 @@ export default function CascataCanvas({
     setScale(clampScale((vp.clientWidth - 12) / stage.offsetWidth));
   }, []);
 
-  const nodeRef = (id: string) => (el: HTMLElement | null) => {
-    if (el) nodeEls.current.set(id, el);
-    else nodeEls.current.delete(id);
-  };
+  const nodeRef = useCallback((id: string) => (el: HTMLElement | null) => {
+    if (el) {
+      nodeEls.current.set(id, el);
+      roRef.current?.observe(el);
+    } else {
+      nodeEls.current.delete(id);
+    }
+  }, []);
 
   const cardTransition = (wave: number, idx: number) => ({
     delay: reduceMotion ? 0 : 0.12 + wave * 0.26 + Math.min(idx, 6) * 0.06,

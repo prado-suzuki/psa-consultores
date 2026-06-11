@@ -21,18 +21,13 @@ import { useEtapas } from '@/hooks/useEtapas';
 import { useDocumentos } from '@/hooks/useDocumentos';
 import { useProcessos } from '@/hooks/useProcessos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { canon } from '@/utils/cascataEngine';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import CascataCanvas from '@/components/equipe/mapa/cascata/CascataCanvas';
 import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataDocumento';
 import { buildCascataGraph } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
 import './styles/cascata.css';
-
-const normalizar = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
 
 export default function CascataPage() {
   const { data: gargalos = [], isLoading: gLoading } = useGargalos();
@@ -47,11 +42,11 @@ export default function CascataPage() {
   const [busca, setBusca] = useState('');
 
   const gargalosComCascata = useMemo<Gargalo[]>(() => {
-    const q = normalizar(busca.trim());
+    const q = canon(busca);
     return gargalos
       .filter((g) => (g.etapasOrigem ?? []).length > 0)
       .filter((g) => !fCluster || g.cluster_id === fCluster)
-      .filter((g) => !q || normalizar(g.nome).includes(q))
+      .filter((g) => !q || canon(g.nome).includes(q))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [gargalos, fCluster, busca]);
 
