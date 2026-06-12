@@ -22,11 +22,6 @@ import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLis
 import { useDocumentos, useDeleteDocumento } from '@/hooks/useDocumentos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const ORIGEM_CORES: Record<string, string> = {
-  Interno: '#0d9488',
-  Cliente: '#db2777',
-};
-
 export default function DocumentosPage() {
   const { data: items = [], isLoading } = useDocumentos();
   const deleteDoc = useDeleteDocumento();
@@ -152,7 +147,6 @@ export default function DocumentosPage() {
             titulo={d.nome}
             descricao={d.estrutura_entrada || undefined}
             leading={<FileText size={20} strokeWidth={2} />}
-            accent={ORIGEM_CORES[d.origem || ''] ?? '#0d9488'}
             badge={badgeDe(d)}
             onOpen={() => abrirEditar(d)}
             onEdit={() => abrirEditar(d)}

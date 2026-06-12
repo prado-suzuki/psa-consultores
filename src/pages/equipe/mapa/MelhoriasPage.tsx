@@ -19,13 +19,6 @@ import type { Melhoria, MelhoriaStatus } from '@/types';
 import { useMelhorias, useDeleteMelhoria } from '@/hooks/useMelhorias';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const STATUS_CORES: Record<string, string> = {
-  'Não iniciado': '#64748b',
-  'Em progresso': '#d97706',
-  'Concluído': '#0d9488',
-  'Backlog': '#475569',
-};
-
 export default function MelhoriasPage() {
   const { data: items = [], isLoading } = useMelhorias();
   const deleteMelhoria = useDeleteMelhoria();
@@ -108,7 +101,6 @@ export default function MelhoriasPage() {
             key={m.id}
             titulo={m.improvement_description}
             leading={<Sparkles size={20} strokeWidth={2} />}
-            accent={STATUS_CORES[statusDe(m)] ?? '#64748b'}
             badge={{ label: statusDe(m) }}
             onOpen={() => abrirEditar(m)}
             onEdit={() => abrirEditar(m)}

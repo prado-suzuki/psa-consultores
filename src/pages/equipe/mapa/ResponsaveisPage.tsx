@@ -21,10 +21,6 @@ import type { Responsavel } from '@/types';
 import { useResponsaveis, useDeleteResponsavel } from '@/hooks/useResponsaveis';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const TIPO_CORES: Record<string, string> = {
-  Interno: '#0d9488',
-  Externo: '#d97706',
-};
 const TIPO_ICONE: Record<string, ReactNode> = {
   Interno: <UserRound size={20} strokeWidth={2} />,
   Externo: <UserCog size={20} strokeWidth={2} />,
@@ -114,7 +110,6 @@ export default function ResponsaveisPage() {
             titulo={r.name}
             descricao={descricaoDe(r)}
             leading={TIPO_ICONE[tipoDe(r)] ?? <UserRound size={20} strokeWidth={2} />}
-            accent={TIPO_CORES[tipoDe(r)] ?? '#0d9488'}
             badge={{ label: tipoDe(r) }}
             onOpen={() => abrirEditar(r)}
             onEdit={() => abrirEditar(r)}

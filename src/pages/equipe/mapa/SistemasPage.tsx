@@ -24,10 +24,6 @@ import { useSistemas, useDeleteSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const ORIGEM_CORES: Record<string, string> = {
-  Interno: '#0d9488',
-  Externo: '#6366f1',
-};
 const ORIGEM_ICONE: Record<string, ReactNode> = {
   Interno: <Server size={20} strokeWidth={2} />,
   Externo: <Cloud size={20} strokeWidth={2} />,
@@ -156,7 +152,6 @@ export default function SistemasPage() {
             titulo={s.nome}
             descricao={s.descricao || undefined}
             leading={ORIGEM_ICONE[s.origem || ''] ?? <Server size={20} strokeWidth={2} />}
-            accent={ORIGEM_CORES[s.origem || ''] ?? '#0d9488'}
             badge={s.origem ? { label: s.origem } : undefined}
             onOpen={() => abrirEditar(s)}
             onEdit={() => abrirEditar(s)}

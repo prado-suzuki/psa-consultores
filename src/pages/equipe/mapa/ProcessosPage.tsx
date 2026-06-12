@@ -29,12 +29,6 @@ import {
 import { useProcessos, useDeleteProcesso } from '@/hooks/useProcessos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const STATUS_CORES: Record<string, string> = {
-  'Avaliado': '#0d9488',
-  'Em avaliação': '#d97706',
-  'Não avaliado': '#64748b',
-};
-
 function getProjectCode(projectName?: string): string | null {
   const match = projectName?.trim().match(/^(P\d+)/i);
   return match ? match[1].toUpperCase() : null;
@@ -70,6 +64,7 @@ export default function ProcessosPage() {
 
   const [busca, setBusca] = useState('');
   const [fProjeto, setFProjeto] = useState('');
+  const [fMapeado, setFMapeado] = useState<'todos' | 'mapeados' | 'faltam'>('todos');
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<Processo | null>(null);
   const [detalhe, setDetalhe] = useState<Processo | null>(null);
@@ -111,7 +106,8 @@ export default function ProcessosPage() {
   // Processos "mapeados" = que já têm ao menos uma etapa.
   const processosComEtapas = useMemo(() => new Set(etapas.map(e => e.process_id)), [etapas]);
 
-  const visiveis = useMemo(() => {
+  // Escopo após cluster + projeto + busca (base das contagens das tags).
+  const baseVisiveis = useMemo(() => {
     const q = canon(busca.trim());
     const filtrados = noEscopo.filter(p =>
       (!fProjeto || p.project_id === fProjeto) &&
@@ -130,10 +126,19 @@ export default function ProcessosPage() {
     });
   }, [noEscopo, busca, fProjeto, projetoNomePorId, ordemVisualPorProcesso]);
 
+  const total = baseVisiveis.length;
   const nMapeados = useMemo(
-    () => visiveis.filter(p => processosComEtapas.has(p.id)).length,
-    [visiveis, processosComEtapas],
+    () => baseVisiveis.filter(p => processosComEtapas.has(p.id)).length,
+    [baseVisiveis, processosComEtapas],
   );
+  const nFaltam = total - nMapeados;
+
+  // Lista exibida = base + filtro dinâmico das tags (todos/mapeados/faltam).
+  const visiveis = useMemo(() => {
+    if (fMapeado === 'mapeados') return baseVisiveis.filter(p => processosComEtapas.has(p.id));
+    if (fMapeado === 'faltam') return baseVisiveis.filter(p => !processosComEtapas.has(p.id));
+    return baseVisiveis;
+  }, [baseVisiveis, fMapeado, processosComEtapas]);
 
   // Opções do filtro de projeto — só projetos com processos no escopo do cluster.
   const projetoOpcoes = useMemo(() => {
@@ -182,7 +187,6 @@ export default function ProcessosPage() {
       codigo={codigoDe(p)}
       nome={p.name}
       meta={metaDe(p)}
-      accent={STATUS_CORES[p.evaluation_status || 'Não avaliado'] ?? '#64748b'}
       badge={normalizarComplexidade(p.complexity_level) || undefined}
       mapearTo={mapearUrl(p)}
       mapeado={processosComEtapas.has(p.id)}
@@ -244,8 +248,33 @@ export default function ProcessosPage() {
             <Select value={fProjeto} onChange={setFProjeto} options={projetoOpcoes} compact ariaLabel="Agrupar / filtrar por projeto" />
           </div>
           <div className="cadastro-tags">
-            <span className="cadastro-tag"><strong>{visiveis.length}</strong> {visiveis.length === 1 ? 'processo' : 'processos'}</span>
-            <span className="cadastro-tag cadastro-tag-ok"><strong>{nMapeados}</strong> {nMapeados === 1 ? 'mapeado' : 'mapeados'}</span>
+            <button
+              type="button"
+              className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'todos'}
+              onClick={() => setFMapeado('todos')}
+              title="Mostrar todos os processos"
+            >
+              <strong>{total}</strong> {total === 1 ? 'processo' : 'processos'}
+            </button>
+            <button
+              type="button"
+              className={`cadastro-tag cadastro-tag-ok${fMapeado === 'mapeados' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'mapeados'}
+              onClick={() => setFMapeado(m => (m === 'mapeados' ? 'todos' : 'mapeados'))}
+              title="Filtrar só os processos mapeados"
+            >
+              <strong>{nMapeados}</strong> {nMapeados === 1 ? 'mapeado' : 'mapeados'}
+            </button>
+            <button
+              type="button"
+              className={`cadastro-tag cadastro-tag-warn${fMapeado === 'faltam' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'faltam'}
+              onClick={() => setFMapeado(m => (m === 'faltam' ? 'todos' : 'faltam'))}
+              title="Filtrar só os que faltam mapear"
+            >
+              <strong>{nFaltam}</strong> {nFaltam === 1 ? 'falta' : 'faltam'}
+            </button>
           </div>
         </div>
       )}
@@ -265,9 +294,17 @@ export default function ProcessosPage() {
           <EmptyStateCadastro
             compacto
             icone={<SearchX size={20} />}
-            titulo={busca.trim() ? `Nenhum processo para "${busca.trim()}"` : 'Nenhum processo neste projeto'}
+            titulo={
+              busca.trim()
+                ? `Nenhum processo para "${busca.trim()}"`
+                : fMapeado === 'mapeados'
+                  ? 'Nenhum processo mapeado neste escopo'
+                  : fMapeado === 'faltam'
+                    ? 'Tudo mapeado neste escopo 🎉'
+                    : 'Nenhum processo neste projeto'
+            }
             ctaLabel="Limpar filtros"
-            onCta={() => { setBusca(''); setFProjeto(''); }}
+            onCta={() => { setBusca(''); setFProjeto(''); setFMapeado('todos'); }}
           />
         }
       >

@@ -13,8 +13,6 @@ interface Props {
   nome: string;
   /** Linha secundária: projeto (e frequência). */
   meta?: string;
-  /** Cor do orb, derivada do status de avaliação. */
-  accent: string;
   /** Selo categórico discreto (ex.: complexidade). */
   badge?: string;
   /** URL da tela de mapeamento/detalhe do processo. */
@@ -26,16 +24,7 @@ interface Props {
   onDelete: () => void;
 }
 
-function tint(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  if (h.length !== 6) return hex;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-export default function ProcessoItem({ codigo, nome, meta, accent, badge, mapearTo, mapeado, onOpen, onEdit, onDelete }: Props) {
+export default function ProcessoItem({ codigo, nome, meta, badge, mapearTo, mapeado, onOpen, onEdit, onDelete }: Props) {
   return (
     <div
       className="cadastro-item processo-item"
@@ -44,11 +33,7 @@ export default function ProcessoItem({ codigo, nome, meta, accent, badge, mapear
       onClick={(e) => { if (!shouldIgnoreOpenClick(e)) onOpen(); }}
       onKeyDown={(e) => openOnActivationKey(e, onOpen)}
     >
-      <span
-        className="cadastro-item-orb"
-        style={{ color: accent, background: tint(accent, 0.12) }}
-        aria-hidden="true"
-      >
+      <span className="cadastro-item-orb" aria-hidden="true">
         <Workflow size={20} strokeWidth={2} />
       </span>
       <div className="cadastro-item-main">

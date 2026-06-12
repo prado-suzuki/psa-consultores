@@ -21,15 +21,7 @@ import type { Gargalo } from '@/types';
 import { useGargalos, useDeleteGargalo } from '@/hooks/useGargalos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
-const ORIGEM_CORES: Record<string, string> = {
-  Processo: '#0d9488',
-  Sistema: '#6366f1',
-  Pessoas: '#d97706',
-  Cliente: '#db2777',
-  Externo: '#64748b',
-};
-
-// Ícone do orb por origem — anima a identidade visual da linha sem números.
+// Ícone do orb por origem — o orb é cinza em repouso e fica verde no hover.
 const ORIGEM_ICONE: Record<string, ReactNode> = {
   Processo: <Workflow size={20} strokeWidth={2} />,
   Sistema: <Cpu size={20} strokeWidth={2} />,
@@ -124,7 +116,6 @@ export default function GargalosPage() {
             titulo={g.nome}
             descricao={g.descricao || undefined}
             leading={ORIGEM_ICONE[g.origem] ?? <AlertTriangle size={20} strokeWidth={2} />}
-            accent={ORIGEM_CORES[g.origem] ?? '#0d9488'}
             badge={g.origem ? { label: g.origem } : undefined}
             onOpen={() => abrirEditar(g)}
             onEdit={() => abrirEditar(g)}

@@ -19,10 +19,8 @@ interface Props {
   titulo: string;
   descricao?: string;
   badge?: { label: string; cor?: string };
-  /** Ícone de identidade exibido no orb à esquerda. */
+  /** Ícone de identidade exibido no orb à esquerda (cinza em repouso, verde no hover). */
   leading?: ReactNode;
-  /** Cor de destaque do orb (tinge fundo e ícone). */
-  accent?: string;
   /** Indicadores de vínculo; só renderizam quando valor > 0 (uso opcional). */
   metas?: CadastroItemMeta[];
   onOpen: () => void;
@@ -30,17 +28,7 @@ interface Props {
   onDelete: () => void;
 }
 
-/** Converte um hex (#rrggbb) em rgba com a opacidade dada — usado para tingir o orb. */
-function tint(hex: string, alpha: number): string {
-  const h = hex.replace('#', '');
-  if (h.length !== 6) return hex;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-export default function CadastroItem({ titulo, descricao, badge, leading, accent, metas, onOpen, onEdit, onDelete }: Props) {
+export default function CadastroItem({ titulo, descricao, badge, leading, metas, onOpen, onEdit, onDelete }: Props) {
   const metasVisiveis = (metas || []).filter((m) => m.valor > 0);
   const temTrailing = Boolean(badge) || metasVisiveis.length > 0;
   return (
@@ -52,11 +40,7 @@ export default function CadastroItem({ titulo, descricao, badge, leading, accent
       onKeyDown={(e) => openOnActivationKey(e, onOpen)}
     >
       {leading && (
-        <span
-          className="cadastro-item-orb"
-          style={accent ? { color: accent, background: tint(accent, 0.12) } : undefined}
-          aria-hidden="true"
-        >
+        <span className="cadastro-item-orb" aria-hidden="true">
           {leading}
         </span>
       )}

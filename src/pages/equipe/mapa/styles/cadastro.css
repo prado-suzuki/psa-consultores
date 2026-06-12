@@ -265,19 +265,30 @@
   gap: 6px;
   padding: 5px 12px;
   border-radius: var(--radius-pill);
+  border: 1px solid transparent;
   background: #f1f5f9;
   color: #5b6b7f;
   font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
+.cadastro-tag:hover{ border-color: #cbd5e1; }
+.cadastro-tag:focus-visible{ outline: none; border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.20); }
+.cadastro-tag.ativa{ border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.18); }
 .cadastro-tag strong{
   font-weight: 800;
   font-size: 0.82rem;
   font-variant-numeric: tabular-nums;
 }
 .cadastro-tag-ok{ background: var(--accent-50); color: var(--accent-700); }
+.cadastro-tag-ok:hover{ border-color: var(--accent-200); }
+.cadastro-tag-ok.ativa{ border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(13,148,136,0.20); }
+.cadastro-tag-warn{ background: #fffbeb; color: #b45309; }
+.cadastro-tag-warn:hover{ border-color: #fde68a; }
+.cadastro-tag-warn.ativa{ border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.20); }
 
 /* Cabeçalho de grupo (agrupamento por projeto) dentro da lista */
 .cadastro-grupo-titulo{
@@ -363,11 +374,17 @@
   width: 44px;
   height: 44px;
   border-radius: 14px;
+  /* Repouso: cinza leve (slate). Hover: vira verde teal com a animação. */
+  background: #f1f5f9;
+  color: #64748b;
+  transition: transform var(--transition-base), background var(--transition-base), color var(--transition-base);
+}
+.cadastro-item:hover .cadastro-item-orb,
+.cadastro-item:focus-within .cadastro-item-orb{
   background: var(--accent-50);
   color: var(--accent-color);
-  transition: transform var(--transition-base);
+  transform: scale(1.07) rotate(-3deg);
 }
-.cadastro-item:hover .cadastro-item-orb{ transform: scale(1.07) rotate(-3deg); }
 
 .cadastro-item-main{ flex: 1 1 auto; min-width: 0; }
 .cadastro-item-titulo{
@@ -1193,6 +1210,68 @@ textarea.cadastro-form-textarea{
 }
 
 /* ===========================================================================
+   Projetos — chips de justificativa (form) + detalhe (ícone, abas)
+   =========================================================================== */
+.justif-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.justif-chip{
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.justif-chip:hover{ border-color: var(--accent-200); }
+.justif-chip.ativa{ border-color: var(--accent-color); background: var(--accent-color); color: #fff; }
+
+.projeto-det-icone{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--accent-50);
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+.projeto-det-tabs{
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e6eaf0;
+  flex-wrap: wrap;
+}
+/* Modal de detalhe do projeto: mais largo e com altura estável (não encolhe
+   ao trocar de aba — o corpo mantém uma altura mínima e rola se passar). */
+.modal.projeto-det{ max-width: 880px; }
+.projeto-det .processo-det-body{ min-height: 440px; }
+/* Negrito mais suave nas linhas de processo/backlog do detalhe */
+.projeto-det .projeto-process-name{ font-weight: 600; }
+.projeto-det .projeto-backlog-main strong{ font-weight: 600; }
+/* Justificativas (read-only) — tags/mini-cartões, como no formulário */
+.projeto-justif-tag{
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ===========================================================================
    Mobile
    =========================================================================== */
 @media (max-width: 640px){
@@ -1218,6 +1297,8 @@ textarea.cadastro-form-textarea{
   /* Mapeamento: campos da etapa em coluna; CTA da aba ocupa a largura */
   .mapear-campos{ grid-template-columns: 1fr; }
   .mapear-tab-head .cadastro-cta{ width: 100%; justify-content: center; }
+  /* Detalhe do projeto: abas acompanham o padding do corpo */
+  .projeto-det-tabs{ padding-left: 18px; padding-right: 18px; }
 }
 
 /* ===========================================================================
