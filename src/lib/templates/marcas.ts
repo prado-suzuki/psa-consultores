@@ -57,34 +57,32 @@ function tokensPareados(linha: string): TokenMarca[] {
   return todos.filter((t) => validos.has(t));
 }
 
+/** Run com a POSIÇÃO na linha crua: [inicio, fim), com os delimitadores pareados fora dos intervalos. */
+export interface RunPosicionado extends Marcas {
+  inicio: number;
+  fim: number;
+}
+
 /**
- * Divide UMA linha em runs com os estilos resolvidos. Linha sem marcas devolve
- * um único run. Runs vazios são suprimidos e adjacentes com o mesmo estilo,
- * fundidos.
+ * Como extrairRunsLinha, mas devolve intervalos na linha CRUA em vez do texto —
+ * é o que permite intersectar as marcas com outra camada calculada sobre a
+ * mesma linha (proveniência dos placeholders na prévia). Runs vazios são
+ * suprimidos; adjacentes de mesmo estilo NÃO são fundidos (há um delimitador
+ * entre eles — os intervalos não são contíguos).
  */
-export function extrairRunsLinha(linha: string): RunMarcado[] {
+export function runsPosicionados(linha: string): RunPosicionado[] {
   const tokens = tokensPareados(linha);
   if (tokens.length === 0) {
-    return [{ texto: linha, negrito: false, italico: false, sublinhado: false }];
+    return linha.length === 0
+      ? []
+      : [{ inicio: 0, fim: linha.length, negrito: false, italico: false, sublinhado: false }];
   }
 
-  const runs: RunMarcado[] = [];
+  const runs: RunPosicionado[] = [];
   const estado: Marcas = { negrito: false, italico: false, sublinhado: false };
   let cursor = 0;
   const emitir = (ate: number) => {
-    if (ate <= cursor) return;
-    const texto = linha.slice(cursor, ate);
-    const anterior = runs[runs.length - 1];
-    if (
-      anterior &&
-      anterior.negrito === estado.negrito &&
-      anterior.italico === estado.italico &&
-      anterior.sublinhado === estado.sublinhado
-    ) {
-      anterior.texto += texto;
-    } else {
-      runs.push({ texto, ...estado });
-    }
+    if (ate > cursor) runs.push({ inicio: cursor, fim: ate, ...estado });
   };
 
   for (const t of tokens) {
@@ -94,6 +92,33 @@ export function extrairRunsLinha(linha: string): RunMarcado[] {
     estado[estilo] = !estado[estilo];
   }
   emitir(linha.length);
+  return runs;
+}
+
+/**
+ * Divide UMA linha em runs com os estilos resolvidos. Linha sem marcas devolve
+ * um único run. Runs vazios são suprimidos e adjacentes com o mesmo estilo,
+ * fundidos.
+ */
+export function extrairRunsLinha(linha: string): RunMarcado[] {
+  if (linha.length === 0) {
+    return [{ texto: linha, negrito: false, italico: false, sublinhado: false }];
+  }
+  const runs: RunMarcado[] = [];
+  for (const r of runsPosicionados(linha)) {
+    const texto = linha.slice(r.inicio, r.fim);
+    const anterior = runs[runs.length - 1];
+    if (
+      anterior &&
+      anterior.negrito === r.negrito &&
+      anterior.italico === r.italico &&
+      anterior.sublinhado === r.sublinhado
+    ) {
+      anterior.texto += texto;
+    } else {
+      runs.push({ texto, negrito: r.negrito, italico: r.italico, sublinhado: r.sublinhado });
+    }
+  }
   return runs;
 }
 

@@ -3,7 +3,8 @@ import { AlertTriangle, Blocks, FileSignature, Loader2, Pencil } from 'lucide-re
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
-import type { TipoBloco } from '@/lib/templates';
+import { apararSegmentos } from '@/lib/templates/proveniencia';
+import type { OrigemValor, SegmentoRender, TipoBloco } from '@/lib/templates';
 
 // Tipografia da prévia: serifada, como o contrato impresso — a "folha" branca
 // sobre o canvas bege é o artefato final da oficina e o centro da tela.
@@ -20,6 +21,8 @@ export interface BlocoFolha {
   nome: string;
   tipo?: TipoBloco;
   conteudo: string;
+  /** Segmentos do render estruturado — habilitam os valores clicáveis (proveniência). */
+  segmentos?: SegmentoRender[];
 }
 
 interface FolhaDocumentoProps {
@@ -31,6 +34,10 @@ interface FolhaDocumentoProps {
   blocos?: BlocoFolha[] | null;
   /** Quando informado, clicar num trecho abre o popover com o atalho de edição do bloco. */
   onEditarBloco?: (bloco: BlocoFolha) => void;
+  /** Quando informado, valores com proveniência viram clicáveis — abre o cadastro de origem. */
+  onClickOrigem?: (origem: OrigemValor) => void;
+  /** Filtra quais origens ganham o clique (ex.: só pessoas com cadastro). */
+  origemClicavel?: (origem: OrigemValor) => boolean;
 }
 
 /**
@@ -45,6 +52,8 @@ export const FolhaDocumento = ({
   erro,
   blocos,
   onEditarBloco,
+  onClickOrigem,
+  origemClicavel,
 }: FolhaDocumentoProps) => {
   // Popover de edição aberto sobre um trecho (id da posição no modelo).
   const [popoverAberto, setPopoverAberto] = useState<string | null>(null);
@@ -128,7 +137,15 @@ export const FolhaDocumento = ({
                     {bloco.nome}
                   </span>
                 )}
-                <TextoFormatado texto={bloco.conteudo.trim()} />
+                {bloco.segmentos ? (
+                  <TextoFormatado
+                    segmentos={apararSegmentos(bloco.segmentos)}
+                    onClickOrigem={onClickOrigem}
+                    origemClicavel={origemClicavel}
+                  />
+                ) : (
+                  <TextoFormatado texto={bloco.conteudo.trim()} />
+                )}
               </div>
             );
             if (!editavel) return trecho;

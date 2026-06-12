@@ -1,5 +1,6 @@
 import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, ordinalExtenso, valorExtenso } from './extenso';
 import { ufPorExtenso } from './concordancia';
+import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
 import type { Contexto } from './types';
@@ -81,7 +82,9 @@ export function mapearPessoa(row: PessoaRow): Campos {
 
   set('endereco', enderecoProsa(row));
 
-  return derivarCampos('pessoa', out);
+  // A origem sobrevive aos spreads a jusante (derivarCampos, mapearSocio,
+  // edição manual na Gerar) — é o que liga o valor na prévia ao cadastro.
+  return comOrigem(derivarCampos('pessoa', out), { tipo: 'pessoa', id: row.id });
 }
 
 /** Capital social e total de quotas da sociedade — calculados, não digitados. */
@@ -149,7 +152,7 @@ export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Cam
   // travar — a sociedade é preenchida da empresa, sem formulário que complete a mão.
   const campos = derivarCampos('sociedade', out);
   for (const c of camposDaEntidade('sociedade')) campos[c.id] = campos[c.id] ?? '';
-  return campos;
+  return comOrigem(campos, { tipo: 'sociedade', id: row.id });
 }
 
 export function mapearBem(row: BemRow): Campos {
@@ -160,12 +163,14 @@ export function mapearBem(row: BemRow): Campos {
   if (row.vlr_contabil != null) set('valor', formatarValor(row.vlr_contabil));
   set('ccir', row.ccir_codigo);
   set('inscricaoMunicipal', row.inscricao_municipal);
-  return derivarCampos('bem', out);
+  return comOrigem(derivarCampos('bem', out), { tipo: 'bem', id: row.id });
 }
 
 // Linha de matrícula enriquecida com bem + cartório + titulares (achatados sob o
 // binding do imóvel), no formato que `useRegistrosPorTipo` monta a partir do JOIN.
 export interface MatriculaParaMapear {
+  /** Id da matrícula no cadastro — habilita a proveniência (valor clicável na prévia). Opcional: dados legados sem id seguem válidos. */
+  id?: string | null;
   numero: string | null;
   livro: string | null;
   folha: string | null;
@@ -264,7 +269,8 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('ccir', m.bem?.ccir_codigo);
   set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
 
-  return derivarCampos('matricula', out);
+  const campos = derivarCampos('matricula', out);
+  return m.id ? comOrigem(campos, { tipo: 'matricula', id: m.id }) : campos;
 }
 
 export function mapearCartorio(row: CartorioRow): Campos {

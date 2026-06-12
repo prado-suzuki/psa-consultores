@@ -1,6 +1,12 @@
 import { Fragment, type ReactNode } from 'react';
 import { extrairRunsLinha } from '@/lib/templates/marcas';
-import { segmentar, type Alinhamento, type Segmento } from '@/lib/templates/tabela';
+import { segmentar, type Alinhamento } from '@/lib/templates/tabela';
+import {
+  segmentarComProveniencia,
+  type Pedaco,
+  type SegmentoProveniencia,
+} from '@/lib/templates/proveniencia';
+import type { OrigemValor, SegmentoRender } from '@/lib/templates/render';
 
 // Renderiza texto com as marcas inline do engine (*negrito*, _itálico_,
 // ~sublinhado~) como elementos React — usado nas prévias (Gerar Documento,
@@ -10,6 +16,10 @@ import { segmentar, type Alinhamento, type Segmento } from '@/lib/templates/tabe
 // As tabelas (convenção textual `| a | b |` + separadora) são detectadas pelo
 // mesmo `segmentar` que alimenta o adapter .docx, então a prévia bate com o
 // documento final. Cada célula passa pelas marcas inline.
+//
+// Modo segmentado (prévia da Gerar): com `segmentos` do render estruturado, os
+// valores que vieram de placeholder com proveniência viram spans clicáveis —
+// clique abre o cadastro de origem (onClickOrigem), sem propagar para o bloco.
 //
 // O contêiner deve permitir blocos (use <div>, não <p> — <table> dentro de <p>
 // é HTML inválido) e ter whitespace-pre-wrap para preservar as quebras de linha
@@ -31,36 +41,82 @@ function runs(linha: string): ReactNode {
   });
 }
 
-function Tabela({ seg }: { seg: Extract<Segmento, { tipo: 'tabela' }> }) {
-  const colunas = seg.cabecalho.length;
-  const alinhar = (i: number) => CLASSE_ALINHAMENTO[seg.alinhamentos[i] ?? 'left'];
+interface ClickOrigem {
+  onClickOrigem?: (origem: OrigemValor) => void;
+  origemClicavel?: (origem: OrigemValor) => boolean;
+}
+
+function pedacos(lista: Pedaco[], { onClickOrigem, origemClicavel }: ClickOrigem): ReactNode {
+  return lista.map((p, j) => {
+    let no: ReactNode = p.texto;
+    if (p.sublinhado) no = <u>{no}</u>;
+    if (p.italico) no = <em>{no}</em>;
+    if (p.negrito) no = <strong>{no}</strong>;
+    const origem = p.origem;
+    if (origem && onClickOrigem && (origemClicavel?.(origem) ?? true)) {
+      const abrir = () => onClickOrigem(origem);
+      no = (
+        <span
+          role="button"
+          tabIndex={0}
+          title="Abrir o cadastro deste dado"
+          className="cursor-pointer rounded-sm transition-colors hover:bg-osg-moss/10 hover:underline hover:decoration-osg-moss/70 hover:decoration-dotted hover:underline-offset-4"
+          onClick={(e) => {
+            // O bloco em volta abre o popover "Editar bloco" no clique — o
+            // valor clicável é um gesto próprio, não pode subir.
+            e.stopPropagation();
+            abrir();
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              e.stopPropagation();
+              abrir();
+            }
+          }}
+        >
+          {no}
+        </span>
+      );
+    }
+    return <Fragment key={j}>{no}</Fragment>;
+  });
+}
+
+interface CelulasTabela {
+  cabecalho: ReactNode[];
+  corpo: ReactNode[][];
+  alinhamentos: Alinhamento[];
+}
+
+function Tabela({ cabecalho, corpo, alinhamentos }: CelulasTabela) {
+  const colunas = cabecalho.length;
+  const alinhar = (i: number) => CLASSE_ALINHAMENTO[alinhamentos[i] ?? 'left'];
   // Normaliza cada linha do corpo ao número de colunas do cabeçalho.
-  const corpo = seg.corpo.map((cels) =>
-    Array.from({ length: colunas }, (_, i) => cels[i] ?? ''),
-  );
+  const linhas = corpo.map((cels) => Array.from({ length: colunas }, (_, i) => cels[i] ?? ''));
   return (
     <table className="my-2 w-full border-collapse text-sm">
       <thead>
         <tr>
-          {seg.cabecalho.map((cel, i) => (
+          {cabecalho.map((cel, i) => (
             <th
               key={i}
               className={`border border-slate-300 px-2 py-1 font-semibold ${alinhar(i)}`}
             >
-              {runs(cel)}
+              {cel}
             </th>
           ))}
         </tr>
       </thead>
       <tbody>
-        {corpo.map((cels, r) => (
+        {linhas.map((cels, r) => (
           <tr key={r}>
             {cels.map((cel, i) => (
               <td
                 key={i}
                 className={`border border-slate-300 px-2 py-1 align-top ${alinhar(i)}`}
               >
-                {runs(cel)}
+                {cel}
               </td>
             ))}
           </tr>
@@ -70,15 +126,58 @@ function Tabela({ seg }: { seg: Extract<Segmento, { tipo: 'tabela' }> }) {
   );
 }
 
-export function TextoFormatado({ texto }: { texto: string }) {
-  const segmentos = segmentar(texto.split('\n'));
+interface TextoFormatadoProps extends ClickOrigem {
+  texto?: string;
+  /** Modo segmentado (render estruturado): quando presente, `texto` é ignorado. */
+  segmentos?: SegmentoRender[];
+}
+
+export function TextoFormatado({ texto, segmentos, onClickOrigem, origemClicavel }: TextoFormatadoProps) {
+  if (segmentos) {
+    const click: ClickOrigem = { onClickOrigem, origemClicavel };
+    const segs: SegmentoProveniencia[] = segmentarComProveniencia(segmentos);
+    return (
+      <>
+        {segs.map((seg, s) => {
+          if (seg.tipo === 'tabela') {
+            return (
+              <Tabela
+                key={s}
+                cabecalho={seg.cabecalho.map((cel) => pedacos(cel, click))}
+                corpo={seg.corpo.map((cels) => cels.map((cel) => pedacos(cel, click)))}
+                alinhamentos={seg.alinhamentos}
+              />
+            );
+          }
+          const quebra = s > 0 && segs[s - 1].tipo === 'linha';
+          return (
+            <Fragment key={s}>
+              {quebra && '\n'}
+              {pedacos(seg.pedacos, click)}
+            </Fragment>
+          );
+        })}
+      </>
+    );
+  }
+
+  const segmentados = segmentar((texto ?? '').split('\n'));
   return (
     <>
-      {segmentos.map((seg, s) => {
-        if (seg.tipo === 'tabela') return <Tabela key={s} seg={seg} />;
+      {segmentados.map((seg, s) => {
+        if (seg.tipo === 'tabela') {
+          return (
+            <Tabela
+              key={s}
+              cabecalho={seg.cabecalho.map(runs)}
+              corpo={seg.corpo.map((cels) => cels.map(runs))}
+              alinhamentos={seg.alinhamentos}
+            />
+          );
+        }
         // A quebra entre duas linhas de texto consecutivas vem do '\n'; depois de
         // uma tabela (bloco) não precisa, ela já encerra a linha.
-        const quebra = s > 0 && segmentos[s - 1].tipo === 'linha';
+        const quebra = s > 0 && segmentados[s - 1].tipo === 'linha';
         return (
           <Fragment key={s}>
             {quebra && '\n'}

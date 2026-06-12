@@ -63,6 +63,11 @@ function alinhamentoDaCelula(sep: string): Alinhamento {
   return 'left';
 }
 
+/** Alinhamentos declarados numa linha separadora ("| :-- | :-: | --: |"). */
+export function alinhamentosDaSeparadora(linha: string): Alinhamento[] {
+  return celulasDaLinha(linha).map(alinhamentoDaCelula);
+}
+
 /**
  * Quebra as linhas de um bloco (já renderizado) em segmentos: trechos de texto
  * comum e tabelas. Cada tabela é cabeçalho + separadora (consumida) + corpo até
@@ -81,7 +86,7 @@ export function segmentar(linhas: string[]): Segmento[] {
 
     if (ehCabecalho) {
       const cabecalho = celulasDaLinha(linhas[i]);
-      const alinhamentos = celulasDaLinha(linhas[i + 1]).map(alinhamentoDaCelula);
+      const alinhamentos = alinhamentosDaSeparadora(linhas[i + 1]);
       i += 2; // pula cabeçalho + separadora
       const corpo: string[][] = [];
       while (i < linhas.length && ehLinhaTabela(linhas[i]) && !ehSeparadora(linhas[i])) {

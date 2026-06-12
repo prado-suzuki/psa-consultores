@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { extrairCampos, extrairEstrutura, renderConteudo } from './render';
+import { extrairCampos, extrairEstrutura, renderConteudo, renderSegmentos } from './render';
+import { comOrigem } from './origem';
 import { comporBlocos } from './composition';
 import { avaliarFlags } from './flags';
 import type { Template } from './types';
@@ -86,6 +87,85 @@ describe('renderConteudo — seções de repetição', () => {
     expect(() => renderConteudo('{{#a}}x', { a: true })).toThrow(/não fechada/);
     expect(() => renderConteudo('x{{/a}}', {})).toThrow(/desbalanceada/);
     expect(() => renderConteudo('{{#a}}{{/b}}', { a: true })).toThrow(/desbalanceada/);
+  });
+});
+
+describe('renderSegmentos (render estruturado com proveniência)', () => {
+  it('fatia o conteúdo entre texto e valor, com o caminho do placeholder', () => {
+    expect(renderSegmentos('Olá {{ nome }}!', { nome: 'PSA' })).toEqual([
+      { tipo: 'texto', texto: 'Olá ' },
+      { tipo: 'valor', texto: 'PSA', caminho: 'nome', origem: undefined },
+      { tipo: 'texto', texto: '!' },
+    ]);
+  });
+
+  it('carrega a origem do objeto do binding (caminho pontilhado)', () => {
+    const ctx = { socio: comOrigem({ nome: 'Ana' }, { tipo: 'pessoa', id: 'p1' }) };
+    const [, valor] = renderSegmentos('Sócio {{ socio.nome }}', ctx);
+    expect(valor).toEqual({
+      tipo: 'valor',
+      texto: 'Ana',
+      caminho: 'socio.nome',
+      origem: { tipo: 'pessoa', id: 'p1' },
+    });
+  });
+
+  it('a origem mais profunda do caminho vence a do escopo', () => {
+    const item = comOrigem(
+      { socio: comOrigem({ nome: 'Ana' }, { tipo: 'pessoa', id: 'interno' }) },
+      { tipo: 'pessoa', id: 'externo' },
+    );
+    const segs = renderSegmentos('{{#s}}{{ socio.nome }}{{/s}}', { s: [item] });
+    expect(segs).toEqual([
+      { tipo: 'valor', texto: 'Ana', caminho: 'socio.nome', origem: { tipo: 'pessoa', id: 'interno' } },
+    ]);
+  });
+
+  it('sem origem no caminho, herda a do próprio escopo do item', () => {
+    const item = comOrigem({ nome: 'Ana' }, { tipo: 'pessoa', id: 'p1' });
+    const segs = renderSegmentos('{{#s}}{{ nome }}{{/s}}', { s: [item] });
+    expect(segs[0]).toMatchObject({ tipo: 'valor', origem: { tipo: 'pessoa', id: 'p1' } });
+  });
+
+  it('itens diferentes da lista carregam origens diferentes', () => {
+    const s = [
+      { socio: comOrigem({ nome: 'Ana' }, { tipo: 'pessoa', id: 'p1' }) },
+      { socio: comOrigem({ nome: 'Beto' }, { tipo: 'pessoa', id: 'p2' }) },
+    ];
+    const valores = renderSegmentos('{{#s}}{{ socio.nome }}{{/s}}', { s }).filter(
+      (seg) => seg.tipo === 'valor',
+    );
+    expect(valores.map((v) => v.tipo === 'valor' && v.origem?.id)).toEqual(['p1', 'p2']);
+  });
+
+  it('as junturas sep/fim entram como segmentos de texto', () => {
+    const segs = renderSegmentos('{{#s sep="; " fim="; e "}}{{ x }}{{/s}}', {
+      s: [{ x: 'A' }, { x: 'B' }, { x: 'C' }],
+    });
+    expect(segs).toEqual([
+      { tipo: 'valor', texto: 'A', caminho: 'x', origem: undefined },
+      { tipo: 'texto', texto: '; ' },
+      { tipo: 'valor', texto: 'B', caminho: 'x', origem: undefined },
+      { tipo: 'texto', texto: '; e ' },
+      { tipo: 'valor', texto: 'C', caminho: 'x', origem: undefined },
+    ]);
+  });
+
+  it('paridade: renderConteudo é a concatenação exata dos segmentos', () => {
+    const tpl =
+      'Quadro: {{#socios sep="; " fim="; e "}}{{#sePF}}{{ socio.nome }} (PF){{/sePF}}{{#sePJ}}{{ socio.nome }}{{/sePJ}}{{/socios}}.';
+    const ctx = {
+      socios: [
+        { socio: { nome: 'Ana' }, sePF: true, sePJ: false },
+        { socio: { nome: 'Holding' }, sePF: false, sePJ: true },
+      ],
+    };
+    expect(renderSegmentos(tpl, ctx).map((s) => s.texto).join('')).toBe(renderConteudo(tpl, ctx));
+  });
+
+  it('lança os mesmos erros do renderConteudo', () => {
+    expect(() => renderSegmentos('{{x}}', {})).toThrow(/não resolvido/);
+    expect(() => renderSegmentos('{{#x}}a{{/x}}', {})).toThrow(/Seção não resolvida/);
   });
 });
 

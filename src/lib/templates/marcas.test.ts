@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extrairRunsLinha, removerMarcas } from './marcas';
+import { extrairRunsLinha, removerMarcas, runsPosicionados } from './marcas';
 
 const run = (texto: string, m: Partial<{ negrito: boolean; italico: boolean; sublinhado: boolean }> = {}) => ({
   texto,
@@ -60,5 +60,61 @@ describe('marcas inline (*negrito*, _itálico_, ~sublinhado~)', () => {
 
   it('removerMarcas tira só os pares', () => {
     expect(removerMarcas('*a* e _b_ e ~c~ e um * solto')).toBe('a e b e c e um * solto');
+  });
+});
+
+describe('runsPosicionados (intervalos na linha crua)', () => {
+  it('linha sem marcas é um run só cobrindo tudo', () => {
+    expect(runsPosicionados('abc')).toEqual([
+      { inicio: 0, fim: 3, negrito: false, italico: false, sublinhado: false },
+    ]);
+  });
+
+  it('linha vazia não tem runs', () => {
+    expect(runsPosicionados('')).toEqual([]);
+  });
+
+  it('delimitadores pareados ficam FORA dos intervalos', () => {
+    // "a *b* c" → 'a ' [0,2) | 'b' [3,4) negrito | ' c' [5,7)
+    expect(runsPosicionados('a *b* c')).toEqual([
+      { inicio: 0, fim: 2, negrito: false, italico: false, sublinhado: false },
+      { inicio: 3, fim: 4, negrito: true, italico: false, sublinhado: false },
+      { inicio: 5, fim: 7, negrito: false, italico: false, sublinhado: false },
+    ]);
+  });
+
+  it('delimitador sem par fica literal, dentro do intervalo', () => {
+    expect(runsPosicionados('a * b')).toEqual([
+      { inicio: 0, fim: 5, negrito: false, italico: false, sublinhado: false },
+    ]);
+  });
+
+  it('repetidos colados ("__") não são delimitadores', () => {
+    expect(runsPosicionados('shift__name')).toEqual([
+      { inicio: 0, fim: 11, negrito: false, italico: false, sublinhado: false },
+    ]);
+  });
+
+  it('sobreposição liga os dois estilos no miolo', () => {
+    // "*a _b_ c*" → 'a ' negrito | 'b' negrito+itálico | ' c' negrito
+    expect(runsPosicionados('*a _b_ c*')).toEqual([
+      { inicio: 1, fim: 3, negrito: true, italico: false, sublinhado: false },
+      { inicio: 4, fim: 5, negrito: true, italico: true, sublinhado: false },
+      { inicio: 6, fim: 8, negrito: true, italico: false, sublinhado: false },
+    ]);
+  });
+
+  it('paridade: extrairRunsLinha equivale a fatiar a linha pelos intervalos', () => {
+    for (const linha of ['a *b* c', '*a _b_ c*', 'sem marcas', 'a * b', '~x~*y*', '']) {
+      const fatias = runsPosicionados(linha).map((r) => ({
+        texto: linha.slice(r.inicio, r.fim),
+        negrito: r.negrito,
+        italico: r.italico,
+        sublinhado: r.sublinhado,
+      }));
+      // extrairRunsLinha funde adjacentes de mesmo estilo; comparar pelo texto re-unido por estilo.
+      const runs = extrairRunsLinha(linha);
+      expect(runs.map((r) => r.texto).join('')).toBe(fatias.map((f) => f.texto).join(''));
+    }
   });
 });

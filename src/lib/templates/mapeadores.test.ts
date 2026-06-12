@@ -2,16 +2,22 @@ import { describe, it, expect } from 'vitest';
 import {
   calcularCapitalSociedade,
   calcularParticipacoesPR,
+  mapearAdministrador,
+  mapearBem,
   mapearIntegralizacoes,
   mapearMatricula,
+  mapearPessoa,
   mapearQuadroSocietario,
   mapearSociedade,
+  mapearSocio,
   type ItemLista,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
   type TitularParaMapear,
 } from './mapeadores';
+import { origemDe } from './origem';
+import { derivarCampos } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 type Campos = Record<string, string>;
@@ -446,5 +452,64 @@ describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
     expect(calcularParticipacoesPR([
       matPR('m1', null, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
     ])).toEqual([]);
+  });
+});
+
+describe('proveniência (origem) anexada pelos mapeadores', () => {
+  const ana = { id: 'p1', denominacao: 'Ana', tipo_pessoa: 'PF', genero: 'F' } as unknown as PessoaRow;
+
+  it('mapearPessoa anexa { tipo: pessoa, id da linha }', () => {
+    expect(origemDe(mapearPessoa(ana))).toEqual({ tipo: 'pessoa', id: 'p1' });
+  });
+
+  it('mapearSociedade anexa { tipo: sociedade, id da empresa }', () => {
+    const pj = { id: 'e1', denominacao: 'Agro Ltda', tipo_pessoa: 'PJ' } as unknown as PessoaRow;
+    expect(origemDe(mapearSociedade(pj))).toEqual({ tipo: 'sociedade', id: 'e1' });
+  });
+
+  it('a origem sobrevive a derivarCampos e à edição manual (spread)', () => {
+    const campos = mapearPessoa(ana);
+    const editado = derivarCampos('pessoa', { ...campos, nome: 'Ana Maria' });
+    expect(origemDe(editado)).toEqual({ tipo: 'pessoa', id: 'p1' });
+  });
+
+  it('mapearSocio e mapearAdministrador preservam a origem da pessoa', () => {
+    const s = mapearSocio({ pessoa: ana, quotas: 10, vlr_total: 10, representante: null });
+    expect(origemDe(s.socio)).toEqual({ tipo: 'pessoa', id: 'p1' });
+
+    const a = mapearAdministrador({ pessoa: ana, cargo: 'Diretora' });
+    expect(origemDe(a.administrador)).toEqual({ tipo: 'pessoa', id: 'p1' });
+  });
+
+  it('mapearIntegralizacoes preserva a origem no escopo socio de cada parágrafo', () => {
+    const m: MatriculaIntegralizacao = {
+      ...matriculaCom([{ denominacao: 'Ana', pessoaId: 'p1', fracao: 100 }]),
+      id: 'm1',
+      vlr_contabil: 1000,
+    };
+    const [item] = mapearIntegralizacoes(
+      [{ pessoa: ana, quotas: null, vlr_total: null, representante: null }],
+      [m],
+    );
+    expect(origemDe(item.socio)).toEqual({ tipo: 'pessoa', id: 'p1' });
+    // E o imóvel da alínea aponta para a matrícula de origem.
+    const [imovel] = item.imoveis as ItemLista[];
+    expect(origemDe(imovel.imovel)).toEqual({ tipo: 'matricula', id: 'm1' });
+  });
+
+  it('mapearBem anexa { tipo: bem, id da linha }', () => {
+    const bem = {
+      id: 'b1', denominacao: 'Fazenda Santa Fé', referencia_dp: 'DP-01',
+      tipo_bem: 'IR', vlr_contabil: 1000, ccir_codigo: null, inscricao_municipal: null,
+    } as unknown as Parameters<typeof mapearBem>[0];
+    expect(origemDe(mapearBem(bem))).toEqual({ tipo: 'bem', id: 'b1' });
+  });
+
+  it('mapearMatricula anexa a origem quando há id; sem id (dado legado) fica sem', () => {
+    const com = mapearMatricula({ ...matriculaCom([]), id: 'm1' });
+    expect(origemDe(com)).toEqual({ tipo: 'matricula', id: 'm1' });
+
+    const sem = mapearMatricula(matriculaCom([]));
+    expect(origemDe(sem)).toBeUndefined();
   });
 });

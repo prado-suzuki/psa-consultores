@@ -28,8 +28,9 @@ import {
   gerarBlocos,
   removerMarcas,
   unirBlocos,
-  type Bloco,
+  type BlocoGerado,
   type FlagDeclarativa,
+  type OrigemValor,
   type Template,
 } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
@@ -55,6 +56,10 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
+import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
+import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemModal';
+import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
+import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import { PESSOA_LEGADA_PREFIX, useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -80,11 +85,11 @@ const SecaoPainel = ({
   children: ReactNode;
 }) => (
   <div className="space-y-2.5">
-    <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-      <span className="text-osg-600 [&>svg]:h-3.5 [&>svg]:w-3.5">{icone}</span>
+    <div className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
+      <span className="text-osg-600 [&>svg]:h-4 [&>svg]:w-4">{icone}</span>
       {titulo}
       {contagem != null && (
-        <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-[10px] font-bold tabular-nums text-osg-700">
+        <span className="ml-auto rounded-full bg-osg-100 px-1.5 py-px text-xs font-bold tabular-nums text-osg-700">
           {contagem}
         </span>
       )}
@@ -102,16 +107,16 @@ const AvisoPendencia = ({
   acao?: string;
   onAcao?: () => void;
 }) => (
-  <div className="space-y-2 rounded-md border border-amber-300/70 bg-amber-50/70 p-3 text-xs text-amber-800">
+  <div className="space-y-2 rounded-md border border-amber-300/70 bg-amber-50/70 p-3 text-sm text-amber-800">
     <div className="flex items-start gap-1.5">
-      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
       <span>{children}</span>
     </div>
     {acao && (
       <Button
         variant="outline"
         size="sm"
-        className="h-7 border-amber-300 bg-white text-xs text-amber-900 hover:bg-amber-100 hover:text-amber-900"
+        className="h-8 border-amber-300 bg-white text-sm text-amber-900 hover:bg-amber-100 hover:text-amber-900"
         onClick={onAcao}
       >
         {acao}
@@ -177,6 +182,16 @@ const GerarDocumento = () => {
     const bloco = blocoId ? (catalogoBlocos.find((b) => b.id === blocoId) ?? null) : null;
     if (bloco) setBlocoEditando(bloco);
   };
+
+  // Edição de cadastro direto da prévia: clicar num VALOR (proveniência do
+  // render) abre o modal do cadastro de origem por cima da tela — pessoa/empresa,
+  // bem ou matrícula, conforme de onde o valor veio.
+  const [pessoaEditando, setPessoaEditando] = useState<PessoaRow | null>(null);
+  const [bemEditando, setBemEditando] = useState<BemRow | null>(null);
+  const [matriculaEditando, setMatriculaEditando] = useState<MatriculaEnriched | null>(null);
+  // Registro recém-editado cujos bindings unitários precisam ser re-mapeados
+  // quando o refetch de registros chegar (a selecao é um snapshot).
+  const [origemPendenteRemap, setOrigemPendenteRemap] = useState<string | null>(null);
 
   // Flags derivadas declarativas avaliadas sobre a empresa selecionada.
   const { data: catalogoFlags = [] } = useFlags();
@@ -344,8 +359,94 @@ const GerarDocumento = () => {
     });
   };
 
+  // --- Valores clicáveis na prévia ------------------------------------------
+
+  // Matrículas enriquecidas do cliente, para o MatriculaModal aberto da prévia —
+  // mesmo escopo do Controle de Matrículas: o bem é do cliente OU um titular é.
+  const { data: todasMatriculas = [] } = useAllMatriculas();
+  const matriculasDoCliente = useMemo(
+    () =>
+      clienteId
+        ? todasMatriculas.filter(
+            (m) => m.bem_cliente_id === clienteId || m.titular_cliente_ids.includes(clienteId),
+          )
+        : [],
+    [todasMatriculas, clienteId],
+  );
+
+  // Pessoa e sociedade são linhas do mesmo cadastro (PessoaRow); sócio derivado
+  // de titular sem cadastro (id "legado:…") não está em registros.pessoa e fica
+  // sem clique. Cartório ainda não carrega origem.
+  const origemClicavel = (o: OrigemValor) => {
+    switch (o.tipo) {
+      case 'pessoa':
+      case 'sociedade':
+        return registros.pessoa.some((r) => r.id === o.id);
+      case 'bem':
+        return registros.bem.some((r) => r.id === o.id);
+      case 'matricula':
+        return matriculasDoCliente.some((m) => m.id === o.id);
+      default:
+        return false;
+    }
+  };
+
+  const abrirCadastroOrigem = (o: OrigemValor) => {
+    if (o.tipo === 'pessoa' || o.tipo === 'sociedade') {
+      const reg = registros.pessoa.find((r) => r.id === o.id);
+      if (reg) setPessoaEditando(reg.row as PessoaRow);
+    } else if (o.tipo === 'bem') {
+      const reg = registros.bem.find((r) => r.id === o.id);
+      if (reg) setBemEditando(reg.row as BemRow);
+    } else if (o.tipo === 'matricula') {
+      const m = matriculasDoCliente.find((mat) => mat.id === o.id);
+      if (m) setMatriculaEditando(m);
+    }
+  };
+
+  const fecharCadastroOrigem = (id: string | null | undefined) => {
+    setPessoaEditando(null);
+    setBemEditando(null);
+    setMatriculaEditando(null);
+    if (!id) return;
+    // O modal não distingue salvar de cancelar — refetch incondicional (barato).
+    // Os hooks de upsert já invalidam os próprios cadastros ('pessoas-by-cliente',
+    // 'bens-by-cliente', 'matriculas-all'…); as listas da geração têm chaves próprias.
+    setOrigemPendenteRemap(id);
+    for (const key of [
+      'socios-geracao',
+      'socios-geracao-pr',
+      'administradores-geracao',
+      'integralizacoes-geracao',
+      'matriculas-geracao',
+    ]) {
+      queryClient.invalidateQueries({ queryKey: [key] });
+    }
+  };
+
+  // Bindings unitários guardam um SNAPSHOT do registro em `selecao` — depois de
+  // editar o cadastro, re-mapeia os que apontam para ele assim que o refetch
+  // chega (roda a cada atualização de registros até assentar; edições manuais
+  // daquele binding são substituídas pelo cadastro novo, de propósito).
+  useEffect(() => {
+    if (!origemPendenteRemap) return;
+    setSelecao((prev) => {
+      let next: typeof prev | null = null;
+      for (const b of bindings) {
+        // Sociedade re-deriva sozinha do useEffect de empresaRow.
+        if (b.tipo === 'sociedade' || registroPorBinding[b.nome] !== origemPendenteRemap) continue;
+        const reg = registros[b.tipo].find((r) => r.id === origemPendenteRemap);
+        if (!reg) continue;
+        next = next ?? { ...prev };
+        next[b.nome] = mapearRegistro(b.tipo, reg.row);
+      }
+      return next ?? prev;
+    });
+    if (!carregandoRegistros) setOrigemPendenteRemap(null);
+  }, [origemPendenteRemap, registros, carregandoRegistros, bindings, registroPorBinding]);
+
   const resultado = useMemo<
-    { blocos: Bloco[]; texto: string; erro: null } | { blocos: null; texto: null; erro: string }
+    { blocos: BlocoGerado[]; texto: string; erro: null } | { blocos: null; texto: null; erro: string }
   >(() => {
     if (template.blocos.length === 0) return { blocos: [], texto: '', erro: null };
     try {
@@ -448,6 +549,7 @@ const GerarDocumento = () => {
         nome: nomePorBlocoId.get(b.id) ?? '',
         tipo: b.tipo,
         conteudo: b.conteudo,
+        segmentos: b.segmentos,
       })),
     [resultado.blocos, nomePorBlocoId, bibliotecaIdPorBlocoId],
   );
@@ -621,43 +723,43 @@ const GerarDocumento = () => {
               className={cn(
                 'mx-auto grid max-w-[1400px] grid-cols-1 items-start gap-6',
                 temPainel
-                  ? 'xl:grid-cols-[300px_minmax(0,1fr)_240px]'
+                  ? 'xl:grid-cols-[330px_minmax(0,1fr)_240px]'
                   : 'xl:grid-cols-[minmax(0,1fr)_240px]',
               )}
             >
               {temPainel && (
                 <Card className="order-3 rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30 xl:sticky xl:top-4 xl:order-1">
                   <CardHeader className="space-y-2 pb-4">
-                    <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                    <CardTitle className="flex items-center gap-2 text-base font-semibold">
                       <Database className="h-4 w-4 text-osg-600" /> Conferência dos dados
                     </CardTitle>
                     <span aria-hidden className="block h-[3px] w-10 rounded-full bg-osg-moss" />
-                    <CardDescription className="text-xs">
+                    <CardDescription className="text-sm">
                       Tudo abaixo veio do cadastro — confira antes de baixar.
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {carregandoListas ? (
-                      <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Carregando dados do cadastro…
+                      <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Carregando dados do cadastro…
                       </div>
                     ) : (
                       <>
                         {empresaId && (capitalValor != null || totalQuotas != null) && (
                           <div className="grid grid-cols-2 gap-3">
                             <div className="rounded-md border border-osg-200/70 bg-osg-50/50 p-3">
-                              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                <Landmark className="h-3 w-3 text-osg-600" /> Capital social
+                              <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <Landmark className="h-3.5 w-3.5 text-osg-600" /> Capital social
                               </p>
-                              <p className="mt-1.5 text-sm font-bold tabular-nums text-osg-700">
+                              <p className="mt-1.5 text-base font-bold tabular-nums text-osg-700">
                                 {capitalValor != null ? fmtBRL.format(capitalValor) : '—'}
                               </p>
                             </div>
                             <div className="rounded-md border border-osg-200/70 bg-osg-50/50 p-3">
-                              <p className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                                <PieChart className="h-3 w-3 text-osg-600" /> Quotas
+                              <p className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                <PieChart className="h-3.5 w-3.5 text-osg-600" /> Quotas
                               </p>
-                              <p className="mt-1.5 text-sm font-bold tabular-nums text-osg-700">
+                              <p className="mt-1.5 text-base font-bold tabular-nums text-osg-700">
                                 {totalQuotas != null ? fmtInt.format(totalQuotas) : '—'}
                               </p>
                             </div>
@@ -686,7 +788,7 @@ const GerarDocumento = () => {
                                 {socios.map((s, i) => (
                                   <li
                                     key={s.pessoa.id}
-                                    className="flex items-baseline gap-2 text-xs text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-slate-700"
                                   >
                                     <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
                                       {i + 1}.
@@ -732,7 +834,7 @@ const GerarDocumento = () => {
                                 {administradores.map((a, i) => (
                                   <li
                                     key={a.pessoa.id}
-                                    className="flex items-baseline gap-2 text-xs text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-slate-700"
                                   >
                                     <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
                                       {i + 1}.
@@ -766,7 +868,7 @@ const GerarDocumento = () => {
                             ) : (
                               <ul className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
                                 {integralizacoes.map((m) => (
-                                  <li key={m.id} className="flex items-baseline gap-2 text-xs text-slate-700">
+                                  <li key={m.id} className="flex items-baseline gap-2 text-sm text-slate-700">
                                     <span className="shrink-0 tabular-nums text-slate-500">
                                       Matr. {m.numero ?? 's/ nº'}
                                     </span>
@@ -793,9 +895,9 @@ const GerarDocumento = () => {
                               condicionais podem sair erradas. Confira o tipo da empresa no cadastro.
                             </AvisoPendencia>
                           ) : (
-                            <div className="space-y-1.5 rounded-md border border-osg-moss/25 bg-osg-moss/[0.05] p-3 text-xs">
+                            <div className="space-y-1.5 rounded-md border border-osg-moss/25 bg-osg-moss/[0.05] p-3 text-sm">
                               <p className="flex items-center gap-1.5 font-semibold text-osg-700">
-                                <Sparkles className="h-3.5 w-3.5" /> Ajustado ao perfil da empresa
+                                <Sparkles className="h-4 w-4" /> Ajustado ao perfil da empresa
                               </p>
                               <p className="text-slate-600">
                                 {blocosExcluidos.length > 0
@@ -807,7 +909,7 @@ const GerarDocumento = () => {
                         )}
 
                         {empresaId && (mostraSocios || mostraIntegralizacoes) && (
-                          <p className="flex items-start gap-1.5 text-[11px] text-slate-500">
+                          <p className="flex items-start gap-1.5 text-xs text-slate-500">
                             <Database className="mt-0.5 h-3 w-3 shrink-0 text-osg-600" />
                             {ehEmpresaPR
                               ? 'Sócios calculados das integralizações aprovadas (participação decrescente); administradores do cadastro.'
@@ -831,13 +933,13 @@ const GerarDocumento = () => {
                         titulo="Preencher à mão"
                         contagem={desconhecidosVisiveis.length}
                       >
-                        <p className="text-[11px] text-slate-500">
+                        <p className="text-xs text-slate-500">
                           Estes campos do modelo não vêm do cadastro.
                         </p>
                         <div className="space-y-3">
                           {desconhecidosVisiveis.map((ph) => (
                             <div key={ph} className="space-y-1.5">
-                              <Label className={labelCls}>{ph}</Label>
+                              <Label className={cn(labelCls, 'text-sm')}>{ph}</Label>
                               <Input
                                 value={valoresLivres[ph] ?? ''}
                                 onChange={(e) =>
@@ -856,9 +958,9 @@ const GerarDocumento = () => {
                         <CollapsibleTrigger asChild>
                           <button
                             type="button"
-                            className="flex w-full items-center gap-1.5 rounded-md border border-osg-200/70 bg-osg-50/40 px-3 py-2 text-xs font-semibold text-osg-700 transition-colors hover:bg-osg-50"
+                            className="flex w-full items-center gap-1.5 rounded-md border border-osg-200/70 bg-osg-50/40 px-3 py-2 text-sm font-semibold text-osg-700 transition-colors hover:bg-osg-50"
                           >
-                            <Pencil className="h-3.5 w-3.5" /> Ajustar dados manualmente
+                            <Pencil className="h-4 w-4" /> Ajustar dados manualmente
                             <ChevronDown
                               className={cn(
                                 'ml-auto h-4 w-4 transition-transform duration-200',
@@ -868,16 +970,16 @@ const GerarDocumento = () => {
                           </button>
                         </CollapsibleTrigger>
                         <CollapsibleContent className="space-y-5 pt-4">
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-xs text-slate-500">
                             Os ajustes valem só para este documento — o cadastro não muda.
                           </p>
                           {bindings.map((b) => (
                             <div key={b.nome} className="space-y-2.5">
-                              <p className="text-xs font-semibold text-slate-600">
+                              <p className="text-sm font-semibold text-slate-600">
                                 {labelDoBinding(b.nome)}
                               </p>
                               {b.tipo === 'sociedade' && !empresaId && (
-                                <p className="text-[11px] text-slate-500">
+                                <p className="text-xs text-slate-500">
                                   Selecione a empresa para preencher.
                                 </p>
                               )}
@@ -892,7 +994,7 @@ const GerarDocumento = () => {
                                   const foraDoCatalogo = !campoDaEntidade(b.tipo, c.id);
                                   return (
                                     <div key={c.id} className="space-y-1">
-                                      <Label className={labelCls}>{c.label}</Label>
+                                      <Label className={cn(labelCls, 'text-sm')}>{c.label}</Label>
                                       {c.tipo === 'textarea' ? (
                                         <Textarea
                                           value={valor}
@@ -908,7 +1010,7 @@ const GerarDocumento = () => {
                                         />
                                       )}
                                       {foraDoCatalogo && (
-                                        <p className="flex items-start gap-1 text-[11px] text-amber-700">
+                                        <p className="flex items-start gap-1 text-xs text-amber-700">
                                           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                                           <span>
                                             "{c.id}" não existe no cadastro de {labelDoBinding(b.nome)} —
@@ -937,6 +1039,8 @@ const GerarDocumento = () => {
                   erro={resultado.erro}
                   blocos={blocosFolha}
                   onEditarBloco={(b) => abrirEdicaoBloco(b.blocoId)}
+                  onClickOrigem={abrirCadastroOrigem}
+                  origemClicavel={origemClicavel}
                 />
               </div>
 
@@ -1050,6 +1154,38 @@ const GerarDocumento = () => {
         // prévia refletir o conteúdo na hora (o hook só invalida a Biblioteca).
         onSaved={() => queryClient.invalidateQueries({ queryKey: ['modelo-blocos'] })}
       />
+
+      {/* Cadastro aberto de um valor da prévia: corrigir o dado sem sair da
+          tela — ao fechar, listas e bindings re-derivam do cadastro novo. */}
+      {clienteId && (
+        <>
+          <PessoaModal
+            open={pessoaEditando !== null}
+            clienteId={clienteId}
+            pessoa={pessoaEditando}
+            pessoasCliente={registros.pessoa.map((r) => r.row as PessoaRow)}
+            onClose={() => fecharCadastroOrigem(pessoaEditando?.id)}
+          />
+          <BemModal
+            open={bemEditando !== null}
+            clienteId={clienteId}
+            bem={bemEditando}
+            pessoasCliente={registros.pessoa.map((r) => r.row as PessoaRow)}
+            onClose={() => fecharCadastroOrigem(bemEditando?.id)}
+          />
+          {/* bemId/bemTipo nulos como no Controle de Matrículas: edição avulsa,
+              com todos os campos visíveis. */}
+          <MatriculaModal
+            open={matriculaEditando !== null}
+            bemId={null}
+            bemTipo={null}
+            matricula={matriculaEditando}
+            pessoasCliente={registros.pessoa.map((r) => r.row as PessoaRow)}
+            matriculasDoBem={matriculasDoCliente}
+            onClose={() => fecharCadastroOrigem(matriculaEditando?.id)}
+          />
+        </>
+      )}
     </OsgLayout>
   );
 };

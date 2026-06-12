@@ -100,6 +100,7 @@ export function useRegistrosPorTipo(clienteId: string | null) {
         id: m.id,
         label: `${m.numero ?? 's/ nº'}${m.bem?.denominacao ? ` — ${m.bem.denominacao}` : ''}`,
         row: {
+          id: m.id,
           numero: m.numero,
           livro: m.livro,
           folha: m.folha,

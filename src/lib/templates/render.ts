@@ -1,3 +1,4 @@
+import { origemDe, type OrigemValor } from './origem';
 import type { Contexto } from './types';
 
 // Resolve placeholders {{ caminho }} (com caminho pontilhado opcional) e SEÇÕES
@@ -79,17 +80,39 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
 
 // --- Render -------------------------------------------------------------------
 
-/** Resolve um caminho pontilhado do escopo mais interno para fora. */
-function resolver(caminho: string, escopos: Contexto[]): unknown {
+/**
+ * Saída estruturada do render: o texto final fatiado entre o que veio do bloco
+ * ('texto', incluindo rótulos de numeração e as junturas sep/fim) e o que veio
+ * de um placeholder ('valor'), com a proveniência quando o contexto a carrega
+ * (ver origem.ts). A concatenação dos `texto` É o documento — renderConteudo é
+ * só isso, mantendo um núcleo único.
+ */
+export type SegmentoRender =
+  | { tipo: 'texto'; texto: string }
+  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor };
+
+/**
+ * Resolve um caminho pontilhado do escopo mais interno para fora, rastreando a
+ * origem do objeto MAIS PROFUNDO do caminho que a tenha (o próprio escopo conta:
+ * um item de lista pode carregar a origem no topo, ou no sub-objeto do papel —
+ * `{{ socio.nome }}` acha a origem em item.socio).
+ */
+function resolver(caminho: string, escopos: Contexto[]): { valor: unknown; origem?: OrigemValor } {
   const [cabeca, ...resto] = caminho.split('.');
   for (let i = escopos.length - 1; i >= 0; i--) {
     if (!(cabeca in escopos[i])) continue;
-    return resto.reduce<unknown>((acc, chave) => {
-      if (acc !== null && typeof acc === 'object') return (acc as Record<string, unknown>)[chave];
-      return undefined;
-    }, escopos[i][cabeca]);
+    let origem = origemDe(escopos[i]);
+    let valor: unknown = escopos[i][cabeca];
+    origem = origemDe(valor) ?? origem;
+    for (const chave of resto) {
+      valor = valor !== null && typeof valor === 'object'
+        ? (valor as Record<string, unknown>)[chave]
+        : undefined;
+      origem = origemDe(valor) ?? origem;
+    }
+    return { valor, origem };
   }
-  return undefined;
+  return { valor: undefined };
 }
 
 function truthy(valor: unknown): boolean {
@@ -97,43 +120,47 @@ function truthy(valor: unknown): boolean {
   return Boolean(valor);
 }
 
-function renderNos(nos: No[], escopos: Contexto[]): string {
-  let out = '';
+function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void {
   for (const no of nos) {
     if (no.tipo === 'texto') {
-      out += no.texto;
+      out.push({ tipo: 'texto', texto: no.texto });
     } else if (no.tipo === 'placeholder') {
-      const valor = resolver(no.caminho, escopos);
+      const { valor, origem } = resolver(no.caminho, escopos);
       if (valor === undefined || valor === null) {
         throw new Error(`Placeholder não resolvido: {{${no.caminho}}}`);
       }
-      out += String(valor);
+      out.push({ tipo: 'valor', texto: String(valor), caminho: no.caminho, origem });
     } else {
-      const valor = resolver(no.nome, escopos);
+      const { valor } = resolver(no.nome, escopos);
       if (valor === undefined || valor === null) {
         throw new Error(`Seção não resolvida: {{#${no.nome}}}`);
       }
       if (Array.isArray(valor)) {
         const sep = no.atributos.sep ?? '\n';
         const fim = no.atributos.fim ?? sep;
-        const partes = valor.map((item) =>
-          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto]),
-        );
-        out +=
-          partes.length <= 1
-            ? partes.join('')
-            : partes.slice(0, -1).join(sep) + fim + partes[partes.length - 1];
+        valor.forEach((item, i) => {
+          // Juntura ANTES de cada item após o primeiro: sep entre os do meio,
+          // fim antes do último — mesma prosa "A; B; e C" da versão em string.
+          if (i > 0) out.push({ tipo: 'texto', texto: i === valor.length - 1 ? fim : sep });
+          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto], out);
+        });
       } else if (truthy(valor)) {
-        out += renderNos(no.filhos, escopos);
+        renderNos(no.filhos, escopos, out);
       }
     }
   }
+}
+
+/** Render estruturado de um bloco: segmentos com proveniência (prévia interativa). Mesmos erros do renderConteudo. */
+export function renderSegmentos(conteudo: string, contexto: Contexto): SegmentoRender[] {
+  const out: SegmentoRender[] = [];
+  renderNos(compilar(conteudo), [contexto], out);
   return out;
 }
 
 /** Preenche placeholders e seções de um bloco. Lança erro se algo não resolver (falha cedo, evita texto incompleto no cartório). */
 export function renderConteudo(conteudo: string, contexto: Contexto): string {
-  return renderNos(compilar(conteudo), [contexto]);
+  return renderSegmentos(conteudo, contexto).map((s) => s.texto).join('');
 }
 
 // --- Extração (detecção de bindings / form dinâmico) ---------------------------
