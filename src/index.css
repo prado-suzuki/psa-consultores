@@ -98,6 +98,8 @@ All colors MUST be HSL.
     --accent-foreground: 0 0% 100%;
     --primary: var(--osg-moss);
     --primary-foreground: 0 0% 100%;
+    --secondary: var(--osg-moss);
+    --secondary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
 
     /* Superfícies da área OSG: branco com um toque bem sutil de marrom

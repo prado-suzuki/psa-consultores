@@ -1164,7 +1164,7 @@ function AdministradorRowItem({ administracao, isEditing, onEdit, onDelete }: Ad
             {administracao.pode_isoladamente && (
               <Badge variant="default" className="text-[10px]">Assina isoladamente</Badge>
             )}
-            <Badge variant={vigente ? 'default' : 'secondary'} className="text-[10px]">
+            <Badge variant={vigente ? 'default' : 'outline'} className="text-[10px]">
               {vigente ? 'Vigente' : 'Encerrada'}
             </Badge>
           </div>

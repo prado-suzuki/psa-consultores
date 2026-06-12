@@ -108,7 +108,7 @@ export const EscolhaEmpresa = ({
               <span className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
                 {e.row.cpf_cnpj && <span className="tabular-nums">{e.row.cpf_cnpj}</span>}
                 {tipo && (
-                  <span className="rounded-full bg-osg-100 px-1.5 py-px text-[10px] font-semibold text-osg-700">
+                  <span className="rounded-full bg-osg-moss/10 px-1.5 py-px text-[10px] font-semibold text-osg-moss">
                     {tipo}
                   </span>
                 )}
