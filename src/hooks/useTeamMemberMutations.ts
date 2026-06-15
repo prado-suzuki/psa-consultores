@@ -55,6 +55,7 @@ export function useCreateTeamMember() {
       }
 
       const newUserId = response.data?.user_id as string | undefined;
+      const temporaryPassword = (response.data?.temporary_password as string | undefined) ?? '';
 
       // Grant area access (mesmo fluxo usado por update)
       const hasInternalRole =
