@@ -7,7 +7,18 @@ interface UpsertRepresentanteUserRequest {
   last_name: string | null;
 }
 
-const FIXED_PASSWORD = 'trocarsenha';
+/**
+ * Gera uma senha temporária forte (~22 caracteres base64url).
+ * Substituiu a senha fixa 'trocarsenha' por motivos de segurança.
+ */
+function generateTemporaryPassword(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
 Deno.serve(async (req) => {
   const _preflight = handleCorsPreflightRequest(req);
@@ -87,12 +98,14 @@ Deno.serve(async (req) => {
 
     let userId: string | null = existingProfile?.id ?? null;
     let created = false;
+    let temporaryPassword: string | null = null;
 
     if (!userId) {
+      const candidatePassword = generateTemporaryPassword();
       // Create auth user
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email,
-        password: FIXED_PASSWORD,
+        password: candidatePassword,
         email_confirm: true,
         user_metadata: {
           first_name,
@@ -120,6 +133,7 @@ Deno.serve(async (req) => {
       } else {
         userId = newUser.user.id;
         created = true;
+        temporaryPassword = candidatePassword;
       }
     }
 
@@ -143,9 +157,10 @@ Deno.serve(async (req) => {
     // O webhook N8n de boas-vindas é disparado pelo frontend (fire-and-forget),
     // seguindo o mesmo padrão da criação manual de team member em
     // `src/hooks/useTeamMemberMutations.ts`. O frontend usa o flag `created`
-    // retornado abaixo para decidir se envia a notificação.
+    // e a `temporary_password` (gerada aleatoriamente, somente quando o usuário
+    // foi de fato criado) para decidir se envia a notificação.
     return new Response(
-      JSON.stringify({ user_id: userId, created }),
+      JSON.stringify({ user_id: userId, created, temporary_password: temporaryPassword }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
