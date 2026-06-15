@@ -78,6 +78,10 @@ export interface SalvarBlocoInput {
   categoria: string | null;
   descricao: string | null;
   conteudo: string;
+  /** Coleção sobre a qual o bloco repete (uma instância por item na composição) — só faz sentido em parágrafo. */
+  repeteColecao?: string | null;
+  /** Âncora p/ referências de numeração ({{ refs.ancora }}) — letras/dígitos/underscore. */
+  ancora?: string | null;
   /** Motivo da alteração — vira changelog da nova versão (apenas em edição). */
   changelog?: string | null;
   /** Flags requeridas pelo bloco (tmpl_bloco_flag é sincronizada com esta lista). */
@@ -138,6 +142,8 @@ export function useSalvarBloco() {
             tipo: input.tipo,
             categoria: input.categoria,
             descricao: input.descricao,
+            repete_colecao: input.repeteColecao ?? null,
+            ancora: input.ancora ?? null,
             autor_id: autorId,
           })
           .select('*')
@@ -169,6 +175,8 @@ export function useSalvarBloco() {
           tipo: input.tipo,
           categoria: input.categoria,
           descricao: input.descricao,
+          repete_colecao: input.repeteColecao ?? null,
+          ancora: input.ancora ?? null,
         })
         .eq('id', input.id)
         .select('*')

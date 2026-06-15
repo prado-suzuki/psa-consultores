@@ -41,7 +41,7 @@ import {
   type CampoEntidade,
   type TipoEntidade,
 } from '@/lib/templates/vocabulario';
-import { detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
 import {
   calcularCapitalSociedade,
   mapearAdministrador,
@@ -159,6 +159,8 @@ const GerarDocumento = () => {
         conteudo: b.bloco!.conteudo as string,
         obrigatorio: b.obrigatorio,
         flagsRequeridas: b.bloco!.flags,
+        repeteColecao: b.bloco!.repete_colecao ?? undefined,
+        ancora: b.bloco!.ancora ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
   }, [docBlocos, modeloId]);
@@ -215,8 +217,10 @@ const GerarDocumento = () => {
     [template, blocosCompostos],
   );
 
+  // Bloco repetidor entra na detecção embrulhado na própria seção (os campos do
+  // item ficam no escopo da lista; a coleção entra como lista a carregar).
   const { bindings, listas, desconhecidos, secoesDesconhecidas, campos: placeholders } = useMemo(
-    () => detectarBindingsDeConteudo(blocosCompostos.map((b) => b.conteudo).join(' ')),
+    () => detectarBindingsDeConteudo(blocosCompostos.map(conteudoParaDeteccao).join(' ')),
     [blocosCompostos],
   );
 
@@ -540,17 +544,21 @@ const GerarDocumento = () => {
   const mensagemPendente = `Para gerar o documento, ${pendencias.join(' e ')}.`;
 
   // Blocos da folha com o nome de exibição: a prévia destaca, no hover, qual
-  // trecho do documento veio de qual bloco do modelo.
+  // trecho do documento veio de qual bloco do modelo. Instância de repetidor
+  // (id com sufixo #n) resolve nome/edição pelo bloco repetidor de origem.
   const blocosFolha = useMemo<BlocoFolha[]>(
     () =>
-      (resultado.blocos ?? []).map((b) => ({
-        id: b.id,
-        blocoId: bibliotecaIdPorBlocoId.get(b.id) ?? null,
-        nome: nomePorBlocoId.get(b.id) ?? '',
-        tipo: b.tipo,
-        conteudo: b.conteudo,
-        segmentos: b.segmentos,
-      })),
+      (resultado.blocos ?? []).map((b) => {
+        const posicaoId = b.instanciaDe ?? b.id;
+        return {
+          id: b.id,
+          blocoId: bibliotecaIdPorBlocoId.get(posicaoId) ?? null,
+          nome: nomePorBlocoId.get(posicaoId) ?? '',
+          tipo: b.tipo,
+          conteudo: b.conteudo,
+          segmentos: b.segmentos,
+        };
+      }),
     [resultado.blocos, nomePorBlocoId, bibliotecaIdPorBlocoId],
   );
 

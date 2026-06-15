@@ -36,6 +36,7 @@ import {
   type TipoBloco,
 } from '@/lib/templates';
 import { compilar, type No } from '@/lib/templates/render';
+import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import {
   useBlocos,
   useFlags,
@@ -248,8 +249,17 @@ const FichaBloco = ({ bloco: b, tipo, nomeDaFlag, delay, onEditar, onToggleAtivo
             </div>
           </div>
           {resumo && <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground">{resumo}</p>}
-          {(b.flag_ids.length > 0 || !b.ativo) && (
+          {(b.flag_ids.length > 0 || !b.ativo || b.repete_colecao) && (
             <div className="flex flex-wrap items-center gap-1.5">
+              {b.repete_colecao && (
+                <span
+                  className="inline-flex items-center gap-1 rounded bg-osg-moss/10 px-1.5 py-px text-[10px] font-medium text-osg-moss"
+                  title={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[b.repete_colecao]?.label ?? b.repete_colecao}`}
+                >
+                  <Repeat2 className="h-2.5 w-2.5" />
+                  {b.repete_colecao}
+                </span>
+              )}
               {b.flag_ids.length > 0 && (
                 <span
                   className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-800"

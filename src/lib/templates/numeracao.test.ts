@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { numerarBlocos, unirBlocos } from './numeracao';
+import { numerarBlocos, refsNumeracao, unirBlocos } from './numeracao';
 import { gerarDocumento } from './index';
 import type { Bloco, Template } from './types';
 
@@ -56,6 +56,29 @@ describe('numerarBlocos', () => {
     ]);
     expect(numerados[0].conteudo).toBe('Preâmbulo.');
     expect(numerados[1].conteudo).toBe('Bloco legado.');
+  });
+});
+
+describe('refsNumeracao', () => {
+  it('produz a forma textual de referência da MESMA passada que numera', () => {
+    const refs = refsNumeracao([
+      bloco('c1', 'capitulo', 'Capital'),
+      bloco('cl1', 'clausula', 'Caput.'),
+      bloco('p1', 'paragrafo', 'Responsabilidade.'),
+      bloco('p2', 'paragrafo', 'Integralização.'),
+      bloco('cl2', 'clausula', 'Outro caput.'),
+      bloco('p3', 'paragrafo', 'Sozinho.'),
+      bloco('l', 'livre', 'Fecho.'),
+    ]);
+    expect(refs).toEqual([
+      'Capítulo I',
+      'Cláusula Primeira',
+      'parágrafo primeiro',
+      'parágrafo segundo',
+      'Cláusula Segunda',
+      'parágrafo único',
+      null,
+    ]);
   });
 });
 

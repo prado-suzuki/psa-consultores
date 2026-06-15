@@ -281,11 +281,11 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
   const flag = (item: ItemLista, i: number, chave: string) =>
     (item.imoveis as ItemLista[])[i][chave] as boolean;
 
-  it('um item por sócio (ordem do quadro), com rótulo de parágrafo a partir do Segundo', () => {
+  it('um item por sócio (ordem do quadro), com a ordem como dado da relação', () => {
     const itens = mapearIntegralizacoes([jose, maria], matriculas);
     expect(itens).toHaveLength(2);
-    expect((itens[0].socio as Record<string, string>).paragrafo).toBe('Segundo');
-    expect((itens[1].socio as Record<string, string>).paragrafo).toBe('Terceiro');
+    expect((itens[0].socio as Record<string, string>).ordem).toBe('1');
+    expect((itens[1].socio as Record<string, string>).ordem).toBe('2');
     expect((itens[0].imoveis as ItemLista[])).toHaveLength(3);
     expect((itens[1].imoveis as ItemLista[])).toHaveLength(2);
   });
@@ -304,18 +304,20 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     expect(a.fracionado).toBe('sim');
   });
 
-  it('ocorrência seguinte sai como referência à alínea/parágrafo da descrição original', () => {
-    const [, pMaria] = mapearIntegralizacoes([jose, maria], matriculas);
+  it('ocorrência seguinte sai como referência, com refItem apontando ao ITEM da 1ª descrição', () => {
+    const [pJose, pMaria] = mapearIntegralizacoes([jose, maria], matriculas);
     const a = imovel(pMaria, 0);
     expect(flag(pMaria, 0, 'referencia')).toBe(true);
     expect(flag(pMaria, 0, 'completa')).toBe(false);
     expect(a.alinea).toBe('a');
     expect(a.refAlinea).toBe('a');
-    expect(a.refParagrafo).toBe('segundo');
     expect(a.refSocio).toBe('José Eduardo');
     expect(a.numero).toBe('2.424');
     expect(a.proprietario).toBe('Maria Auxiliadora');
     expect(a.remanescente).toBe('José Eduardo');
+    // Identidade, não número: quem numera ("parágrafo segundo") é a composição,
+    // carimbando {{ ref }} neste mesmo objeto.
+    expect((pMaria.imoveis as ItemLista[])[0].refItem).toBe(pJose);
   });
 
   it('fecha os centavos no último sócio (69.013,61 + 69.013,60 = 138.027,21, como no MMS)', () => {
@@ -340,7 +342,7 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     const semImovel = socioIntegralizante('x', 'Sócio Capitalista');
     const itens = mapearIntegralizacoes([jose, semImovel, maria], matriculas);
     expect(itens).toHaveLength(2);
-    expect((itens[1].socio as Record<string, string>).paragrafo).toBe('Terceiro');
+    expect((itens[1].socio as Record<string, string>).ordem).toBe('2');
   });
 });
 

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { ArrowLeft, Pencil, Power, Blocks, Eye } from 'lucide-react';
+import { ArrowLeft, Pencil, Power, Blocks, Eye, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useModeloBlocos, type ModeloComContagem } from '@/hooks/useModelosDocumento';
 import { useBlocos, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -22,9 +22,11 @@ interface Props {
   onSelectModelo: (id: string) => void;
   onEditarMeta: () => void;
   onToggleAtivo: () => void;
+  onDuplicar: () => void;
+  duplicando?: boolean;
 }
 
-export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, onEditarMeta, onToggleAtivo }: Props) {
+export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, onEditarMeta, onToggleAtivo, onDuplicar, duplicando }: Props) {
   const { data: docBlocos = [], isLoading } = useModeloBlocos(modelo.id);
   const { data: blocos = [] } = useBlocos();
   const [aba, setAba] = useState<Aba>('montagem');
@@ -80,6 +82,9 @@ export function MontadorWorkbench({ modelo, modelos, onVoltar, onSelectModelo, o
           <div className="flex items-center gap-0.5">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onEditarMeta} title="Editar dados do modelo">
               <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onDuplicar} disabled={duplicando} title="Duplicar modelo">
+              <Copy className={cn('h-4 w-4', duplicando && 'animate-pulse')} />
             </Button>
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleAtivo} title={modelo.ativo ? 'Desativar' : 'Ativar'}>
               <Power className={cn('h-4 w-4', modelo.ativo ? 'text-osg-moss' : 'text-muted-foreground')} />

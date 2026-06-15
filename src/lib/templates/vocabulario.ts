@@ -235,6 +235,14 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       concordanciaCampo('portador', 'Portador(a)', PARES.portador),
       concordanciaCampo('residente', 'Residente e domiciliado(a)', PARES.residente),
       concordanciaCampo('inscrito', 'Inscrito(a)', PARES.inscrito),
+      concordanciaCampo('peloSocio', 'Pelo sócio / Pela sócia', PARES.peloSocio),
+      {
+        id: 'nomeMaiusculo',
+        label: 'Nome em caixa alta',
+        tipo: 'texto',
+        derivadoDe: 'nome',
+        derivar: (v) => (v.nome ?? '').toLocaleUpperCase('pt-BR'),
+      },
       {
         id: 'casado',
         label: 'Estado civil concordado (casado/a)',

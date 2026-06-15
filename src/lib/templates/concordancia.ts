@@ -21,6 +21,8 @@ export const PARES = {
   residente: (g: Genero) => concordar(g, 'residente e domiciliado', 'residente e domiciliada'),
   inscrito: (g: Genero) => concordar(g, 'inscrito', 'inscrita'),
   senhor: (g: Genero) => concordar(g, 'o senhor', 'a senhora'),
+  /** Agente da subscrição no caput de capital: "pelo sócio"/"pela sócia". */
+  peloSocio: (g: Genero) => concordar(g, 'pelo sócio', 'pela sócia'),
 } as const;
 
 export type ParJuridico = keyof typeof PARES;

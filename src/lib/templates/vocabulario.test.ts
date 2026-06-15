@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { extrairCampos } from './render';
 import { gerarDocumento } from './index';
 import { derivarCampos } from './vocabulario';
-import { condicionalDeBinding, detectarBindings, detectarBindingsDeConteudo, resolverTipoDoBinding } from './binding';
+import { condicionalDeBinding, conteudoParaDeteccao, detectarBindings, detectarBindingsDeConteudo, resolverTipoDoBinding } from './binding';
 import { concordarTexto } from './concordancia';
 import {
   mapearIntegralizacoes,
@@ -141,17 +141,20 @@ describe('condicional de binding na tela Gerar — regressão Agroaliança 13.18
   });
 });
 
-describe('seção {{#integralizacoes}} — detecção e render aninhado (padrão MMS)', () => {
+describe('bloco repetidor sobre integralizações — detecção e render aninhado (padrão MMS)', () => {
+  // Corpo de um bloco PARÁGRAFO repetidor (repete por integralizações): o rótulo
+  // "Parágrafo Segundo:" vem da numeração; a referência cruzada, do carimbo
+  // {{ ref }} no item da 1ª descrição ({{ refItem.ref }}).
   const CONTEUDO =
-    '{{#integralizacoes sep="\\n"}}*Parágrafo {{ socio.paragrafo }}:* O sócio {{ socio.nome }} integraliza:\n' +
+    'O sócio {{ socio.nome }} integraliza:\n' +
     '{{#imoveis sep="\\n"}}{{ imovel.alinea }}) ' +
     '{{#completa}}{{ imovel.percentual }} de um imóvel rural, matrícula {{ imovel.numero }}, ' +
     'de propriedade de {{ imovel.proprietario }}, no valor de R$ {{ imovel.valor }}. ' +
     'Área remanescente de {{ imovel.remanescente }}.{{/completa}}' +
     '{{#referencia}}{{ imovel.percentual }} do imóvel descrito na alínea "{{ imovel.refAlinea }}" ' +
-    'do parágrafo {{ imovel.refParagrafo }}, matrícula {{ imovel.numero }}, ' +
+    'do {{ refItem.ref }}, matrícula {{ imovel.numero }}, ' +
     'de propriedade de {{ imovel.proprietario }}, no valor de R$ {{ imovel.valor }}.{{/referencia}}' +
-    '{{/imoveis}}{{/integralizacoes}}';
+    '{{/imoveis}}';
 
   const socios: SocioParaMapear[] = [
     { pessoa: { id: 'j', denominacao: 'José Eduardo', tipo_pessoa: 'PF' } as unknown as PessoaRow, quotas: 1, vlr_total: 1, representante: null },
@@ -169,21 +172,37 @@ describe('seção {{#integralizacoes}} — detecção e render aninhado (padrão
     ],
   }];
 
-  it('detecta a lista sem seções desconhecidas e sem binding unitário de imóvel', () => {
-    const det = detectarBindingsDeConteudo(CONTEUDO);
+  const repetidor = {
+    id: 'b',
+    tipo: 'paragrafo' as const,
+    obrigatorio: true,
+    conteudo: CONTEUDO,
+    repeteColecao: 'integralizacoes',
+  };
+
+  it('a detecção (via conteudoParaDeteccao) vê a lista, sem binding unitário nem texto livre de ref', () => {
+    const det = detectarBindingsDeConteudo(conteudoParaDeteccao(repetidor));
     expect(det.listas.map((l) => l.nome)).toEqual(['integralizacoes']);
     expect(det.secoesDesconhecidas).toEqual([]);
     expect(det.bindings).toEqual([]);
     expect(det.desconhecidos).toEqual([]);
   });
 
-  it('renderiza a descrição completa no 1º sócio e a referência cruzada no 2º', () => {
-    const det = detectarBindingsDeConteudo(CONTEUDO);
+  it('cada sócio vira um parágrafo numerado; a referência cruzada usa o carimbo do original', () => {
+    const det = detectarBindingsDeConteudo(conteudoParaDeteccao(repetidor));
     const itens = mapearIntegralizacoes(socios, matriculas);
     const ctx = montarContexto(det.bindings, {}, {}, { integralizacoes: itens }, det.listas);
-    const template: Template = { id: 't', nome: 'n', blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO }] };
+    const template: Template = {
+      id: 't',
+      nome: 'n',
+      blocos: [
+        { id: 'resp', tipo: 'paragrafo', obrigatorio: true, conteudo: 'A responsabilidade é restrita.' },
+        repetidor,
+      ],
+    };
     const texto = gerarDocumento(template, ctx);
 
+    expect(texto).toContain('*Parágrafo Primeiro:* A responsabilidade é restrita.');
     expect(texto).toContain('*Parágrafo Segundo:* O sócio José Eduardo integraliza:');
     expect(texto).toContain(
       'a) 50,000% de um imóvel rural, matrícula 2.424, de propriedade de José Eduardo, ' +

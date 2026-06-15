@@ -30,6 +30,23 @@ export interface Bloco {
   flagsRequeridas?: string[];
   /** Se true, entra sempre, ignorando flags. */
   obrigatorio?: boolean;
+  /**
+   * Âncora estável para referências de numeração: outro bloco escreve
+   * {{ refs.<ancora> }} e recebe "Cláusula Quinta" / "parágrafo segundo" conforme
+   * a posição REAL deste bloco na composição. Só letras/dígitos/underscore
+   * (precisa caber num caminho de placeholder).
+   */
+  ancora?: string;
+  /**
+   * Nome da coleção do contexto sobre a qual o bloco repete: a composição expande
+   * uma instância por item ANTES da numeração (ver repetidor.ts) — é assim que
+   * "um parágrafo por sócio que integraliza" entra na sequência estrutural.
+   */
+  repeteColecao?: string;
+  /** Escopo do item numa instância expandida (preenchido pela expansão, nunca pelo autor). */
+  escopo?: Contexto;
+  /** Id do bloco repetidor de origem numa instância expandida (o id da instância ganha sufixo "#n"). */
+  instanciaDe?: string;
 }
 
 export interface Template {

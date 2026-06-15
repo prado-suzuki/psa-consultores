@@ -4,25 +4,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/equipe/osg/OsgDialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Loader2 } from 'lucide-react';
 import { GaleriaModelos } from '@/components/equipe/osg/montagem/GaleriaModelos';
 import { MontadorWorkbench } from '@/components/equipe/osg/montagem/MontadorWorkbench';
-import { useModelos, useSalvarModelo, useToggleModeloAtivo } from '@/hooks/useModelosDocumento';
+import { useModelos, useSalvarModelo, useToggleModeloAtivo, useDuplicarModelo } from '@/hooks/useModelosDocumento';
 
 interface ModeloForm {
   id?: string;
   nome: string;
   tipo: string;
   descricao: string;
+  /** id do modelo de origem para copiar os blocos (vazio = em branco). */
+  baseId: string;
 }
 
-const MODELO_VAZIO: ModeloForm = { nome: '', tipo: '', descricao: '' };
+const EM_BRANCO = '__em_branco__';
+const MODELO_VAZIO: ModeloForm = { nome: '', tipo: '', descricao: '', baseId: '' };
 const TIPOS_SUGERIDOS = ['contrato_social', 'alteracao_contratual', 'doacao_quotas', 'descricao_imovel', 'parceria', 'composse', 'outros'];
 
 const MontagemDocumentos = () => {
   const { data: modelos = [], isLoading } = useModelos();
   const salvarModelo = useSalvarModelo();
   const toggleAtivo = useToggleModeloAtivo();
+  const duplicarModelo = useDuplicarModelo();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [modeloDialog, setModeloDialog] = useState<{ open: boolean; form: ModeloForm }>({ open: false, form: MODELO_VAZIO });
@@ -36,6 +41,7 @@ const MontagemDocumentos = () => {
       nome: f.nome.trim(),
       tipo: f.tipo.trim() || null,
       descricao: f.descricao.trim() || null,
+      baseId: !f.id && f.baseId ? f.baseId : null,
     });
     setModeloDialog({ open: false, form: MODELO_VAZIO });
     setSelectedId(modelo.id);
@@ -63,10 +69,15 @@ const MontagemDocumentos = () => {
           onEditarMeta={() =>
             setModeloDialog({
               open: true,
-              form: { id: selecionado.id, nome: selecionado.nome, tipo: selecionado.tipo ?? '', descricao: selecionado.descricao ?? '' },
+              form: { id: selecionado.id, nome: selecionado.nome, tipo: selecionado.tipo ?? '', descricao: selecionado.descricao ?? '', baseId: '' },
             })
           }
           onToggleAtivo={() => toggleAtivo.mutate({ id: selecionado.id, ativo: !selecionado.ativo })}
+          onDuplicar={async () => {
+            const novo = await duplicarModelo.mutateAsync(selecionado.id);
+            setSelectedId(novo.id);
+          }}
+          duplicando={duplicarModelo.isPending}
         />
       ) : (
         <GaleriaModelos
@@ -84,6 +95,45 @@ const MontagemDocumentos = () => {
             <DialogTitle>{modeloDialog.form.id ? 'Editar modelo' : 'Novo modelo'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            {!modeloDialog.form.id && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground">Criar a partir de</Label>
+                <Select
+                  value={modeloDialog.form.baseId || EM_BRANCO}
+                  onValueChange={(v) =>
+                    setModeloDialog((d) => {
+                      const baseId = v === EM_BRANCO ? '' : v;
+                      const base = modelos.find((m) => m.id === baseId);
+                      // Pré-preenche nome/tipo a partir do modelo base, quando ainda em branco.
+                      return {
+                        ...d,
+                        form: {
+                          ...d.form,
+                          baseId,
+                          nome: d.form.nome || (base ? `${base.nome} (cópia)` : ''),
+                          tipo: d.form.tipo || (base?.tipo ?? ''),
+                        },
+                      };
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Modelo em branco" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={EM_BRANCO}>Modelo em branco</SelectItem>
+                    {modelos.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.nome} ({m.num_blocos} bloco{m.num_blocos === 1 ? '' : 's'})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">
+                  Copia todos os blocos e a ordem do modelo escolhido. Os blocos continuam compartilhados com a Biblioteca.
+                </p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground">Nome *</Label>
               <Input

@@ -92,19 +92,43 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
   integralizacoes: {
     label: 'Integralizações (imóveis aprovados, por sócio)',
     tipo: 'pessoa',
+    // refItem: o item da 1ª descrição do imóvel (referência cruzada) — o campo
+    // {{ refItem.ref }} recebe o carimbo de numeração da composição.
     itemKey: 'socio',
-    itemKeysExtras: ['imovel'],
+    itemKeysExtras: ['imovel', 'refItem'],
     secoesItem: ['imoveis', 'completa', 'referencia'],
     fonte: 'integralizacao',
     camposExtras: [
-      { id: 'paragrafo', label: 'Rótulo do parágrafo (Segundo, Terceiro…)' },
       { id: 'ordem', label: 'Ordem do sócio na integralização (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
     ],
   },
 };
 
 /** Condicionais de item conhecidas dentro de seções de lista. */
 export const CONDICIONAIS_ITEM = ['sePF', 'sePJ'] as const;
+
+/**
+ * Placeholders de REFERÊNCIA de numeração, resolvidos pela própria composição
+ * (carimbo {{ ref }} nos itens de repetidor; {{ refs.<ancora> }} global) — nunca
+ * viram binding nem campo de texto livre na tela Gerar.
+ */
+function ehReferenciaDeNumeracao(ph: string): boolean {
+  return ph === 'ref' || ph === 'refs' || ph.startsWith('refs.') || ph === 'refItem.ref';
+}
+
+/**
+ * Conteúdo de um bloco como a detecção deve enxergá-lo: bloco repetidor é
+ * tratado como se o conteúdo estivesse dentro da própria seção
+ * ({{#colecao}}…{{/colecao}}) — os campos do item ({{ socio.nome }}…) ficam no
+ * escopo da lista em vez de virarem bindings unitários, e a coleção entra como
+ * lista a carregar.
+ */
+export function conteudoParaDeteccao(bloco: { conteudo: string; repeteColecao?: string }): string {
+  return bloco.repeteColecao
+    ? `{{#${bloco.repeteColecao}}}${bloco.conteudo}{{/${bloco.repeteColecao}}}`
+    : bloco.conteudo;
+}
 
 export interface BindingLista {
   /** Nome plural da seção ({{#socios}}). */
@@ -244,13 +268,16 @@ export function detectarBindingsDeConteudo(conteudo: string): DeteccaoConteudo {
     }
   }
 
-  const { bindings, desconhecidos } = detectarBindings(campos);
+  // Referências de numeração ({{ ref }}, {{ refs.* }}) resolvem na composição —
+  // não pedem registro nem texto livre, então saem antes da detecção.
+  const camposSemRefs = campos.filter((ph) => !ehReferenciaDeNumeracao(ph));
+  const { bindings, desconhecidos } = detectarBindings(camposSemRefs);
   return {
     bindings,
     listas,
     desconhecidos,
     secoesDesconhecidas: [...new Set(secoesDesconhecidas)],
-    campos,
+    campos: camposSemRefs,
   };
 }
 
@@ -311,32 +338,40 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
     }
   }
   // Específicos da lista de integralizações: alíneas aninhadas, campos de
-  // referência cruzada e as condicionais completa/referência.
+  // referência cruzada e as condicionais completa/referência. O esqueleto é o
+  // CORPO de um bloco parágrafo repetidor (repete por integralizações) — o
+  // rótulo "Parágrafo Segundo:" vem da numeração automática, não do texto.
   const grupoInteg = PAPEIS_LISTA.integralizacoes.label;
   out.push({
     placeholder: 'integralizacoes.alineas',
-    label: 'Integralizações — esqueleto sócio + alíneas',
+    label: 'Integralizações — corpo do parágrafo repetidor (sócio + alíneas)',
     grupo: grupoInteg,
     tipo: 'texto',
     insercao:
-      '{{#integralizacoes sep="\\n"}}*Parágrafo {{ socio.paragrafo }}:* ' +
       'O sócio {{ socio.nome }} subscreve e integraliza neste ato:\n' +
       '{{#imoveis sep="\\n"}}{{ imovel.alinea }}) {{#completa}}…descrição completa…{{/completa}}' +
-      '{{#referencia}}…referência à alínea "{{ imovel.refAlinea }}" do parágrafo {{ imovel.refParagrafo }}…{{/referencia}}{{/imoveis}}{{/integralizacoes}}',
+      '{{#referencia}}…referência à alínea "{{ imovel.refAlinea }}" do {{ refItem.ref }}…{{/referencia}}{{/imoveis}}',
   });
   for (const [id, label] of [
-    ['alinea', 'Letra da alínea (a, b…)'],
-    ['refAlinea', 'Alínea da descrição original (referência)'],
-    ['refParagrafo', 'Parágrafo da descrição original (referência)'],
-    ['refSocio', 'Sócio da descrição original (referência)'],
+    ['imovel.alinea', 'Letra da alínea (a, b…)'],
+    ['imovel.refAlinea', 'Alínea da descrição original (referência)'],
+    ['refItem.ref', 'Parágrafo da descrição original (referência automática)'],
+    ['imovel.refSocio', 'Sócio da descrição original (referência)'],
   ] as const) {
     out.push({
-      placeholder: `imovel.${id}`,
+      placeholder: id,
       label: `Integralizações — ${label}`,
       grupo: grupoInteg,
       tipo: 'texto',
     });
   }
+  // Referências de numeração resolvidas pela composição (ver index.ts).
+  out.push({
+    placeholder: 'ref',
+    label: 'Número deste parágrafo (em bloco repetidor / dentro da lista repetida)',
+    grupo: 'Referências',
+    tipo: 'texto',
+  });
   for (const [cond, label] of [
     ['completa', 'Trecho da 1ª descrição do imóvel (por extenso)'],
     ['referencia', 'Trecho de referência a imóvel já descrito'],

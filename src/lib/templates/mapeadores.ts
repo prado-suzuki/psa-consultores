@@ -1,4 +1,4 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, ordinalExtenso, valorExtenso } from './extenso';
+import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso } from './extenso';
 import { ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos } from './vocabulario';
@@ -290,7 +290,11 @@ export function mapearCartorio(row: CartorioRow): Campos {
  * listas ANINHADAS ({{#imoveis}} dentro de {{#integralizacoes}}).
  */
 export interface ItemLista {
-  [chave: string]: Campos | boolean | ItemLista[];
+  /**
+   * string: o carimbo {{ ref }} da composição (numeração da instância do
+   * repetidor); ItemLista: referência cruzada a outro item ({{ refItem.ref }}).
+   */
+  [chave: string]: Campos | boolean | ItemLista[] | ItemLista | string;
 }
 
 /** Linha do quadro societário com a pessoa do sócio juntada (e o representante, se sócia PJ). */
@@ -472,22 +476,19 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
   return participacoes;
 }
 
-/** "décimo quinto" → "Décimo Quinto" (rótulo de parágrafo no meio do bloco). */
-function capitalizarPalavras(texto: string): string {
-  return texto.replace(/\S+/g, (p) => p[0].toUpperCase() + p.slice(1));
-}
-
 /**
- * Itens da seção {{#integralizacoes}}: um item por sócio que integraliza (na
- * ordem do quadro societário), cada um com suas alíneas {{#imoveis}} — uma por
- * matrícula em que o sócio é titular. A primeira ocorrência de cada matrícula
- * no documento sai COMPLETA (descrição por extenso, com a fração do sócio à
- * frente e os demais titulares como área remanescente); as seguintes saem como
- * REFERÊNCIA à descrição original (alínea/parágrafo/sócio), no padrão da casa:
- * "descrito na alínea 'a' do parágrafo segundo".
+ * Itens da seção {{#integralizacoes}} (e do bloco parágrafo REPETIDOR sobre
+ * ela): um item por sócio que integraliza (na ordem do quadro societário), cada
+ * um com suas alíneas {{#imoveis}} — uma por matrícula em que o sócio é
+ * titular. A primeira ocorrência de cada matrícula no documento sai COMPLETA
+ * (descrição por extenso, com a fração do sócio à frente e os demais titulares
+ * como área remanescente); as seguintes saem como REFERÊNCIA à descrição
+ * original, no padrão da casa: "descrito na alínea 'a' do parágrafo segundo".
  *
- * O rótulo {{ socio.paragrafo }} assume o modelo da casa: o Parágrafo Primeiro
- * é a responsabilidade solidária, então o primeiro sócio integraliza no Segundo.
+ * O NÚMERO do parágrafo não nasce aqui: o mapeador só registra a IDENTIDADE da
+ * primeira descrição (`refItem` aponta ao item do sócio que a fez); quem numera
+ * é a composição, carimbando {{ ref }} em cada item conforme a posição real da
+ * instância no documento (ver index.ts) — o texto usa {{ refItem.ref }}.
  *
  * Valor da alínea = fração × valor da matrícula. Quando as frações fecham 100%
  * entre os sócios, o último absorve a diferença de centavos do arredondamento
@@ -519,9 +520,12 @@ export function mapearIntegralizacoes(
   }
 
   // Onde cada matrícula foi descrita pela primeira vez + centavos já alocados.
-  const descritas = new Map<string, { alinea: string; paragrafo: string; socio: string }>();
+  const descritas = new Map<string, { alinea: string; socio: string; indice: number }>();
   const alocado = new Map<string, number>();
   const itens: ItemLista[] = [];
+  // Referências cruzadas a resolver no fim: o item original só existe completo
+  // depois que o sócio que descreve é empurrado em `itens`.
+  const referenciasPendentes: Array<{ alvo: ItemLista; indice: number }> = [];
 
   for (const s of socios) {
     const doSocio = matriculas.filter((m) =>
@@ -560,14 +564,9 @@ export function mapearIntegralizacoes(
       const original = descritas.get(m.id);
       if (original) {
         campos.refAlinea = original.alinea;
-        campos.refParagrafo = original.paragrafo;
         campos.refSocio = original.socio;
       } else {
-        descritas.set(m.id, {
-          alinea,
-          paragrafo: ordinalExtenso(ordem + 1, 'm'),
-          socio: s.pessoa.denominacao,
-        });
+        descritas.set(m.id, { alinea, socio: s.pessoa.denominacao, indice: ordem - 1 });
       }
 
       // Dentro de lista não há formulário para completar campo faltante na mão
@@ -577,18 +576,21 @@ export function mapearIntegralizacoes(
       const imovel = derivarCampos('matricula', campos);
       for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
 
-      return {
+      const item: ItemLista = {
         imovel,
         completa: !original,
         referencia: !!original,
       };
+      if (original) referenciasPendentes.push({ alvo: item, indice: original.indice });
+      return item;
     });
 
     const base = mapearSocio(s);
     const socioCampos: Campos = {
       ...(base.socio as Campos),
       ordem: String(ordem),
-      paragrafo: capitalizarPalavras(ordinalExtenso(ordem + 1, 'm')),
+      // Enumeração do caput de capital ("sendo: i) … ii) …"), no padrão da casa.
+      ordemRomana: romano(ordem).toLowerCase(),
     };
     // Extras da relação ausentes (sócio sem quotas/valor) também viram ''.
     for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
@@ -596,6 +598,11 @@ export function mapearIntegralizacoes(
     }
     itens.push({ socio: socioCampos, sePF: base.sePF, sePJ: base.sePJ, imoveis });
   }
+
+  // Liga cada referência ao ITEM da primeira descrição: {{ refItem.ref }} lê o
+  // carimbo de numeração que a composição grava nesse item (mesma identidade da
+  // instância expandida do parágrafo).
+  for (const p of referenciasPendentes) p.alvo.refItem = itens[p.indice];
 
   return itens;
 }

@@ -1,6 +1,8 @@
 import { origemDe, type OrigemValor } from './origem';
 import type { Contexto } from './types';
 
+export type { OrigemValor } from './origem';
+
 // Resolve placeholders {{ caminho }} (com caminho pontilhado opcional) e SEÇÕES
 // {{#nome}}…{{/nome}} sobre um contexto. É a única camada que toca a string do
 // bloco; é agnóstica de formato (texto/HTML) e de domínio (não sabe o que é
@@ -151,10 +153,14 @@ function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void 
   }
 }
 
-/** Render estruturado de um bloco: segmentos com proveniência (prévia interativa). Mesmos erros do renderConteudo. */
-export function renderSegmentos(conteudo: string, contexto: Contexto): SegmentoRender[] {
+/**
+ * Render estruturado de um bloco: segmentos com proveniência (prévia interativa).
+ * Mesmos erros do renderConteudo. `escoposExtras` empilha escopos por cima do
+ * contexto (instância de bloco repetidor: o item resolve antes do global).
+ */
+export function renderSegmentos(conteudo: string, contexto: Contexto, escoposExtras: Contexto[] = []): SegmentoRender[] {
   const out: SegmentoRender[] = [];
-  renderNos(compilar(conteudo), [contexto], out);
+  renderNos(compilar(conteudo), [contexto, ...escoposExtras], out);
   return out;
 }
 

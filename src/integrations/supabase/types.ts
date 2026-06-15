@@ -7050,6 +7050,7 @@ export type Database = {
       }
       tmpl_bloco: {
         Row: {
+          ancora: string | null
           ativo: boolean
           autor_id: string | null
           bloco_origem_id: string | null
@@ -7060,12 +7061,14 @@ export type Database = {
           escopo_documento_raiz_id: string | null
           id: string
           nome: string
+          repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          ancora?: string | null
           ativo?: boolean
           autor_id?: string | null
           bloco_origem_id?: string | null
@@ -7076,12 +7079,14 @@ export type Database = {
           escopo_documento_raiz_id?: string | null
           id?: string
           nome: string
+          repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          ancora?: string | null
           ativo?: boolean
           autor_id?: string | null
           bloco_origem_id?: string | null
@@ -7092,6 +7097,7 @@ export type Database = {
           escopo_documento_raiz_id?: string | null
           id?: string
           nome?: string
+          repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
           updated_at?: string

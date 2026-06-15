@@ -22,6 +22,10 @@ export interface DocumentoBlocoComBloco extends DocumentoBlocoRow {
     ativo: boolean;
     conteudo: string | null;
     numero_versao: number | null;
+    /** Coleção sobre a qual o bloco repete na composição (parágrafo repetidor). */
+    repete_colecao: string | null;
+    /** Âncora p/ referências de numeração ({{ refs.ancora }}). */
+    ancora: string | null;
     /** Nomes das flags requeridas (tmpl_bloco_flag → tmpl_flag.nome) — AND na composição. */
     flags: string[];
   } | null;
@@ -57,7 +61,7 @@ export function useModeloBlocos(documentoId: string | null) {
       const { data, error } = await supabase
         .from('tmpl_documento_bloco')
         .select(
-          '*, tmpl_bloco(id, nome, tipo, categoria, ativo, tmpl_bloco_versao(conteudo, atual, numero_versao), tmpl_bloco_flag(tmpl_flag(nome)))',
+          '*, tmpl_bloco(id, nome, tipo, categoria, ativo, repete_colecao, ancora, tmpl_bloco_versao(conteudo, atual, numero_versao), tmpl_bloco_flag(tmpl_flag(nome)))',
         )
         .eq('documento_id', documentoId!)
         .order('ordem', { ascending: true });
@@ -71,6 +75,8 @@ export function useModeloBlocos(documentoId: string | null) {
               tipo: TipoBloco;
               categoria: string | null;
               ativo: boolean;
+              repete_colecao: string | null;
+              ancora: string | null;
               tmpl_bloco_versao: Array<{ conteudo: string | null; atual: boolean; numero_versao: number }>;
               tmpl_bloco_flag: Array<{ tmpl_flag: { nome: string } | null }>;
             }
@@ -85,6 +91,8 @@ export function useModeloBlocos(documentoId: string | null) {
                 tipo: bloco.tipo,
                 categoria: bloco.categoria,
                 ativo: bloco.ativo,
+                repete_colecao: bloco.repete_colecao,
+                ancora: bloco.ancora,
                 conteudo: versaoAtual?.conteudo ?? null,
                 numero_versao: versaoAtual?.numero_versao ?? null,
                 flags: (bloco.tmpl_bloco_flag ?? [])
@@ -98,11 +106,35 @@ export function useModeloBlocos(documentoId: string | null) {
   });
 }
 
+/** Copia os blocos posicionados de um modelo de origem para um modelo de destino. */
+async function copiarBlocosDeModelo(origemId: string, destinoId: string) {
+  const { data: blocos, error } = await supabase
+    .from('tmpl_documento_bloco')
+    .select('bloco_id, ordem, obrigatorio, observacao')
+    .eq('documento_id', origemId)
+    .order('ordem', { ascending: true });
+  if (error) throw error;
+  if (blocos && blocos.length > 0) {
+    const { error: erroCopia } = await supabase.from('tmpl_documento_bloco').insert(
+      blocos.map((b) => ({
+        documento_id: destinoId,
+        bloco_id: b.bloco_id,
+        ordem: b.ordem,
+        obrigatorio: b.obrigatorio,
+        observacao: b.observacao,
+      })),
+    );
+    if (erroCopia) throw erroCopia;
+  }
+}
+
 export interface SalvarModeloInput {
   id?: string;
   nome: string;
   tipo: string | null;
   descricao: string | null;
+  /** Ao criar (sem id), copia os blocos deste modelo de origem para o novo. */
+  baseId?: string | null;
 }
 
 /** Cria ou edita os metadados de um modelo de documento. */
@@ -128,6 +160,7 @@ export function useSalvarModelo() {
         .select('*')
         .single();
       if (error) throw error;
+      if (input.baseId) await copiarBlocosDeModelo(input.baseId, data.id);
       return { modelo: data as ModeloRow, acao: 'created' as const };
     },
     onSuccess: async ({ modelo, acao }) => {
@@ -143,6 +176,48 @@ export function useSalvarModelo() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao salvar modelo', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+/** Duplica um modelo: cria um novo modelo idêntico (nome + " (cópia)") com os mesmos blocos posicionados. */
+export function useDuplicarModelo() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data: original, error: erroOriginal } = await supabase
+        .from('tmpl_documento')
+        .select('nome, tipo, descricao')
+        .eq('id', id)
+        .single();
+      if (erroOriginal) throw erroOriginal;
+
+      const { data: novo, error: erroNovo } = await supabase
+        .from('tmpl_documento')
+        .insert({ nome: `${original.nome} (cópia)`, tipo: original.tipo, descricao: original.descricao })
+        .select('*')
+        .single();
+      if (erroNovo) throw erroNovo;
+
+      await copiarBlocosDeModelo(id, novo.id);
+
+      return novo as ModeloRow;
+    },
+    onSuccess: async (modelo) => {
+      queryClient.invalidateQueries({ queryKey: KEY_MODELOS });
+      await logAction({
+        area: 'osg',
+        entity_type: 'tmpl_documento',
+        entity_id: modelo.id,
+        entity_name: modelo.nome,
+        action: 'created',
+      });
+      toast({ title: 'Modelo duplicado', description: modelo.nome });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao duplicar modelo', description: error.message, variant: 'destructive' });
     },
   });
 }

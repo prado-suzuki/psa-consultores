@@ -8,6 +8,7 @@ import { EditorConteudoModelo } from '@/components/equipe/osg/EditorConteudoMode
 import { Loader2, Maximize2, Minimize2, Flag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { extrairCampos, LABEL_TIPO_BLOCO, TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
+import { PAPEIS_LISTA } from '@/lib/templates/binding';
 import { useFlags, useSalvarBloco, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 
 interface FormState {
@@ -17,11 +18,21 @@ interface FormState {
   categoria: string;
   descricao: string;
   conteudo: string;
+  /** '' = não repete; senão, nome da coleção (PAPEIS_LISTA). */
+  repeteColecao: string;
+  /** '' = sem âncora; senão, identificador p/ {{ refs.ancora }}. */
+  ancora: string;
   changelog: string;
   flagIds: string[];
 }
 
-const FORM_VAZIO: FormState = { nome: '', tipo: 'livre', categoria: '', descricao: '', conteudo: '', changelog: '', flagIds: [] };
+const FORM_VAZIO: FormState = {
+  nome: '', tipo: 'livre', categoria: '', descricao: '', conteudo: '',
+  repeteColecao: '', ancora: '', changelog: '', flagIds: [],
+};
+
+/** Âncora precisa caber num caminho de placeholder ({{ refs.<ancora> }}). */
+const ANCORA_VALIDA = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 // Sugestões de categoria (livre): espelham as do modelo de composição documental.
 const CATEGORIAS_SUGERIDAS = ['preambulo', 'capital', 'administracao', 'cessao', 'causa_mortis', 'descricao_imovel', 'outros'];
@@ -42,6 +53,8 @@ function formDeBloco(b: BlocoComVersao): FormState {
     categoria: b.categoria ?? '',
     descricao: b.descricao ?? '',
     conteudo: b.versao_atual?.conteudo ?? '',
+    repeteColecao: b.repete_colecao ?? '',
+    ancora: b.ancora ?? '',
     changelog: '',
     flagIds: b.flag_ids,
   };
@@ -82,7 +95,8 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
     }));
 
   const camposDetectados = useMemo(() => extrairCampos(form.conteudo), [form.conteudo]);
-  const podeSalvar = form.nome.trim().length > 0 && form.conteudo.trim().length > 0;
+  const ancoraInvalida = form.ancora.trim() !== '' && !ANCORA_VALIDA.test(form.ancora.trim());
+  const podeSalvar = form.nome.trim().length > 0 && form.conteudo.trim().length > 0 && !ancoraInvalida;
 
   const handleSalvar = async () => {
     const { bloco: salvo } = await salvar.mutateAsync({
@@ -92,6 +106,9 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
       categoria: form.categoria.trim() || null,
       descricao: form.descricao.trim() || null,
       conteudo: form.conteudo,
+      // Repetição só existe em parágrafo — trocar o tipo limpa sem estado fantasma.
+      repeteColecao: form.tipo === 'paragrafo' ? form.repeteColecao || null : null,
+      ancora: form.tipo === 'livre' ? null : form.ancora.trim() || null,
       changelog: form.changelog.trim() || null,
       flagIds: form.flagIds,
     });
@@ -141,6 +158,58 @@ export function EditorBlocoDialog({ open, onOpenChange, bloco, onSaved }: Props)
             <p className="text-xs text-osg-700 bg-osg-50 rounded-md px-2.5 py-1.5 -mt-2">
               {DICA_POR_TIPO[form.tipo]}
             </p>
+          )}
+
+          {form.tipo === 'paragrafo' && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Repetição</Label>
+              <Select
+                value={form.repeteColecao || 'nenhuma'}
+                onValueChange={(v) => setCampo('repeteColecao', v === 'nenhuma' ? '' : v)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhuma">Não repete — um parágrafo só</SelectItem>
+                  {Object.entries(PAPEIS_LISTA).map(([nome, papel]) => (
+                    <SelectItem key={nome} value={nome}>
+                      Um parágrafo por item de: {papel.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {form.repeteColecao && (
+                <p className="text-[11px] text-muted-foreground">
+                  Na geração, este bloco vira um parágrafo POR ITEM da coleção (numerados em sequência).
+                  Escreva o conteúdo como o texto de UM item — os campos do item (ex.:{' '}
+                  <code className="rounded bg-osg-50 px-1">
+                    {'{{ ' + (PAPEIS_LISTA[form.repeteColecao]?.itemKey ?? 'item') + '.nome }}'}
+                  </code>
+                  ) resolvem por instância, e <code className="rounded bg-osg-50 px-1">{'{{ ref }}'}</code> é o
+                  número do próprio parágrafo (também disponível nos loops de outros blocos).
+                </p>
+              )}
+            </div>
+          )}
+
+          {form.tipo !== 'livre' && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Âncora para referências (opcional)
+              </Label>
+              <Input
+                value={form.ancora}
+                onChange={(e) => setCampo('ancora', e.target.value)}
+                placeholder="ex: haveres — outros blocos citam {{ refs.haveres }}"
+                className={cn(ancoraInvalida && 'border-destructive focus-visible:ring-destructive')}
+              />
+              <p className={cn('text-[11px]', ancoraInvalida ? 'text-destructive' : 'text-muted-foreground')}>
+                {ancoraInvalida
+                  ? 'Use apenas letras, números e _ (sem espaços, acentos ou hífens).'
+                  : 'Com âncora, outro bloco escreve {{ refs.<âncora> }} e recebe a numeração real deste bloco (ex.: "Cláusula Quinta", "parágrafo segundo") — atualiza sozinha se a ordem mudar.'}
+              </p>
+            </div>
           )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
