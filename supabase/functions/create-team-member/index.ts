@@ -164,9 +164,10 @@ Deno.serve(async (req) => {
     console.log('Team member created successfully');
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         user_id: userId,
+        temporary_password: effectivePassword,
         message: 'Usuário criado com sucesso'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
