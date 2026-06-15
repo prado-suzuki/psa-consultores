@@ -7917,6 +7917,7 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
