@@ -387,8 +387,6 @@ export default function ProcessosPage() {
         processoNomeById={processoNomeById}
         onClose={() => setProjetoDetalhe(null)}
         onEditar={() => { const pj = projetoDetalhe; setProjetoDetalhe(null); if (pj) setProjEmEdicao(pj); }}
-        onEditarProcesso={(pid) => { const p = items.find(x => x.id === pid); if (p) abrirEditar(p); }}
-        onEditarMelhoria={(mid) => { const m = melhorias.find(x => x.id === mid); if (m) setMelEmEdicao(m); }}
       />
 
       {/* Modais de edição cruzada disparados pelo detalhe do projeto */}
