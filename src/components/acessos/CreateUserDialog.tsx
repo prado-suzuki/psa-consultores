@@ -61,8 +61,8 @@ export const CreateUserDialog = () => {
       return;
     }
     try {
-      await createUser.mutateAsync({ ...form, password: FIXED_PASSWORD });
-      setCreatedCredentials({ email: form.email, password: FIXED_PASSWORD });
+      const result = await createUser.mutateAsync({ ...form });
+      setCreatedCredentials({ email: form.email, password: result.temporary_password || '' });
     } catch {
       /* toast já emitido pelo hook */
     }
