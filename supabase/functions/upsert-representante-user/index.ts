@@ -7,7 +7,18 @@ interface UpsertRepresentanteUserRequest {
   last_name: string | null;
 }
 
-const FIXED_PASSWORD = 'trocarsenha';
+/**
+ * Gera uma senha temporária forte (~22 caracteres base64url).
+ * Substituiu a senha fixa 'trocarsenha' por motivos de segurança.
+ */
+function generateTemporaryPassword(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
 Deno.serve(async (req) => {
   const _preflight = handleCorsPreflightRequest(req);
