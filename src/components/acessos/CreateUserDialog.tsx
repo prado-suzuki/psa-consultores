@@ -18,7 +18,8 @@ import { AREA_CATEGORIES_MAP } from '@/config/areaCategories';
 import { useCreateTeamMember, type CreateTeamMemberInput } from '@/hooks/useTeamMemberMutations';
 import { ROLE_OPTIONS } from './roleOptions';
 
-const FIXED_PASSWORD = 'trocarsenha';
+// Senha temporária é gerada aleatoriamente pelo edge function `create-team-member`
+// e retornada uma única vez para o admin compartilhar com o novo usuário.
 
 const EMPTY_FORM: Omit<CreateTeamMemberInput, 'password'> = {
   first_name: '',
