@@ -98,7 +98,7 @@ export function useCreateTeamMember() {
           },
           credentials: {
             email: input.email,
-            temporary_password: 'trocarsenha',
+            temporary_password: temporaryPassword,
           },
           platform: {
             login_url: 'https://psa-consultores.lovable.app/auth',
