@@ -29,6 +29,7 @@ interface Props {
   carregados: number;
   podeSubir: boolean;
   podeDescer: boolean;
+  dropBefore?: boolean;
   onMove: (dir: -1 | 1) => void;
   onRemove: () => void;
   onToggleObrigatorio: () => void;
@@ -40,7 +41,7 @@ interface Props {
 
 export function BlocoMontadoCard({
   db, rotulo, numero, aninhado, carregados, podeSubir, podeDescer,
-  onMove, onRemove, onToggleObrigatorio, onSaveObservacao, onEditar, onDragStart, onCommitReorder,
+  dropBefore, onMove, onRemove, onToggleObrigatorio, onSaveObservacao, onEditar, onDragStart, onCommitReorder,
 }: Props) {
   const controls = useDragControls();
   const [aberto, setAberto] = useState(false);
@@ -54,6 +55,7 @@ export function BlocoMontadoCard({
   return (
     <Reorder.Item
       value={db}
+      data-documento-bloco-id={db.id}
       dragListener={false}
       dragControls={controls}
       onDragStart={onDragStart}
@@ -66,6 +68,7 @@ export function BlocoMontadoCard({
         removido && 'border-destructive/40',
       )}
     >
+      {dropBefore && <div className="pointer-events-none absolute -top-1 left-0 right-0 z-10 h-0.5 rounded-full bg-osg-moss shadow-[0_0_0_2px_hsl(var(--osg-moss)/0.15)]" />}
       <div className="flex items-stretch">
         {/* Alça de arrastar */}
         <button

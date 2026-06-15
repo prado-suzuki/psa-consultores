@@ -4,6 +4,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Database } from '@/integrations/supabase/types';
 import type { TipoBloco } from '@/lib/templates';
+import type { BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 
 export type ModeloRow = Database['public']['Tables']['tmpl_documento']['Row'];
 export type DocumentoBlocoRow = Database['public']['Tables']['tmpl_documento_bloco']['Row'];
@@ -32,6 +33,7 @@ export interface DocumentoBlocoComBloco extends DocumentoBlocoRow {
 }
 
 const KEY_MODELOS = ['modelos-documento'];
+const KEY_BIBLIOTECA_BLOCOS = ['biblioteca-modelos', 'blocos'];
 const keyBlocos = (documentoId: string) => ['modelo-blocos', documentoId];
 
 /** Lista os modelos de documento com a contagem de blocos. */
@@ -245,37 +247,132 @@ export function useToggleModeloAtivo() {
   });
 }
 
-/** Adiciona um bloco ao final da sequência do modelo. */
+interface AdicionarBlocoInput {
+  documentoId: string;
+  blocoId: string;
+  /** Posição zero-based na sequência. Sem valor, adiciona ao final. */
+  posicao?: number;
+}
+
+/** Adiciona um bloco na sequência do modelo. */
 export function useAdicionarBloco() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ documentoId, blocoId }: { documentoId: string; blocoId: string }) => {
-      const { data: ultima, error: erroOrdem } = await supabase
+    mutationFn: async ({ documentoId, blocoId, posicao }: AdicionarBlocoInput) => {
+      const { data: blocosExistentes, error: erroOrdem } = await supabase
         .from('tmpl_documento_bloco')
-        .select('ordem')
+        .select('id, bloco_id')
         .eq('documento_id', documentoId)
-        .order('ordem', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('ordem', { ascending: true });
       if (erroOrdem) throw erroOrdem;
 
-      const { error } = await supabase.from('tmpl_documento_bloco').insert({
-        documento_id: documentoId,
-        bloco_id: blocoId,
-        ordem: (ultima?.ordem ?? 0) + 1,
-      });
+      const blocosDoModelo = blocosExistentes ?? [];
+
+      if (blocosDoModelo.some((b) => b.bloco_id === blocoId)) {
+        throw new Error('Este bloco já está no modelo.');
+      }
+
+      const indiceInsercao = posicao === undefined
+        ? blocosDoModelo.length
+        : Math.max(0, Math.min(posicao, blocosDoModelo.length));
+
+      const { data: blocoInserido, error } = await supabase
+        .from('tmpl_documento_bloco')
+        .insert({
+          documento_id: documentoId,
+          bloco_id: blocoId,
+          ordem: blocosDoModelo.length + 1,
+        })
+        .select('id')
+        .single();
       if (error) {
         if (error.code === '23505') throw new Error('Este bloco já está no modelo.');
         throw error;
       }
+
+      const idsOrdenados = blocosDoModelo.map((b) => b.id);
+      idsOrdenados.splice(indiceInsercao, 0, blocoInserido.id);
+
+      const resultados = await Promise.all(
+        idsOrdenados.map((id, i) =>
+          supabase.from('tmpl_documento_bloco').update({ ordem: i + 1 }).eq('id', id),
+        ),
+      );
+      const erroReordem = resultados.find((r) => r.error)?.error;
+      if (erroReordem) throw erroReordem;
+
       return documentoId;
     },
+    onMutate: async ({ documentoId, blocoId, posicao }) => {
+      const key = keyBlocos(documentoId);
+      await queryClient.cancelQueries({ queryKey: key });
+
+      const anterior = queryClient.getQueryData<DocumentoBlocoComBloco[]>(key);
+      if (!anterior || anterior.some((b) => b.bloco_id === blocoId)) return { anterior, key };
+
+      const catalogo = queryClient.getQueryData<BlocoComVersao[]>(KEY_BIBLIOTECA_BLOCOS);
+      const bloco = catalogo?.find((b) => b.id === blocoId);
+      const agora = new Date().toISOString();
+      const indiceInsercao = posicao === undefined
+        ? anterior.length
+        : Math.max(0, Math.min(posicao, anterior.length));
+
+      const otimista: DocumentoBlocoComBloco = {
+        id: `optimistic-${documentoId}-${blocoId}`,
+        documento_id: documentoId,
+        bloco_id: blocoId,
+        ordem: indiceInsercao + 1,
+        obrigatorio: false,
+        observacao: null,
+        created_at: agora,
+        created_by: null,
+        updated_at: agora,
+        updated_by: null,
+        bloco: bloco
+          ? {
+              id: bloco.id,
+              nome: bloco.nome,
+              tipo: bloco.tipo as TipoBloco,
+              categoria: bloco.categoria,
+              ativo: bloco.ativo,
+              conteudo: bloco.versao_atual?.conteudo ?? null,
+              numero_versao: bloco.versao_atual?.numero_versao ?? null,
+              repete_colecao: bloco.repete_colecao,
+              ancora: bloco.ancora,
+              flags: [],
+            }
+          : {
+              id: blocoId,
+              nome: 'Adicionando bloco...',
+              tipo: 'livre',
+              categoria: null,
+              ativo: true,
+              conteudo: null,
+              numero_versao: null,
+              repete_colecao: null,
+              ancora: null,
+              flags: [],
+            },
+      };
+
+      const proximo = [...anterior];
+      proximo.splice(indiceInsercao, 0, otimista);
+      queryClient.setQueryData<DocumentoBlocoComBloco[]>(
+        key,
+        proximo.map((b, i) => ({ ...b, ordem: i + 1 })),
+      );
+
+      return { anterior, key };
+    },
     onSuccess: (documentoId) => {
-      queryClient.invalidateQueries({ queryKey: keyBlocos(documentoId) });
       queryClient.invalidateQueries({ queryKey: KEY_MODELOS });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _vars, context) => {
+      if (context?.anterior) queryClient.setQueryData(context.key, context.anterior);
       toast({ title: 'Erro ao adicionar bloco', description: error.message, variant: 'destructive' });
+    },
+    onSettled: (documentoId) => {
+      if (documentoId) queryClient.invalidateQueries({ queryKey: keyBlocos(documentoId) });
     },
   });
 }

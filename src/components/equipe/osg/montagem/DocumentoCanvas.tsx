@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Reorder } from 'framer-motion';
 import { Loader2, MousePointerSquareDashed } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAutoScrollNaBorda } from '@/hooks/useAutoScrollNaBorda';
 import { rotulosNumeracao } from '@/lib/templates';
 import {
   useRemoverDocumentoBloco, useAtualizarDocumentoBloco, useReordenarBlocos, useAdicionarBloco,
@@ -44,9 +45,15 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
   // (adicionar/remover/refetch). O commit no banco acontece ao soltar.
   const [ordem, setOrdem] = useState<DocumentoBlocoComBloco[]>(docBlocos);
   const [dragOver, setDragOver] = useState(false);
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
+  const [reordenando, setReordenando] = useState(false);
   // Enquanto um capítulo é arrastado, seus filhos saem da lista e viajam "dentro" dele.
   const [capArrastado, setCapArrastado] = useState<{ id: string; filhos: DocumentoBlocoComBloco[] } | null>(null);
   useEffect(() => { setOrdem(docBlocos); }, [docBlocos]);
+
+  // Rola o container ao arrastar um bloco até as bordas de cima/baixo da tela.
+  const canvasRef = useRef<HTMLDivElement>(null);
+  useAutoScrollNaBorda(reordenando, canvasRef);
 
   const segs = useMemo(() => segmentar(ordem), [ordem]);
 
@@ -73,12 +80,14 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
   };
 
   const iniciarArrasto = (db: DocumentoBlocoComBloco) => {
+    setReordenando(true);
     if (!ehCapitulo(db)) return;
     const filhos = segs.find((s) => s[0].id === db.id)?.slice(1) ?? [];
     if (filhos.length) setCapArrastado({ id: db.id, filhos });
   };
 
   const commitReorder = () => {
+    setReordenando(false);
     setCapArrastado(null);
     const ids = ordem.map((d) => d.id);
     if (ids.join('|') !== docBlocos.map((d) => d.id).join('|')) {
@@ -108,17 +117,43 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
     reordenar.mutate({ documentoId: modeloId, idsOrdenados: nova.map((d) => d.id) });
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const calcularDropIndex = (e: React.DragEvent<HTMLElement>) => {
+    if (ordem.length === 0) return 0;
+
+    const cards = Array.from(e.currentTarget.querySelectorAll<HTMLElement>('[data-documento-bloco-id]'));
+    const index = cards.findIndex((card) => {
+      const rect = card.getBoundingClientRect();
+      return e.clientY < rect.top + rect.height / 2;
+    });
+
+    return index === -1 ? cards.length : index;
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    setDragOver(true);
+    setDropIndex(calcularDropIndex(e));
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragOver(false);
+    setDropIndex(null);
     const blocoId = e.dataTransfer.getData('blocoId');
-    if (blocoId) adicionar.mutate({ documentoId: modeloId, blocoId });
+    if (blocoId) adicionar.mutate({ documentoId: modeloId, blocoId, posicao: calcularDropIndex(e) });
   };
 
   return (
     <div
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOver(false); }}
+      ref={canvasRef}
+      onDragOver={handleDragOver}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          setDragOver(false);
+          setDropIndex(null);
+        }
+      }}
       onDrop={handleDrop}
       className={cn(
         'min-h-[60vh] rounded-2xl border-2 border-dashed p-3 transition-colors sm:p-4',
@@ -145,7 +180,7 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
       ) : (
         <>
           <Reorder.Group axis="y" values={visiveis} onReorder={handleReorder} className="space-y-2">
-            {visiveis.map((db) => {
+            {visiveis.map((db, index) => {
               const m = meta.get(db.id)!;
               const capitulo = ehCapitulo(db);
               const segIdx = capitulo ? segs.findIndex((s) => s[0].id === db.id) : -1;
@@ -159,6 +194,7 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
                   carregados={capArrastado?.id === db.id ? capArrastado.filhos.length : 0}
                   podeSubir={capitulo ? segIdx > 0 : m.numero > 1}
                   podeDescer={capitulo ? segIdx < segs.length - 1 : m.numero < ordem.length}
+                  dropBefore={dropIndex === index}
                   onMove={(dir) => moverPorClique(db.id, dir)}
                   onRemove={() => remover.mutate({ id: db.id, documentoId: modeloId })}
                   onToggleObrigatorio={() => atualizar.mutate({ id: db.id, documentoId: modeloId, patch: { obrigatorio: !db.obrigatorio } })}
@@ -172,9 +208,9 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
           </Reorder.Group>
           <div className={cn(
             'mt-2 rounded-lg border border-dashed py-2.5 text-center text-xs transition-colors',
-            dragOver ? 'border-osg-moss text-osg-moss' : 'border-osg-200 text-muted-foreground/70',
+            dragOver && dropIndex === visiveis.length ? 'border-osg-moss text-osg-moss' : 'border-osg-200 text-muted-foreground/70',
           )}>
-            Solte aqui para adicionar ao fim
+            Solte aqui para adicionar ao fim, ou entre blocos para inserir naquela posição
           </div>
         </>
       )}
