@@ -140,7 +140,7 @@ export const useCriarUsuariosRepresentantes = () => {
                 first_name,
                 last_name,
                 email: r.email,
-                temporary_password: TEMP_PASSWORD,
+                temporary_password: tempPassword,
                 created_by: adminName,
                 roles: ['client'],
                 areas: [],
