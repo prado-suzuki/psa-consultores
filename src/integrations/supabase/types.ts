@@ -7829,7 +7829,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      exec_sql_admin: { Args: { p_sql: string }; Returns: undefined }
       get_internal_users: {
         Args: never
         Returns: {
