@@ -1,16 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
+const corsHeaders = {"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type"};
 const SQL = `-- PSA Consultores MAPA — enriquecimento qualitativo IN-PLACE do legado Rotina
 -- Gerado por Mapeamento/novo mapeamento/gerar_migracao.py a partir de Mapeamento/novo mapeamento/lovable/*.csv
 -- Estratégia: UPDATE em 17 processes + 10 projects existentes; substituição das etapas; INSERT dos catálogos e junções do MAPA.
 -- ROI/horas/volumes/preços continuam fora desta rodada.
 
-BEGIN;
 
 CREATE OR REPLACE FUNCTION public.psa_mapa_uuid(slug text)
 RETURNS uuid
@@ -932,9 +926,7 @@ BEGIN
   END IF;
 END $$;
 
-COMMIT;
 `;
-
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -942,17 +934,9 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supa = createClient(url, serviceKey, { auth: { persistSession: false } });
     const { data, error } = await supa.rpc("exec_sql_admin", { p_sql: SQL });
-    if (error) {
-      return new Response(JSON.stringify({ ok: false, error: error.message, details: error }), {
-        status: 500, headers: { ...corsHeaders, "content-type": "application/json" },
-      });
-    }
-    return new Response(JSON.stringify({ ok: true, bytes: SQL.length, result: data }), {
-      headers: { ...corsHeaders, "content-type": "application/json" },
-    });
+    if (error) return new Response(JSON.stringify({ ok:false, error:error.message, details:error }), { status:500, headers:{...corsHeaders,"content-type":"application/json"}});
+    return new Response(JSON.stringify({ ok:true, bytes:SQL.length, result:data }), { headers:{...corsHeaders,"content-type":"application/json"}});
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: String(e) }), {
-      status: 500, headers: { ...corsHeaders, "content-type": "application/json" },
-    });
+    return new Response(JSON.stringify({ ok:false, error:String(e) }), { status:500, headers:{...corsHeaders,"content-type":"application/json"}});
   }
 });
