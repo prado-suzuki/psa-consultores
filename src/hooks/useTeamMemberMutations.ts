@@ -111,7 +111,7 @@ export function useCreateTeamMember() {
         console.error('[useCreateTeamMember] Webhook boas-vindas falhou:', err)
       );
 
-      return { user_id: newUserId };
+      return { user_id: newUserId, temporary_password: temporaryPassword };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
