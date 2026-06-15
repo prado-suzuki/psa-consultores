@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
     // Parse request body
     const { email, password, first_name, last_name, is_admin, roles: requestedRoles }: CreateTeamMemberRequest = await req.json();
 
-    const effectivePassword = password && password.length > 0 ? password : FIXED_PASSWORD;
+    const effectivePassword = password && password.length > 0 ? password : generateTemporaryPassword();
     const effectiveLastName = last_name && last_name.trim() !== '' ? last_name : '';
 
     console.log('Creating team member:', { email, first_name, last_name: effectiveLastName, requestedRoles, is_admin });
