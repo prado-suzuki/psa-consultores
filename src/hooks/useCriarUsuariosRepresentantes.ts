@@ -98,6 +98,7 @@ export const useCriarUsuariosRepresentantes = () => {
 
           const userId: string | null = data?.user_id ?? null;
           const created: boolean = data?.created === true;
+          const tempPassword: string = (data?.temporary_password as string | undefined) ?? '';
 
           if (!userId) {
             failuresCriacao.push({ email: r.email, motivo: 'Sem user_id retornado' });
