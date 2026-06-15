@@ -1,6 +1,8 @@
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
 import Select from './Select';
+import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
+import { dica } from '@/utils/tooltips';
 
 /** Barra global de seleção de cliente — paridade visual com OsgWorkClienteBar.
  *  '' = "Todos os clusters": páginas funcionam mas a barra entra em estado de
@@ -12,7 +14,7 @@ export default function ClusterBar() {
   const selecionado = opcoes.find((o) => o.value === cluster);
 
   return (
-    <div className={`cluster-bar${semCluster ? ' sem-cluster' : ''}`}>
+    <div className={`cluster-bar${semCluster ? ' sem-cluster' : ''}`} data-tour="cluster-bar">
       <div className="cluster-bar-id">
         <span className="cluster-bar-icon" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -22,7 +24,7 @@ export default function ClusterBar() {
             <path d="M10 6h4" /><path d="M10 10h4" /><path d="M10 14h4" /><path d="M10 18h4" />
           </svg>
         </span>
-        <span className="cluster-bar-label">Cliente</span>
+        <span className="cluster-bar-label">Cliente <DicaIcon text={dica('comum.cluster')} /></span>
       </div>
       <div className="cluster-bar-select">
         <Select

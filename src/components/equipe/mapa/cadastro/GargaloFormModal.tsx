@@ -132,13 +132,13 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
   const etapasVinculadas = gargalo?.etapasOrigem || [];
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-gargalo-form">
       <div className="modal modal-wide">
         <h2>{gargalo ? 'Editar Gargalo' : 'Novo Gargalo'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
         <div className="cadastro-form-row">
-          <FormField label="Nome" error={erro} required tooltip={dica('gargalos.form.nome')}>
+          <FormField label="Nome" error={erro} required tooltip={dica('gargalos.form.nome')} dataTour="modal-campo-1">
             <input
               type="text"
               value={form.nome}
@@ -146,7 +146,7 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
               placeholder="Digite o nome do gargalo"
             />
           </FormField>
-          <FormField label="Origem" tooltip={dica('gargalos.form.origem')}>
+          <FormField label="Origem" tooltip={dica('gargalos.form.origem')} dataTour="modal-campo-2">
             <Select value={form.origem} onChange={(v) => atualizar({ origem: v })} options={GARGALO_ORIGEM_OPCOES} placeholder="Selecione..." />
           </FormField>
         </div>
@@ -198,7 +198,7 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </Modal>

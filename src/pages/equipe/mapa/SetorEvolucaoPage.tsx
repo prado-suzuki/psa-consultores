@@ -24,6 +24,7 @@ import {
   useSistemasLista, useGargalosLista, useMelhoriasLista, useDocumentosLista,
 } from '@/hooks/useDominioListas';
 import { useSnapshots } from '@/hooks/useSnapshots';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 const fmtBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0 });
@@ -217,6 +218,7 @@ export default function SetorEvolucaoPage() {
           </p>
         </div>
         <div className="dashv2-hero-actions">
+          <TourTrigger />
           <NotasInfoButton onClick={() => setNotasOpen(true)} />
         </div>
       </div>

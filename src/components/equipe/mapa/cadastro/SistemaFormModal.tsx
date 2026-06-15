@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
+import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { formatarMoeda, parseMoeda } from '@/utils/format';
 import type { Sistema } from '@/types';
@@ -96,13 +97,13 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-sistema-form">
       <div className="modal modal-wide">
         <h2>{sistema ? 'Editar Sistema' : 'Novo Sistema'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
         <div className="cadastro-form-row">
-          <FormField label="Nome" error={erro} required tooltip={dica('sistemas.form.nome')}>
+          <FormField label="Nome" error={erro} required tooltip={dica('sistemas.form.nome')} dataTour="modal-campo-1">
             <input
               type="text"
               value={nome}
@@ -126,7 +127,7 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
 
         <div className="cadastro-form-secao">Custo</div>
         <div className="cadastro-form-row">
-          <FormField label="Custo mensal" tooltip={dica('sistemas.form.custoVariavel')}>
+          <FormField label="Custo mensal" tooltip={dica('sistemas.form.custoVariavel')} dataTour="modal-campo-2">
             <input
               type="text"
               value={variavel}
@@ -139,15 +140,14 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
 
         {sistema && CLUSTERS_DISPONIVEIS.length > 0 && (
           <>
-            <div className="cadastro-form-secao">Rateio por cluster</div>
+            <div className="cadastro-form-secao">
+              Rateio por cluster <DicaIcon text={dica('comum.rateioSecao')} />
+            </div>
             <div className="cadastro-form-leitura">
-              <p className="cadastro-form-leitura-hint" style={{ margin: '0 0 12px' }}>
-                Quanto do custo é atribuído a cada cluster (0–100%). Não definido = 100%. Multiplica o custo recorrente no ROI.
-              </p>
               {CLUSTERS_DISPONIVEIS.map(c => {
                 const r = clustersRateio[c] ?? 100;
                 return (
-                  <div key={c} className="cadastro-rateio-row">
+                  <div key={c} className="cadastro-rateio-row" title={`Rateio do custo para ${c}: ${r}%`}>
                     <span className="cadastro-rateio-nome">{c}</span>
                     <input
                       type="range" min={0} max={100} step={5} value={r}
@@ -164,7 +164,7 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </Modal>

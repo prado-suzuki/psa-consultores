@@ -30,7 +30,7 @@ describe('ProcessosPage', () => {
     vi.clearAllMocks();
   });
 
-  it('lista mostra o nome; etapas e descrição vivem no detalhe', async () => {
+  it('lista mostra o nome; sub-etapas e descrição não aparecem na lista', async () => {
     setupSupabaseMocks({
       processes: [PROCESSO_OSG_ROW],
       projects: [PROJETO_OSG_ROW],
@@ -46,18 +46,18 @@ describe('ProcessosPage', () => {
       </TestProviders>,
     );
 
-    // O nome aparece na linha.
-    const nome = await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i);
+    // Grupos vêm recolhidos: expande o processo para ver suas etapas.
+    fireEvent.click(await screen.findByTitle('Expandir etapas'));
 
-    // Etapas e descrição NÃO aparecem na lista (vivem no detalhe).
+    // O nome da etapa aparece após expandir.
+    await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i);
+
+    // Sub-etapas e descrição NÃO aparecem na lista (vivem no mapeamento; clicar
+    // na linha navega direto para /mapear, sem modal de detalhe).
     expect(screen.queryByText(/Solicitar documentos/i)).not.toBeInTheDocument();
     expect(
       screen.queryByText(/Levantamento completo do patrimônio do cliente/i),
     ).not.toBeInTheDocument();
-
-    // Clicar na linha abre a "Modal da Paz" — aí a etapa aparece.
-    fireEvent.click(nome);
-    expect(await screen.findByText(/Solicitar documentos/i)).toBeInTheDocument();
   });
 
   it('smoke: renderiza sem crash com data vazia', async () => {
@@ -78,7 +78,7 @@ describe('ProcessosPage', () => {
 
     // Botão "+ Adicionar Processo" é único e aparece quando a página renderiza.
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Adicionar Processo/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Adicionar Etapa/i })).toBeInTheDocument();
     });
   });
 
@@ -98,15 +98,18 @@ describe('ProcessosPage', () => {
       </TestProviders>,
     );
 
+    // Expande o grupo para ver o selo de complexidade e as ações da etapa.
+    fireEvent.click(await screen.findByTitle('Expandir etapas'));
+
     expect(await screen.findByText('Média')).toBeInTheDocument();
     expect(screen.queryByText(/^medium$/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle('Editar'));
+    fireEvent.click(screen.getByTitle(`Editar ${PROCESSO_OSG_ROW.name}`));
 
     // O form de edição abre com a seção "Identificação" e o sub "Editar processo".
     const modal = (await screen.findByText('Identificação')).closest('.modal');
     expect(modal).not.toBeNull();
-    expect(within(modal as HTMLElement).getByText('Editar processo')).toBeInTheDocument();
+    expect(within(modal as HTMLElement).getByText('Editar etapa')).toBeInTheDocument();
     expect(within(modal as HTMLElement).getByRole('button', { name: /Média/i })).toBeInTheDocument();
   });
 });

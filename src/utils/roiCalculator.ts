@@ -106,6 +106,40 @@ function custoMedioHora(responsaveis: Responsavel[]): number {
   return total / responsaveis.length;
 }
 
+// Melhorias relevantes a um processo: vínculo direto M:N (m.processos) OU
+// indireto via gargalos do processo (gargalo → melhoria). Fonte única usada
+// tanto para contar a abrangência (rateio do investimento) quanto para
+// selecionar as melhorias dentro de calcProcesso — evita divergência.
+function melhoriasRelevantesIds(proc: Processo, gargalos: Gargalo[], melhorias: Melhoria[]): Set<string> {
+  const gargalosDoProc = new Set(gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id));
+  const viaGargalos = new Set(
+    gargalos.filter(g => gargalosDoProc.has(g.id)).flatMap(g => melhoriaIdsDoGargalo(g))
+  );
+  return new Set(
+    melhorias.filter(m => (m.processos || []).includes(proc.id) || viaGargalos.has(m.id)).map(m => m.id)
+  );
+}
+
+// Refs (id ou nome) dos sistemas usados por um processo, no cenário atual (era)
+// e projetado (ficou = etapa.ficou.sistemas ∪ sistemas das melhorias relevantes).
+// Fonte única usada para contar abrangência (rateio do custo) e para somar custo.
+function sistemasRefsDoProcesso(
+  proc: Processo, etapas: Etapa[], gargalos: Gargalo[], melhorias: Melhoria[],
+): { era: Set<string>; ficou: Set<string> } {
+  const era = new Set<string>();
+  const ficou = new Set<string>();
+  for (const e of etapas) {
+    if (e.process_id !== proc.id) continue;
+    (e.sistemas || []).forEach(s => era.add(s));
+    (e.ficou?.sistemas ?? e.sistemas ?? []).forEach(s => ficou.add(s));
+  }
+  const relevantes = melhoriasRelevantesIds(proc, gargalos, melhorias);
+  for (const m of melhorias) {
+    if (relevantes.has(m.id)) (m.sistemas || []).forEach(s => ficou.add(s));
+  }
+  return { era, ficou };
+}
+
 function calcProcesso(
   proc: Processo,
   etapas: Etapa[],
@@ -115,6 +149,13 @@ function calcProcesso(
   melhorias: Melhoria[],
   custoHoraMedio: number,
   clusterDoProcesso: string,
+  // Quantos processos cada melhoria atinge (global). O custo de uma melhoria é
+  // ÚNICO — rateado entre os processos que ela atende, nunca multiplicado.
+  abrangenciaMelhorias: Map<string, number>,
+  // Idem para sistemas: quantos processos usam cada sistema (era/ficou). O custo
+  // recorrente do sistema é único e rateado entre os processos que o usam.
+  usoSistemaEra: Map<string, number>,
+  usoSistemaFicou: Map<string, number>,
 ): RoiProcesso {
   const ann = execucoesAnuais(proc);
   const etapasDoProc = etapas.filter(e => e.process_id === proc.id);
@@ -182,39 +223,23 @@ function calcProcesso(
   // Onda E: rateio (%) deixou de ser por (etapa, sistema) e passou a ser por
   // (cluster, sistema) — definido em sistema.clustersRateio. Resolvemos pelo
   // cluster do projeto deste processo.
-  const sistemasIdsEra = new Set<string>();
-  const sistemasIdsFicou = new Set<string>();
-  etapasDoProc.forEach(e => {
-    (e.sistemas || []).forEach(s => sistemasIdsEra.add(s));
-    const ficouS = e.ficou?.sistemas ?? e.sistemas ?? [];
-    ficouS.forEach(s => sistemasIdsFicou.add(s));
-  });
-  const gargalosDoProcIds = new Set(gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id));
-  // Vínculo gargalo→melhoria via N:M `gargalo_melhorias` (g.melhorias[]).
-  const melhoriaIdsViaGargalosDoProc = new Set(
-    gargalos
-      .filter(g => gargalosDoProcIds.has(g.id))
-      .flatMap(g => melhoriaIdsDoGargalo(g))
-  );
-  const melhoriasDoProc = melhorias.filter(m =>
-    (m.processos || []).includes(proc.id) ||
-    melhoriaIdsViaGargalosDoProc.has(m.id)
-  );
-  melhoriasDoProc.forEach(m => {
-    (m.sistemas || []).forEach(s => sistemasIdsFicou.add(s));
-  });
+  const { era: sistemasIdsEra, ficou: sistemasIdsFicou } =
+    sistemasRefsDoProcesso(proc, etapas, gargalos, melhorias);
   const sistemasUsados = sistemas.filter(s => sistemasIdsEra.has(s.id) || sistemasIdsEra.has(s.nome));
   const sistemasUsadosFicou = sistemas.filter(s => sistemasIdsFicou.has(s.id) || sistemasIdsFicou.has(s.nome));
   // Fração (0–1) do custo do sistema atribuída ao cluster do processo.
   // Default 1 (100%) quando o sistema não tem rateio definido para este cluster.
-  const fracDeSistema = (s: Sistema) => {
+  const fracCluster = (s: Sistema) => {
     if (!clusterDoProcesso) return 1;
     const m = (s.clustersRateio || []).find(c => c.cluster === clusterDoProcesso);
     const pct = m && m.rateio != null ? m.rateio : 100;
     return Math.max(0, Math.min(100, pct)) / 100;
   };
-  const fracEra = fracDeSistema;
-  const fracFicou = fracDeSistema;
+  // O custo recorrente de um sistema é único: a parcela do cluster (clustersRateio)
+  // é dividida entre os processos que usam o sistema, para o somatório não
+  // multiplicar o custo (mesmo princípio do rateio do custo de melhoria).
+  const fracEra = (s: Sistema) => fracCluster(s) / Math.max(usoSistemaEra.get(s.id) ?? 1, 1);
+  const fracFicou = (s: Sistema) => fracCluster(s) / Math.max(usoSistemaFicou.get(s.id) ?? 1, 1);
   // Apenas o custo MENSAL recorrente (custo_variavel_por_uso × 12) entra aqui, rateado.
   // O custo fixo/licença/setup é registrado como investimento via melhoria
   // (custoExternoUnico), então não entra no custo recorrente para evitar dupla
@@ -228,27 +253,21 @@ function calcProcesso(
   // Melhorias relevantes para este processo: vínculo direto via M:N + vínculo
   // indireto via gargalos do processo (uma melhoria que resolve um gargalo do
   // processo, mesmo sem estar associada explicitamente, conta no investimento).
-  const gargalosDoProc = new Set(
-    gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id)
-  );
-  const melhoriaIdsViaGargalos = new Set(
-    gargalos
-      .filter(g => gargalosDoProc.has(g.id))
-      .flatMap(g => melhoriaIdsDoGargalo(g))
-  );
-  const melhoriasRelevantes = melhorias.filter(m =>
-    (m.processos || []).includes(proc.id) ||
-    melhoriaIdsViaGargalos.has(m.id)
-  );
-  const investTreinamentoMelhorias = melhoriasRelevantes.reduce((s, m) => s + ((m.training_hours || 0) * custoHoraTreino), 0);
+  const relevantesIds = melhoriasRelevantesIds(proc, gargalos, melhorias);
+  const melhoriasRelevantes = melhorias.filter(m => relevantesIds.has(m.id));
+  // O custo de uma melhoria é único: quando ela atende N processos (direto ou
+  // via gargalo), cada processo absorve apenas 1/N. Assim o somatório por
+  // processo reconstrói o custo real da melhoria — sem multiplicar.
+  const rateioMelhoria = (m: Melhoria) => 1 / Math.max(abrangenciaMelhorias.get(m.id) ?? 1, 1);
+  const investTreinamentoMelhorias = melhoriasRelevantes.reduce((s, m) => s + ((m.training_hours || 0) * custoHoraTreino) * rateioMelhoria(m), 0);
   const investExecucaoMelhorias = melhoriasRelevantes.reduce((s, m) => {
     const horasExec = (m.executadoPor || []).reduce((acc, r) => {
       const ch = (r.responsavelId && respById.get(r.responsavelId)?.hourly_rate) || custoHoraMedio;
       return acc + (r.horas || 0) * ch;
     }, 0);
-    return s + horasExec;
+    return s + horasExec * rateioMelhoria(m);
   }, 0);
-  const investExterno = melhoriasRelevantes.reduce((s, m) => s + (m.one_time_external_cost || 0), 0);
+  const investExterno = melhoriasRelevantes.reduce((s, m) => s + (m.one_time_external_cost || 0) * rateioMelhoria(m), 0);
   // Implantação interna (horas de quem desenvolve o sistema) é rateada na MELHORIA
   // (melhoria.executadoPor), não no sistema. Mantido como 0 para o breakdown.
   const investSistemas = 0;
@@ -320,9 +339,30 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const custoHoraMedioVal = custoMedioHora(input.responsaveis);
   const projetoById = new Map((input.projetos || []).map(p => [p.id, p]));
 
+  // Abrangência de cada melhoria = nº de processos que ela atende. Usado para
+  // ratear o custo único da melhoria (sem multiplicar no somatório).
+  const abrangenciaMelhorias = new Map<string, number>();
+  for (const p of input.processos) {
+    for (const id of melhoriasRelevantesIds(p, input.gargalos, input.melhorias)) {
+      abrangenciaMelhorias.set(id, (abrangenciaMelhorias.get(id) ?? 0) + 1);
+    }
+  }
+
+  // Idem para sistemas: nº de processos que usam cada sistema (era/ficou), para
+  // ratear o custo recorrente único entre eles.
+  const usoSistemaEra = new Map<string, number>();
+  const usoSistemaFicou = new Map<string, number>();
+  for (const p of input.processos) {
+    const refs = sistemasRefsDoProcesso(p, input.etapas, input.gargalos, input.melhorias);
+    for (const s of input.sistemas) {
+      if (refs.era.has(s.id) || refs.era.has(s.nome)) usoSistemaEra.set(s.id, (usoSistemaEra.get(s.id) ?? 0) + 1);
+      if (refs.ficou.has(s.id) || refs.ficou.has(s.nome)) usoSistemaFicou.set(s.id, (usoSistemaFicou.get(s.id) ?? 0) + 1);
+    }
+  }
+
   const porProcesso = input.processos.map(p => {
     const cluster = (p.project_id && projetoById.get(p.project_id)?.clusterName) || '';
-    return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster);
+    return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou);
   });
 
   const sum = <K extends keyof RoiProcesso>(k: K, src = porProcesso): number =>

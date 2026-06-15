@@ -91,12 +91,12 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-documento-form">
       <div className="modal modal-wide">
         <h2>{documento ? 'Editar Documento' : 'Novo Documento'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
-        <FormField label="Nome" error={erro} required tooltip={dica('documentos.form.nome')}>
+        <FormField label="Nome" error={erro} required tooltip={dica('documentos.form.nome')} dataTour="modal-campo-1">
           <input
             type="text"
             value={nome}
@@ -105,7 +105,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
           />
         </FormField>
         <div className="cadastro-form-row">
-          <FormField label="Tipo" tooltip={dica('documentos.form.tipo')}>
+          <FormField label="Tipo" tooltip={dica('documentos.form.tipo')} dataTour="modal-campo-2">
             <Select value={tipo} onChange={(v) => { touch(); setTipo(v); }} options={TIPO_OPCOES} placeholder="Selecione..." />
           </FormField>
           <FormField label="Formato" tooltip={dica('documentos.form.formato')}>
@@ -142,7 +142,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </Modal>

@@ -13,6 +13,8 @@ import DecimalInput from '@/components/equipe/mapa/DecimalInput';
 import { dica } from '@/utils/tooltips';
 import { parseDecimal, formatDecimal, formatarMoeda, parseMoeda } from '@/utils/format';
 import type { Melhoria, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
+import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
+import { Pencil } from 'lucide-react';
 import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import { useCreateMelhoria, useUpdateMelhoria } from '@/hooks/useMelhorias';
 import { useGargalosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
@@ -51,17 +53,22 @@ function RateioEditor({
               <DecimalInput
                 className="chip-vol-input"
                 placeholder="Horas"
+                title={dica('comum.horas')}
                 value={r.horas}
                 onChange={(n) => handlers.changeHoras(index, String(n))}
                 style={{ width: 90 }}
               />
-              <button type="button" className="btn-chip-remove" onClick={() => handlers.remove(index)} aria-label={`Remover ${r.nome || 'item'}`}>&times;</button>
+              <IconTooltip label={`Remover ${r.nome || 'item'}`} side="bottom">
+                <button type="button" className="btn-chip-remove" onClick={() => handlers.remove(index)} aria-label={`Remover ${r.nome || 'item'}`}>&times;</button>
+              </IconTooltip>
             </div>
           );
         })}
       </div>
       <div className="chip-selector-add" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button type="button" className="btn-chip-add" onClick={handlers.add}>{addLabel}</button>
+        <IconTooltip label={addLabel} side="bottom">
+          <button type="button" className="btn-chip-add" onClick={handlers.add}>{addLabel}</button>
+        </IconTooltip>
         {arr.length > 0 && (
           <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
             Total: <strong style={{ color: 'var(--accent-color)' }}>{formatDecimal(total, 'h')}</strong>
@@ -76,9 +83,11 @@ interface Props {
   aberto: boolean;
   melhoria: Melhoria | null;
   onClose: () => void;
+  /** Edição cruzada: abre o modal de edição do gargalo resolvido (opcional). */
+  onEditarGargalo?: (id: string) => void;
 }
 
-export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) {
+export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarGargalo }: Props) {
   const createMelhoria = useCreateMelhoria();
   const updateMelhoria = useUpdateMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
@@ -204,12 +213,12 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-melhoria-form">
       <div className="modal modal-wide">
         <h2>{melhoria ? 'Editar Melhoria' : 'Nova Melhoria'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
-        <FormField label="Nome" error={erro} required tooltip={dica('melhorias.form.nome')}>
+        <FormField label="Nome" error={erro} required tooltip={dica('melhorias.form.nome')} dataTour="modal-campo-1">
           <input
             type="text"
             value={nome}
@@ -227,7 +236,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
         </div>
 
         <div className="cadastro-form-secao">Escopo</div>
-        <FormField label="Processos atendidos" tooltip={dica('melhorias.form.processos')}>
+        <FormField label="Processos atendidos" tooltip={dica('melhorias.form.processos')} dataTour="modal-campo-2">
           <ChipSelector
             options={processoOptionsOrdenado.map((p) => p.name)}
             value={processosNomes}
@@ -247,7 +256,24 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
           <div className="cadastro-form-leitura">
             <div className="cadastro-form-leitura-label">Gargalos resolvidos</div>
             <div className="tags">
-              {gargalosDaMelhoria.map(g => (<span key={g.id} className="tag tag-etapa">{g.nome}</span>))}
+              {gargalosDaMelhoria.map(g => (
+                onEditarGargalo ? (
+                  <IconTooltip key={g.id} label={`Editar ${g.nome}`} side="bottom">
+                    <button
+                      type="button"
+                      className="tag tag-etapa is-editavel"
+                      onClick={() => onEditarGargalo(g.id)}
+                      title={`Editar ${g.nome}`}
+                      aria-label={`Editar ${g.nome}`}
+                    >
+                      {g.nome}
+                      <Pencil size={11} className="tag-edit" aria-hidden="true" />
+                    </button>
+                  </IconTooltip>
+                ) : (
+                  <span key={g.id} className="tag tag-etapa">{g.nome}</span>
+                )
+              ))}
             </div>
             <p className="cadastro-form-leitura-hint">
               O vínculo gargalo↔melhoria é editado na página <strong>Gargalos</strong> (campo "Melhorias vinculadas").
@@ -286,7 +312,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </Modal>

@@ -50,7 +50,7 @@ export default function ProjetoDetalheModal({
   ];
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-projeto-detalhe">
       <div className="modal modal-wide processo-det projeto-det">
         <header className="processo-det-head">
           <div className="processo-det-head-main">

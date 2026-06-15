@@ -4,6 +4,8 @@
 
 import type { ReactNode } from 'react';
 import { Search, X } from 'lucide-react';
+import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
+import { dica } from '@/utils/tooltips';
 
 interface Props {
   busca: string;
@@ -26,8 +28,9 @@ export default function CadastroToolbar({ busca, onBusca, total, visiveis, subst
 
   return (
     <div className="cadastro-toolbar">
-      <label className="cadastro-busca">
+      <label className="cadastro-busca" data-tour="page-search">
         <Search size={15} strokeWidth={2.2} />
+        <DicaIcon text={dica('comum.busca')} />
         <input
           type="text"
           value={busca}

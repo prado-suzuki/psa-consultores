@@ -81,13 +81,13 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-responsavel-form">
       <div className="modal modal-wide">
         <h2>{responsavel ? 'Editar Responsável' : 'Novo Responsável'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
         <div className="cadastro-form-row">
-          <FormField label="Nome" error={erro} required tooltip={dica('responsaveis.form.nome')}>
+          <FormField label="Nome" error={erro} required tooltip={dica('responsaveis.form.nome')} dataTour="modal-campo-1">
             <input
               type="text"
               value={nome}
@@ -113,14 +113,14 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
           <FormField label="Cluster" tooltip={dica('responsaveis.form.cluster')}>
             <Select value={clusterId} onChange={(v) => { touch(); setClusterId(v); }} options={CLUSTER_OPCOES} />
           </FormField>
-          <FormField label="Custo por hora trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')}>
+          <FormField label="Custo por hora trabalhada (R$)" tooltip={dica('responsaveis.form.hourly_rate')} dataTour="modal-campo-2">
             <input type="text" value={custoHora} onChange={(e) => { touch(); setCustoHora(e.target.value); }} placeholder="Ex: 90,00" />
           </FormField>
         </div>
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-          <button className="btn-save" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
       </div>
     </Modal>

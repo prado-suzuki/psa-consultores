@@ -13,14 +13,17 @@ import CadastroItem from '@/components/equipe/mapa/cadastro/CadastroItem';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import ConfirmDeleteModal from '@/components/equipe/mapa/cadastro/ConfirmDeleteModal';
 import MelhoriaFormModal from '@/components/equipe/mapa/cadastro/MelhoriaFormModal';
+import GargaloFormModal from '@/components/equipe/mapa/cadastro/GargaloFormModal';
 import { canon } from '@/utils/cascataEngine';
 import { useFocusParam } from '@/utils/useFocusParam';
-import type { Melhoria, MelhoriaStatus } from '@/types';
+import type { Gargalo, Melhoria, MelhoriaStatus } from '@/types';
 import { useMelhorias, useDeleteMelhoria } from '@/hooks/useMelhorias';
+import { useGargalosLista } from '@/hooks/useDominioListas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
 export default function MelhoriasPage() {
   const { data: items = [], isLoading } = useMelhorias();
+  const { data: gargalos = [] } = useGargalosLista();
   const deleteMelhoria = useDeleteMelhoria();
   const { cluster: fCluster } = useClusterGlobal();
 
@@ -28,6 +31,8 @@ export default function MelhoriasPage() {
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<Melhoria | null>(null);
   const [confirmDel, setConfirmDel] = useState<Melhoria | null>(null);
+  // Edição cruzada: gargalos resolvidos (leitura no form) abrem o modal de gargalo.
+  const [gargEmEdicao, setGargEmEdicao] = useState<Gargalo | null>(null);
 
   const statusDe = (m: Melhoria): MelhoriaStatus => (m.improvement_status as MelhoriaStatus) || 'Não iniciado';
 
@@ -113,7 +118,11 @@ export default function MelhoriasPage() {
         aberto={formAberto}
         melhoria={emEdicao}
         onClose={() => setFormAberto(false)}
+        onEditarGargalo={(gid) => { const g = gargalos.find(x => x.id === gid); if (g) setGargEmEdicao(g); }}
       />
+
+      {/* Edição cruzada — gargalo resolvido editado de dentro do form de melhoria */}
+      <GargaloFormModal aberto={!!gargEmEdicao} gargalo={gargEmEdicao} onClose={() => setGargEmEdicao(null)} />
 
       <ConfirmDeleteModal
         aberto={!!confirmDel}

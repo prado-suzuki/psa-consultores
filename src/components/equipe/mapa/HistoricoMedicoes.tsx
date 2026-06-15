@@ -5,6 +5,8 @@
 
 import { useSnapshots } from '@/hooks/useSnapshots';
 import { formatDecimal, formatarMoeda } from '@/utils/format';
+import { Tooltip } from '@/components/equipe/mapa/Tooltip';
+import { dica } from '@/utils/tooltips';
 
 interface Props {
   processId: string;
@@ -28,14 +30,14 @@ export default function HistoricoMedicoes({ processId, processoNome }: Props) {
       <table className="dashv2-table">
         <thead>
           <tr>
-            <th>Quando</th>
-            <th>Custo / ano</th>
-            <th>Horas / ano</th>
-            <th>Economia / ano</th>
-            <th>ROI</th>
-            <th>Payback</th>
-            <th>Horas liberadas</th>
-            <th>Δ custo</th>
+            <th><Tooltip text={dica('historico.col.quando')}>Quando</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.custoAno')}>Custo / ano</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.horasAno')}>Horas / ano</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.economiaAno')}>Economia / ano</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.roi')}>ROI</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.payback')}>Payback</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.horasLiberadas')}>Horas liberadas</Tooltip></th>
+            <th><Tooltip text={dica('historico.col.deltaCusto')}>Δ custo</Tooltip></th>
           </tr>
         </thead>
         <tbody>

@@ -7,6 +7,7 @@
 import type { ReactNode } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
+import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
 
 export interface CadastroItemMeta {
   icone: ReactNode;
@@ -34,6 +35,7 @@ export default function CadastroItem({ titulo, descricao, badge, leading, metas,
   return (
     <div
       className="cadastro-item"
+      data-tour="cadastro-item"
       role="button"
       tabIndex={0}
       onClick={(e) => { if (!shouldIgnoreOpenClick(e)) onOpen(); }}
@@ -69,24 +71,28 @@ export default function CadastroItem({ titulo, descricao, badge, leading, metas,
         </div>
       )}
       <div className="cadastro-item-acoes">
-        <button
-          type="button"
-          className="cadastro-item-acao"
-          title="Editar"
-          aria-label={`Editar ${titulo}`}
-          onClick={(e) => { e.stopPropagation(); onEdit(); }}
-        >
-          <Pencil size={14} />
-        </button>
-        <button
-          type="button"
-          className="cadastro-item-acao cadastro-item-acao-danger"
-          title="Excluir"
-          aria-label={`Excluir ${titulo}`}
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-        >
-          <Trash2 size={14} />
-        </button>
+        <IconTooltip label={`Editar ${titulo}`} side="bottom">
+          <button
+            type="button"
+            className="cadastro-item-acao"
+            title={`Editar ${titulo}`}
+            aria-label={`Editar ${titulo}`}
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          >
+            <Pencil size={14} />
+          </button>
+        </IconTooltip>
+        <IconTooltip label={`Excluir ${titulo}`} side="bottom">
+          <button
+            type="button"
+            className="cadastro-item-acao cadastro-item-acao-danger"
+            title={`Excluir ${titulo}`}
+            aria-label={`Excluir ${titulo}`}
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </IconTooltip>
       </div>
     </div>
   );

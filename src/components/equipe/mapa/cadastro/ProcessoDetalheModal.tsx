@@ -77,7 +77,7 @@ export default function ProcessoDetalheModal({
   const complexidade = normalizarComplexidade(processo.complexity_level);
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-processo-detalhe">
       <div className="modal modal-wide processo-det">
         <header className="processo-det-head">
           <div className="processo-det-head-main">

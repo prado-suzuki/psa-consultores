@@ -1,29 +1,30 @@
-// Processos — tela principal do MAPA (padrão "Cadastro Puro").
-// Foco puro em mapeamento e cadastro: busca + lista enxuta + "Modal da Paz"
-// (detalhe com progressive disclosure) + form unificado. Sem KPIs, sem filtros
-// de dashboard, sem sopa de botões — a ação primária (Mapear etapas) vive na
-// linha e no modal; o ROI/análise vive no Dashboard ROI e em /mapear.
+// Processos/Etapas — tela principal do MAPA (padrão "Cadastro Puro").
+// Foco puro em cadastro: busca + lista enxuta + form unificado. Clicar numa
+// linha vai DIRETO para o mapeamento de sub-etapas (/processos/:id/mapear).
+// O ROI/análise vive no Dashboard ROI e na própria página de mapeamento.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Search, SearchX, Workflow, X } from 'lucide-react';
+import { ChevronDown, Eye, Search, SearchX, Workflow, X } from 'lucide-react';
 import Select from '@/components/equipe/mapa/Select';
+import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
 import CadastroPageShell from '@/components/equipe/mapa/cadastro/CadastroPageShell';
 import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import ConfirmDeleteModal from '@/components/equipe/mapa/cadastro/ConfirmDeleteModal';
 import ProcessoItem from '@/components/equipe/mapa/cadastro/ProcessoItem';
 import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
-import ProcessoDetalheModal from '@/components/equipe/mapa/cadastro/ProcessoDetalheModal';
+import ProjetoDetalheModal from '@/components/equipe/mapa/cadastro/ProjetoDetalheModal';
+import ProjetoFormModal from '@/components/equipe/mapa/cadastro/ProjetoFormModal';
+import MelhoriaFormModal from '@/components/equipe/mapa/cadastro/MelhoriaFormModal';
 import { canon } from '@/utils/cascataEngine';
 import { enrichEtapas } from '@/utils/enrichEtapas';
-import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
-import { useFocusParam } from '@/utils/useFocusParam';
 import { normalizarComplexidade } from '@/components/equipe/mapa/cadastros/processoOpcoes';
-import type { Processo } from '@/types';
+import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import {
-  useEtapasLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
+  useEtapasLista, useMelhoriasLista, useProjetosLista,
   useDocumentosLista, useSistemasLista, useResponsaveisLista,
 } from '@/hooks/useDominioListas';
 import { useProcessos, useDeleteProcesso } from '@/hooks/useProcessos';
@@ -35,17 +36,17 @@ function getProjectCode(projectName?: string): string | null {
 }
 
 export default function ProcessosPage() {
+  const navigate = useNavigate();
   const { data: items = [], isLoading } = useProcessos();
   const deleteProcesso = useDeleteProcesso();
   const { data: projetos = [] } = useProjetosLista();
   const { cluster: fCluster } = useClusterGlobal();
 
-  // Dados de apoio para a "Modal da Paz" (etapas enriquecidas + vínculos).
+  // Dados de apoio (etapas enriquecidas + backlog do detalhe do projeto).
   const { data: rawEtapas = [] } = useEtapasLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
-  const { data: gargalos = [] } = useGargalosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
 
   const etapas = useMemo(
@@ -61,14 +62,41 @@ export default function ProcessosPage() {
     () => new Map(projetos.map(p => [p.id, p.name])),
     [projetos],
   );
+  // Sub-etapas (process_stages) por etapa (process_id) — usado no detalhe do projeto.
+  const etapasPorProcesso = useMemo(() => {
+    const map = new Map<string, Etapa[]>();
+    for (const e of etapas) {
+      const arr = map.get(e.process_id) || [];
+      arr.push(e);
+      map.set(e.process_id, arr);
+    }
+    for (const arr of map.values()) {
+      arr.sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0) || a.name.localeCompare(b.name));
+    }
+    return map;
+  }, [etapas]);
+  const processoNomeById = useMemo(() => new Map(items.map(p => [p.id, p.name])), [items]);
 
   const [busca, setBusca] = useState('');
   const [fProjeto, setFProjeto] = useState('');
   const [fMapeado, setFMapeado] = useState<'todos' | 'mapeados' | 'faltam'>('todos');
   const [formAberto, setFormAberto] = useState(false);
   const [emEdicao, setEmEdicao] = useState<Processo | null>(null);
-  const [detalhe, setDetalhe] = useState<Processo | null>(null);
   const [confirmDel, setConfirmDel] = useState<Processo | null>(null);
+  // Detalhe do projeto (rótulo "processo") aberto pelo card de agrupamento.
+  const [projetoDetalhe, setProjetoDetalhe] = useState<Projeto | null>(null);
+  // Grupos (processos) expandidos. Vazio = todos recolhidos por padrão, para
+  // não despejar todas as etapas de uma vez.
+  const [gruposAbertos, setGruposAbertos] = useState<Set<string>>(new Set());
+  const toggleGrupo = (pid: string) => setGruposAbertos(prev => {
+    const next = new Set(prev);
+    if (next.has(pid)) next.delete(pid); else next.add(pid);
+    return next;
+  });
+
+  // Edição cruzada disparada pelo detalhe do projeto (projeto e melhorias).
+  const [projEmEdicao, setProjEmEdicao] = useState<Projeto | null>(null);
+  const [melEmEdicao, setMelEmEdicao] = useState<Melhoria | null>(null);
 
   // Escopo por cluster (derivado do projeto do processo).
   const noEscopo = useMemo(() => items.filter(p =>
@@ -149,38 +177,37 @@ export default function ProcessosPage() {
     return [{ value: '', label: 'Todos os projetos' }, ...opts];
   }, [noEscopo, projetoNomePorId]);
 
-  // ── Vínculos por processo (para a Modal da Paz) ──
-  const etapasDoProcesso = (pid: string) =>
-    etapas.filter(e => e.process_id === pid).sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
-  const gargalosDoProcesso = (pid: string) =>
-    gargalos.filter(g => (g.processos || []).includes(pid));
-  const melhoriasDoProcesso = (pid: string) => {
-    const idsViaGargalos = new Set(gargalosDoProcesso(pid).flatMap(g => melhoriaIdsDoGargalo(g)));
-    return melhorias.filter(m => (m.processos || []).includes(pid) || idsViaGargalos.has(m.id));
-  };
-
   const abrirCriar = () => { setEmEdicao(null); setFormAberto(true); };
   const abrirEditar = (p: Processo) => { setEmEdicao(p); setFormAberto(true); };
-
-  // ?focus= abre o detalhe do processo (uma vez).
-  const focusId = useFocusParam();
-  const focusConsumido = useRef(false);
-  useEffect(() => {
-    if (focusConsumido.current || isLoading || !focusId) return;
-    const p = items.find(x => x.id === focusId);
-    if (p) { focusConsumido.current = true; setDetalhe(p); }
-  }, [isLoading, focusId, items]);
 
   const metaDe = (p: Processo): string | undefined => {
     const proj = p.project_id ? projetoNomePorId.get(p.project_id) : undefined;
     return [proj, p.frequency].filter(Boolean).join(' · ') || undefined;
   };
 
-  const detalheEtapas = detalhe ? etapasDoProcesso(detalhe.id) : [];
-  const detalheGargalos = detalhe ? gargalosDoProcesso(detalhe.id).map(g => ({ id: g.id, nome: g.nome })) : [];
-  const detalheMelhorias = detalhe ? melhoriasDoProcesso(detalhe.id).map(m => ({ id: m.id, nome: m.improvement_description })) : [];
   const mapearUrl = (p: Processo) => `/equipe/digital/mapa/processos/${encodeURIComponent(p.id)}/mapear`;
 
+  // Detalhe do projeto (processo): suas etapas (process) + backlog de melhorias.
+  const detalheProjProcessos = useMemo(
+    () => (projetoDetalhe
+      ? items.filter(p => p.project_id === projetoDetalhe.id)
+          .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name))
+      : []),
+    [projetoDetalhe, items],
+  );
+  const detalheProjBacklog = useMemo(() => {
+    if (!projetoDetalhe) return [] as Melhoria[];
+    const pids = new Set(items.filter(p => p.project_id === projetoDetalhe.id).map(p => p.id));
+    return melhorias
+      .filter(m => {
+        if ((m.improvement_status || 'Não iniciado') !== 'Backlog') return false;
+        if ((m as Melhoria & { project_id?: string | null }).project_id === projetoDetalhe.id) return true;
+        return (m.processos || []).some(pid => pids.has(pid));
+      })
+      .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
+  }, [projetoDetalhe, items, melhorias]);
+
+  // Clicar na linha vai direto para o mapeamento de sub-etapas.
   const renderItem = (p: Processo) => (
     <ProcessoItem
       key={p.id}
@@ -190,30 +217,69 @@ export default function ProcessosPage() {
       badge={normalizarComplexidade(p.complexity_level) || undefined}
       mapearTo={mapearUrl(p)}
       mapeado={processosComEtapas.has(p.id)}
-      onOpen={() => setDetalhe(p)}
+      onOpen={() => navigate(mapearUrl(p))}
       onEdit={() => abrirEditar(p)}
       onDelete={() => setConfirmDel(p)}
     />
   );
 
-  // Lista: agrupada por projeto quando "Todos os projetos"; plana quando filtrada.
+  // Lista: agrupada por processo (recolhível) quando "Todos os processos";
+  // plana quando filtrada por um processo. Busca/filtro ativos forçam a
+  // expansão para os resultados aparecerem.
   const renderLista = (): ReactNode => {
     if (fProjeto) return visiveis.map(renderItem);
+    const forcarAberto = busca.trim() !== '' || fMapeado !== 'todos';
     const out: ReactNode[] = [];
     let grupoAtual: string | null = null;
+    let aberto = false;
     for (const p of visiveis) {
       const pid = p.project_id || '__sem__';
       if (pid !== grupoAtual) {
         grupoAtual = pid;
-        const nome = p.project_id ? (projetoNomePorId.get(p.project_id) || p.project_id) : 'Sem projeto';
-        const total = visiveis.filter(x => (x.project_id || '__sem__') === pid).length;
+        const proj = p.project_id ? projetos.find(x => x.id === p.project_id) : undefined;
+        const nome = proj?.name || (p.project_id ? projetoNomePorId.get(p.project_id) || p.project_id : 'Sem processo');
+        const totalGrupo = visiveis.filter(x => (x.project_id || '__sem__') === pid).length;
+        aberto = forcarAberto || gruposAbertos.has(pid);
         out.push(
-          <div key={`grp-${pid}`} className="cadastro-grupo-titulo">
-            {nome}<span className="cadastro-grupo-count">{total}</span>
+          <div
+            key={`grp-${pid}`}
+            className="cadastro-grupo-titulo"
+            style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            <button
+              type="button"
+              onClick={() => toggleGrupo(pid)}
+              aria-expanded={aberto}
+              title={aberto ? 'Recolher processos' : 'Expandir processos'}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }}
+            >
+              <ChevronDown
+                size={16}
+                style={{ flexShrink: 0, transition: 'transform .15s ease', transform: aberto ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+                aria-hidden="true"
+              />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</span>
+              <span className="cadastro-grupo-count">{totalGrupo}</span>
+            </button>
+            {proj && (
+              <IconTooltip label={`Ver projeto "${nome}"`} side="left">
+                <button
+                  type="button"
+                  className="processo-mapear"
+                  style={{ cursor: 'pointer', flexShrink: 0 }}
+                  onClick={(e) => { e.stopPropagation(); setProjetoDetalhe(proj); }}
+                  aria-label={`Ver detalhes do projeto ${nome}`}
+                  title={`Ver detalhes do projeto ${nome}`}
+                >
+                  <Eye size={15} strokeWidth={2.2} />
+                  <span>Ver projeto</span>
+                </button>
+              </IconTooltip>
+            )}
           </div>,
         );
       }
-      out.push(renderItem(p));
+      if (aberto) out.push(renderItem(p));
     }
     return out;
   };
@@ -229,7 +295,7 @@ export default function ProcessosPage() {
     >
       {noEscopo.length > 0 && (
         <div className="cadastro-toolbar">
-          <label className="cadastro-busca">
+          <label className="cadastro-busca" data-tour="page-search">
             <Search size={15} strokeWidth={2.2} />
             <input
               type="text"
@@ -244,10 +310,10 @@ export default function ProcessosPage() {
               </button>
             )}
           </label>
-          <div className="cadastro-toolbar-projeto">
+          <div className="cadastro-toolbar-projeto" data-tour="processos-filtro-projeto">
             <Select value={fProjeto} onChange={setFProjeto} options={projetoOpcoes} compact ariaLabel="Agrupar / filtrar por projeto" />
           </div>
-          <div className="cadastro-tags">
+          <div className="cadastro-tags" data-tour="processos-tags">
             <button
               type="button"
               className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
@@ -311,18 +377,23 @@ export default function ProcessosPage() {
         {renderLista()}
       </CadastroLista>
 
-      <ProcessoDetalheModal
-        aberto={!!detalhe}
-        processo={detalhe}
-        codigo={detalhe ? codigoDe(detalhe) : ''}
-        projetoNome={detalhe?.project_id ? projetoNomePorId.get(detalhe.project_id) : undefined}
-        etapas={detalheEtapas}
-        gargalos={detalheGargalos}
-        melhorias={detalheMelhorias}
-        mapearTo={detalhe ? mapearUrl(detalhe) : '#'}
-        onClose={() => setDetalhe(null)}
-        onEditar={() => { const p = detalhe; setDetalhe(null); if (p) abrirEditar(p); }}
+      {/* Detalhe do projeto — aberto pelo botão "Ver projeto" do card de grupo */}
+      <ProjetoDetalheModal
+        aberto={!!projetoDetalhe}
+        projeto={projetoDetalhe}
+        processos={detalheProjProcessos}
+        etapasPorProcesso={etapasPorProcesso}
+        backlog={detalheProjBacklog}
+        processoNomeById={processoNomeById}
+        onClose={() => setProjetoDetalhe(null)}
+        onEditar={() => { const pj = projetoDetalhe; setProjetoDetalhe(null); if (pj) setProjEmEdicao(pj); }}
+        onEditarProcesso={(pid) => { const p = items.find(x => x.id === pid); if (p) abrirEditar(p); }}
+        onEditarMelhoria={(mid) => { const m = melhorias.find(x => x.id === mid); if (m) setMelEmEdicao(m); }}
       />
+
+      {/* Modais de edição cruzada disparados pelo detalhe do projeto */}
+      <ProjetoFormModal aberto={!!projEmEdicao} projeto={projEmEdicao} onClose={() => setProjEmEdicao(null)} />
+      <MelhoriaFormModal aberto={!!melEmEdicao} melhoria={melEmEdicao} onClose={() => setMelEmEdicao(null)} />
 
       <ProcessoFormModal
         aberto={formAberto}
@@ -334,13 +405,13 @@ export default function ProcessosPage() {
       <ConfirmDeleteModal
         aberto={!!confirmDel}
         nomeItem={confirmDel?.name ?? ''}
-        substantivo="processo"
-        aviso="Todas as etapas e mapeamentos (Como Era e Como Ficou) deste processo serão removidos."
+        substantivo="etapa"
+        aviso="Todas as sub-etapas e mapeamentos (Como Era e Como Ficou) desta etapa serão removidos."
         onClose={() => setConfirmDel(null)}
         onConfirm={async () => {
           if (!confirmDel) return;
           await deleteProcesso.mutateAsync({ id: confirmDel.id, old: confirmDel });
-          toast.success('Processo excluído');
+          toast.success('Etapa excluída');
         }}
       />
     </CadastroPageShell>

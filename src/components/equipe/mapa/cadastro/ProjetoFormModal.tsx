@@ -137,7 +137,7 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose}>
+    <Modal isOpen={aberto} onClose={onClose} tourId="modal-projeto-form">
       <div className="modal modal-wide processo-det processo-form">
         <header className="processo-det-head">
           <div className="processo-det-head-main">

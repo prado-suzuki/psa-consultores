@@ -5,6 +5,7 @@
 
 import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 interface Props {
   titulo: string;
@@ -30,7 +31,7 @@ export default function CadastroPageShell({ titulo, subtitulo, eyebrow, ctaLabel
   return (
     <div className="card cadastro-shell">
       <header className="cadastro-header">
-        <div className="cadastro-header-titles">
+        <div className="cadastro-header-titles" data-tour="page-header">
           {eyebrow && (
             <span className="cadastro-eyebrow">
               <span className="cadastro-eyebrow-dot" aria-hidden="true" />
@@ -40,10 +41,13 @@ export default function CadastroPageShell({ titulo, subtitulo, eyebrow, ctaLabel
           <h1 className="cadastro-title">{titulo}</h1>
           <p className="cadastro-sub">{subtitulo}</p>
         </div>
-        <button type="button" className="cadastro-cta" onClick={onCta}>
-          <Plus size={16} strokeWidth={2.5} />
-          <span>{ctaLabel}</span>
-        </button>
+        <div className="cadastro-header-actions">
+          <TourTrigger />
+          <button type="button" className="cadastro-cta" onClick={onCta} data-tour="page-cta">
+            <Plus size={16} strokeWidth={2.5} />
+            <span>{ctaLabel}</span>
+          </button>
+        </div>
       </header>
       {children}
     </div>

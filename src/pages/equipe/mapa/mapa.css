@@ -1460,6 +1460,35 @@ h1{
 .projeto-backlog-header{
   grid-template-columns: minmax(300px, 1.3fr) minmax(180px, 0.8fr) 90px 90px;
 }
+.projeto-backlog-header.tem-acao,
+.projeto-backlog-row.tem-acao{
+  grid-template-columns: minmax(300px, 1.3fr) minmax(180px, 0.8fr) 90px 90px 44px;
+}
+
+/* Edição cruzada — atalho de edição em cada linha (processo/melhoria) do
+   detalhe do projeto. Revelado no hover, como nas linhas de cadastro. */
+.projeto-process-row-head{ display: flex; align-items: stretch; }
+.projeto-process-row-head .projeto-process-summary{ flex: 1; min-width: 0; }
+.projeto-row-edit{
+  align-self: center;
+  margin-right: 8px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.projeto-process-row:hover .projeto-row-edit,
+.projeto-process-row-head:focus-within .projeto-row-edit{ opacity: 1; }
+.projeto-backlog-edit{
+  justify-self: end;
+  align-self: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+.projeto-backlog-row:hover .projeto-backlog-edit,
+.projeto-backlog-row:focus-within .projeto-backlog-edit{ opacity: 1; }
+@media (hover: none){
+  .projeto-row-edit,
+  .projeto-backlog-edit{ opacity: 1; }
+}
 
 .projeto-detail-row-list{
   border: 1px solid #e2e8f0;

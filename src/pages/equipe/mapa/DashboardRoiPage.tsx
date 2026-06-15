@@ -18,6 +18,7 @@ import {
 import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 // `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
 // também ser usado pelo SetorEvolucaoPage. Manter a função local apenas como
@@ -550,6 +551,7 @@ export default function DashboardRoiPage() {
           <p>Esta apresentação percorre, em uma linha narrativa única, o caminho do projeto: o escopo mapeado, os gargalos diagnosticados, as melhorias propostas, o cenário futuro projetado e o retorno consolidado do investment.</p>
         </div>
         <div className="dashv2-hero-actions">
+          <TourTrigger />
           <NotasInfoButton onClick={() => setNotasOpen(true)} />
           <button
             className="btn-secondary"

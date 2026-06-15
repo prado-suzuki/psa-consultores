@@ -28,6 +28,7 @@ import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataD
 import { buildCascataGraph } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
 import './styles/cascata.css';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 export default function CascataPage() {
   const { data: gargalos = [], isLoading: gLoading } = useGargalos();
@@ -124,6 +125,7 @@ export default function CascataPage() {
             <strong>Gargalos</strong>; aqui o grafo é derivado automaticamente em tempo real.
           </p>
         </div>
+        <TourTrigger />
       </div>
 
       <PageStats

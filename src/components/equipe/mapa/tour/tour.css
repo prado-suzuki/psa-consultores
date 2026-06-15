@@ -1,0 +1,81 @@
+/* Estilos do gatilho de tour ("?"). Arquivo dedicado para NÃO poluir mapa.css.
+   Importado em MapaRoutes.tsx junto aos demais CSS do módulo. Os botões vivem
+   dentro de `.app-root`, então as variáveis CSS do MAPA resolvem normalmente
+   (com fallback literal por segurança). */
+
+.mapa-tour-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid var(--outline-variant, #e2e8f0);
+  background: var(--surface-lowest, #ffffff);
+  color: var(--accent-color, #0d9488);
+  cursor: pointer;
+  transition: background var(--transition-fast, 0.15s ease),
+    border-color var(--transition-fast, 0.15s ease),
+    color var(--transition-fast, 0.15s ease);
+  /* Pulso de atenção (anel teal), no espírito do indicador de status/cluster. */
+  animation: mapa-tour-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes mapa-tour-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(13, 148, 136, 0.45); }
+  50% { box-shadow: 0 0 0 7px rgba(13, 148, 136, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapa-tour-trigger { animation: none; }
+}
+
+.mapa-tour-trigger:hover {
+  background: var(--accent-50, #f0fdfa);
+  border-color: var(--accent-color, #0d9488);
+}
+
+.mapa-tour-trigger:focus-visible {
+  outline: 2px solid var(--accent-color, #0d9488);
+  outline-offset: 2px;
+}
+
+/* Agrupa o gatilho ao lado do CTA primário nas páginas de Cadastro Puro. */
+.cadastro-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Empurra o gatilho para a direita em cabeçalhos com título à esquerda. */
+.page-header-v2 .mapa-tour-trigger,
+.dashv2-hero-actions .mapa-tour-trigger {
+  margin-left: auto;
+}
+
+/* Cluster de controles do modal (guia "?" + Sair), agrupados e alinhados num
+   chip flutuante no canto superior direito. Sobrepõe o position absoluto que o
+   .modal-exit-button traz do mapa.css (sem editar mapa.css). */
+.modal-toolbar {
+  position: absolute;
+  top: -16px;
+  right: -12px;
+  z-index: 6;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.modal-toolbar .modal-exit-button,
+.modal-toolbar .modal-tour-trigger {
+  position: static;
+  top: auto;
+  right: auto;
+}
+
+.modal-tour-trigger {
+  width: 34px;
+  height: 34px;
+  box-shadow: 0 12px 24px -12px rgba(15, 23, 42, 0.35);
+}

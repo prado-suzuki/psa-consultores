@@ -1,6 +1,8 @@
 import Select from './Select';
 import DecimalInput from './DecimalInput';
 import type { DocRef, PessoaRef, ResponsavelEtapa } from '@/types';
+import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
+import { dica } from '@/utils/tooltips';
 
 type ChipItem = DocRef | PessoaRef | ResponsavelEtapa | string;
 
@@ -113,6 +115,7 @@ export default function ChipSelector({
                 <DecimalInput
                   className="chip-vol-input"
                   placeholder="Volume"
+                  title={dica('comum.volume')}
                   value={item.volume}
                   onChange={(n) => handleChangeVolume(index, String(n))}
                 />
@@ -121,32 +124,36 @@ export default function ChipSelector({
                 <DecimalInput
                   className="chip-vol-input"
                   placeholder="Horas"
-                  title="Horas"
+                  title={dica('comum.horas')}
                   value={item.horas || 0}
                   onChange={(n) => handleChangeHoras(index, String(n))}
                 />
               )}
-              <button
-                type="button"
-                className="btn-chip-remove"
-                onClick={() => handleRemove(index)}
-                aria-label={`Remover ${nome || 'item'}`}
-              >
-                &times;
-              </button>
+              <IconTooltip label={`Remover ${nome || 'item'}`} side="bottom">
+                <button
+                  type="button"
+                  className="btn-chip-remove"
+                  onClick={() => handleRemove(index)}
+                  aria-label={`Remover ${nome || 'item'}`}
+                >
+                  &times;
+                </button>
+              </IconTooltip>
             </div>
           );
         })}
       </div>
       <div className="chip-selector-add">
-        <button
-          type="button"
-          className="btn-chip-add"
-          onClick={handleAdd}
-          disabled={options.length === 0 && !onAddNew}
-        >
-          {addLabel}
-        </button>
+        <IconTooltip label={addLabel} side="bottom">
+          <button
+            type="button"
+            className="btn-chip-add"
+            onClick={handleAdd}
+            disabled={options.length === 0 && !onAddNew}
+          >
+            {addLabel}
+          </button>
+        </IconTooltip>
       </div>
     </div>
   );

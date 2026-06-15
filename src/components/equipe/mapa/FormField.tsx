@@ -9,15 +9,17 @@ interface FormFieldProps {
   required?: boolean;
   id?: string;
   tooltip?: string;
+  /** Âncora `data-tour` no grupo do campo, para destacá-lo num tour guiado. */
+  dataTour?: string;
   children: ReactNode;
 }
 
-export default function FormField({ label, compact, error, required, id: propId, tooltip, children }: FormFieldProps) {
+export default function FormField({ label, compact, error, required, id: propId, tooltip, dataTour, children }: FormFieldProps) {
   const generatedId = useId();
   const fieldId = propId || generatedId;
 
   return (
-    <div className={`form-group${compact ? ' compact' : ''}${error ? ' has-error' : ''}`}>
+    <div className={`form-group${compact ? ' compact' : ''}${error ? ' has-error' : ''}`} data-tour={dataTour}>
       <label htmlFor={fieldId}>
         {label}
         {required && <span style={{ color: 'var(--danger-color)', marginLeft: 4 }}>*</span>}

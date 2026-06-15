@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, ArrowLeft, Layers, Pencil } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Layers, Pencil, Settings2 } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
@@ -35,6 +35,8 @@ import {
   useResponsaveisLista, useGargalosLista, useMelhoriasLista,
 } from '@/hooks/useDominioListas';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
+import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 const EXECUCAO_OPCOES = [
   { value: 'manual', label: 'Manual' },
@@ -59,6 +61,7 @@ export default function MapearProcessoPage() {
   const queryClient = useQueryClient();
 
   const [aba, setAba] = useState<Aba>('como-era');
+  const [editProcessoOpen, setEditProcessoOpen] = useState(false);
 
   // ── Dados base via hooks (Hook-First) ──────────────────────────────────
   const processoQuery = useProcessoUnico(id);
@@ -313,7 +316,7 @@ export default function MapearProcessoPage() {
   // ============================================================
   return (
     <div className="card cadastro-shell mapear-shell">
-      <div className="mapear-topbar">
+      <div className="mapear-topbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button
           className="mapear-voltar"
           onClick={() => navigate('/equipe/digital/mapa/processos')}
@@ -322,6 +325,17 @@ export default function MapearProcessoPage() {
           <ArrowLeft size={16} strokeWidth={2.2} />
           <span>Processos</span>
         </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <TourTrigger />
+          <button
+            className="mapear-voltar"
+            onClick={() => setEditProcessoOpen(true)}
+            title="Editar este processo"
+          >
+            <Settings2 size={15} strokeWidth={2.2} />
+            <span>Editar processo</span>
+          </button>
+        </div>
       </div>
 
       <div className="mapear-header">
@@ -656,6 +670,7 @@ export default function MapearProcessoPage() {
       </Modal>
 
       {/* Cadastro rápido a partir do editor de etapas */}
+      <ProcessoFormModal aberto={editProcessoOpen} processo={processo} onClose={() => setEditProcessoOpen(false)} />
       <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
       <NovoSistemaModal isOpen={cadastroRapido === 'sistema'} onClose={() => setCadastroRapido(null)} />
       <NovoResponsavelModal isOpen={cadastroRapido === 'responsavel'} onClose={() => setCadastroRapido(null)} />
