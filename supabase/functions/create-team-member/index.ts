@@ -11,7 +11,20 @@ interface CreateTeamMemberRequest {
   roles?: string[];
 }
 
-const FIXED_PASSWORD = 'trocarsenha';
+/**
+ * Gera uma senha temporária forte (~22 caracteres base64url).
+ * Substituiu a senha fixa 'trocarsenha' por motivos de segurança:
+ * cada usuário recebe uma senha única e aleatória, retornada ao
+ * frontend para ser exibida uma única vez ao admin.
+ */
+function generateTemporaryPassword(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
