@@ -91,10 +91,10 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
   const { data: profiles = {} } = useQuery({
     queryKey: ['audit-lookup-profiles'],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
+      const { data } = await supabase.from('profiles').select('id, first_name, last_name');
       const map: Record<string, string> = {};
-      (data as any[])?.forEach((p) => {
-        map[p.id] = `${p.first_name} ${p.last_name}`.trim();
+      data?.forEach((p) => {
+        map[p.id] = `${p.first_name} ${p.last_name ?? ''}`.trim();
       });
       return map;
     },
@@ -114,7 +114,8 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
     queryKey: ['historico-cadastro', ids],
     enabled: ids.length > 0,
     queryFn: async () => {
-      const { data, error } = await (supabase.from('audit_logs' as any) as any)
+      const { data, error } = await supabase
+        .from('audit_logs')
         .select(
           'id, entity_type, entity_name, action, changed_fields, performed_by, performed_at, details',
         )
@@ -123,7 +124,7 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
         .order('performed_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return data as AuditLog[];
+      return data as unknown as AuditLog[];
     },
   });
 

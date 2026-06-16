@@ -441,6 +441,10 @@ const GerarDocumento = () => {
     void validarVersao()
       .catch(() => undefined)
       .finally(() => setRecongelarPendente(false));
+    // Gatilho one-shot: dispara o re-congelamento quando recongelarPendente vira
+    // true e se auto-reseta. validarVersao é recriada a cada render e lê o estado
+    // atual no momento da chamada — incluí-la nas deps só causaria re-disparos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [congelado, recongelarPendente]);
 
   const confirmarValidacao = async () => {
