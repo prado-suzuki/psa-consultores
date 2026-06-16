@@ -1662,6 +1662,7 @@ export type Database = {
           pj_pessoa_id: string | null
           snapshot_dados: Json | null
           snapshot_flags: Json | null
+          snapshot_validado_em: string | null
           snapshot_versoes_blocos: Json | null
           status: string
           updated_at: string
@@ -1682,6 +1683,7 @@ export type Database = {
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
+          snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
           updated_at?: string
@@ -1702,6 +1704,7 @@ export type Database = {
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
+          snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
           updated_at?: string
@@ -1818,6 +1821,46 @@ export type Database = {
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_notificacao_visto: {
+        Row: {
+          documento_gerado_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          documento_gerado_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          documento_gerado_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_notificacao_visto_documento_gerado_id_fkey"
+            columns: ["documento_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
