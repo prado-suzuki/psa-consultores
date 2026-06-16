@@ -42,7 +42,7 @@ export default function CadastroPageShell({ titulo, subtitulo, eyebrow, ctaLabel
           <p className="cadastro-sub">{subtitulo}</p>
         </div>
         <div className="cadastro-header-actions">
-          <TourTrigger />
+          <TourTrigger dataTour="help" />
           <button type="button" className="cadastro-cta" onClick={onCta} data-tour="page-cta">
             <Plus size={16} strokeWidth={2.5} />
             <span>{ctaLabel}</span>

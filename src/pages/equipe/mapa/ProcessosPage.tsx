@@ -25,10 +25,11 @@ import { normalizarComplexidade } from '@/components/equipe/mapa/cadastros/proce
 import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import {
   useEtapasLista, useMelhoriasLista, useProjetosLista,
-  useDocumentosLista, useSistemasLista, useResponsaveisLista,
+  useDocumentosLista, useSistemasLista, useResponsaveisLista, useGargalosLista,
 } from '@/hooks/useDominioListas';
 import { useProcessos, useDeleteProcesso } from '@/hooks/useProcessos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
 function getProjectCode(projectName?: string): string | null {
   const match = projectName?.trim().match(/^(P\d+)/i);
@@ -48,6 +49,7 @@ export default function ProcessosPage() {
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: melhorias = [] } = useMelhoriasLista();
+  const { data: gargalos = [] } = useGargalosLista();
 
   const etapas = useMemo(
     () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
@@ -202,10 +204,10 @@ export default function ProcessosPage() {
       .filter(m => {
         if ((m.improvement_status || 'Não iniciado') !== 'Backlog') return false;
         if ((m as Melhoria & { project_id?: string | null }).project_id === projetoDetalhe.id) return true;
-        return (m.processos || []).some(pid => pids.has(pid));
+        return processoIdsDaMelhoria(m.id, gargalos).some(pid => pids.has(pid));
       })
       .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
-  }, [projetoDetalhe, items, melhorias]);
+  }, [projetoDetalhe, items, melhorias, gargalos]);
 
   // Clicar na linha vai direto para o mapeamento de sub-etapas.
   const renderItem = (p: Processo) => (
@@ -385,6 +387,7 @@ export default function ProcessosPage() {
         etapasPorProcesso={etapasPorProcesso}
         backlog={detalheProjBacklog}
         processoNomeById={processoNomeById}
+        gargalos={gargalos}
         onClose={() => setProjetoDetalhe(null)}
         onEditar={() => { const pj = projetoDetalhe; setProjetoDetalhe(null); if (pj) setProjEmEdicao(pj); }}
       />

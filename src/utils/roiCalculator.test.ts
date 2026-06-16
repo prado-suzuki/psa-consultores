@@ -1,11 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { calcularRoi, type RoiInput } from './roiCalculator';
-import type { Processo, Etapa, Melhoria, Responsavel, Sistema } from '../types';
+import type { Processo, Etapa, Melhoria, Responsavel, Sistema, Gargalo } from '../types';
 
 // Constrói um cenário mínimo: 1 responsável (R$100/h), 2 processos mensais,
 // cada um com 1 etapa que cai de 1h (AS-IS) para 0h (TO-BE) -> economia de
 // 1h × 100 × 12 = R$1.200/processo. Uma única melhoria (custo único R$1.000)
-// está vinculada aos DOIS processos.
+// está vinculada a um gargalo que se manifesta nas etapas dos DOIS processos
+// — o vínculo melhoria→processo é DERIVADO via gargalo_melhorias + gargalo_etapas.
 function cenario(): RoiInput {
   const responsaveis = [{ id: 'r1', hourly_rate: 100 } as unknown as Responsavel];
 
@@ -32,7 +33,6 @@ function cenario(): RoiInput {
     {
       id: 'm1',
       improvement_description: 'Automação compartilhada',
-      processos: ['p1', 'p2'],          // mesma melhoria atende os 2 processos
       sistemas: [],
       executadoPor: [],
       training_hours: 0,
@@ -40,12 +40,26 @@ function cenario(): RoiInput {
     } as unknown as Melhoria,
   ];
 
+  // Gargalo g1 ataca m1 (gargalo_melhorias) e se manifesta nas etapas dos 2
+  // processos (gargalo_etapas) — daí a relevância da melhoria é derivada.
+  const gargalos = [
+    {
+      id: 'g1',
+      nome: 'Gargalo compartilhado',
+      melhorias: ['m1'],
+      etapasOrigem: [
+        { etapaId: 'e1', scenario: 'AS-IS', processo_id: 'p1' },
+        { etapaId: 'e2', scenario: 'AS-IS', processo_id: 'p2' },
+      ],
+    } as unknown as Gargalo,
+  ];
+
   return {
     processos,
     etapas: [mkEtapa('e1', 'p1'), mkEtapa('e2', 'p2')],
     responsaveis,
     sistemas: [],
-    gargalos: [],
+    gargalos,
     melhorias,
   };
 }
@@ -70,7 +84,10 @@ describe('calcularRoi — custo único de melhoria (não multiplicado)', () => {
 
   it('melhoria vinculada a 1 só processo mantém o custo integral nesse processo', () => {
     const input = cenario();
-    (input.melhorias[0] as unknown as { processos: string[] }).processos = ['p1'];
+    // O gargalo passa a se manifestar só na etapa de p1 → melhoria atende só p1.
+    (input.gargalos[0] as unknown as { etapasOrigem: unknown[] }).etapasOrigem = [
+      { etapaId: 'e1', scenario: 'AS-IS', processo_id: 'p1' },
+    ];
     const r = calcularRoi(input);
     expect(r.investimentoTotal).toBeCloseTo(1000, 2);
     expect(r.porProcesso[0].investimento).toBeCloseTo(1000, 2);

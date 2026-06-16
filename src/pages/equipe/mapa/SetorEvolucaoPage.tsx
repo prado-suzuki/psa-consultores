@@ -14,6 +14,7 @@ import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
+import { processoIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
@@ -111,7 +112,7 @@ export default function SetorEvolucaoPage() {
     [etapas, idsProc],
   );
   const gargalosFiltrados = useMemo(
-    () => gargalos.filter(g => (g.processos || []).some(pid => idsProc.has(pid))),
+    () => gargalos.filter(g => processoIdsDoGargalo(g).some(pid => idsProc.has(pid))),
     [gargalos, idsProc],
   );
 
@@ -218,7 +219,7 @@ export default function SetorEvolucaoPage() {
           </p>
         </div>
         <div className="dashv2-hero-actions">
-          <TourTrigger />
+          <TourTrigger dataTour="help" />
           <NotasInfoButton onClick={() => setNotasOpen(true)} />
         </div>
       </div>

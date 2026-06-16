@@ -14,11 +14,11 @@ import { dica } from '@/utils/tooltips';
 import { parseDecimal, formatDecimal, formatarMoeda, parseMoeda } from '@/utils/format';
 import type { Melhoria, Responsavel, MelhoriaStatus, AcaoTd } from '@/types';
 import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
-import { Pencil } from 'lucide-react';
 import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import { useCreateMelhoria, useUpdateMelhoria } from '@/hooks/useMelhorias';
-import { useGargalosLista, useSistemasLista, useResponsaveisLista, useProcessosLista } from '@/hooks/useDominioListas';
+import { useGargalosLista, useSistemasLista, useResponsaveisLista } from '@/hooks/useDominioListas';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
 
 type RateioRow = { nome: string; horas: number };
 
@@ -83,40 +83,36 @@ interface Props {
   aberto: boolean;
   melhoria: Melhoria | null;
   onClose: () => void;
-  /** Edição cruzada: abre o modal de edição do gargalo resolvido (opcional). */
+  /** @deprecated Os gargalos agora são editáveis direto aqui (ChipSelector).
+   *  Prop mantida por compatibilidade com chamadores; não é mais usada. */
   onEditarGargalo?: (id: string) => void;
 }
 
-export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarGargalo }: Props) {
+export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) {
   const createMelhoria = useCreateMelhoria();
   const updateMelhoria = useUpdateMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
   const { data: gargalosList = [] } = useGargalosLista();
   const { data: sistemasList = [] } = useSistemasLista();
   const { data: responsaveisList = [] } = useResponsaveisLista();
-  const { data: processosList = [] } = useProcessosLista();
 
-  const processoNomeById = useMemo(() => new Map(processosList.map(p => [p.id, p.name])), [processosList]);
-  const processoIdByNome = useMemo(() => new Map(processosList.map(p => [p.name, p.id])), [processosList]);
   const sistemaNomeById = useMemo(() => new Map(sistemasList.map(s => [s.id, s.nome])), [sistemasList]);
   const sistemaIdByNome = useMemo(() => new Map(sistemasList.map(s => [s.nome, s.id])), [sistemasList]);
   const gargaloNomeById = useMemo(() => new Map(gargalosList.map(g => [g.id, g.nome])), [gargalosList]);
-  const processoOptionsOrdenado = useMemo(
-    () => [...processosList].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0)),
-    [processosList],
-  );
+  const gargaloIdByNome = useMemo(() => new Map(gargalosList.map(g => [g.nome, g.id])), [gargalosList]);
   const statusOptions = MELHORIA_STATUSES.map(s => ({ value: s, label: s }));
 
-  const idsToNames = (ids: string[]) => ids.map(id => processoNomeById.get(id)).filter((n): n is string => Boolean(n));
-  const namesToIds = (names: string[]) => names.map(n => processoIdByNome.get(n)).filter((id): id is string => Boolean(id));
   const sistemaIdsToNames = (ids: string[]) => ids.map(id => sistemaNomeById.get(id)).filter((n): n is string => Boolean(n));
   const sistemaNamesToIds = (names: string[]) => names.map(n => sistemaIdByNome.get(n)).filter((id): id is string => Boolean(id));
+  const gargaloIdsToNames = (ids: string[]) => ids.map(id => gargaloNomeById.get(id)).filter((n): n is string => Boolean(n));
+  const gargaloNamesToIds = (names: string[]) => names.map(n => gargaloIdByNome.get(n)).filter((id): id is string => Boolean(id));
 
   const [nome, setNome] = useState('');
   const [status, setStatus] = useState<MelhoriaStatus>('Não iniciado');
   const [clusterId, setClusterId] = useState('');
-  const [processosNomes, setProcessosNomes] = useState<string[]>([]);
   const [sistemas, setSistemas] = useState<string[]>([]);
+  const [gargalosNomes, setGargalosNomes] = useState<string[]>([]);
+  const [gargaloRapidoOpen, setGargaloRapidoOpen] = useState(false);
   const [executadoPor, setExecutadoPor] = useState<RateioRow[]>([]);
   const [treinamentoPor, setTreinamentoPor] = useState<RateioRow[]>([]);
   const [acoesTd, setAcoesTd] = useState<AcaoTd[]>([]);
@@ -134,8 +130,8 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
       setNome(melhoria.improvement_description);
       setStatus((melhoria.improvement_status as MelhoriaStatus) || 'Não iniciado');
       setClusterId(melhoria.cluster_id || '');
-      setProcessosNomes(idsToNames(melhoria.processos || []));
       setSistemas(sistemaIdsToNames(melhoria.sistemas || []));
+      setGargalosNomes(gargaloIdsToNames(melhoria.gargalos || []));
       setAcoesTd([...(melhoria.acoesTd || [])]);
       setExecutadoPor((melhoria.executadoPor || []).map(r => ({ ...r })));
       // Migração: melhoria legada só com scalar training_hours vira UMA entrada
@@ -147,12 +143,12 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
       setCustoExternoUnico(melhoria.one_time_external_cost ? formatarMoeda(melhoria.one_time_external_cost) : '');
     } else {
       setNome(''); setStatus('Não iniciado'); setClusterId('');
-      setProcessosNomes([]); setSistemas([]); setAcoesTd([]);
+      setSistemas([]); setGargalosNomes([]); setAcoesTd([]);
       setExecutadoPor([]); setTreinamentoPor([]); setCustoExternoUnico('');
     }
     setErro('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, melhoria, processoNomeById, sistemaNomeById]);
+  }, [aberto, melhoria, sistemaNomeById, gargaloNomeById]);
 
   const touch = () => { tocado.current = true; };
 
@@ -175,10 +171,6 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
   const rateioTreino = makeRateioHandlers(treinamentoPor, setTreinamentoPor);
   const sumHoras = (arr: { horas: number }[]) => arr.reduce((s, r) => s + (Number(r.horas) || 0), 0);
 
-  const gargalosDaMelhoria = melhoria
-    ? (melhoria.gargalos ?? []).map(id => ({ id, nome: gargaloNomeById.get(id) || id }))
-    : [];
-
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome da melhoria.'); return; }
     setErro('');
@@ -188,8 +180,8 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
       improvement_description: nome.trim(),
       improvement_status: status,
       cluster_id: clusterId || undefined,
-      processos: namesToIds(processosNomes),
       sistemas: sistemaNamesToIds(sistemas),
+      gargalos: gargaloNamesToIds(gargalosNomes),
       acoesTd,
       executadoPor: executadoPor.filter(r => r.nome?.trim()),
       treinamentoPor: treinoLimpo,
@@ -213,6 +205,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
   };
 
   return (
+    <>
     <Modal isOpen={aberto} onClose={onClose} tourId="modal-melhoria-form">
       <div className="modal modal-wide">
         <h2>{melhoria ? 'Editar Melhoria' : 'Nova Melhoria'}</h2>
@@ -236,14 +229,6 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
         </div>
 
         <div className="cadastro-form-secao">Escopo</div>
-        <FormField label="Processos atendidos" tooltip={dica('melhorias.form.processos')} dataTour="modal-campo-2">
-          <ChipSelector
-            options={processoOptionsOrdenado.map((p) => p.name)}
-            value={processosNomes}
-            onChange={(v) => { touch(); setProcessosNomes(v as string[]); }}
-            addLabel="Adicionar processo"
-          />
-        </FormField>
         <FormField label="Ações TD" tooltip={dica('melhorias.form.acoesTd')}>
           <ChipSelector
             options={ACOES_TD as unknown as string[]}
@@ -252,38 +237,16 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
             addLabel="Adicionar ação"
           />
         </FormField>
-        {melhoria && gargalosDaMelhoria.length > 0 ? (
-          <div className="cadastro-form-leitura">
-            <div className="cadastro-form-leitura-label">Gargalos resolvidos</div>
-            <div className="tags">
-              {gargalosDaMelhoria.map(g => (
-                onEditarGargalo ? (
-                  <IconTooltip key={g.id} label={`Editar ${g.nome}`} side="bottom">
-                    <button
-                      type="button"
-                      className="tag tag-etapa is-editavel"
-                      onClick={() => onEditarGargalo(g.id)}
-                      title={`Editar ${g.nome}`}
-                      aria-label={`Editar ${g.nome}`}
-                    >
-                      {g.nome}
-                      <Pencil size={11} className="tag-edit" aria-hidden="true" />
-                    </button>
-                  </IconTooltip>
-                ) : (
-                  <span key={g.id} className="tag tag-etapa">{g.nome}</span>
-                )
-              ))}
-            </div>
-            <p className="cadastro-form-leitura-hint">
-              O vínculo gargalo↔melhoria é editado na página <strong>Gargalos</strong> (campo "Melhorias vinculadas").
-            </p>
-          </div>
-        ) : (
-          <p className="cadastro-form-hint-inline">
-            <strong>Gargalos resolvidos</strong> são vinculados na página de <strong>Gargalos</strong> — a melhoria aparece automaticamente nos gargalos que a referenciam.
-          </p>
-        )}
+        <FormField label="Gargalos resolvidos" tooltip="Selecione os gargalos que esta melhoria ataca, ou cadastre um novo sem sair do fluxo. O vínculo também pode ser editado pela página Gargalos.">
+          <ChipSelector
+            options={gargalosList.map((g) => g.nome)}
+            value={gargalosNomes}
+            onChange={(v) => { touch(); setGargalosNomes(v as string[]); }}
+            addLabel="Adicionar gargalo"
+            onAddNew={() => setGargaloRapidoOpen(true)}
+            addNewLabel="Cadastrar novo gargalo"
+          />
+        </FormField>
 
         <div className="cadastro-form-secao">Sistemas</div>
         <FormField label="Sistemas desenvolvidos/utilizados" tooltip={dica('melhorias.form.sistemas')}>
@@ -316,5 +279,13 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose, onEditarG
         </div>
       </div>
     </Modal>
+
+    {/* Cadastro rápido de gargalo a partir do seletor acima */}
+    <NovoGargaloModal
+      isOpen={gargaloRapidoOpen}
+      onClose={() => setGargaloRapidoOpen(false)}
+      onCreated={(g) => { touch(); setGargalosNomes(prev => [...prev, g.nome]); }}
+    />
+    </>
   );
 }

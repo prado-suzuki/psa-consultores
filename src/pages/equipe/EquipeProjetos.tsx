@@ -5,6 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { currentAmbiente } from '@/config/api';
 import { useEstruturaEquipesAll } from '@/hooks/useEstruturaEquipesAll';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { useClusters } from '@/hooks/useClusters';
+import { matchCluster, SEM_CLUSTER } from '@/lib/clusterFilter';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +55,7 @@ interface Project {
   external_client_id: string | null;
   leader_id: string | null;
   area: string | null;
+  cluster_id: string | null;
   equipe_id: string | null;
   product_service: string | null;
   project_front: string | null;
@@ -166,8 +170,11 @@ const EquipeProjetos = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [areaFilter, setAreaFilter] = usePersistedState<string>('rotina.projetos.area', 'all');
+  const [statusFilter, setStatusFilter] = usePersistedState<string>('rotina.projetos.status', 'all');
+  // Chave compartilhada: o cluster selecionado é o mesmo entre Projetos e Processos.
+  const [clusterFilter, setClusterFilter] = usePersistedState<string>('rotina.cluster', '');
+  const { data: clusters = [] } = useClusters();
   const [activeTab, setActiveTab] = useState('info');
   const [backlogTasks, setBacklogTasks] = useState<BacklogTask[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
@@ -197,6 +204,7 @@ const EquipeProjetos = () => {
     external_client_id: '',
     leader_id: '',
     equipe_id: '',
+    cluster_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -211,6 +219,7 @@ const EquipeProjetos = () => {
     external_client_id: '',
     leader_id: '',
     equipe_id: '',
+    cluster_id: '',
     product_service: '',
     project_front: '',
     justification_type: '',
@@ -413,6 +422,7 @@ const EquipeProjetos = () => {
         external_client_id: selectedProject.external_client_id || '',
         leader_id: selectedProject.leader_id || '',
         equipe_id: selectedProject.equipe_id || '',
+        cluster_id: selectedProject.cluster_id || '',
         product_service: selectedProject.product_service || '',
         project_front: selectedProject.project_front || '',
         justification_type: selectedProject.justification_type || '',
@@ -567,12 +577,22 @@ const EquipeProjetos = () => {
       (!eq && (project.area ?? '').toLowerCase() ===
         (areasList.find(a => a.id === areaFilter)?.name ?? '').toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    return matchesArea && matchesStatus;
+    return matchesArea && matchesStatus && matchCluster(clusterFilter, project.cluster_id);
   });
 
   const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Cluster obrigatório: sem ele o projeto nasce invisível no MAPA.
+    if (!newProject.cluster_id) {
+      toast({
+        title: "Cluster obrigatório",
+        description: "Selecione o cluster do projeto para que ele apareça no MAPA.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase.from('projects').insert({
         name: newProject.name,
@@ -581,6 +601,7 @@ const EquipeProjetos = () => {
         external_client_id: newProject.external_client_id || null,
         leader_id: newProject.leader_id || null,
         equipe_id: newProject.equipe_id || null,
+        cluster_id: newProject.cluster_id,
         product_service: newProject.product_service || null,
         project_front: newProject.project_front || null,
         justification_type: newProject.justification_type || null,
@@ -599,19 +620,20 @@ const EquipeProjetos = () => {
       });
 
       setIsDialogOpen(false);
-      setNewProject({ 
-        name: '', 
-        description: '', 
-        client_name: '', 
+      setNewProject({
+        name: '',
+        description: '',
+        client_name: '',
         external_client_id: '',
         leader_id: '',
         equipe_id: '',
+        cluster_id: '',
         product_service: '',
         project_front: '',
         justification_type: '',
         justification_detail: '',
-        start_date: '', 
-        end_date: '' 
+        start_date: '',
+        end_date: ''
       });
       fetchProjects();
     } catch (error) {
@@ -627,6 +649,16 @@ const EquipeProjetos = () => {
   const handleUpdateProject = async () => {
     if (!selectedProject) return;
 
+    // Cluster obrigatório (é também por aqui que se corrige projeto legado sem cluster).
+    if (!editProject.cluster_id) {
+      toast({
+        title: "Cluster obrigatório",
+        description: "Selecione o cluster do projeto para que ele apareça no MAPA.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     try {
       await assertCanPerform('projects', 'update', selectedProject.id);
       const { error } = await supabase
@@ -638,6 +670,7 @@ const EquipeProjetos = () => {
           external_client_id: editProject.external_client_id || null,
           leader_id: editProject.leader_id || null,
           equipe_id: editProject.equipe_id || null,
+          cluster_id: editProject.cluster_id,
           product_service: editProject.product_service || null,
           project_front: editProject.project_front || null,
           justification_type: editProject.justification_type || null,
@@ -699,7 +732,15 @@ const EquipeProjetos = () => {
 
   const handleCreateProcess = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProject) return;
+    // Processo exige projeto (não há processo avulso) — herda o cluster do projeto.
+    if (!selectedProject) {
+      toast({
+        title: "Projeto obrigatório",
+        description: "Selecione um projeto antes de criar o processo.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       const { error } = await supabase.from('processes').insert({
@@ -712,6 +753,7 @@ const EquipeProjetos = () => {
         volume_month: newProcess.volume_month ? Number(newProcess.volume_month) : null,
         financial_impact: newProcess.financial_impact || null,
         project_id: selectedProject.id,
+        cluster_id: selectedProject.cluster_id, // herda do projeto → aparece no MAPA junto dele
         created_by: user?.id
       });
 
@@ -719,7 +761,10 @@ const EquipeProjetos = () => {
 
       toast({
         title: "Processo criado!",
-        description: "O novo processo foi adicionado ao projeto.",
+        description: selectedProject.cluster_id
+          ? "O novo processo foi adicionado ao projeto."
+          : "Processo criado, mas o projeto não tem cluster — ele não aparecerá no MAPA até o projeto receber um cluster.",
+        variant: selectedProject.cluster_id ? undefined : "destructive"
       });
 
       setIsProcessDialogOpen(false);
@@ -966,7 +1011,13 @@ const EquipeProjetos = () => {
             </Button>
           </div>
 
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={(open) => {
+            setIsDialogOpen(open);
+            // Pré-seleciona o cluster do filtro ativo (se houver um específico) ao abrir.
+            if (open && clusterFilter && clusterFilter !== SEM_CLUSTER) {
+              setNewProject((p) => ({ ...p, cluster_id: p.cluster_id || clusterFilter }));
+            }
+          }}>
             <DialogTrigger asChild>
               <Button className="bg-primary hover:bg-primary/90">
                 <Plus className="h-4 w-4 mr-2" />
@@ -988,7 +1039,27 @@ const EquipeProjetos = () => {
                     required
                   />
                 </div>
-                
+
+                <div className="space-y-2">
+                  <Label htmlFor="cluster">Cluster *</Label>
+                  <Select
+                    value={newProject.cluster_id}
+                    onValueChange={(v) => setNewProject({ ...newProject, cluster_id: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o cluster" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clusters.filter(c => c.ativo).map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Obrigatório — define em qual cluster o projeto aparece no MAPA.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="external_client">Cliente PSA</Label>
@@ -1234,6 +1305,18 @@ const EquipeProjetos = () => {
           <Filter className="h-4 w-4 text-gray-500" />
           <span className="text-sm text-gray-600">Filtros:</span>
         </div>
+        <Select value={clusterFilter === '' ? '__todos__' : clusterFilter} onValueChange={(v) => setClusterFilter(v === '__todos__' ? '' : v)}>
+          <SelectTrigger className="w-48 bg-white border-gray-300">
+            <SelectValue placeholder="Todos os clusters" />
+          </SelectTrigger>
+          <SelectContent className="bg-white border-gray-200">
+            <SelectItem value="__todos__">Todos os clusters</SelectItem>
+            <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+            {clusters.filter(c => c.ativo).map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={areaFilter} onValueChange={setAreaFilter}>
           <SelectTrigger className="w-48 bg-white border-gray-300">
             <SelectValue placeholder="Todas as áreas" />
@@ -1257,11 +1340,11 @@ const EquipeProjetos = () => {
             <SelectItem value="archived">Arquivado</SelectItem>
           </SelectContent>
         </Select>
-        {(areaFilter !== 'all' || statusFilter !== 'all') && (
-          <Button 
-            variant="ghost" 
+        {(areaFilter !== 'all' || statusFilter !== 'all' || clusterFilter !== '') && (
+          <Button
+            variant="ghost"
             size="sm"
-            onClick={() => { setAreaFilter('all'); setStatusFilter('all'); }}
+            onClick={() => { setAreaFilter('all'); setStatusFilter('all'); setClusterFilter(''); }}
             className="text-gray-500"
           >
             Limpar filtros
@@ -1451,6 +1534,28 @@ const EquipeProjetos = () => {
                           onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
                           className="bg-white border-gray-300 text-gray-900"
                         />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-gray-700">Cluster *</Label>
+                        <Select
+                          value={editProject.cluster_id || ''}
+                          onValueChange={(v) => setEditProject({ ...editProject, cluster_id: v })}
+                        >
+                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                            <SelectValue placeholder="Selecione o cluster" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white border-gray-200">
+                            {clusters.filter(c => c.ativo).map((c) => (
+                              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {!editProject.cluster_id && (
+                          <p className="text-xs text-amber-600">
+                            Este projeto está sem cluster — ele não aparece no MAPA. Selecione um para corrigir.
+                          </p>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -1926,6 +2031,17 @@ const EquipeProjetos = () => {
             <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateProcess} className="space-y-4">
+            {selectedProject && (
+              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+                Projeto: <strong className="text-gray-900">{selectedProject.name}</strong>
+                {' · '}herda o cluster do projeto.
+                {!selectedProject.cluster_id && (
+                  <span className="mt-1 block text-amber-600">
+                    ⚠ Este projeto não tem cluster selecionado — o processo não aparecerá no MAPA até o projeto receber um cluster.
+                  </span>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
               <Label className="text-gray-700">Nome do Processo *</Label>
               <Input

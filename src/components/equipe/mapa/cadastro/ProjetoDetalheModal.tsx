@@ -9,7 +9,8 @@ import { motion } from 'framer-motion';
 import { FolderKanban, Pencil } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
-import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
+import type { Etapa, Gargalo, Melhoria, Processo, Projeto } from '@/types';
+import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
 const formatarData = (iso?: string | null) => {
   if (!iso) return '—';
@@ -26,12 +27,13 @@ interface Props {
   etapasPorProcesso: Map<string, Etapa[]>;
   backlog: Melhoria[];
   processoNomeById: Map<string, string>;
+  gargalos: Gargalo[];
   onClose: () => void;
   onEditar: () => void;
 }
 
 export default function ProjetoDetalheModal({
-  aberto, projeto, processos, etapasPorProcesso, backlog, processoNomeById, onClose, onEditar,
+  aberto, projeto, processos, etapasPorProcesso, backlog, processoNomeById, gargalos, onClose, onEditar,
 }: Props) {
   const [aba, setAba] = useState<Aba>('info');
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
@@ -152,7 +154,7 @@ export default function ProjetoDetalheModal({
                 </div>
                 <div className="projeto-detail-row-list">
                   {backlog.map(melhoria => {
-                    const procs = (melhoria.processos || []).map(pid => processoNomeById.get(pid)).filter((n): n is string => Boolean(n));
+                    const procs = processoIdsDaMelhoria(melhoria.id, gargalos).map(pid => processoNomeById.get(pid)).filter((n): n is string => Boolean(n));
                     const horas = (melhoria.training_hours || 0) + (melhoria.executadoPor || []).reduce((s, r) => s + (r.horas || 0), 0);
                     return (
                       <div key={melhoria.id} className="projeto-backlog-row">

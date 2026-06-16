@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -124,13 +125,13 @@ const EquipeKanban = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtros
-  const [filterSprint, setFilterSprint] = useState<string>('all');
-  const [filterResponsible, setFilterResponsible] = useState<string>('all');
-  const [filterProject, setFilterProject] = useState<string>('all');
-  const [filterProcess, setFilterProcess] = useState<string>('all');
+  const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.kanban.sprint', 'all');
+  const [filterResponsible, setFilterResponsible] = usePersistedState<string>('rotina.kanban.responsavel', 'all');
+  const [filterProject, setFilterProject] = usePersistedState<string>('rotina.kanban.projeto', 'all');
+  const [filterProcess, setFilterProcess] = usePersistedState<string>('rotina.kanban.processo', 'all');
   const [filterStartDate, setFilterStartDate] = useState<Date | undefined>();
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>();
-  const [sortByDueDate, setSortByDueDate] = useState<'asc' | 'desc' | null>(null);
+  const [sortByDueDate, setSortByDueDate] = usePersistedState<'asc' | 'desc' | null>('rotina.kanban.ordenacao', null);
 
   useEffect(() => {
     fetchData();

@@ -125,7 +125,7 @@ export default function CascataPage() {
             <strong>Gargalos</strong>; aqui o grafo é derivado automaticamente em tempo real.
           </p>
         </div>
-        <TourTrigger />
+        <TourTrigger dataTour="help" />
       </div>
 
       <PageStats

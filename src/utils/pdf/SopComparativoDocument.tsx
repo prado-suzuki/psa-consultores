@@ -19,7 +19,7 @@ import {
   calcEtapa, generateHeadline, isEtapaEliminada,
   fmtMoney, fmtPercent, joinDocs, joinPeople, todayBR, pad2,
 } from './helpers';
-import { melhoriaIdsDoGargalo } from '../gargaloMelhorias';
+import { gargalosDoProcesso as filtraGargalosDoProcesso, melhoriaIdsDoProcesso } from '../gargaloMelhorias';
 
 export interface SopComparativoDocumentProps {
   processo: Processo;
@@ -85,19 +85,17 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
   }
   const sisNome = (key: string): string => sisByKey.get(key)?.nome ?? key;
 
+  const gargaloById = new Map(gargalos.map(g => [g.id, g]));
   const respById = new Map(responsaveis.map(r => [r.id, r]));
   const custoMedio = responsaveis.length
     ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length
     : 0;
 
-  const gargalosDoProc = gargalos.filter(g => (g.processos || []).includes(processo.id));
-  const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProc.flatMap(g => melhoriaIdsDoGargalo(g)),
-  );
-  const melhoriasDoProc = melhorias.filter(m =>
-    (m.processos || []).includes(processo.id) ||
-    melhoriaIdsViaGargalos.has(m.id),
-  );
+  // Derivado via gargalo_etapas / gargalo_melhorias (melhoria_processos e
+  // gargalo_processos foram aposentados).
+  const gargalosDoProc = filtraGargalosDoProcesso(gargalos, processo.id);
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const melhoriasDoProc = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   // ── Métricas derivadas do horizonte (mesmo padrão do Dashboard ROI) ──
   const economiaH = roi.economiaMensal * m;
@@ -282,15 +280,21 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
             {PDF_STRINGS.anexo.doresPageIntro}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {gargalosDoProc.map(g => (
-              <View key={g.id} style={[styles.card, { width: '48%' }]} wrap={false}>
-                <Text style={styles.cardTitle}>{g.nome}</Text>
-                {!!g.descricao && <Text style={[styles.small, { marginBottom: 3 }]}>{g.descricao}</Text>}
-                {!!g.origem && (
-                  <Text style={[styles.small, styles.muted]}>Origem: {g.origem}</Text>
-                )}
-              </View>
-            ))}
+            {gargalosDoProc.map(g => {
+              const etapasNomes = [...new Set((g.etapasOrigem || []).map(r => r.etapaNome).filter((n): n is string => Boolean(n)))];
+              return (
+                <View key={g.id} style={[styles.card, { width: '48%' }]} wrap={false}>
+                  <Text style={styles.cardTitle}>{g.nome}</Text>
+                  {!!g.descricao && <Text style={[styles.small, { marginBottom: 3 }]}>{g.descricao}</Text>}
+                  {etapasNomes.length > 0 && (
+                    <Text style={[styles.small, styles.muted]}>Etapa(s): {etapasNomes.join(' · ')}</Text>
+                  )}
+                  {!!g.origem && (
+                    <Text style={[styles.small, styles.muted]}>Origem: {g.origem}</Text>
+                  )}
+                </View>
+              );
+            })}
           </View>
           <PageFooter />
         </Page>
@@ -311,6 +315,8 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
         const ficDocsE = f?.docsEntrada ?? e.docsEntrada ?? [];
         const eraDocsS = e.docsSaida ?? [];
         const ficDocsS = f?.docsSaida ?? e.docsSaida ?? [];
+        // Gargalos pertencem à etapa (AS-IS) — aparecem na coluna "Como era".
+        const gargalosDaEtapa = (e.gargalos || []).map(id => gargaloById.get(id)).filter((g): g is Gargalo => Boolean(g));
 
         const ganhoHoras = era.horas - fic.horas;
         const ganhoCusto = era.custo - fic.custo;
@@ -348,6 +354,14 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
                 <Text style={styles.small}>
                   {era.horas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}h · {fmtMoney(era.custo)} · retrab {fmtPercent(era.taxaRetrab)}
                 </Text>
+                {gargalosDaEtapa.length > 0 && (
+                  <>
+                    <Text style={[styles.small, styles.muted, { marginTop: 3 }]}>Gargalos desta etapa</Text>
+                    {gargalosDaEtapa.map(g => (
+                      <Text key={g.id} style={styles.small}>• {g.nome}{g.descricao ? ` — ${g.descricao}` : ''}</Text>
+                    ))}
+                  </>
+                )}
               </View>
 
               {/* COLUNA "FICOU" */}

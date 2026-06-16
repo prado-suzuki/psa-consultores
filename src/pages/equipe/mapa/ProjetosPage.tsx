@@ -18,8 +18,9 @@ import { useFocusParam } from '@/utils/useFocusParam';
 import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import { useProjetos, useDeleteProjeto } from '@/hooks/useProjetos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useEtapasLista, useMelhoriasLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useMelhoriasLista, useGargalosLista } from '@/hooks/useDominioListas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
 type MelhoriaComProjeto = Melhoria & { project_id?: string | null };
 
@@ -42,6 +43,7 @@ export default function ProjetosPage() {
   const { data: processos = [] } = useProcessos();
   const { data: etapas = [] } = useEtapasLista();
   const { data: melhorias = [] } = useMelhoriasLista();
+  const { data: gargalos = [] } = useGargalosLista();
   const { cluster: fCluster } = useClusterGlobal();
 
   const [busca, setBusca] = useState('');
@@ -101,10 +103,10 @@ export default function ProjetosPage() {
       .filter(m => {
         if ((m.improvement_status || 'Não iniciado') !== 'Backlog') return false;
         if ((m as MelhoriaComProjeto).project_id === detalhe.id) return true;
-        return (m.processos || []).some(pid => processIds.has(pid));
+        return processoIdsDaMelhoria(m.id, gargalos).some(pid => processIds.has(pid));
       })
       .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
-  }, [detalhe, processosPorProjeto, melhorias]);
+  }, [detalhe, processosPorProjeto, melhorias, gargalos]);
 
   const abrirCriar = () => { setEmEdicao(null); setFormAberto(true); };
   const abrirEditar = (p: Projeto) => { setEmEdicao(p); setFormAberto(true); };
@@ -180,6 +182,7 @@ export default function ProjetosPage() {
         etapasPorProcesso={etapasPorProcesso}
         backlog={detalheBacklog}
         processoNomeById={processoNomeById}
+        gargalos={gargalos}
         onClose={() => setDetalhe(null)}
         onEditar={() => { const p = detalhe; setDetalhe(null); if (p) abrirEditar(p); }}
       />

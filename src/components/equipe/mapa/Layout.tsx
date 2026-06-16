@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
 import ClusterBar from './ClusterBar';
+import { MapaTourProvider } from './tour/MapaTourProvider';
 
 export const MAPA_BASE = '/equipe/digital/mapa';
 
@@ -94,6 +95,7 @@ export default function Layout() {
 
   return (
     <MapaClusterProvider>
+    <MapaTourProvider>
     <div className={`app-root${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
       <button
         type="button"
@@ -217,6 +219,7 @@ export default function Layout() {
         </main>
       </div>
     </div>
+    </MapaTourProvider>
     </MapaClusterProvider>
   );
 }

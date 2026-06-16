@@ -6,12 +6,12 @@
 //   - Configurar ROI (wizard inline)
 // Histórico de medições fica acessível via botão no header.
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, ArrowLeft, Layers, Pencil, Settings2 } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, FileText, GitCompare, Layers, Network, Pencil, Settings2 } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
@@ -26,15 +26,25 @@ import { toast } from 'sonner';
 import type { Etapa, DocRef, ResponsavelEtapa } from '@/types';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { formatDecimal } from '@/utils/format';
+import { generateSOP, generateSOPComparativo } from '@/utils/pdf/generators';
+import { calcularRoi } from '@/utils/roiCalculator';
+import { diagnosticarRoi } from '@/utils/diagnosticoRoi';
+import { buildProcessDiagram } from '@/utils/processDiagram';
+import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
 import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
 import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
 import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
 import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
+import NovoMelhoriaModal from '@/components/equipe/mapa/cadastros/NovoMelhoriaModal';
+import GargalosMelhoriasPanel from '@/components/equipe/mapa/GargalosMelhoriasPanel';
 import {
   useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
-  useResponsaveisLista, useGargalosLista, useMelhoriasLista,
+  useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
+import { useUpdateMelhoria } from '@/hooks/useMelhorias';
+import { syncVinculosEtapa } from '@/hooks/etapaVinculosSync';
+import { gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
@@ -55,6 +65,14 @@ const ABAS: { id: Aba; label: string }[] = [
 // Ordem canônica das etapas (a reordenação é persistida na coluna `ordem`).
 const ordenarPorOrdem = (a: Etapa, b: Etapa) => (a.stage_order ?? 0) - (b.stage_order ?? 0);
 
+// Rótulo curto da melhoria = título antes de " — " (mesma lógica do
+// GargaloFormModal, pra manter o mesmo rótulo nas duas telas).
+function melhoriaLabel(desc: string): string {
+  const i = desc.indexOf(' — ');
+  if (i > 0) return desc.slice(0, i).trim();
+  return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
+}
+
 export default function MapearProcessoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -62,6 +80,7 @@ export default function MapearProcessoPage() {
 
   const [aba, setAba] = useState<Aba>('como-era');
   const [editProcessoOpen, setEditProcessoOpen] = useState(false);
+  const [diagramaOpen, setDiagramaOpen] = useState(false);
 
   // ── Dados base via hooks (Hook-First) ──────────────────────────────────
   const processoQuery = useProcessoUnico(id);
@@ -71,6 +90,7 @@ export default function MapearProcessoPage() {
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: melhorias = [] } = useMelhoriasLista();
+  const { data: projetos = [] } = useProjetosLista();
   const processo = processoQuery.data ?? null;
   const loading = processoQuery.isLoading;
   // Etapas hidratadas e filtradas para este processo.
@@ -85,6 +105,15 @@ export default function MapearProcessoPage() {
   const updateEtapa = useUpdateEtapa();
   const deleteEtapa = useDeleteEtapa();
   const upsertEtapaToBe = useUpsertEtapaToBe();
+  const updateMelhoria = useUpdateMelhoria();
+
+  // Vínculos gargalo↔melhoria editados no painel: melhoriaId → gargaloIds.
+  // Guardo o snapshot original pra gravar (updateMelhoria) só o que mudou.
+  const [linksByMelhoria, setLinksByMelhoria] = useState<Record<string, string[]>>({});
+  const linksOriginaisRef = useRef<Record<string, string[]>>({});
+  // Gargalo que disparou o "Cadastrar nova melhoria" — pra já vincular a melhoria
+  // recém-criada a ele (quick-add a partir do card do gargalo).
+  const [melhoriaQuickGargalo, setMelhoriaQuickGargalo] = useState<string | null>(null);
 
   // Edit Etapas (modal) — usado por "Como era" e "Como ficou"
   const [editEtapasOpen, setEditEtapasOpen] = useState(false);
@@ -99,12 +128,11 @@ export default function MapearProcessoPage() {
   // Cadastro rápido a partir das listas suspensas do editor de etapas —
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
   // de opções atualizam sozinhas via invalidação do React Query.
-  const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | 'gargalo' | null>(null);
+  const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | 'gargalo' | 'melhoria' | null>(null);
 
   const docNames = useMemo(() => documentos.map(d => d.nome), [documentos]);
   const sisNames = useMemo(() => sistemas.map(s => s.nome), [sistemas]);
   const respNames = useMemo(() => responsaveis.map(r => r.name), [responsaveis]);
-  const gargaloNames = useMemo(() => gargalos.map(g => g.nome), [gargalos]);
 
   // Mapas nome↔id para resolver os vínculos no save (o editor opera por nome;
   // as junções persistem por id). O nome é a fonte de verdade na UI — o
@@ -113,7 +141,6 @@ export default function MapearProcessoPage() {
   const sisIdByNome = useMemo(() => new Map(sistemas.map(s => [s.nome, s.id])), [sistemas]);
   const respIdByNome = useMemo(() => new Map(responsaveis.map(r => [r.name, r.id])), [responsaveis]);
   const gargaloNomeById = useMemo(() => new Map(gargalos.map(g => [g.id, g.nome])), [gargalos]);
-  const gargaloIdByNome = useMemo(() => new Map(gargalos.map(g => [g.nome, g.id])), [gargalos]);
 
   if (loading) {
     return <div className="loading-container"><div className="spinner" /></div>;
@@ -127,6 +154,63 @@ export default function MapearProcessoPage() {
       </div>
     );
   }
+
+  // ============================================================
+  //  Handlers — SOP / Diagrama (downloads do processo)
+  // ============================================================
+  const handleGenerateSOP = async (mode: 'era' | 'ficou') => {
+    try {
+      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode);
+    } catch (err) {
+      toast.error('Erro ao gerar SOP', { description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const handleGenerateSOPComparativo = async () => {
+    try {
+      // calcularRoi recebe TODAS as melhorias do projeto e elege internamente as
+      // relevantes (vínculo direto OU via gargalo). Passar só as filtradas aqui
+      // poderia esconder melhorias que resolvem gargalos do processo.
+      const roi = calcularRoi({
+        processos: [processo],
+        etapas,
+        responsaveis,
+        sistemas,
+        gargalos,
+        melhorias,
+        projetos,
+      });
+      const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
+      const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
+      await generateSOPComparativo({
+        processo,
+        etapas,
+        sistemas,
+        responsaveis,
+        gargalos: gargalosDoProcesso(gargalos, processo.id),
+        melhorias,
+        projeto: projetoDoProcesso,
+        roi,
+        diagnostico,
+        horizonteMeses: 24,
+      });
+    } catch (err) {
+      toast.error('Erro ao gerar SOP Comparativo', { description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  // Diagrama (Mermaid) — Processo + grupos de ligações.
+  const diagramaCode = buildProcessDiagram({
+    processo,
+    etapas,
+    documentos,
+    sistemas,
+    responsaveis,
+    gargalos,
+    melhorias,
+    projeto: projetos.find(p => p.id === processo.project_id) || null,
+  });
+  const diagramaFilename = `Diagrama_${processo.id}_${new Date().toISOString().slice(0, 10)}`;
 
   // ============================================================
   //  Handlers — Editar Etapas (Como era / Como ficou)
@@ -177,6 +261,10 @@ export default function MapearProcessoPage() {
     setEditEtapasList(prepared);
     setEditEtapasActiveIndex(focoIdx >= 0 ? focoIdx : 0);
     setRemovedEtapaIds(new Set());
+    const links: Record<string, string[]> = {};
+    melhorias.forEach(m => { links[m.id] = [...(m.gargalos || [])]; });
+    setLinksByMelhoria(links);
+    linksOriginaisRef.current = Object.fromEntries(Object.entries(links).map(([k, v]) => [k, [...v]]));
     setEditEtapasOpen(true);
   };
 
@@ -280,6 +368,33 @@ export default function MapearProcessoPage() {
           await deleteEtapa.mutateAsync({ id: rid, old: { id: rid } as Etapa });
         }
       }
+      // No modo "ficou" o upsertEtapaToBe não mexe nos gargalos (AS-IS) — então
+      // sincronizo só os gargalos da etapa explicitamente. No "era" isso já é
+      // feito pelo create/updateEtapa (syncVinculosEtapa AS-IS no save da row).
+      if (editEtapasMode === 'ficou') {
+        for (const e of cleaned) {
+          if (!existingIds.has(e.id)) continue;
+          await syncVinculosEtapa(e.id, 'AS-IS', { gargalos: e.gargalos ?? [] });
+        }
+      }
+
+      // Vínculos gargalo↔melhoria editados no painel — grava só os que mudaram.
+      const mesmoConjunto = (a: string[], b: string[]) =>
+        a.length === b.length && a.every(x => b.includes(x));
+      for (const m of melhorias) {
+        const novos = linksByMelhoria[m.id];
+        if (novos === undefined) continue;
+        const orig = linksOriginaisRef.current[m.id] ?? (m.gargalos ?? []);
+        const limpos = [...new Set(novos.filter(Boolean))];
+        if (!mesmoConjunto(orig, limpos)) {
+          await updateMelhoria.mutateAsync({ id: m.id, old: m, patch: { gargalos: limpos } });
+        }
+      }
+
+      // gargalo_etapas (cascata) e process_stages podem ter mudado fora dos
+      // onSuccess acima (sync explícito no ficou) — invalida pra UI refrescar.
+      queryClient.invalidateQueries({ queryKey: ['gargalos'] });
+      queryClient.invalidateQueries({ queryKey: ['process_stages'] });
       // React Query invalida a lista de etapas (process_stages) nos onSuccess
       // dos hooks — a UI rerenderiza com o estado fresco.
       setEditEtapasOpen(false);
@@ -326,7 +441,7 @@ export default function MapearProcessoPage() {
           <span>Processos</span>
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <TourTrigger />
+          <TourTrigger dataTour="help" />
           <button
             className="mapear-voltar"
             onClick={() => setEditProcessoOpen(true)}
@@ -355,6 +470,27 @@ export default function MapearProcessoPage() {
               : `${etapas.length} ${etapas.length === 1 ? 'etapa mapeada' : 'etapas mapeadas'}`}
           </span>
         </div>
+      </div>
+
+      {/* Downloads do processo — SOP (era/ficou/comparativo) + Diagrama */}
+      <div className="mapear-downloads" role="group" aria-label="Exportar documentos do processo">
+        <span className="mapear-downloads-label">Exportar</span>
+        <button className="mapear-dl-btn" onClick={() => handleGenerateSOP('era')} title="Baixar SOP — Como Era (cenário atual)">
+          <FileText size={15} strokeWidth={2.1} />
+          <span>SOP (antes)</span>
+        </button>
+        <button className="mapear-dl-btn" onClick={() => handleGenerateSOP('ficou')} title="Baixar SOP — Como Ficou (cenário projetado)">
+          <FileText size={15} strokeWidth={2.1} />
+          <span>SOP (como ficou)</span>
+        </button>
+        <button className="mapear-dl-btn" onClick={handleGenerateSOPComparativo} title="Baixar SOP comparativo Como Era × Como Ficou, lado a lado, com ganhos por etapa e ROI consolidado">
+          <GitCompare size={15} strokeWidth={2.1} />
+          <span>SOP (comparativo)</span>
+        </button>
+        <button className="mapear-dl-btn" onClick={() => setDiagramaOpen(true)} title="Visualizar e baixar o diagrama de ligações do processo (processo · etapas)">
+          <Network size={15} strokeWidth={2.1} />
+          <span>Diagrama (processo · etapas)</span>
+        </button>
       </div>
 
       {/* Navegação por abas — indicador deslizante (framer) */}
@@ -395,7 +531,7 @@ export default function MapearProcessoPage() {
             etapas={etapas}
             responsaveis={responsaveis}
             sistemas={sistemas}
-            gargalos={gargalos.filter(g => (g.processos || []).includes(processo.id))}
+            gargalos={gargalosDoProcesso(gargalos, processo.id)}
             melhorias={melhorias}
             onSnapshotCriado={handleSnapshotCriado}
             onEditarEtapas={(etapaId) => openEditEtapas('era', etapaId)}
@@ -531,13 +667,6 @@ export default function MapearProcessoPage() {
                       />
                     </FormField>
                   </div>
-                  {editEtapasMode === 'ficou' && (
-                    <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
-                      As melhorias associadas a este processo são gerenciadas em
-                      <strong> Melhorias → editar</strong>. Esta etapa herda automaticamente
-                      todas as melhorias vinculadas ao processo.
-                    </div>
-                  )}
                 </div>
 
                 <div className="modal-section">
@@ -617,28 +746,24 @@ export default function MapearProcessoPage() {
                   )}
                 </div>
 
-                {!isFicou && (
-                  <div className="modal-section">
-                    <div className="modal-section-title">
-                      <Tooltip text="Gargalos que se manifestam nesta etapa. A cascata e o diagnóstico de ROI derivam deste vínculo.">Gargalos</Tooltip>
-                    </div>
-                    <FormField label="Gargalos da etapa" compact tooltip="Selecione os gargalos que se manifestam nesta etapa, ou cadastre um novo sem sair do fluxo.">
-                      <ChipSelector
-                        options={gargaloNames}
-                        value={(active.gargalos || []).map(gid => gargaloNomeById.get(gid) ?? gid)}
-                        onChange={(v) => handleUpdateEtapaField(
-                          editEtapasActiveIndex,
-                          'gargalos',
-                          (v as string[]).map(n => gargaloIdByNome.get(n) ?? n),
-                        )}
-                        compact
-                        addLabel="Adicionar gargalo"
-                        onAddNew={() => setCadastroRapido('gargalo')}
-                        addNewLabel="Cadastrar novo gargalo"
-                      />
-                    </FormField>
-                  </div>
-                )}
+                <GargalosMelhoriasPanel
+                  gargalos={(active.gargalos || []).filter(Boolean).map(id => ({ id, nome: gargaloNomeById.get(id) ?? id }))}
+                  linksByMelhoria={linksByMelhoria}
+                  gargaloOptions={gargalos.map(g => ({ id: g.id, nome: g.nome }))}
+                  melhoriaOptions={melhorias.map(m => ({ id: m.id, nome: melhoriaLabel(m.improvement_description) }))}
+                  onAddGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...new Set([...(active.gargalos || []), gid])])}
+                  onRemoveGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', (active.gargalos || []).filter(x => x !== gid))}
+                  onLinkMelhoria={(gid, mid) => setLinksByMelhoria(prev => {
+                    const cur = prev[mid] ?? [];
+                    return cur.includes(gid) ? prev : { ...prev, [mid]: [...cur, gid] };
+                  })}
+                  onUnlinkMelhoria={(gid, mid) => setLinksByMelhoria(prev => ({ ...prev, [mid]: (prev[mid] ?? []).filter(x => x !== gid) }))}
+                  onQuickAddGargalo={() => setCadastroRapido('gargalo')}
+                  onQuickAddMelhoria={(gid) => { setMelhoriaQuickGargalo(gid); setCadastroRapido('melhoria'); }}
+                />
+                <div className="mapear-gm-hint" style={{ marginTop: 8 }}>
+                  Gargalos valem para <strong>esta etapa</strong>; as melhorias entram no <strong>processo</strong> (todas as etapas herdam). Tudo é salvo em <strong>"Salvar todas"</strong>.
+                </div>
 
                 </div>
               </div>
@@ -669,6 +794,15 @@ export default function MapearProcessoPage() {
         })()}
       </Modal>
 
+      {/* Diagrama Mermaid do processo */}
+      <DiagramViewer
+        isOpen={diagramaOpen}
+        onClose={() => setDiagramaOpen(false)}
+        code={diagramaCode}
+        filename={diagramaFilename}
+        title={`Diagrama: ${processo.name}`}
+      />
+
       {/* Cadastro rápido a partir do editor de etapas */}
       <ProcessoFormModal aberto={editProcessoOpen} processo={processo} onClose={() => setEditProcessoOpen(false)} />
       <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
@@ -681,6 +815,18 @@ export default function MapearProcessoPage() {
           const atual = editEtapasList[editEtapasActiveIndex];
           if (!atual) return;
           handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...(atual.gargalos || []), g.id]);
+        }}
+      />
+      <NovoMelhoriaModal
+        isOpen={cadastroRapido === 'melhoria'}
+        onClose={() => { setCadastroRapido(null); setMelhoriaQuickGargalo(null); }}
+        onCreated={(m) => {
+          // A melhoria nova entra no processo de forma DERIVADA: basta vinculá-la
+          // ao gargalo que disparou o cadastro (gargalo_melhorias).
+          if (melhoriaQuickGargalo) {
+            const gid = melhoriaQuickGargalo;
+            setLinksByMelhoria(prev => ({ ...prev, [m.id]: [...(prev[m.id] ?? []), gid] }));
+          }
         }}
       />
     </div>

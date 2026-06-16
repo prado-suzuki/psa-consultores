@@ -5,7 +5,7 @@
 import type {
   Processo, Projeto, Etapa, Responsavel, Sistema, Gargalo, Melhoria, FrequenciaProcesso,
 } from '../types';
-import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
+import { melhoriaIdsDoProcesso } from './gargaloMelhorias';
 
 // Multiplicador anual derivado da frequência declarada do processo.
 // 'Anual' = 1 execução/ano (volumes já são anuais).
@@ -106,18 +106,14 @@ function custoMedioHora(responsaveis: Responsavel[]): number {
   return total / responsaveis.length;
 }
 
-// Melhorias relevantes a um processo: vínculo direto M:N (m.processos) OU
-// indireto via gargalos do processo (gargalo → melhoria). Fonte única usada
-// tanto para contar a abrangência (rateio do investimento) quanto para
-// selecionar as melhorias dentro de calcProcesso — evita divergência.
+// Melhorias relevantes a um processo: DERIVADAS via gargalo — a melhoria ataca
+// um gargalo que se manifesta numa etapa do processo (gargalo_melhorias +
+// gargalo_etapas). Fonte única usada tanto para contar a abrangência (rateio do
+// investimento) quanto para selecionar as melhorias dentro de calcProcesso.
+// (Aposentados os vínculos diretos melhoria_processos e gargalo_processos.)
 function melhoriasRelevantesIds(proc: Processo, gargalos: Gargalo[], melhorias: Melhoria[]): Set<string> {
-  const gargalosDoProc = new Set(gargalos.filter(g => (g.processos || []).includes(proc.id)).map(g => g.id));
-  const viaGargalos = new Set(
-    gargalos.filter(g => gargalosDoProc.has(g.id)).flatMap(g => melhoriaIdsDoGargalo(g))
-  );
-  return new Set(
-    melhorias.filter(m => (m.processos || []).includes(proc.id) || viaGargalos.has(m.id)).map(m => m.id)
-  );
+  const derivadas = melhoriaIdsDoProcesso(gargalos, proc.id);
+  return new Set(melhorias.filter(m => derivadas.has(m.id)).map(m => m.id));
 }
 
 // Refs (id ou nome) dos sistemas usados por um processo, no cenário atual (era)
