@@ -13,6 +13,7 @@ import { dica } from '@/utils/tooltips';
 import { useCreateProjeto, useUpdateProjeto, type ProjetoInput } from '@/hooks/useProjetos';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import { JUSTIFICATIVAS_PROJETO, type JustificativaProjeto, type Projeto, type ProjetoStatus } from '@/types';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 const STATUS_SELECT_OPCOES = (['Mapeamento', 'Diagnóstico', 'Melhorias', 'ROI'] as ProjetoStatus[])
   .map(s => ({ value: s, label: s }));
@@ -80,10 +81,11 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
   const [form, setForm] = useState<ProjetoFormState>(EMPTY);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (projeto) {
       setForm({
@@ -102,6 +104,7 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
   }, [aberto, projeto]);
 
   const set = (patch: Partial<ProjetoFormState>) => { tocado.current = true; setForm(f => ({ ...f, ...patch })); };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const salvar = async () => {
     if (!form.nome.trim()) { setErro('Preencha o nome do projeto.'); return; }
@@ -137,7 +140,7 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-projeto-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-projeto-form">
       <div className="modal modal-wide processo-det processo-form">
         <header className="processo-det-head">
           <div className="processo-det-head-main">
@@ -154,21 +157,21 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
             )}
           </div>
           <div className="processo-det-acoes">
-            <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-            <button className="cadastro-cta" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+            <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
+            <button className="cadastro-cta" onClick={salvar} disabled={salvando} data-tour="modal-salvar">{salvando ? 'Salvando...' : 'Salvar'}</button>
           </div>
         </header>
 
         <div className="processo-det-body">
           <div className="cadastro-form-secao">Identificação</div>
-          <FormField label="Nome" error={erro} required tooltip={dica('projetos.form.nome')}>
+          <FormField label="Nome" error={erro} required tooltip={dica('projetos.form.nome')} dataTour="modal-campo-1">
             <input type="text" value={form.nome} onChange={(e) => { set({ nome: e.target.value }); if (erro) setErro(''); }} placeholder="Digite o nome do projeto" />
           </FormField>
           <div className="cadastro-form-row">
             <FormField label="Cluster" tooltip={dica('projetos.form.cluster')}>
               <Select value={form.clusterId} onChange={(v) => set({ clusterId: v })} options={CLUSTER_OPCOES} />
             </FormField>
-            <FormField label="Status" tooltip={dica('projetos.form.status')}>
+            <FormField label="Status" tooltip={dica('projetos.form.status')} dataTour="modal-campo-2">
               <Select value={form.status} onChange={(v) => set({ status: v as ProjetoStatus })} options={STATUS_SELECT_OPCOES} />
             </FormField>
           </div>
@@ -195,6 +198,7 @@ export default function ProjetoFormModal({ aberto, projeto, onClose }: Props) {
             </FormField>
           </div>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );

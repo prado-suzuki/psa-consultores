@@ -141,7 +141,7 @@ export default function CascataPage() {
 
       <div className="cascata-layout">
         {/* ─── Rail de gargalos ─── */}
-        <aside className="cascata-rail">
+        <aside className="cascata-rail" data-tour="cascata-rail">
           <div className="cascata-rail-head">
             <div className="cascata-rail-search">
               <Search size={14} />
@@ -256,7 +256,7 @@ export default function CascataPage() {
                 {graph ? (
                   <>
                     <div className="cascata-controls">
-                      <div className="cascata-seg" role="group" aria-label="Nível de detalhe">
+                      <div className="cascata-seg" role="group" aria-label="Nível de detalhe" data-tour="cascata-niveis">
                         <button
                           type="button"
                           className={macroAtivo ? 'is-active' : ''}
@@ -293,7 +293,7 @@ export default function CascataPage() {
                         </button>
                       </div>
 
-                      <div className="cascata-legend">
+                      <div className="cascata-legend" data-tour="cascata-legenda">
                         <span>
                           <i className="dot-total" /> Reexecução total
                         </span>

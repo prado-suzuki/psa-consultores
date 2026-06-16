@@ -389,8 +389,8 @@ const modalGargaloForm = formModalSteps({
 const modalMelhoriaForm = formModalSteps({
   campo1Titulo: 'Nome',
   campo1: 'O nome da melhoria proposta.',
-  campo2Titulo: 'Etapas atendidas',
-  campo2: 'As etapas que a melhoria impacta — base do plano de ação e do investimento.',
+  campo2Titulo: 'Gargalos resolvidos',
+  campo2: 'Os gargalos que esta melhoria ataca — é o vínculo que liga a melhoria às etapas impactadas e alimenta o plano de ação.',
   salvar: 'Grava a melhoria e seus custos (execução, treinamento) para o ROI.',
 });
 
@@ -399,20 +399,20 @@ const modalProcessoDetalhe: Step[] = [
   {
     target: 'body',
     placement: 'center',
-    title: 'Painel da etapa',
-    content: 'Tudo da etapa reunido: informações, sub-etapas vinculadas e backlog de melhorias.',
+    title: 'Painel do processo',
+    content: 'Tudo do processo reunido: etapas, documentos, sistemas, responsáveis, gargalos e melhorias vinculados.',
   },
   {
     target: '[data-tour="modal-tabs"]',
     placement: 'bottom',
-    title: 'Abas',
-    content: 'Alterne entre Informações, Sub-etapas e Backlog da etapa.',
+    title: 'Seções',
+    content: 'Expanda cada seção — Etapas, Documentos, Sistemas, Responsáveis, Gargalos e Melhorias — para ver tudo o que está vinculado a este processo.',
   },
   {
     target: '[data-tour="modal-acao"]',
     placement: 'bottom',
     title: 'Mapear',
-    content: 'Abre a página de mapeamento completo das sub-etapas.',
+    content: 'Abre a página de mapeamento completo das etapas.',
   },
   replayStepModal,
 ];

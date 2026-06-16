@@ -67,14 +67,14 @@ export default function ProjetoDetalheModal({
             </div>
           </div>
           <div className="processo-det-acoes">
-            <button className="cadastro-cta" onClick={onEditar}>
+            <button className="cadastro-cta" onClick={onEditar} data-tour="modal-acao">
               <Pencil size={15} strokeWidth={2.2} />
               <span>Editar projeto</span>
             </button>
           </div>
         </header>
 
-        <div className="projeto-det-tabs" role="tablist">
+        <div className="projeto-det-tabs" role="tablist" data-tour="modal-tabs">
           {ABAS.map(a => {
             const ativa = aba === a.id;
             return (

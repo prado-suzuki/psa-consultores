@@ -14,9 +14,26 @@ import { TOUR_LOCALE, TOUR_OPTIONS, TOUR_STYLES } from './tourTheme';
 import { isTourSeen, markTourSeen } from './tourStorage';
 
 function TourRunner({ tour, onEnd }: { tour: TourId; onEnd: () => void }) {
+  // Só roda os passos cujo alvo já existe no DOM neste momento. Sem isto, um
+  // alvo condicional (lista vazia, nada selecionado, aba inativa) faz o Joyride
+  // v3 falhar e auto-avançar o índice — é exatamente o "aparece o 1º, dá erro e
+  // pula pro último". Filtrar de antemão deixa o tour cobrir só o que existe.
+  const steps = useMemo(
+    () =>
+      TOURS[tour].filter((s) => {
+        if (typeof s.target !== 'string') return true;
+        try {
+          return !!document.querySelector(s.target);
+        } catch {
+          return true;
+        }
+      }),
+    [tour],
+  );
+
   const { Tour } = useJoyride({
-    steps: TOURS[tour],
-    run: true,
+    steps,
+    run: steps.length > 0,
     continuous: true,
     scrollToFirstStep: true,
     options: TOUR_OPTIONS,
@@ -28,7 +45,13 @@ function TourRunner({ tour, onEnd }: { tour: TourId; onEnd: () => void }) {
       }
     },
   });
-  return Tour;
+
+  // Nenhuma âncora presente → encerra sem renderizar nada.
+  useEffect(() => {
+    if (steps.length === 0) onEnd();
+  }, [steps.length, onEnd]);
+
+  return steps.length > 0 ? Tour : null;
 }
 
 export function MapaTourProvider({ children }: { children: ReactNode }) {

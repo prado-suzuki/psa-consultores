@@ -1549,3 +1549,43 @@ textarea.cadastro-form-textarea{
 .mapear-gm-add :where(.custom-select-trigger){ width: 100%; }
 .mapear-gm-add-garg{ margin-top: 10px; max-width: 280px; }
 .mapear-gm-add-garg :where(.custom-select-trigger){ width: 100%; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Anti-perda de dados no editor de etapas: banner de rascunho recuperado
+   e overlay de confirmação "sair sem salvar".
+   ══════════════════════════════════════════════════════════════════ */
+.mapear-rascunho-banner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.mapear-confirm-sair{
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.mapear-confirm-card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+}
+.mapear-confirm-card h3{ margin: 0 0 8px; font-size: 1.05rem; color: #0f172a; }
+.mapear-confirm-card p{ margin: 0 0 16px; font-size: 0.88rem; color: #475569; line-height: 1.5; }

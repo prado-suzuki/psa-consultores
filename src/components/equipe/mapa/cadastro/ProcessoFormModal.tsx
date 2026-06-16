@@ -16,6 +16,7 @@ import { useCreateProcesso, useUpdateProcesso } from '@/hooks/useProcessos';
 import {
   FREQUENCIA_OPCOES, STATUS_AVALIACAO_OPCOES, COMPLEXIDADE_OPCOES, normalizarComplexidade,
 } from '@/components/equipe/mapa/cadastros/processoOpcoes';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 interface Props {
   aberto: boolean;
@@ -38,10 +39,11 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   const [complexidade, setComplexidade] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (processo) {
       setNome(processo.name);
@@ -58,6 +60,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   }, [aberto, processo]);
 
   const touch = () => { tocado.current = true; };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do processo.'); return; }
@@ -89,7 +92,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-processo-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-processo-form">
       <div className="modal modal-wide processo-det processo-form">
         <header className="processo-det-head">
           <div className="processo-det-head-main">
@@ -109,8 +112,8 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
             )}
           </div>
           <div className="processo-det-acoes">
-            <button className="btn-cancel" onClick={onClose}>Cancelar</button>
-            <button className="cadastro-cta" onClick={salvar} disabled={salvando}>
+            <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
+            <button className="cadastro-cta" onClick={salvar} disabled={salvando} data-tour="modal-salvar">
               {salvando ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
@@ -118,7 +121,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
 
         <div className="processo-det-body">
           <div className="cadastro-form-secao">Identificação</div>
-          <FormField label="Nome" error={erro} required tooltip={dica('processos.form.nome')}>
+          <FormField label="Nome" error={erro} required tooltip={dica('processos.form.nome')} dataTour="modal-campo-1">
             <input
               type="text"
               value={nome}
@@ -137,7 +140,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
           </FormField>
 
           <div className="cadastro-form-secao">Classificação</div>
-          <FormField label="Projeto" required tooltip={dica('processos.form.projeto')}>
+          <FormField label="Projeto" required tooltip={dica('processos.form.projeto')} dataTour="modal-campo-2">
             <Select
               value={projetoId}
               onChange={(v) => { touch(); setProjetoId(v); if (erro) setErro(''); }}
@@ -164,6 +167,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
             <div />
           </div>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );

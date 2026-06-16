@@ -35,6 +35,23 @@ function Consumer() {
   );
 }
 
+// O provider só roda os passos cujo alvo já existe no DOM (filtro do TourRunner).
+// Em jsdom não há a UI real, então montamos as âncoras `[data-tour="…"]` que o
+// tour referencia para que os passos sobrevivam ao filtro.
+const mountedAnchors: HTMLElement[] = [];
+function mountTargets(steps: { target?: unknown }[]) {
+  for (const s of steps) {
+    if (typeof s.target !== 'string') continue;
+    const m = /^\[data-tour="(.+)"\]$/.exec(s.target);
+    if (!m) continue; // 'body' e outros já existem / não são âncoras data-tour
+    if (document.querySelector(s.target)) continue;
+    const el = document.createElement('div');
+    el.setAttribute('data-tour', m[1]);
+    document.body.appendChild(el);
+    mountedAnchors.push(el);
+  }
+}
+
 function renderAt(pathname: string) {
   return render(
     <MemoryRouter initialEntries={[pathname]}>
@@ -55,15 +72,18 @@ describe('MapaTourProvider', () => {
   afterEach(() => {
     vi.runOnlyPendingTimers();
     vi.useRealTimers();
+    mountedAnchors.splice(0).forEach((el) => el.remove());
   });
 
   it('auto-inicia o welcome na landing quando nunca foi visto', () => {
+    mountTargets(TOURS.welcome);
     renderAt(MAPA_BASE);
     act(() => {
       vi.advanceTimersByTime(700);
     });
-    const welcome = hoisted.calls.find((c) => c.run && c.steps === TOURS.welcome);
+    const welcome = hoisted.calls.find((c) => c.run);
     expect(welcome).toBeDefined();
+    expect(welcome?.steps).toEqual(TOURS.welcome);
   });
 
   it('NÃO auto-inicia quando o tour da página já foi visto', () => {
@@ -76,12 +96,14 @@ describe('MapaTourProvider', () => {
   });
 
   it('auto-inicia o tour da própria página (cascata) na 1ª visita', () => {
+    mountTargets(TOURS.cascata);
     renderAt(`${MAPA_BASE}/cascata`);
     act(() => {
       vi.advanceTimersByTime(700);
     });
-    const cascata = hoisted.calls.find((c) => c.run && c.steps === TOURS.cascata);
+    const cascata = hoisted.calls.find((c) => c.run);
     expect(cascata).toBeDefined();
+    expect(cascata?.steps).toEqual(TOURS.cascata);
   });
 
   it('marca o tour como visto ao auto-iniciar (só abre uma vez)', () => {
@@ -93,6 +115,7 @@ describe('MapaTourProvider', () => {
   });
 
   it('startTour abre o tour pedido mesmo já tendo sido visto', () => {
+    mountTargets(TOURS.cascata);
     localStorage.setItem('mapaTourSeen:cascata:v1', '1');
     renderAt(`${MAPA_BASE}/cascata`);
     act(() => {
@@ -103,7 +126,8 @@ describe('MapaTourProvider', () => {
     act(() => {
       fireEvent.click(screen.getByText('iniciar-cascata'));
     });
-    const cascata = hoisted.calls.find((c) => c.run && c.steps === TOURS.cascata);
+    const cascata = hoisted.calls.find((c) => c.run);
     expect(cascata).toBeDefined();
+    expect(cascata?.steps).toEqual(TOURS.cascata);
   });
 });

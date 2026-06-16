@@ -15,6 +15,7 @@ import { useMelhoriasLista } from '@/hooks/useDominioListas';
 import { useCreateGargalo, useUpdateGargalo } from '@/hooks/useGargalos';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import { GARGALO_ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/gargaloOpcoes';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 interface GargaloFormState {
   nome: string;
@@ -73,6 +74,7 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
   const [form, setForm] = useState<GargaloFormState>(FORM_VAZIO);
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   // Hidratação "reset on open". As listas de domínio podem chegar depois do
   // modal abrir (ex.: fluxo ?focus= em carga fria) — por isso o efeito também
@@ -80,7 +82,7 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
   // usuário tocou no form (tocado), para não sobrescrever edições em curso.
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (gargalo) {
       setForm({
@@ -96,6 +98,9 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
     setErro('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aberto, gargalo, melhoriaNomeById]);
+
+  // Fechar com guarda: se o usuário tocou no form, confirma antes de descartar.
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const atualizar = (patch: Partial<GargaloFormState>) => {
     tocado.current = true;
@@ -132,7 +137,7 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
   const etapasVinculadas = gargalo?.etapasOrigem || [];
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-gargalo-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-gargalo-form">
       <div className="modal modal-wide">
         <h2>{gargalo ? 'Editar Gargalo' : 'Novo Gargalo'}</h2>
 
@@ -197,9 +202,10 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
         )}
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
           <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );

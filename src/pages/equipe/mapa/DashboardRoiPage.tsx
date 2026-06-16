@@ -558,6 +558,7 @@ export default function DashboardRoiPage() {
             onClick={handleExportCsv}
             disabled={exportando}
             title="Exportar dados consolidados em CSV para a Ferramenta C (Digital Rotina)"
+            data-tour="roi-export"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {exportando ? 'Exportando…' : 'Exportar'}
@@ -576,7 +577,7 @@ export default function DashboardRoiPage() {
       <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
 
       {/* Filtros */}
-      <div className="dashv2-filters">
+      <div className="dashv2-filters" data-tour="roi-filtros">
         <div className="dashv2-filter">
           <label><Tooltip text={dica('dashboard.filtro.projeto')}>Projeto</Tooltip></label>
           <Select
@@ -613,7 +614,7 @@ export default function DashboardRoiPage() {
       </div>
 
       {/* Stepper narrativo */}
-      <div className="dashv2-stepper">
+      <div className="dashv2-stepper" data-tour="roi-stepper">
         {ABAS.map((a, i) => {
           const ativaIdx = ABAS.findIndex((x) => x.id === aba);
           const fasePrevia = STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;

@@ -12,6 +12,7 @@ import { useCreateDocumento, useUpdateDocumento } from '@/hooks/useDocumentos';
 import {
   TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, FORMATO_SELECT_OPCOES, deriveEstruturado,
 } from '@/components/equipe/mapa/cadastros/documentoOpcoes';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 interface Props {
   aberto: boolean;
@@ -31,10 +32,11 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
   const [estruturado, setEstruturado] = useState<EstruturacaoDoc | ''>('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (documento) {
       setNome(documento.nome);
@@ -50,6 +52,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
   }, [aberto, documento]);
 
   const touch = () => { tocado.current = true; };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do documento.'); return; }
@@ -91,7 +94,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-documento-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-documento-form">
       <div className="modal modal-wide">
         <h2>{documento ? 'Editar Documento' : 'Novo Documento'}</h2>
 
@@ -141,9 +144,10 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
         </FormField>
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
           <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );

@@ -435,14 +435,13 @@ const EquipeProjetos = () => {
   }, [selectedProject, isEditMode]);
 
   useEffect(() => {
+    // Pré-carrega processos e backlog ao abrir o modal do projeto, para as
+    // contagens das abas já aparecerem corretas (não 0) antes de clicá-las.
     if (selectedProject) {
-      if (activeTab === 'backlog') {
-        fetchBacklogTasks();
-      } else if (activeTab === 'processes') {
-        fetchProcesses();
-      }
+      fetchProcesses();
+      fetchBacklogTasks();
     }
-  }, [selectedProject, activeTab]);
+  }, [selectedProject]);
 
   useEffect(() => {
     if (selectedProcess) {
@@ -514,37 +513,37 @@ const EquipeProjetos = () => {
     if (!selectedProject) return;
     setLoadingProcesses(true);
     try {
-      // Buscar via project_processes (tabela de relacionamento N:N)
-      const { data, error } = await supabase
-        .from('project_processes')
-        .select(`
-          id,
-          impact_type,
-          process:processes(
-            id,
-            name,
-            code,
-            description,
-            area,
-            stage,
-            priority,
-            frequency,
-            volume_month,
-            financial_impact,
-            client_id
-          )
-        `)
-        .eq('project_id', selectedProject.id);
-      
-      if (error) throw error;
-      
-      // Extrair processos do resultado e adicionar impact_type
-      const processesData = data?.map(pp => ({
-        ...pp.process,
-        impact_type: pp.impact_type
-      })).filter(Boolean) as Process[] || [];
-      
-      setProcesses(processesData);
+      const PROCESS_FIELDS = 'id, name, code, description, area, equipe_id, stage, priority, frequency, volume_month, financial_impact, client_id';
+
+      // Processos do projeto vêm por DOIS vínculos:
+      //  1) junção N:N project_processes (fluxo Digital Rotina)
+      //  2) coluna direta processes.project_id (fluxo MAPA/OSG e migrações)
+      // Sem o (2), os processos da OSG (ligados só por project_id) apareciam como 0.
+      const [linksRes, directRes] = await Promise.all([
+        supabase
+          .from('project_processes')
+          .select(`id, impact_type, process:processes(${PROCESS_FIELDS})`)
+          .eq('project_id', selectedProject.id),
+        supabase
+          .from('processes')
+          .select(PROCESS_FIELDS)
+          .eq('project_id', selectedProject.id),
+      ]);
+
+      if (linksRes.error) throw linksRes.error;
+      if (directRes.error) throw directRes.error;
+
+      // Mescla por id; a junção (com impact_type) tem prioridade quando houver os dois.
+      const byId = new Map<string, Process>();
+      for (const p of (directRes.data || [])) {
+        if (p) byId.set((p as Process).id, { ...(p as Process) });
+      }
+      for (const pp of (linksRes.data || [])) {
+        const proc = (pp as { process: Process | null; impact_type: string | null }).process;
+        if (proc) byId.set(proc.id, { ...proc, impact_type: (pp as { impact_type: string | null }).impact_type });
+      }
+
+      setProcesses(Array.from(byId.values()));
     } catch (error) {
       console.error('Error fetching processes:', error);
     } finally {

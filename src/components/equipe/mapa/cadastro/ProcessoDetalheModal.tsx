@@ -98,7 +98,7 @@ export default function ProcessoDetalheModal({
             <button className="btn-cancel processo-det-editar" onClick={onEditar}>
               <Pencil size={14} /> Editar
             </button>
-            <Link to={mapearTo} className="cadastro-cta" onClick={onClose}>
+            <Link to={mapearTo} className="cadastro-cta" onClick={onClose} data-tour="modal-acao">
               <Waypoints size={16} strokeWidth={2.2} />
               <span>Mapear etapas</span>
             </Link>
@@ -110,7 +110,7 @@ export default function ProcessoDetalheModal({
             <p className="processo-det-descricao">{processo.description}</p>
           )}
 
-          <div className="processo-acc-grupo">
+          <div className="processo-acc-grupo" data-tour="modal-tabs">
           <Secao icone={<Workflow size={16} />} cor="#0d9488" label="Etapas" count={etapas.length} aberta={!!abertas.etapas} onToggle={() => toggle('etapas')}>
             {etapas.length === 0 ? (
               <p className="processo-det-vazio">Nenhuma etapa mapeada ainda.</p>

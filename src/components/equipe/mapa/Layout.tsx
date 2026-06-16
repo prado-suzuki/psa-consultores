@@ -54,6 +54,15 @@ const linksDashboards = [
   { to: `${MAPA_BASE}/setor-evolucao`, label: 'Evolução do Setor' },
 ];
 
+// Âncoras do tour "welcome" (sidebar). Aplicadas por rota nos NavLinks; o grupo
+// "Cadastros" tem a sua própria âncora no botão de toggle (ver abaixo).
+const NAV_TOURS: Record<string, string> = {
+  [MAPA_BASE]: 'nav-projetos',
+  [`${MAPA_BASE}/processos`]: 'nav-processos',
+  [`${MAPA_BASE}/cascata`]: 'nav-cascata',
+  [`${MAPA_BASE}/dashboard-roi`]: 'nav-dashboard-roi',
+};
+
 
 export default function Layout() {
   const location = useLocation();
@@ -117,7 +126,7 @@ export default function Layout() {
         <ul className="sidebar-menu">
           {linksPrincipais.map((l) => (
             <li key={l.to}>
-              <NavLink to={l.to} end={l.end} onClick={closeSidebar} title={l.label}>
+              <NavLink to={l.to} end={l.end} onClick={closeSidebar} title={l.label} data-tour={NAV_TOURS[l.to]}>
                 {icons[l.to]}
                 <span className="sidebar-label">{l.label}</span>
               </NavLink>
@@ -130,6 +139,7 @@ export default function Layout() {
               onClick={toggleCadastros}
               aria-expanded={cadastrosOpen}
               title="Cadastros"
+              data-tour="nav-cadastros"
             >
               {cadastrosIcon}
               <span className="sidebar-label">Cadastros</span>
@@ -139,7 +149,7 @@ export default function Layout() {
               <ul className="sidebar-submenu">
                 {linksCadastros.map((l) => (
                   <li key={l.to}>
-                    <NavLink to={l.to} onClick={closeSidebar} title={l.label}>
+                    <NavLink to={l.to} onClick={closeSidebar} title={l.label} data-tour={NAV_TOURS[l.to]}>
                       {icons[l.to]}
                       <span className="sidebar-label">{l.label}</span>
                     </NavLink>
@@ -150,7 +160,7 @@ export default function Layout() {
           </li>
           {linksStandalone.map((l) => (
             <li key={l.to}>
-              <NavLink to={l.to} onClick={closeSidebar} title={l.label}>
+              <NavLink to={l.to} onClick={closeSidebar} title={l.label} data-tour={NAV_TOURS[l.to]}>
                 {icons[l.to]}
                 <span className="sidebar-label">{l.label}</span>
               </NavLink>
@@ -158,7 +168,7 @@ export default function Layout() {
           ))}
           {linksDashboards.map((l) => (
             <li key={l.to}>
-              <NavLink to={l.to} onClick={closeSidebar} title={l.label}>
+              <NavLink to={l.to} onClick={closeSidebar} title={l.label} data-tour={NAV_TOURS[l.to]}>
                 {icons[l.to]}
                 <span className="sidebar-label">{l.label}</span>
               </NavLink>

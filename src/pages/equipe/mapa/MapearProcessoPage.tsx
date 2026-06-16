@@ -6,7 +6,7 @@
 //   - Configurar ROI (wizard inline)
 // Histórico de medições fica acessível via botão no header.
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -73,6 +73,16 @@ function melhoriaLabel(desc: string): string {
   return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
 }
 
+// Rascunho do editor de etapas salvo em localStorage (anti-perda de dados).
+interface EtapasDraft {
+  mode: 'era' | 'ficou';
+  list: Etapa[];
+  links: Record<string, string[]>;
+  removed: string[];
+  activeIndex: number;
+  ts: number;
+}
+
 export default function MapearProcessoPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -124,6 +134,32 @@ export default function MapearProcessoPage() {
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   // IDs de etapas existentes removidas no modal — deletadas no banco ao salvar.
   const [removedEtapaIds, setRemovedEtapaIds] = useState<Set<string>>(new Set());
+
+  // Anti-perda de dados: marca edições não salvas (dirty), rascunho local e
+  // confirmação de saída. O rascunho persiste em localStorage e sobrevive a
+  // fechar/recarregar; é limpo ao salvar.
+  const [editEtapasDirty, setEditEtapasDirty] = useState(false);
+  const [confirmSairOpen, setConfirmSairOpen] = useState(false);
+  const [rascunhoPendente, setRascunhoPendente] = useState<EtapasDraft | null>(null);
+  const draftKey = (mode: 'era' | 'ficou') => `mapa.etapasDraft.${id}.${mode}`;
+
+  // Autosave do rascunho — só dispara após uma edição real (dirty), pra não
+  // criar rascunho no mero abrir e não sobrescrever um rascunho anterior.
+  useEffect(() => {
+    if (!editEtapasOpen || !id || !editEtapasDirty) return;
+    try {
+      const draft: EtapasDraft = {
+        mode: editEtapasMode,
+        list: editEtapasList,
+        links: linksByMelhoria,
+        removed: [...removedEtapaIds],
+        activeIndex: editEtapasActiveIndex,
+        ts: Date.now(),
+      };
+      localStorage.setItem(draftKey(editEtapasMode), JSON.stringify(draft));
+    } catch { /* localStorage indisponível — mantém só em memória */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editEtapasOpen, editEtapasDirty, editEtapasList, linksByMelhoria, removedEtapaIds, editEtapasActiveIndex, editEtapasMode, id]);
 
   // Cadastro rápido a partir das listas suspensas do editor de etapas —
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
@@ -265,6 +301,16 @@ export default function MapearProcessoPage() {
     melhorias.forEach(m => { links[m.id] = [...(m.gargalos || [])]; });
     setLinksByMelhoria(links);
     linksOriginaisRef.current = Object.fromEntries(Object.entries(links).map(([k, v]) => [k, [...v]]));
+    // Abre "limpo" (sem edições pendentes). Se houver rascunho salvo deste
+    // processo+modo, oferece recuperação (não aplica automático).
+    setEditEtapasDirty(false);
+    setConfirmSairOpen(false);
+    let draft: EtapasDraft | null = null;
+    try {
+      const raw = localStorage.getItem(draftKey(mode));
+      if (raw) draft = JSON.parse(raw) as EtapasDraft;
+    } catch { draft = null; }
+    setRascunhoPendente(draft && Array.isArray(draft.list) && draft.list.length > 0 ? draft : null);
     setEditEtapasOpen(true);
   };
 
@@ -278,10 +324,12 @@ export default function MapearProcessoPage() {
     setEditEtapasList(list);
     setDraggedIndex(index);
     setEditEtapasActiveIndex(index);
+    setEditEtapasDirty(true);
   };
   const handleDrop = () => setDraggedIndex(null);
 
   const handleUpdateEtapaField = <K extends keyof Etapa>(index: number, field: K, value: Etapa[K]) => {
+    setEditEtapasDirty(true);
     setEditEtapasList(prev => {
       const list = [...prev];
       list[index] = { ...list[index], [field]: value };
@@ -308,6 +356,7 @@ export default function MapearProcessoPage() {
     const novaLista = [...editEtapasList, nova];
     setEditEtapasList(novaLista);
     setEditEtapasActiveIndex(novaLista.length - 1);
+    setEditEtapasDirty(true);
   };
 
   // Remove a etapa ativa da lista do modal. A remoção só é aplicada no banco ao
@@ -326,6 +375,7 @@ export default function MapearProcessoPage() {
       });
     }
     setEditEtapasActiveIndex(prev => Math.min(prev, tamanhoAntes - 2));
+    setEditEtapasDirty(true);
   };
 
   // O editor opera por nome (ChipSelector); as junções persistem por id.
@@ -397,12 +447,44 @@ export default function MapearProcessoPage() {
       queryClient.invalidateQueries({ queryKey: ['process_stages'] });
       // React Query invalida a lista de etapas (process_stages) nos onSuccess
       // dos hooks — a UI rerenderiza com o estado fresco.
+      // Salvou: limpa o rascunho e o estado de edição pendente.
+      try { localStorage.removeItem(draftKey(editEtapasMode)); } catch { /* ignora */ }
+      setEditEtapasDirty(false);
+      setConfirmSairOpen(false);
+      setRascunhoPendente(null);
       setEditEtapasOpen(false);
     } catch (err) {
       toast.error('Erro ao salvar etapas', { description: err instanceof Error ? err.message : String(err) });
     } finally {
       setEditEtapasSaving(false);
     }
+  };
+
+  // Fechamento guardado: se há edições não salvas, pede confirmação (aviso
+  // in-app, não window.confirm). O rascunho NÃO é apagado ao sair — fica pra
+  // recuperação na próxima abertura; só some no salvar ou no "Descartar".
+  const requestCloseEtapas = () => {
+    if (editEtapasDirty) setConfirmSairOpen(true);
+    else setEditEtapasOpen(false);
+  };
+  const sairSemSalvar = () => {
+    setConfirmSairOpen(false);
+    setEditEtapasOpen(false);
+  };
+
+  // Recuperação de rascunho (banner na abertura).
+  const usarRascunho = () => {
+    if (!rascunhoPendente) return;
+    setEditEtapasList(rascunhoPendente.list);
+    setLinksByMelhoria(rascunhoPendente.links ?? {});
+    setRemovedEtapaIds(new Set(rascunhoPendente.removed ?? []));
+    setEditEtapasActiveIndex(Math.min(rascunhoPendente.activeIndex ?? 0, Math.max(0, (rascunhoPendente.list?.length ?? 1) - 1)));
+    setEditEtapasDirty(true);
+    setRascunhoPendente(null);
+  };
+  const descartarRascunho = () => {
+    try { localStorage.removeItem(draftKey(editEtapasMode)); } catch { /* ignora */ }
+    setRascunhoPendente(null);
   };
 
   const handleSnapshotCriado = () => {
@@ -494,7 +576,7 @@ export default function MapearProcessoPage() {
       </div>
 
       {/* Navegação por abas — indicador deslizante (framer) */}
-      <div className="mapear-tabs" role="tablist">
+      <div className="mapear-tabs" role="tablist" data-tour="mapear-tabs">
         {ABAS.map(a => {
           const ativa = aba === a.id;
           return (
@@ -576,13 +658,24 @@ export default function MapearProcessoPage() {
       </div>
 
       {/* Modal Editar Etapas */}
-      <Modal isOpen={editEtapasOpen} onClose={() => setEditEtapasOpen(false)}>
+      <Modal isOpen={editEtapasOpen} onClose={requestCloseEtapas}>
         {(() => {
           const active = editEtapasList[editEtapasActiveIndex];
           if (!active) return null;
           const isFicou = editEtapasMode === 'ficou';
           return (
-            <div className="modal-etapas edit-modal">
+            <div className="modal-etapas edit-modal" style={{ position: 'relative' }}>
+              {rascunhoPendente && (
+                <div className="mapear-rascunho-banner">
+                  <span>
+                    <strong>Rascunho recuperado</strong> — você tem alterações não salvas deste mapeamento. Pode não refletir mudanças recentes no banco.
+                  </span>
+                  <span style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button type="button" className="btn-save" onClick={usarRascunho}>Usar rascunho</button>
+                    <button type="button" className="btn-cancel" onClick={descartarRascunho}>Descartar</button>
+                  </span>
+                </div>
+              )}
               <div className="modal-header">
                 <h2>{isFicou ? 'Editar Etapas — Como Ficou' : 'Editar Etapas — Como Era'}</h2>
                 <span className="etapas-count" aria-label={`${editEtapasList.length} etapas`}>
@@ -753,11 +846,11 @@ export default function MapearProcessoPage() {
                   melhoriaOptions={melhorias.map(m => ({ id: m.id, nome: melhoriaLabel(m.improvement_description) }))}
                   onAddGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...new Set([...(active.gargalos || []), gid])])}
                   onRemoveGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', (active.gargalos || []).filter(x => x !== gid))}
-                  onLinkMelhoria={(gid, mid) => setLinksByMelhoria(prev => {
+                  onLinkMelhoria={(gid, mid) => { setEditEtapasDirty(true); setLinksByMelhoria(prev => {
                     const cur = prev[mid] ?? [];
                     return cur.includes(gid) ? prev : { ...prev, [mid]: [...cur, gid] };
-                  })}
-                  onUnlinkMelhoria={(gid, mid) => setLinksByMelhoria(prev => ({ ...prev, [mid]: (prev[mid] ?? []).filter(x => x !== gid) }))}
+                  }); }}
+                  onUnlinkMelhoria={(gid, mid) => { setEditEtapasDirty(true); setLinksByMelhoria(prev => ({ ...prev, [mid]: (prev[mid] ?? []).filter(x => x !== gid) })); }}
                   onQuickAddGargalo={() => setCadastroRapido('gargalo')}
                   onQuickAddMelhoria={(gid) => { setMelhoriaQuickGargalo(gid); setCadastroRapido('melhoria'); }}
                 />
@@ -785,10 +878,23 @@ export default function MapearProcessoPage() {
                   </button>
                 ) : <span />}
                 <div className="modal-footer-actions">
-                  <button className="btn-cancel" onClick={() => setEditEtapasOpen(false)}>Cancelar</button>
+                  <button className="btn-cancel" onClick={requestCloseEtapas}>Cancelar</button>
                   <button className="btn-save" onClick={handleSaveEtapas} disabled={editEtapasSaving}>{editEtapasSaving ? 'Salvando...' : 'Salvar todas'}</button>
                 </div>
               </div>
+
+              {confirmSairOpen && (
+                <div className="mapear-confirm-sair" role="alertdialog" aria-modal="true">
+                  <div className="mapear-confirm-card">
+                    <h3>Sair sem salvar?</h3>
+                    <p>Há alterações não salvas neste mapeamento. Elas ficam guardadas como rascunho para a próxima vez, mas não vão para o banco até você clicar em <strong>"Salvar todas"</strong>.</p>
+                    <div className="modal-actions">
+                      <button type="button" className="btn-cancel" onClick={() => setConfirmSairOpen(false)}>Continuar editando</button>
+                      <button type="button" className="btn-save" onClick={sairSemSalvar}>Sair sem salvar</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -825,6 +931,7 @@ export default function MapearProcessoPage() {
           // ao gargalo que disparou o cadastro (gargalo_melhorias).
           if (melhoriaQuickGargalo) {
             const gid = melhoriaQuickGargalo;
+            setEditEtapasDirty(true);
             setLinksByMelhoria(prev => ({ ...prev, [m.id]: [...(prev[m.id] ?? []), gid] }));
           }
         }}

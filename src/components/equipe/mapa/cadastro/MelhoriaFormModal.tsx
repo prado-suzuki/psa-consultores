@@ -19,6 +19,7 @@ import { useCreateMelhoria, useUpdateMelhoria } from '@/hooks/useMelhorias';
 import { useGargalosLista, useSistemasLista, useResponsaveisLista } from '@/hooks/useDominioListas';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 type RateioRow = { nome: string; horas: number };
 
@@ -119,12 +120,13 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
   const [custoExternoUnico, setCustoExternoUnico] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   // Hidratação "reset on open"; re-hidrata quando os mapas id↔nome ficam
   // prontos (carga fria via ?focus=), mas nunca depois de o usuário tocar.
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (melhoria) {
       setNome(melhoria.improvement_description);
@@ -151,6 +153,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
   }, [aberto, melhoria, sistemaNomeById, gargaloNomeById]);
 
   const touch = () => { tocado.current = true; };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const makeRateioHandlers = (arr: RateioRow[], setArr: (v: RateioRow[]) => void) => ({
     add: () => { touch(); setArr([...arr, { nome: '', horas: 0 }]); },
@@ -206,7 +209,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
 
   return (
     <>
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-melhoria-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-melhoria-form">
       <div className="modal modal-wide">
         <h2>{melhoria ? 'Editar Melhoria' : 'Nova Melhoria'}</h2>
 
@@ -237,7 +240,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
             addLabel="Adicionar ação"
           />
         </FormField>
-        <FormField label="Gargalos resolvidos" tooltip="Selecione os gargalos que esta melhoria ataca, ou cadastre um novo sem sair do fluxo. O vínculo também pode ser editado pela página Gargalos.">
+        <FormField label="Gargalos resolvidos" tooltip="Selecione os gargalos que esta melhoria ataca, ou cadastre um novo sem sair do fluxo. O vínculo também pode ser editado pela página Gargalos." dataTour="modal-campo-2">
           <ChipSelector
             options={gargalosList.map((g) => g.nome)}
             value={gargalosNomes}
@@ -274,9 +277,10 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
         </FormField>
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
           <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
 

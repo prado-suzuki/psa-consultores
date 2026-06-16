@@ -74,6 +74,7 @@ export default function ProcessoItem({ codigo, nome, meta, badge, mapearTo, mape
         <Link
           to={mapearTo}
           className="processo-mapear"
+          data-tour="processo-mapear"
           title={mapeado ? 'Ver detalhes do processo' : 'Mapear etapas do processo'}
           onClick={(e) => e.stopPropagation()}
         >

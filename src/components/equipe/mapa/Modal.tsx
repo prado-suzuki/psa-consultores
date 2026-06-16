@@ -53,7 +53,8 @@ export default function Modal({ isOpen, onClose, children, tourId }: ModalProps)
           className="modal-overlay"
           role="dialog"
           aria-modal="true"
-          onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+          // Clicar fora NÃO fecha — evita fechamento acidental com perda de dados.
+          // O fechamento é só pelo botão "Sair", pelo Esc, ou pelas ações do modal.
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

@@ -14,6 +14,7 @@ import type { Sistema } from '@/types';
 import { useCreateSistema, useUpdateSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
 import { ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/sistemaOpcoes';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 interface Props {
   aberto: boolean;
@@ -37,11 +38,12 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
   const [clustersRateio, setClustersRateio] = useState<Record<string, number>>({});
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   // Hidratação "reset on open" — não sobrescreve edições em curso (tocado).
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (sistema) {
       setNome(sistema.nome);
@@ -56,6 +58,7 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
   }, [aberto, sistema]);
 
   const touch = () => { tocado.current = true; };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do sistema.'); return; }
@@ -97,7 +100,7 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-sistema-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-sistema-form">
       <div className="modal modal-wide">
         <h2>{sistema ? 'Editar Sistema' : 'Novo Sistema'}</h2>
 
@@ -163,9 +166,10 @@ export default function SistemaFormModal({ aberto, sistema, onClose }: Props) {
         )}
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
           <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );

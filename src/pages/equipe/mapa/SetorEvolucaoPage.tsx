@@ -227,7 +227,7 @@ export default function SetorEvolucaoPage() {
       <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="setor" />
 
       {/* Filtros */}
-      <div className="dashv2-filters">
+      <div className="dashv2-filters" data-tour="setor-filtros">
         <div className="dashv2-filter">
           <label><Tooltip text={dica('setor.filtro.projeto')}>Projeto</Tooltip></label>
           <Select
@@ -251,6 +251,7 @@ export default function SetorEvolucaoPage() {
           onClick={handleExportarPdf}
           style={{ background: '#0d9488', color: 'white' }}
           title="Exportar relatório (usa Imprimir do navegador)"
+          data-tour="setor-export"
         >
           Exportar relatório do setor
         </button>
@@ -263,7 +264,7 @@ export default function SetorEvolucaoPage() {
           <h3>Indicadores consolidados</h3>
           <span className="dashv2-section-sub">Visão portfólio calculada ao vivo sobre o escopo filtrado</span>
         </div>
-        <div className="dashv2-kpi-grid">
+        <div className="dashv2-kpi-grid" data-tour="setor-kpis">
           <KPICard
             label="Horas Liberadas / ano"
             valor={`${fmtNum(horasLiberadasAcum)} h`}

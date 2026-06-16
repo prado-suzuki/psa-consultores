@@ -12,6 +12,7 @@ import type { Responsavel } from '@/types';
 import { useCreateResponsavel, useUpdateResponsavel } from '@/hooks/useResponsaveis';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import { TIPO_OPCOES } from '@/components/equipe/mapa/cadastros/responsavelOpcoes';
+import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 interface Props {
   aberto: boolean;
@@ -32,10 +33,11 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
   const [clusterId, setClusterId] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [confirmSair, setConfirmSair] = useState(false);
 
   const tocado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; return; }
+    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
     if (tocado.current) return;
     if (responsavel) {
       setNome(responsavel.name);
@@ -51,6 +53,7 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
   }, [aberto, responsavel]);
 
   const touch = () => { tocado.current = true; };
+  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do responsável.'); return; }
@@ -81,7 +84,7 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
   };
 
   return (
-    <Modal isOpen={aberto} onClose={onClose} tourId="modal-responsavel-form">
+    <Modal isOpen={aberto} onClose={requestClose} tourId="modal-responsavel-form">
       <div className="modal modal-wide">
         <h2>{responsavel ? 'Editar Responsável' : 'Novo Responsável'}</h2>
 
@@ -119,9 +122,10 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
         </div>
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={onClose}>Cancelar</button>
+          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
           <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
+        <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>
     </Modal>
   );
