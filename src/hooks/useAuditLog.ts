@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 type AuditArea = 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
 
 type AuditEntityType =
-  | 'project' | 'task' | 'subtask'
+  | 'project' | 'task' | 'subtask' | 'backlog_item'
   | 'cluster' | 'area' | 'equipe' | 'membro' | 'lider'
   | 'produto_segmento' | 'servico' | 'centro_custo' | 'empresa'
   | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'

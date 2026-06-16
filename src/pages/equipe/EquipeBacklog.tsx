@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
+import { Plus, Edit2, Trash2, ArrowRight, Layers, Sparkles } from "lucide-react";
 import { format } from "date-fns";
+import { GerarDemandasDialog } from "@/components/sprint/GerarDemandasDialog";
 
 interface BacklogItem {
   id: string;
@@ -101,6 +102,9 @@ export default function EquipeBacklog() {
 
   // Filtro de prioridade
   const [filterPriority, setFilterPriority] = useState<string>('all');
+
+  // Gerador de demandas com IA
+  const [gerarDialogOpen, setGerarDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -354,9 +358,14 @@ export default function EquipeBacklog() {
       title="Backlog" 
       subtitle="Repositório de atividades para distribuir nas sprints"
       headerActions={
-        <Button onClick={() => openFormModal()}>
-          <Plus className="h-4 w-4 mr-2" /> Novo Item
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => setGerarDialogOpen(true)}>
+            <Sparkles className="h-4 w-4 mr-2" /> Gerar com IA
+          </Button>
+          <Button onClick={() => openFormModal()}>
+            <Plus className="h-4 w-4 mr-2" /> Novo Item
+          </Button>
+        </div>
       }
     >
       <div className="space-y-6">
@@ -731,6 +740,16 @@ export default function EquipeBacklog() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Gerador de Demandas com IA */}
+      <GerarDemandasDialog
+        open={gerarDialogOpen}
+        onOpenChange={setGerarDialogOpen}
+        projects={projects}
+        processes={processes}
+        projectProcesses={projectProcesses}
+        onSaved={fetchData}
+      />
     </EquipeLayout>
   );
 }
