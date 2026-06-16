@@ -1,57 +1,35 @@
-## Análise — `20260617100000_psa_consultores_inplace_qualitativo.sql`
+## Checklist de validação — `20260619100000_psa_08_reestrutura_projetos_osg.sql`
 
-### 1. Validação de enums vs. frontend
+1. ✅ **Reagrupa 33 processos OSG em 3 projetos (19/6/8, sem órfão).**
+   - Pré-condição (linhas 53-56): aborta se `count(processes WHERE cluster_id = OSG) <> 33`.
+   - VALUES da linha 117-164 lista exatamente 33 códigos `PROC-GERAL-*` — 19 → Contratos, 6 → Gestão, 8 → Planejamento.
+   - Pós-validação 6.1 (linhas 178-182) aborta se a distribuição final não for 19/6/8.
+   - Pós-validação 6.2 (linhas 185-191) aborta se sobrar qualquer processo OSG fora dos 3 projetos.
 
-| Coluna | Valores na migração | Aceitos no frontend | Status |
-|---|---|---|---|
-| `documentos_processo.formato` | `PDF`, `Excel`, `PowerPoint` | `PDF`, `Word`, `Excel`, `PowerPoint`, `Markdown`, `Texto` | ✅ |
-| `documentos_processo.origem` | `Interno`, `Cliente` | `Interno`, `Cliente` | ✅ |
-| `documentos_processo.estruturado` | `Estruturado`, `Não Estruturado` | `Estruturado`, `Semi Estruturado`, `Não Estruturado` | ✅ |
-| `process_stages.execution` | `manual`, `semi_automatica` | `manual`, `semi_automatica`, `automatica` | ✅ |
-| `processes.frequency` | `Diária`, `Semanal`, `Mensal` (PT capitalizado) | `Diária`, `Semanal`, `Quinzenal`, `Mensal`, `Trimestral`, `Anual` — case-sensitive em `FATOR_ANUAL` | ✅ |
-| `process_improvements.improvement_status` | `Backlog`, `Concluído` | `Não iniciado`, `Em progresso`, `Concluído`, `Backlog` (de `src/types.ts`) | ✅ — Obs.: o enum real é `Em progresso`, não `Em andamento` (o briefing usou o nome antigo), mas a migração não insere nenhum dos dois, então não há impacto |
-| `projects.status` | `Melhorias` (todos os 10) | `Mapeamento`, `Diagnóstico`, `Melhorias`, `ROI` (`ProjetoStatus`) | ✅ |
-| `gargalos.origem` | `Sistema`, `Processo`, `Externo`, `Pessoas` | `Processo`, `Sistema`, `Pessoas`, `Cliente`, `Externo` | ✅ |
+2. ✅ **"Contratos" reaproveita projeto existente, não cria outro.**
+   - `v_contratos := '70c8b198-…'` (ex "P10 - Contratos", já criado pela coordenadora com `cluster_id = NULL`).
+   - Há apenas `UPDATE public.projects … WHERE id = v_contratos` (linhas 78-94). Nenhum `INSERT INTO public.projects` em toda a migração.
 
-Nenhum valor fora dos enums.
+3. ✅ **Em `processes` só mudam `project_id` e `order_index`.**
+   - `UPDATE public.processes SET project_id = m.proj, order_index = m.ord` (linhas 113-115). Nenhum outro campo no SET.
+   - Cláusula `WHERE p.code = m.code AND p.cluster_id = v_osg` garante a trava por cluster.
 
-### 2. Integridade Digital Rotina (dailys & sprints)
+4. ✅ **Nenhuma etapa é tocada.**
+   - Não há `INSERT/UPDATE/DELETE` em `process_stages`, `etapa_documentos`, `etapa_sistemas`, `etapa_responsaveis` ou `gargalo_etapas`.
+   - Snapshot antes (0.3, linhas 59-62) e depois (6.3, linhas 194-200) com `RAISE EXCEPTION` se a contagem divergir.
+   - Como nenhum `process.id` muda nem nenhum processo é deletado, as FKs `process_stages.process_id` permanecem válidas.
 
-- Os 17 IDs de `processes` e 10 IDs de `projects` são **UPDATEd** in-place (linhas 77-84 e 107-120) — apenas `description`, `cluster_id`, `status`, `area`, metadados MAPA e `updated_at`. **Ids preservados** → FKs em `daily_standups.process_id` e `sprint_deliverables.project_id` permanecem válidas. ✅
-- O bloco DO inicial (linhas 16-39) faz `RAISE EXCEPTION` se algum dos 17 processes ou 10 projects legados não existir, abortando antes de qualquer escrita. ✅
-- `DELETE FROM public.process_stages` (linha 46) é escopado a `process_id = ANY([os 17 ids])` — não toca stages de outros clusters. ✅
-- `PROC-GERAL-001` (DP) não está na lista e o bloco DO inclui guard explícito que aborta se ele estiver vinculado ao cluster PSA. ✅
-- Nenhum `DELETE` em `processes` ou `projects` em toda a migração — só UPDATE. ✅
+5. ✅ **Nada fora do cluster OSG é lido, alterado ou deletado.**
+   - Todos os SELECTs/UPDATEs em `processes` filtram por `cluster_id = v_osg` ou por `id` específico.
+   - Os 3 `UPDATE public.projects` usam `WHERE id = <uuid fixo>` (Contratos/Gestão/Planejamento).
+   - O `DELETE FROM public.projects WHERE id = ANY(v_del)` (linha 171) usa os 4 UUIDs fixos dos ex-P2/P3/P4/P5.
+   - `DELETE FROM public.projeto_justificativas WHERE projeto_id = v_planejamento` é escopado por id.
 
-### 3. Segurança dos DELETEs de catálogos
+6. ✅ **Os 4 projetos deletados não têm referência em sprints/dailies/tasks.**
+   - Bloco 0.4 (linhas 65-74) soma referências em `sprints`, `process_improvements`, `process_scenarios`, `org_tasks` e `client_visible_projects` para `project_id = ANY(v_del)` e aborta se `> 0`.
+   - Observação: `daily_standups` referencia `process_id`, não `project_id` — como nenhum processo é deletado, dailies ficam intactas por construção.
+   - Pós-validação 6.4 (linhas 203-205) confirma que os 4 projetos foram efetivamente removidos.
 
-Todos os DELETEs (linhas 42-61) são escopados a uma das duas formas:
+**Toda a migração roda em `BEGIN; … COMMIT;` com `RAISE EXCEPTION` em cada checkpoint — qualquer divergência aborta a transação inteira.**
 
-- **Por `cluster_id = 'b21b0b89-...'`**: `gargalos`, `process_improvements`, `sistema_clusters`, `sistemas_processo`, `documentos_processo`, e suas tabelas-ponte (`gargalo_melhorias/processos/responsaveis`, `melhoria_*`, `sistema_responsaveis`, `documento_horas_historico`) via subselect filtrado por cluster.
-- **Por `etapa_id IN (SELECT id FROM process_stages WHERE process_id = ANY([17 ids]))`**: `etapa_documentos`, `etapa_sistemas`, `etapa_responsaveis`, `gargalo_etapas`.
-
-Nenhum DELETE global. Cluster OSG (`0523512c-...`) e legado `NULL` não são tocados. ✅
-
-### 4. Bloco de validação final
-
-Existe `DO $$ ... $$` (linha 865+) que valida 9 contagens-chave e dispara `RAISE EXCEPTION` se não baterem: 10 projects, 17 processes, 64 stages AS-IS, 78 documentos, 22 sistemas, 13 gargalos, 21 melhorias, 152 etapa_documentos, 90 etapa_sistemas (e segue com etapa_responsaveis). Falha de qualquer contagem aborta o `COMMIT`. ✅
-
-### 5. Plano de execução
-
-A migração roda em uma transação única (`BEGIN; ... COMMIT;`) na seguinte ordem:
-
-1. Cria função auxiliar `public.psa_mapa_uuid(slug)` (md5 determinístico para ids reaproveitáveis).
-2. Pré-flight: valida existência do cluster PSA, dos 10 projects e 17 processes legados, e que `PROC-GERAL-001` não esteja indevidamente no cluster.
-3. Limpeza idempotente escopada ao cluster PSA: bridges de etapa → `process_stages` dos 17 ids → bridges de gargalos/melhorias → `gargalos`/`process_improvements` → `sistema_clusters`/`sistemas_processo`/`documentos_processo`.
-4. **UPDATE in-place** dos 10 projects (descrições, status, área, cluster).
-5. **UPDATE in-place** dos 17 processes (descrição, área, cluster, project_id, prioridade, frequência, complexidade, entregável).
-6. INSERT das 64 etapas AS-IS (ids determinísticos via `psa_mapa_uuid`).
-7. INSERT dos 78 documentos, 22 sistemas, 13 gargalos, 21 melhorias (todos com `ON CONFLICT (id) DO UPDATE` para idempotência).
-8. INSERT das pontes: `etapa_documentos` (152), `etapa_sistemas` (90), `etapa_responsaveis`, `gargalo_etapas/processos`, `melhoria_processos`.
-9. Bloco final de validação por contagens → `RAISE EXCEPTION` aborta a transação se algo divergir.
-
-### Conclusão
-
-**Seguro aplicar** via Lovable Cloud. Não há risco para dailys/sprints (ids preservados), não há risco para outros clusters (todos os DELETEs escopados), enums batem com o frontend, e a transação tem rollback automático em caso de qualquer divergência de contagem.
-
-Próximo passo: aprovar este plano para que eu rode a migração via `supabase--migration` em build mode.
+Aguardando aprovação para aplicar via `supabase--migration`.
