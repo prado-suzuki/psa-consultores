@@ -1849,6 +1849,20 @@ export type Database = {
             referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       documento_override: {
@@ -7946,6 +7960,7 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }

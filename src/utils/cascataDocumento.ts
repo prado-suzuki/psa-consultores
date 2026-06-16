@@ -22,6 +22,7 @@
 
 import type { Documento, Etapa, Processo } from '@/types';
 import { canon } from '@/utils/cascataEngine';
+import { resolveCanonicoId } from '@/lib/cascataUtils';
 
 export type IntensidadeProcesso = 'TOTAL' | 'PARCIAL';
 
@@ -79,19 +80,6 @@ interface EtapaIndexada {
   saidaCanon: Set<string>;
 }
 
-function canonDocId(docId: string, docsById: Map<string, Documento>): string {
-  const d = docsById.get(docId);
-  if (!d) return '';
-  type DocComCanonico = Documento & { canonicoId?: string | null; canonico_id?: string | null };
-  const dc = d as DocComCanonico;
-  const canonicoId = dc.canonicoId ?? dc.canonico_id;
-  // Identidade EXATA por documento_id (ou canonico_id de agrupamento). Evita
-  // falsos positivos entre documentos homônimos. Como etapa_documentos sempre
-  // grava documento_id, ambos os lados (saída/entrada) resolvem por id aqui.
-  // Fallback para nome canônico só em referências livres sem id (raro).
-  if (canonicoId && docsById.has(canonicoId)) return `doc:${canonicoId}`;
-  return `doc:${docId}`;
-}
 
 /**
  * BFS de invalidação documental a partir de N etapas-origem.
@@ -124,11 +112,11 @@ export function derivarCascataPorEtapas(
     const entradaCanon = new Set<string>();
     const saidaCanon = new Set<string>();
     for (const de of e.docsEntrada ?? []) {
-      if (de.documentoId) entradaCanon.add(canonDocId(de.documentoId, docsById));
+      if (de.documentoId) entradaCanon.add(resolveCanonicoId(de.documentoId, docsById));
       else if (de.nome)    entradaCanon.add(canon(de.nome));
     }
     for (const ds of e.docsSaida ?? []) {
-      if (ds.documentoId) saidaCanon.add(canonDocId(ds.documentoId, docsById));
+      if (ds.documentoId) saidaCanon.add(resolveCanonicoId(ds.documentoId, docsById));
       else if (ds.nome)    saidaCanon.add(canon(ds.nome));
     }
     entradaCanon.delete('');
@@ -137,9 +125,19 @@ export function derivarCascataPorEtapas(
   });
   const indexByEtapaId = new Map(etapasIndex.map((ei) => [ei.etapa.id, ei]));
 
+  // Índice invertido: doc-canon → etapas que o consomem (construído uma vez antes do BFS).
+  const consumidoresPorDoc = new Map<string, EtapaIndexada[]>();
+  for (const ei of etapasIndex) {
+    for (const c of ei.entradaCanon) {
+      const arr = consumidoresPorDoc.get(c) ?? [];
+      arr.push(ei);
+      consumidoresPorDoc.set(c, arr);
+    }
+  }
+
   const canonToDocId = new Map<string, string>();
   for (const d of todosDocumentos) {
-    const c = canonDocId(d.id, docsById);
+    const c = resolveCanonicoId(d.id, docsById);
     if (c && !canonToDocId.has(c)) canonToDocId.set(c, d.id);
   }
 
@@ -206,6 +204,7 @@ export function derivarCascataPorEtapas(
       if (existente.motivo === 'sequencial' && motivo === 'documento') {
         existente.motivo = 'documento';
         existente.viaDocumentoId = via?.documentoId;
+        existente.depth = Math.min(existente.depth, depth);
         delete existente.viaEtapaId;
       }
       return;
@@ -222,7 +221,7 @@ export function derivarCascataPorEtapas(
     const e = etapaById.get(etapaId);
     if (!e) return;
     for (const seq of etapasPorProcesso.get(e.process_id) ?? []) {
-      if ((seq.stage_order ?? 0) <= (e.stage_order ?? 0) || detalhes[seq.id]) continue;
+      if ((seq.stage_order ?? 0) < (e.stage_order ?? 0) || detalhes[seq.id]) continue;
       detalhes[seq.id] = { motivo: 'sequencial', depth, viaEtapaId: etapaId };
       orderedStages.push(seq.id);
       edges.push({
@@ -237,15 +236,16 @@ export function derivarCascataPorEtapas(
   for (const eid of validSeedEtapaIds) contaminar(eid, 'origem', 0);
 
   // ─── BFS por documentos invalidados ─────────────────────────────────
-  while (docQueue.length > 0) {
-    const { canon: docCanon, depth } = docQueue.shift()!;
+  // Ponteiro de cabeça (O(1) por dequeue) + índice invertido (O(consumidores) por doc).
+  let bfsHead = 0;
+  while (bfsHead < docQueue.length) {
+    const { canon: docCanon, depth } = docQueue[bfsHead++];
     const docId = canonToDocId.get(docCanon);
-    for (const ei of etapasIndex) {
-      if (!ei.entradaCanon.has(docCanon)) continue;
+    for (const ei of consumidoresPorDoc.get(docCanon) ?? []) {
       const stageId = ei.etapa.id;
       // Aresta doc → stage (mesmo se a etapa já foi visitada por outra via:
       // o fluxo documental entre processos continua real e vai para o grafo)
-      if (docId && stageId !== undefined) {
+      if (docId) {
         const key = `${docCanon}→${stageId}`;
         if (!docConsumoVisto.has(key)) {
           docConsumoVisto.add(key);

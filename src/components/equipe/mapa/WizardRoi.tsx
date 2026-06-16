@@ -9,7 +9,7 @@ import type {
 } from '@/types';
 import type { ItemDiagnostico } from '@/utils/diagnosticoRoi';
 import { calcularRoi, execucoesAnuais } from '@/utils/roiCalculator';
-import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
+import { melhoriaIdsDoProcesso, gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import {
   diagnosticarRoi,
   type StatusItem,
@@ -401,21 +401,12 @@ export default function WizardRoi({
     return sistemas.filter(s => ids.has(s.id) || ids.has(s.nome));
   }, [etapas, sistemas]);
 
-  // Melhorias relevantes para este processo: vínculo direto M:N ou via gargalo.
+  // Melhorias relevantes para este processo: DERIVADAS via gargalo (a melhoria
+  // ataca um gargalo que se manifesta numa etapa deste processo).
   const melhoriasRelevantes = useMemo(() => {
     if (!processo) return [];
-    const gargalosIds = new Set(
-      gargalos.filter(g => (g.processos || []).includes(processo.id)).map(g => g.id)
-    );
-    const melhoriaIdsViaGargalos = new Set(
-      gargalos
-        .filter(g => gargalosIds.has(g.id))
-        .flatMap(g => melhoriaIdsDoGargalo(g))
-    );
-    return melhorias.filter(m =>
-      (m.processos || []).includes(processo.id) ||
-      melhoriaIdsViaGargalos.has(m.id)
-    );
+    const relevantes = melhoriaIdsDoProcesso(gargalos, processo.id);
+    return melhorias.filter(m => relevantes.has(m.id));
   }, [processo, gargalos, melhorias]);
 
   if (!processo || !diag) return null;
@@ -792,7 +783,7 @@ export default function WizardRoi({
               <KpiExec
                 label="Melhorias vinculadas"
                 value={String(melhoriasRelevantes.length)}
-                formula={`em ${gargalos.filter(g => (g.processos || []).includes(processo.id)).length} gargalo(s) do processo`}
+                formula={`em ${gargalosDoProcesso(gargalos, processo.id).length} gargalo(s) do processo`}
                 variant="default"
               />
             </div>

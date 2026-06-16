@@ -11,6 +11,7 @@
 
 import { useQuery, useMutation, useQueryClient, type UseMutationResult, type UseQueryResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncVinculosEtapa } from '@/hooks/etapaVinculosSync';
 import type { Etapa, EtapaFicou, DocRef, ResponsavelEtapa } from '@/types';
 
 const TABLE = 'process_stages';
@@ -18,7 +19,8 @@ const SELECT_HYDRATED = `
   *,
   etapa_documentos ( documento_id, sentido, volume ),
   etapa_sistemas   ( sistema_id, rateio ),
-  etapa_responsaveis ( responsavel_id, papel, horas )
+  etapa_responsaveis ( responsavel_id, papel, horas ),
+  gargalo_etapas ( gargalo_id )
 `;
 
 type DbRow = Record<string, unknown> & {
@@ -26,6 +28,7 @@ type DbRow = Record<string, unknown> & {
   etapa_documentos?: Array<{ documento_id: string; sentido: string; volume: number | null }> | null;
   etapa_sistemas?: Array<{ sistema_id: string; rateio: number | null }> | null;
   etapa_responsaveis?: Array<{ responsavel_id: string; papel: string; horas: number | null }> | null;
+  gargalo_etapas?: Array<{ gargalo_id: string }> | null;
 };
 
 function splitDocs(row: DbRow): { docsEntrada: DocRef[]; docsSaida: DocRef[] } {
@@ -50,14 +53,15 @@ function hydrateSistemas(row: DbRow): string[] {
 
 function hydrate(row: DbRow): Etapa {
   const { docsEntrada, docsSaida } = splitDocs(row);
-  const { etapa_documentos: _ed, etapa_sistemas: _es, etapa_responsaveis: _er, ...clean } = row;
-  void _ed; void _es; void _er;
+  const { etapa_documentos: _ed, etapa_sistemas: _es, etapa_responsaveis: _er, gargalo_etapas: _eg, ...clean } = row;
+  void _ed; void _es; void _er; void _eg;
   return {
     ...(clean as unknown as Etapa),
     docsEntrada,
     docsSaida,
     executadoPor: hydrateExec(row),
     sistemas: hydrateSistemas(row),
+    gargalos: (row.gargalo_etapas ?? []).map((g) => g.gargalo_id),
     volumeMensal: 0,
   };
 }
@@ -103,17 +107,19 @@ function stripSyntheticFields(patch: Partial<Etapa>): Record<string, unknown> {
   delete out.docsSaida;
   delete out.executadoPor;
   delete out.sistemas;
+  delete out.gargalos;
   delete out.volumeMensal;
   delete out.ficou;
   return out;
 }
 
-export type EtapaInput = Omit<Etapa, 'id' | 'docsEntrada' | 'docsSaida' | 'executadoPor' | 'sistemas' | 'volumeMensal' | 'ficou'> & {
+export type EtapaInput = Omit<Etapa, 'id' | 'docsEntrada' | 'docsSaida' | 'executadoPor' | 'sistemas' | 'gargalos' | 'volumeMensal' | 'ficou'> & {
   id?: string;
   docsEntrada?: Etapa['docsEntrada'];
   docsSaida?: Etapa['docsSaida'];
   executadoPor?: Etapa['executadoPor'];
   sistemas?: Etapa['sistemas'];
+  gargalos?: Etapa['gargalos'];
   volumeMensal?: Etapa['volumeMensal'];
   ficou?: Etapa['ficou'];
 };
@@ -166,9 +172,15 @@ export function useCreateEtapa(): UseMutationResult<Etapa, Error, EtapaInput> {
         .select()
         .single();
       if (error) throw new Error(error.message);
-      return hydrate(data as DbRow);
+      const created = hydrate(data as DbRow);
+      await syncVinculosEtapa(created.id, 'AS-IS', input);
+      return created;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [TABLE] });
+      // gargalo_etapas alimenta useGargalos (cascata) — invalida também.
+      qc.invalidateQueries({ queryKey: ['gargalos'] });
+    },
   });
 }
 
@@ -188,9 +200,14 @@ export function useUpdateEtapa(): UseMutationResult<
         .select()
         .single();
       if (error) throw new Error(error.message);
+      await syncVinculosEtapa(id, 'AS-IS', patch);
       return hydrate(data as DbRow);
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [TABLE] });
+      // gargalo_etapas alimenta useGargalos (cascata) — invalida também.
+      qc.invalidateQueries({ queryKey: ['gargalos'] });
+    },
   });
 }
 

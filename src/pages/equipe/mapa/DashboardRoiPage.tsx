@@ -1,12 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
-import { melhoriaIdsDoGargalo } from '@/utils/gargaloMelhorias';
+import { melhoriaIdsDoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
+import HistoricoMedicoes from '@/components/equipe/mapa/HistoricoMedicoes';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
@@ -16,6 +18,7 @@ import {
 import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 // `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
 // também ser usado pelo SetorEvolucaoPage. Manter a função local apenas como
@@ -299,7 +302,6 @@ function EmptyRow({ cols, msg = 'Sem dados — preencha o cadastro para visualiz
 
 export default function DashboardRoiPage() {
   const [aba, setAba] = useState<Aba>('mapeamento');
-  const CLUSTER_FILTRO_OPCOES = useClusterFiltroOpcoes();
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -316,11 +318,13 @@ export default function DashboardRoiPage() {
     [rawEtapas, documentos, sistemas, responsaveis],
   );
 
-  const [filtroCluster, setFiltroCluster] = useState<string>('');
+  // Cluster vem do seletor global no header.
+  const { cluster: filtroCluster } = useClusterGlobal();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
   const [exportando, setExportando] = useState(false);
+  const [notasOpen, setNotasOpen] = useState(false);
 
   // Quando a lista de projetos chega, seleciona o primeiro como filtro default.
   useEffect(() => {
@@ -333,7 +337,7 @@ export default function DashboardRoiPage() {
   const statusIdx = STATUS_ORDEM.indexOf(projetoStatus);
 
   // Cluster do projeto → usado para filtrar projetos/processos por cluster.
-  // filtroCluster vem do useClusterFiltroOpcoes (value = cluster_id UUID),
+  // filtroCluster vem do seletor global no header (value = cluster_id UUID),
   // então o mapa precisa ser projeto.id → cluster_id (não clusterName).
   const clusterIdPorProjetoId = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
@@ -360,7 +364,7 @@ export default function DashboardRoiPage() {
 
   const gargalosFiltrados = useMemo(() => {
     const idsProc = new Set(processosFiltrados.map(p => p.id));
-    return gargalos.filter(g => (g.processos || []).some(pid => idsProc.has(pid)));
+    return gargalos.filter(g => processoIdsDoGargalo(g).some(pid => idsProc.has(pid)));
   }, [gargalos, processosFiltrados]);
 
   // Última mensuração de cada processo no escopo filtrado.
@@ -433,19 +437,20 @@ export default function DashboardRoiPage() {
   const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
 
   const limparFiltros = () => {
-    setFiltroCluster('');
     setFiltroProjeto(projetos[0]?.id || '');
     setFiltroProcesso('');
   };
 
-  // Ao trocar de cluster, zera projeto/processo se saírem do escopo do cluster.
-  const onChangeCluster = (c: string) => {
-    setFiltroCluster(c);
-    if (c && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== c) {
+  // Ao trocar o cluster global, zera projeto/processo se saírem do escopo do cluster.
+  const clusterAnterior = useRef(filtroCluster);
+  useEffect(() => {
+    if (clusterAnterior.current === filtroCluster) return;
+    clusterAnterior.current = filtroCluster;
+    if (filtroCluster && filtroProjeto && clusterIdPorProjetoId.get(filtroProjeto) !== filtroCluster) {
       setFiltroProjeto('');
     }
     setFiltroProcesso('');
-  };
+  }, [filtroCluster, filtroProjeto, clusterIdPorProjetoId]);
 
   const handleExportCsv = async () => {
     setExportando(true);
@@ -546,11 +551,14 @@ export default function DashboardRoiPage() {
           <p>Esta apresentação percorre, em uma linha narrativa única, o caminho do projeto: o escopo mapeado, os gargalos diagnosticados, as melhorias propostas, o cenário futuro projetado e o retorno consolidado do investment.</p>
         </div>
         <div className="dashv2-hero-actions">
+          <TourTrigger dataTour="help" />
+          <NotasInfoButton onClick={() => setNotasOpen(true)} />
           <button
             className="btn-secondary"
             onClick={handleExportCsv}
             disabled={exportando}
             title="Exportar dados consolidados em CSV para a Ferramenta C (Digital Rotina)"
+            data-tour="roi-export"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             {exportando ? 'Exportando…' : 'Exportar'}
@@ -566,16 +574,10 @@ export default function DashboardRoiPage() {
         </div>
       </div>
 
+      <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
+
       {/* Filtros */}
-      <div className="dashv2-filters">
-        <div className="dashv2-filter">
-          <label><Tooltip text={dica('comum.filtro.cluster')}>Cluster</Tooltip></label>
-          <Select
-            value={filtroCluster}
-            onChange={onChangeCluster}
-            options={CLUSTER_FILTRO_OPCOES}
-          />
-        </div>
+      <div className="dashv2-filters" data-tour="roi-filtros">
         <div className="dashv2-filter">
           <label><Tooltip text={dica('dashboard.filtro.projeto')}>Projeto</Tooltip></label>
           <Select
@@ -612,7 +614,7 @@ export default function DashboardRoiPage() {
       </div>
 
       {/* Stepper narrativo */}
-      <div className="dashv2-stepper">
+      <div className="dashv2-stepper" data-tour="roi-stepper">
         {ABAS.map((a, i) => {
           const ativaIdx = ABAS.findIndex((x) => x.id === aba);
           const fasePrevia = STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
@@ -780,7 +782,7 @@ export default function DashboardRoiPage() {
               <KPICard label="Custo de retrabalho" valor={fmtBRL(v.custosCategoria.retrabalho * horizonteFator)} hint={`Retrabalho em ${horizonte} meses`} />
               <KPICard
                 label="Processos afetados"
-                valor={fmtNum(new Set(gargalosFiltrados.flatMap(g => g.processos || [])).size, 0)}
+                valor={fmtNum(new Set(gargalosFiltrados.flatMap(g => processoIdsDoGargalo(g))).size, 0)}
                 hint="Pelo menos um gargalo"
               />
             </div>
@@ -803,7 +805,7 @@ export default function DashboardRoiPage() {
               <HBarChart
                 items={processosFiltrados.map(p => ({
                   label: p.name,
-                  valor: gargalosFiltrados.filter(g => (g.processos || []).includes(p.id)).reduce((s, g) => s + (g.horas_gastas || 0), 0) * horizonte,
+                  valor: gargalosFiltrados.filter(g => processoIdsDoGargalo(g).includes(p.id)).reduce((s, g) => s + (g.horas_gastas || 0), 0) * horizonte,
                   cor: 'var(--accent-color)',
                 }))}
                 valueFmt={(x) => `${fmtNum(x)} h`}
@@ -832,7 +834,7 @@ export default function DashboardRoiPage() {
                     .slice(0, 10)
                     .map((g, i) => {
                       const custoHM = responsaveis.length ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length : 0;
-                      const procs = (g.processos || []).map(pid => procNomeById.get(pid) || pid);
+                      const procs = processoIdsDoGargalo(g).map(pid => procNomeById.get(pid) || pid);
                       return (
                         <tr key={g.id}>
                           <td>{i + 1}</td>
@@ -937,7 +939,7 @@ export default function DashboardRoiPage() {
                     const ms = melhoriaIdsDoGargalo(g)
                       .map(id => melhorias.find(x => x.id === id))
                       .filter((x): x is NonNullable<typeof x> => Boolean(x));
-                    const procs = (g.processos || []).map(pid => procNomeById.get(pid) || pid);
+                    const procs = processoIdsDoGargalo(g).map(pid => procNomeById.get(pid) || pid);
                     return (
                       <tr key={g.id}>
                         <td>{g.nome}</td>
@@ -1041,8 +1043,9 @@ export default function DashboardRoiPage() {
                     const execFut = e.ficou?.executadoPor ?? e.executadoPor;
                     const horasFut = (execFut || []).reduce((s, r) => s + (r.horas ?? 0), 0);
                     const custoHM = responsaveis.length ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length : 0;
-                    // Melhorias aplicadas ao processo da etapa (M:N).
-                    const melhoriasDoProcesso = melhorias.filter(m => (m.processos || []).includes(e.process_id));
+                    // Melhorias do processo da etapa — derivadas via gargalo.
+                    const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, e.process_id);
+                    const melhoriasDoProcesso = melhorias.filter(m => melhoriaIdsProc.has(m.id));
                     const melhNomes = melhoriasDoProcesso.map(m => m.improvement_description).join(', ');
                     return (
                       <tr key={e.id}>
@@ -1134,6 +1137,18 @@ export default function DashboardRoiPage() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+
+            <div className="dashv2-section-header">
+              <h3>Histórico de medições</h3>
+              <span className="dashv2-section-sub">
+                {filtroProcesso ? 'Evolução das baselines de ROI salvas deste processo' : 'Selecione um processo no filtro acima para ver a evolução das medições'}
+              </span>
+            </div>
+            <div className="dashv2-card">
+              {filtroProcesso
+                ? <HistoricoMedicoes processId={filtroProcesso} processoNome={procNomeById.get(filtroProcesso)} />
+                : <p className="dashv2-empty-row" style={{ padding: 16 }}>Selecione um processo no filtro <strong>Processo</strong> (acima) para ver o histórico de medições dele.</p>}
             </div>
 
             <div className="dashv2-quote dashv2-quote-final">

@@ -87,6 +87,27 @@ serve(async (req) => {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey);
 
+  // Auth guard: validate JWT and require team_member or higher
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+  {
+    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await anonClient.auth.getUser();
+    if (userErr || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { data: roleRows } = await supabase.from("user_roles").select("role").eq("user_id", userData.user.id);
+    const roles = new Set((roleRows ?? []).map((r: any) => r.role));
+    const allowed = roles.has("admin") || roles.has("lider") || roles.has("sublider") || roles.has("team_member");
+    if (!allowed) {
+      return new Response(JSON.stringify({ error: "Forbidden: requires team_member role" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  }
+
   let procId: string | null = null;
 
   try {

@@ -6,6 +6,7 @@
 
 import { useMutation, useQueryClient, type UseMutationResult } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { syncVinculosEtapa } from '@/hooks/etapaVinculosSync';
 import type { Etapa } from '@/types';
 
 export interface UpsertEtapaToBeInput {
@@ -25,6 +26,7 @@ export function useUpsertEtapaToBe(): UseMutationResult<void, Error, UpsertEtapa
       delete payload.docsSaida;
       delete payload.executadoPor;
       delete payload.sistemas;
+      delete payload.gargalos;
       delete payload.volumeMensal;
       delete payload.ficou;
       payload.process_id = process_id;
@@ -35,6 +37,14 @@ export function useUpsertEtapaToBe(): UseMutationResult<void, Error, UpsertEtapa
         .from('process_stages' as never)
         .upsert(payload as never, { onConflict: 'id,scenario' });
       if (error) throw new Error(error.message);
+
+      // Vínculos do cenário TO-BE (gargalos ficam só no AS-IS).
+      await syncVinculosEtapa(etapa.id, 'TO-BE', {
+        docsEntrada: etapa.docsEntrada,
+        docsSaida: etapa.docsSaida,
+        executadoPor: etapa.executadoPor,
+        sistemas: etapa.sistemas,
+      });
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['process_stages'] }); },
   });

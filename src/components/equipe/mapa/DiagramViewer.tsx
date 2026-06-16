@@ -3,12 +3,27 @@ import mermaid from 'mermaid';
 import { toast } from 'sonner';
 import Modal from './Modal';
 
+// Torna o SVG do mermaid bem-formado em XML (necessário pra abrir o .svg
+// standalone e pra rasterizar em canvas → PNG). O mermaid pode emitir tags HTML
+// (void) que são válidas em HTML mas quebram o parser XML: <br> sem fechamento
+// e a entidade &nbsp; (indefinida em XML puro).
+function toXmlSafeSvg(svg: string): string {
+  return svg
+    .replace(/<br\s*>/gi, '<br/>')
+    .replace(/&nbsp;/g, ' ');
+}
+
 let mermaidInitialized = false;
 function ensureMermaidInit() {
   if (mermaidInitialized) return;
   mermaid.initialize({
     startOnLoad: false,
-    securityLevel: 'loose',
+    // 'strict' re-habilita o sanitizer do Mermaid (DOMPurify) — protege contra XSS
+    // ao injetarmos o SVG via dangerouslySetInnerHTML.
+    securityLevel: 'strict',
+    // Labels via <text> SVG (não foreignObject/HTML) — exportação .svg válida em
+    // XML e PNG rasterizável. Reforçado no topo e no flowchart.
+    htmlLabels: false,
     theme: 'base',
     themeVariables: {
       fontFamily: "'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif",
@@ -21,7 +36,9 @@ function ensureMermaidInit() {
       tertiaryColor: '#ffffff',
     },
     flowchart: {
-      htmlLabels: true,
+      // htmlLabels:false força labels via <text> SVG — evita decodificação
+      // de entidades HTML em labels controlados por usuário.
+      htmlLabels: false,
       curve: 'basis',
       padding: 14,
     },
@@ -90,13 +107,14 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
   };
   const handleDownloadSvg = () => {
     if (!svg) return;
-    downloadFile(`${filename}.svg`, svg, 'image/svg+xml;charset=utf-8');
+    downloadFile(`${filename}.svg`, toXmlSafeSvg(svg), 'image/svg+xml;charset=utf-8');
   };
   const handleDownloadPng = async () => {
     if (!svg) return;
     try {
       // Converte SVG → canvas → PNG via Image + canvas.toBlob
-      const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+      const safeSvg = toXmlSafeSvg(svg);
+      const svgBlob = new Blob([safeSvg], { type: 'image/svg+xml;charset=utf-8' });
       const svgUrl = URL.createObjectURL(svgBlob);
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -108,7 +126,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
 
       // Tenta extrair dimensões do <svg>
       const parser = new DOMParser();
-      const svgDoc = parser.parseFromString(svg, 'image/svg+xml');
+      const svgDoc = parser.parseFromString(safeSvg, 'image/svg+xml');
       const svgEl = svgDoc.documentElement;
       const viewBox = svgEl.getAttribute('viewBox') || '';
       const vbParts = viewBox.split(/\s+/).map(Number);

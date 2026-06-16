@@ -11,7 +11,20 @@ interface CreateTeamMemberRequest {
   roles?: string[];
 }
 
-const FIXED_PASSWORD = 'trocarsenha';
+/**
+ * Gera uma senha temporária forte (~22 caracteres base64url).
+ * Substituiu a senha fixa 'trocarsenha' por motivos de segurança:
+ * cada usuário recebe uma senha única e aleatória, retornada ao
+ * frontend para ser exibida uma única vez ao admin.
+ */
+function generateTemporaryPassword(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -75,7 +88,7 @@ Deno.serve(async (req) => {
     // Parse request body
     const { email, password, first_name, last_name, is_admin, roles: requestedRoles }: CreateTeamMemberRequest = await req.json();
 
-    const effectivePassword = password && password.length > 0 ? password : FIXED_PASSWORD;
+    const effectivePassword = password && password.length > 0 ? password : generateTemporaryPassword();
     const effectiveLastName = last_name && last_name.trim() !== '' ? last_name : '';
 
     console.log('Creating team member:', { email, first_name, last_name: effectiveLastName, requestedRoles, is_admin });
@@ -151,9 +164,10 @@ Deno.serve(async (req) => {
     console.log('Team member created successfully');
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         user_id: userId,
+        temporary_password: effectivePassword,
         message: 'Usuário criado com sucesso'
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -10,7 +10,7 @@ import type {
   DocRef,
   ResponsavelEtapa,
 } from '../types';
-import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
+import { melhoriaIdsDoGargalo, gargalosDoProcesso, melhoriaIdsDoProcesso } from './gargaloMelhorias';
 
 export interface BuildDiagramInput {
   processo: Processo;
@@ -86,17 +86,11 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   const sis = Array.from(sisKeys)
     .map(k => sistemas.find(s => s.id === k || s.nome === k) || { id: k, nome: k });
 
-  const procGargalos = gargalos.filter(g => (g.processos || []).includes(processo.id));
-
-  // Vínculo gargalo↔melhoria via N:M `gargalo_melhorias` (g.melhorias[]).
-  const melhoriaIdsViaGargalos = new Set(
-    procGargalos.flatMap(g => melhoriaIdsDoGargalo(g))
-  );
-  const procMelhorias = melhorias.filter(
-    m =>
-      (m.processos || []).includes(processo.id) ||
-      melhoriaIdsViaGargalos.has(m.id)
-  );
+  // Gargalos/melhorias do processo derivados via gargalo_etapas → etapa
+  // (vínculos diretos gargalo_processos/melhoria_processos foram aposentados).
+  const procGargalos = gargalosDoProcesso(gargalos, processo.id);
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const procMelhorias = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   // ---------- IDs ----------
   const pId = safeId('P', processo.id);
@@ -115,12 +109,14 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   lines.push('flowchart LR');
   lines.push('  %% ===== nós =====');
 
-  // Processo central
-  lines.push(`  ${pId}["<b>${safeLabel(processo.name)}</b><br/><i>Processo</i>"]:::processo`);
+  // Rótulos em TEXTO PURO (sem <b>/<i>/<br/>): tags HTML acionam o caminho de
+  // foreignObject do mermaid, que gera SVG com <p>/<br> não-XML (quebra o .svg
+  // exportado) e não rasteriza em canvas (quebra o PNG). O tipo é transmitido
+  // pelas cores/estilos dos nós.
+  lines.push(`  ${pId}["${safeLabel(processo.name)}"]:::processo`);
 
-  // Projeto
   if (projeto && projId) {
-    lines.push(`  ${projId}["${safeLabel(projeto.name)}<br/><i>Projeto</i>"]:::projeto`);
+    lines.push(`  ${projId}["${safeLabel(projeto.name)}"]:::projeto`);
   }
 
   // Subgraphs

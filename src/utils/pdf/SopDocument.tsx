@@ -12,7 +12,7 @@ import type {
 } from '@/types';
 import { styles, PDF_COLORS } from './theme';
 import { fmtPercent, joinDocs, joinPeople, todayBR, pad2 } from './helpers';
-import { melhoriaIdsDoGargalo } from '../gargaloMelhorias';
+import { melhoriaIdsDoProcesso } from '../gargaloMelhorias';
 
 export type SOPMode = 'era' | 'ficou';
 
@@ -74,17 +74,12 @@ export function SopDocument(props: SopDocumentProps) {
   const scenarioLabel = isFicou ? 'Cenário Otimizado · As-If' : 'Cenário Atual · As-Is';
   const data = todayBR();
 
-  // Cross-cuts — replicar lógica do sopHtmlTemplate em forma funcional simples
-  const gargalosDoProcesso = gargalos.filter(g => (g.processos || []).includes(processo.id));
-  const melhoriaIdsViaGargalos = new Set(
-    gargalosDoProcesso.flatMap(g => melhoriaIdsDoGargalo(g)),
-  );
-  const procMelhorias = isFicou
-    ? melhorias.filter(m =>
-        (m.processos || []).includes(processo.id) ||
-        melhoriaIdsViaGargalos.has(m.id),
-      )
-    : [];
+  // Gargalos pertencem à ETAPA (gargalo_etapas) — resolvidos por etapa abaixo.
+  // Melhorias do processo são derivadas via gargalo_melhorias (melhoria_processos
+  // e gargalo_processos foram aposentados).
+  const gargaloById = new Map(gargalos.map(g => [g.id, g]));
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const procMelhorias = isFicou ? melhorias.filter(m => melhoriaIdsProc.has(m.id)) : [];
 
   // Sistemas/documentos do cenário
   const sisOf = (e: Etapa) => ((isFicou ? (e.ficou?.sistemas ?? e.sistemas) : e.sistemas) || []);
@@ -156,6 +151,10 @@ export function SopDocument(props: SopDocumentProps) {
             const docsE = docsEntOf(e);
             const docsS = docsSaiOf(e);
             const taxa = (isFicou ? (f?.rework_rate ?? e.rework_rate) : e.rework_rate) ?? 0;
+            // Gargalos são do cenário AS-IS (vínculo na própria etapa).
+            const gargalosDaEtapa = isFicou
+              ? []
+              : (e.gargalos || []).map(id => gargaloById.get(id)).filter((g): g is Gargalo => Boolean(g));
             return (
               <View key={e.id} style={styles.card} wrap={false}>
                 <Text style={styles.cardTitle}>{i + 1}. {e.name}</Text>
@@ -168,6 +167,16 @@ export function SopDocument(props: SopDocumentProps) {
                 <InfoRow label="Docs entrada" value={joinDocs(docsE)} />
                 <InfoRow label="Docs saída" value={joinDocs(docsS)} />
                 <InfoRow label="Taxa retrabalho" value={fmtPercent(taxa)} />
+                {gargalosDaEtapa.length > 0 && (
+                  <View style={{ marginTop: 4 }}>
+                    <Text style={[styles.small, styles.muted, { marginBottom: 1 }]}>Gargalos desta etapa</Text>
+                    {gargalosDaEtapa.map(g => (
+                      <Text key={g.id} style={styles.small}>
+                        • {g.nome}{g.descricao ? ` — ${g.descricao}` : ''}{g.origem ? ` (${g.origem})` : ''}
+                      </Text>
+                    ))}
+                  </View>
+                )}
               </View>
             );
           })}
@@ -257,22 +266,7 @@ export function SopDocument(props: SopDocumentProps) {
           </View>
         )}
 
-        {/* Gargalos (As-Is) ou Melhorias (To-Be) */}
-        {!isFicou && gargalosDoProcesso.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <SectionHeader num={nextNum()} title={`Gargalos identificados (${gargalosDoProcesso.length})`} />
-            {gargalosDoProcesso.map(g => (
-              <View key={g.id} style={styles.card}>
-                <Text style={styles.cardTitle}>{g.nome}</Text>
-                {!!g.descricao && <Text style={[styles.small, { marginBottom: 2 }]}>{g.descricao}</Text>}
-                {!!g.origem && (
-                  <Text style={[styles.small, styles.muted]}>Origem: {g.origem}</Text>
-                )}
-              </View>
-            ))}
-          </View>
-        )}
-
+        {/* Gargalos aparecem por etapa (acima). No To-Be, listamos as melhorias. */}
         {isFicou && procMelhorias.length > 0 && (
           <View style={styles.section} wrap={false}>
             <SectionHeader num={nextNum()} title={`Melhorias projetadas (${procMelhorias.length})`} />

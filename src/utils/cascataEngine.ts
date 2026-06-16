@@ -15,6 +15,7 @@
 // `idfMin` default 0.5 — em clusters pequenos (N ≤ 3), passe 0.
 
 import type { Documento, Etapa, Processo, Sistema, Responsavel } from '@/types';
+import { resolveCanonicoNome } from '@/lib/cascataUtils';
 
 export interface CascataAresta {
   origemId: string;
@@ -64,18 +65,6 @@ export function canon(nome: string | null | undefined): string {
     .trim();
 }
 
-function canonDoc(docId: string, docsById: Map<string, Documento>): string {
-  const d = docsById.get(docId);
-  if (!d) return '';
-  // Se houver `canonico_id` (agrupamento) usa o canônico — fallback p/ nome.
-  type DocWithCanonico = Documento & { canonicoId?: string | null; canonico_id?: string | null };
-  const withCanonico = d as DocWithCanonico;
-  const canonicoId = withCanonico.canonicoId ?? withCanonico.canonico_id;
-  if (canonicoId && docsById.has(canonicoId)) {
-    return canon(docsById.get(canonicoId)!.nome);
-  }
-  return canon(d.nome);
-}
 
 function filtrarPorCluster(procs: Processo[], cluster?: string): Processo[] {
   if (!cluster) return procs;
@@ -110,11 +99,11 @@ export function deriveCascadeGraph(
     const saida = new Set<string>();
     const entrada = new Set<string>();
     for (const ds of e.docsSaida ?? []) {
-      if (ds.documentoId) saida.add(canonDoc(ds.documentoId, docsById));
+      if (ds.documentoId) saida.add(resolveCanonicoNome(ds.documentoId, docsById));
       else if (ds.nome) saida.add(canon(ds.nome));
     }
     for (const de of e.docsEntrada ?? []) {
-      if (de.documentoId) entrada.add(canonDoc(de.documentoId, docsById));
+      if (de.documentoId) entrada.add(resolveCanonicoNome(de.documentoId, docsById));
       else if (de.nome) entrada.add(canon(de.nome));
     }
     saida.delete(''); entrada.delete('');

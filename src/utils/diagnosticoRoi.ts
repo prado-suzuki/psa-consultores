@@ -13,7 +13,7 @@
 import type {
   Processo, Etapa, Responsavel, Sistema, Gargalo, Melhoria,
 } from '../types';
-import { melhoriaIdsDoGargalo } from './gargaloMelhorias';
+import { gargalosDoProcesso, melhoriaIdsDoProcesso } from './gargaloMelhorias';
 import { execucoesAnuais } from './roiCalculator';
 import { formatDecimal, formatarMoeda } from './format';
 
@@ -358,19 +358,10 @@ export function diagnosticarRoi(
   }
 
   // Melhorias e investimentos — uma melhoria entra no investment do processo
-  // se está associada ao processo (M:N direta) OU se resolve um gargalo do processo.
-  const gargalosDoProc = new Set(
-    gargalos.filter(g => (g.processos || []).includes(processo.id)).map(g => g.id)
-  );
-  const melhoriaIdsViaGargalos = new Set(
-    gargalos
-      .filter(g => gargalosDoProc.has(g.id))
-      .flatMap(g => melhoriaIdsDoGargalo(g))
-  );
-  const melhoriasRelevantes = melhorias.filter(m =>
-    (m.processos || []).includes(processo.id) ||
-    melhoriaIdsViaGargalos.has(m.id)
-  );
+  // se resolve um gargalo que se manifesta numa etapa do processo (DERIVADO via
+  // gargalo_melhorias + gargalo_etapas; melhoria_processos foi aposentado).
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const melhoriasRelevantes = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   if (melhoriasRelevantes.length === 0) {
     catSistemas.push(item({
@@ -418,7 +409,7 @@ export function diagnosticarRoi(
   // Lista os gargalos vinculados ao processo e sinaliza os que estão sem
   // dimensionamento (horas estimadas), para não ficarem despercebidos.
   const catGargalos: ItemDiagnostico[] = [];
-  const gargalosDoProcLista = gargalos.filter(g => (g.processos || []).includes(processo.id));
+  const gargalosDoProcLista = gargalosDoProcesso(gargalos, processo.id);
   for (const g of gargalosDoProcLista) {
     const horas = g.horas_gastas || 0;
     catGargalos.push(item({

@@ -312,6 +312,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // Webhook de boas-vindas — só dispara para usuários recém-criados (mesmo
           // padrão fire-and-forget de useTeamMemberMutations.ts).
           if (data?.created === true) {
+            const tempPassword = (data?.temporary_password as string | undefined) ?? '';
             fetch(N8N_WELCOME_WEBHOOK, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -326,7 +327,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 },
                 credentials: {
                   email,
-                  temporary_password: 'trocarsenha',
+                  temporary_password: tempPassword,
                 },
                 platform: {
                   login_url: 'https://psa-consultores.lovable.app/auth',

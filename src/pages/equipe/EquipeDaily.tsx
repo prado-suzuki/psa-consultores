@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,8 +107,8 @@ const EquipeDaily = () => {
   // Filtros para histórico
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
-  const [filterPerson, setFilterPerson] = useState<string>('all');
-  const [filterSprint, setFilterSprint] = useState<string>('all');
+  const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
+  const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
 
   useEffect(() => {
     if (user) {

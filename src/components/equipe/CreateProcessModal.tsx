@@ -32,6 +32,12 @@ interface EstruturaEquipe {
   name: string;
 }
 
+interface ProjectOption {
+  id: string;
+  name: string;
+  cluster_id: string | null;
+}
+
 interface TeamMemberInput {
   job_role_id: string;
   hours_allocated: number;
@@ -75,11 +81,13 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
   const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
   const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
   const [equipes, setEquipes] = useState<EstruturaEquipe[]>([]);
+  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMemberInput[]>([]);
 
   const [form, setForm] = useState({
     name: '',
     description: '',
+    project_id: '',
     client_id: '',
     equipe_id: '',
     area: '',
@@ -107,6 +115,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
       fetchJobRoles();
       fetchCatalogClients();
       fetchEquipes();
+      fetchProjects();
       // Restore draft
       const saved = restoreDraft();
       if (saved) {
@@ -123,6 +132,14 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
       .eq('is_active', true)
       .order('name');
     if (data) setEquipes(data as EstruturaEquipe[]);
+  };
+
+  const fetchProjects = async () => {
+    const { data } = await supabase
+      .from('projects')
+      .select('id, name, cluster_id')
+      .order('name');
+    if (data) setProjects(data as ProjectOption[]);
   };
 
   const fetchJobRoles = async () => {
@@ -182,6 +199,18 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
       return;
     }
 
+    // Processo exige projeto (não há processo avulso) — o cluster é herdado dele.
+    if (!form.project_id) {
+      toast({
+        title: "Projeto obrigatório",
+        description: "Selecione o projeto ao qual este processo pertence.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const selectedProject = projects.find(p => p.id === form.project_id);
+
     setLoading(true);
     try {
       // Calcular custos
@@ -193,6 +222,8 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
         .insert({
           name: form.name.trim(),
           description: form.description.trim() || null,
+          project_id: form.project_id,
+          cluster_id: selectedProject?.cluster_id ?? null, // herda do projeto → aparece no MAPA junto dele
           client_id: form.client_id || null,
           equipe_id: form.equipe_id || null,
           area: form.area || null,
@@ -215,15 +246,28 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
       if (error) throw error;
 
+      // Vínculo N:N com o projeto (impacto principal) — mantém o processo visível
+      // na lista de "projetos vinculados" da página de Processos.
+      if (process?.id) {
+        const { error: linkError } = await (supabase as any)
+          .from('project_processes')
+          .insert({ process_id: process.id, project_id: form.project_id, impact_type: 'principal' });
+        if (linkError) throw linkError;
+      }
+
       toast({
         title: "Processo criado!",
-        description: `${form.name} foi adicionado com sucesso.`
+        description: selectedProject?.cluster_id
+          ? `${form.name} foi adicionado com sucesso.`
+          : `${form.name} criado, mas o projeto não tem cluster — não aparecerá no MAPA até o projeto receber um cluster.`,
+        variant: selectedProject?.cluster_id ? undefined : "destructive"
       });
 
       // Reset form
       setForm({
         name: '',
         description: '',
+        project_id: '',
         client_id: '',
         equipe_id: '',
         area: '',
@@ -266,6 +310,31 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Projeto (obrigatório) — define o cluster herdado e a visibilidade no MAPA */}
+          <div className="space-y-2">
+            <Label>Projeto <RequiredMark /></Label>
+            <Select
+              value={form.project_id}
+              onValueChange={(v) => setForm({ ...form, project_id: v })}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o projeto" />
+              </SelectTrigger>
+              <SelectContent>
+                {projects.map(p => (
+                  <SelectItem key={p.id} value={p.id}>
+                    {p.name}{!p.cluster_id ? ' (sem cluster)' : ''}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {form.project_id && !projects.find(p => p.id === form.project_id)?.cluster_id && (
+              <p className="text-xs text-amber-600">
+                ⚠ Este projeto não tem cluster — o processo não aparecerá no MAPA até o projeto receber um cluster.
+              </p>
+            )}
+          </div>
+
           {/* Informações Básicas */}
           <div className="space-y-2">
             <Label>Nome do Processo <RequiredMark /></Label>

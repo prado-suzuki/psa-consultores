@@ -5,8 +5,9 @@
 // etapas que o consomem re-executam (e as seguintes do processo também) →
 // seus documentos de saída ficam desatualizados → propaga. Esta página:
 //
-//   1. Rail esquerdo: gargalos com etapasOrigem.length > 0, com busca e
-//      filtro de cluster integrados, seleção com indicador animado.
+//   1. Rail esquerdo: gargalos com etapasOrigem.length > 0, com busca
+//      integrada (cluster vem do seletor global no header), seleção com
+//      indicador animado.
 //   2. Ao selecionar, deriva a BFS em tempo real (cascataDocumento) e monta
 //      o grafo executivo por ondas (cascataGraph), renderizado pelo
 //      CascataCanvas: colunas Gargalo → Origem → 1ª onda → ... com conectores
@@ -19,39 +20,34 @@ import { useGargalos } from '@/hooks/useGargalos';
 import { useEtapas } from '@/hooks/useEtapas';
 import { useDocumentos } from '@/hooks/useDocumentos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useClusterFiltroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { canon } from '@/utils/cascataEngine';
 import PageStats from '@/components/equipe/mapa/PageStats';
-import Select from '@/components/equipe/mapa/Select';
 import CascataCanvas from '@/components/equipe/mapa/cascata/CascataCanvas';
 import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataDocumento';
 import { buildCascataGraph } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
 import './styles/cascata.css';
-
-const normalizar = (s: string) =>
-  s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase();
+import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 export default function CascataPage() {
   const { data: gargalos = [], isLoading: gLoading } = useGargalos();
   const { data: etapas = [], isLoading: eLoading } = useEtapas();
   const { data: docs = [], isLoading: dLoading } = useDocumentos();
   const { data: processos = [], isLoading: pLoading } = useProcessos();
-  const CLUSTER_OPCOES = useClusterFiltroOpcoes();
 
   const loaded = !gLoading && !eLoading && !dLoading && !pLoading;
 
-  const [fCluster, setFCluster] = useState('');
+  // Cluster vem do seletor global no header.
+  const { cluster: fCluster } = useClusterGlobal();
   const [busca, setBusca] = useState('');
 
   const gargalosComCascata = useMemo<Gargalo[]>(() => {
-    const q = normalizar(busca.trim());
+    const q = canon(busca);
     return gargalos
       .filter((g) => (g.etapasOrigem ?? []).length > 0)
       .filter((g) => !fCluster || g.cluster_id === fCluster)
-      .filter((g) => !q || normalizar(g.nome).includes(q))
+      .filter((g) => !q || canon(g.nome).includes(q))
       .sort((a, b) => a.nome.localeCompare(b.nome));
   }, [gargalos, fCluster, busca]);
 
@@ -129,6 +125,7 @@ export default function CascataPage() {
             <strong>Gargalos</strong>; aqui o grafo é derivado automaticamente em tempo real.
           </p>
         </div>
+        <TourTrigger dataTour="help" />
       </div>
 
       <PageStats
@@ -144,7 +141,7 @@ export default function CascataPage() {
 
       <div className="cascata-layout">
         {/* ─── Rail de gargalos ─── */}
-        <aside className="cascata-rail">
+        <aside className="cascata-rail" data-tour="cascata-rail">
           <div className="cascata-rail-head">
             <div className="cascata-rail-search">
               <Search size={14} />
@@ -156,14 +153,6 @@ export default function CascataPage() {
                 aria-label="Buscar gargalo"
               />
             </div>
-            <Select
-              id="casc-cluster"
-              value={fCluster}
-              onChange={setFCluster}
-              options={CLUSTER_OPCOES}
-              compact
-              ariaLabel="Filtrar por cluster"
-            />
           </div>
 
           <div className="cascata-rail-count">
@@ -267,7 +256,7 @@ export default function CascataPage() {
                 {graph ? (
                   <>
                     <div className="cascata-controls">
-                      <div className="cascata-seg" role="group" aria-label="Nível de detalhe">
+                      <div className="cascata-seg" role="group" aria-label="Nível de detalhe" data-tour="cascata-niveis">
                         <button
                           type="button"
                           className={macroAtivo ? 'is-active' : ''}
@@ -304,7 +293,7 @@ export default function CascataPage() {
                         </button>
                       </div>
 
-                      <div className="cascata-legend">
+                      <div className="cascata-legend" data-tour="cascata-legenda">
                         <span>
                           <i className="dot-total" /> Reexecução total
                         </span>

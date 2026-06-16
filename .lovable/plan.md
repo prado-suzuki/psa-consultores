@@ -1,29 +1,35 @@
-## Diagnóstico
+## Checklist de validação — `20260619100000_psa_08_reestrutura_projetos_osg.sql`
 
-A migration `20260615100000_psa_consultores_snapshot_zerar_sinteticos.sql` **não foi aplicada** ao banco. Evidências consultadas agora:
+1. ✅ **Reagrupa 33 processos OSG em 3 projetos (19/6/8, sem órfão).**
+   - Pré-condição (linhas 53-56): aborta se `count(processes WHERE cluster_id = OSG) <> 33`.
+   - VALUES da linha 117-164 lista exatamente 33 códigos `PROC-GERAL-*` — 19 → Contratos, 6 → Gestão, 8 → Planejamento.
+   - Pós-validação 6.1 (linhas 178-182) aborta se a distribuição final não for 19/6/8.
+   - Pós-validação 6.2 (linhas 185-191) aborta se sobrar qualquer processo OSG fora dos 3 projetos.
 
-- `supabase_migrations.schema_migrations`: o último registro é `20260609192218` — não há nenhuma entrada `20260615100000`.
-- O arquivo `supabase/migrations/20260609192219_5540d98c-….sql` (criado pela última chamada do migration tool) está **vazio (0 linhas)** — placeholder que ficou em disco sem SQL.
-- Os 14 snapshots-alvo continuam intactos no banco:
-  - `roi_percent = 233.33` em todos os 14 (GER-279/704/603/167, GER-030/350/249/294/002/313/221, GER-938/719, BI-001)
-  - `annual_savings` ainda nos valores sintéticos antigos (792 a 8.976)
-  - `notes IS NULL` em todos
-  - `updated_at = 2026-06-09 13:30:44` (timestamp da migration anterior `…_snapshot_recalc.sql`), não da execução de ontem
+2. ✅ **"Contratos" reaproveita projeto existente, não cria outro.**
+   - `v_contratos := '70c8b198-…'` (ex "P10 - Contratos", já criado pela coordenadora com `cluster_id = NULL`).
+   - Há apenas `UPDATE public.projects … WHERE id = v_contratos` (linhas 78-94). Nenhum `INSERT INTO public.projects` em toda a migração.
 
-Conclusão: o relatório anterior de "14 registros afetados" foi **incorreto** — a transação não chegou a commitar (provável recusa/cancelamento na etapa de aprovação do migration tool, com o arquivo placeholder permanecendo em disco). O arquivo `20260615100000…` existe completo no repo, mas nunca foi enviado ao banco.
+3. ✅ **Em `processes` só mudam `project_id` e `order_index`.**
+   - `UPDATE public.processes SET project_id = m.proj, order_index = m.ord` (linhas 113-115). Nenhum outro campo no SET.
+   - Cláusula `WHERE p.code = m.code AND p.cluster_id = v_osg` garante a trava por cluster.
 
-## Plano de re-execução
+4. ✅ **Nenhuma etapa é tocada.**
+   - Não há `INSERT/UPDATE/DELETE` em `process_stages`, `etapa_documentos`, `etapa_sistemas`, `etapa_responsaveis` ou `gargalo_etapas`.
+   - Snapshot antes (0.3, linhas 59-62) e depois (6.3, linhas 194-200) com `RAISE EXCEPTION` se a contagem divergir.
+   - Como nenhum `process.id` muda nem nenhum processo é deletado, as FKs `process_stages.process_id` permanecem válidas.
 
-1. Reabrir o migration tool com o **mesmo conteúdo** de `supabase/migrations/20260615100000_psa_consultores_snapshot_zerar_sinteticos.sql` (115 linhas, três blocos `UPDATE` + bloco `DO` de validação `4+7+3=14`).
-2. O migration tool gerará um novo arquivo com timestamp atual (`20260609xxxxxx_…`). Não há conflito: o arquivo `20260615100000…` em disco pode permanecer como referência documental (ou ser removido após sucesso — opcional, sem efeito no banco).
-3. Aprovar a execução. Como existe o `DO $$ … RAISE EXCEPTION …` ao final, se algum grupo não bater 4/7/3, a transação aborta inteira — sem risco de aplicação parcial.
-4. **Validação pós-execução** (read_query):
-   - `SELECT code, annual_savings, roi_percent, notes, updated_at FROM process_scenarios ps JOIN processes p ON p.id=ps.process_id WHERE p.code IN (…14 códigos…)` — esperado: todos com `annual_savings=0`, `roi_percent=0`, `notes` preenchido e `updated_at` recente.
-   - Conferir consolidado do dashboard: economia anual deve cair de ~R$ 327.485 para ~R$ 300.890 (alinhado ao PDF).
-5. Limpar o placeholder vazio `supabase/migrations/20260609192219_5540d98c-….sql` (0 linhas) para não poluir histórico.
+5. ✅ **Nada fora do cluster OSG é lido, alterado ou deletado.**
+   - Todos os SELECTs/UPDATEs em `processes` filtram por `cluster_id = v_osg` ou por `id` específico.
+   - Os 3 `UPDATE public.projects` usam `WHERE id = <uuid fixo>` (Contratos/Gestão/Planejamento).
+   - O `DELETE FROM public.projects WHERE id = ANY(v_del)` (linha 171) usa os 4 UUIDs fixos dos ex-P2/P3/P4/P5.
+   - `DELETE FROM public.projeto_justificativas WHERE projeto_id = v_planejamento` é escopado por id.
 
-## Escopo
+6. ✅ **Os 4 projetos deletados não têm referência em sprints/dailies/tasks.**
+   - Bloco 0.4 (linhas 65-74) soma referências em `sprints`, `process_improvements`, `process_scenarios`, `org_tasks` e `client_visible_projects` para `project_id = ANY(v_del)` e aborta se `> 0`.
+   - Observação: `daily_standups` referencia `process_id`, não `project_id` — como nenhum processo é deletado, dailies ficam intactas por construção.
+   - Pós-validação 6.4 (linhas 203-205) confirma que os 4 projetos foram efetivamente removidos.
 
-- Apenas `UPDATE` em `process_scenarios` filtrando por `p.code IN (…)` e `ps.name LIKE 'Snapshot ROI MAPA — %'`.
-- Nenhum DDL, nenhuma alteração em `processes`, `process_stages`, `documents`, `sistemas_processo` ou RLS.
-- Sem impacto em outras áreas (fiscal, tickets, board).
+**Toda a migração roda em `BEGIN; … COMMIT;` com `RAISE EXCEPTION` em cada checkpoint — qualquer divergência aborta a transação inteira.**
+
+Aguardando aprovação para aplicar via `supabase--migration`.

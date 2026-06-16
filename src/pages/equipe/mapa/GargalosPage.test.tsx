@@ -24,7 +24,21 @@ describe('GargalosPage smoke', () => {
     );
     await waitFor(() => {
       expect(
-        screen.getByRole('button', { name: /Adicionar Gargalo/i }),
+        screen.getByRole('button', { name: /Novo gargalo/i }),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('sem registros, exibe empty state convidativo', async () => {
+    render(
+      <TestProviders>
+        <GargalosPage />
+      </TestProviders>,
+    );
+    await waitFor(() => {
+      expect(screen.getByText(/Nenhum gargalo cadastrado/i)).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /Cadastrar primeiro gargalo/i }),
       ).toBeInTheDocument();
     });
   });

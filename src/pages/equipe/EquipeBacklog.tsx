@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { useToast } from "@/hooks/use-toast";
+import { usePersistedState } from "@/hooks/usePersistedState";
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
 
@@ -100,7 +101,7 @@ export default function EquipeBacklog() {
   const [moving, setMoving] = useState(false);
 
   // Filtro de prioridade
-  const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [filterPriority, setFilterPriority] = usePersistedState<string>('rotina.backlog.prioridade', 'all');
 
   useEffect(() => {
     fetchData();

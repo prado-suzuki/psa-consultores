@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Tooltip } from './Tooltip';
 import StatusBadge from './StatusBadge';
 import { dica } from '@/utils/tooltips';
+import { openOnActivationKey, shouldIgnoreOpenClick } from '@/utils/clickOpenGuard';
 import type { Projeto } from '@/types';
 
 const formatarData = (iso?: string | null) => {
@@ -53,15 +54,13 @@ export default function ProjectCard({
       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1], delay }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.99 }}
-      onClick={onView}
+      onClick={(e) => {
+        if (shouldIgnoreOpenClick(e)) return;
+        onView();
+      }}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onView();
-        }
-      }}
+      onKeyDown={(e) => openOnActivationKey(e, onView)}
     >
       <div className="pcv2-header">
         <h3 className="pcv2-title">

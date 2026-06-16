@@ -55,6 +55,7 @@ export function useCreateTeamMember() {
       }
 
       const newUserId = response.data?.user_id as string | undefined;
+      const temporaryPassword = (response.data?.temporary_password as string | undefined) ?? '';
 
       // Grant area access (mesmo fluxo usado por update)
       const hasInternalRole =
@@ -97,7 +98,7 @@ export function useCreateTeamMember() {
           },
           credentials: {
             email: input.email,
-            temporary_password: 'trocarsenha',
+            temporary_password: temporaryPassword,
           },
           platform: {
             login_url: 'https://psa-consultores.lovable.app/auth',
@@ -110,7 +111,7 @@ export function useCreateTeamMember() {
         console.error('[useCreateTeamMember] Webhook boas-vindas falhou:', err)
       );
 
-      return { user_id: newUserId };
+      return { user_id: newUserId, temporary_password: temporaryPassword };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
