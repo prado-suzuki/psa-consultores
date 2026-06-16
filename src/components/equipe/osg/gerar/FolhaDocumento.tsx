@@ -23,6 +23,8 @@ export interface BlocoFolha {
   conteudo: string;
   /** Segmentos do render estruturado — habilitam os valores clicáveis (proveniência). */
   segmentos?: SegmentoRender[];
+  /** Bloco com ajuste (override) só deste documento — ganha selo e realce persistentes. */
+  sobrescrito?: boolean;
 }
 
 interface FolhaDocumentoProps {
@@ -127,10 +129,18 @@ export const FolhaDocumento = ({
                   'group/bloco relative -mx-3 rounded-md px-3 transition-colors duration-150',
                   'hover:bg-osg-moss/[0.06] hover:ring-1 hover:ring-inset hover:ring-osg-moss/30',
                   'data-[state=open]:bg-osg-moss/[0.06] data-[state=open]:ring-1 data-[state=open]:ring-inset data-[state=open]:ring-osg-moss/30',
+                  // Ajuste deste documento: o selo marca o bloco e o realce
+                  // terracota (diff por palavra) destaca só o que mudou no texto.
                   editavel && 'cursor-pointer',
                   i > 0 && bloco.tipo !== 'paragrafo' && 'mt-[1.9em]',
                 )}
               >
+                {bloco.sobrescrito && (
+                  <span className="pointer-events-none absolute -top-3 left-2 z-10 inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-osg-moss/10 px-2 py-0.5 font-sans text-[10px] font-semibold leading-none text-osg-moss ring-1 ring-inset ring-osg-moss/25">
+                    <Pencil className="h-2.5 w-2.5" />
+                    Ajustado neste documento
+                  </span>
+                )}
                 {bloco.nome && (
                   <span className="pointer-events-none absolute -top-3 right-2 z-10 hidden items-center gap-1.5 whitespace-nowrap rounded-full bg-osg-moss px-2.5 py-1 font-sans text-[10px] font-semibold leading-none tracking-wide text-white shadow-md group-hover/bloco:inline-flex group-data-[state=open]/bloco:inline-flex">
                     <Blocks className="h-3 w-3" />

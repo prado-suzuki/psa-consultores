@@ -148,12 +148,14 @@ export function useRegistrosPorTipo(clienteId: string | null) {
 // --- Listas relacionais da empresa (bindings de cardinalidade 'lista') --------
 
 interface RawQuadroSocietario {
+  id: string;
   quotas: number | null;
   vlr_total: number | null;
   socio: PessoaRow | null;
 }
 
 interface RawAdministracao {
+  id: string;
   cargo: string | null;
   administrador: PessoaRow | null;
 }
@@ -177,7 +179,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
             id, numero, livro, folha, municipio_imovel, uf_imovel,
             area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
             cartorio:cartorio_id ( nome_completo, comarca, uf ),
-            titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
+            titularidade ( id, integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
             impedimento ( id, cancelado )
           )
         `)
@@ -194,6 +196,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           confrontacoes_texto: string | null; descricao_psa_completa: string | null;
           cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
           titularidade: Array<{
+            id: string;
             integralizador: boolean | null; fracao: number | null;
             titular: { id: string; denominacao: string | null; tipo_pessoa: string | null; cpf_cnpj: string | null } | null;
           }> | null;
@@ -220,6 +223,8 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
             descricao_psa_completa: m.descricao_psa_completa,
             bem: { denominacao: b.denominacao, vlr_contabil: b.vlr_contabil, ccir_codigo: b.ccir_codigo },
             cartorio: m.cartorio,
+            // Ids das titularidades desta matrícula — metadado p/ notificações.
+            titularidadeIds: (m.titularidade ?? []).map((t) => t.id),
             titulares: (m.titularidade ?? []).map((t) => ({
               pessoaId: t.titular?.id ?? null,
               denominacao: t.titular?.denominacao ?? null,
@@ -262,7 +267,8 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     queryFn: async () => {
       const { data, error } = await supabase
         .from('quadro_societario')
-        .select('quotas, vlr_total, socio:socio_pessoa_id (*)')
+        // `id` (linha do quadro) acompanha p/ as notificações da tela Gerar.
+        .select('id, quotas, vlr_total, socio:socio_pessoa_id (*)')
         .eq('empresa_pessoa_id', empresaId!)
         .order('created_at');
       if (error) throw error;
@@ -299,6 +305,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
         quotas: l.quotas,
         vlr_total: l.vlr_total,
         representante: representantes.get(l.socio!.id) ?? null,
+        quadroSocietarioId: l.id,
       }));
     },
   });
@@ -309,13 +316,14 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     queryFn: async () => {
       const { data, error } = await supabase
         .from('administracao')
-        .select('cargo, administrador:administrador_pessoa_id (*)')
+        // `id` (linha de administração) acompanha p/ as notificações da tela Gerar.
+        .select('id, cargo, administrador:administrador_pessoa_id (*)')
         .eq('pj_pessoa_id', empresaId!)
         .order('created_at');
       if (error) throw error;
       return ((data ?? []) as unknown as RawAdministracao[])
         .filter((l) => l.administrador)
-        .map((l) => ({ pessoa: l.administrador!, cargo: l.cargo }));
+        .map((l) => ({ pessoa: l.administrador!, cargo: l.cargo, administracaoId: l.id }));
     },
   });
 

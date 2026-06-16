@@ -62,6 +62,7 @@ All colors MUST be HSL.
     --osg-600: 19 24% 25%;
     --osg-700: 17 25% 19%;
     --osg-moss: 149 66% 22%; /* verde musgo (#125837) */
+    --osg-highlighter: 41 73% 71%; /* amarelo dourado (#EBC97D) — marca-texto */
 
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;

@@ -62,6 +62,107 @@ const FIELD_LABELS: Record<string, string> = {
   data_fim_projeto: 'Data Fim',
   tipo_pessoa: 'Tipo Pessoa',
   tipo_representante: 'Tipo',
+  // ── Cadastros OSG (qualificação das partes / diagnóstico patrimonial) ──
+  denominacao: 'Nome / Razão Social',
+  nacionalidade: 'Nacionalidade',
+  estado_civil: 'Estado Civil',
+  regime_bens: 'Regime de Bens',
+  data_nascimento: 'Data de Nascimento',
+  genero: 'Gênero',
+  profissao: 'Profissão',
+  filiacao_pai: 'Filiação (pai)',
+  filiacao_mae: 'Filiação (mãe)',
+  documento_identidade_tipo: 'Documento de Identidade (tipo)',
+  documento_identidade_numero: 'Documento de Identidade (nº)',
+  documento_identidade_orgao: 'Órgão Expedidor',
+  documento_identidade_uf: 'UF do Documento',
+  endereco_logradouro: 'Logradouro',
+  endereco_numero: 'Número',
+  endereco_complemento: 'Complemento',
+  endereco_bairro: 'Bairro',
+  endereco_municipio: 'Município',
+  endereco_uf: 'UF',
+  endereco_cep: 'CEP',
+  nire: 'NIRE',
+  junta_comercial_uf: 'Junta Comercial (UF)',
+  data_constituicao: 'Data de Constituição',
+  objeto_social: 'Objeto Social',
+  status_constituicao: 'Status da Constituição',
+  tipo_empresa: 'Tipo de Empresa',
+  conjuge_id: 'Cônjuge',
+  // Quadro societário / administração
+  quotas: 'Quotas',
+  vlr_total: 'Valor Total',
+  // Bem / matrícula / titularidade
+  referencia_dp: 'Referência DP',
+  tipo_bem: 'Tipo do Imóvel',
+  vlr_contabil: 'Valor Contábil',
+  vlr_contabil_ajustado: 'Valor Contábil Ajustado',
+  vlr_benfeitorias: 'Valor de Benfeitorias',
+  vlr_mercado: 'Valor de Mercado',
+  ccir_codigo: 'CCIR',
+  inscricao_municipal: 'Inscrição Municipal',
+  status_integralizacao: 'Status de Integralização',
+  numero: 'Número da Matrícula',
+  livro: 'Livro',
+  folha: 'Folha',
+  data_matricula: 'Data da Matrícula',
+  municipio_imovel: 'Município do Imóvel',
+  uf_imovel: 'UF do Imóvel',
+  area_documento: 'Área (documento)',
+  area_real: 'Área (real)',
+  area_unidade: 'Unidade de Área',
+  confrontacoes_texto: 'Confrontações',
+  descricao_psa_completa: 'Descrição',
+  fracao: 'Fração',
+  integralizador: 'Integralizador',
+  tipo: 'Tipo',
+  natureza: 'Natureza',
+  pode_isoladamente: 'Pode Isoladamente',
+  data_inicio: 'Data de Início',
+  data_fim: 'Data de Fim',
+  nome_completo: 'Nome do Cartório',
+  comarca: 'Comarca',
+  // ── Cadastros OSG (campos restantes dos *_DIFF_FIELDS) ──
+  naturalidade_municipio: 'Naturalidade (município)',
+  naturalidade_uf: 'Naturalidade (UF)',
+  is_fundador: 'Fundador',
+  descricao_outros: 'Descrição (outros)',
+  vlr_imposto_anual: 'Imposto Anual',
+  imposto_anual_exercicio: 'Exercício do Imposto',
+  participa_estruturacao: 'Participa da Estruturação',
+  motivo_nao_integralizacao: 'Motivo de Não Integralização',
+  observacao: 'Observação',
+  matricula_anterior_texto: 'Matrícula Anterior (texto)',
+  area_explorada: 'Área Explorada',
+  georreferenciado: 'Georreferenciado',
+  georref_prejudica_transferencia: 'Georref. Prejudica Transferência',
+  tipo_exploracao_posse: 'Tipo de Exploração/Posse',
+  origem_descricao: 'Origem (descrição)',
+  referencia: 'Referência',
+  descricao: 'Descrição',
+  credor_nome: 'Credor (nome)',
+  data_validade: 'Data de Validade',
+  vlr: 'Valor',
+  area_afetada: 'Área Afetada',
+  impede_transferencia: 'Impede Transferência',
+  cancelado: 'Cancelado',
+  // Relacionais (o valor é um uuid cru — sem lookup dedicado no v1, ver §8 do plano)
+  pessoa_id: 'Pessoa',
+  parente_pessoa_id: 'Parente',
+  filiacao_pai_pessoa_id: 'Filiação (pai)',
+  filiacao_mae_pessoa_id: 'Filiação (mãe)',
+  pj_pessoa_id: 'Empresa',
+  administrador_pessoa_id: 'Administrador',
+  empresa_pessoa_id: 'Empresa',
+  socio_pessoa_id: 'Sócio',
+  empresa_destino_pessoa_id: 'PJ de Destino',
+  titular_pessoa_id: 'Titular',
+  credor_pessoa_id: 'Credor',
+  bem_id: 'Bem',
+  matricula_id: 'Matrícula',
+  matricula_anterior_id: 'Matrícula Anterior',
+  cartorio_id: 'Cartório',
 };
 
 // ── Status translations ──────────────────────────────────────
@@ -133,6 +234,9 @@ const UUID_ARRAY_FIELDS: Record<string, string> = {
 // Fields that contain dates
 const DATE_FIELDS = new Set([
   'due_date', 'start_date', 'end_date',
+  // Cadastros OSG (colunas date, formato ISO YYYY-MM-DD)
+  'data_nascimento', 'data_constituicao', 'data_matricula',
+  'data_inicio', 'data_fim', 'data_validade',
 ]);
 
 // Fields that contain enum values
@@ -143,7 +247,12 @@ const ENUM_FIELDS: Record<string, Record<string, string>> = {
 };
 
 // Fields that contain booleans
-const BOOLEAN_FIELDS = new Set(['is_recurring', 'ativo', 'acesso_chamados', 'contribuinte_faturamento']);
+const BOOLEAN_FIELDS = new Set([
+  'is_recurring', 'ativo', 'acesso_chamados', 'contribuinte_faturamento',
+  // Cadastros OSG
+  'is_fundador', 'participa_estruturacao', 'pode_isoladamente', 'integralizador',
+  'georref_prejudica_transferencia', 'impede_transferencia', 'cancelado',
+]);
 
 export interface LookupMaps {
   profiles: Record<string, string>;

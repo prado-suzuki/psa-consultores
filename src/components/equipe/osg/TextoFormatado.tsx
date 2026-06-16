@@ -79,6 +79,15 @@ function pedacos(lista: Pedaco[], { onClickOrigem, origemClicavel }: ClickOrigem
         </span>
       );
     }
+    // Trecho alterado por um override: marca-texto terracota (diff por palavra).
+    // box-decoration-clone para o realce envolver bem trechos que quebram linha.
+    if (p.realce) {
+      no = (
+        <mark className="rounded-[2px] bg-osg-highlighter/60 text-inherit [box-decoration-break:clone] [-webkit-box-decoration-break:clone]">
+          {no}
+        </mark>
+      );
+    }
     return <Fragment key={j}>{no}</Fragment>;
   });
 }

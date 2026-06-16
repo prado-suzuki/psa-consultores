@@ -1,4 +1,5 @@
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -306,6 +307,21 @@ const BibliotecaModelos = () => {
   const [filtroFlag, setFiltroFlag] = useState('todas');
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('todos');
   const [dialog, setDialog] = useState<{ open: boolean; bloco: BlocoComVersao | null }>({ open: false, bloco: null });
+
+  // Deep-link da tela Gerar (?bloco=<id>): abre o editor do bloco assim que a
+  // lista chega e limpa o parâmetro para não reabrir o modal ao fechá-lo.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const blocoIdParam = searchParams.get('bloco');
+    if (!blocoIdParam || blocos.length === 0) return;
+    const alvo = blocos.find((b) => b.id === blocoIdParam);
+    if (alvo) {
+      setDialog({ open: true, bloco: alvo });
+      const next = new URLSearchParams(searchParams);
+      next.delete('bloco');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, blocos, setSearchParams]);
 
   const categorias = useMemo(
     () => [...new Set(blocos.map((b) => b.categoria).filter(Boolean) as string[])].sort(),

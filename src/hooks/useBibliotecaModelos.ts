@@ -54,6 +54,10 @@ export function useBlocos() {
       const { data, error } = await supabase
         .from('tmpl_bloco')
         .select('*, tmpl_bloco_versao(*), tmpl_bloco_flag(flag_id)')
+        // Blocos canônicos apenas: derivados de override (bloco_origem_id != null)
+        // existem só para rastreabilidade de um documento e não entram na Biblioteca
+        // nem no montador.
+        .is('bloco_origem_id', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
 

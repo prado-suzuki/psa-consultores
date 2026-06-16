@@ -12,6 +12,9 @@ import { Loader2 } from 'lucide-react';
 import { fieldCls, labelCls, FieldSection } from '@/components/equipe/osg/formKit';
 import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { useUpsertSocio, type SocioEnriched } from '@/hooks/useQuadroSocietario';
 
 interface SocioModalProps {
@@ -56,6 +59,14 @@ export function SocioModal({
   const isEdit = !!socio?.id;
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current;
   const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
+
+  // Histórico: o sócio não tem cliente_id direto; usa o cliente da barra OSG.
+  // Gate: só em edição e quando o cliente já gerou versão.
+  const { clienteId } = useOsgWork();
+  const { data: temDocumento = false } = useClienteTemDocumentoGerado(
+    isEdit ? clienteId || null : null,
+  );
+  const mostrarHistorico = isEdit && temDocumento;
 
   // Sócio pode ser PF ou PJ (PJ sócia é o caso comum: Participações é sócia da
   // Agro), mas nunca a própria empresa.
@@ -108,8 +119,8 @@ export function SocioModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-        <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-hidden p-0">
-          <div className="shrink-0 bg-background px-6 pt-5">
+        <DialogContent className="flex max-h-[90vh] max-w-lg flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
+          <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
             <DialogHeader className="space-y-0 text-left">
               <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
                 {isEdit ? 'Editar sócio' : 'Vincular sócio'}
@@ -170,7 +181,7 @@ export function SocioModal({
             </FieldSection>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
+          <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
             <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
             <Button
               onClick={handleSave}
@@ -181,6 +192,9 @@ export function SocioModal({
               {isEdit ? 'Salvar alterações' : 'Vincular sócio'}
             </Button>
           </DialogFooter>
+
+          {/* Histórico flutuante à direita do modal (fora da caixa, dentro do diálogo). */}
+          {mostrarHistorico && socio && <HistoricoFlutuante entityIds={[socio.id]} />}
         </DialogContent>
       </Dialog>
       <UnsavedChangesAlert {...alertProps} />

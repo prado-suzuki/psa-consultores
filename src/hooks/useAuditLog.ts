@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
 type AuditArea = 'tax' | 'osg' | 'estrutura' | 'cadastros' | 'dev';
@@ -27,6 +28,7 @@ interface AuditLogEntry {
 
 export const useAuditLog = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const logAction = useCallback(async (entry: AuditLogEntry) => {
     if (!user?.id) return;
@@ -41,10 +43,14 @@ export const useAuditLog = () => {
         performed_by: user.id,
         details: entry.details ?? null,
       });
+      // Recém-escrito o log, a timeline do histórico (painel flutuante nos
+      // modais de cadastro) fica obsoleta — refetch para refletir na hora,
+      // inclusive nas edições de sub-cadastros que não fecham o modal.
+      queryClient.invalidateQueries({ queryKey: ['historico-cadastro'] });
     } catch (err) {
       console.error('Audit log error:', err);
     }
-  }, [user?.id]);
+  }, [user?.id, queryClient]);
 
   return { logAction };
 };

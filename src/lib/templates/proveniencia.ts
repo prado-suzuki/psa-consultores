@@ -28,6 +28,8 @@ export interface Pedaco extends Marcas {
   texto: string;
   caminho?: string;
   origem?: OrigemValor;
+  /** Trecho alterado por um override (diff por palavra) — a prévia o marca. */
+  realce?: boolean;
 }
 
 export type SegmentoProveniencia =
@@ -39,6 +41,7 @@ interface Fragmento {
   texto: string;
   caminho?: string;
   origem?: OrigemValor;
+  realce?: boolean;
 }
 
 /**
@@ -71,7 +74,9 @@ function linhasDeFragmentos(segmentos: SegmentoRender[]): Fragmento[][] {
       if (j > 0) linhas.push([]);
       if (!parte) return;
       linhas[linhas.length - 1].push(
-        s.tipo === 'valor' ? { texto: parte, caminho: s.caminho, origem: s.origem } : { texto: parte },
+        s.tipo === 'valor'
+          ? { texto: parte, caminho: s.caminho, origem: s.origem, realce: s.realce }
+          : { texto: parte, realce: s.realce },
       );
     });
   }
@@ -108,7 +113,8 @@ function pedacosDe(fragmentos: Fragmento[]): Pedaco[] {
         anterior.italico === run.italico &&
         anterior.sublinhado === run.sublinhado &&
         anterior.caminho === frag.caminho &&
-        anterior.origem === frag.origem
+        anterior.origem === frag.origem &&
+        anterior.realce === frag.realce
       ) {
         anterior.texto += texto;
       } else {
@@ -119,6 +125,7 @@ function pedacosDe(fragmentos: Fragmento[]): Pedaco[] {
           sublinhado: run.sublinhado,
           caminho: frag.caminho,
           origem: frag.origem,
+          realce: frag.realce,
         });
       }
     }
@@ -173,7 +180,12 @@ function celulasDeFragmentos(fragmentos: Fragmento[]): Fragmento[][] {
 
   // Trim de cada célula, encurtando os trechos das extremidades.
   return celulas.map((trechos) => {
-    const frags = trechos.map((t) => ({ texto: t.texto, caminho: t.frag.caminho, origem: t.frag.origem }));
+    const frags = trechos.map((t) => ({
+      texto: t.texto,
+      caminho: t.frag.caminho,
+      origem: t.frag.origem,
+      realce: t.frag.realce,
+    }));
     while (frags.length) {
       frags[0].texto = frags[0].texto.replace(/^\s+/, '');
       if (frags[0].texto) break;

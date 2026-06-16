@@ -22,6 +22,8 @@ import {
   fieldCls, textareaCls, switchBoxCls, subFormBoxCls, labelCls, FieldSection,
   osgTabsListCls, osgTabTriggerCls,
 } from '@/components/equipe/osg/formKit';
+import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import type { AdministracaoEnriched, PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
 import {
   useAdministracaoByPj,
@@ -284,6 +286,13 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
     ? parentescosCliente.find((v) => v.pessoa_id === pessoa.id) ?? null
     : null;
 
+  // Gate do histórico: só aparece em edição e quando o cliente já gerou versão.
+  const { data: temDocumento = false } = useClienteTemDocumentoGerado(isEdit ? clienteId : null);
+  const mostrarHistorico = isEdit && temDocumento;
+  // PF não tem abas (Dados apenas); PJ ganha a aba Administração. O histórico
+  // não entra como aba — flutua à direita do modal.
+  const mostrarTabsList = !isPF;
+
   useEffect(() => {
     if (!open) return;
     const initial = parentescoAtual
@@ -439,15 +448,15 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+      <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
         <Tabs
           value={activeTab}
           onValueChange={setActiveTab}
           className="flex min-h-0 flex-1 flex-col"
         >
         {/* Cabeçalho + abas fixos no topo enquanto o formulário rola */}
-        <div className="shrink-0 bg-background px-6 pt-5">
-          <DialogHeader className={`space-y-0 text-left ${isPF ? '' : 'mb-4'}`}>
+        <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
+          <DialogHeader className={`space-y-0 text-left ${mostrarTabsList ? 'mb-4' : ''}`}>
             <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
               {isEdit ? 'Editar pessoa' : 'Nova pessoa'}
               <span className="rounded-md bg-osg-50 px-2 py-0.5 text-xs font-semibold text-osg-700">
@@ -455,15 +464,18 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
               </span>
             </DialogTitle>
           </DialogHeader>
-          {/* PF não tem vínculos de administração; só PJ ganha abas. */}
-          {!isPF && (
+          {/* PF não tem vínculos de administração; só PJ ganha abas. O histórico
+              não é aba — flutua à direita do modal. */}
+          {mostrarTabsList && (
             <TabsList className={osgTabsListCls}>
               <TabsTrigger value="dados" className={osgTabTriggerCls}>
                 Dados
               </TabsTrigger>
-              <TabsTrigger value="administracao" disabled={!isEdit} className={osgTabTriggerCls}>
-                Administração
-              </TabsTrigger>
+              {!isPF && (
+                <TabsTrigger value="administracao" disabled={!isEdit} className={osgTabTriggerCls}>
+                  Administração
+                </TabsTrigger>
+              )}
             </TabsList>
           )}
         </div>
@@ -886,10 +898,11 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
             <AdministracaoPanel pjPessoaId={pessoa.id} pessoasCliente={pessoasCliente} />
           )}
         </TabsContent>
+
         </div>
 
         {/* Footer fixo */}
-        <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
+        <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
           <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
           <Button
             onClick={handleSave}
@@ -903,6 +916,13 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
           </Button>
         </DialogFooter>
         </Tabs>
+
+        {/* Histórico flutuante à direita do modal (fora da caixa, dentro do diálogo). */}
+        {mostrarHistorico && (
+          <HistoricoFlutuante
+            entityIds={[pessoa?.id, parentescoAtual?.id].filter(Boolean) as string[]}
+          />
+        )}
       </DialogContent>
     </Dialog>
     <UnsavedChangesAlert {...alertProps} />

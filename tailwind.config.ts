@@ -89,6 +89,7 @@ export default {
           600: "hsl(var(--osg-600) / <alpha-value>)",
           700: "hsl(var(--osg-700) / <alpha-value>)",
           moss: "hsl(var(--osg-moss) / <alpha-value>)",
+          highlighter: "hsl(var(--osg-highlighter) / <alpha-value>)",
           canvas: "hsl(var(--osg-canvas) / <alpha-value>)",
         },
       },

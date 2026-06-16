@@ -55,12 +55,16 @@ import {
   useImpedimentosByMatricula,
   useUpsertImpedimento,
   useDeleteImpedimento,
+  useTitularidadesByMatricula,
   type MatriculaRow,
   type ImpedimentoRow,
   type ImpedimentoEnriched,
   type TitularInicial,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { useOsgWork } from '@/contexts/OsgWorkContext';
+import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { TitularidadesPanel } from './TitularidadesPanel';
 
 const TIPO_IMPEDIMENTO_OPTIONS = [
@@ -251,6 +255,18 @@ export function MatriculaModal({
   const isImovelRural = tipoEfetivo === 'IR' || tipoEfetivo == null;
   const semPessoas = pessoasCliente.length === 0;
 
+  // Histórico: a matrícula não tem cliente_id direto; usa o cliente da barra OSG.
+  // Gate: só em edição e quando o cliente já gerou versão.
+  const { clienteId } = useOsgWork();
+  const { data: temDocumento = false } = useClienteTemDocumentoGerado(
+    isEdit ? clienteId || null : null,
+  );
+  const mostrarHistorico = isEdit && temDocumento;
+  // O modal edita a matrícula e suas titularidades — ambas entram no histórico.
+  const { data: titularidadesMatricula = [] } = useTitularidadesByMatricula(
+    mostrarHistorico && matricula ? matricula.id : null,
+  );
+
   // Snapshots do estado inicial para detectar "dirty" no fechamento. Quando o
   // usuário tenta fechar com alterações, abrimos um alerta antes de descartar.
   const initialDraftRef = useRef<string>('');
@@ -371,14 +387,14 @@ export function MatriculaModal({
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
           <Tabs
             value={activeTab}
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
             {/* Cabeçalho + abas fixos no topo enquanto o formulário rola */}
-            <div className="shrink-0 bg-background px-6 pt-5">
+            <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
               <DialogHeader className="mb-4 space-y-0 text-left">
                 <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
                   {isEdit ? 'Editar matrícula' : 'Nova matrícula'}
@@ -840,10 +856,11 @@ export function MatriculaModal({
                   />
                 )}
               </TabsContent>
+
             </div>
 
             {/* Footer fixo */}
-            <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
+            <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
               <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>
                 Cancelar
               </Button>
@@ -857,6 +874,13 @@ export function MatriculaModal({
               </Button>
             </DialogFooter>
           </Tabs>
+
+          {/* Histórico flutuante à direita do modal (fora da caixa, dentro do diálogo). */}
+          {mostrarHistorico && matricula && (
+            <HistoricoFlutuante
+              entityIds={[matricula.id, ...titularidadesMatricula.map((t) => t.id)]}
+            />
+          )}
         </DialogContent>
       </Dialog>
       <UnsavedChangesAlert {...alertProps} />

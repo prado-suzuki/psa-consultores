@@ -62,6 +62,7 @@ export { ORIGEM, comOrigem, origemDe } from './origem';
 export type { OrigemValor } from './origem';
 export { extrairRunsLinha, removerMarcas, runsPosicionados, MARCA } from './marcas';
 export type { Marcas, RunMarcado, RunPosicionado } from './marcas';
+export { marcarRealceDiff } from './diffPalavras';
 export { apararSegmentos, segmentarComProveniencia } from './proveniencia';
 export type { Pedaco, SegmentoProveniencia } from './proveniencia';
 export { avaliarFlags } from './flags';

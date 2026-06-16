@@ -184,6 +184,12 @@ export interface MatriculaParaMapear {
   bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titulares: Array<TitularParaMapear>;
+  /**
+   * Ids das linhas de `titularidade` desta matrícula — metadado p/ as
+   * notificações da tela Gerar (mudança de fração/titular é logada com o
+   * entity_id da titularidade, não da matrícula). NÃO vira placeholder.
+   */
+  titularidadeIds?: string[];
 }
 
 // Titular de uma matrícula. `integralizador`/`fracao` vêm da titularidade e só
@@ -304,6 +310,13 @@ export interface SocioParaMapear {
   vlr_total: number | null;
   /** Nome(s) do(s) administrador(es) da sócia PJ ("neste ato representada por…"). */
   representante: string | null;
+  /**
+   * Id da linha de `quadro_societario` — metadado p/ as notificações da tela
+   * Gerar (mudança de quotas/valor é logada com este entity_id). Ausente nos
+   * sócios derivados da empresa PR (vêm das integralizações, não do quadro).
+   * NÃO vira placeholder.
+   */
+  quadroSocietarioId?: string | null;
 }
 
 export function mapearSocio(s: SocioParaMapear): ItemLista {
@@ -611,6 +624,11 @@ export function mapearIntegralizacoes(
 export interface AdministradorParaMapear {
   pessoa: PessoaRow;
   cargo: string | null;
+  /**
+   * Id da linha de `administracao` — metadado p/ as notificações da tela Gerar
+   * (mudança de cargo é logada com este entity_id). NÃO vira placeholder.
+   */
+  administracaoId?: string | null;
 }
 
 export function mapearAdministrador(a: AdministradorParaMapear): ItemLista {

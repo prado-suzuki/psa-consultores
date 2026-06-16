@@ -59,6 +59,8 @@ import {
   type TitularInicial,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { MatriculaModal } from './MatriculaModal';
 import { TitularidadesPanel } from './TitularidadesPanel';
 import { formatArea } from './areaUtils';
@@ -179,6 +181,13 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
   const temTitularidade = !isImovel;
   const semPessoas = pessoasCliente.length === 0;
 
+  // Gate do histórico: só em edição e quando o cliente já gerou versão.
+  const { data: temDocumento = false } = useClienteTemDocumentoGerado(isEdit ? clienteId : null);
+  const mostrarHistorico = isEdit && temDocumento;
+  // A barra de abas aparece quando há titularidade a exibir. O histórico não é
+  // aba — flutua à direita do modal.
+  const mostrarTabsList = temTitularidade;
+
   // Snapshots do estado inicial para detectar "dirty" e pedir confirmação ao fechar.
   const initialDraftRef = useRef<string>('');
   const initialTitularRef = useRef<string>('');
@@ -286,14 +295,14 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
   return (
     <>
       <Dialog open={open} onOpenChange={(o) => !o && requestClose()}>
-        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex max-h-[90vh] max-w-4xl flex-col gap-0 overflow-visible p-0 sm:[clip-path:none]">
           <Tabs
-            value={temTitularidade ? activeTab : 'dados'}
+            value={mostrarTabsList ? activeTab : 'dados'}
             onValueChange={setActiveTab}
             className="flex min-h-0 flex-1 flex-col"
           >
             {/* Cabeçalho + abas fixos no topo enquanto o formulário rola */}
-            <div className="shrink-0 bg-background px-6 pt-5">
+            <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5">
               <DialogHeader className="mb-4 space-y-0 text-left">
                 <DialogTitle className="flex items-center gap-2.5 text-base font-semibold">
                   {isEdit ? 'Editar bem' : 'Novo bem'}
@@ -304,25 +313,27 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   )}
                 </DialogTitle>
               </DialogHeader>
-              {temTitularidade && (
+              {mostrarTabsList && (
                 // A barra desliza para dentro quando o tipo passa a não-imóvel,
                 // sinalizando que surgiu a aba de Titularidade.
                 <TabsList
-                  className={`${osgTabsListCls} animate-in fade-in slide-in-from-top-2 duration-300`}
+                  className={`${osgTabsListCls}${temTitularidade ? ' animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}
                 >
                   <TabsTrigger value="dados" className={osgTabTriggerCls}>
                     Dados
                   </TabsTrigger>
-                  <TabsTrigger value="titulares" className={osgTabTriggerCls}>
-                    Titularidade
-                    {/* Ponto pulsante enquanto o titular obrigatório não é escolhido. */}
-                    {!isEdit && !titularInicial.titular_pessoa_id && (
-                      <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden>
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" />
-                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" />
-                      </span>
-                    )}
-                  </TabsTrigger>
+                  {temTitularidade && (
+                    <TabsTrigger value="titulares" className={osgTabTriggerCls}>
+                      Titularidade
+                      {/* Ponto pulsante enquanto o titular obrigatório não é escolhido. */}
+                      {!isEdit && !titularInicial.titular_pessoa_id && (
+                        <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden>
+                          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" />
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  )}
                 </TabsList>
               )}
             </div>
@@ -696,9 +707,10 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                   </FieldSection>
                 )}
               </TabsContent>
+
             </div>
 
-            <DialogFooter className="shrink-0 border-t border-osg-100 bg-background px-6 py-3.5">
+            <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
               <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>
                 Cancelar
               </Button>
@@ -712,6 +724,9 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
               </Button>
             </DialogFooter>
           </Tabs>
+
+          {/* Histórico flutuante à direita do modal (fora da caixa, dentro do diálogo). */}
+          {mostrarHistorico && bem && <HistoricoFlutuante entityIds={[bem.id]} />}
         </DialogContent>
       </Dialog>
 

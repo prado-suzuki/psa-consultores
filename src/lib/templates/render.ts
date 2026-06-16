@@ -90,8 +90,8 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
  * só isso, mantendo um núcleo único.
  */
 export type SegmentoRender =
-  | { tipo: 'texto'; texto: string }
-  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor };
+  | { tipo: 'texto'; texto: string; realce?: boolean }
+  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor; realce?: boolean };
 
 /**
  * Resolve um caminho pontilhado do escopo mais interno para fora, rastreando a
