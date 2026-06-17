@@ -223,10 +223,24 @@ export default function EquipeSprintDetalhes() {
       }
       setSprint(sprintData);
 
-      const { data: profilesData } = await supabase
-        .from("profiles_safe")
-        .select("id, first_name, last_name");
-      setProfiles(profilesData || []);
+      // Apenas membros da equipe do cluster "Digital" (PSA Digital)
+      const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
+      const { data: digitalMembros } = await supabase
+        .from('estrutura_equipe_membros')
+        .select('user_id, equipe:estrutura_equipes!inner(area:estrutura_areas!inner(cluster_id))')
+        .eq('equipe.area.cluster_id', DIGITAL_CLUSTER_ID);
+      const digitalUserIds = Array.from(
+        new Set((digitalMembros || []).map((m: any) => m.user_id).filter(Boolean))
+      );
+      if (digitalUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles_safe")
+          .select("id, first_name, last_name")
+          .in('id', digitalUserIds);
+        setProfiles(profilesData || []);
+      } else {
+        setProfiles([]);
+      }
 
       const { data: deliverablesData } = await supabase
         .from("sprint_deliverables")
