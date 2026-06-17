@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 interface T03_1SaidasTabProps {
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 const FAMILIA_TABS: { value: FamiliaSaida; label: string }[] = [
@@ -25,8 +25,8 @@ const FAMILIA_TABS: { value: FamiliaSaida; label: string }[] = [
 export const T03_1SaidasTab = ({
   enabled,
   contribuinteId,
-  dataInicio,
-  dataFim,
+  start_date,
+  end_date,
 }: T03_1SaidasTabProps) => {
   const [familia, setFamilia] = useState<FamiliaSaida>('acucar');
 
@@ -60,8 +60,8 @@ export const T03_1SaidasTab = ({
               familia={t.value}
               enabled={enabled}
               contribuinteId={contribuinteId}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
+              start_date={start_date}
+              end_date={end_date}
             />
           )}
         </TabsContent>

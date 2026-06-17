@@ -10,7 +10,7 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax';
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax' | 'mapa';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
@@ -361,6 +361,97 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
 
   // =============================================
+  // === MAPA PAGES (Mapeamento de Processos OSG) ===
+  // =============================================
+  {
+    page_path: '/equipe/digital/mapa',
+    page_name: 'MAPA - Projetos',
+    page_description: 'Lista de projetos do OSG (6 pilares)',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/processos',
+    page_name: 'MAPA - Processos',
+    page_description: 'Mapeamento de processos por projeto',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/processos/:id/mapear',
+    page_name: 'MAPA - Mapear processo',
+    page_description: 'Edição de etapas, ROI baseline e remensurações',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/cascata',
+    page_name: 'MAPA - Cascata',
+    page_description: 'Grafo de interdependências processo→processo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/documentos',
+    page_name: 'MAPA - Documentos',
+    page_description: 'Catálogo de documentos (entrada/saída de etapas)',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/sistemas',
+    page_name: 'MAPA - Sistemas',
+    page_description: 'Sistemas/ferramentas usados nas etapas',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/responsaveis',
+    page_name: 'MAPA - Responsáveis',
+    page_description: 'Pessoas, papéis (executado/revisado/aprovado) e custo-hora',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/gargalos',
+    page_name: 'MAPA - Gargalos',
+    page_description: 'Gargalos identificados em processos',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/melhorias',
+    page_name: 'MAPA - Melhorias',
+    page_description: 'Plano de ações T/D por gargalo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/dashboard-roi',
+    page_name: 'MAPA - Dashboard ROI',
+    page_description: 'Visão consolidada de ROI por processo',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/digital/mapa/setor-evolucao',
+    page_name: 'MAPA - Setor / Evolução',
+    page_description: 'Linha do tempo e maturidade por setor',
+    category: 'mapa',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // =============================================
   // === TAX PAGES ===
   // =============================================
   {
@@ -419,6 +510,38 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/work',
     page_name: 'OSG Work',
     page_description: 'Ferramentas e aplicações desenvolvidas para a área OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/qualificacao-das-partes',
+    page_name: 'Qualificação das Partes',
+    page_description: 'CRUD de pessoas (PF/PJ) e vínculos de parentesco por cliente',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/diagnostico-patrimonial',
+    page_name: 'Diagnóstico Patrimonial',
+    page_description: 'Cadastro de bens, matrículas, titulares e impedimentos por cliente',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/controle-matriculas',
+    page_name: 'Controle de Matrículas',
+    page_description: 'Registro de todas as matrículas (vinculadas ou órfãs), com vínculo a bens',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/work/quadro-societario',
+    page_name: 'Quadro Societário',
+    page_description: 'Distribuição de quotas e participação dos sócios por empresa (PR/CN)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

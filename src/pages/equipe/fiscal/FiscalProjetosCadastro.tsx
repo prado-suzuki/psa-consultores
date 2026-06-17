@@ -1214,7 +1214,7 @@ const FiscalProjetosCadastro = () => {
                   <Label>Líder Geral *</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                      <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
                         {formData.leader_ids.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
                             {formData.leader_ids.map(id => {
@@ -1333,7 +1333,7 @@ const FiscalProjetosCadastro = () => {
                   ) : (
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1">
+                        <Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
                           {formData.member_ids.length > 0 ? (
                             <div className="flex flex-wrap gap-1">
                               {formData.member_ids.map(id => {
@@ -1370,7 +1370,7 @@ const FiscalProjetosCadastro = () => {
                                     <CommandItem
                                       value={`__area_header_${group.area_id}__ ${group.area_name} ${group.cluster_name}`}
                                       onSelect={() => toggleAreaGroup(group.area_id)}
-                                      className="bg-muted/40 data-[selected=true]:bg-muted font-semibold"
+                                      className="bg-muted/40 data-[selected=true]:bg-muted data-[selected=true]:text-foreground font-semibold"
                                     >
                                       {isCollapsed
                                         ? <ChevronRight className="mr-2 h-4 w-4 shrink-0 text-muted-foreground" />

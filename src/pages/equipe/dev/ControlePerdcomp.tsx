@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
 import {
   Search,
@@ -108,6 +108,7 @@ interface PerSituacaoMap {
 export default function ControlePerdcomp() {
   const queryClient = useQueryClient();
 
+
   // Filter states
   const [clienteId, setClienteId] = useState<string>("");
   const [contribuinteId, setContribuinteId] = useState<string>("");
@@ -178,7 +179,6 @@ export default function ControlePerdcomp() {
         .from("per_with_contribuinte" as any)
         .select("*")
         .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.')
         .order("exercicio", { ascending: false });
       if (error) throw error;
       return (data || []) as any[];
@@ -192,12 +192,11 @@ export default function ControlePerdcomp() {
     queryFn: async () => {
       if (!contribuinteId || !searched) return {};
 
-      // Get all PERs for this contribuinte (exclude soft-deleted)
+      // Get all PERs for this contribuinte
       const { data: pers, error: perError } = await supabase
         .from("per")
         .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.');
+        .eq("id_contribuinte", contribuinteId);
       if (perError) throw perError;
 
       const perNumbers = pers?.map((p: any) => p.nr_per) || [];
@@ -232,12 +231,11 @@ export default function ControlePerdcomp() {
     queryKey: ["perdcomp-dcomp", contribuinteId, searched],
     queryFn: async () => {
       if (!contribuinteId || !searched) return [];
-      // First get PERs for this contribuinte (exclude soft-deleted)
+      // First get PERs for this contribuinte
       const { data: pers, error: perError } = await supabase
         .from("per")
         .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId)
-        .or('excluido.is.null,excluido.eq.');
+        .eq("id_contribuinte", contribuinteId);
       if (perError) throw perError;
 
       const perNumbers = pers?.map((p: any) => p.nr_per) || [];
@@ -247,7 +245,6 @@ export default function ControlePerdcomp() {
         .from("dcomp")
         .select("*")
         .in("nr_per_orig", perNumbers)
-        .or('excluido.is.null,excluido.eq.')
         .order("dt_envio", { ascending: false });
       if (error) throw error;
       return data || [];
@@ -273,7 +270,6 @@ export default function ControlePerdcomp() {
           .from("per")
           .select("id_contribuinte")
           .like("nr_per", `%${filterDigits}%`)
-          .or('excluido.is.null,excluido.eq.')
           .limit(1);
 
         let contribId: string | null = matchedPers?.[0]?.id_contribuinte ?? null;
@@ -283,7 +279,6 @@ export default function ControlePerdcomp() {
             .from("dcomp")
             .select("nr_per_orig")
             .like("nr_documento", `%${filterDigits}%`)
-            .or('excluido.is.null,excluido.eq.')
             .limit(1);
 
           if (matchedDcomps?.[0]?.nr_per_orig) {
@@ -869,6 +864,55 @@ export default function ControlePerdcomp() {
                 })
               )}
             </TableBody>
+            {searched && filteredPerData.length > 0 && (
+              <TableFooter className="sticky bottom-0 bg-muted/80 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
+                <TableRow className="hover:bg-muted/80">
+                  <TableCell colSpan={8} className="font-bold">
+                    <span className="inline-flex items-center gap-1.5">
+                      Total Geral
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent side="top" align="start" collisionPadding={16} className="max-w-xs">
+                          <p>
+                            Soma de <strong>todos os PERs</strong> que atendem aos filtros aplicados —
+                            independente da página exibida e da ordenação. O valor não muda ao paginar.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {formatCurrency(totals.credito)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {formatCurrency(totals.compensado)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : "-"}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
+                    <span
+                      className={cn(
+                        totals.saldo > 0
+                          ? "text-green-600 dark:text-green-400"
+                          : totals.saldo < 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "",
+                      )}
+                    >
+                      {formatCurrency(totals.saldo)}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap text-blue-600 dark:text-blue-400">
+                    {formatCurrency(totals.corrigido)}
+                  </TableCell>
+                  <TableCell />
+                </TableRow>
+              </TableFooter>
+            )}
           </Table>
 
           {/* Pagination */}

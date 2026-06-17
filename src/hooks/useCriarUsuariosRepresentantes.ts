@@ -11,7 +11,9 @@ import {
 } from '@/lib/welcomeWebhookQueue';
 import type { RepresentantePendente } from './useRepresentantesSemUsuario';
 
-const TEMP_PASSWORD = 'trocarsenha';
+// Senha temporária é gerada aleatoriamente pelo edge function
+// `upsert-representante-user` e retornada apenas quando o usuário é
+// efetivamente criado (`created === true`).
 const MAX_BATCH = 200;
 
 export interface CargaProgress {
@@ -96,6 +98,7 @@ export const useCriarUsuariosRepresentantes = () => {
 
           const userId: string | null = data?.user_id ?? null;
           const created: boolean = data?.created === true;
+          const tempPassword: string = (data?.temporary_password as string | undefined) ?? '';
 
           if (!userId) {
             failuresCriacao.push({ email: r.email, motivo: 'Sem user_id retornado' });
@@ -137,7 +140,7 @@ export const useCriarUsuariosRepresentantes = () => {
                 first_name,
                 last_name,
                 email: r.email,
-                temporary_password: TEMP_PASSWORD,
+                temporary_password: tempPassword,
                 created_by: adminName,
                 roles: ['client'],
                 areas: [],

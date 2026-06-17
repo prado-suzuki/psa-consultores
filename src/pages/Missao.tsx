@@ -79,7 +79,7 @@ const Missao = () => {
               <h2 className="text-3xl font-bold text-gray-900">Missão</h2>
             </div>
             <p className="text-xl text-gray-600 leading-relaxed">
-              Transformar a complexidade tributária em vantagem competitiva para empresas familiares 
+              Transformar a complexity_level tributária em vantagem competitiva para empresas familiares 
               do agronegócio, oferecendo soluções personalizadas que protegem patrimônios e perpetuam legados.
             </p>
           </motion.div>

@@ -1,0 +1,1602 @@
+/* ===========================================================================
+   CADASTRO — Padrão "Cadastro Puro" · Redesign premium (onda 1: Gargalos)
+   ----------------------------------------------------------------------------
+   Estas páginas existem para UMA coisa: cadastrar. Nada de KPIs, números de
+   processo ou relatórios — a análise vive no Dashboard ROI / Cascata. O
+   objetivo estético é um canvas sereno e editorial, com micro-interações que
+   parecem mágica e generoso espaço em branco.
+
+   Consome exclusivamente os tokens do DSv2 definidos em mapa.css. Importado
+   por MapaRoutes (depois de mapa.css → estas regras vencem em empate). NÃO
+   tocar mapa.css: classes legadas (gargalo-card, page-stats-v2, filtros-bar,
+   grupo-*) ainda servem as páginas não migradas; poda fica para a última onda.
+
+   Toda animação respeita prefers-reduced-motion (bloco final).
+   =========================================================================== */
+
+/* ---------- Keyframes ---------- */
+/* Entrada do shell: APENAS opacity. O Modal renderiza seu overlay
+   position:fixed como descendente do shell (não usa portal), então qualquer
+   `transform` aqui — mesmo translateY(0) ao fim de um fill `both` — viraria o
+   bloco de contenção do overlay e o prenderia/recortaria dentro do card. */
+@keyframes cadastro-fade-in{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+@keyframes cadastro-float{
+  0%, 100%{ transform: translateY(0); }
+  50%{ transform: translateY(-7px); }
+}
+@keyframes cadastro-halo{
+  0%{ transform: scale(1); opacity: 0.55; }
+  100%{ transform: scale(1.85); opacity: 0; }
+}
+@keyframes cadastro-orb-pulse{
+  0%{ box-shadow: 0 0 0 0 rgba(13,148,136,0.30); transform: scale(0.92); }
+  70%{ box-shadow: 0 0 0 16px rgba(13,148,136,0); transform: scale(1); }
+  100%{ box-shadow: 0 0 0 0 rgba(13,148,136,0); transform: scale(0.92); }
+}
+
+/* ===========================================================================
+   Shell — canvas sereno com aurora ambiente
+   =========================================================================== */
+.card.cadastro-shell{
+  position: relative;
+  overflow: hidden;
+  padding: 32px 34px 36px;
+  border: 1px solid #eef1f6;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.04),
+    0 22px 48px -34px rgba(15,23,42,0.22);
+  animation: cadastro-fade-in 0.5s ease both;
+}
+/* Aurora teal difusa, ancorada no canto superior — profundidade sem ruído. */
+.card.cadastro-shell::before{
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 280px;
+  background:
+    radial-gradient(120% 150% at 88% -30%, rgba(13,148,136,0.10), rgba(13,148,136,0) 58%),
+    radial-gradient(90% 120% at 8% -40%, rgba(99,102,241,0.05), rgba(99,102,241,0) 55%);
+  pointer-events: none;
+}
+
+/* Loading — orb pulsante, calmo */
+.cadastro-loading{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+}
+.cadastro-loading-orb{
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  animation: cadastro-orb-pulse 1.5s ease-out infinite;
+}
+
+/* ===========================================================================
+   Cabeçalho editorial — eyebrow + título + subtítulo + CTA
+   =========================================================================== */
+.cadastro-header{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.cadastro-header-titles{
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cadastro-eyebrow{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent-700);
+  margin-bottom: 12px;
+}
+.cadastro-eyebrow-dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(13,148,136,0.12);
+}
+.cadastro-title{
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 1.15rem + 1.6vw, 2.15rem);
+  line-height: 1.08;
+  letter-spacing: -0.028em;
+  color: var(--on-surface);
+}
+.cadastro-sub{
+  margin: 0;
+  font: var(--font-body-md);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--on-surface-variant);
+  max-width: 54ch;
+}
+
+/* CTA premium — pílula com gradiente, brilho e ícone que gira no hover */
+.cadastro-cta{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  height: 46px;
+  padding: 0 24px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, #14b8a6 0%, #0d9488 52%, #0f766e 100%);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  cursor: pointer;
+  box-shadow:
+    0 1px 2px rgba(15,23,42,0.14),
+    0 12px 24px -12px rgba(13,148,136,0.65);
+  transition: transform var(--transition-base), box-shadow var(--transition-base), filter var(--transition-base);
+}
+.cadastro-cta svg{ transition: transform var(--transition-base); }
+.cadastro-cta:hover{
+  transform: translateY(-2px);
+  filter: saturate(1.06);
+  box-shadow:
+    0 2px 4px rgba(15,23,42,0.14),
+    0 18px 34px -12px rgba(13,148,136,0.72);
+}
+.cadastro-cta:hover svg{ transform: rotate(90deg); }
+.cadastro-cta:active{ transform: translateY(0); }
+.cadastro-cta:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 4px rgba(13,148,136,0.32);
+}
+.cadastro-cta:disabled{
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.14);
+}
+
+/* ===========================================================================
+   Toolbar — busca em pílula + contagem discreta
+   =========================================================================== */
+.cadastro-toolbar{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.cadastro-busca{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  max-width: 460px;
+  height: 46px;
+  padding: 0 18px;
+  background: #fff;
+  border: 1px solid #e6eaf0;
+  border-radius: var(--radius-pill);
+  color: #94a3b8;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), color var(--transition-base);
+}
+.cadastro-busca svg{
+  flex-shrink: 0;
+  transition: transform var(--transition-base);
+}
+.cadastro-busca:hover{ border-color: #cbd5e1; }
+.cadastro-busca:focus-within{
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  box-shadow:
+    0 0 0 4px rgba(13,148,136,0.12),
+    0 8px 20px -12px rgba(13,148,136,0.55);
+}
+.cadastro-busca:focus-within svg{ transform: scale(1.08); }
+.cadastro-busca input{
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  color: #0f172a;
+}
+.cadastro-busca input::placeholder{ color: #94a3b8; }
+.cadastro-busca-limpar{
+  display: inline-flex;
+  align-items: center;
+  background: none;
+  border: none;
+  padding: 3px;
+  cursor: pointer;
+  color: #94a3b8;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.cadastro-busca-limpar:hover{ color: var(--on-surface); background: #f1f5f9; }
+.cadastro-contagem{
+  margin-left: auto;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+/* Filtro de projeto (agrupamento) na toolbar */
+.cadastro-toolbar-projeto{
+  flex-shrink: 0;
+  min-width: 190px;
+}
+/* Tags de indicadores numéricos (logo após os filtros, não no canto) */
+.cadastro-tags{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cadastro-tag{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  background: #f1f5f9;
+  color: #5b6b7f;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+}
+.cadastro-tag:hover{ border-color: #cbd5e1; }
+.cadastro-tag:focus-visible{ outline: none; border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.20); }
+.cadastro-tag.ativa{ border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.18); }
+.cadastro-tag strong{
+  font-weight: 800;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+.cadastro-tag-ok{ background: var(--accent-50); color: var(--accent-700); }
+.cadastro-tag-ok:hover{ border-color: var(--accent-200); }
+.cadastro-tag-ok.ativa{ border-color: var(--accent-color); box-shadow: 0 0 0 3px rgba(13,148,136,0.20); }
+.cadastro-tag-warn{ background: #fffbeb; color: #b45309; }
+.cadastro-tag-warn:hover{ border-color: #fde68a; }
+.cadastro-tag-warn.ativa{ border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.20); }
+
+/* Cabeçalho de grupo (agrupamento por projeto) dentro da lista */
+.cadastro-grupo-titulo{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 2px 2px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent-700);
+}
+.cadastro-grupo-titulo:first-child{ margin-top: 0; }
+.cadastro-grupo-count{
+  min-width: 20px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================================
+   Lista — cartões flutuantes (sem números, sem tabela)
+   =========================================================================== */
+.cadastro-lista{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+/* Reordenação por arraste: cada item é uma alça (sem botão dedicado). O
+   container espelha o gap da .cadastro-lista para não alterar o espaçamento. */
+.processo-reorder-group{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.processo-reorder-item{ position: relative; }
+.processo-reorder-item .cadastro-item{ cursor: grab; }
+.processo-reorder-item:active .cadastro-item{ cursor: grabbing; }
+
+.cadastro-item{
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 18px;
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  overflow: hidden;
+  /* Sem transform no hover: o item é alvo do list-stagger (animation forwards),
+     que venceria o transform. A "elevação" vem de sombra + barra + orb. */
+  transition: box-shadow var(--transition-base), border-color var(--transition-base);
+}
+/* Barra de acento que cresce da esquerda no hover/foco */
+.cadastro-item::before{
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--accent-color);
+  border-radius: 0 3px 3px 0;
+  transform: scaleY(0);
+  transform-origin: center;
+  transition: transform var(--transition-base);
+}
+.cadastro-item:hover{
+  border-color: #e2e8f0;
+  box-shadow: 0 14px 30px -18px rgba(15,23,42,0.30);
+}
+.cadastro-item:hover::before,
+.cadastro-item:focus-within::before{ transform: scaleY(1); }
+.cadastro-item:focus-visible{
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
+}
+
+/* Orb de identidade (cor/fundo tingidos inline pela origem) */
+.cadastro-item-orb{
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  /* Repouso: cinza leve (slate). Hover: vira verde teal com a animação. */
+  background: #f1f5f9;
+  color: #64748b;
+  transition: transform var(--transition-base), background var(--transition-base), color var(--transition-base);
+}
+.cadastro-item:hover .cadastro-item-orb,
+.cadastro-item:focus-within .cadastro-item-orb{
+  background: var(--accent-50);
+  color: var(--accent-color);
+  transform: scale(1.07) rotate(-3deg);
+}
+
+.cadastro-item-main{ flex: 1 1 auto; min-width: 0; }
+.cadastro-item-titulo{
+  display: block;
+  font-weight: 600;
+  font-size: 0.97rem;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cadastro-item-descricao{
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Lado direito: selo categórico discreto (+ metas opcionais, p/ outras ondas) */
+.cadastro-item-trailing{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+.cadastro-item-badge{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: #f4f6f9;
+  color: #5b6b7f;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background var(--transition-base), color var(--transition-base);
+}
+.cadastro-item:hover .cadastro-item-badge{
+  background: var(--accent-50);
+  color: var(--accent-700);
+}
+.cadastro-item-badge-dot{
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cadastro-item-metas{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--on-surface-variant);
+}
+.cadastro-item-meta{
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Ações — entram deslizando da direita no hover/foco */
+.cadastro-item-acoes{
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+.cadastro-item:hover .cadastro-item-acoes,
+.cadastro-item:focus-within .cadastro-item-acoes{
+  opacity: 1;
+  transform: none;
+}
+.cadastro-item-acao{
+  display: inline-flex;
+  background: #fff;
+  border: 1px solid transparent;
+  padding: 7px;
+  cursor: pointer;
+  border-radius: 10px;
+  color: #94a3b8;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.cadastro-item-acao:hover{ background: var(--accent-50); color: var(--accent-color); }
+.cadastro-item-acao-danger:hover{ background: #fef2f2; color: #dc2626; }
+/* Touch: sem hover, ações sempre visíveis */
+@media (hover: none){
+  .cadastro-item-acoes{ opacity: 1; transform: none; }
+}
+
+/* ===========================================================================
+   Empty states
+   =========================================================================== */
+.cadastro-empty{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  padding: 76px 24px 68px;
+}
+/* Orb radiante com halo pulsante e leve flutuação — o herói da página vazia */
+.cadastro-empty-icone{
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 38%, #ccfbf1, #f0fdfa 70%);
+  color: var(--accent-color);
+  margin-bottom: 22px;
+  box-shadow: 0 12px 34px -14px rgba(13,148,136,0.50);
+  animation: cadastro-float 5s ease-in-out infinite;
+}
+.cadastro-empty-icone::before,
+.cadastro-empty-icone::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(13,148,136,0.30);
+  animation: cadastro-halo 2.8s ease-out infinite;
+}
+.cadastro-empty-icone::after{ animation-delay: 1.4s; }
+.cadastro-empty-titulo{
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: -0.02em;
+  color: var(--on-surface);
+}
+.cadastro-empty-texto{
+  font: var(--font-body-md);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--on-surface-variant);
+  max-width: 44ch;
+  margin: 0 0 20px;
+}
+.cadastro-empty .cadastro-cta{ margin-top: 2px; }
+
+/* Compacto — busca sem resultado (sem halo/flutuação) */
+.cadastro-empty-compacto{ padding: 48px 24px; }
+.cadastro-empty-compacto .cadastro-empty-icone{
+  width: 52px;
+  height: 52px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  box-shadow: none;
+  margin-bottom: 14px;
+  animation: none;
+}
+.cadastro-empty-compacto .cadastro-empty-icone::before,
+.cadastro-empty-compacto .cadastro-empty-icone::after{ display: none; }
+.cadastro-empty-compacto .cadastro-empty-titulo{ font-size: 1.05rem; }
+.cadastro-empty-link{
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: var(--radius-pill);
+  transition: background var(--transition-fast);
+}
+.cadastro-empty-link:hover{ background: var(--accent-50); }
+
+/* ===========================================================================
+   Formulário de cadastro (modal largo)
+   =========================================================================== */
+.modal.modal-wide{ max-width: 720px; }
+/* Seção: rótulo em caps + régua que esvanece à direita */
+.cadastro-form-secao{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0 14px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--accent-700);
+}
+.cadastro-form-secao::after{
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #e2e8f0, rgba(226,232,240,0));
+}
+.modal h2 + .cadastro-form-secao{ margin-top: 6px; }
+.cadastro-form-row{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+  align-items: start;
+}
+textarea.cadastro-form-textarea{
+  min-height: 96px;
+  resize: vertical;
+}
+.cadastro-form-leitura{
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-md);
+}
+.cadastro-form-leitura-label{
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+.cadastro-form-leitura-vazio{
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+.cadastro-form-leitura-hint{
+  margin: 8px 0 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+.cadastro-form-leitura .tags{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cadastro-form-leitura .tag{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  background: #ffedd5;
+  color: #9a3412;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+/* Tag de gargalo clicável → abre o modal de edição do gargalo (cruzado). */
+.cadastro-form-leitura .tag.is-editavel{
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter var(--transition-fast), border-color var(--transition-fast);
+}
+.cadastro-form-leitura .tag.is-editavel:hover{ filter: brightness(0.96); border-color: currentColor; }
+.cadastro-form-leitura .tag-edit{ opacity: 0; flex-shrink: 0; transition: opacity var(--transition-fast); }
+.cadastro-form-leitura .tag.is-editavel:hover .tag-edit,
+.cadastro-form-leitura .tag.is-editavel:focus-visible .tag-edit{ opacity: 0.7; }
+@media (hover: none){ .cadastro-form-leitura .tag-edit{ opacity: 0.55; } }
+/* Dica curta entre campos (sem caixa) */
+.cadastro-form-hint-inline{
+  margin: -4px 0 14px;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+.cadastro-form-hint-inline strong{ color: var(--on-surface-variant); }
+
+/* Rateio por cluster (Sistemas): nome · slider · valor */
+.cadastro-rateio-row{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 0;
+}
+.cadastro-rateio-row + .cadastro-rateio-row{ border-top: 1px solid #eef1f6; }
+.cadastro-rateio-nome{
+  flex: 0 0 30%;
+  font-size: 0.82rem;
+  color: var(--on-surface);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cadastro-rateio-row input[type="range"]{
+  flex: 1;
+  accent-color: var(--accent-color);
+  cursor: pointer;
+}
+.cadastro-rateio-val{
+  flex: 0 0 46px;
+  text-align: right;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-700);
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px){
+  .cadastro-form-row{ grid-template-columns: 1fr; }
+}
+
+/* ===========================================================================
+   Processos — linha com código + ação "Mapear" persistente
+   =========================================================================== */
+.processo-item-linha1{
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+.processo-item-linha1 .cadastro-item-titulo{ min-width: 0; }
+.processo-code{
+  flex-shrink: 0;
+  font-family: ui-monospace, 'SFMono-Regular', 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--accent-700);
+  background: var(--accent-50);
+  border: 1px solid var(--accent-100);
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.processo-item-acoes{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+/* Ação primária sempre visível, discreta — vira sólida no hover */
+.processo-mapear{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--accent-200);
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--transition-base), border-color var(--transition-base), color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+}
+.processo-mapear:hover{
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px -8px rgba(13,148,136,0.6);
+}
+.processo-mapear:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.28);
+}
+
+/* ---------- Modal da Paz (detalhe do processo) ---------- */
+/* Layout: cabeçalho fixo (título + ações) + corpo rolável */
+.processo-det{
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.processo-det-head{
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 16px;
+  border-bottom: 1px solid #eef1f6;
+  background: #fff;
+}
+.processo-det-head-main{ flex: 1 1 auto; min-width: 0; }
+.processo-det-acoes{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.processo-det-body{
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 18px 28px 24px;
+}
+.processo-det-head h2{ margin: 0; }
+.processo-det-topo{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.processo-code-lg{ font-size: 0.8rem; padding: 3px 9px; }
+/* Form de processo: eyebrow/sub do cabeçalho (espelha o detalhe) */
+.processo-form-eyebrow{
+  margin: 0 0 6px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-700);
+}
+.processo-form-sub{
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+.processo-det-body > .cadastro-form-secao:first-child{ margin-top: 2px; }
+.processo-det-badges{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+.processo-det-projeto{
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 11px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+.processo-det-projeto.is-editavel{
+  gap: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.processo-det-projeto.is-editavel:hover{
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border-color: var(--accent-200, #99f6e4);
+}
+.processo-det-descricao{
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-md);
+  color: #374151;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+.processo-acc-grupo{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.processo-acc{
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-md);
+  background: #fff;
+  overflow: hidden;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.processo-acc.aberta{
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 22px -18px rgba(15,23,42,0.30);
+}
+.processo-acc-head{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 11px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-display);
+  transition: background var(--transition-fast);
+}
+.processo-acc-head:hover{ background: #fafbfc; }
+.processo-acc-icone{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.processo-acc-label{
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--on-surface);
+}
+.processo-acc-count{
+  flex-shrink: 0;
+  min-width: 22px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.processo-acc-chevron{
+  flex-shrink: 0;
+  color: #94a3b8;
+  transition: transform var(--transition-base);
+}
+.processo-acc.aberta .processo-acc-chevron{ transform: rotate(180deg); }
+.processo-acc-body{
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--transition-base);
+}
+.processo-acc.aberta .processo-acc-body{ grid-template-rows: 1fr; }
+.processo-acc-body-inner{
+  overflow: hidden;
+  padding: 0 16px 0 51px;
+}
+.processo-acc.aberta .processo-acc-body-inner{ padding-bottom: 14px; }
+/* Fluxo de etapas numerado */
+.processo-fluxo{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.processo-fluxo-item{
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 0;
+}
+.processo-fluxo-num{
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-50);
+  color: var(--accent-700);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.processo-fluxo-nome{
+  font-size: 0.88rem;
+  color: var(--on-surface);
+}
+.processo-det-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.processo-det-chip{
+  padding: 4px 11px;
+  border-radius: var(--radius-pill);
+  background: #f4f6f9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.processo-det-vazio{
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: #94a3b8;
+}
+.processo-det-editar{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Chip clicável → abre o modal de edição da entidade de origem.
+   Regra de edição cruzada: toda info de outra página é editável de onde
+   aparece. O lápis surge no hover para não poluir o repouso. */
+.processo-det-chip.is-editavel{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.processo-det-chip.is-editavel:hover{
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border-color: var(--accent-200, #99f6e4);
+}
+.processo-det-chip-edit{
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+.processo-det-chip.is-editavel:hover .processo-det-chip-edit,
+.processo-det-chip.is-editavel:focus-visible .processo-det-chip-edit{ opacity: 0.75; }
+@media (hover: none){ .processo-det-chip-edit{ opacity: 0.6; } }
+
+/* ===========================================================================
+   Mapeamento — a casa do analista (Como era / Como ficou / Configurar ROI)
+   =========================================================================== */
+.mapear-shell{ padding-top: 22px; }
+.mapear-topbar{ position: relative; z-index: 1; margin-bottom: 14px; }
+.mapear-voltar{
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 14px 0 11px;
+  border: 1px solid #e6eaf0;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+.mapear-voltar svg{ transition: transform var(--transition-base); }
+.mapear-voltar:hover{
+  border-color: var(--accent-200);
+  color: var(--accent-700);
+  transform: translateX(-2px);
+  box-shadow: 0 6px 16px -10px rgba(13,148,136,0.5);
+}
+.mapear-voltar:hover svg{ transform: translateX(-2px); }
+
+.mapear-header{ position: relative; z-index: 1; margin-bottom: 22px; }
+.mapear-title{
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.5rem, 1.1rem + 1.5vw, 2rem);
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--on-surface);
+}
+.mapear-desc{
+  margin: 8px 0 0;
+  font: var(--font-body-md);
+  color: var(--on-surface-variant);
+  line-height: 1.55;
+}
+.mapear-badges{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.mapear-etapas-chip{
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.mapear-etapas-chip.vazio{ background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+/* Barra de downloads do processo — SOPs + Diagrama */
+.mapear-downloads{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.mapear-downloads-label{
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  margin-right: 2px;
+}
+.mapear-dl-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 13px;
+  border: 1px solid #e6eaf0;
+  border-radius: var(--radius-pill);
+  background: #fff;
+  color: var(--on-surface-variant);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+.mapear-dl-btn svg{ color: var(--accent-600); }
+.mapear-dl-btn:hover{
+  border-color: var(--accent-200);
+  color: var(--accent-700);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -10px rgba(13,148,136,0.5);
+}
+
+/* Abas com indicador deslizante */
+.mapear-tabs{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid #e6eaf0;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+}
+.mapear-tab{
+  position: relative;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 12px 18px;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #64748b;
+  transition: color var(--transition-base);
+}
+.mapear-tab:hover{ color: var(--on-surface); }
+.mapear-tab.ativa{ color: var(--accent-color); }
+.mapear-tab-ind{
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent-color);
+}
+
+.mapear-painel{ position: relative; z-index: 1; }
+
+/* Cabeçalho da aba: título + CTA "Editar etapas" */
+.mapear-tab-head{
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+.mapear-tab-head-txt{ min-width: 0; }
+.mapear-tab-titulo{
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--on-surface);
+}
+.mapear-tab-sub{
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: var(--on-surface-variant);
+}
+
+/* Gargalos DA ETAPA — faixa âmbar dentro do card (gargalos são da etapa) */
+.mapear-etapa-gargalos{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 8px 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-md);
+}
+.mapear-etapa-gargalos-label{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #b45309;
+  flex-shrink: 0;
+}
+
+/* Fluxo de etapas */
+.mapear-fluxo{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.mapear-etapa{
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+.mapear-etapa:hover{
+  border-color: #e2e8f0;
+  box-shadow: 0 12px 28px -20px rgba(15,23,42,0.30);
+}
+.mapear-etapa-top{ display: flex; align-items: center; gap: 12px; }
+.mapear-etapa-num{
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.mapear-etapa-nome{
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--on-surface);
+}
+.mapear-exec{
+  flex-shrink: 0;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.mapear-etapa-desc{
+  margin: 10px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+  white-space: pre-line;
+}
+.mapear-campos{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 24px;
+  margin-top: 14px;
+}
+.mapear-campo{ min-width: 0; }
+.mapear-campo-label{
+  display: block;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  margin-bottom: 6px;
+}
+.mapear-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
+.mapear-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: #f4f6f9;
+  color: #475569;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.mapear-chip.teal{ background: var(--accent-50); color: var(--accent-700); }
+.mapear-chip.indigo{ background: #eef2ff; color: #4338ca; }
+.mapear-chip.amber{ background: #fff7ed; color: #b45309; }
+.mapear-chip-vol{
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.72rem;
+  opacity: 0.7;
+  font-variant-numeric: tabular-nums;
+}
+.mapear-vazio{ color: #cbd5e1; font-size: 0.85rem; }
+
+/* Chip de etapa clicável → abre o modal de edição da entidade (doc/sistema/
+   responsável/gargalo). Mesma regra de edição cruzada das seções do detalhe. */
+.mapear-chip.is-editavel{
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter var(--transition-fast), border-color var(--transition-fast);
+}
+.mapear-chip.is-editavel:hover{ filter: brightness(0.96); border-color: currentColor; }
+.mapear-chip-edit{
+  opacity: 0;
+  flex-shrink: 0;
+  transition: opacity var(--transition-fast);
+}
+.mapear-chip.is-editavel:hover .mapear-chip-edit,
+.mapear-chip.is-editavel:focus-visible .mapear-chip-edit{ opacity: 0.7; }
+@media (hover: none){ .mapear-chip-edit{ opacity: 0.55; } }
+
+/* Métricas inline da etapa (dados do mapeamento, não KPIs) */
+.mapear-metrics{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 22px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+.mapear-metric{ display: flex; flex-direction: column; gap: 1px; }
+.mapear-metric-label{
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+.mapear-metric-val{
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--on-surface);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===========================================================================
+   Projetos — chips de justificativa (form) + detalhe (ícone, abas)
+   =========================================================================== */
+.justif-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.justif-chip{
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #475569;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
+}
+.justif-chip:hover{ border-color: var(--accent-200); }
+.justif-chip.ativa{ border-color: var(--accent-color); background: var(--accent-color); color: #fff; }
+
+.projeto-det-icone{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: var(--accent-50);
+  color: var(--accent-color);
+  flex-shrink: 0;
+}
+.projeto-det-tabs{
+  flex-shrink: 0;
+  display: flex;
+  gap: 4px;
+  padding: 0 28px;
+  border-bottom: 1px solid #e6eaf0;
+  flex-wrap: wrap;
+}
+/* Modal de detalhe do projeto: mais largo e com altura estável (não encolhe
+   ao trocar de aba — o corpo mantém uma altura mínima e rola se passar). */
+.modal.projeto-det{ max-width: 880px; }
+.projeto-det .processo-det-body{ min-height: 440px; }
+/* Negrito mais suave nas linhas de processo/backlog do detalhe */
+.projeto-det .projeto-process-name{ font-weight: 600; }
+.projeto-det .projeto-backlog-main strong{ font-weight: 600; }
+/* Justificativas (read-only) — tags/mini-cartões, como no formulário */
+.projeto-justif-tag{
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ===========================================================================
+   Mobile
+   =========================================================================== */
+@media (max-width: 640px){
+  .card.cadastro-shell{ padding: 22px 18px 26px; border-radius: 18px; }
+  .cadastro-header{ margin-bottom: 22px; }
+  .cadastro-cta{ width: 100%; justify-content: center; }
+  .cadastro-toolbar{ flex-wrap: wrap; }
+  .cadastro-busca{ max-width: none; flex-basis: 100%; }
+  .cadastro-toolbar-projeto{ flex-basis: 100%; min-width: 0; }
+  .cadastro-contagem{ margin-left: 0; }
+  .cadastro-item{ gap: 13px; padding: 13px 14px; }
+  .cadastro-item-orb{ width: 40px; height: 40px; border-radius: 12px; }
+  .cadastro-item-trailing{ gap: 8px; }
+  /* Processos: oculta o rótulo do "Mapear" (mantém o ícone) e reduz o recuo do acordeão */
+  .processo-mapear span{ display: none; }
+  .processo-mapear{ padding: 0 10px; }
+  .processo-acc-body-inner{ padding-left: 16px; }
+  /* Modal da Paz: cabeçalho empilha e ações ocupam a largura toda */
+  .processo-det-head{ flex-direction: column; }
+  .processo-det-head,
+  .processo-det-body{ padding-left: 18px; padding-right: 18px; }
+  .processo-det-acoes{ flex-direction: column; align-items: stretch; width: 100%; }
+  /* Mapeamento: campos da etapa em coluna; CTA da aba ocupa a largura */
+  .mapear-campos{ grid-template-columns: 1fr; }
+  .mapear-tab-head .cadastro-cta{ width: 100%; justify-content: center; }
+  /* Detalhe do projeto: abas acompanham o padding do corpo */
+  .projeto-det-tabs{ padding-left: 18px; padding-right: 18px; }
+}
+
+/* ===========================================================================
+   Reduced motion — desliga toda a "mágica"
+   =========================================================================== */
+@media (prefers-reduced-motion: reduce){
+  .card.cadastro-shell,
+  .cadastro-empty-icone,
+  .cadastro-loading-orb{ animation: none; }
+  .cadastro-empty-icone::before,
+  .cadastro-empty-icone::after{ display: none; }
+  .cadastro-cta,
+  .cadastro-cta svg,
+  .cadastro-busca,
+  .cadastro-busca svg,
+  .cadastro-item,
+  .cadastro-item::before,
+  .cadastro-item-orb,
+  .cadastro-item-acoes,
+  .cadastro-item-badge{ transition: none; }
+  .cadastro-cta:hover,
+  .cadastro-cta:hover svg,
+  .cadastro-item:hover .cadastro-item-orb{ transform: none; }
+  .cadastro-item:hover::before,
+  .cadastro-item:focus-within::before{ transform: scaleY(1); }
+  .cadastro-item-acoes{ opacity: 1; transform: none; }
+  /* Processos */
+  .processo-mapear,
+  .processo-acc-chevron,
+  .processo-acc-body{ transition: none; }
+  .processo-mapear:hover{ transform: none; }
+  /* Mapeamento */
+  .mapear-voltar,
+  .mapear-voltar svg,
+  .mapear-tab,
+  .mapear-dl-btn,
+  .mapear-etapa{ transition: none; }
+  .mapear-voltar:hover,
+  .mapear-voltar:hover svg{ transform: none; }
+  .mapear-dl-btn:hover{ transform: none; }
+  .mapear-gm-x{ transition: none; }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   Painel Gargalos & Melhorias (editor de etapas) — gargalo-cêntrico:
+   cada gargalo é um card separado com seu próprio "+ Melhoria".
+   Visual sóbrio: caixas neutras, melhorias em verde (accent).
+   ══════════════════════════════════════════════════════════════════ */
+.mapear-gm-hint{ font-size: 0.78rem; color: #64748b; margin: 0 0 10px; line-height: 1.45; }
+.mapear-gm-list{ display: flex; flex-direction: column; gap: 10px; }
+
+.mapear-gm-card{
+  border: 1px solid #e6ebf1;
+  border-radius: 12px;
+  background: #fff;
+  overflow: hidden;
+}
+.mapear-gm-card-head{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  background: #f9fafc;
+  border-bottom: 1px solid #eef2f6;
+}
+.mapear-gm-garg-ic{ flex-shrink: 0; color: #d97706; }
+.mapear-gm-garg-nome{
+  flex: 1;
+  min-width: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+.mapear-gm-x{
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #cbd5e1;
+  padding: 3px;
+  border-radius: 6px;
+  line-height: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.mapear-gm-x:hover{ color: #ef4444; background: #fef2f2; }
+
+.mapear-gm-card-body{ padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.mapear-gm-label{
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #94a3b8;
+}
+.mapear-gm-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
+.mapear-gm-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-50);
+  color: var(--accent-700);
+  border: 1px solid var(--accent-100);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+}
+.mapear-gm-chip button{
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.55;
+  padding: 0;
+  line-height: 0;
+  display: inline-flex;
+  transition: opacity var(--transition-fast);
+}
+.mapear-gm-chip button:hover{ opacity: 1; }
+.mapear-gm-add{ max-width: 260px; }
+.mapear-gm-add :where(.custom-select-trigger){ width: 100%; }
+.mapear-gm-add-garg{ margin-top: 10px; max-width: 280px; }
+.mapear-gm-add-garg :where(.custom-select-trigger){ width: 100%; }
+
+/* ══════════════════════════════════════════════════════════════════
+   Anti-perda de dados no editor de etapas: banner de rascunho recuperado
+   e overlay de confirmação "sair sem salvar".
+   ══════════════════════════════════════════════════════════════════ */
+.mapear-rascunho-banner{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.mapear-confirm-sair{
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.mapear-confirm-card{
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px 24px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+}
+.mapear-confirm-card h3{ margin: 0 0 8px; font-size: 1.05rem; color: #0f172a; }
+.mapear-confirm-card p{ margin: 0 0 16px; font-size: 0.88rem; color: #475569; line-height: 1.5; }

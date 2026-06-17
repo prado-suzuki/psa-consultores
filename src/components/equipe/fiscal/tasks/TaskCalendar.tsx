@@ -133,7 +133,19 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                 </p>
               ) : (
                 selectedDateTasks.map(task => (
-                  <div key={task.id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
+                  <div
+                    key={task.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onEdit(task)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onEdit(task);
+                      }
+                    }}
+                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                  >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -149,13 +161,13 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                         )}
                       </div>
                       <div className="flex items-center gap-1 flex-shrink-0">
-                        <Button size="sm" variant="ghost" onClick={() => onEdit(task)}>
+                        <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); onEdit(task); }}>
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                         <Button
                           size="sm"
                           variant="ghost"
-                          onClick={() => onDelete(task.id)}
+                          onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-3.5 w-3.5" />

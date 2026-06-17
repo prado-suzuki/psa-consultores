@@ -53,6 +53,17 @@ All colors MUST be HSL.
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
     
+    /* OSG accent — taupe/brown (versão mais escura) */
+    --osg-50: 32 28% 92%;
+    --osg-100: 30 26% 84%;
+    --osg-200: 30 25% 70%;
+    --osg-300: 30 23% 56%;
+    --osg-500: 22 24% 33%;
+    --osg-600: 19 24% 25%;
+    --osg-700: 17 25% 19%;
+    --osg-moss: 149 66% 22%; /* verde musgo (#125837) */
+    --osg-highlighter: 41 73% 71%; /* amarelo dourado (#EBC97D) — marca-texto */
+
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;
     --gray-100: 220 14% 96%;
@@ -79,6 +90,38 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 85 85% 37%;
+  }
+
+  /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
+     Aplicado no <html> pelo OsgLayout, então alcança menus renderizados em portal. */
+  .osg-theme {
+    --accent: var(--osg-moss);
+    --accent-foreground: 0 0% 100%;
+    --primary: var(--osg-moss);
+    --primary-foreground: 0 0% 100%;
+    --secondary: var(--osg-moss);
+    --secondary-foreground: 0 0% 100%;
+    --ring: var(--osg-moss);
+
+    /* Superfícies da área OSG: branco com um toque bem sutil de marrom
+       (matiz da paleta osg) no lugar do branco-puro estéril. */
+    --background: 32 28% 98.5%;
+    --card: 32 28% 98.5%;
+    --popover: 32 28% 98.5%;
+
+    /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
+       escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
+    --osg-canvas: 32 24% 96%;
+
+    /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
+       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
+    --destructive: 356 59% 45%;
+  }
+
+  /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
+     no lugar do cinza padrão (muted). */
+  .osg-theme tbody tr:hover {
+    background-color: hsl(var(--osg-50) / 0.6);
   }
 
   .dark {
@@ -830,4 +873,31 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Editor de conteúdo de modelos (TipTap) — ver EditorConteudoModelo.tsx */
+.editor-modelo .ProseMirror {
+  min-height: var(--editor-min-h, 11rem);
+  max-height: var(--editor-max-h, none);
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  transition: min-height 300ms ease, max-height 300ms ease;
+}
+
+.editor-modelo .ProseMirror p {
+  margin: 0;
+}
+
+.editor-modelo .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}
+
+/* Chip de placeholder selecionado (clique no chip = NodeSelection) */
+.editor-modelo .ProseMirror .osg-var-chip.ProseMirror-selectednode {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
 }

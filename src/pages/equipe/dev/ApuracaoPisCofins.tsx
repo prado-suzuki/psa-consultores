@@ -40,8 +40,8 @@ const formatCurrency = (value: number) =>
 const TOOLTIPS = {
   cliente: "Cliente/grupo cujo contribuinte será apurado.",
   contribuinte: "CNPJ vinculado ao cliente. Define os dados consultados no EFD ou Balancete.",
-  dataInicio: "Mês/ano inicial do período de apuração. Obrigatório.",
-  dataFim: "Mês/ano final do período (≥ Data Início). Obrigatório.",
+  start_date: "Mês/ano inicial do período de apuração. Obrigatório.",
+  end_date: "Mês/ano final do período (≥ Data Início). Obrigatório.",
   periodoFechado: "Quando ativo, considera apenas competências já encerradas no balancete (modo Prado).",
 } as const;
 
@@ -643,7 +643,7 @@ const ApuracaoPisCofins = () => {
             <div className="col-span-12 md:col-span-3">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Data Início <RequiredMark />
-                <FieldTooltip text={TOOLTIPS.dataInicio} />
+                <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Mês/Ano" />
             </div>
@@ -652,7 +652,7 @@ const ApuracaoPisCofins = () => {
             <div className="col-span-12 md:col-span-3">
               <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 Data Fim <RequiredMark />
-                <FieldTooltip text={TOOLTIPS.dataFim} />
+                <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Mês/Ano" />
             </div>
@@ -965,12 +965,42 @@ const ApuracaoPisCofins = () => {
                       <TableBody>
                         <TableRow>
                           <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
-                            Base Normal
+                            Base Normal (1,65% e 7,6%)
                           </StickyCell>
                           {headerBottom.map((col) => (
                             <TableCell key={col.id} className={cn("text-right font-mono", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
                               {formatCurrency(
                                 getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.baseNormal),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">
+                            {formatCurrency(resultados.reduce((s, r) => s + r.baseCredito.baseNormal, 0))}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-semibold">
+                            Base Presumida (1,2375% e 5,7%)
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.basePresumido),
+                              )}
+                            </TableCell>
+                          ))}
+                          <TableCell className="text-right font-mono font-bold bg-muted/30">
+                            {formatCurrency(resultados.reduce((s, r) => s + r.baseCredito.basePresumido, 0))}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <StickyCell config={SINGLE_STICKY[0]} className="font-bold bg-muted/30">
+                            Total
+                          </StickyCell>
+                          {headerBottom.map((col) => (
+                            <TableCell key={col.id} className={cn("text-right font-mono font-bold bg-muted/30", isExpandedMonthColumn(col.dataKeys) && INLINE_EXPANDED_MONTH_VALUE_CLASS, getExpandedMonthEdgeClass(col.id))}>
+                              {formatCurrency(
+                                getResultadoColValue(resultados, col.dataKeys, (r) => r.baseCredito.baseTotal),
                               )}
                             </TableCell>
                           ))}

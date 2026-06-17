@@ -73,8 +73,8 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 const TOOLTIPS = {
   cliente: "Filtra as EFD Contribuições por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  dataInicio: "Define o período inicial da busca.",
-  dataFim: "Define o período final da busca.",
+  start_date: "Define o período inicial da busca.",
+  end_date: "Define o período final da busca.",
   colArquivo: "Nome e ID do arquivo SPED processado.",
   colPeriodo: "Mês inicial e final da escrituração.",
   colTipo: "Status do arquivo (Original ou Retificadora).",
@@ -163,8 +163,8 @@ const ConsultaEFD = () => {
   }, [contribuintes, selectedContribuinte]);
 
   // Converter mês/ano para string de data para a API
-  const dataInicio = monthYearToDateString(mesInicio, 'start');
-  const dataFim = monthYearToDateString(mesFim, 'end');
+  const start_date = monthYearToDateString(mesInicio, 'start');
+  const end_date = monthYearToDateString(mesFim, 'end');
 
   // Hooks de dados - só busca após usuário acionar busca
   // NOTA: Busca todos os arquivos do contribuinte (sem filtro de data na API)
@@ -177,7 +177,7 @@ const ConsultaEFD = () => {
   } = useEFDOverview({
     enabled: searchTriggered && !!selectedContribuinte,
     idContribuinte: selectedContribuinte,
-    // Não passa dataInicio/dataFim pois a API faz filtro de igualdade exata
+    // Não passa start_date/end_date pois a API faz filtro de igualdade exata
   });
 
   // Filtrar arquivos localmente por período (intersecção)
@@ -186,13 +186,13 @@ const ConsultaEFD = () => {
     if (!overview?.arquivos) return [];
     
     // Se não há filtro de data, retorna todos
-    if (!dataInicio && !dataFim) return overview.arquivos;
+    if (!start_date && !end_date) return overview.arquivos;
     
     return overview.arquivos.filter(arquivo => {
       const arquivoInicio = new Date(arquivo.DT_INI);
       const arquivoFim = new Date(arquivo.DT_FIN);
-      const filtroInicio = dataInicio ? new Date(dataInicio) : null;
-      const filtroFim = dataFim ? new Date(dataFim) : null;
+      const filtroInicio = start_date ? new Date(start_date) : null;
+      const filtroFim = end_date ? new Date(end_date) : null;
       
       // Verificar intersecção de períodos:
       // - Seu período TERMINA após (ou no) início do filtro
@@ -202,7 +202,7 @@ const ConsultaEFD = () => {
       
       return depoisDoInicio && antesDoFim;
     });
-  }, [overview?.arquivos, dataInicio, dataFim]);
+  }, [overview?.arquivos, start_date, end_date]);
 
   // Exibir erro se houver
   useEffect(() => {
@@ -316,8 +316,8 @@ const ConsultaEFD = () => {
     try {
       // Montar URL com query params opcionais
       const url = new URL(getApiUrl(`/api/v1/query/download/efd/contribuicoes/${selectedContribuinte}`));
-      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
-      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      if (start_date) url.searchParams.set('data_inicio', start_date);
+      if (end_date) url.searchParams.set('data_fim', end_date);
       
       // Usar timeout maior para downloads grandes (60s)
       const response = await fetchWithAuth(url.toString(), {}, 60000);
@@ -504,7 +504,7 @@ const ConsultaEFD = () => {
             {/* Data Início */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} />
+                Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <div className="relative">
                 <MonthYearPicker
@@ -519,7 +519,7 @@ const ConsultaEFD = () => {
             {/* Data Fim */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} />
+                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <div className="relative">
                 <MonthYearPicker

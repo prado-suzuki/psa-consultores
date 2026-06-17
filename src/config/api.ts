@@ -27,10 +27,13 @@ const API_URLS = {
 };
 
 // URL base da API (selecionada automaticamente)
-// Em localhost, usamos a API de desenvolvimento (Cloud Run) ao invés da API local na porta 8000.
+// Em localhost (dev server), redirecionamos para a API local na porta 8000.
+// Caso contrário (preview do Lovable), usamos a API de desenvolvimento (Cloud Run).
 export const API_BASE_URL = isProductionEnvironment
   ? API_URLS.production
-  : API_URLS.development;
+  : isLocalEnvironment
+    ? API_URLS.local
+    : API_URLS.development;
 
 // Helper para construir URLs completas
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;

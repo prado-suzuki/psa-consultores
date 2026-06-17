@@ -74,8 +74,8 @@ const ButtonTooltip = ({ text, children }: { text: string; children: React.React
 const TOOLTIPS = {
   cliente: "Filtra as EFD ICMS por cliente ou grupo.",
   contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  dataInicio: "Define o período inicial da busca.",
-  dataFim: "Define o período final da busca.",
+  start_date: "Define o período inicial da busca.",
+  end_date: "Define o período final da busca.",
   colArquivo: "Nome e ID do arquivo EFD ICMS processado.",
   colPeriodo: "Mês inicial e final da escrituração.",
   colTipo: "Status do arquivo (Original ou Retificadora).",
@@ -171,8 +171,8 @@ const ConsultaEFDICMS = () => {
   }, [contribuintes, selectedContribuinte]);
 
   // Converter mês/ano para string de data para a API
-  const dataInicio = monthYearToDateString(mesInicio, 'start');
-  const dataFim = monthYearToDateString(mesFim, 'end');
+  const start_date = monthYearToDateString(mesInicio, 'start');
+  const end_date = monthYearToDateString(mesFim, 'end');
 
   // Hooks de dados - busca do mock no Storage
   const { 
@@ -239,12 +239,12 @@ const ConsultaEFDICMS = () => {
     }
     
     // Filtro por período
-    if (dataInicio || dataFim) {
+    if (start_date || end_date) {
       filtrados = filtrados.filter(arquivo => {
         const arquivoInicio = new Date(arquivo.DT_INI);
         const arquivoFim = new Date(arquivo.DT_FIN);
-        const filtroInicio = dataInicio ? new Date(dataInicio) : null;
-        const filtroFim = dataFim ? new Date(dataFim) : null;
+        const filtroInicio = start_date ? new Date(start_date) : null;
+        const filtroFim = end_date ? new Date(end_date) : null;
         
         const depoisDoInicio = !filtroInicio || arquivoFim >= filtroInicio;
         const antesDoFim = !filtroFim || arquivoInicio <= filtroFim;
@@ -254,7 +254,7 @@ const ConsultaEFDICMS = () => {
     }
     
     return filtrados;
-  }, [overview?.arquivos, selectedFilial, dataInicio, dataFim]);
+  }, [overview?.arquivos, selectedFilial, start_date, end_date]);
 
   // Exibir erro se houver
   useEffect(() => {
@@ -329,8 +329,8 @@ const ConsultaEFDICMS = () => {
     try {
       // Montar URL com query params opcionais
       const url = new URL(getApiUrl(`/api/v1/query/download/efd/icms/${selectedContribuinte}`));
-      if (dataInicio) url.searchParams.set('data_inicio', dataInicio);
-      if (dataFim) url.searchParams.set('data_fim', dataFim);
+      if (start_date) url.searchParams.set('data_inicio', start_date);
+      if (end_date) url.searchParams.set('data_fim', end_date);
       
       // Usar timeout maior para downloads grandes (60s)
       const response = await fetchWithAuth(url.toString(), {}, 60000);
@@ -648,7 +648,7 @@ const ConsultaEFDICMS = () => {
             {/* Data Início */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataInicio} />
+                Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <div className="relative">
                 <MonthYearPicker
@@ -663,7 +663,7 @@ const ConsultaEFDICMS = () => {
             {/* Data Fim */}
             <div className="md:col-span-2">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.dataFim} />
+                Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <div className="relative">
                 <MonthYearPicker

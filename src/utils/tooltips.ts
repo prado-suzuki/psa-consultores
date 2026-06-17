@@ -1,0 +1,166 @@
+// Dicionário central de textos de ajuda (tooltips). Chaves estáveis por
+// contexto: '<pagina>.<grupo>.<campo>'. Textos curtos e orientativos (pt-BR).
+// Use dica('chave') nos componentes; chave inexistente retorna '' (sem tooltip).
+
+export const TOOLTIPS: Record<string, string> = {
+  // ───────────── Comum (vários lugares) ─────────────
+  'comum.cluster': 'Agrupamento do portfólio (ex.: OSG, Tributário) — usado para filtrar e organizar.',
+  'comum.filtro.cluster': 'Mostra apenas os registros do cluster selecionado.',
+  'comum.filtro.organizar': 'Alterna o agrupamento da lista em cards expansíveis pela dimensão escolhida.',
+
+  // ───────────── Projetos ─────────────
+  'projetos.form.nome': 'Nome do projeto/escopo como será exibido em todo o sistema.',
+  'projetos.form.cluster': 'Cluster do portfólio ao qual este projeto pertence.',
+  'projetos.form.descricao': 'Resumo do que o projeto entrega; aparece no detalhe do projeto.',
+  'projetos.form.start_date': 'Data de início do projeto (opcional).',
+  'projetos.form.end_date': 'Data prevista de término (opcional).',
+  'projetos.form.status': 'Fase atual: Mapeamento, Diagnóstico, Melhorias ou ROI.',
+  'projetos.form.justificativas': 'Motivos estratégicos que sustentam o projeto.',
+  'projetos.filtro.status': 'Filtra os projetos pela fase atual.',
+  'projetos.card.titulo': 'Clique no card para ver os detalhes e os processos vinculados; use os ícones para editar ou excluir.',
+
+  // ───────────── Processos ─────────────
+  'processos.form.nome': 'Nome do processo macro (ex.: P1 Organização Patrimonial).',
+  'processos.form.descricao': 'O que o processo entrega de ponta a ponta.',
+  'processos.form.projeto': 'Projeto/pilar a que este processo pertence — obrigatório; define o cluster usado nos rateios e relatórios.',
+  'processos.form.frequency': 'Quantas vezes o processo roda por ano — anualiza os custos no ROI.',
+  'processos.form.deliverable': 'Resultado final entregue ao concluir o processo.',
+  'processos.form.evaluation_status': 'Situação da avaliação: Não avaliado, Em avaliação ou Avaliado.',
+  'processos.form.complexity_level': 'Grau de complexity_level do processo (Baixa, Média, Alta).',
+  'processos.filtro.organizar': 'Alterna o agrupamento dos processos em cards expansíveis: por projeto ou por cluster.',
+  'processos.filtro.projeto': 'Filtra os processos por projeto.',
+  'processos.filtro.status': 'Filtra pelo status de avaliação.',
+  'processos.card.titulo': 'Clique no card para ver gargalos, melhorias e etapas do processo; use "Mapear" para abrir as abas Como era / Como ficou / ROI.',
+
+  // ───────────── Responsáveis ─────────────
+  'responsaveis.form.nome': 'Nome da pessoa responsável.',
+  'responsaveis.form.cargo': 'Cargo/função na operação.',
+  'responsaveis.form.tipo': 'Interno (custo/hora entra no cálculo) ou Externo (custo zero).',
+  'responsaveis.form.cluster': 'Cluster ao qual este responsável está associado.',
+  'responsaveis.form.hourly_rate': 'Custo por hora trabalhada — base para valorar todas as horas.',
+  'responsaveis.filtro.tipo': 'Filtra por responsáveis internos ou externos.',
+  'responsaveis.filtro.cargo': 'Filtra pelos cargos cadastrados.',
+  'responsaveis.col.responsavel': 'Nome do responsável.',
+  'responsaveis.col.cargo': 'Cargo/função.',
+  'responsaveis.col.hourly_rate': 'Custo por hora usado nos cálculos de custo.',
+  'responsaveis.col.vinculos': 'Quantidade de etapas em que a pessoa atua.',
+  'responsaveis.col.mapeadas': 'Carga mensal estimada: horas por execução × volume mensal da etapa (somado entre todos os projetos ativos).',
+  'responsaveis.col.faltantes': 'Capacidade mensal (176h) menos a carga mensal mapeada.',
+
+  // ───────────── Documentos ─────────────
+  'documentos.form.nome': 'Nome do documento de referência.',
+  'documentos.form.tipo': 'Categoria do documento (Planilha, Protocolo, Relatório...).',
+  'documentos.form.formato': 'Selecione um ou mais formatos do arquivo (PDF, Planilha...).',
+  'documentos.form.origem': 'Quem produz o documento: Interno (PSA) ou Cliente.',
+  'documentos.form.estruturado': 'Grau de estruturação; sugerido automaticamente pelo formato.',
+  'documentos.form.descricao': 'Descrição do documento e como é usado no processo.',
+  'documentos.form.tempo': 'Tempo médio de elaboração do documento, em horas.',
+  'documentos.filtro.origem': 'Filtra por Interno ou Cliente.',
+  'documentos.filtro.formato': 'Filtra pelo formato do arquivo.',
+  'documentos.filtro.estruturado': 'Filtra pelo grau de estruturação.',
+  'documentos.filtro.tipo': 'Filtra pela categoria do documento.',
+  'documentos.col.documento': 'Nome do documento.',
+  'documentos.col.tipo': 'Categoria do documento.',
+  'documentos.col.formato': 'Formato(s) do arquivo.',
+  'documentos.col.tempo': 'Tempo de elaboração mensal: horas (exec + revisão) × volume mensal das etapas que produzem o documento.',
+  'documentos.col.origem': 'Quem produz o documento.',
+  'documentos.col.descricao': 'Como o documento é usado no processo.',
+  'documentos.detalhe.historico': 'Alterações do tempo de elaboração (antes → depois) com data.',
+
+  // ───────────── Sistemas ─────────────
+  'sistemas.form.nome': 'Nome do sistema ou serviço.',
+  'sistemas.form.descricao': 'O que o sistema faz e como apoia o processo.',
+  'sistemas.form.origem': 'Interno (desenvolvido pela PSA) ou Externo (terceiros).',
+  'sistemas.form.cluster': 'Cluster ao qual este sistema está associado.',
+  'sistemas.form.custoLicenca': 'Custo da licença/assinatura (recorrente anual).',
+  'sistemas.form.custoVariavel': 'Custo mensal do sistema (licença/assinatura). No ROI entra como custo recorrente: custo × 12 × rateio% da etapa/melhoria.',
+  'sistemas.form.responsaveisHoras': 'Horas internas de implantação — entram no investment.',
+  'sistemas.filtro.origem': 'Filtra por sistemas Internos ou Externos.',
+  'sistemas.card.titulo': 'Clique no card para ver detalhes e onde o sistema é usado; use os ícones para editar ou excluir.',
+
+  // ───────────── Gargalos ─────────────
+  'gargalos.form.nome': 'Nome curto do gargalo (ponto de fricção).',
+  'gargalos.form.descricao': 'Explicação do problema observado.',
+  'gargalos.form.origem': 'De onde vem o gargalo: Processo, Sistema, Pessoas, Cliente ou Externo.',
+  'gargalos.form.cluster': 'Cluster ao qual este gargalo pertence.',
+  'gargalos.form.processos': 'Processos afetados por este gargalo (um gargalo pode afetar vários).',
+  'gargalos.form.melhoria': 'Melhoria vinculada (1:N — cada gargalo tem no máximo uma melhoria; uma melhoria pode resolver vários gargalos).',
+  'gargalos.filtro.origem': 'Filtra pela origem do gargalo.',
+  'gargalos.filtro.processo': 'Filtra pelos gargalos que afetam o processo escolhido.',
+  'gargalos.detalhe.origem': 'Origem do gargalo.',
+  'gargalos.detalhe.cluster': 'Cluster do gargalo.',
+  'gargalos.detalhe.processos': 'Processos impactados por este gargalo.',
+
+  // ───────────── Melhorias ─────────────
+  'melhorias.form.nome': 'Nome da iniciativa de melhoria.',
+  'melhorias.form.status': 'Andamento: Não iniciado, Em progresso, Concluído ou Backlog.',
+  'melhorias.form.cluster': 'Cluster ao qual esta melhoria pertence.',
+  'melhorias.form.processos': 'Processos atendidos pela melhoria (M:N).',
+  'melhorias.form.descricao': 'O que a melhoria muda no processo.',
+  'melhorias.form.acoesTd': 'Tipos de ação de Transformação Digital envolvidos.',
+  'melhorias.form.sistemas': 'Sistemas desenvolvidos ou adotados pela melhoria.',
+  'melhorias.form.custoExternoUnico': 'Custo externo único (consultoria/fornecedor) — entra no investment.',
+  'melhorias.form.executadoPor': 'Horas de implementação por responsável.',
+  'melhorias.form.treinamentoPor': 'Horas de treinamento rateadas por responsável.',
+  'melhorias.filtro.status': 'Filtra pelo andamento da melhoria.',
+  'melhorias.filtro.processo': 'Filtra pelas melhorias que atendem o processo.',
+  'melhorias.filtro.gargalo': 'Filtra pelas melhorias que resolvem o gargalo.',
+
+  // ───────────── Mapeamento (abas / modal de etapas) ─────────────
+  'mapear.aba.comoEra': 'Cenário atual do processo, antes das melhorias.',
+  'mapear.aba.comoFicou': 'Cenário projetado após implementar as melhorias.',
+  'mapear.aba.entradasSaidas': 'Documentos que entram e saem de cada etapa.',
+  'mapear.aba.configurarRoi': 'Assistente que calcula o ROI a partir do mapeamento.',
+  'mapear.etapa.nome': 'Nome da etapa dentro do processo.',
+  'mapear.etapa.descricao': 'Passo a passo do que é feito nesta etapa.',
+  'mapear.etapa.execution': 'Como a etapa é executada: manual, semi-automática ou automática.',
+  'mapear.etapa.docsEntrada': 'Documentos consumidos pela etapa; o número é o volume por execução.',
+  'mapear.etapa.docsSaida': 'Documentos produzidos pela etapa; o número é o volume por execução.',
+  'mapear.etapa.executadoPor': 'Quem executa a etapa e quantas horas gasta.',
+  'mapear.etapa.volume_per_process': 'Quantas vezes a etapa se repete dentro de uma execução do processo (ex.: 3 = a etapa roda 3x por execução). Multiplica horas e custos da etapa.',
+  'mapear.etapa.error_rate': 'Percentual (0–100) das execuções desta etapa que produzem erro. Mede ocorrência de falha — é indicador de qualidade, não entra direto no custo.',
+  'mapear.etapa.rework_rate': 'Percentual (0–100) das horas da etapa que se repetem por retrabalho. Mede esforço perdido — entra no custo: horas × taxa = horas refeitas. Uma etapa pode ter 30% de erros e só 5% de retrabalho se cada erro for trivial de corrigir.',
+  'mapear.etapa.sistemas': 'Sistemas usados durante a etapa.',
+  'mapear.secao.identificacao': 'Identificação da etapa: nome e descrição.',
+  'mapear.secao.operacao': 'Como a etapa opera e as melhorias herdadas do processo.',
+  'mapear.secao.documentos': 'Documentos de entrada e saída da etapa.',
+  'mapear.secao.equipe': 'Pessoas e horas alocadas na etapa.',
+  'mapear.secao.metricas': 'Indicadores de volume e qualidade da etapa.',
+  'mapear.secao.sistemas': 'Sistemas associados à etapa.',
+
+  // ───────────── Dashboard ROI (KPIs e seções) ─────────────
+  'dashboard.kpi.annual_savings': 'Quanto deixa de ser gasto por ano após as melhorias.',
+  'dashboard.kpi.roi': 'Retorno percentual sobre o investment, em 12 meses.',
+  'dashboard.kpi.payback': 'Meses para a economia recuperar o investment.',
+  'dashboard.kpi.hours_freed': 'Horas/ano da equipe liberadas para outras atividades.',
+  'dashboard.kpi.custoAtual': 'Custo operacional anual no cenário atual (Como Era).',
+  'dashboard.kpi.custoFuturo': 'Custo operacional anual projetado (Como Ficará).',
+  'dashboard.kpi.horasAtual': 'Horas alocadas por ano no cenário atual.',
+  'dashboard.kpi.horasFuturo': 'Horas alocadas por ano no cenário projetado.',
+  'dashboard.kpi.retrabalho': 'Percentual médio do tempo gasto refazendo trabalho.',
+  'dashboard.kpi.custoRetrabalho': 'Custo anual do retrabalho.',
+  'dashboard.kpi.investment': 'Total a investir (pagamento único) para alcançar o cenário projetado.',
+  'dashboard.filtro.projeto': 'Limita a análise a um projeto.',
+  'dashboard.filtro.processo': 'Limita a análise a um processo.',
+  'dashboard.filtro.horizonte': 'Janela de meses usada na curva de break-even.',
+
+  // ───────────── Evolução do Setor ─────────────
+  'setor.filtro.projeto': 'Limita a série histórica a um projeto.',
+  'setor.filtro.periodo': 'Recorta os snapshots por intervalo de datas.',
+  'setor.kpi.hours_freed': 'Soma das horas liberadas entre baseline e última medição.',
+  'setor.kpi.economiaAcum': 'Soma da economia anual dos processos com melhoria.',
+  'setor.kpi.processosMelhoria': 'Processos com redução de custo comprovada por snapshots.',
+  'setor.kpi.roiMedio': 'Média do ROI das últimas medições do portfólio.',
+
+  // ───────────── Notas Metodológicas ─────────────
+  'notas.aba.processo': 'Como o ROI de um único processo é calculado.',
+  'notas.aba.dashboard': 'Como o Dashboard agrega os processos do escopo.',
+  'notas.aba.setor': 'Como a Evolução do Setor lê os snapshots históricos.',
+  'notas.col.indicador': 'Nome do indicador.',
+  'notas.col.calculo': 'Fórmula aplicada.',
+  'notas.col.fontes': 'De qual página/campo o valor é extraído.',
+};
+
+export function dica(chave: string): string {
+  return TOOLTIPS[chave] || '';
+}

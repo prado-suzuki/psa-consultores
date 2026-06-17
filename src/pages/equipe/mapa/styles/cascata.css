@@ -1,0 +1,783 @@
+/* ===========================================================================
+   Cascata — redesign visual (Impact Flow)
+   Canvas customizado de ondas de impacto: rail de gargalos + grafo animado
+   (cards HTML + conectores SVG). Segue o Design System v2 do MAPA.
+   =========================================================================== */
+
+/* ---------- Layout geral ---------- */
+.cascata-layout{
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 20px;
+  margin-top: 4px;
+  align-items: stretch;
+}
+
+/* ---------- Rail de gargalos ---------- */
+.cascata-rail{
+  background: var(--surface-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 920px;
+  overflow: hidden;
+}
+
+.cascata-rail-head{
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid var(--outline-variant);
+  background: #fbfcfe;
+}
+
+.cascata-rail-search{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--radius-md);
+  color: #94a3b8;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.cascata-rail-search:focus-within{
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
+  color: var(--accent-color);
+}
+.cascata-rail-search input{
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.86rem;
+  color: #0f172a;
+}
+.cascata-rail-search input::placeholder{ color: #94a3b8; }
+
+.cascata-rail-count{
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-variant);
+  padding: 10px 16px 6px;
+}
+
+.cascata-rail-list{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 10px 12px;
+}
+
+.cascata-rail-item{
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+.cascata-rail-item:hover{ background: #f1f5f9; }
+.cascata-rail-item:focus-visible{
+  outline: 2px solid var(--accent-color);
+  outline-offset: -2px;
+}
+
+/* pílula deslizante da seleção (framer-motion layoutId) */
+.cascata-rail-pill{
+  position: absolute;
+  inset: 0;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-left: 3px solid #dc2626;
+  border-radius: var(--radius-md);
+  pointer-events: none;
+}
+
+.cascata-rail-item-body{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cascata-rail-item-nome{
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+.cascata-rail-item.is-active .cascata-rail-item-nome{ color: #7f1d1d; }
+.cascata-rail-item-meta{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+.cascata-rail-item-cluster{
+  color: #64748b;
+  font-weight: 500;
+  border-left: 1px solid #e2e8f0;
+  padding-left: 6px;
+}
+
+.cascata-rail-empty{
+  padding: 28px 18px;
+  color: #94a3b8;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  text-align: center;
+}
+
+/* ---------- Coluna principal ---------- */
+.cascata-main{
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hero do gargalo selecionado */
+.cascata-hero{
+  position: relative;
+  background: var(--surface-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: 18px 22px 16px 26px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.cascata-hero::before{
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #dc2626, #7f1d1d);
+}
+.cascata-hero h2{
+  margin: 0 0 4px;
+  font: var(--font-headline-sm);
+  color: var(--on-surface);
+}
+.cascata-hero p{
+  margin: 0 0 10px;
+  font: var(--font-body-md);
+  color: var(--on-surface-variant);
+  max-width: 72ch;
+}
+.cascata-hero-chips{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.cascata-hero-chips-label{
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-variant);
+  margin-right: 2px;
+}
+.cascata-chip-origem{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.cascata-chip-origem .proc{
+  color: #ef4444;
+  font-weight: 500;
+  opacity: 0.85;
+}
+
+/* Linha de controles: segmented + legenda */
+.cascata-controls{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 12px;
+}
+
+.cascata-seg{
+  position: relative;
+  display: inline-flex;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-pill);
+  padding: 3px;
+  gap: 2px;
+}
+.cascata-seg button{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: var(--radius-pill);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.cascata-seg button:hover{ color: #0f172a; }
+.cascata-seg button.is-active{ color: #fff; }
+.cascata-seg-thumb{
+  position: absolute;
+  inset: 0;
+  background: #0f172a;
+  border-radius: var(--radius-pill);
+  z-index: 0;
+}
+.cascata-seg button > span{
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cascata-legend{
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.cascata-legend span{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cascata-legend i{
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.cascata-legend .dot-total{ background: #ea580c; }
+.cascata-legend .dot-parcial{ background: #f59e0b; }
+.cascata-legend .dot-origem{ background: #dc2626; }
+.cascata-legend .dot-doc{ background: #fb923c; }
+.cascata-legend .dot-seq{ background: #94a3b8; }
+
+/* ---------- Canvas ---------- */
+.cascata-canvas-shell{
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 480px;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-xl);
+  background-color: #f8fafc;
+  background-image: radial-gradient(#e2e8f0 1px, transparent 1px);
+  background-size: 22px 22px;
+  overflow: hidden;
+}
+
+.cascata-toolbar{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-pill);
+  padding: 4px;
+  box-shadow: var(--shadow-md);
+}
+.casc-tool-btn{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  color: #475569;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.casc-tool-btn:hover{ background: #f1f5f9; color: #0f172a; }
+.casc-tool-btn:focus-visible{
+  outline: 2px solid var(--accent-color);
+  outline-offset: 1px;
+}
+.casc-tool-pct{
+  min-width: 44px;
+  text-align: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #475569;
+  font-variant-numeric: tabular-nums;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: var(--radius-pill);
+  padding: 6px 4px;
+}
+.casc-tool-pct:hover{ background: #f1f5f9; }
+.casc-tool-sep{
+  width: 1px;
+  height: 18px;
+  background: var(--outline-variant);
+  margin: 0 2px;
+}
+
+.cascata-viewport{
+  overflow: auto;
+  max-height: clamp(480px, calc(100vh - 420px), 760px);
+  min-height: 480px;
+}
+
+.cascata-stage{
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 84px;
+  padding: 44px 48px;
+  transform-origin: 0 0;
+  width: max-content;
+  min-height: 480px;
+}
+
+/* SVG dos conectores — atrás dos cards */
+.cascata-edges{
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+}
+.cascata-edges path{ pointer-events: stroke; }
+
+.casc-edge{ transition: opacity 0.18s ease; }
+.casc-edge-base{
+  fill: none;
+  stroke: #cbd5e1;
+  stroke-width: 1.6;
+  transition: stroke 0.18s ease, stroke-width 0.18s ease;
+}
+.casc-edge-flow{
+  fill: none;
+  stroke: #f87171;
+  stroke-width: 1.6;
+  stroke-dasharray: 5 11;
+  stroke-linecap: round;
+  animation: casc-dash 1.15s linear infinite;
+  transition: stroke 0.18s ease;
+}
+@keyframes casc-dash{
+  to{ stroke-dashoffset: -16; }
+}
+.casc-edge.is-indireto .casc-edge-base{ stroke-dasharray: 4 5; stroke: #d8dee9; }
+.casc-edge.is-indireto .casc-edge-flow{ opacity: 0.35 !important; }
+/* Retorno: doc atualizado reabre processo de onda anterior (ciclo real) */
+.casc-edge.is-retorno .casc-edge-base{ stroke: #fcd34d; stroke-dasharray: 7 4; }
+.casc-edge.is-retorno .casc-edge-flow{ stroke: #f59e0b; }
+.casc-edge.is-active .casc-edge-base{ stroke: #dc2626; stroke-width: 2.4; }
+.casc-edge.is-active .casc-edge-flow{ stroke: #dc2626; }
+.casc-edge.is-dim{ opacity: 0.12; }
+
+/* Colunas */
+.cascata-col{
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 264px;
+  flex-shrink: 0;
+}
+.cascata-col--root{
+  justify-content: center;
+  width: 252px;
+}
+.cascata-col-header{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: var(--font-label-caps);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  padding-bottom: 2px;
+}
+.cascata-col-header::after{
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+.cascata-col-header .wave-dot{
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f87171;
+  box-shadow: 0 0 0 3px rgba(248,113,113,0.18);
+  flex-shrink: 0;
+}
+.cascata-col-header .wave-count{
+  color: #cbd5e1;
+  font-weight: 700;
+}
+
+/* Nó-raiz (gargalo) */
+.casc-root{
+  position: relative;
+  background: linear-gradient(150deg, #991b1b 0%, #7f1d1d 60%, #450a0a 100%);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  padding: 20px;
+  box-shadow: 0 12px 28px -10px rgba(127,29,29,0.45);
+  transition: opacity var(--transition-base);
+}
+.casc-root-top{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.casc-root-pulse{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.14);
+  flex-shrink: 0;
+}
+.casc-root-pulse::before,
+.casc-root-pulse::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.45);
+  animation: casc-pulse 2.4s ease-out infinite;
+}
+.casc-root-pulse::after{ animation-delay: 1.2s; }
+@keyframes casc-pulse{
+  0%{ transform: scale(1); opacity: 0.8; }
+  100%{ transform: scale(2.1); opacity: 0; }
+}
+.casc-root-label{
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(255,255,255,0.75);
+}
+.casc-root-nome{
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 10px;
+}
+.casc-root-meta{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.85);
+}
+.casc-root-meta span{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.12);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+}
+
+/* Nós de processo */
+.casc-node{
+  position: relative;
+  background: var(--surface-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 13px 14px 13px 17px;
+  overflow: hidden;
+  transition: opacity var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+.casc-node::before{
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.casc-node--total::before{ background: #ea580c; }
+.casc-node--parcial::before{ background: #f59e0b; }
+.casc-node:hover{
+  box-shadow: var(--shadow-hover);
+  border-color: #cbd5e1;
+}
+.casc-node.is-dim{ opacity: 0.38; }
+.casc-root.is-dim{ opacity: 0.38; }
+
+.casc-node-head{
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.casc-node-nome{
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+}
+.casc-chev{
+  flex-shrink: 0;
+  color: #94a3b8;
+  margin-top: 1px;
+  transition: transform var(--transition-base), color var(--transition-fast);
+}
+.casc-node-head:hover .casc-chev{ color: #0f172a; }
+.casc-chev.open{ transform: rotate(180deg); }
+
+.casc-node-meta{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 7px;
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 600;
+}
+.casc-node-pct{
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+}
+
+.casc-badge{
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  border: 1px solid transparent;
+}
+.casc-badge--total{
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+.casc-badge--parcial{
+  background: #fffbeb;
+  color: #b45309;
+  border-color: #fde68a;
+}
+
+.casc-progress{
+  height: 5px;
+  border-radius: 4px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+.casc-progress-fill{
+  height: 100%;
+  border-radius: 4px;
+}
+.casc-node--total .casc-progress-fill{
+  background: linear-gradient(90deg, #fb923c, #ea580c);
+}
+.casc-node--parcial .casc-progress-fill{
+  background: linear-gradient(90deg, #fcd34d, #f59e0b);
+}
+
+/* Documentos do processo invalidados pela cascata */
+.casc-node-docs{
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9a3412;
+}
+.casc-node-docs svg{ flex-shrink: 0; color: #ea580c; }
+
+.casc-docs{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e2e8f0;
+}
+.casc-doc-tag{
+  display: inline-flex;
+  align-items: center;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1.3;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  overflow-wrap: anywhere;
+}
+
+/* Etapas (vista granular) */
+.casc-etapas-wrap{ overflow: hidden; }
+.casc-etapas{
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 10px 0 0;
+  border-top: 1px dashed #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.casc-etapa{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 7px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: #334155;
+  line-height: 1.35;
+  background: #f8fafc;
+}
+.casc-etapa-num{
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.casc-etapa-nome{
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.casc-etapa--origem{
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+.casc-etapa--origem .casc-etapa-num{
+  background: #dc2626;
+  color: #fff;
+}
+.casc-etapa--documento{
+  background: #fff7ed;
+  color: #7c2d12;
+}
+.casc-etapa--documento .casc-etapa-num{
+  background: #ea580c;
+  color: #fff;
+}
+.casc-origem-chip,
+.casc-doc-chip,
+.casc-seq-chip{
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+.casc-origem-chip{
+  background: #dc2626;
+  color: #fff;
+}
+.casc-doc-chip{
+  background: #ea580c;
+  color: #fff;
+}
+.casc-seq-chip{
+  background: #e2e8f0;
+  color: #475569;
+}
+
+/* Estados vazios */
+.cascata-empty{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 64px 32px;
+  color: #94a3b8;
+  font-size: 0.92rem;
+  line-height: 1.6;
+  min-height: 480px;
+}
+.cascata-empty svg{ color: #cbd5e1; }
+.cascata-empty strong{ color: #64748b; }
+
+/* ---------- Responsivo ---------- */
+@media (max-width: 1100px){
+  .cascata-layout{ grid-template-columns: 1fr; }
+  .cascata-rail{ max-height: 320px; }
+}
+
+/* ---------- Acessibilidade: movimento reduzido ---------- */
+@media (prefers-reduced-motion: reduce){
+  .casc-edge-flow{ animation: none; }
+  .casc-root-pulse::before,
+  .casc-root-pulse::after{ animation: none; opacity: 0; }
+}

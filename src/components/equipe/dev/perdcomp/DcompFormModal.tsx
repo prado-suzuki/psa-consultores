@@ -250,7 +250,6 @@ export function DcompFormModal({
         .from('dcomp') as any)
         .select('nr_documento, mes_ano_exercicio, nr_dcomp_ret')
         .eq('nr_per_orig', preSelectedPer)
-        .or('excluido.is.null,excluido.eq.')
         .order('dt_envio', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -271,7 +270,6 @@ export function DcompFormModal({
       let query = (supabase
         .from('per') as any)
         .select('nr_per, id_contribuinte, exercicio, tri_exercicio, dt_solicitada, tp_credito, porcentagem_psa')
-        .or('excluido.is.null,excluido.eq.')
         .order('exercicio', { ascending: false });
       if (contribuinteId) query = query.eq('id_contribuinte', contribuinteId);
       const { data, error } = await query;
@@ -532,37 +530,20 @@ export function DcompFormModal({
 
       const { data: existing, error: checkError } = await (supabase
         .from('dcomp') as any)
-        .select('nr_documento, excluido')
+        .select('nr_documento')
         .eq('nr_documento', record.nr_documento)
         .maybeSingle();
       if (checkError) throw checkError;
 
-      let reactivated = false;
       if (existing) {
-        const isSoftDeleted = existing.excluido !== null && existing.excluido !== '';
-        if (!isSoftDeleted) {
-          throw new Error('Já existe um DCOMP ativo com este número. Edite-o em vez de criar um novo.');
-        }
-        const { error: updateError } = await (supabase.from('dcomp') as any)
-          .update({
-            nr_per_orig: record.nr_per_orig,
-            mes_ano_exercicio: record.mes_ano_exercicio,
-            dt_envio: record.dt_envio,
-            vlr_compensado: record.vlr_compensado,
-            nr_dcomp_ret: record.nr_dcomp_ret,
-            excluido: null,
-            nr_cancelamento: null,
-          })
-          .eq('nr_documento', record.nr_documento);
-        if (updateError) throw updateError;
-        reactivated = true;
-      } else {
-        const { error } = await (supabase.from('dcomp') as any).insert([record]);
-        if (error) throw error;
+        throw new Error('Já existe um DCOMP com este número. Edite-o em vez de criar um novo.');
       }
 
+      const { error } = await (supabase.from('dcomp') as any).insert([record]);
+      if (error) throw error;
+
       await persistirDistribuicoes(record.nr_documento);
-      return { ...record, __reactivated: reactivated };
+      return record;
     },
     onSuccess: (record: any) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });
@@ -571,11 +552,10 @@ export function DcompFormModal({
       queryClient.invalidateQueries({ queryKey: ['dcomp-distribuicoes'] });
       queryClient.invalidateQueries({ queryKey: ['per-detail'] });
       queryClient.invalidateQueries({ queryKey: ['per-situacoes'] });
-      toast.success(record?.__reactivated ? 'DCOMP reativado com os novos dados.' : 'DCOMP criado com sucesso!');
+      toast.success('DCOMP criado com sucesso!');
       clear();
       onOpenChange(false);
-      const { __reactivated, ...clean } = record;
-      syncPerdcompToDW({ dcomp: [clean] });
+      syncPerdcompToDW({ dcomp: [record] });
     },
     onError: (error: any) => {
       const msg = error?.code === '23505'

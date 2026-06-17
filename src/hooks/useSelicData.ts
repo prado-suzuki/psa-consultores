@@ -20,15 +20,15 @@ interface SelicResponse {
  * Retorna as taxas para o período informado.
  * Dados históricos são imutáveis, então usamos staleTime alto.
  */
-export function useSelicData(dataInicio: string | null, dataFim: string | null) {
+export function useSelicData(start_date: string | null, end_date: string | null) {
   const { fetchWithAuth } = useApiAuth();
 
   return useQuery<SelicTaxa[]>({
-    queryKey: ['selic-taxas', dataInicio, dataFim],
+    queryKey: ['selic-taxas', start_date, end_date],
     queryFn: async () => {
-      if (!dataInicio || !dataFim) return [];
+      if (!start_date || !end_date) return [];
 
-      const url = getApiUrl(`/api/v1/selic?data_inicio=${dataInicio}&data_fim=${dataFim}`);
+      const url = getApiUrl(`/api/v1/selic?data_inicio=${start_date}&data_fim=${end_date}`);
       const response = await fetchWithAuth(url);
 
       if (!response.ok) {
@@ -38,7 +38,7 @@ export function useSelicData(dataInicio: string | null, dataFim: string | null) 
       const data: SelicResponse = await response.json();
       return data.taxas || [];
     },
-    enabled: !!dataInicio && !!dataFim,
+    enabled: !!start_date && !!end_date,
     staleTime: 24 * 60 * 60 * 1000, // 24h - dados históricos são imutáveis
     gcTime: 48 * 60 * 60 * 1000,
   });

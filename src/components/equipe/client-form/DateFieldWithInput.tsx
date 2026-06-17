@@ -28,6 +28,19 @@ const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps)
     if (parsed) onChange(parsed);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key.toLowerCase() === "h" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      const today = new Date();
+      const y = today.getFullYear();
+      const m = String(today.getMonth() + 1).padStart(2, "0");
+      const d = String(today.getDate()).padStart(2, "0");
+      const iso = `${y}-${m}-${d}`;
+      setTextValue(isoToMasked(iso));
+      onChange(iso);
+    }
+  };
+
   const handleTextBlur = () => {
     if (textValue && textValue.replace(/\D/g, "").length === 8) {
       const parsed = parseDateMask(textValue);
@@ -45,6 +58,7 @@ const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps)
       <Input
         value={textValue}
         onChange={(e) => handleTextChange(e.target.value)}
+        onKeyDown={handleKeyDown}
         onBlur={handleTextBlur}
         placeholder="DD/MM/AAAA"
         className="h-8 font-mono text-sm"

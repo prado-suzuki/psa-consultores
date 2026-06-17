@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { OsgWorkProvider } from "@/contexts/OsgWorkContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
 
@@ -57,6 +58,7 @@ import EquipeBacklog from "./pages/equipe/EquipeBacklog";
 import EquipeRelatorios from "./pages/equipe/EquipeRelatorios";
 import EquipeControleAcessos from "./pages/equipe/EquipeControleAcessos";
 import DigitalAreaSelector from "./pages/equipe/DigitalAreaSelector";
+import MapaRoutes from "./pages/equipe/mapa/MapaRoutes";
 
 // Equipe > Dev
 import DevDashboard from "./pages/equipe/dev/DevDashboard";
@@ -98,6 +100,13 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
+import QualificacaoDasPartes from "./pages/equipe/osg/QualificacaoDasPartes";
+import DiagnosticoPatrimonial from "./pages/equipe/osg/DiagnosticoPatrimonial";
+import ControleMatriculas from "./pages/equipe/osg/ControleMatriculas";
+import BibliotecaModelos from "./pages/equipe/osg/BibliotecaModelos";
+import MontagemDocumentos from "./pages/equipe/osg/MontagemDocumentos";
+import GerarDocumento from "./pages/equipe/osg/GerarDocumento";
+import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
@@ -171,6 +180,7 @@ const App = () => (
               <Route path="/equipe/biblioteca" element={<PageAccessGate pagePath="/equipe/biblioteca"><EquipeBiblioteca /></PageAccessGate>} />
               <Route path="/equipe/backlog" element={<PageAccessGate pagePath="/equipe/backlog"><EquipeBacklog /></PageAccessGate>} />
               <Route path="/equipe/digital" element={<ProtectedRoute><DigitalAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/digital/mapa/*" element={<ProtectedRoute><MapaRoutes /></ProtectedRoute>} />
               <Route path="/equipe/dev" element={<PageAccessGate pagePath="/equipe/dev"><DevDashboard /></PageAccessGate>} />
               <Route path="/equipe/dev/nova-ferramenta" element={<PageAccessGate pagePath="/equipe/dev/nova-ferramenta"><NovaFerramenta /></PageAccessGate>} />
               <Route path="/equipe/dev/ferramenta/:id" element={<PageAccessGate pagePath="/equipe/dev/ferramenta"><DetalheFerramenta /></PageAccessGate>} />
@@ -221,7 +231,16 @@ const App = () => (
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
               <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
-              <Route path="/equipe/osg/work" element={<PageAccessGate pagePath="/equipe/osg/work"><OsgWorkDashboard /></PageAccessGate>} />
+              <Route element={<OsgWorkProvider><Outlet /></OsgWorkProvider>}>
+                <Route path="/equipe/osg/work" element={<PageAccessGate pagePath="/equipe/osg/work"><OsgWorkDashboard /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/diagnostico-patrimonial" element={<PageAccessGate pagePath="/equipe/osg/work/diagnostico-patrimonial"><DiagnosticoPatrimonial /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/controle-matriculas" element={<PageAccessGate pagePath="/equipe/osg/work/controle-matriculas"><ControleMatriculas /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/gerar-documento" element={<ProtectedRoute><GerarDocumento /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
+              </Route>
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 
               {/* Board Routes */}

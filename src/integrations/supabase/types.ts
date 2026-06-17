@@ -125,6 +125,91 @@ export type Database = {
         }
         Relationships: []
       }
+      administracao: {
+        Row: {
+          administrador_pessoa_id: string
+          cargo: string | null
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string | null
+          id: string
+          pj_pessoa_id: string
+          pode_isoladamente: boolean | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          administrador_pessoa_id: string
+          cargo?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          pj_pessoa_id: string
+          pode_isoladamente?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          administrador_pessoa_id?: string
+          cargo?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string | null
+          id?: string
+          pj_pessoa_id?: string
+          pode_isoladamente?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "administracao_administrador_pessoa_id_fkey"
+            columns: ["administrador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administracao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administracao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administracao_pj_pessoa_id_fkey"
+            columns: ["pj_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administracao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "administracao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analises_semestrais: {
         Row: {
           ajustes_necessarios: string | null
@@ -292,6 +377,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           denominacao: string
+          descricao_outros: string | null
           empresa_destino_pessoa_id: string | null
           id: string
           imposto_anual_exercicio: number | null
@@ -305,10 +391,10 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           vlr_benfeitorias: number | null
-          vlr_contabil: number
+          vlr_contabil: number | null
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
-          vlr_mercado: number
+          vlr_mercado: number | null
         }
         Insert: {
           ccir_codigo?: string | null
@@ -316,6 +402,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           denominacao: string
+          descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
@@ -329,10 +416,10 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
-          vlr_contabil: number
+          vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
-          vlr_mercado: number
+          vlr_mercado?: number | null
         }
         Update: {
           ccir_codigo?: string | null
@@ -340,6 +427,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           denominacao?: string
+          descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
@@ -353,10 +441,10 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           vlr_benfeitorias?: number | null
-          vlr_contabil?: number
+          vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
-          vlr_mercado?: number
+          vlr_mercado?: number | null
         }
         Relationships: [
           {
@@ -403,6 +491,120 @@ export type Database = {
           },
         ]
       }
+      capital_integralizacao: {
+        Row: {
+          bem_id: string
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          empresa_destino_pessoa_id: string
+          id: string
+          pct_capital: number | null
+          pct_vlr_contabil: number | null
+          pct_vlr_mercado: number | null
+          reserva_capital: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_capital_arredondado: number | null
+          vlr_contabil: number | null
+          vlr_mercado: number | null
+        }
+        Insert: {
+          bem_id: string
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Update: {
+          bem_id?: string
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id?: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capital_integralizacao_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
+            columns: ["empresa_destino_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cartorio: {
         Row: {
           comarca: string
@@ -410,7 +612,6 @@ export type Database = {
           created_by: string | null
           id: string
           nome_completo: string
-          numero_oficio: string | null
           uf: string
           updated_at: string
           updated_by: string | null
@@ -421,7 +622,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo: string
-          numero_oficio?: string | null
           uf: string
           updated_at?: string
           updated_by?: string | null
@@ -432,7 +632,6 @@ export type Database = {
           created_by?: string | null
           id?: string
           nome_completo?: string
-          numero_oficio?: string | null
           uf?: string
           updated_at?: string
           updated_by?: string | null
@@ -1122,9 +1321,7 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_envio: string
-          excluido: string | null
           mes_ano_exercicio: string
-          nr_cancelamento: string | null
           nr_dcomp_ret: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1136,9 +1333,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio: string
-          excluido?: string | null
           mes_ano_exercicio: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento: string
           nr_per_orig: string
@@ -1150,9 +1345,7 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_envio?: string
-          excluido?: string | null
           mes_ano_exercicio?: string
-          nr_cancelamento?: string | null
           nr_dcomp_ret?: string | null
           nr_documento?: string
           nr_per_orig?: string
@@ -1449,6 +1642,380 @@ export type Database = {
             columns: ["id_ordem_servico"]
             isOneToOne: false
             referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_gerado: {
+        Row: {
+          caminho_arquivo: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          documento_anterior_id: string | null
+          documento_raiz_id: string | null
+          documento_template_id: string | null
+          gerado_em: string | null
+          gerado_por_id: string | null
+          id: string
+          observacao: string | null
+          pj_pessoa_id: string | null
+          snapshot_dados: Json | null
+          snapshot_flags: Json | null
+          snapshot_validado_em: string | null
+          snapshot_versoes_blocos: Json | null
+          status: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          caminho_arquivo?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          documento_anterior_id?: string | null
+          documento_raiz_id?: string | null
+          documento_template_id?: string | null
+          gerado_em?: string | null
+          gerado_por_id?: string | null
+          id?: string
+          observacao?: string | null
+          pj_pessoa_id?: string | null
+          snapshot_dados?: Json | null
+          snapshot_flags?: Json | null
+          snapshot_validado_em?: string | null
+          snapshot_versoes_blocos?: Json | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          caminho_arquivo?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          documento_anterior_id?: string | null
+          documento_raiz_id?: string | null
+          documento_template_id?: string | null
+          gerado_em?: string | null
+          gerado_por_id?: string | null
+          id?: string
+          observacao?: string | null
+          pj_pessoa_id?: string | null
+          snapshot_dados?: Json | null
+          snapshot_flags?: Json | null
+          snapshot_validado_em?: string | null
+          snapshot_versoes_blocos?: Json | null
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_gerado_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_anterior_id_fkey"
+            columns: ["documento_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_raiz_id_fkey"
+            columns: ["documento_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_documento_template_id_fkey"
+            columns: ["documento_template_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_documento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_gerado_por_id_fkey"
+            columns: ["gerado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_gerado_por_id_fkey"
+            columns: ["gerado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_pj_pessoa_id_fkey"
+            columns: ["pj_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_horas_historico: {
+        Row: {
+          alterado_por: string | null
+          documento_id: string
+          horas_antes: number | null
+          horas_depois: number | null
+          id: number
+          registrado_em: string
+        }
+        Insert: {
+          alterado_por?: string | null
+          documento_id: string
+          horas_antes?: number | null
+          horas_depois?: number | null
+          id?: never
+          registrado_em?: string
+        }
+        Update: {
+          alterado_por?: string | null
+          documento_id?: string
+          horas_antes?: number | null
+          horas_depois?: number | null
+          id?: never
+          registrado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_horas_historico_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_notificacao_visto: {
+        Row: {
+          documento_gerado_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          documento_gerado_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          documento_gerado_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_notificacao_visto_documento_gerado_id_fkey"
+            columns: ["documento_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documento_override: {
+        Row: {
+          bloco_alvo_id: string | null
+          bloco_substituto_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_gerado_id: string
+          id: string
+          observacao: string | null
+          ordem: number | null
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_alvo_id?: string | null
+          bloco_substituto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id: string
+          id?: string
+          observacao?: string | null
+          ordem?: number | null
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_alvo_id?: string | null
+          bloco_substituto_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id?: string
+          id?: string
+          observacao?: string | null
+          ordem?: number | null
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_override_bloco_alvo_id_fkey"
+            columns: ["bloco_alvo_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_bloco_substituto_id_fkey"
+            columns: ["bloco_substituto_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_documento_gerado_id_fkey"
+            columns: ["documento_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_override_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documentos_processo: {
+        Row: {
+          canonico_id: string | null
+          categoria: string | null
+          cluster_id: string | null
+          created_at: string
+          estrutura_entrada: string | null
+          estruturado: string | null
+          formato: string | null
+          id: string
+          nome: string
+          origem: string | null
+          tempo_minutos: number | null
+          tipo: string | null
+          updated_at: string
+        }
+        Insert: {
+          canonico_id?: string | null
+          categoria?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          estrutura_entrada?: string | null
+          estruturado?: string | null
+          formato?: string | null
+          id?: string
+          nome: string
+          origem?: string | null
+          tempo_minutos?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canonico_id?: string | null
+          categoria?: string | null
+          cluster_id?: string | null
+          created_at?: string
+          estrutura_entrada?: string | null
+          estruturado?: string | null
+          formato?: string | null
+          id?: string
+          nome?: string
+          origem?: string | null
+          tempo_minutos?: number | null
+          tipo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documentos_processo_canonico_id_fkey"
+            columns: ["canonico_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documentos_processo_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
         ]
@@ -1761,6 +2328,138 @@ export type Database = {
           },
         ]
       }
+      etapa_documentos: {
+        Row: {
+          created_at: string
+          documento_id: string
+          etapa_id: string
+          id: string
+          scenario: string
+          sentido: string
+          volume: number | null
+        }
+        Insert: {
+          created_at?: string
+          documento_id: string
+          etapa_id: string
+          id?: string
+          scenario?: string
+          sentido: string
+          volume?: number | null
+        }
+        Update: {
+          created_at?: string
+          documento_id?: string
+          etapa_id?: string
+          id?: string
+          scenario?: string
+          sentido?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_documentos_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documentos_processo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "etapa_documentos_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+        ]
+      }
+      etapa_responsaveis: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          horas: number | null
+          id: string
+          papel: string
+          responsavel_id: string
+          scenario: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          horas?: number | null
+          id?: string
+          papel: string
+          responsavel_id: string
+          scenario?: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          horas?: number | null
+          id?: string
+          papel?: string
+          responsavel_id?: string
+          scenario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_responsaveis_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+          {
+            foreignKeyName: "etapa_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      etapa_sistemas: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          id: string
+          rateio: number | null
+          scenario: string
+          sistema_id: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          id?: string
+          rateio?: number | null
+          scenario?: string
+          sistema_id: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          id?: string
+          rateio?: number | null
+          scenario?: string
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "etapa_sistemas_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+          {
+            foreignKeyName: "etapa_sistemas_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_profiles: {
         Row: {
           columns: string[]
@@ -1840,6 +2539,219 @@ export type Database = {
             columns: ["ciclo_id"]
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_etapas: {
+        Row: {
+          created_at: string
+          etapa_id: string
+          gargalo_id: string
+          id: string
+          scenario: string
+        }
+        Insert: {
+          created_at?: string
+          etapa_id: string
+          gargalo_id: string
+          id?: string
+          scenario?: string
+        }
+        Update: {
+          created_at?: string
+          etapa_id?: string
+          gargalo_id?: string
+          id?: string
+          scenario?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_etapas_etapa_fk"
+            columns: ["etapa_id", "scenario"]
+            isOneToOne: false
+            referencedRelation: "process_stages"
+            referencedColumns: ["id", "scenario"]
+          },
+          {
+            foreignKeyName: "gargalo_etapas_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_melhorias: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          id: string
+          melhoria_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          id?: string
+          melhoria_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          id?: string
+          melhoria_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_melhorias_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_melhorias_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_processos: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          id: string
+          processo_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          id?: string
+          processo_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          id?: string
+          processo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_processos_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalo_responsaveis: {
+        Row: {
+          created_at: string
+          gargalo_id: string
+          horas: number | null
+          id: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          gargalo_id: string
+          horas?: number | null
+          id?: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          gargalo_id?: string
+          horas?: number | null
+          id?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalo_responsaveis_gargalo_id_fkey"
+            columns: ["gargalo_id"]
+            isOneToOne: false
+            referencedRelation: "gargalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalo_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gargalos: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          custo_externo_unico: number | null
+          descricao: string | null
+          horas_gastas: number | null
+          horas_implementacao: number | null
+          id: string
+          melhoria_id: string | null
+          nome: string
+          origem: string | null
+          taxa_captura_apos_melhoria: number | null
+          taxa_ocorrencia: number | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_externo_unico?: number | null
+          descricao?: string | null
+          horas_gastas?: number | null
+          horas_implementacao?: number | null
+          id?: string
+          melhoria_id?: string | null
+          nome: string
+          origem?: string | null
+          taxa_captura_apos_melhoria?: number | null
+          taxa_ocorrencia?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_externo_unico?: number | null
+          descricao?: string | null
+          horas_gastas?: number | null
+          horas_implementacao?: number | null
+          id?: string
+          melhoria_id?: string | null
+          nome?: string
+          origem?: string | null
+          taxa_captura_apos_melhoria?: number | null
+          taxa_ocorrencia?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gargalos_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gargalos_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
             referencedColumns: ["id"]
           },
         ]
@@ -2156,6 +3068,7 @@ export type Database = {
       job_roles: {
         Row: {
           category: string | null
+          cluster_id: string | null
           created_at: string | null
           hourly_rate: number
           id: string
@@ -2163,9 +3076,11 @@ export type Database = {
           level: string
           monthly_salary_ref: number | null
           name: string
+          type: string | null
         }
         Insert: {
           category?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           hourly_rate: number
           id?: string
@@ -2173,9 +3088,11 @@ export type Database = {
           level: string
           monthly_salary_ref?: number | null
           name: string
+          type?: string | null
         }
         Update: {
           category?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           hourly_rate?: number
           id?: string
@@ -2183,8 +3100,17 @@ export type Database = {
           level?: string
           monthly_salary_ref?: number | null
           name?: string
+          type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "job_roles_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       kpis_meta: {
         Row: {
@@ -2234,9 +3160,9 @@ export type Database = {
         Row: {
           area_documento: number
           area_explorada: number | null
-          area_real: number
+          area_real: number | null
           area_unidade: string
-          bem_id: string
+          bem_id: string | null
           cartorio_id: string
           confrontacoes_texto: string | null
           created_at: string
@@ -2247,23 +3173,30 @@ export type Database = {
           georref_prejudica_transferencia: boolean | null
           georreferenciado: string | null
           id: string
+          imposto_anual_exercicio: number | null
           livro: string | null
           matricula_anterior_id: string | null
           matricula_anterior_texto: string | null
           municipio_imovel: string
           numero: string
           origem_descricao: string | null
+          tipo_bem: string | null
           tipo_exploracao_posse: string | null
           uf_imovel: string
           updated_at: string
           updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number | null
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number | null
         }
         Insert: {
           area_documento: number
           area_explorada?: number | null
-          area_real: number
+          area_real?: number | null
           area_unidade: string
-          bem_id: string
+          bem_id?: string | null
           cartorio_id: string
           confrontacoes_texto?: string | null
           created_at?: string
@@ -2274,23 +3207,30 @@ export type Database = {
           georref_prejudica_transferencia?: boolean | null
           georreferenciado?: string | null
           id?: string
+          imposto_anual_exercicio?: number | null
           livro?: string | null
           matricula_anterior_id?: string | null
           matricula_anterior_texto?: string | null
           municipio_imovel: string
           numero: string
           origem_descricao?: string | null
+          tipo_bem?: string | null
           tipo_exploracao_posse?: string | null
           uf_imovel: string
           updated_at?: string
           updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil?: number | null
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado?: number | null
         }
         Update: {
           area_documento?: number
           area_explorada?: number | null
-          area_real?: number
+          area_real?: number | null
           area_unidade?: string
-          bem_id?: string
+          bem_id?: string | null
           cartorio_id?: string
           confrontacoes_texto?: string | null
           created_at?: string
@@ -2301,16 +3241,23 @@ export type Database = {
           georref_prejudica_transferencia?: boolean | null
           georreferenciado?: string | null
           id?: string
+          imposto_anual_exercicio?: number | null
           livro?: string | null
           matricula_anterior_id?: string | null
           matricula_anterior_texto?: string | null
           municipio_imovel?: string
           numero?: string
           origem_descricao?: string | null
+          tipo_bem?: string | null
           tipo_exploracao_posse?: string | null
           uf_imovel?: string
           updated_at?: string
           updated_by?: string | null
+          vlr_benfeitorias?: number | null
+          vlr_contabil?: number | null
+          vlr_contabil_ajustado?: number | null
+          vlr_imposto_anual?: number | null
+          vlr_mercado?: number | null
         }
         Relationships: [
           {
@@ -2360,6 +3307,155 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_acoes_td: {
+        Row: {
+          acao_td: string
+          created_at: string
+          id: string
+          melhoria_id: string
+          ordem: number | null
+        }
+        Insert: {
+          acao_td: string
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          ordem?: number | null
+        }
+        Update: {
+          acao_td?: string
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          ordem?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_acoes_td_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_processos: {
+        Row: {
+          created_at: string
+          id: string
+          melhoria_id: string
+          processo_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          processo_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          processo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_processos_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_processos_processo_id_fkey"
+            columns: ["processo_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_responsaveis: {
+        Row: {
+          created_at: string
+          horas: number | null
+          id: string
+          melhoria_id: string
+          papel: string
+          responsavel_id: string
+        }
+        Insert: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          melhoria_id: string
+          papel?: string
+          responsavel_id: string
+        }
+        Update: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          melhoria_id?: string
+          papel?: string
+          responsavel_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_responsaveis_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhoria_sistemas: {
+        Row: {
+          created_at: string
+          id: string
+          melhoria_id: string
+          rateio: number | null
+          sistema_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          melhoria_id: string
+          rateio?: number | null
+          sistema_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          melhoria_id?: string
+          rateio?: number | null
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhoria_sistemas_melhoria_id_fkey"
+            columns: ["melhoria_id"]
+            isOneToOne: false
+            referencedRelation: "process_improvements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhoria_sistemas_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
             referencedColumns: ["id"]
           },
         ]
@@ -3157,10 +4253,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string
-          excluido: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento: string | null
           nr_per: string
           nr_proc_ret: string | null
           porcentagem_psa: number | null
@@ -3176,10 +4270,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada: string
-          excluido?: string | null
           exercicio: number
           id_contribuinte: string
-          nr_cancelamento?: string | null
           nr_per: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -3195,10 +4287,8 @@ export type Database = {
           criado_em?: string | null
           criado_por?: string | null
           dt_solicitada?: string
-          excluido?: string | null
           exercicio?: number
           id_contribuinte?: string
-          nr_cancelamento?: string | null
           nr_per?: string
           nr_proc_ret?: string | null
           porcentagem_psa?: number | null
@@ -3308,6 +4398,10 @@ export type Database = {
           data_constituicao: string | null
           data_nascimento: string | null
           denominacao: string
+          documento_identidade_numero: string | null
+          documento_identidade_orgao: string | null
+          documento_identidade_tipo: string | null
+          documento_identidade_uf: string | null
           endereco_bairro: string | null
           endereco_cep: string | null
           endereco_complemento: string | null
@@ -3317,18 +4411,22 @@ export type Database = {
           endereco_uf: string | null
           estado_civil: string | null
           filiacao_mae: string | null
+          filiacao_mae_pessoa_id: string | null
           filiacao_pai: string | null
+          filiacao_pai_pessoa_id: string | null
+          genero: string | null
           id: string
+          is_fundador: boolean
           junta_comercial_uf: string | null
           nacionalidade: string | null
+          naturalidade_municipio: string | null
+          naturalidade_uf: string | null
           nire: string | null
           objeto_social: string | null
           profissao: string | null
           regime_bens: string | null
-          rg_numero: string | null
-          rg_orgao_emissor: string | null
-          rg_uf: string | null
           status_constituicao: string | null
+          tipo_empresa: string | null
           tipo_pessoa: string
           updated_at: string
           updated_by: string | null
@@ -3343,6 +4441,10 @@ export type Database = {
           data_constituicao?: string | null
           data_nascimento?: string | null
           denominacao: string
+          documento_identidade_numero?: string | null
+          documento_identidade_orgao?: string | null
+          documento_identidade_tipo?: string | null
+          documento_identidade_uf?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_complemento?: string | null
@@ -3352,18 +4454,22 @@ export type Database = {
           endereco_uf?: string | null
           estado_civil?: string | null
           filiacao_mae?: string | null
+          filiacao_mae_pessoa_id?: string | null
           filiacao_pai?: string | null
+          filiacao_pai_pessoa_id?: string | null
+          genero?: string | null
           id?: string
+          is_fundador?: boolean
           junta_comercial_uf?: string | null
           nacionalidade?: string | null
+          naturalidade_municipio?: string | null
+          naturalidade_uf?: string | null
           nire?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
-          rg_numero?: string | null
-          rg_orgao_emissor?: string | null
-          rg_uf?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa: string
           updated_at?: string
           updated_by?: string | null
@@ -3378,6 +4484,10 @@ export type Database = {
           data_constituicao?: string | null
           data_nascimento?: string | null
           denominacao?: string
+          documento_identidade_numero?: string | null
+          documento_identidade_orgao?: string | null
+          documento_identidade_tipo?: string | null
+          documento_identidade_uf?: string | null
           endereco_bairro?: string | null
           endereco_cep?: string | null
           endereco_complemento?: string | null
@@ -3387,18 +4497,22 @@ export type Database = {
           endereco_uf?: string | null
           estado_civil?: string | null
           filiacao_mae?: string | null
+          filiacao_mae_pessoa_id?: string | null
           filiacao_pai?: string | null
+          filiacao_pai_pessoa_id?: string | null
+          genero?: string | null
           id?: string
+          is_fundador?: boolean
           junta_comercial_uf?: string | null
           nacionalidade?: string | null
+          naturalidade_municipio?: string | null
+          naturalidade_uf?: string | null
           nire?: string | null
           objeto_social?: string | null
           profissao?: string | null
           regime_bens?: string | null
-          rg_numero?: string | null
-          rg_orgao_emissor?: string | null
-          rg_uf?: string | null
           status_constituicao?: string | null
+          tipo_empresa?: string | null
           tipo_pessoa?: string
           updated_at?: string
           updated_by?: string | null
@@ -3437,6 +4551,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_mae_pessoa_id_fkey"
+            columns: ["filiacao_mae_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pessoa_filiacao_pai_pessoa_id_fkey"
+            columns: ["filiacao_pai_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
           {
@@ -3685,6 +4813,7 @@ export type Database = {
           baseline_time_hours: number | null
           baseline_volume: number | null
           build_vs_buy_savings: number | null
+          cluster_id: string | null
           cost_saved_monthly: number | null
           cost_saved_percent: number | null
           created_at: string | null
@@ -3701,6 +4830,8 @@ export type Database = {
           improved_time_hours: number | null
           improved_volume: number | null
           improvement_description: string | null
+          improvement_status: string | null
+          one_time_external_cost: number | null
           other_savings_monthly: number | null
           process_id: string
           project_id: string | null
@@ -3711,6 +4842,7 @@ export type Database = {
           system_savings_monthly: number | null
           time_saved_hours: number | null
           time_saved_percent: number | null
+          training_hours: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3719,6 +4851,7 @@ export type Database = {
           baseline_time_hours?: number | null
           baseline_volume?: number | null
           build_vs_buy_savings?: number | null
+          cluster_id?: string | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
@@ -3735,6 +4868,8 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          improvement_status?: string | null
+          one_time_external_cost?: number | null
           other_savings_monthly?: number | null
           process_id: string
           project_id?: string | null
@@ -3745,6 +4880,7 @@ export type Database = {
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
+          training_hours?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3753,6 +4889,7 @@ export type Database = {
           baseline_time_hours?: number | null
           baseline_volume?: number | null
           build_vs_buy_savings?: number | null
+          cluster_id?: string | null
           cost_saved_monthly?: number | null
           cost_saved_percent?: number | null
           created_at?: string | null
@@ -3769,6 +4906,8 @@ export type Database = {
           improved_time_hours?: number | null
           improved_volume?: number | null
           improvement_description?: string | null
+          improvement_status?: string | null
+          one_time_external_cost?: number | null
           other_savings_monthly?: number | null
           process_id?: string
           project_id?: string | null
@@ -3779,9 +4918,17 @@ export type Database = {
           system_savings_monthly?: number | null
           time_saved_hours?: number | null
           time_saved_percent?: number | null
+          training_hours?: number | null
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "process_improvements_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "process_improvements_evaluated_by_fkey"
             columns: ["evaluated_by"]
@@ -3821,66 +4968,90 @@ export type Database = {
       }
       process_scenarios: {
         Row: {
+          annual_cost: number | null
+          annual_hours: number | null
+          annual_savings: number | null
           computed_metrics: Json | null
           created_at: string
           created_by: string
           description: string | null
+          hours_freed: number | null
           id: string
           improvement_id: string | null
+          investment: number | null
           is_locked: boolean
           locked_fields: string[]
           name: string
           notes: string | null
           parameters: Json
           parent_scenario_id: string | null
+          payback_months: number | null
           process_id: string
           project_id: string | null
+          roi_percent: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type: Database["public"]["Enums"]["scenario_type"]
+          snapshot_at: string | null
           status: Database["public"]["Enums"]["scenario_status"]
           unit_basis: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at: string
           varied_field: string
         }
         Insert: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
           computed_metrics?: Json | null
           created_at?: string
           created_by: string
           description?: string | null
+          hours_freed?: number | null
           id?: string
           improvement_id?: string | null
+          investment?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name: string
           notes?: string | null
           parameters: Json
           parent_scenario_id?: string | null
+          payback_months?: number | null
           process_id: string
           project_id?: string | null
+          roi_percent?: number | null
           scenario_kind: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          snapshot_at?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
           varied_field: string
         }
         Update: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
           computed_metrics?: Json | null
           created_at?: string
           created_by?: string
           description?: string | null
+          hours_freed?: number | null
           id?: string
           improvement_id?: string | null
+          investment?: number | null
           is_locked?: boolean
           locked_fields?: string[]
           name?: string
           notes?: string | null
           parameters?: Json
           parent_scenario_id?: string | null
+          payback_months?: number | null
           process_id?: string
           project_id?: string | null
+          roi_percent?: number | null
           scenario_kind?: Database["public"]["Enums"]["scenario_kind"]
           scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          snapshot_at?: string | null
           status?: Database["public"]["Enums"]["scenario_status"]
           unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
           updated_at?: string
@@ -3936,61 +5107,88 @@ export type Database = {
           automation_level: string | null
           created_at: string | null
           description: string | null
+          error_cost: number | null
+          error_rate: number | null
+          error_volume: number | null
+          execution: string | null
           frequency: string | null
           id: string
           inputs: Json | null
           job_role_id: string | null
+          lead_time_days: number | null
           name: string
           outputs: Json | null
           process_id: string | null
           related_projects: string[] | null
           responsible: string | null
+          rework_rate: number | null
+          scenario: string
+          stage_as_is_id: string | null
           stage_order: number
           systems: Json | null
           time_current: string | null
           time_target: string | null
           updated_at: string | null
           volume: string | null
+          volume_per_process: number | null
         }
         Insert: {
           automation_level?: string | null
           created_at?: string | null
           description?: string | null
+          error_cost?: number | null
+          error_rate?: number | null
+          error_volume?: number | null
+          execution?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
+          lead_time_days?: number | null
           name: string
           outputs?: Json | null
           process_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
+          rework_rate?: number | null
+          scenario?: string
+          stage_as_is_id?: string | null
           stage_order: number
           systems?: Json | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
+          volume_per_process?: number | null
         }
         Update: {
           automation_level?: string | null
           created_at?: string | null
           description?: string | null
+          error_cost?: number | null
+          error_rate?: number | null
+          error_volume?: number | null
+          execution?: string | null
           frequency?: string | null
           id?: string
           inputs?: Json | null
           job_role_id?: string | null
+          lead_time_days?: number | null
           name?: string
           outputs?: Json | null
           process_id?: string | null
           related_projects?: string[] | null
           responsible?: string | null
+          rework_rate?: number | null
+          scenario?: string
+          stage_as_is_id?: string | null
           stage_order?: number
           systems?: Json | null
           time_current?: string | null
           time_target?: string | null
           updated_at?: string | null
           volume?: string | null
+          volume_per_process?: number | null
         }
         Relationships: [
           {
@@ -4014,15 +5212,18 @@ export type Database = {
           area: string | null
           automation_potential: number | null
           client_id: string | null
+          cluster_id: string | null
           code: string | null
           complexity_level: string | null
           cost_monthly: number | null
           created_at: string
           created_by: string | null
+          deliverable: string | null
           description: string | null
           document_path: string | null
           equipe_id: string | null
           evaluation_period_days: number | null
+          evaluation_status: string | null
           financial_impact: string | null
           formatted_content: string | null
           frequency: string | null
@@ -4032,7 +5233,9 @@ export type Database = {
           last_improvement_date: string | null
           last_roi_percentage: number | null
           last_time_saved_hours: number | null
+          mapped_at: string | null
           name: string
+          order_index: number | null
           people_involved: number | null
           priority: string | null
           project_id: string | null
@@ -4044,6 +5247,7 @@ export type Database = {
           stage: string
           time_spent_frequency: string | null
           time_spent_hours: number | null
+          training_hours: number | null
           updated_at: string
           volume_executions: number | null
           volume_month: number | null
@@ -4052,15 +5256,18 @@ export type Database = {
           area?: string | null
           automation_potential?: number | null
           client_id?: string | null
+          cluster_id?: string | null
           code?: string | null
           complexity_level?: string | null
           cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
+          deliverable?: string | null
           description?: string | null
           document_path?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
+          evaluation_status?: string | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
@@ -4070,7 +5277,9 @@ export type Database = {
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
+          mapped_at?: string | null
           name: string
+          order_index?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
@@ -4082,6 +5291,7 @@ export type Database = {
           stage?: string
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
+          training_hours?: number | null
           updated_at?: string
           volume_executions?: number | null
           volume_month?: number | null
@@ -4090,15 +5300,18 @@ export type Database = {
           area?: string | null
           automation_potential?: number | null
           client_id?: string | null
+          cluster_id?: string | null
           code?: string | null
           complexity_level?: string | null
           cost_monthly?: number | null
           created_at?: string
           created_by?: string | null
+          deliverable?: string | null
           description?: string | null
           document_path?: string | null
           equipe_id?: string | null
           evaluation_period_days?: number | null
+          evaluation_status?: string | null
           financial_impact?: string | null
           formatted_content?: string | null
           frequency?: string | null
@@ -4108,7 +5321,9 @@ export type Database = {
           last_improvement_date?: string | null
           last_roi_percentage?: number | null
           last_time_saved_hours?: number | null
+          mapped_at?: string | null
           name?: string
+          order_index?: number | null
           people_involved?: number | null
           priority?: string | null
           project_id?: string | null
@@ -4120,6 +5335,7 @@ export type Database = {
           stage?: string
           time_spent_frequency?: string | null
           time_spent_hours?: number | null
+          training_hours?: number | null
           updated_at?: string
           volume_executions?: number | null
           volume_month?: number | null
@@ -4130,6 +5346,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "processes_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
           {
@@ -4415,6 +5638,7 @@ export type Database = {
           area: string | null
           client_id: string | null
           client_name: string | null
+          cluster_id: string | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -4428,6 +5652,7 @@ export type Database = {
           name: string
           product_service: string | null
           project_front: string | null
+          projects_per_year: number | null
           start_date: string | null
           status: string | null
           updated_at: string | null
@@ -4436,6 +5661,7 @@ export type Database = {
           area?: string | null
           client_id?: string | null
           client_name?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -4449,6 +5675,7 @@ export type Database = {
           name: string
           product_service?: string | null
           project_front?: string | null
+          projects_per_year?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -4457,6 +5684,7 @@ export type Database = {
           area?: string | null
           client_id?: string | null
           client_name?: string | null
+          cluster_id?: string | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -4470,6 +5698,7 @@ export type Database = {
           name?: string
           product_service?: string | null
           project_front?: string | null
+          projects_per_year?: number | null
           start_date?: string | null
           status?: string | null
           updated_at?: string | null
@@ -4480,6 +5709,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
           },
           {
@@ -4506,6 +5742,226 @@ export type Database = {
           {
             foreignKeyName: "projects_leader_id_fkey"
             columns: ["leader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_flag_valor: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          flag_id: string
+          id: string
+          pj_pessoa_id: string | null
+          setado_por_id: string | null
+          updated_at: string
+          updated_by: string | null
+          valor: boolean
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          flag_id: string
+          id?: string
+          pj_pessoa_id?: string | null
+          setado_por_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor: boolean
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          flag_id?: string
+          id?: string
+          pj_pessoa_id?: string | null
+          setado_por_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valor?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_flag_valor_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_flag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_pj_pessoa_id_fkey"
+            columns: ["pj_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
+            columns: ["setado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
+            columns: ["setado_por_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_justificativas: {
+        Row: {
+          created_at: string
+          id: string
+          justificativa: string
+          ordem: number | null
+          projeto_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          justificativa: string
+          ordem?: number | null
+          projeto_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          justificativa?: string
+          ordem?: number | null
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_justificativas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quadro_societario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          empresa_pessoa_id: string
+          id: string
+          percentual: number | null
+          quotas: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quadro_societario_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_updated_by_fkey"
+            columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
@@ -4800,6 +6256,149 @@ export type Database = {
           sigla?: string
         }
         Relationships: []
+      }
+      sistema_clusters: {
+        Row: {
+          cluster_id: string
+          created_at: string
+          id: string
+          rateio: number | null
+          sistema_id: string
+        }
+        Insert: {
+          cluster_id: string
+          created_at?: string
+          id?: string
+          rateio?: number | null
+          sistema_id: string
+        }
+        Update: {
+          cluster_id?: string
+          created_at?: string
+          id?: string
+          rateio?: number | null
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistema_clusters_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sistema_clusters_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sistema_responsaveis: {
+        Row: {
+          created_at: string
+          horas: number | null
+          id: string
+          responsavel_id: string
+          sistema_id: string
+        }
+        Insert: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          responsavel_id: string
+          sistema_id: string
+        }
+        Update: {
+          created_at?: string
+          horas?: number | null
+          id?: string
+          responsavel_id?: string
+          sistema_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistema_responsaveis_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "job_roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sistema_responsaveis_sistema_id_fkey"
+            columns: ["sistema_id"]
+            isOneToOne: false
+            referencedRelation: "sistemas_processo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sistemas_processo: {
+        Row: {
+          cluster_id: string | null
+          created_at: string
+          custo_licenca_mensal: number | null
+          custo_por_operacao: number | null
+          custo_setup: number | null
+          custo_variavel_por_uso: number | null
+          descricao: string | null
+          id: string
+          nome: string
+          obs_custo_por_operacao: string | null
+          obs_licenca: string | null
+          obs_variavel: string | null
+          origem: string | null
+          tipo: string | null
+          tipo_custo: string | null
+          updated_at: string
+        }
+        Insert: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_licenca_mensal?: number | null
+          custo_por_operacao?: number | null
+          custo_setup?: number | null
+          custo_variavel_por_uso?: number | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          obs_custo_por_operacao?: string | null
+          obs_licenca?: string | null
+          obs_variavel?: string | null
+          origem?: string | null
+          tipo?: string | null
+          tipo_custo?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cluster_id?: string | null
+          created_at?: string
+          custo_licenca_mensal?: number | null
+          custo_por_operacao?: number | null
+          custo_setup?: number | null
+          custo_variavel_por_uso?: number | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          obs_custo_por_operacao?: string | null
+          obs_licenca?: string | null
+          obs_variavel?: string | null
+          origem?: string | null
+          tipo?: string | null
+          tipo_custo?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sistemas_processo_cluster_id_fk"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sprint_backlog_items: {
         Row: {
@@ -5402,39 +7001,52 @@ export type Database = {
       }
       titularidade: {
         Row: {
+          bem_id: string | null
           created_at: string
           created_by: string | null
-          fracao: number
+          fracao: number | null
           id: string
-          matricula_id: string
+          integralizador: boolean
+          matricula_id: string | null
           tipo: string
           titular_pessoa_id: string
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          bem_id?: string | null
           created_at?: string
           created_by?: string | null
-          fracao: number
+          fracao?: number | null
           id?: string
-          matricula_id: string
+          integralizador?: boolean
+          matricula_id?: string | null
           tipo: string
           titular_pessoa_id: string
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          bem_id?: string | null
           created_at?: string
           created_by?: string | null
-          fracao?: number
+          fracao?: number | null
           id?: string
-          matricula_id?: string
+          integralizador?: boolean
+          matricula_id?: string | null
           tipo?: string
           titular_pessoa_id?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "titularidade_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "titularidade_created_by_fkey"
             columns: ["created_by"]
@@ -5472,6 +7084,515 @@ export type Database = {
           },
           {
             foreignKeyName: "titularidade_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco: {
+        Row: {
+          ancora: string | null
+          ativo: boolean
+          autor_id: string | null
+          bloco_origem_id: string | null
+          categoria: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          escopo_documento_raiz_id: string | null
+          id: string
+          nome: string
+          repete_colecao: string | null
+          tipo: string
+          tipo_derivacao: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ancora?: string | null
+          ativo?: boolean
+          autor_id?: string | null
+          bloco_origem_id?: string | null
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo_documento_raiz_id?: string | null
+          id?: string
+          nome: string
+          repete_colecao?: string | null
+          tipo?: string
+          tipo_derivacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ancora?: string | null
+          ativo?: boolean
+          autor_id?: string | null
+          bloco_origem_id?: string | null
+          categoria?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          escopo_documento_raiz_id?: string | null
+          id?: string
+          nome?: string
+          repete_colecao?: string | null
+          tipo?: string
+          tipo_derivacao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_bloco_origem_id_fkey"
+            columns: ["bloco_origem_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_escopo_documento_raiz_fk"
+            columns: ["escopo_documento_raiz_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco_flag: {
+        Row: {
+          bloco_id: string
+          created_at: string
+          created_by: string | null
+          flag_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_id: string
+          created_at?: string
+          created_by?: string | null
+          flag_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_id?: string
+          created_at?: string
+          created_by?: string | null
+          flag_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_flag_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_flag_id_fkey"
+            columns: ["flag_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_flag"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_bloco_versao: {
+        Row: {
+          atual: boolean
+          autor_id: string | null
+          bloco_id: string
+          caminho_arquivo: string | null
+          changelog: string | null
+          checksum: string | null
+          conteudo: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          numero_versao: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          atual?: boolean
+          autor_id?: string | null
+          bloco_id: string
+          caminho_arquivo?: string | null
+          changelog?: string | null
+          checksum?: string | null
+          conteudo?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_versao: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          atual?: boolean
+          autor_id?: string | null
+          bloco_id?: string
+          caminho_arquivo?: string | null
+          changelog?: string | null
+          checksum?: string | null
+          conteudo?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          numero_versao?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
+            columns: ["autor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_documento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          id: string
+          nome: string
+          tipo: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tipo?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_documento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_documento_bloco: {
+        Row: {
+          bloco_id: string
+          created_at: string
+          created_by: string | null
+          documento_id: string
+          id: string
+          obrigatorio: boolean
+          observacao: string | null
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bloco_id: string
+          created_at?: string
+          created_by?: string | null
+          documento_id: string
+          id?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bloco_id?: string
+          created_at?: string
+          created_by?: string | null
+          documento_id?: string
+          id?: string
+          obrigatorio?: boolean
+          observacao?: string | null
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_documento_bloco_bloco_id_fkey"
+            columns: ["bloco_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_documento"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_documento_bloco_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tmpl_flag: {
+        Row: {
+          ativo: boolean
+          campo: string | null
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          entidade: string | null
+          escopo: string
+          expressao_sql: string | null
+          id: string
+          nome: string
+          tipo: string
+          updated_at: string
+          updated_by: string | null
+          valor: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          campo?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          entidade?: string | null
+          escopo: string
+          expressao_sql?: string | null
+          id?: string
+          nome: string
+          tipo: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          campo?: string | null
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          entidade?: string | null
+          escopo?: string
+          expressao_sql?: string | null
+          id?: string
+          nome?: string
+          tipo?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tmpl_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_flag_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
@@ -5619,10 +7740,8 @@ export type Database = {
           criado_em: string | null
           criado_por: string | null
           dt_solicitada: string | null
-          excluido: string | null
           exercicio: number | null
           id_contribuinte: string | null
-          nr_cancelamento: string | null
           nr_per: string | null
           nr_proc_ret: string | null
           porcentagem_psa: number | null
@@ -5675,6 +7794,83 @@ export type Database = {
       can_view_org_project: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
+      }
+      criar_bem_com_titular: {
+        Args: { bem_data: Json; titular_data: Json }
+        Returns: {
+          ccir_codigo: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          denominacao: string
+          descricao_outros: string | null
+          empresa_destino_pessoa_id: string | null
+          id: string
+          imposto_anual_exercicio: number | null
+          inscricao_municipal: string | null
+          motivo_nao_integralizacao: string | null
+          observacao: string | null
+          participa_estruturacao: boolean
+          referencia_dp: string
+          status_integralizacao: string | null
+          tipo_bem: string
+          updated_at: string
+          updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number | null
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bem"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      criar_matricula_com_titular: {
+        Args: { matricula_data: Json; titular_data: Json }
+        Returns: {
+          area_documento: number
+          area_explorada: number | null
+          area_real: number | null
+          area_unidade: string
+          bem_id: string | null
+          cartorio_id: string
+          confrontacoes_texto: string | null
+          created_at: string
+          created_by: string | null
+          data_matricula: string | null
+          descricao_psa_completa: string | null
+          folha: string | null
+          georref_prejudica_transferencia: boolean | null
+          georreferenciado: string | null
+          id: string
+          imposto_anual_exercicio: number | null
+          livro: string | null
+          matricula_anterior_id: string | null
+          matricula_anterior_texto: string | null
+          municipio_imovel: string
+          numero: string
+          origem_descricao: string | null
+          tipo_bem: string | null
+          tipo_exploracao_posse: string | null
+          uf_imovel: string
+          updated_at: string
+          updated_by: string | null
+          vlr_benfeitorias: number | null
+          vlr_contabil: number | null
+          vlr_contabil_ajustado: number | null
+          vlr_imposto_anual: number | null
+          vlr_mercado: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "matricula"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       get_internal_users: {
         Args: never
@@ -5759,6 +7955,12 @@ export type Database = {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
       }
+      mapa_uuid: { Args: { slug: string }; Returns: string }
+      mark_stuck_procedimentos: {
+        Args: { timeout_minutes?: number }
+        Returns: number
+      }
+      psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }

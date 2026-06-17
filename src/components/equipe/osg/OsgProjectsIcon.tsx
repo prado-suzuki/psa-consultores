@@ -5,6 +5,13 @@ interface OsgProjectsIconProps {
   size?: number;
 }
 
+// Path do novo ícone (viewBox 0 -16 544 544) — usado dentro do selo hexagonal
+const ProjectsGlyph = ({ fill }: { fill: string }) => (
+  <g transform="translate(142, 148) scale(0.42)" fill={fill}>
+    <path d="M146 32h380c9.9 0 18 8.1 18 18v108c0 9.9-8.1 18-18 18H146c-9.9 0-18-8.1-18-18V50c0-9.9 8.1-18 18-18zm14 32v80h352V64H160zM32 256v80h224v-80H32zm96 112v80h224v-80H128zM18 224h252c9.9 0 18 8.1 18 18v94h78c9.9 0 18 8.1 18 18v108c0 9.9-8.1 18-18 18H114c-9.9 0-18-8.1-18-18v-94H18c-9.9 0-18-8.1-18-18V242c0-9.9 8.1-18 18-18z" />
+  </g>
+);
+
 const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size = 64 }) => {
   return (
     <svg
@@ -58,13 +65,8 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
             opacity="0.4"
           />
 
-          {/* Ícone de projetos (sitemap) — CENTRALIZADO NO HEXÁGONO */}
-          <g transform="translate(122, 148) scale(0.42)">
-            <path
-              d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z"
-              fill="#f1f5f9"
-            />
-          </g>
+          {/* Ícone de projetos — CENTRALIZADO NO HEXÁGONO */}
+          <ProjectsGlyph fill="#f1f5f9" />
 
           {/* Brilho no topo do selo */}
           <circle cx="256" cy="40" r="9" fill="#0d9488" opacity="0.12" />
@@ -107,13 +109,8 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
             opacity="0.35"
           />
 
-          {/* Ícone de projetos (sitemap) — CENTRALIZADO NO HEXÁGONO */}
-          <g transform="translate(122, 148) scale(0.42)">
-            <path
-              d="M384 320H256c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32zM192 32c0-17.67-14.33-32-32-32H32C14.33 0 0 14.33 0 32v128c0 17.67 14.33 32 32 32h95.72l73.16 128.04C211.98 300.98 232.4 288 256 288h.28L192 175.51V128h224V64H192V32zM608 0H480c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h128c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32z"
-              fill="#e2e8f0"
-            />
-          </g>
+          {/* Ícone de projetos — CENTRALIZADO NO HEXÁGONO */}
+          <ProjectsGlyph fill="#e2e8f0" />
 
           {/* Brilho no topo do selo */}
           <circle cx="256" cy="40" r="9" fill="#00bfa5" opacity="0.1" />

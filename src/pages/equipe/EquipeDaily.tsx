@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -106,8 +107,8 @@ const EquipeDaily = () => {
   // Filtros para histórico
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
-  const [filterPerson, setFilterPerson] = useState<string>('all');
-  const [filterSprint, setFilterSprint] = useState<string>('all');
+  const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
+  const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
 
   useEffect(() => {
     if (user) {
@@ -188,27 +189,10 @@ const EquipeDaily = () => {
 
   const fetchProjects = async () => {
     try {
-      // Buscar cliente "Transversal" do catálogo (área Digital)
-      const { data: digitalClients } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%transversal%,name.ilike.%digital%');
-
-      const digitalClientIds = digitalClients?.map(c => c.id) || [];
-
-      // Buscar projetos filtrados por área Digital (Transversal ou sem cliente)
-      let query = supabase
+      const { data } = await supabase
         .from('projects')
         .select('id, name')
         .order('name', { ascending: true });
-
-      if (digitalClientIds.length > 0) {
-        query = query.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
-      } else {
-        query = query.is('client_id', null);
-      }
-
-      const { data } = await query;
       setProjects(data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);

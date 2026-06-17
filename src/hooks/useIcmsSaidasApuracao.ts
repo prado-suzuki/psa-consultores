@@ -29,8 +29,8 @@ export interface ApuRecApiRow {
 interface UseIcmsSaidasApuracaoParams {
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 const MATRIZ_SECTIONS: Omit<T01MatrizSection, 'linhas'>[] = [
@@ -186,18 +186,18 @@ export function mapApuRecResponse(rows: ApuRecApiRow[]): T01ApuracaoData {
 export function useIcmsSaidasApuracao({
   enabled,
   contribuinteId,
-  dataInicio,
-  dataFim,
+  start_date,
+  end_date,
 }: UseIcmsSaidasApuracaoParams) {
   const { fetchWithAuth } = useApiAuth();
 
   return useQuery<T01ApuracaoData>({
-    queryKey: ['icms-saidas-t01', contribuinteId, dataInicio, dataFim],
+    queryKey: ['icms-saidas-t01', contribuinteId, start_date, end_date],
     queryFn: async () => {
       const sp = new URLSearchParams();
       sp.set('id_contribuinte', contribuinteId);
-      if (dataInicio) sp.set('data_nota_ini', dataInicio);
-      if (dataFim) sp.set('data_nota_fim', dataFim);
+      if (start_date) sp.set('data_nota_ini', start_date);
+      if (end_date) sp.set('data_nota_fim', end_date);
       sp.set('page', '1');
 
       const url = getApiUrl(`/api/v1/saida_icms/apu_rec?${sp.toString()}`);

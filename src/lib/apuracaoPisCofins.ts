@@ -39,14 +39,18 @@ export const isItemOutrasSaidas = (i: ItemCredito): boolean =>
 
 export const isItemCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
-  return !isNaN(n) && n >= 50 && n <= 66 && i.aliq_pis > 0;
+  if (isNaN(n)) return false;
+  // CST 51 gera crédito mesmo quando vem com alíquota zerada no arquivo
+  if (n === 51) return true;
+  return n >= 50 && n <= 66 && i.aliq_pis > 0;
 };
 
 export const isItemIsencaoCredito = (i: ItemCredito): boolean => {
   const n = parseInt(i.cst_pis, 10);
+  if (isNaN(n)) return false;
   return (
-    (!isNaN(n) && n >= 70 && n <= 98) ||
-    (!isNaN(n) && n >= 50 && n <= 66 && i.aliq_pis === 0)
+    (n >= 70 && n <= 98) ||
+    (n >= 50 && n <= 66 && n !== 51 && i.aliq_pis === 0)
   );
 };
 
@@ -97,10 +101,16 @@ export function calcCreditoPorConta(itens: ItemCredito[]) {
 }
 
 export function calcBaseCredito(itens: ItemCredito[]): BaseCredito {
-  const baseNormal = itens.filter(isItemCredito).reduce((sum, i) => sum + i.vlr_efd, 0);
-  const basePresumido = 0;
+  const elegiveis = itens.filter(isItemCredito);
+  const basePresumido = elegiveis
+    .filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + i.vlr_efd, 0);
+  const baseNormal = elegiveis
+    .filter((i) => !hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + i.vlr_efd, 0);
   return { baseNormal, basePresumido, baseTotal: baseNormal + basePresumido };
 }
+
 
 // ── Seção 3 — Cálculo dos Valores de Crédito ──
 
@@ -161,10 +171,11 @@ export function calcValoresDebito(itens: ItemCredito[]) {
 
 export function calcApuracao(
   baseDebito: { baseNormal: number; baseDiferenciada: number },
-  baseCredito: { baseTotal: number },
   valoresSeparados: {
     pisContribuicaoBrutaAliquotaReduzida: number;
     cofinsContribuicaoBrutaAliquotaReduzida: number;
+    creditoPis: number;
+    creditoCofins: number;
     creditoPisAliquotaReduzida: number;
     creditoCofinsAliquotaReduzida: number;
   },
@@ -175,8 +186,11 @@ export function calcApuracao(
   const cofinsContribuicaoBruta =
     baseDebito.baseNormal * 0.076 + baseDebito.baseDiferenciada * 0.04;
 
-  const pisCreditoMes = baseCredito.baseTotal * 0.0165;
-  const cofinsCreditoMes = baseCredito.baseTotal * 0.076;
+  // Crédito por item, respeitando a alíquota de cada lançamento (normal 1,65%/7,6%
+  // e presumido 1,2375%/5,7%). Antes usava baseTotal × alíquota cheia, o que tributava
+  // a parcela presumida indevidamente a 1,65%/7,6%.
+  const pisCreditoMes = valoresSeparados.creditoPis;
+  const cofinsCreditoMes = valoresSeparados.creditoCofins;
 
   const pisDue = Math.max(0, pisContribuicaoBruta - pisCreditoMes - anterior.pis);
   const cofinsDue = Math.max(0, cofinsContribuicaoBruta - cofinsCreditoMes - anterior.cofins);
@@ -218,10 +232,11 @@ export function calcTodosPeriodos(
     const valoresCredito = calcValoresCredito(itens);
     const resultado = calcApuracao(
       baseDebito,
-      baseCredito,
       {
         pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
         cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPis: valoresCredito.creditoPis,
+        creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
       },
@@ -343,13 +358,16 @@ export function calcBaseCreditoBalancete(
   itens: ItemCredito[],
   periodoFechado: boolean,
 ): BaseCredito {
-  const baseNormal = itens
-    .filter(isItemCredito)
+  const elegiveis = itens.filter(isItemCredito);
+  const basePresumido = elegiveis
+    .filter((i) => hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
     .reduce((sum, i) => sum + valorBaseBalancete(i, periodoFechado), 0);
-
-  const basePresumido = 0;
+  const baseNormal = elegiveis
+    .filter((i) => !hasAliquotaPis(i, ALIQ_PIS_REDUZIDA))
+    .reduce((sum, i) => sum + valorBaseBalancete(i, periodoFechado), 0);
   return { baseNormal, basePresumido, baseTotal: baseNormal + basePresumido };
 }
+
 
 export function calcValoresCreditoBalancete(
   itens: ItemCredito[],
@@ -401,10 +419,11 @@ export function calcTodosPeriodosBalancete(
     const valoresCredito = calcValoresCreditoBalancete(itens, periodoFechado);
     const resultado = calcApuracao(
       baseDebito,
-      baseCredito,
       {
         pisContribuicaoBrutaAliquotaReduzida: valoresDebito.pisContribuicaoBrutaAliquotaReduzida,
         cofinsContribuicaoBrutaAliquotaReduzida: valoresDebito.cofinsContribuicaoBrutaAliquotaReduzida,
+        creditoPis: valoresCredito.creditoPis,
+        creditoCofins: valoresCredito.creditoCofins,
         creditoPisAliquotaReduzida: valoresCredito.creditoPisAliquotaReduzida,
         creditoCofinsAliquotaReduzida: valoresCredito.creditoCofinsAliquotaReduzida,
       },

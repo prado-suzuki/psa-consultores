@@ -4,8 +4,8 @@ export const SPED_TOOLTIPS = {
   cliente: "Cliente cuja base SPED será revisada. Obrigatório.",
   contribuinte:
     "CNPJ/contribuinte específico do cliente. Quando há apenas um, é selecionado automaticamente. Obrigatório.",
-  dataInicio: "Data inicial do período da escrituração a ser consultada. Obrigatório.",
-  dataFim: "Data final do período da escrituração a ser consultada. Obrigatório.",
+  start_date: "Data inicial do período da escrituração a ser consultada. Obrigatório.",
+  end_date: "Data final do período da escrituração a ser consultada. Obrigatório.",
   // Filtros opcionais
   ncm: "Filtra os itens da tabela cruzando a informação com o NCM vinculado ao produto no Registro 0200 do SPED.",
   buscar: "Busca textual livre por descrição do item, chave do documento ou NCM.",

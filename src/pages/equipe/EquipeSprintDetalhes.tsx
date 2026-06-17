@@ -223,10 +223,43 @@ export default function EquipeSprintDetalhes() {
       }
       setSprint(sprintData);
 
-      const { data: profilesData } = await supabase
-        .from("profiles_safe")
-        .select("id, first_name, last_name");
-      setProfiles(profilesData || []);
+      // Apenas membros e gestores (líderes) das equipes do cluster "Digital" (PSA Digital)
+      const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
+      const { data: digitalAreas } = await supabase
+        .from('estrutura_areas')
+        .select('id')
+        .eq('cluster_id', DIGITAL_CLUSTER_ID);
+      const areaIds = (digitalAreas || []).map((a: any) => a.id);
+      let digitalUserIds: string[] = [];
+      if (areaIds.length > 0) {
+        const { data: digitalEquipes } = await supabase
+          .from('estrutura_equipes')
+          .select('id, gestor_id')
+          .in('area_id', areaIds);
+        const equipeIds = (digitalEquipes || []).map((e: any) => e.id);
+        const gestorIds = (digitalEquipes || []).map((e: any) => e.gestor_id).filter(Boolean);
+        const { data: digitalMembros } = equipeIds.length > 0
+          ? await supabase
+              .from('estrutura_equipe_membros')
+              .select('user_id')
+              .in('equipe_id', equipeIds)
+          : { data: [] as any[] };
+        digitalUserIds = Array.from(
+          new Set([
+            ...gestorIds,
+            ...((digitalMembros || []).map((m: any) => m.user_id).filter(Boolean)),
+          ])
+        );
+      }
+      if (digitalUserIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles_safe")
+          .select("id, first_name, last_name")
+          .in('id', digitalUserIds);
+        setProfiles(profilesData || []);
+      } else {
+        setProfiles([]);
+      }
 
       const { data: deliverablesData } = await supabase
         .from("sprint_deliverables")

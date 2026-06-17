@@ -12,8 +12,8 @@ import { renderColumnLabel } from './renderColumnLabel';
 interface T02CfopTabProps {
   enabled: boolean;
   contribuinteId: string;
-  dataInicio: string;
-  dataFim: string;
+  start_date: string;
+  end_date: string;
 }
 
 interface ResumoCfopApiRow {
@@ -64,16 +64,16 @@ interface ResumoCfopData {
   c190: ResumoCfopLinha[];
 }
 
-export const T02CfopTab = ({ enabled, contribuinteId, dataInicio, dataFim }: T02CfopTabProps) => {
+export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T02CfopTabProps) => {
   const { fetchWithAuth } = useApiAuth();
 
   const { data, isLoading, error } = useQuery<ResumoCfopData>({
-    queryKey: ['icms-saidas-t02', contribuinteId, dataInicio, dataFim],
+    queryKey: ['icms-saidas-t02', contribuinteId, start_date, end_date],
     queryFn: async () => {
       const sp = new URLSearchParams();
       sp.set('id_contribuinte', contribuinteId);
-      if (dataInicio) sp.set('data_nota_ini', dataInicio);
-      if (dataFim) sp.set('data_nota_fim', dataFim);
+      if (start_date) sp.set('data_nota_ini', start_date);
+      if (end_date) sp.set('data_nota_fim', end_date);
 
       const url = getApiUrl(`/api/v1/saida_icms/resumo_cfop?${sp.toString()}`);
       const response = await fetchWithAuth(url);

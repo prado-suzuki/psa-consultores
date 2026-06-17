@@ -2,6 +2,9 @@ import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePersistedState } from '@/hooks/usePersistedState';
+import { useClusters } from '@/hooks/useClusters';
+import { matchCluster, SEM_CLUSTER } from '@/lib/clusterFilter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -70,6 +73,7 @@ interface Process {
   volume_month: number | null;
   financial_impact: string | null;
   client_id: string | null;
+  cluster_id?: string | null;
   created_at: string;
   formatted_content?: string | null;
   document_path?: string | null;
@@ -165,9 +169,12 @@ const EquipeProcessos = () => {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [areaFilter, setAreaFilter] = useState<string>('all');
-  const [stageFilter, setStageFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = usePersistedState<string>('rotina.processos.busca', '');
+  const [areaFilter, setAreaFilter] = usePersistedState<string>('rotina.processos.area', 'all');
+  const [stageFilter, setStageFilter] = usePersistedState<string>('rotina.processos.stage', 'all');
+  // Chave compartilhada: o cluster selecionado é o mesmo entre Projetos e Processos.
+  const [clusterFilter, setClusterFilter] = usePersistedState<string>('rotina.cluster', '');
+  const { data: clusters = [] } = useClusters();
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
   const [processStages, setProcessStages] = useState<ProcessStage[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
@@ -294,7 +301,7 @@ const EquipeProcessos = () => {
           area: area,
           stage: validStages.includes(mappedStage) ? mappedStage : 'discovery',
           priority: row.priority || row.Prioridade || row.prioridade || 'medium',
-          frequency: row.frequency || row.Frequencia || row.frequencia || row.Frequência || null,
+          frequency: row.frequency || row.Frequencia || row.frequency || row.Frequência || null,
           volume_month: row.volume_month ? parseInt(row.volume_month) : (row.Volume ? parseInt(row.Volume) : null),
           financial_impact: row.financial_impact || row.Impacto || row.impacto || null,
           created_by: user?.id
@@ -716,7 +723,7 @@ const EquipeProcessos = () => {
     const clientName = process.catalog_client?.name || process.area;
     const matchesArea = areaFilter === 'all' || clientName === areaFilter;
     const matchesStage = stageFilter === 'all' || process.stage === stageFilter;
-    return matchesSearch && matchesArea && matchesStage;
+    return matchesSearch && matchesArea && matchesStage && matchCluster(clusterFilter, process.cluster_id);
   });
 
   const getStageInfo = (stage: string) => {
@@ -789,7 +796,7 @@ const EquipeProcessos = () => {
 
   const getSystemName = (system: SystemItem) => system.nome || system.name || '';
   const getSystemFunction = (system: SystemItem) => system.uso || system.function || '';
-  const getSystemFrequency = (system: SystemItem) => system.frequencia || system.frequency || '';
+  const getSystemFrequency = (system: SystemItem) => system.frequency || system.frequency || '';
   const getSystemBottleneck = (system: SystemItem) => system.gargalo || system.bottleneck || '';
 
   return (
@@ -912,6 +919,19 @@ const EquipeProcessos = () => {
             className="pl-10"
           />
         </div>
+        <Select value={clusterFilter === '' ? '__todos__' : clusterFilter} onValueChange={(v) => setClusterFilter(v === '__todos__' ? '' : v)}>
+          <SelectTrigger className="w-[180px]">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue placeholder="Cluster" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__todos__">Todos os clusters</SelectItem>
+            <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+            {clusters.filter(c => c.ativo).map(c => (
+              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Select value={areaFilter} onValueChange={setAreaFilter}>
           <SelectTrigger className="w-[180px]">
             <Filter className="h-4 w-4 mr-2" />
@@ -1290,11 +1310,12 @@ const EquipeProcessos = () => {
                     <FileText className="h-4 w-4 mr-2" />
                    Ver SOP
                   </Button>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={() => setIsAddingStage(true)}
-                    disabled={isAddingStage}
+                    disabled={isAddingStage || !selectedProcess?.cluster_id}
+                    title={!selectedProcess?.cluster_id ? 'Vincule o processo a um projeto com cluster antes de adicionar etapas' : undefined}
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Nova Etapa
@@ -1322,6 +1343,11 @@ const EquipeProcessos = () => {
                   <div className="text-center py-8 text-muted-foreground">Carregando etapas...</div>
                 ) : (
                   <div className="space-y-4">
+                    {!selectedProcess?.cluster_id && (
+                      <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+                        ⚠ Este processo não tem cluster (não está sob um projeto com cluster). Vincule-o a um projeto com cluster para poder adicionar etapas e para que apareça no MAPA.
+                      </div>
+                    )}
                     {/* New Stage Form */}
                     {isAddingStage && (
                       <NewStageForm

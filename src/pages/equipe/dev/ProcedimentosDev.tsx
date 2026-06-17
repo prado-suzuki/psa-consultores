@@ -24,7 +24,7 @@ const ProcedimentosDev = () => {
 
   const [search, setSearch] = useState('');
   const [processo, setProcesso] = useState<string>('');
-  const [complexidade, setComplexidade] = useState<string>('');
+  const [complexity_level, setComplexidade] = useState<string>('');
   const [statusPub, setStatusPub] = useState<string>('');
   const [addOpen, setAddOpen] = useState(false);
   const [reviewProc, setReviewProc] = useState<Procedimento | null>(null);
@@ -32,15 +32,11 @@ const ProcedimentosDev = () => {
   const filters = useMemo(() => ({
     search: search || undefined,
     processo: processo || undefined,
-    complexidade: complexidade || undefined,
+    complexity_level: complexity_level || undefined,
     status_publicacao: statusPub || undefined,
-  }), [search, processo, complexidade, statusPub]);
+  }), [search, processo, complexity_level, statusPub]);
 
-  const { data: procedimentos = [], isLoading } = useProcedimentosList(
-    filters,
-    // Enable polling if any card is processing
-    true,
-  );
+  const { data: procedimentos = [], isLoading } = useProcedimentosList(filters);
 
   const retryMutation = useRetryProcedimento();
   const deleteMutation = useDeleteProcedimento();
@@ -72,7 +68,7 @@ const ProcedimentosDev = () => {
             </SelectContent>
           </Select>
 
-          <Select value={complexidade} onValueChange={(v) => setComplexidade(v === 'all' ? '' : v)}>
+          <Select value={complexity_level} onValueChange={(v) => setComplexidade(v === 'all' ? '' : v)}>
             <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Complexidade" />
             </SelectTrigger>

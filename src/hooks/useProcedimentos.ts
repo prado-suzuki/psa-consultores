@@ -30,14 +30,22 @@ export interface Procedimento {
 interface ProcedimentoFilters {
   search?: string;
   processo?: string;
-  complexidade?: string;
+  complexity_level?: string;
   status_publicacao?: string;
 }
 
-export function useProcedimentosList(filters: ProcedimentoFilters = {}, pollingEnabled = false) {
+export function useProcedimentosList(filters: ProcedimentoFilters = {}) {
   return useQuery({
     queryKey: ['procedimentos', filters],
     queryFn: async () => {
+      // Defesa em profundidade: expira procedimentos travados há >15min
+      // antes de listar, para que zumbis virem 'erro' com retry/excluir.
+      try {
+        await supabase.rpc('mark_stuck_procedimentos' as any, { timeout_minutes: 15 } as any);
+      } catch (err) {
+        console.warn('mark_stuck_procedimentos falhou (ignorado):', err);
+      }
+
       let query = supabase
         .from('procedimentos' as any) // table not yet in generated types
         .select('*')
@@ -46,8 +54,8 @@ export function useProcedimentosList(filters: ProcedimentoFilters = {}, pollingE
       if (filters.status_publicacao) {
         query = query.eq('status_publicacao', filters.status_publicacao);
       }
-      if (filters.complexidade) {
-        query = query.eq('ai_complexidade', filters.complexidade);
+      if (filters.complexity_level) {
+        query = query.eq('ai_complexidade', filters.complexity_level);
       }
       if (filters.processo) {
         query = query.contains('processos_associados', [filters.processo]);
@@ -69,7 +77,17 @@ export function useProcedimentosList(filters: ProcedimentoFilters = {}, pollingE
 
       return results;
     },
-    refetchInterval: pollingEnabled ? 3000 : false,
+    // Polling apenas enquanto houver itens em processamento "fresco" (<10 min).
+    // Itens travados ficam fora para não gerar loop infinito de refetch.
+    refetchInterval: (query) => {
+      const data = query.state.data as Procedimento[] | undefined;
+      if (!data || data.length === 0) return false;
+      const cutoff = Date.now() - 10 * 60 * 1000;
+      const hasFresh = data.some(
+        (p) => p.status_geracao === 'processando' && new Date(p.created_at).getTime() > cutoff
+      );
+      return hasFresh ? 3000 : false;
+    },
   });
 }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -124,13 +125,13 @@ const EquipeKanban = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Filtros
-  const [filterSprint, setFilterSprint] = useState<string>('all');
-  const [filterResponsible, setFilterResponsible] = useState<string>('all');
-  const [filterProject, setFilterProject] = useState<string>('all');
-  const [filterProcess, setFilterProcess] = useState<string>('all');
+  const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.kanban.sprint', 'all');
+  const [filterResponsible, setFilterResponsible] = usePersistedState<string>('rotina.kanban.responsavel', 'all');
+  const [filterProject, setFilterProject] = usePersistedState<string>('rotina.kanban.projeto', 'all');
+  const [filterProcess, setFilterProcess] = usePersistedState<string>('rotina.kanban.processo', 'all');
   const [filterStartDate, setFilterStartDate] = useState<Date | undefined>();
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>();
-  const [sortByDueDate, setSortByDueDate] = useState<'asc' | 'desc' | null>(null);
+  const [sortByDueDate, setSortByDueDate] = usePersistedState<'asc' | 'desc' | null>('rotina.kanban.ordenacao', null);
 
   useEffect(() => {
     fetchData();
@@ -138,30 +139,10 @@ const EquipeKanban = () => {
 
   const fetchData = async () => {
     try {
-      // Buscar cliente "Transversal" do catálogo (área Digital)
-      const { data: digitalClients } = await supabase
-        .from('catalog_clients')
-        .select('id')
-        .or('name.ilike.%transversal%,name.ilike.%digital%');
-
-      const digitalClientIds = digitalClients?.map(c => c.id) || [];
-
-      // Fetch projects (filtrados por área Digital)
-      let projectsQuery = supabase
-        .from('projects')
-        .select('id, name')
-        .order('name');
-
-      if (digitalClientIds.length > 0) {
-        projectsQuery = projectsQuery.or(`client_id.in.(${digitalClientIds.join(',')}),client_id.is.null`);
-      } else {
-        projectsQuery = projectsQuery.is('client_id', null);
-      }
-
       const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
         supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
         supabase.from('profiles_safe').select('id, first_name, last_name'),
-        projectsQuery,
+        supabase.from('projects').select('id, name').order('name'),
         supabase.from('processes').select('id, name, project_id').order('name'),
         supabase.from('sprint_deliverables').select('id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code')
       ]);

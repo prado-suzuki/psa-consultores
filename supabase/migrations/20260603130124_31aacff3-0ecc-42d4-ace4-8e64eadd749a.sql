@@ -1,0 +1,2 @@
+ALTER TABLE public.matricula DROP CONSTRAINT IF EXISTS matricula_area_unidade_chk;
+ALTER TABLE public.matricula ADD CONSTRAINT matricula_area_unidade_chk CHECK (area_unidade = ANY (ARRAY['ha'::text, 'm2'::text, 'ha_m2'::text]));

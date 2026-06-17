@@ -1,0 +1,1 @@
+ALTER TABLE public.bem ALTER COLUMN vlr_mercado DROP NOT NULL;
