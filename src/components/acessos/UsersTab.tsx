@@ -111,6 +111,29 @@ export const UsersTab = () => {
             <CardDescription className="text-slate-500">
               Selecione um usuário para gerenciar acessos
             </CardDescription>
+            <div className="mt-3 flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+              {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => {
+                const label = r === 'all' ? 'Todos' : (ROLE_SHORT_LABELS[r] ?? r);
+                const active = roleFilter === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRoleFilter(r)}
+                    className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-teal-500/10 text-teal-700 border-teal-200'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                    <span className={`ml-1 ${active ? 'text-teal-600' : 'text-slate-400'}`}>
+                      ({roleCounts[r] ?? 0})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative mt-2">
               <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <Input
