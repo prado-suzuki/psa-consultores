@@ -23,6 +23,10 @@ import {
   AlertCircle,
   FileSignature,
   PieChart,
+  ListTodo,
+  LayoutDashboard,
+  FolderKanban,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
@@ -121,7 +125,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   };
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
-  const isProjects = location.pathname.startsWith('/equipe/osg/dashboard');
+  const isProjects = location.pathname.startsWith('/equipe/osg/dashboard')
+    || location.pathname.startsWith('/equipe/osg/projetos')
+    || location.pathname.startsWith('/equipe/osg/auditoria');
+
+  // Itens do agrupador "Projetos" — espelhado da área Tax (Dashboard / Projetos /
+  // Auditoria). Expande no hover e fica aberto quando uma rota filha está ativa.
+  const projetosItems = [
+    { path: '/equipe/osg/projetos/clientes', label: 'Clientes', icon: ClipboardList },
+    { path: '/equipe/osg/projetos/cadastro', label: 'Projetos', icon: FolderKanban },
+    { path: '/equipe/osg/projetos/tarefas', label: 'Tarefas', icon: ListTodo },
+  ];
+  const isProjetosActive = projetosItems.some((item) => item.path === location.pathname);
 
   // Itens do agrupador "Documentos" — expande no hover (e fica aberto na rota ativa)
   const docItems = [
@@ -183,6 +198,89 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
+          {/* ───── OSG Projects: Dashboard + Projetos (espelhado da área Tax). */}
+          {/* Aparece só fora do OSG Work, que mantém suas próprias ferramentas. */}
+          {isProjects && (
+          <>
+          <button
+            onClick={() => navigate('/equipe/osg/dashboard')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/dashboard'
+                ? "bg-osg-100 text-osg-700"
+                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+            )}
+          >
+            <LayoutDashboard className="h-4 w-4" />
+            {!collapsed && <span>Dashboard</span>}
+          </button>
+
+          {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
+          <div className="group/proj">
+            <button
+              type="button"
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                isProjetosActive
+                  ? "bg-osg-50 text-osg-700"
+                  : "text-slate-600 group-hover/proj:bg-osg-50 group-hover/proj:text-osg-700"
+              )}
+            >
+              <FolderKanban className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span>Projetos</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 ml-auto transition-transform duration-300 ease-out",
+                      isProjetosActive ? "rotate-180" : "group-hover/proj:rotate-180"
+                    )}
+                  />
+                </>
+              )}
+            </button>
+
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                isProjetosActive
+                  ? "grid-rows-[1fr]"
+                  : "grid-rows-[0fr] group-hover/proj:grid-rows-[1fr]"
+              )}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div
+                  className={cn(
+                    "space-y-1 pt-1",
+                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                  )}
+                >
+                  {projetosItems.map(({ path, label, icon: Icon }) => (
+                    <button
+                      key={path}
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        location.pathname === path
+                          ? "bg-osg-100 text-osg-700"
+                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                      )}
+                    >
+                      <Icon className="h-4 w-4 flex-shrink-0" />
+                      {!collapsed && <span>{label}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          </>
+          )}
+
+          {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
+          {isWork && (
+          <>
           <button
             onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
             className={cn(
@@ -289,6 +387,9 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             <PieChart className="h-4 w-4" />
             {!collapsed && <span>Quadro Societário</span>}
           </button>
+          </>
+          )}
+
           <button
             onClick={() => navigate('/equipe/osg/auditoria')}
             className={cn(

@@ -15,23 +15,26 @@
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { OrgTask, useReassignOrgTask } from '@/hooks/useOrgTasks';
  import { useAuth } from '@/contexts/AuthContext';
- 
+ import { AreaKey } from '@/config/areaCategories';
+
  interface ReassignModalProps {
    open: boolean;
    onOpenChange: (open: boolean) => void;
    task: OrgTask | null;
+   area: AreaKey;
    teamMembers: { id: string; name: string }[];
  }
- 
- export const ReassignModal = ({ 
-   open, 
-   onOpenChange, 
+
+ export const ReassignModal = ({
+   open,
+   onOpenChange,
    task,
-   teamMembers 
+   area,
+   teamMembers
  }: ReassignModalProps) => {
    const [selectedMember, setSelectedMember] = useState<string>('');
    const [comment, setComment] = useState('');
-   const reassignTask = useReassignOrgTask();
+   const reassignTask = useReassignOrgTask(area);
    const { user } = useAuth();
  
    const getInitials = (name: string) => {

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -34,8 +34,13 @@ const ALL = '__ALL__';
 
 type UrgencyFilter = typeof ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
-const FiscalDashboard = () => {
+// Conteúdo do Dashboard — agnóstico de layout (fonte única compartilhada entre
+// Tax e OSG). A navegação interna é resolvida pela área atual (areaBase), então
+// um deep-link de tarefa abre a aba de Tarefas da própria área.
+const DashboardContent = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const areaBase = location.pathname.startsWith('/equipe/osg') ? '/equipe/osg' : '/equipe/tax';
   const { data: projects = [], isLoading: loadingProjects } = useFiscalDashProjects();
   const { data: tasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
   const { data: clients = [] } = useFiscalClientsList();
@@ -307,8 +312,7 @@ const FiscalDashboard = () => {
   const sortedEquipes = useMemo(() => [...equipes].sort((a, b) => a.name.localeCompare(b.name)), [equipes]);
 
   return (
-    <FiscalLayout title="Dashboard" subtitle="Visão geral da área fiscal — atualizado em tempo real">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* ═══════════════════════ BARRA DE FILTROS ═══════════════════════ */}
         <Card className="border-slate-200/60 shadow-sm rounded-2xl">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -699,7 +703,7 @@ const FiscalDashboard = () => {
                       {overdueRows.slice(0, 15).map((r) => (
                         <TableRow
                           key={r.id}
-                          onClick={() => navigate(`/equipe/tax/projetos/tarefas?taskId=${r.id}`)}
+                          onClick={() => navigate(`${areaBase}/projetos/tarefas?taskId=${r.id}`)}
                           className="cursor-pointer hover:bg-slate-50 transition-colors"
                           title="Abrir tarefa em Tarefas"
                         >
@@ -756,7 +760,6 @@ const FiscalDashboard = () => {
           </Card>
         </div>
       </div>
-    </FiscalLayout>
   );
 };
 
@@ -776,4 +779,13 @@ function EmptyMsg({ msg }: { msg: string }) {
   );
 }
 
+// Página do Dashboard da área Tax — apenas a moldura (FiscalLayout) em volta do
+// conteúdo compartilhado. A OSG renderiza o mesmo <DashboardContent /> no OsgLayout.
+const FiscalDashboard = () => (
+  <FiscalLayout title="Dashboard" subtitle="Visão geral da área fiscal — atualizado em tempo real">
+    <DashboardContent />
+  </FiscalLayout>
+);
+
 export default FiscalDashboard;
+export { DashboardContent };

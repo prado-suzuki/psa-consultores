@@ -47,6 +47,7 @@ import {
  useUpdateOrgTask
 } from '@/hooks/useOrgTasks';
 import { useExternalClients, useContribuintes, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
+import { AreaKey } from '@/config/areaCategories';
 
 import { RequiredMark } from '@/components/ui/required-mark';
 import { useOrgProjectsList, useProjectMembers } from '@/hooks/useOrgProjects';
@@ -85,22 +86,24 @@ interface TaskModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   task?: OrgTask | null;
+  area: AreaKey;
   teamMembers: { id: string; name: string }[];
   parentTasks?: OrgTask[];
   defaultParentId?: string | null;
 }
 
-export const TaskModal = ({ 
-  open, 
-  onOpenChange, 
-  task, 
+export const TaskModal = ({
+  open,
+  onOpenChange,
+  task,
+  area,
   teamMembers,
   parentTasks = [],
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
-  const createTask = useCreateOrgTask();
-  const updateTask = useUpdateOrgTask();
+  const createTask = useCreateOrgTask(area);
+  const updateTask = useUpdateOrgTask(area);
   const isEditing = !!task;
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);

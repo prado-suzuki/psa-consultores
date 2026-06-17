@@ -9,9 +9,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { statusList } from '@/lib/taskStatusColors';
+import { AreaKey } from '@/config/areaCategories';
 
 interface TaskKanbanProps {
   tasks: OrgTask[];
+  area: AreaKey;
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
@@ -29,10 +31,10 @@ const columns = statusList.map(s => ({
   color: s.bg,
 }));
 
-export const TaskKanban = ({ tasks, onEdit, onDelete, onReassign }: TaskKanbanProps) => {
+export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKanbanProps) => {
   const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-  const updateTask = useUpdateOrgTask();
+  const updateTask = useUpdateOrgTask(area);
 
   const subtasksByParent: Record<string, OrgTask[]> = {};
   tasks.filter(t => t.parent_task_id).forEach(t => {

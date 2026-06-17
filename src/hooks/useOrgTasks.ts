@@ -4,6 +4,7 @@
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+ import { AreaKey } from '@/config/areaCategories';
  
 export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -166,7 +167,7 @@ export interface TaskFilters {
    });
  };
  
- export const useCreateOrgTask = () => {
+ export const useCreateOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
    const { logAction } = useAuditLog();
@@ -185,7 +186,8 @@ export interface TaskFilters {
        if (error) throw error;
 
        await logAction({
-         area: 'tax', entity_type: input.parent_task_id ? 'subtask' : 'task',
+         // Tarefas só existem nas áreas tax/osg (subconjunto de AuditArea).
+         area: area as 'tax' | 'osg', entity_type: input.parent_task_id ? 'subtask' : 'task',
          entity_id: data.id, entity_name: input.title, action: 'created',
        });
 
@@ -201,7 +203,7 @@ export interface TaskFilters {
    });
  };
  
- export const useUpdateOrgTask = () => {
+ export const useUpdateOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();
 
@@ -244,7 +246,7 @@ export interface TaskFilters {
          // Only log if something actually changed
          if (Object.keys(changedFields).length > 0) {
            await logAction({
-             area: 'tax', entity_type: isSubtask ? 'subtask' : 'task',
+             area: area as 'tax' | 'osg', entity_type: isSubtask ? 'subtask' : 'task',
              entity_id: id, entity_name: entityName, action: 'updated',
              changed_fields: changedFields,
            });
@@ -262,7 +264,7 @@ export interface TaskFilters {
    });
  };
  
- export const useDeleteOrgTask = () => {
+ export const useDeleteOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();
 
@@ -289,7 +291,7 @@ export interface TaskFilters {
        }
 
        await logAction({
-         area: 'tax', entity_type: task?.parent_task_id ? 'subtask' : 'task',
+         area: area as 'tax' | 'osg', entity_type: task?.parent_task_id ? 'subtask' : 'task',
          entity_id: id, entity_name: task?.title || 'Tarefa excluída', action: 'deleted',
        });
      },
@@ -303,7 +305,7 @@ export interface TaskFilters {
    });
  };
  
- export const useReassignOrgTask = () => {
+ export const useReassignOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
  
@@ -348,7 +350,7 @@ export interface TaskFilters {
         // Audit log for reassignment
         if (user?.id && currentTask) {
           await supabase.from('audit_logs').insert({
-            area: 'tax',
+            area,
             entity_type: currentTask.parent_task_id ? 'subtask' : 'task',
             entity_id: taskId,
             entity_name: currentTask.title || 'Tarefa',

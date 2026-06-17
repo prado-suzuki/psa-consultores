@@ -7,9 +7,11 @@ import { parseDate } from '@/lib/dateUtils';
  import { Badge } from '@/components/ui/badge';
  import { cn } from '@/lib/utils';
  import { OrgTask, useUpdateOrgTask } from '@/hooks/useOrgTasks';
- 
+ import { AreaKey } from '@/config/areaCategories';
+
  interface TaskTodayViewProps {
    tasks: OrgTask[];
+   area: AreaKey;
    onEdit: (task: OrgTask) => void;
  }
  
@@ -29,8 +31,8 @@ import { parseDate } from '@/lib/dateUtils';
    low: 'Baixa',
  };
  
- export const TaskTodayView = ({ tasks, onEdit }: TaskTodayViewProps) => {
-   const updateTask = useUpdateOrgTask();
+ export const TaskTodayView = ({ tasks, area, onEdit }: TaskTodayViewProps) => {
+   const updateTask = useUpdateOrgTask(area);
  
    const todayTasks = tasks
      .filter(task => task.due_date && isToday(parseDate(task.due_date)))
