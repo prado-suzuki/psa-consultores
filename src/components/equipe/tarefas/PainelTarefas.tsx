@@ -12,6 +12,7 @@ import {
   OrgTask,
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
+import { AreaKey } from '@/config/areaCategories';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -42,7 +43,7 @@ import {
 //
 // Quando, no futuro, for preciso estilizar/escopar dados por área, parametrizar
 // este componente via props (ex.: tema, categoria de cluster) em vez de copiá-lo.
-const PainelTarefas = () => {
+const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkTaskId = searchParams.get('taskId');
   const { user, isAdmin, isLider } = useAuth();
@@ -58,10 +59,10 @@ const PainelTarefas = () => {
 
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
   const { data: tasks = [], isLoading } = useOrgTasks(deepLinkTaskId ? {} : filters);
-  const deleteTask = useDeleteOrgTask();
+  const deleteTask = useDeleteOrgTask(area);
 
-  const { data: taxClusterId } = useClusterIdByPageCategory('tax');
-  const { data: teamMembers = [] } = useTeamMembersForTasks(taxClusterId ?? undefined);
+  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
 
   const handleEditTask = (task: OrgTask) => {
@@ -202,6 +203,7 @@ const PainelTarefas = () => {
             <TabsContent value="table" className="m-0">
               <TaskTable
                 tasks={tasks}
+                area={area}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}
@@ -212,6 +214,7 @@ const PainelTarefas = () => {
             <TabsContent value="kanban" className="m-0">
               <TaskKanban
                 tasks={tasks}
+                area={area}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}
@@ -228,6 +231,7 @@ const PainelTarefas = () => {
             <TabsContent value="today" className="m-0">
               <TaskTodayView
                 tasks={tasks}
+                area={area}
                 onEdit={handleEditTask}
               />
             </TabsContent>
@@ -249,6 +253,7 @@ const PainelTarefas = () => {
         open={isTaskModalOpen}
         onOpenChange={handleTaskModalOpenChange}
         task={selectedTask}
+        area={area}
         teamMembers={teamMembers}
         parentTasks={parentTasks}
         defaultParentId={defaultParentId}
@@ -259,6 +264,7 @@ const PainelTarefas = () => {
         open={isReassignModalOpen}
         onOpenChange={setIsReassignModalOpen}
         task={taskToReassign}
+        area={area}
         teamMembers={teamMembers}
       />
 

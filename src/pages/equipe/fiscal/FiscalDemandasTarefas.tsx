@@ -8,7 +8,7 @@ import PainelTarefas from '@/components/equipe/tarefas/PainelTarefas';
 const FiscalDemandasTarefas = () => {
   return (
     <FiscalLayout title="Tarefas" subtitle="Gestão de tarefas e eventos">
-      <PainelTarefas />
+      <PainelTarefas area="tax" />
     </FiscalLayout>
   );
 };
