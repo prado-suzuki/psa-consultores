@@ -31,6 +31,7 @@ export const UsersTab = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { data: pages } = usePagePermissions();
@@ -42,22 +43,41 @@ export const UsersTab = () => {
 
   // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
   const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
+
+  // Contagem por role (independente da pesquisa) para mostrar nas abas.
+  const roleCounts = useMemo(() => {
+    const counts: Record<AppRole | 'all', number> = {
+      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0,
+    };
+    if (!users) return counts;
+    counts.all = users.length;
+    for (const u of users) {
+      for (const r of u.roles) {
+        if (r in counts) counts[r] += 1;
+      }
+    }
+    return counts;
+  }, [users]);
+
   const groupedUsers = useMemo(() => {
     if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
     const normalize = (s: string) =>
       s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
     const term = normalize(searchTerm.trim());
-    const filtered = term
+    let filtered = term
       ? users.filter((u) => {
           const fullName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
           return normalize(fullName).includes(term);
         })
       : users;
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter((u) => u.roles.includes(roleFilter));
+    }
     const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
       ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
     const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
     for (const u of filtered) {
-      const r = primaryRole(u);
+      const r = roleFilter !== 'all' ? roleFilter : primaryRole(u);
       if (!buckets.has(r)) buckets.set(r, []);
       buckets.get(r)!.push(u);
     }
@@ -70,7 +90,7 @@ export const UsersTab = () => {
         role,
         users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
       }));
-  }, [users, searchTerm]);
+  }, [users, searchTerm, roleFilter]);
 
   return (
     <div className="space-y-4">
@@ -91,6 +111,29 @@ export const UsersTab = () => {
             <CardDescription className="text-slate-500">
               Selecione um usuário para gerenciar acessos
             </CardDescription>
+            <div className="mt-3 flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
+              {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => {
+                const label = r === 'all' ? 'Todos' : (ROLE_SHORT_LABELS[r] ?? r);
+                const active = roleFilter === r;
+                return (
+                  <button
+                    key={r}
+                    type="button"
+                    onClick={() => setRoleFilter(r)}
+                    className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+                      active
+                        ? 'bg-teal-500/10 text-teal-700 border-teal-200'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    {label}
+                    <span className={`ml-1 ${active ? 'text-teal-600' : 'text-slate-400'}`}>
+                      ({roleCounts[r] ?? 0})
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
             <div className="relative mt-2">
               <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <Input
