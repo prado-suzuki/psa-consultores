@@ -90,7 +90,9 @@ const emptyForm = {
   servico_id: '',
 };
 
-const FiscalProjetosCadastro = () => {
+// Conteúdo do Cadastro de Projetos — agnóstico de layout (fonte única
+// compartilhada entre Tax e OSG). Cada área o renderiza no seu próprio layout.
+const ProjetosCadastroContent = () => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
@@ -656,7 +658,7 @@ const FiscalProjetosCadastro = () => {
   }, [formData.is_multidisciplinar, formData.leader_ids, allAreaGroups]);
 
   return (
-    <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
+    <>
       <div className="space-y-6">
         {/* Header Actions */}
         <div className="flex justify-between items-center">
@@ -1547,8 +1549,17 @@ const FiscalProjetosCadastro = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </FiscalLayout>
+    </>
   );
 };
 
+// Página de Cadastro de Projetos da área Tax — moldura (FiscalLayout) em volta do
+// conteúdo compartilhado. A OSG renderiza o mesmo <ProjetosCadastroContent />.
+const FiscalProjetosCadastro = () => (
+  <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
+    <ProjetosCadastroContent />
+  </FiscalLayout>
+);
+
 export default FiscalProjetosCadastro;
+export { ProjetosCadastroContent };

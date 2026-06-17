@@ -1,0 +1,16 @@
+import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import PainelTarefas from '@/components/equipe/tarefas/PainelTarefas';
+
+// Página de Tarefas da área OSG. Usa o MESMO componente compartilhado da área TAX
+// (<PainelTarefas />), apenas envolvido pelo layout da OSG. Espelhamento total:
+// qualquer mudança no painel vale para Tax e OSG. A estilização por área (futuro)
+// será feita parametrizando o painel — sem duplicar o componente.
+const OsgTarefas = () => {
+  return (
+    <OsgLayout title="Tarefas" subtitle="Gestão de tarefas e eventos">
+      <PainelTarefas />
+    </OsgLayout>
+  );
+};
+
+export default OsgTarefas;
