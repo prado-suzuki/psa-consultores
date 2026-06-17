@@ -3,15 +3,13 @@
 // Só identidade: o vínculo gargalo↔etapa é feito no editor de etapas
 // (Processos → Mapear), no mesmo padrão de documentos/sistemas/responsáveis.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
-import ChipSelector from '@/components/equipe/mapa/ChipSelector';
 import { dica } from '@/utils/tooltips';
 import type { Gargalo } from '@/types';
-import { useMelhoriasLista } from '@/hooks/useDominioListas';
 import { useCreateGargalo, useUpdateGargalo } from '@/hooks/useGargalos';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
 import { GARGALO_ORIGEM_OPCOES } from '@/components/equipe/mapa/cadastros/gargaloOpcoes';
@@ -22,7 +20,6 @@ interface GargaloFormState {
   descricao: string;
   origem: string;
   clusterId: string;
-  melhoriaNomes: string[];
 }
 
 const FORM_VAZIO: GargaloFormState = {
@@ -30,15 +27,7 @@ const FORM_VAZIO: GargaloFormState = {
   descricao: '',
   origem: '',
   clusterId: '',
-  melhoriaNomes: [],
 };
-
-// Rótulo curto da melhoria = título antes de " — " (descrições renomeadas).
-function melhoriaLabel(desc: string): string {
-  const i = desc.indexOf(' — ');
-  if (i > 0) return desc.slice(0, i).trim();
-  return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
-}
 
 interface Props {
   aberto: boolean;
@@ -51,25 +40,6 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
   const createGargalo = useCreateGargalo();
   const updateGargalo = useUpdateGargalo();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
-  const { data: melhoriasList = [] } = useMelhoriasLista();
-
-  const melhoriaNomeById = useMemo(
-    () => new Map(melhoriasList.map(m => [m.id, melhoriaLabel(m.improvement_description)])),
-    [melhoriasList]
-  );
-  const melhoriaIdByLabel = useMemo(
-    () => new Map(melhoriasList.map(m => [melhoriaLabel(m.improvement_description), m.id])),
-    [melhoriasList]
-  );
-  const melhoriaLabelOptions = useMemo(
-    () => melhoriasList.map(m => melhoriaLabel(m.improvement_description)),
-    [melhoriasList]
-  );
-
-  const melhoriaIdsToLabels = (ids: string[]) =>
-    ids.map(id => melhoriaNomeById.get(id)).filter((n): n is string => Boolean(n));
-  const melhoriaLabelsToIds = (labels: string[]) =>
-    labels.map(l => melhoriaIdByLabel.get(l)).filter((id): id is string => Boolean(id));
 
   const [form, setForm] = useState<GargaloFormState>(FORM_VAZIO);
   const [erro, setErro] = useState('');
@@ -90,14 +60,13 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
         descricao: gargalo.descricao || '',
         origem: gargalo.origem || '',
         clusterId: gargalo.cluster_id || '',
-        melhoriaNomes: melhoriaIdsToLabels(gargalo.melhorias || []),
       });
     } else {
       setForm(FORM_VAZIO);
     }
     setErro('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, gargalo, melhoriaNomeById]);
+  }, [aberto, gargalo]);
 
   // Fechar com guarda: se o usuário tocou no form, confirma antes de descartar.
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
@@ -117,7 +86,6 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
         descricao: form.descricao.trim(),
         origem: form.origem.trim(),
         cluster_id: form.clusterId || undefined,
-        melhorias: melhoriaLabelsToIds(form.melhoriaNomes),
       };
       if (gargalo) {
         await updateGargalo.mutateAsync({ id: gargalo.id, old: gargalo, patch: payload });
@@ -172,14 +140,6 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
           </FormField>
           <div />
         </div>
-        <FormField label="Melhorias vinculadas" tooltip={dica('gargalos.form.melhoria')}>
-          <ChipSelector
-            options={melhoriaLabelOptions}
-            value={form.melhoriaNomes}
-            onChange={(v) => atualizar({ melhoriaNomes: v as string[] })}
-            addLabel="Adicionar melhoria"
-          />
-        </FormField>
 
         {gargalo && (
           <div className="cadastro-form-leitura">

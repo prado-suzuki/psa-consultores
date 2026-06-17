@@ -4,7 +4,7 @@ import Select from '@/components/equipe/mapa/Select';
 import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
 import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
-import { melhoriaIdsDoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
+import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
@@ -897,8 +897,8 @@ export default function DashboardRoiPage() {
               <KPICard label="Melhorias Planejadas" valor={String(v.qtdMelhorias)} hint="Iniciativas catalogadas" />
               <KPICard
                 label="Gargalos Atacados"
-                valor={`${gargalosFiltrados.filter(g => melhoriaIdsDoGargalo(g).length > 0).length} / ${v.qtdGargalos}`}
-                hint="Resolvidos pelas melhorias"
+                valor={`${gargalosFiltrados.filter(g => melhoriasRelacionadasAoGargalo(g, melhorias).length > 0).length} / ${v.qtdGargalos}`}
+                hint="Com melhoria no mesmo processo"
               />
               <KPICard
                 label="Sistemas Novos"
@@ -936,9 +936,7 @@ export default function DashboardRoiPage() {
                 </thead>
                 <tbody>
                   {gargalosFiltrados.length === 0 ? <EmptyRow cols={4} /> : gargalosFiltrados.map(g => {
-                    const ms = melhoriaIdsDoGargalo(g)
-                      .map(id => melhorias.find(x => x.id === id))
-                      .filter((x): x is NonNullable<typeof x> => Boolean(x));
+                    const ms = melhoriasRelacionadasAoGargalo(g, melhorias);
                     const procs = processoIdsDoGargalo(g).map(pid => procNomeById.get(pid) || pid);
                     return (
                       <tr key={g.id}>
@@ -1044,7 +1042,7 @@ export default function DashboardRoiPage() {
                     const horasFut = (execFut || []).reduce((s, r) => s + (r.horas ?? 0), 0);
                     const custoHM = responsaveis.length ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length : 0;
                     // Melhorias do processo da etapa — derivadas via gargalo.
-                    const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, e.process_id);
+                    const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, e.process_id);
                     const melhoriasDoProcesso = melhorias.filter(m => melhoriaIdsProc.has(m.id));
                     const melhNomes = melhoriasDoProcesso.map(m => m.improvement_description).join(', ');
                     return (

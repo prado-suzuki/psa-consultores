@@ -4,7 +4,7 @@
 // ações no topo, corpo rolável) para os dois modais conversarem visualmente.
 // O mapeamento de etapas/ROI vive em /processos/:id/mapear — aqui só metadados.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
@@ -12,6 +12,7 @@ import Select from '@/components/equipe/mapa/Select';
 import { dica } from '@/utils/tooltips';
 import type { Processo, FrequenciaProcesso, StatusAvaliacao } from '@/types';
 import { useProjetosLista } from '@/hooks/useDominioListas';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useCreateProcesso, useUpdateProcesso } from '@/hooks/useProcessos';
 import {
   FREQUENCIA_OPCOES, STATUS_AVALIACAO_OPCOES, COMPLEXIDADE_OPCOES, normalizarComplexidade,
@@ -30,6 +31,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   const createProcesso = useCreateProcesso();
   const updateProcesso = useUpdateProcesso();
   const { data: projetos = [] } = useProjetosLista();
+  const { cluster } = useClusterGlobal();
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
@@ -61,6 +63,16 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
 
   const touch = () => { tocado.current = true; };
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
+
+  // Opções de projeto filtradas pelo cluster escolhido no ambiente ('' = todos).
+  // Mantém o projeto já vinculado ao processo em edição mesmo que seja de outro
+  // cluster, para não sumir da lista e perder o vínculo silenciosamente.
+  const projetoOpcoes = useMemo(() =>
+    projetos
+      .filter(p => !cluster || p.cluster_id === cluster || p.id === projetoId)
+      .map(p => ({ value: p.id, label: p.name })),
+    [projetos, cluster, projetoId],
+  );
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do processo.'); return; }
@@ -144,7 +156,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
             <Select
               value={projetoId}
               onChange={(v) => { touch(); setProjetoId(v); if (erro) setErro(''); }}
-              options={projetos.map(p => ({ value: p.id, label: p.name }))}
+              options={projetoOpcoes}
               placeholder="Selecione o projeto..."
             />
           </FormField>

@@ -178,10 +178,8 @@ export interface Gargalo {
    *  jusante (etapa → docsSaida → etapas que consomem → ...) que define a
    *  cascata, derivada em tempo real e exibida na CascataPage. */
   etapasOrigem: GargaloEtapaRef[];
-  /** @deprecated Use `melhorias` (N:M via gargalo_melhorias). Mantido por compat. */
-  melhoria_id?: string | null;
-  /** Melhorias que atacam este gargalo. Hidratado via `gargalo_melhorias` (N:M). */
-  melhorias?: string[];
+  // Não há vínculo direto gargalo↔melhoria: a relação é por associação ao
+  // processo (gargalo e melhoria atuando no mesmo processo). Ver `gargaloMelhorias.ts`.
   origem?: string;
   cluster_id?: string | null;
   /** Nome do cluster, hidratado via JOIN. */
@@ -358,8 +356,6 @@ export interface Melhoria {
   treinamentoPor?: ResponsavelHoras[];
   /** Hidratado via `melhoria_acoes_td`. */
   acoesTd?: AcaoTd[];
-  /** Gargalos atacados por esta melhoria. Hidratado via `gargalo_melhorias` (N:M). */
-  gargalos?: string[];
 }
 
 // ═════════════════════════════════════════════════════════════════════════

@@ -15,6 +15,7 @@ import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import ConfirmDeleteModal from '@/components/equipe/mapa/cadastro/ConfirmDeleteModal';
 import ProcessoItem from '@/components/equipe/mapa/cadastro/ProcessoItem';
+import ProcessoReorderGroup from '@/components/equipe/mapa/cadastro/ProcessoReorderGroup';
 import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
 import ProjetoDetalheModal from '@/components/equipe/mapa/cadastro/ProjetoDetalheModal';
 import ProjetoFormModal from '@/components/equipe/mapa/cadastro/ProjetoFormModal';
@@ -27,7 +28,7 @@ import {
   useEtapasLista, useMelhoriasLista, useProjetosLista,
   useDocumentosLista, useSistemasLista, useResponsaveisLista, useGargalosLista,
 } from '@/hooks/useDominioListas';
-import { useProcessos, useDeleteProcesso } from '@/hooks/useProcessos';
+import { useProcessos, useDeleteProcesso, useReorderProcessos } from '@/hooks/useProcessos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
@@ -40,6 +41,7 @@ export default function ProcessosPage() {
   const navigate = useNavigate();
   const { data: items = [], isLoading } = useProcessos();
   const deleteProcesso = useDeleteProcesso();
+  const reorderProcessos = useReorderProcessos();
   const { data: projetos = [] } = useProjetosLista();
   const { cluster: fCluster } = useClusterGlobal();
 
@@ -204,16 +206,18 @@ export default function ProcessosPage() {
       .filter(m => {
         if ((m.improvement_status || 'Não iniciado') !== 'Backlog') return false;
         if ((m as Melhoria & { project_id?: string | null }).project_id === projetoDetalhe.id) return true;
-        return processoIdsDaMelhoria(m.id, gargalos).some(pid => pids.has(pid));
+        return processoIdsDaMelhoria(m).some(pid => pids.has(pid));
       })
       .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
   }, [projetoDetalhe, items, melhorias, gargalos]);
 
   // Clicar na linha vai direto para o mapeamento de sub-etapas.
-  const renderItem = (p: Processo) => (
+  // `codigo` opcional: o grupo arrastável injeta o código recomputado ao vivo
+  // pela posição local; fora dele, cai no codigoDe (ordem global persistida).
+  const renderItem = (p: Processo, codigo?: string) => (
     <ProcessoItem
       key={p.id}
-      codigo={codigoDe(p)}
+      codigo={codigo ?? codigoDe(p)}
       nome={p.name}
       meta={metaDe(p)}
       badge={normalizarComplexidade(p.complexity_level) || undefined}
@@ -225,63 +229,102 @@ export default function ProcessosPage() {
     />
   );
 
+  const persistOrdem = (ordered: { id: string; order_index: number }[]) => {
+    reorderProcessos.mutate(ordered);
+  };
+
+  // Cabeçalho recolhível de um grupo (projeto). Extraído para reuso entre os
+  // ramos com/sem arraste do renderLista.
+  const renderGrupoHeader = (pid: string, proj: Projeto | undefined, nome: string, totalGrupo: number, aberto: boolean): ReactNode => (
+    <div
+      key={`grp-${pid}`}
+      className="cadastro-grupo-titulo"
+      style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
+    >
+      <button
+        type="button"
+        onClick={() => toggleGrupo(pid)}
+        aria-expanded={aberto}
+        title={aberto ? 'Recolher processos' : 'Expandir processos'}
+        style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <ChevronDown
+          size={16}
+          style={{ flexShrink: 0, transition: 'transform .15s ease', transform: aberto ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+          aria-hidden="true"
+        />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</span>
+        <span className="cadastro-grupo-count">{totalGrupo}</span>
+      </button>
+      {proj && (
+        <IconTooltip label={`Ver projeto "${nome}"`} side="left">
+          <button
+            type="button"
+            className="processo-mapear"
+            style={{ cursor: 'pointer', flexShrink: 0 }}
+            onClick={(e) => { e.stopPropagation(); setProjetoDetalhe(proj); }}
+            aria-label={`Ver detalhes do projeto ${nome}`}
+            title={`Ver detalhes do projeto ${nome}`}
+          >
+            <Eye size={15} strokeWidth={2.2} />
+            <span>Ver projeto</span>
+          </button>
+        </IconTooltip>
+      )}
+    </div>
+  );
+
   // Lista: agrupada por processo (recolhível) quando "Todos os processos";
   // plana quando filtrada por um processo. Busca/filtro ativos forçam a
   // expansão para os resultados aparecerem.
+  //
+  // Arraste para reordenar SÓ quando a lista exibida == grupo completo: com
+  // busca ou filtro de status ativos vê-se um subconjunto, e renumerar isso
+  // embaralharia os ocultos. Nesses casos cai no render plano (não arrastável).
   const renderLista = (): ReactNode => {
-    if (fProjeto) return visiveis.map(renderItem);
+    const reordenavel = busca.trim() === '' && fMapeado === 'todos';
+
+    if (fProjeto) {
+      if (!reordenavel) return visiveis.map(p => renderItem(p));
+      const proj = projetos.find(x => x.id === fProjeto);
+      return (
+        <ProcessoReorderGroup
+          processos={visiveis}
+          codePrefix={getProjectCode(proj?.name)}
+          onPersist={persistOrdem}
+          renderItem={renderItem}
+        />
+      );
+    }
+
     const forcarAberto = busca.trim() !== '' || fMapeado !== 'todos';
     const out: ReactNode[] = [];
-    let grupoAtual: string | null = null;
-    let aberto = false;
-    for (const p of visiveis) {
-      const pid = p.project_id || '__sem__';
-      if (pid !== grupoAtual) {
-        grupoAtual = pid;
-        const proj = p.project_id ? projetos.find(x => x.id === p.project_id) : undefined;
-        const nome = proj?.name || (p.project_id ? projetoNomePorId.get(p.project_id) || p.project_id : 'Sem processo');
-        const totalGrupo = visiveis.filter(x => (x.project_id || '__sem__') === pid).length;
-        aberto = forcarAberto || gruposAbertos.has(pid);
-        out.push(
-          <div
-            key={`grp-${pid}`}
-            className="cadastro-grupo-titulo"
-            style={{ background: 'var(--accent-50)', borderLeft: '3px solid var(--accent-color)', borderRadius: 10, padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 8 }}
-          >
-            <button
-              type="button"
-              onClick={() => toggleGrupo(pid)}
-              aria-expanded={aberto}
-              title={aberto ? 'Recolher processos' : 'Expandir processos'}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' }}
-            >
-              <ChevronDown
-                size={16}
-                style={{ flexShrink: 0, transition: 'transform .15s ease', transform: aberto ? 'rotate(0deg)' : 'rotate(-90deg)' }}
-                aria-hidden="true"
-              />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{nome}</span>
-              <span className="cadastro-grupo-count">{totalGrupo}</span>
-            </button>
-            {proj && (
-              <IconTooltip label={`Ver projeto "${nome}"`} side="left">
-                <button
-                  type="button"
-                  className="processo-mapear"
-                  style={{ cursor: 'pointer', flexShrink: 0 }}
-                  onClick={(e) => { e.stopPropagation(); setProjetoDetalhe(proj); }}
-                  aria-label={`Ver detalhes do projeto ${nome}`}
-                  title={`Ver detalhes do projeto ${nome}`}
-                >
-                  <Eye size={15} strokeWidth={2.2} />
-                  <span>Ver projeto</span>
-                </button>
-              </IconTooltip>
-            )}
-          </div>,
-        );
+    let i = 0;
+    while (i < visiveis.length) {
+      const pid = visiveis[i].project_id || '__sem__';
+      const grupo: Processo[] = [];
+      while (i < visiveis.length && (visiveis[i].project_id || '__sem__') === pid) {
+        grupo.push(visiveis[i]);
+        i++;
       }
-      if (aberto) out.push(renderItem(p));
+      const proj = pid !== '__sem__' ? projetos.find(x => x.id === pid) : undefined;
+      const nome = proj?.name || (pid !== '__sem__' ? projetoNomePorId.get(pid) || pid : 'Sem processo');
+      const aberto = forcarAberto || gruposAbertos.has(pid);
+      out.push(renderGrupoHeader(pid, proj, nome, grupo.length, aberto));
+      if (!aberto) continue;
+      if (reordenavel) {
+        out.push(
+          <ProcessoReorderGroup
+            key={`grp-items-${pid}`}
+            processos={grupo}
+            codePrefix={getProjectCode(proj?.name)}
+            onPersist={persistOrdem}
+            renderItem={renderItem}
+          />,
+        );
+      } else {
+        grupo.forEach(p => out.push(renderItem(p)));
+      }
     }
     return out;
   };

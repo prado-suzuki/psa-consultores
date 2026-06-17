@@ -17,7 +17,6 @@ const SELECT = `
   *,
   estrutura_clusters(name),
   gargalo_processos(processo_id),
-  gargalo_melhorias(melhoria_id),
   gargalo_etapas (
     etapa_id, scenario,
     process_stages ( name, stage_order, process_id, processes ( name ) )
@@ -27,7 +26,6 @@ const SELECT = `
 const SELECT_FALLBACK = `
   *,
   gargalo_processos(processo_id),
-  gargalo_melhorias(melhoria_id),
   gargalo_etapas (
     etapa_id, scenario,
     process_stages ( name, stage_order, process_id, processes ( name ) )
@@ -48,7 +46,6 @@ type DbGargaloEtapaRow = {
 type DbRow = Record<string, unknown> & {
   estrutura_clusters?: { name?: string } | null;
   gargalo_processos?: Array<{ processo_id: string }> | null;
-  gargalo_melhorias?: Array<{ melhoria_id: string }> | null;
   gargalo_etapas?: DbGargaloEtapaRow[] | null;
 };
 
@@ -74,7 +71,6 @@ function hydrate(row: DbRow): Gargalo {
     ...(row as unknown as Gargalo),
     clusterName: row.estrutura_clusters?.name,
     processos: pluck<string>(row.gargalo_processos, 'processo_id'),
-    melhorias: pluck<string>(row.gargalo_melhorias, 'melhoria_id'),
     etapasOrigem: hydrateEtapasOrigem(row.gargalo_etapas),
   };
 }
@@ -83,7 +79,6 @@ function stripSyntheticFields(patch: Partial<Gargalo>): Record<string, unknown> 
   const out = { ...patch } as Record<string, unknown>;
   delete out.clusterName;
   delete out.processos;
-  delete out.melhorias;
   delete out.etapasOrigem;
   delete out.responsaveisHoras;
   return out;
@@ -110,26 +105,26 @@ async function syncEtapasOrigem(gargaloId: string, etapas: GargaloEtapaRef[]): P
   }
 }
 
-/** Sincroniza gargalo_melhorias (N:M delete-all + insert) */
-async function syncMelhorias(gargaloId: string, melhoriaIds: string[]): Promise<void> {
+/** Sincroniza gargalo_processos (M:N delete-all + insert) — grão = PROCESSO. */
+async function syncProcessos(gargaloId: string, processoIds: string[]): Promise<void> {
   const { error: delErr } = await supabase
-    .from('gargalo_melhorias' as never)
+    .from('gargalo_processos' as never)
     .delete()
     .eq('gargalo_id', gargaloId);
   if (delErr) throw new Error(delErr.message);
 
-  if (melhoriaIds.length > 0) {
-    const rows = melhoriaIds.map((melhoria_id) => ({ gargalo_id: gargaloId, melhoria_id }));
+  const ids = [...new Set(processoIds.filter(Boolean))];
+  if (ids.length > 0) {
+    const rows = ids.map((processo_id) => ({ gargalo_id: gargaloId, processo_id }));
     const { error: insErr } = await supabase
-      .from('gargalo_melhorias' as never)
+      .from('gargalo_processos' as never)
       .insert(rows as never);
     if (insErr) throw new Error(insErr.message);
   }
 }
 
-export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'melhorias' | 'etapasOrigem' | 'responsaveisHoras'> & {
+export type GargaloInput = Omit<Gargalo, 'id' | 'clusterName' | 'processos' | 'etapasOrigem' | 'responsaveisHoras'> & {
   processos?: string[];
-  melhorias?: string[];
   etapasOrigem?: GargaloEtapaRef[];
   responsaveisHoras?: Gargalo['responsaveisHoras'];
 };
@@ -169,8 +164,8 @@ export function useCreateGargalo(): UseMutationResult<Gargalo, Error, GargaloInp
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: GargaloInput) => {
+      const processos = input.processos ?? [];
       const etapas = input.etapasOrigem ?? [];
-      const melhorias = input.melhorias ?? [];
       const { data, error } = await supabase
         .from(TABLE as never)
         .insert(stripSyntheticFields(input as Partial<Gargalo>) as never)
@@ -179,11 +174,12 @@ export function useCreateGargalo(): UseMutationResult<Gargalo, Error, GargaloInp
       if (error) throw new Error(error.message);
       const created = data as unknown as Gargalo;
 
+      // Grão = PROCESSO (gargalo_processos). etapasOrigem mantido por compat.
+      if (processos.length > 0) {
+        await syncProcessos(created.id, processos);
+      }
       if (etapas.length > 0) {
         await syncEtapasOrigem(created.id, etapas);
-      }
-      if (melhorias.length > 0) {
-        await syncMelhorias(created.id, melhorias);
       }
 
       // Re-fetch hidratado
@@ -206,8 +202,8 @@ export function useUpdateGargalo(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }) => {
+      const novosProcessos = patch.processos;
       const novasEtapas = patch.etapasOrigem;
-      const novasMelhorias = patch.melhorias;
       const dbPatch = stripSyntheticFields(patch);
 
       if (Object.keys(dbPatch).length > 0) {
@@ -218,11 +214,11 @@ export function useUpdateGargalo(): UseMutationResult<
         if (error) throw new Error(error.message);
       }
 
+      if (novosProcessos !== undefined) {
+        await syncProcessos(id, novosProcessos);
+      }
       if (novasEtapas !== undefined) {
         await syncEtapasOrigem(id, novasEtapas);
-      }
-      if (novasMelhorias !== undefined) {
-        await syncMelhorias(id, novasMelhorias);
       }
 
       const { data, error: selErr } = await supabase

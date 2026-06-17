@@ -184,8 +184,8 @@ const DASHBOARD: Bloco[] = [
       },
       {
         indicador: 'De → Para (gargalo × melhoria)',
-        formula: 'liga cada gargalo às melhorias que o atacam via a tabela N:M gargalo_melhorias (um gargalo pode ter várias melhorias e vice-versa)',
-        fontes: ['gargalo_melhorias', 'processos[] — Gargalos'],
+        formula: 'não há vínculo direto gargalo↔melhoria — a relação é por associação ao PROCESSO: lista as melhorias que atuam no(s) mesmo(s) processo(s) do gargalo',
+        fontes: ['gargalo_processos', 'melhoria_processos'],
       },
     ],
   },

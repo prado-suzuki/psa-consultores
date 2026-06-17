@@ -75,10 +75,10 @@ export function SopDocument(props: SopDocumentProps) {
   const data = todayBR();
 
   // Gargalos pertencem à ETAPA (gargalo_etapas) — resolvidos por etapa abaixo.
-  // Melhorias do processo são derivadas via gargalo_melhorias (melhoria_processos
-  // e gargalo_processos foram aposentados).
+  // Melhorias do processo vêm do vínculo DIRETO melhoria_processos (sem
+  // gargalo_melhorias — esse vínculo não existe mais).
   const gargaloById = new Map(gargalos.map(g => [g.id, g]));
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const procMelhorias = isFicou ? melhorias.filter(m => melhoriaIdsProc.has(m.id)) : [];
 
   // Sistemas/documentos do cenário

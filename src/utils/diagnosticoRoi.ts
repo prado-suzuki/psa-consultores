@@ -358,9 +358,9 @@ export function diagnosticarRoi(
   }
 
   // Melhorias e investimentos — uma melhoria entra no investment do processo
-  // se resolve um gargalo que se manifesta numa etapa do processo (DERIVADO via
-  // gargalo_melhorias + gargalo_etapas; melhoria_processos foi aposentado).
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  // quando está vinculada DIRETAMENTE a ele (melhoria_processos). Sem
+  // dependência de gargalo.
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const melhoriasRelevantes = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   if (melhoriasRelevantes.length === 0) {
@@ -371,7 +371,7 @@ export function diagnosticarRoi(
       status: 'zerado',
       impacto: 'investment em melhorias (treinamento, execução, custo externo)',
       formula: 'Σ horas_treinamento×CH + executadoPor.horas×CH + custo_externo_unico',
-      camposFonte: ['melhoria_processos', 'gargalo_melhorias', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
+      camposFonte: ['melhoria_processos', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
     }));
   } else {
     for (const m of melhoriasRelevantes) {

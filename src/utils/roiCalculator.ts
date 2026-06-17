@@ -106,13 +106,13 @@ function custoMedioHora(responsaveis: Responsavel[]): number {
   return total / responsaveis.length;
 }
 
-// Melhorias relevantes a um processo: DERIVADAS via gargalo — a melhoria ataca
-// um gargalo que se manifesta numa etapa do processo (gargalo_melhorias +
-// gargalo_etapas). Fonte única usada tanto para contar a abrangência (rateio do
-// investimento) quanto para selecionar as melhorias dentro de calcProcesso.
-// (Aposentados os vínculos diretos melhoria_processos e gargalo_processos.)
+// Melhorias relevantes a um processo: vínculo DIRETO melhoria↔processo
+// (melhoria_processos). Sem dependência de gargalo. Fonte única usada tanto
+// para contar a abrangência (rateio do investimento) quanto para selecionar as
+// melhorias dentro de calcProcesso. O parâmetro `gargalos` é mantido por
+// assinatura/compat, mas não participa mais da seleção.
 function melhoriasRelevantesIds(proc: Processo, gargalos: Gargalo[], melhorias: Melhoria[]): Set<string> {
-  const derivadas = melhoriaIdsDoProcesso(gargalos, proc.id);
+  const derivadas = melhoriaIdsDoProcesso(melhorias, proc.id);
   return new Set(melhorias.filter(m => derivadas.has(m.id)).map(m => m.id));
 }
 

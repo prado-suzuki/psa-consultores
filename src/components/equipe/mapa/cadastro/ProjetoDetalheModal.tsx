@@ -154,7 +154,7 @@ export default function ProjetoDetalheModal({
                 </div>
                 <div className="projeto-detail-row-list">
                   {backlog.map(melhoria => {
-                    const procs = processoIdsDaMelhoria(melhoria.id, gargalos).map(pid => processoNomeById.get(pid)).filter((n): n is string => Boolean(n));
+                    const procs = processoIdsDaMelhoria(melhoria).map(pid => processoNomeById.get(pid)).filter((n): n is string => Boolean(n));
                     const horas = (melhoria.training_hours || 0) + (melhoria.executadoPor || []).reduce((s, r) => s + (r.horas || 0), 0);
                     return (
                       <div key={melhoria.id} className="projeto-backlog-row">
