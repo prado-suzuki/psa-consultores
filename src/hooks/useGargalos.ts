@@ -105,17 +105,33 @@ async function syncEtapasOrigem(gargaloId: string, etapas: GargaloEtapaRef[]): P
   }
 }
 
-/** Sincroniza gargalo_processos (M:N delete-all + insert) — grão = PROCESSO. */
+/** Sincroniza gargalo_processos (M:N) por DIFF — grão = PROCESSO.
+ *  Insere só os processos que faltam e remove só os que saíram (em vez de
+ *  delete-all + insert). Evita violar a unique (gargalo_id, processo_id) quando
+ *  o gargalo já tem vínculos do backfill e a lista reenviada repete os atuais. */
 async function syncProcessos(gargaloId: string, processoIds: string[]): Promise<void> {
-  const { error: delErr } = await supabase
-    .from('gargalo_processos' as never)
-    .delete()
-    .eq('gargalo_id', gargaloId);
-  if (delErr) throw new Error(delErr.message);
+  const desejados = [...new Set(processoIds.filter(Boolean))];
 
-  const ids = [...new Set(processoIds.filter(Boolean))];
-  if (ids.length > 0) {
-    const rows = ids.map((processo_id) => ({ gargalo_id: gargaloId, processo_id }));
+  const { data: atuaisRows, error: selErr } = await supabase
+    .from('gargalo_processos' as never)
+    .select('processo_id')
+    .eq('gargalo_id', gargaloId);
+  if (selErr) throw new Error(selErr.message);
+  const atuais = ((atuaisRows ?? []) as Array<{ processo_id: string }>).map((r) => r.processo_id);
+
+  const aRemover = atuais.filter((p) => !desejados.includes(p));
+  const aInserir = desejados.filter((p) => !atuais.includes(p));
+
+  if (aRemover.length > 0) {
+    const { error: delErr } = await supabase
+      .from('gargalo_processos' as never)
+      .delete()
+      .eq('gargalo_id', gargaloId)
+      .in('processo_id', aRemover);
+    if (delErr) throw new Error(delErr.message);
+  }
+  if (aInserir.length > 0) {
+    const rows = aInserir.map((processo_id) => ({ gargalo_id: gargaloId, processo_id }));
     const { error: insErr } = await supabase
       .from('gargalo_processos' as never)
       .insert(rows as never);

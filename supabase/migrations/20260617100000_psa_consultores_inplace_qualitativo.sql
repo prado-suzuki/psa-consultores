@@ -186,11 +186,12 @@ VALUES
   (public.psa_mapa_uuid('stage:Monitoramento Reativo'), 'c1012dd1-2296-4464-bcec-be7e9bfbed77'::uuid, 2, 'Monitoramento Reativo', 'Acompanhamento reativo da execução: status informal na cabeça do consultor, produtividade não medida por horas e revisões concentradas nos sêniores como ponto de bloqueio dos júniores.', 'AS-IS', 'manual'),
   (public.psa_mapa_uuid('stage:Quebra de Balancete'), '5c2c1c02-e51e-4790-b251-15f2306ca545'::uuid, 1, 'Quebra de Balancete', 'Conversão do balancete (PDF) para Excel (.xlsx) via Able2Extract, base para as revisões de IRPJ/CSLL e PIS/COFINS.', 'AS-IS', 'semi_automatica'),
   (public.psa_mapa_uuid('stage:Consolidação da Revisão de Tributos e Parecer'), 'bda94caf-9811-4177-b1c0-088b253c0243'::uuid, 1, 'Consolidação da Revisão de Tributos e Parecer', 'Consolidação das revisões de LCDPR, IRPF, IRPJ/CSLL e PIS/COFINS: confronto das apurações do cliente com as da Prado e emissão do parecer com recomendações.', 'AS-IS', 'manual')
-ON CONFLICT (id, scenario) DO UPDATE SET
+ON CONFLICT (id) DO UPDATE SET
   process_id = EXCLUDED.process_id,
   stage_order = EXCLUDED.stage_order,
   name = EXCLUDED.name,
   description = EXCLUDED.description,
+  scenario = EXCLUDED.scenario,
   execution = EXCLUDED.execution,
   updated_at = NOW();
 

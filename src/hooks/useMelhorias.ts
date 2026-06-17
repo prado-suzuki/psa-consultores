@@ -63,14 +63,28 @@ export type MelhoriaInput = Omit<Melhoria, 'id' | 'clusterName' | 'processos' | 
 /** Sincroniza melhoria_processos (N:M) — grão = PROCESSO (vínculo direto da
  *  melhoria ao processo, independente de gargalo). */
 async function syncProcessos(melhoriaId: string, processoIds: string[]): Promise<void> {
-  const { error: delErr } = await supabase
+  const desejados = [...new Set(processoIds.filter(Boolean))];
+
+  const { data: atuaisRows, error: selErr } = await supabase
     .from('melhoria_processos' as never)
-    .delete()
+    .select('processo_id')
     .eq('melhoria_id', melhoriaId);
-  if (delErr) throw new Error(delErr.message);
-  const ids = [...new Set(processoIds.filter(Boolean))];
-  if (ids.length > 0) {
-    const rows = ids.map((processo_id) => ({ melhoria_id: melhoriaId, processo_id }));
+  if (selErr) throw new Error(selErr.message);
+  const atuais = ((atuaisRows ?? []) as Array<{ processo_id: string }>).map((r) => r.processo_id);
+
+  const aRemover = atuais.filter((p) => !desejados.includes(p));
+  const aInserir = desejados.filter((p) => !atuais.includes(p));
+
+  if (aRemover.length > 0) {
+    const { error: delErr } = await supabase
+      .from('melhoria_processos' as never)
+      .delete()
+      .eq('melhoria_id', melhoriaId)
+      .in('processo_id', aRemover);
+    if (delErr) throw new Error(delErr.message);
+  }
+  if (aInserir.length > 0) {
+    const rows = aInserir.map((processo_id) => ({ melhoria_id: melhoriaId, processo_id }));
     const { error: insErr } = await supabase.from('melhoria_processos' as never).insert(rows as never);
     if (insErr) throw new Error(insErr.message);
   }
