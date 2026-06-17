@@ -31,6 +31,7 @@ export const UsersTab = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
   const { data: pages } = usePagePermissions();
