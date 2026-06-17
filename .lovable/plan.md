@@ -1,35 +1,36 @@
-## Checklist de validação — `20260619100000_psa_08_reestrutura_projetos_osg.sql`
+## Objetivo
+Na página `/equipe/acessos`, aba "Usuários Estrutura", adicionar uma barra de abas no topo do painel "Usuários" para filtrar a lista por role (Admin, Líder, Sublíder, Team member, Client, Timecliente, Todos). Hoje os usuários aparecem agrupados por role em uma única lista rolável; o pedido é trocar isso por abas — clico em "Admin" e só vejo admins, etc.
 
-1. ✅ **Reagrupa 33 processos OSG em 3 projetos (19/6/8, sem órfão).**
-   - Pré-condição (linhas 53-56): aborta se `count(processes WHERE cluster_id = OSG) <> 33`.
-   - VALUES da linha 117-164 lista exatamente 33 códigos `PROC-GERAL-*` — 19 → Contratos, 6 → Gestão, 8 → Planejamento.
-   - Pós-validação 6.1 (linhas 178-182) aborta se a distribuição final não for 19/6/8.
-   - Pós-validação 6.2 (linhas 185-191) aborta se sobrar qualquer processo OSG fora dos 3 projetos.
+## Escopo
+- Somente o painel esquerdo "Usuários" do componente `src/components/acessos/UsersTab.tsx`.
+- Sem mudanças no painel direito de permissões, sem mudanças em hooks, RLS, dados ou rotas.
+- Sem mexer em `AdminAcessos.tsx` / `GestaoAcessos.tsx` (que são read-only e fora do pedido).
 
-2. ✅ **"Contratos" reaproveita projeto existente, não cria outro.**
-   - `v_contratos := '70c8b198-…'` (ex "P10 - Contratos", já criado pela coordenadora com `cluster_id = NULL`).
-   - Há apenas `UPDATE public.projects … WHERE id = v_contratos` (linhas 78-94). Nenhum `INSERT INTO public.projects` em toda a migração.
+## Mudanças
 
-3. ✅ **Em `processes` só mudam `project_id` e `order_index`.**
-   - `UPDATE public.processes SET project_id = m.proj, order_index = m.ord` (linhas 113-115). Nenhum outro campo no SET.
-   - Cláusula `WHERE p.code = m.code AND p.cluster_id = v_osg` garante a trava por cluster.
+### `src/components/acessos/UsersTab.tsx`
+1. Acrescentar estado `roleFilter: AppRole | 'all'` (default `'all'`).
+2. Renderizar uma `Tabs` horizontal no topo do card "Usuários", logo acima do input de pesquisa, com as abas:
+   - Todos
+   - Admin
+   - Líder
+   - Sublíder
+   - Team member
+   - Client
+   - Timecliente
+   
+   Cada aba mostra a contagem entre parênteses (ex.: `Admin (7)`), calculada a partir de `useUsersWithRoles()` já consumido no componente. Usuários sem nenhuma role contam só em "Todos".
+3. Aplicar o filtro combinado com a busca por nome/email já existente:
+   - `roleFilter === 'all'` → comportamento atual (agrupado por role).
+   - Caso contrário → lista plana só com usuários que possuem aquela role, ordenada por nome, sem o cabeçalho "ADMIN (n)" repetido (a aba já indica).
+4. Manter seleção do usuário ativo; se o usuário selecionado sumir do filtro atual, manter selecionado mas sem destaque na lista (não limpar a seleção para não recarregar o painel direito).
+5. Layout responsivo: abas com `overflow-x-auto` em telas estreitas, mantendo o estilo teal já usado nas outras Tabs da página.
 
-4. ✅ **Nenhuma etapa é tocada.**
-   - Não há `INSERT/UPDATE/DELETE` em `process_stages`, `etapa_documentos`, `etapa_sistemas`, `etapa_responsaveis` ou `gargalo_etapas`.
-   - Snapshot antes (0.3, linhas 59-62) e depois (6.3, linhas 194-200) com `RAISE EXCEPTION` se a contagem divergir.
-   - Como nenhum `process.id` muda nem nenhum processo é deletado, as FKs `process_stages.process_id` permanecem válidas.
+## Fora de escopo
+- Nenhuma alteração no painel direito (permissões), nos cards de estatísticas, no Supabase, nas policies, ou nas outras abas (`Páginas`, `Cadastros Estrutura`, `Cadastros Clientes`, `Cadastro Categorias`).
+- Não alterar a ordenação interna dos grupos nem renomear roles.
 
-5. ✅ **Nada fora do cluster OSG é lido, alterado ou deletado.**
-   - Todos os SELECTs/UPDATEs em `processes` filtram por `cluster_id = v_osg` ou por `id` específico.
-   - Os 3 `UPDATE public.projects` usam `WHERE id = <uuid fixo>` (Contratos/Gestão/Planejamento).
-   - O `DELETE FROM public.projects WHERE id = ANY(v_del)` (linha 171) usa os 4 UUIDs fixos dos ex-P2/P3/P4/P5.
-   - `DELETE FROM public.projeto_justificativas WHERE projeto_id = v_planejamento` é escopado por id.
-
-6. ✅ **Os 4 projetos deletados não têm referência em sprints/dailies/tasks.**
-   - Bloco 0.4 (linhas 65-74) soma referências em `sprints`, `process_improvements`, `process_scenarios`, `org_tasks` e `client_visible_projects` para `project_id = ANY(v_del)` e aborta se `> 0`.
-   - Observação: `daily_standups` referencia `process_id`, não `project_id` — como nenhum processo é deletado, dailies ficam intactas por construção.
-   - Pós-validação 6.4 (linhas 203-205) confirma que os 4 projetos foram efetivamente removidos.
-
-**Toda a migração roda em `BEGIN; … COMMIT;` com `RAISE EXCEPTION` em cada checkpoint — qualquer divergência aborta a transação inteira.**
-
-Aguardando aprovação para aplicar via `supabase--migration`.
+## Validação
+- Abrir `/equipe/acessos` → aba "Usuários Estrutura" → clicar em cada aba e confirmar que só aparecem usuários daquela role e que a contagem bate com a do agrupamento atual.
+- Pesquisa por nome continua funcionando dentro da aba selecionada.
+- Selecionar um usuário ainda abre o painel direito de permissões normalmente.
