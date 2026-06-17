@@ -18,6 +18,8 @@ import {
 import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
 import { useQueryClient } from '@tanstack/react-query';
 import { buildRoiCsv, triggerCsvDownload } from '@/lib/roiCsv';
+import Modal from '@/components/equipe/mapa/Modal';
+import type { SecaoImagem } from '@/lib/roiVisualExport';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 // `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
@@ -324,6 +326,8 @@ export default function DashboardRoiPage() {
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
   const [exportando, setExportando] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const captureRef = useRef<HTMLDivElement>(null);
   const [notasOpen, setNotasOpen] = useState(false);
 
   // Quando a lista de projetos chega, seleciona o primeiro como filtro default.
@@ -475,6 +479,39 @@ export default function DashboardRoiPage() {
     }
   };
 
+  // Exporta a apresentação VISUAL (todas as abas) em HTML ou PDF: percorre as
+  // ABAS, captura a div de conteúdo em cada uma e monta o arquivo; restaura a aba.
+  const esperarPaint = (ms = 380) =>
+    new Promise<void>((res) => requestAnimationFrame(() => window.setTimeout(res, ms)));
+
+  const exportVisual = async (formato: 'html' | 'pdf') => {
+    setExportando(true);
+    const abaOriginal = aba;
+    try {
+      const { capturarNodePng, montarHtml, montarPdf, baixarBlob } = await import('@/lib/roiVisualExport');
+      const secoes: SecaoImagem[] = [];
+      for (const a of ABAS) {
+        setAba(a.id);
+        await esperarPaint();
+        if (!captureRef.current) continue;
+        const img = await capturarNodePng(captureRef.current);
+        secoes.push({ label: a.label, ...img });
+      }
+      const base = (filtroProjeto ? `dashboard-roi-${tituloProjeto}` : 'dashboard-roi')
+        .replace(/[^\w.-]+/g, '_');
+      if (formato === 'html') {
+        const html = montarHtml(secoes, `${tituloProjeto} — Dashboard ROI`);
+        baixarBlob(new Blob([html], { type: 'text/html;charset=utf-8' }), `${base}.html`);
+      } else {
+        await montarPdf(secoes, `${base}.pdf`);
+      }
+    } finally {
+      setAba(abaOriginal);
+      setExportando(false);
+      setExportOpen(false);
+    }
+  };
+
   // Paleta corporativa sóbria (navy / teal / slate / amber). Evita variações
   // neon/playful — agro-consultoria B2B prioriza legibilidade e gravidade.
   const custosCategoria = [
@@ -555,9 +592,9 @@ export default function DashboardRoiPage() {
           <NotasInfoButton onClick={() => setNotasOpen(true)} />
           <button
             className="btn-secondary"
-            onClick={handleExportCsv}
+            onClick={() => setExportOpen(true)}
             disabled={exportando}
-            title="Exportar dados consolidados em CSV para a Ferramenta C (Digital Rotina)"
+            title="Exportar — escolha o formato (CSV, HTML ou PDF)"
             data-tour="roi-export"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -575,6 +612,36 @@ export default function DashboardRoiPage() {
       </div>
 
       <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
+
+      <Modal isOpen={exportOpen} onClose={() => setExportOpen(false)}>
+        <div className="modal" style={{ maxWidth: 440 }}>
+          <h2>Exportar Dashboard ROI</h2>
+          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: -4 }}>
+            CSV traz os dados consolidados por processo (para a Ferramenta C). HTML e PDF capturam a
+            apresentação visual — todas as seções, com os gráficos.
+          </p>
+          <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
+            <button
+              className="btn-secondary"
+              disabled={exportando}
+              onClick={() => { setExportOpen(false); handleExportCsv(); }}
+            >
+              CSV — dados consolidados por processo
+            </button>
+            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('html')}>
+              HTML — apresentação visual (com gráficos)
+            </button>
+            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('pdf')}>
+              PDF — apresentação visual (com gráficos)
+            </button>
+            {exportando && (
+              <span style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
+                Gerando… percorrendo as seções para capturar os gráficos.
+              </span>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* Filtros */}
       <div className="dashv2-filters" data-tour="roi-filtros">
@@ -637,7 +704,7 @@ export default function DashboardRoiPage() {
       </div>
 
       {/* Conteúdo */}
-      <div className="dashv2-content">
+      <div className="dashv2-content" ref={captureRef}>
         {/* =================== SUMÁRIO EXECUTIVO =================== */}
         {aba === 'sumario' && (
           <StorySection
