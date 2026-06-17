@@ -30,9 +30,11 @@ import { parseDate } from '@/lib/dateUtils';
 import { cn } from '@/lib/utils';
 import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
- 
+import { AreaKey } from '@/config/areaCategories';
+
 interface TaskTableProps {
   tasks: OrgTask[];
+  area: AreaKey;
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
@@ -58,9 +60,9 @@ const statusLabels = Object.fromEntries(
 ) as Record<OrgTaskStatus, string>;
  
  
- export const TaskTable = ({ tasks, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
+ export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
-   const updateTask = useUpdateOrgTask();
+   const updateTask = useUpdateOrgTask(area);
  
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) => tasks.filter(t => t.parent_task_id === parentId);
