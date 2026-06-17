@@ -43,22 +43,41 @@ export const UsersTab = () => {
 
   // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
   const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
+
+  // Contagem por role (independente da pesquisa) para mostrar nas abas.
+  const roleCounts = useMemo(() => {
+    const counts: Record<AppRole | 'all', number> = {
+      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0,
+    };
+    if (!users) return counts;
+    counts.all = users.length;
+    for (const u of users) {
+      for (const r of u.roles) {
+        if (r in counts) counts[r] += 1;
+      }
+    }
+    return counts;
+  }, [users]);
+
   const groupedUsers = useMemo(() => {
     if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
     const normalize = (s: string) =>
       s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
     const term = normalize(searchTerm.trim());
-    const filtered = term
+    let filtered = term
       ? users.filter((u) => {
           const fullName = `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
           return normalize(fullName).includes(term);
         })
       : users;
+    if (roleFilter !== 'all') {
+      filtered = filtered.filter((u) => u.roles.includes(roleFilter));
+    }
     const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
       ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
     const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
     for (const u of filtered) {
-      const r = primaryRole(u);
+      const r = roleFilter !== 'all' ? roleFilter : primaryRole(u);
       if (!buckets.has(r)) buckets.set(r, []);
       buckets.get(r)!.push(u);
     }
@@ -71,7 +90,7 @@ export const UsersTab = () => {
         role,
         users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
       }));
-  }, [users, searchTerm]);
+  }, [users, searchTerm, roleFilter]);
 
   return (
     <div className="space-y-4">
