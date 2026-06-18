@@ -79,10 +79,10 @@ export function FiscalClients() {
                   <TableCell>
                     {client.categoria ? (
                       <Badge variant="outline" className={
-                        client.categoria === 'Bronze' ? 'bg-amber-100 text-amber-800 border-amber-200' :
-                        client.categoria === 'Prata' ? 'bg-slate-200 text-slate-700 border-slate-300' :
-                        client.categoria === 'Ouro' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                        client.categoria === 'Diamante' ? 'bg-blue-100 text-blue-800 border-blue-200' : ''
+                        client.categoria === 'Bronze' ? 'bg-warning/10 text-warning border-warning/20' :
+                        client.categoria === 'Prata' ? 'bg-muted text-foreground border-border' :
+                        client.categoria === 'Ouro' ? 'bg-warning/10 text-warning border-warning/20' :
+                        client.categoria === 'Diamante' ? 'bg-info/10 text-info border-info/20' : ''
                       }>
                         {client.categoria}
                       </Badge>

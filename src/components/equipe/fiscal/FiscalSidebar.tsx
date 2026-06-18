@@ -142,8 +142,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
                 parentActive
-                  ? "bg-emerald-50 text-emerald-700"
-                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  ? "bg-success/5 text-success"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
               <Icon className="h-4 w-4" />
@@ -166,8 +166,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                   className={cn(
                     "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     childActive
-                      ? "bg-emerald-100 text-emerald-700 font-medium"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                      ? "bg-success/10 text-success font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
                   <ChildIcon className="h-4 w-4" />
@@ -187,8 +187,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
           active
-            ? "bg-emerald-100 text-emerald-700"
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            ? "bg-success/10 text-success"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
         )}
       >
         <Icon className="h-4 w-4" />
@@ -200,19 +200,19 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
   return (
     <div
       className={cn(
-        "bg-white border-r border-slate-200 flex flex-col h-screen flex-shrink-0 transition-all duration-200",
+        "bg-card border-r border-border flex flex-col h-screen flex-shrink-0 transition-all duration-200",
         isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64 overflow-y-auto"
       )}
     >
       {/* Header with collapse button */}
-      <div className="h-14 border-b border-slate-200 flex items-center justify-between px-3">
+      <div className="h-14 border-b border-border flex items-center justify-between px-3">
         <div className="flex items-center">
-          <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center mr-3">
-            <Calculator className="h-5 w-5 text-emerald-600" />
+          <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center mr-3">
+            <Calculator className="h-5 w-5 text-success" />
           </div>
           <div>
-            <h1 className="font-semibold text-slate-900 text-sm">Tax</h1>
-            <p className="text-xs text-slate-500">Gestão de Projetos</p>
+            <h1 className="font-semibold text-foreground text-sm">Tax</h1>
+            <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
           </div>
         </div>
         <Button 
@@ -231,11 +231,11 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       </nav>
 
       {/* Footer with actions */}
-      <div className="mt-auto p-3 border-t border-slate-200 space-y-2">
+      <div className="mt-auto p-3 border-t border-border space-y-2">
         <Button 
           variant="ghost" 
           size="sm"
-          className="w-full justify-start text-slate-600 hover:text-emerald-600 hover:bg-emerald-50"
+          className="w-full justify-start text-muted-foreground hover:text-success hover:bg-success/5"
           onClick={() => navigate('/equipe')}
         >
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -244,13 +244,13 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         <Button 
           variant="ghost" 
           size="sm"
-          className="w-full justify-start text-slate-600 hover:text-red-600 hover:bg-red-50"
+          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5"
           onClick={handleSignOut}
         >
           <LogOut className="h-4 w-4 mr-2" />
           Sair
         </Button>
-        <div className="pt-2 border-t border-slate-100">
+        <div className="pt-2 border-t border-border">
           <img src={logoPsa} alt="PSA" className="h-5 opacity-50" />
         </div>
       </div>

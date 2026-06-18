@@ -55,27 +55,27 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="min-h-screen bg-canvas flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? 'w-16' : 'w-64'} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
+        className={`${collapsed ? 'w-16' : 'w-64'} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-200/60">
+        <div className="p-6 border-b border-border/60">
           {collapsed ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900 text-lg">Gestão</h2>
-                <p className="text-xs text-slate-500">Painel de Controle</p>
+                <h2 className="font-semibold text-foreground text-lg">Gestão</h2>
+                <p className="text-xs text-muted-foreground">Painel de Controle</p>
               </div>
             </div>
           )}
@@ -85,7 +85,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
+          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
           style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -99,9 +99,9 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               key={item.path}
               variant="ghost"
               className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive(item.path) 
-                  ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                isActive(item.path)
+                  ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                  : 'text-foreground hover:bg-muted hover:text-primary'
               }`}
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}
@@ -113,34 +113,34 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         </nav>
 
         {/* Footer Actions */}
-        <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
+        <div className="mt-auto p-4 border-t border-border/60 space-y-2">
           {/* User Card */}
           {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-              <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-teal-600" />
+            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-4 w-4 text-primary" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
+                <p className="text-sm font-medium text-foreground truncate">
                   {user?.email?.split('@')[0] || 'Usuário'}
                 </p>
-                <p className="text-xs text-slate-500">Gestão</p>
+                <p className="text-xs text-muted-foreground">Gestão</p>
               </div>
             </div>
           )}
-          
-          <Button 
-            variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors`}
+
+          <Button
+            variant="ghost"
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors`}
             onClick={() => navigate('/equipe')}
             title={collapsed ? 'Trocar área' : undefined}
           >
             <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
             {!collapsed && 'Trocar área'}
           </Button>
-          <Button 
-            variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
+          <Button
+            variant="ghost"
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors`}
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
@@ -153,26 +153,26 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-slate-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              className="relative text-muted-foreground hover:text-primary hover:bg-muted"
               onClick={() => navigate('/gestao/chamados')}
               title="Ver Chamados"
             >

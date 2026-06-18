@@ -415,7 +415,7 @@ export default function GestaoChamadosDashboard() {
           variant="outline"
           size="sm"
           onClick={() => navigate('/gestao/chamados')}
-          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <ListChecks className="mr-2 h-4 w-4" />
           Lista de chamados
@@ -424,17 +424,17 @@ export default function GestaoChamadosDashboard() {
     >
       <div className="space-y-6">
         {/* Filtros */}
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-4">
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Período
               </Label>
               <Select
                 value={filters.periodo}
                 onValueChange={(v) => setFilters({ ...filters, periodo: v })}
               >
-                <SelectTrigger className="h-9 bg-white">
+                <SelectTrigger className="h-9 bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -447,14 +447,14 @@ export default function GestaoChamadosDashboard() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Departamento
               </Label>
               <Select
                 value={filters.departamento}
                 onValueChange={(v) => setFilters({ ...filters, departamento: v })}
               >
-                <SelectTrigger className="h-9 bg-white">
+                <SelectTrigger className="h-9 bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -468,14 +468,14 @@ export default function GestaoChamadosDashboard() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Área
               </Label>
               <Select
                 value={filters.area}
                 onValueChange={(v) => setFilters({ ...filters, area: v })}
               >
-                <SelectTrigger className="h-9 bg-white">
+                <SelectTrigger className="h-9 bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -489,14 +489,14 @@ export default function GestaoChamadosDashboard() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+              <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Cluster
               </Label>
               <Select
                 value={filters.cluster}
                 onValueChange={(v) => setFilters({ ...filters, cluster: v })}
               >
-                <SelectTrigger className="h-9 bg-white">
+                <SelectTrigger className="h-9 bg-card">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -574,10 +574,10 @@ export default function GestaoChamadosDashboard() {
             icon={<PieChart className="h-6 w-6 text-white" />}
           />
 
-          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm lg:col-span-1">
+          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:col-span-1">
             <div className="mb-4 flex items-center gap-2">
-              <ListChecks className="h-4 w-4 text-teal-600" />
-              <h3 className="text-sm font-semibold text-slate-900">Distribuição por Status</h3>
+              <ListChecks className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Distribuição por Status</h3>
               <Badge variant="secondary" className="ml-auto text-[11px]">
                 {stats.total}
               </Badge>
@@ -585,16 +585,16 @@ export default function GestaoChamadosDashboard() {
             {statusSegments.length > 0 ? (
               <HatchedBar segments={statusSegments} height={48} />
             ) : (
-              <p className="py-8 text-center text-xs text-slate-400">
+              <p className="py-8 text-center text-xs text-muted-foreground">
                 Sem chamados no recorte atual.
               </p>
             )}
           </div>
 
-          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm lg:col-span-1">
+          <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm lg:col-span-1">
             <div className="mb-4 flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-teal-600" />
-              <h3 className="text-sm font-semibold text-slate-900">Distribuição por Departamento</h3>
+              <Building2 className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Distribuição por Departamento</h3>
               <Badge variant="secondary" className="ml-auto text-[11px]">
                 {departmentSegments.length}
               </Badge>
@@ -602,7 +602,7 @@ export default function GestaoChamadosDashboard() {
             {departmentSegments.length > 0 ? (
               <HatchedBar segments={departmentSegments} height={48} />
             ) : (
-              <p className="py-8 text-center text-xs text-slate-400">
+              <p className="py-8 text-center text-xs text-muted-foreground">
                 Sem chamados no recorte atual.
               </p>
             )}
@@ -613,7 +613,7 @@ export default function GestaoChamadosDashboard() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <RankingCard
             title="Responsáveis pela 1ª Resposta"
-            icon={<Trophy className="h-4 w-4 text-teal-600" />}
+            icon={<Trophy className="h-4 w-4 text-primary" />}
             description="Quem mais respondeu chamados no recorte"
             rows={rankingResponsaveis}
             emptyHint="Nenhum chamado respondido ainda."
@@ -624,7 +624,7 @@ export default function GestaoChamadosDashboard() {
 
           <RankingCard
             title="Clientes com Mais Chamados"
-            icon={<Building2 className="h-4 w-4 text-teal-600" />}
+            icon={<Building2 className="h-4 w-4 text-primary" />}
             description="Empresas que mais geraram demandas"
             rows={rankingClientes}
             emptyHint="Nenhum cliente identificado."
@@ -633,7 +633,7 @@ export default function GestaoChamadosDashboard() {
 
           <RankingCard
             title="Representantes (quem abriu)"
-            icon={<Users className="h-4 w-4 text-teal-600" />}
+            icon={<Users className="h-4 w-4 text-primary" />}
             description="Usuários do portal que mais abriram chamados"
             rows={rankingRepresentantes}
             emptyHint="Sem dados de representantes."
@@ -642,7 +642,7 @@ export default function GestaoChamadosDashboard() {
 
           <RankingCard
             title="Departamentos"
-            icon={<ListChecks className="h-4 w-4 text-teal-600" />}
+            icon={<ListChecks className="h-4 w-4 text-primary" />}
             description="Carga e tempo de resposta por departamento"
             rows={rankingDepartamentos}
             emptyHint="Sem dados de departamento."
@@ -653,7 +653,7 @@ export default function GestaoChamadosDashboard() {
           {rankingAreas.length > 0 && (
             <RankingCard
               title="Áreas Internas"
-              icon={<PieChart className="h-4 w-4 text-teal-600" />}
+              icon={<PieChart className="h-4 w-4 text-primary" />}
               description="Distribuição por área da estrutura"
               rows={rankingAreas}
               emptyHint="Sem áreas atribuídas."
@@ -695,20 +695,20 @@ function TaxTopicsCloud({ topics, totalTickets }: TaxTopicsCloudProps) {
 
   const colorFor = (value: number) => {
     const t = (value - min) / range;
-    if (t > 0.75) return 'text-teal-700';
-    if (t > 0.5) return 'text-teal-600';
-    if (t > 0.25) return 'text-teal-500';
-    return 'text-slate-500';
+    if (t > 0.75) return 'text-primary';
+    if (t > 0.5) return 'text-primary';
+    if (t > 0.25) return 'text-primary';
+    return 'text-muted-foreground';
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Cloud className="h-4 w-4 text-teal-600" />
+          <Cloud className="h-4 w-4 text-primary" />
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Nuvem de Tópicos Fiscais</h3>
-            <p className="text-[11px] text-slate-500">
+            <h3 className="text-sm font-semibold text-foreground">Nuvem de Tópicos Fiscais</h3>
+            <p className="text-[11px] text-muted-foreground">
               Termos tributários mais mencionados nos chamados (título + descrição)
             </p>
           </div>
@@ -719,14 +719,14 @@ function TaxTopicsCloud({ topics, totalTickets }: TaxTopicsCloudProps) {
       </div>
 
       {topics.length === 0 ? (
-        <p className="py-10 text-center text-xs text-slate-400">
+        <p className="py-10 text-center text-xs text-muted-foreground">
           {totalTickets === 0
             ? 'Sem chamados no recorte atual.'
             : 'Nenhum termo fiscal identificado nos chamados deste recorte.'}
         </p>
       ) : (
         <>
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-gradient-to-br from-slate-50 via-white to-teal-50/40 px-4 py-6 min-h-[160px]">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 rounded-xl bg-gradient-to-br from-muted via-card to-primary/10 px-4 py-6 min-h-[160px]">
             {topics.map((t) => (
               <span
                 key={t.label}
@@ -741,16 +741,16 @@ function TaxTopicsCloud({ topics, totalTickets }: TaxTopicsCloudProps) {
                 title={`${t.label} — ${t.value} ${t.value === 1 ? 'chamado' : 'chamados'}`}
               >
                 {t.label}
-                <sup className="text-[10px] font-medium text-slate-400 tabular-nums">{t.value}</sup>
+                <sup className="text-[10px] font-medium text-muted-foreground tabular-nums">{t.value}</sup>
               </span>
             ))}
           </div>
-          <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-slate-400">
+          <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
             <span>menos citado</span>
-            <span className="h-2 w-2 rounded-sm bg-slate-300" />
-            <span className="h-2 w-2 rounded-sm bg-teal-300" />
-            <span className="h-2 w-2 rounded-sm bg-teal-500" />
-            <span className="h-2 w-2 rounded-sm bg-teal-700" />
+            <span className="h-2 w-2 rounded-sm bg-muted-foreground/40" />
+            <span className="h-2 w-2 rounded-sm bg-primary" />
+            <span className="h-2 w-2 rounded-sm bg-primary" />
+            <span className="h-2 w-2 rounded-sm bg-primary" />
             <span>mais citado</span>
           </div>
         </>
@@ -786,13 +786,13 @@ function RankingCard({
   const max = Math.max(1, ...topRows.map((r) => (highlightField === 'respondidos' ? r.respondidos : r.total)));
 
   return (
-    <div className={`rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm ${className ?? ''}`}>
+    <div className={`rounded-2xl border border-border/70 bg-card p-5 shadow-sm ${className ?? ''}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2">
           {icon}
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
-            <p className="text-[11px] text-slate-500">{description}</p>
+            <h3 className="text-sm font-semibold text-foreground">{title}</h3>
+            <p className="text-[11px] text-muted-foreground">{description}</p>
           </div>
         </div>
         <Badge variant="secondary" className="text-[11px]">
@@ -801,7 +801,7 @@ function RankingCard({
       </div>
 
       {topRows.length === 0 ? (
-        <p className="py-8 text-center text-xs text-slate-400">{emptyHint}</p>
+        <p className="py-8 text-center text-xs text-muted-foreground">{emptyHint}</p>
       ) : (
         <ul className="space-y-2.5">
           {topRows.map((row, idx) => {
@@ -811,36 +811,36 @@ function RankingCard({
               <li key={row.key}>
                 <div className="mb-1 flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-2">
-                    <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-600">
+                    <span className="inline-flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-muted-foreground">
                       {idx + 1}
                     </span>
-                    <span className="truncate text-sm font-medium text-slate-800">{row.label}</span>
+                    <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     {showResponseTime && (
-                      <span className="text-slate-500 tabular-nums" title="Tempo médio até 1ª resposta">
+                      <span className="text-muted-foreground tabular-nums" title="Tempo médio até 1ª resposta">
                         <Timer className="mr-0.5 inline h-3 w-3 align-[-2px]" />
                         {row.tempoMedioRespostaHoras !== null
                           ? fmtHorasOuDias(row.tempoMedioRespostaHoras)
                           : '—'}
                       </span>
                     )}
-                    <span className="font-semibold tabular-nums text-slate-900">
+                    <span className="font-semibold tabular-nums text-foreground">
                       {value}
-                      <span className="ml-1 text-[10px] font-normal text-slate-500">
+                      <span className="ml-1 text-[10px] font-normal text-muted-foreground">
                         {metricLabel}
                       </span>
                     </span>
                   </div>
                 </div>
-                <div className="h-1.5 w-full rounded-full bg-slate-100">
+                <div className="h-1.5 w-full rounded-full bg-muted">
                   <div
-                    className="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-600 transition-all"
+                    className="h-full rounded-full bg-gradient-to-r from-primary to-primary transition-all"
                     style={{ width: `${pct}%` }}
                   />
                 </div>
                 {highlightField === 'total' && row.respondidos !== row.total && (
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-muted-foreground">
                     {row.respondidos} respondido(s)
                     {row.resolvidos > 0 && ` · ${row.resolvidos} resolvido(s)`}
                   </p>
@@ -853,7 +853,7 @@ function RankingCard({
 
       {rows.length > topRows.length && (
         <div className="mt-3 flex justify-end">
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-muted-foreground">
             +{rows.length - topRows.length} fora do top {topRows.length}
             <ArrowRight className="ml-1 inline h-3 w-3" />
           </span>

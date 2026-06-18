@@ -279,7 +279,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

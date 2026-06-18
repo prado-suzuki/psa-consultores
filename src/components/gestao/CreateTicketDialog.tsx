@@ -165,10 +165,10 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) clear(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-[500px] bg-white">
+      <DialogContent className="sm:max-w-[500px] bg-card">
         <DialogHeader>
-          <DialogTitle className="text-slate-900">Novo Chamado</DialogTitle>
-          <DialogDescription className="text-slate-500">
+          <DialogTitle className="text-foreground">Novo Chamado</DialogTitle>
+          <DialogDescription className="text-muted-foreground">
             Crie um chamado em nome de um representante do cliente.
           </DialogDescription>
         </DialogHeader>
@@ -176,12 +176,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
         <div className="space-y-4 py-4">
           {/* Representante */}
           <div className="space-y-2">
-            <Label htmlFor="client" className="text-slate-700">Representante <RequiredMark /></Label>
+            <Label htmlFor="client" className="text-foreground">Representante <RequiredMark /></Label>
             <Select
               value={formData.user_id}
               onValueChange={(v) => setFormData({ ...formData, user_id: v })}
             >
-              <SelectTrigger className="bg-white border-slate-200">
+              <SelectTrigger className="bg-card border-border">
                 <SelectValue placeholder={loadingClients ? "Carregando..." : "Selecione o representante"} />
               </SelectTrigger>
               <SelectContent>
@@ -196,12 +196,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           {/* Cliente */}
           <div className="space-y-2">
-            <Label className="text-slate-700">Cliente <RequiredMark /></Label>
+            <Label className="text-foreground">Cliente <RequiredMark /></Label>
             <Select
               value={formData.cliente_id}
               onValueChange={handleEmpresaChange}
             >
-              <SelectTrigger className="bg-white border-slate-200">
+              <SelectTrigger className="bg-card border-border">
                 <SelectValue placeholder={loadingEmpresas ? "Carregando..." : "Selecione o cliente"} />
               </SelectTrigger>
               <SelectContent>
@@ -213,37 +213,37 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title" className="text-slate-700">Título <RequiredMark /></Label>
+            <Label htmlFor="title" className="text-foreground">Título <RequiredMark /></Label>
             <Input
               id="title"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="Título do chamado"
-              className="bg-white border-slate-200"
+              className="bg-card border-border"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className="text-slate-700">Descrição <RequiredMark /></Label>
+            <Label htmlFor="description" className="text-foreground">Descrição <RequiredMark /></Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               placeholder="Descreva o chamado..."
               rows={4}
-              className="bg-white border-slate-200"
+              className="bg-card border-border"
             />
           </div>
 
           {/* Área (filtrada pelos clusters da empresa) */}
           <div className="space-y-2">
-            <Label className="text-slate-700">Área <RequiredMark /></Label>
+            <Label className="text-foreground">Área <RequiredMark /></Label>
             <Select
               value={formData.estrutura_area_id}
               onValueChange={(v) => setFormData({ ...formData, estrutura_area_id: v })}
               disabled={!formData.cliente_id}
             >
-              <SelectTrigger className="bg-white border-slate-200">
+              <SelectTrigger className="bg-card border-border">
                 <SelectValue
                   placeholder={
                     !formData.cliente_id
@@ -264,12 +264,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label className="text-slate-700">Categoria</Label>
+              <Label className="text-foreground">Categoria</Label>
               <Select
                 value={formData.department}
                 onValueChange={(v) => setFormData({ ...formData, department: v })}
               >
-                <SelectTrigger className="bg-white border-slate-200">
+                <SelectTrigger className="bg-card border-border">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
@@ -281,12 +281,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
             </div>
 
             <div className="space-y-2">
-              <Label className="text-slate-700">Prioridade</Label>
+              <Label className="text-foreground">Prioridade</Label>
               <Select
                 value={formData.priority}
                 onValueChange={(v) => setFormData({ ...formData, priority: v })}
               >
-                <SelectTrigger className="bg-white border-slate-200">
+                <SelectTrigger className="bg-card border-border">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -300,7 +300,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           {/* File Upload */}
           <div className="space-y-2">
-            <Label className="text-slate-700">Anexos</Label>
+            <Label className="text-foreground">Anexos</Label>
             <div className="flex items-center gap-2">
               <input
                 ref={fileInputRef}
@@ -315,7 +315,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
                 variant="outline"
                 size="sm"
                 onClick={() => fileInputRef.current?.click()}
-                className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="border-border text-muted-foreground hover:bg-muted"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Adicionar arquivos
@@ -324,14 +324,14 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
             {selectedFiles.length > 0 && (
               <div className="space-y-2 mt-2">
                 {selectedFiles.map((file, index) => (
-                  <div key={index} className="flex items-center gap-2 p-2 bg-slate-50 rounded text-sm">
-                    <FileText className="h-4 w-4 text-slate-400" />
-                    <span className="flex-1 truncate text-slate-700">{file.name}</span>
-                    <span className="text-slate-400">({(file.size / 1024).toFixed(1)} KB)</span>
+                  <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded text-sm">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="flex-1 truncate text-foreground">{file.name}</span>
+                    <span className="text-muted-foreground">({(file.size / 1024).toFixed(1)} KB)</span>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-6 w-6 text-slate-400 hover:text-red-500"
+                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
                       onClick={() => removeFile(index)}
                     >
                       <X className="h-4 w-4" />
@@ -347,14 +347,14 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
           <Button
             variant="outline"
             onClick={() => { clear(); onOpenChange(false); }}
-            className="border-slate-200 text-slate-600"
+            className="border-border text-muted-foreground"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
+            className="bg-primary hover:bg-primary text-white"
           >
             {loading ? (
               <span className="flex items-center gap-2">

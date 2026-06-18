@@ -42,10 +42,10 @@ interface TaskTableProps {
 }
  
  const priorityColors = {
-   urgent: 'bg-red-100 text-red-700',
-   high: 'bg-amber-100 text-amber-700',
-   medium: 'bg-blue-100 text-blue-700',
-   low: 'bg-slate-100 text-slate-700',
+   urgent: 'bg-destructive/10 text-destructive',
+   high: 'bg-warning/10 text-warning',
+   medium: 'bg-info/10 text-info',
+   low: 'bg-muted text-foreground',
  };
  
  const priorityLabels = {
@@ -178,7 +178,7 @@ const statusLabels = Object.fromEntries(
              {task.assigned_to_name ? (
                <div className="flex items-center gap-2">
                  <Avatar className="h-6 w-6">
-                   <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700">
+                   <AvatarFallback className="text-xs bg-success/10 text-success">
                      {getInitials(task.assigned_to_name)}
                    </AvatarFallback>
                  </Avatar>
@@ -228,7 +228,7 @@ const statusLabels = Object.fromEntries(
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onClick={() => onDelete(task.id)}
-                    className="text-red-600"
+                    className="text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />
                     Excluir
