@@ -25,14 +25,14 @@ export function FolhaPreview({ docBlocos }: Props) {
         <>
           {/* Folha de papel */}
           <div className="mx-auto max-w-3xl rounded-sm border border-osg-200 bg-white px-8 py-10 shadow-[0_8px_30px_-12px_hsl(var(--osg-700)/0.25)] sm:px-14 sm:py-14">
-            <div className="whitespace-pre-wrap text-justify text-sm leading-relaxed text-slate-800 [&_.campo]:rounded [&_.campo]:bg-osg-moss/10 [&_.campo]:px-1 [&_.campo]:text-osg-moss">
-              <TextoFormatado texto={estrutura} />
+            <div className="whitespace-pre-wrap text-justify text-sm leading-relaxed text-slate-800">
+              <TextoFormatado texto={estrutura} realcarPlaceholders />
             </div>
           </div>
           <p className="mx-auto mt-4 max-w-3xl border-t border-osg-100 pt-3 text-xs text-muted-foreground">
             Prévia com a numeração automática (capítulos, cláusulas e parágrafos pela ordem). Os campos{' '}
-            <code className="rounded bg-osg-moss/10 px-1 text-osg-moss">{'{{ }}'}</code> são preenchidos na geração do
-            documento para um cliente (próxima etapa).
+            <mark className="rounded-[2px] bg-osg-highlighter/60 px-1 text-inherit">{'{{ }}'}</mark> destacados são
+            preenchidos na geração do documento para um cliente (próxima etapa).
           </p>
         </>
       )}

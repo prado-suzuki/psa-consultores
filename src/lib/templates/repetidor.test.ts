@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { expandirRepetidores } from './repetidor';
 import { gerarBlocos, gerarDocumento } from './index';
+import { reidratarItensPorLista } from './mapeadores';
+import type { ItemLista } from './mapeadores';
 import type { Bloco, Contexto, Template } from './types';
 
 const bloco = (id: string, tipo: Bloco['tipo'], conteudo: string, extra: Partial<Bloco> = {}): Bloco => ({
@@ -96,6 +98,40 @@ describe('gerarBlocos com repetidor — numeração estrutural das instâncias',
     };
     const blocos = gerarBlocos(comReferencia, ctx);
     expect(blocos[1].conteudo).toBe('*Parágrafo Segundo:* José integraliza.');
+    expect(blocos[2].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
+  });
+
+  it('snapshot jsonb perde a identidade de refItem; reidratarItensPorLista a religa', () => {
+    const comReferencia: Template = {
+      ...template,
+      blocos: [
+        template.blocos[1],
+        bloco('p2', 'paragrafo', '{{ socio.nome }} integraliza{{#referencia}} o imóvel descrito no {{ refItem.ref }}{{/referencia}}.', {
+          repeteColecao: 'integralizacoes',
+        }),
+      ],
+    };
+    // Como mapearIntegralizacoes monta: ordem por sócio (a chave da reidratação)
+    // e a 2ª ocorrência apontando, por identidade, à 1ª descrição.
+    const montar = (): Contexto => {
+      const ctx = contexto();
+      const itens = ctx.integralizacoes as Record<string, unknown>[];
+      (itens[0].socio as Record<string, unknown>).ordem = '1';
+      (itens[1].socio as Record<string, unknown>).ordem = '2';
+      itens[0].referencia = false;
+      itens[1].referencia = true;
+      itens[1].refItem = itens[0];
+      return ctx;
+    };
+
+    // O round-trip do snapshot duplica refItem (cópia solta) → o carimbo {{ ref }}
+    // cai no item real do array, não na cópia, e {{ refItem.ref }} não resolve.
+    const snapshot = JSON.parse(JSON.stringify(montar())) as Contexto;
+    expect(() => gerarBlocos(comReferencia, snapshot)).toThrow('Placeholder não resolvido: {{refItem.ref}}');
+
+    // Reidratado, refItem volta a apontar ao objeto real → resolve como no vivo.
+    reidratarItensPorLista(snapshot as Record<string, ItemLista[]>);
+    const blocos = gerarBlocos(comReferencia, snapshot);
     expect(blocos[2].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
   });
 

@@ -63,6 +63,7 @@ All colors MUST be HSL.
     --osg-700: 17 25% 19%;
     --osg-moss: 149 66% 22%; /* verde musgo (#125837) */
     --osg-highlighter: 41 73% 71%; /* amarelo dourado (#EBC97D) — marca-texto */
+    --osg-red: 356 59% 45%; /* carmim/tijolo (#B62F38) — vermelho da OSG (excluir/cancelar/erro) */
 
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;
@@ -114,8 +115,9 @@ All colors MUST be HSL.
     --osg-canvas: 32 24% 96%;
 
     /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
-       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
-    --destructive: 356 59% 45%;
+       que o vermelho puro padrão, para conviver com a paleta quente da OSG.
+       Fonte única: --osg-red (token osg-red). */
+    --destructive: var(--osg-red);
   }
 
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)

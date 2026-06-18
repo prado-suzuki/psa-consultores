@@ -620,6 +620,49 @@ export function mapearIntegralizacoes(
   return itens;
 }
 
+/**
+ * Restaura as referências cruzadas de `integralizacoes` que a serialização do
+ * snapshot (jsonb de documento_gerado) desfaz. {{ refItem.ref }} depende de
+ * IDENTIDADE de objeto: o item de uma 2ª ocorrência aponta para o ITEM DE TOPO
+ * que descreveu a matrícula primeiro, e é nesse item de topo que a composição
+ * carimba {{ ref }} (ver index.ts/repetidor.ts). Ao passar por JSON.stringify,
+ * `refItem` vira uma CÓPIA solta do alvo — perde a identidade e nunca recebe o
+ * carimbo, derrubando o render ("Placeholder não resolvido: {{refItem.ref}}").
+ *
+ * Aqui religamos cada `refItem` ao objeto REAL do array, casando pela `ordem` do
+ * sócio (única por item de topo, gravada em mapearIntegralizacoes e preservada na
+ * cópia). É idempotente no caminho vivo (identidade intacta → reaponta ao mesmo
+ * objeto) e conserta snapshots já gravados sem precisar revalidar. Toda tela que
+ * renderiza de um snapshot deve passar `itensPorLista` por aqui antes de montar
+ * o contexto.
+ */
+export function reidratarItensPorLista(
+  itensPorLista: Record<string, ItemLista[]>,
+): Record<string, ItemLista[]> {
+  const integralizacoes = itensPorLista.integralizacoes;
+  if (!Array.isArray(integralizacoes)) return itensPorLista;
+
+  const porOrdem = new Map<string, ItemLista>();
+  for (const item of integralizacoes) {
+    const ordem = (item.socio as Campos | undefined)?.ordem;
+    if (typeof ordem === 'string') porOrdem.set(ordem, item);
+  }
+
+  // Religa o refItem do item e desce nas listas aninhadas ({{#imoveis}}), onde
+  // mora a referência cruzada real.
+  const religar = (item: ItemLista) => {
+    const alvo = item.refItem as ItemLista | undefined;
+    const ordem = (alvo?.socio as Campos | undefined)?.ordem;
+    const real = typeof ordem === 'string' ? porOrdem.get(ordem) : undefined;
+    if (real) item.refItem = real;
+    for (const valor of Object.values(item)) {
+      if (Array.isArray(valor)) for (const filho of valor) religar(filho);
+    }
+  };
+  for (const item of integralizacoes) religar(item);
+  return itensPorLista;
+}
+
 /** Linha de administração com a pessoa do administrador juntada. */
 export interface AdministradorParaMapear {
   pessoa: PessoaRow;

@@ -58,7 +58,7 @@ export { expandirRepetidores } from './repetidor';
 export { numerarBlocos, unirBlocos, rotulosNumeracao, refsNumeracao } from './numeracao';
 export { renderConteudo, renderSegmentos, extrairCampos } from './render';
 export type { SegmentoRender } from './render';
-export { ORIGEM, comOrigem, origemDe } from './origem';
+export { ORIGEM, comOrigem, origemDe, copiarOrigemProfunda } from './origem';
 export type { OrigemValor } from './origem';
 export { extrairRunsLinha, removerMarcas, runsPosicionados, MARCA } from './marcas';
 export type { Marcas, RunMarcado, RunPosicionado } from './marcas';

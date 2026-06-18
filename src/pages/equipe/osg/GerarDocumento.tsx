@@ -29,11 +29,14 @@ import {
 import { cn } from '@/lib/utils';
 import {
   avaliarFlags,
+  comOrigem,
   comporBlocos,
+  copiarOrigemProfunda,
   gerarBlocos,
   marcarRealceDiff,
   removerMarcas,
   unirBlocos,
+  type Bloco,
   type BlocoGerado,
   type FlagDeclarativa,
   type OrigemValor,
@@ -56,6 +59,7 @@ import {
   mapearRegistro,
   mapearSociedade,
   montarContexto,
+  reidratarItensPorLista,
   type ItemLista,
 } from '@/lib/templates/mapeadores';
 import { useQueryClient } from '@tanstack/react-query';
@@ -64,6 +68,7 @@ import { useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaM
 import {
   useDocumentoGeradoRascunho,
   useDocumentoOverrides,
+  useDocumentoVersoes,
   useSalvarDocumentoGerado,
   type DocumentoGeradoRow,
   type OverrideAplicavel,
@@ -104,6 +109,8 @@ import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
 import { FolhaDocumento, type BlocoFolha, type EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
 import { PainelAcoes } from '@/components/equipe/osg/gerar/PainelAcoes';
+import { BannerVersaoAnterior, HistoricoVersoes } from '@/components/equipe/osg/gerar/HistoricoVersoes';
+import { realcarMudancas, renderizarVersao } from '@/components/equipe/osg/gerar/renderizarVersao';
 
 // --- Peças do painel de conferência ----------------------------------------
 
@@ -242,7 +249,10 @@ const GerarDocumento = () => {
   const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
   const [ajustesAbertos, setAjustesAbertos] = useState(false);
   // Seletor expandido no rail ao lado da folha (um por vez, estilo acordeão).
-  const [railAberto, setRailAberto] = useState<'modelo' | 'empresa' | 'registros' | null>(null);
+  const [railAberto, setRailAberto] = useState<'modelo' | 'empresa' | 'registros' | 'versoes' | null>(null);
+  // Versão selada sob visualização (somente leitura na folha central); null = a
+  // head viva e editável. Trocar de modelo/empresa zera (effect mais abaixo).
+  const [versaoVisualizadaId, setVersaoVisualizadaId] = useState<string | null>(null);
   // Aba do painel de conferência: a aba "Notificações" só existe com versão validada.
   const [aba, setAba] = useState<'conferencia' | 'notificacoes'>('conferencia');
 
@@ -261,6 +271,8 @@ const GerarDocumento = () => {
   useEffect(() => {
     // O rascunho governa o estado: trocar de modelo/empresa re-resolve (ou zera).
     setDocumentoGerado(rascunho ?? null);
+    // Sai do modo leitura: a linhagem mudou (outro doc, ou nova versão selada).
+    setVersaoVisualizadaId(null);
     const snap = rascunho?.snapshot_dados as unknown as SnapshotDados | null | undefined;
     if (snap) {
       setSelecao(snap.selecao ?? {});
@@ -271,6 +283,9 @@ const GerarDocumento = () => {
   }, [rascunho]);
   const documentoGeradoId = documentoGerado?.id ?? null;
   const documentoRaizId = documentoGerado?.documento_raiz_id ?? documentoGerado?.id ?? null;
+  // Linhagem de versões (raiz → … → head) para o histórico e o viewer de versão
+  // anterior. Cada linha carrega o snapshot que a torna reproduzível sozinha.
+  const { data: versoes = [] } = useDocumentoVersoes(documentoRaizId);
   // Versão validada => prévia renderiza do snapshot, não dos cadastros vivos.
   const congelado = documentoGerado != null;
   const snapshotDados = (documentoGerado?.snapshot_dados as unknown as SnapshotDados | null | undefined) ?? null;
@@ -878,9 +893,31 @@ const GerarDocumento = () => {
       // Seções desconhecidas resolvem como '' (falsy): o trecho sai da prévia sem travar.
       for (const nome of secoesDesconhecidas) livres[nome] = livres[nome] ?? '';
       // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.
-      const itensEfetivo = congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista;
+      // O snapshot vem do jsonb (round-trip): reidratar religa as referências
+      // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
+      const itensEfetivo = reidratarItensPorLista(
+        congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista,
+      );
       const totalEfetivo = congelado ? (snapshotDados?.total ?? quadro.total) : quadro.total;
-      const ctx = montarContexto(bindings, selecao, livres, itensEfetivo, listas);
+
+      // A serialização do snapshot também PERDE a proveniência (a origem viaja
+      // como Symbol — ver origem.ts), e sem ela os valores da prévia deixam de
+      // ser clicáveis. Religamos: bindings unitários/sociedade pela id guardada
+      // no próprio snapshot; as listas copiando a origem dos itens vivos (mesma
+      // ordem). No caminho vivo (não congelado) a origem já está lá — nada a fazer.
+      let selecaoEfetiva = selecao;
+      if (congelado) {
+        selecaoEfetiva = {};
+        for (const [nome, campos] of Object.entries(selecao)) {
+          const b = bindings.find((x) => x.nome === nome);
+          const id = b?.tipo === 'sociedade' ? empresaId : registroPorBinding[nome];
+          selecaoEfetiva[nome] = b && id ? comOrigem({ ...campos }, { tipo: b.tipo, id }) : campos;
+        }
+        // itensEfetivo === itensPorLista quando o snapshot não tinha listas (fonte
+        // viva, já com origem) — só copia quando são estruturas distintas.
+        if (itensEfetivo !== itensPorLista) copiarOrigemProfunda(itensEfetivo, itensPorLista);
+      }
+      const ctx = montarContexto(bindings, selecaoEfetiva, livres, itensEfetivo, listas);
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
@@ -903,7 +940,7 @@ const GerarDocumento = () => {
     } catch (e) {
       return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, posicoesSobrescritas, bindings, selecao, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados]);
+  }, [template, templateOriginal, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
@@ -996,6 +1033,66 @@ const GerarDocumento = () => {
       }),
     [resultado.blocos, nomePorBlocoId, bibliotecaIdPorBlocoId, posicoesSobrescritas],
   );
+
+  // --- Visualização de versão anterior (somente leitura) --------------------
+  // Renderiza a versão selada escolhida PURAMENTE do seu snapshot (sem cadastros
+  // vivos) e realça, por palavra, o que mudou em relação à versão imediatamente
+  // anterior na linhagem. A head (rascunho) não passa por aqui — ela é a prévia viva.
+  const versaoView = useMemo(() => {
+    if (!versaoVisualizadaId) return null;
+    const idx = versoes.findIndex((v) => v.row.id === versaoVisualizadaId);
+    if (idx < 0) return null;
+    const alvo = versoes[idx].row;
+    const anterior = idx > 0 ? versoes[idx - 1].row : null;
+    const atual = renderizarVersao(
+      alvo.snapshot_versoes_blocos as unknown as Bloco[] | null,
+      alvo.snapshot_flags as string[] | null,
+      alvo.snapshot_dados as unknown as SnapshotDados | null,
+    );
+    const base = anterior
+      ? renderizarVersao(
+          anterior.snapshot_versoes_blocos as unknown as Bloco[] | null,
+          anterior.snapshot_flags as string[] | null,
+          anterior.snapshot_dados as unknown as SnapshotDados | null,
+        )
+      : null;
+    return {
+      numero: versoes[idx].numero,
+      row: alvo,
+      erro: atual.erro,
+      blocos: realcarMudancas(atual.blocos, base?.blocos ?? null),
+    };
+  }, [versaoVisualizadaId, versoes]);
+
+  const modoVisualizacao = versaoView != null;
+
+  const blocosFolhaVersao = useMemo<BlocoFolha[]>(
+    () =>
+      (versaoView?.blocos ?? []).map((b) => {
+        const posicaoId = b.instanciaDe ?? b.id;
+        return {
+          id: b.id,
+          blocoId: null, // somente leitura: sem atalho de edição
+          nome: nomePorBlocoId.get(posicaoId) ?? '',
+          tipo: b.tipo,
+          conteudo: b.conteudo,
+          segmentos: b.segmentos,
+          sobrescrito: false,
+        };
+      }),
+    [versaoView, nomePorBlocoId],
+  );
+
+  const [baixandoVersao, setBaixandoVersao] = useState(false);
+  const baixarVersao = async () => {
+    if (!versaoView?.blocos?.length) return;
+    setBaixandoVersao(true);
+    try {
+      await baixarDocx(`${nomeModelo} (versão ${versaoView.numero})`, versaoView.blocos);
+    } finally {
+      setBaixandoVersao(false);
+    }
+  };
 
   const folhaEstado: EstadoFolha = !selecoesCompletas
     ? 'pendente'
@@ -1534,20 +1631,46 @@ const GerarDocumento = () => {
                 </Card>
               )}
 
-              <div className="order-2 mx-auto w-full min-w-0 max-w-[860px]">
+              <div className="order-2 mx-auto w-full min-w-0 max-w-[860px] space-y-3">
+                {modoVisualizacao && versaoView && (
+                  <BannerVersaoAnterior
+                    numero={versaoView.numero}
+                    data={versaoView.row.snapshot_validado_em ?? versaoView.row.created_at}
+                    autor={autorPorId[versaoView.row.gerado_por_id ?? '']}
+                    baixando={baixandoVersao}
+                    onBaixar={() => void baixarVersao()}
+                    onVoltar={() => setVersaoVisualizadaId(null)}
+                  />
+                )}
                 <FolhaDocumento
                   titulo={nomeModelo}
-                  estado={folhaEstado}
+                  estado={modoVisualizacao ? (versaoView?.erro ? 'erro' : 'pronto') : folhaEstado}
                   mensagemPendente={mensagemPendente}
-                  erro={resultado.erro}
-                  blocos={blocosFolha}
-                  onEditarBloco={editarBlocoNaPrevia}
-                  onClickOrigem={abrirCadastroOrigem}
-                  origemClicavel={origemClicavel}
+                  erro={modoVisualizacao ? versaoView?.erro : resultado.erro}
+                  blocos={modoVisualizacao ? blocosFolhaVersao : blocosFolha}
+                  onEditarBloco={modoVisualizacao ? undefined : editarBlocoNaPrevia}
+                  onClickOrigem={modoVisualizacao ? undefined : abrirCadastroOrigem}
+                  origemClicavel={modoVisualizacao ? undefined : origemClicavel}
                 />
               </div>
 
               <aside className="order-1 space-y-4 xl:sticky xl:top-4 xl:order-3">
+                {versoes.length > 1 && (
+                  <HistoricoVersoes
+                    versoes={versoes}
+                    autores={autorPorId}
+                    versaoVisualizadaId={versaoVisualizadaId}
+                    onSelecionar={setVersaoVisualizadaId}
+                    aberto={railAberto === 'versoes'}
+                    onAbertoChange={(aberto) => setRailAberto(aberto ? 'versoes' : null)}
+                  />
+                )}
+
+                {/* Visualizando uma versão anterior, as ações da head (validar,
+                    atualizar, copiar/baixar, trocar modelo) saem de cena — o banner
+                    sobre a folha conduz a leitura. */}
+                {!modoVisualizacao && (
+                  <>
                 {/* Validar versão: encerra os cadastros, congela os valores e
                     habilita o ajuste de blocos só deste documento. */}
                 {documentoGeradoId ? (
@@ -1716,6 +1839,8 @@ const GerarDocumento = () => {
                     </SeletorRail>
                   )}
                 </div>
+                  </>
+                )}
               </aside>
             </div>
           </section>
