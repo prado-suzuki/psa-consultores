@@ -1646,6 +1646,81 @@ export type Database = {
           },
         ]
       }
+      documento_arquivo: {
+        Row: {
+          id: string
+          cliente_id: string
+          fonte: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          bem_id: string | null
+          matricula_id: string | null
+          pessoa_id: string | null
+          contribuinte_id: string | null
+          org_projects_id: string | null
+          documento_gerado_id: string | null
+          nome_original: string
+          gcs_uri: string | null
+          checksum: string | null
+          mime: string | null
+          tamanho: number | null
+          status: Database["public"]["Enums"]["osg_doc_status"]
+          excluido: boolean
+          ambiente: string
+          created_at: string
+          created_by: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          cliente_id: string
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          bem_id?: string | null
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          contribuinte_id?: string | null
+          org_projects_id?: string | null
+          documento_gerado_id?: string | null
+          nome_original: string
+          gcs_uri?: string | null
+          checksum?: string | null
+          mime?: string | null
+          tamanho?: number | null
+          status?: Database["public"]["Enums"]["osg_doc_status"]
+          excluido?: boolean
+          ambiente?: string
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          cliente_id?: string
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"]
+          bem_id?: string | null
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          contribuinte_id?: string | null
+          org_projects_id?: string | null
+          documento_gerado_id?: string | null
+          nome_original?: string
+          gcs_uri?: string | null
+          checksum?: string | null
+          mime?: string | null
+          tamanho?: number | null
+          status?: Database["public"]["Enums"]["osg_doc_status"]
+          excluido?: boolean
+          ambiente?: string
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       documento_gerado: {
         Row: {
           caminho_arquivo: string | null
@@ -7990,6 +8065,17 @@ export type Database = {
         | "in_progress"
         | "review"
         | "done"
+      osg_doc_categoria:
+        | "bens_direitos"
+        | "cadastros_fiscais"
+        | "declaracao_ir"
+        | "agrarios"
+        | "pessoais"
+        | "societarios"
+        | "sucessorios"
+        | "outros"
+      osg_doc_fonte: "cliente" | "psa" | "arquivar"
+      osg_doc_status: "pendente" | "ativo"
       scenario_kind: "scale" | "efficiency" | "investment"
       scenario_status:
         | "draft"

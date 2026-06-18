@@ -48,6 +48,7 @@ import {
   osgTabsListCls,
   osgTabTriggerCls,
 } from '@/components/equipe/osg/formKit';
+import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
 import { CartorioSelect } from './CartorioSelect';
 import { formatAreaUnidade, areaStep, clampAreaInput } from './areaUtils';
 import {
@@ -421,6 +422,9 @@ export function MatriculaModal({
                 </TabsTrigger>
                 <TabsTrigger value="impedimentos" disabled={!isEdit} className={osgTabTriggerCls}>
                   Impedimentos
+                </TabsTrigger>
+                <TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>
+                  Documentos
                 </TabsTrigger>
               </TabsList>
             </div>
@@ -853,6 +857,16 @@ export function MatriculaModal({
                     matriculaId={matricula.id}
                     areaUnidade={matricula.area_unidade}
                     pessoasCliente={pessoasCliente}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">
+                {isEdit && matricula && (
+                  <DocumentosTab
+                    clienteId={clienteId}
+                    vinculo={{ matriculaId: matricula.id, bemId: bemId ?? null }}
+                    categoriaPadrao="agrarios"
                   />
                 )}
               </TabsContent>
