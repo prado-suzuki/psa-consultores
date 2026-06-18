@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay, subDays, eachDayOfInterval, addDays } from 'date-fns';
 import { statusList } from '@/lib/taskStatusColors';
+import type { AreaKey } from '@/config/areaCategories';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import {
@@ -35,22 +36,40 @@ const ALL = '__ALL__';
 type UrgencyFilter = typeof ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
 // Conteúdo do Dashboard — agnóstico de layout (fonte única compartilhada entre
-// Tax e OSG). A navegação interna é resolvida pela área atual (areaBase), então
-// um deep-link de tarefa abre a aba de Tarefas da própria área.
-const DashboardContent = () => {
+// Tax e OSG). A área é recebida por prop (mesmo padrão do PainelTarefas): define
+// tanto a navegação interna (areaBase) quanto o recorte das métricas — só os
+// projetos/tarefas da área atual entram nos KPIs.
+const DashboardContent = ({ area = 'tax' }: { area?: AreaKey }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const areaBase = location.pathname.startsWith('/equipe/osg') ? '/equipe/osg' : '/equipe/tax';
-  const { data: projects = [], isLoading: loadingProjects } = useFiscalDashProjects();
+  const areaBase = area === 'osg' ? '/equipe/osg' : '/equipe/tax';
+  const { data: allProjects = [], isLoading: loadingProjects } = useFiscalDashProjects();
   const { data: tasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
   const { data: clients = [] } = useFiscalClientsList();
   const { data: contribuintes = [] } = useFiscalDashContribuintes();
   const { data: clientNames = [] } = useFiscalDashClientNames();
-  const { data: areas = [] } = useEstruturaAreas('tax');
-  const { data: equipes = [] } = useEstruturaEquipesByCategory('tax');
+  const { data: areas = [], isLoading: loadingAreas } = useEstruturaAreas(area);
+  const { data: equipes = [] } = useEstruturaEquipesByCategory(area);
   const { data: members = [] } = useTeamProfilesSafe();
 
-  const isLoading = loadingProjects || loadingTasks;
+  const isLoading = loadingProjects || loadingTasks || loadingAreas;
+
+  // ═══════════════════════ RECORTE POR ÁREA ═══════════════════════
+  // Cada projeto pertence a uma área via estrutura_area_id → estrutura_areas
+  // (que carrega o cluster). Mantemos apenas os projetos da área atual. Projetos
+  // sem área definida são tratados como Tax (área padrão/legado): a OSG é recente,
+  // então todo projeto pré-existente nasceu no contexto fiscal.
+  const areaIds = useMemo(() => new Set(areas.map(a => a.id)), [areas]);
+  const projects = useMemo(() =>
+    allProjects.filter(p =>
+      p.estrutura_area_id
+        ? areaIds.has(p.estrutura_area_id)
+        : area === 'tax'
+    ),
+  [allProjects, areaIds, area]);
+  const scopedProjectIds = useMemo(() => new Set(projects.map(p => p.id)), [projects]);
+  const scopedTasks = useMemo(() =>
+    tasks.filter(t => t.project_id && scopedProjectIds.has(t.project_id)),
+  [tasks, scopedProjectIds]);
 
   // ═══════════════════════ FILTROS ═══════════════════════
   const [filterStartDate, setFilterStartDate] = useState('');
@@ -125,7 +144,7 @@ const DashboardContent = () => {
   );
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter(t => {
+    return scopedTasks.filter(t => {
       // Projeto & derivados (equipe, status de projeto)
       if (filterProject !== ALL && t.project_id !== filterProject) return false;
       if (filterProjectStatus !== ALL || filterEquipe !== ALL) {
@@ -166,7 +185,7 @@ const DashboardContent = () => {
       return true;
     });
   }, [
-    tasks, filteredProjectIds, contribuinteToClient, projectMap,
+    scopedTasks, filteredProjectIds, contribuinteToClient, projectMap,
     filterProject, filterProjectStatus, filterEquipe, filterClient,
     filterTaskStatus, filterMember, filterStartDate, filterEndDate, filterUrgency,
   ]);
@@ -534,9 +553,9 @@ const DashboardContent = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <HeroBanner
             className="lg:col-span-2"
-            eyebrow="PSA Tax"
+            eyebrow={area === 'osg' ? 'PSA OSG' : 'PSA Tax'}
             title={overdueTasks.length === 0
-              ? 'Operação fiscal sem atrasos — momentum alto'
+              ? 'Operação sem atrasos — momentum alto'
               : `${overdueTasks.length} tarefas precisam de atenção`}
             description={activeFiltersCount > 0
               ? `Visão com ${activeFiltersCount} filtro(s) aplicado(s). ${totalTasks} tarefas no recorte atual.`
@@ -783,7 +802,7 @@ function EmptyMsg({ msg }: { msg: string }) {
 // conteúdo compartilhado. A OSG renderiza o mesmo <DashboardContent /> no OsgLayout.
 const FiscalDashboard = () => (
   <FiscalLayout title="Dashboard" subtitle="Visão geral da área fiscal — atualizado em tempo real">
-    <DashboardContent />
+    <DashboardContent area="tax" />
   </FiscalLayout>
 );
 

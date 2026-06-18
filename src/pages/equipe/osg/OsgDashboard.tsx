@@ -5,7 +5,7 @@ import { DashboardContent } from '@/pages/equipe/fiscal/FiscalDashboard';
 // compartilhado (<DashboardContent />), apenas envolvido pelo layout da OSG.
 const OsgDashboard = () => (
   <OsgLayout title="Dashboard" subtitle="Visão geral da área OSG">
-    <DashboardContent />
+    <DashboardContent area="osg" />
   </OsgLayout>
 );
 
