@@ -129,18 +129,18 @@ BEGIN
        1, 0, 30);
 
     -- Etapa única inicial (responsáveis/horas serão preenchidos depois via formulário).
+    -- inputs/outputs/systems (jsonb '[]') e related_projects (text[] '{}') ficam por
+    -- conta dos DEFAULTs da tabela — não são informados para evitar risco de tipo.
     INSERT INTO public.process_stages
       (id, process_id, stage_order, name, description, scenario, execution,
-       volume_per_process, error_rate, rework_rate,
-       inputs, outputs, systems, related_projects)
+       volume_per_process, error_rate, rework_rate)
     VALUES
       (v_etapa_apres, v_proc_apres, 1,
        'Consolidar e apresentar estrutura ao cliente',
        'Monta a apresentação com a estrutura sugerida (DP + planejamento tributário) '
        || 'e apresenta ao cliente para aprovação.',
        'AS-IS', 'manual',
-       1, 0, 0,
-       '[]'::jsonb, '[]'::jsonb, '[]'::jsonb, '[]'::jsonb);
+       1, 0, 0);
 
     RAISE NOTICE '2) Apresentação Inicial: processo PROC-GERAL-036 criado no P5.';
   ELSE
