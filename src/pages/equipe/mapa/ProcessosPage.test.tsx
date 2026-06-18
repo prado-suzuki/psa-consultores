@@ -46,10 +46,10 @@ describe('ProcessosPage', () => {
       </TestProviders>,
     );
 
-    // Grupos vêm recolhidos: expande o processo para ver suas etapas.
-    fireEvent.click(await screen.findByTitle('Expandir etapas'));
+    // Grupos (projetos) vêm recolhidos: expande para ver seus processos.
+    fireEvent.click(await screen.findByTitle('Expandir processos'));
 
-    // O nome da etapa aparece após expandir.
+    // O nome do processo aparece após expandir.
     await screen.findByText(/P1\.01 Diagnóstico Patrimonial Inicial/i);
 
     // Sub-etapas e descrição NÃO aparecem na lista (vivem no mapeamento; clicar
@@ -78,7 +78,7 @@ describe('ProcessosPage', () => {
 
     // Botão "+ Adicionar Processo" é único e aparece quando a página renderiza.
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /Adicionar Etapa/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Adicionar Processo/i })).toBeInTheDocument();
     });
   });
 
@@ -98,18 +98,18 @@ describe('ProcessosPage', () => {
       </TestProviders>,
     );
 
-    // Expande o grupo para ver o selo de complexidade e as ações da etapa.
-    fireEvent.click(await screen.findByTitle('Expandir etapas'));
+    // Expande o grupo para ver o selo de complexidade e as ações do processo.
+    fireEvent.click(await screen.findByTitle('Expandir processos'));
 
     expect(await screen.findByText('Média')).toBeInTheDocument();
     expect(screen.queryByText(/^medium$/i)).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByTitle(`Editar ${PROCESSO_OSG_ROW.name}`));
+    fireEvent.click(screen.getByLabelText(`Editar ${PROCESSO_OSG_ROW.name}`));
 
     // O form de edição abre com a seção "Identificação" e o sub "Editar processo".
     const modal = (await screen.findByText('Identificação')).closest('.modal');
     expect(modal).not.toBeNull();
-    expect(within(modal as HTMLElement).getByText('Editar etapa')).toBeInTheDocument();
+    expect(within(modal as HTMLElement).getByText('Editar processo')).toBeInTheDocument();
     expect(within(modal as HTMLElement).getByRole('button', { name: /Média/i })).toBeInTheDocument();
   });
 });
