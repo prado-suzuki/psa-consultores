@@ -145,9 +145,9 @@ const GestaoClientes = () => {
   const formatStatus = (ativo: boolean | null) => {
     if (ativo === null || ativo === undefined) return "-";
     return ativo ? (
-      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Ativo</Badge>
+      <Badge className="bg-success/10 text-success hover:bg-success/10">Ativo</Badge>
     ) : (
-      <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Inativo</Badge>
+      <Badge className="bg-destructive/10 text-destructive hover:bg-destructive/10">Inativo</Badge>
     );
   };
 
@@ -159,10 +159,10 @@ const GestaoClientes = () => {
   const formatCategoria = (cat: string | null) => {
     if (!cat) return "-";
     const colors: Record<string, string> = {
-      Bronze: "bg-amber-100 text-amber-800 hover:bg-amber-100",
-      Prata: "bg-slate-200 text-slate-700 hover:bg-slate-200",
-      Ouro: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-      Diamante: "bg-blue-100 text-blue-800 hover:bg-blue-100",
+      Bronze: "bg-warning/10 text-warning hover:bg-warning/10",
+      Prata: "bg-muted text-foreground hover:bg-muted",
+      Ouro: "bg-warning/10 text-warning hover:bg-warning/10",
+      Diamante: "bg-info/10 text-info hover:bg-info/10",
     };
     return <Badge className={colors[cat] || ""}>{cat}</Badge>;
   };
@@ -183,29 +183,29 @@ const GestaoClientes = () => {
             Novo cliente
           </Button>
         )}
-        <div className="hidden md:flex items-center text-slate-500 gap-2">
+        <div className="hidden md:flex items-center text-muted-foreground gap-2">
           <Search className="h-4 w-4" />
           <span className="text-sm">Gerencie sua base de dados de clientes</span>
         </div>
       </div>
 
       {/* Card de Filtros */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-200 bg-slate-50 flex items-center gap-3">
-          <Filter className="h-5 w-5 text-teal-600" />
-          <h3 className="text-lg font-bold uppercase tracking-wide text-slate-800">Filtros de Busca</h3>
+        <div className="px-6 py-5 border-b border-border bg-muted flex items-center gap-3">
+          <Filter className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-bold uppercase tracking-wide text-foreground">Filtros de Busca</h3>
         </div>
         {/* Corpo */}
         <div className="p-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 mb-2">Cliente</label>
+              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Cliente</label>
               <Select value={clienteId} onValueChange={setClienteId}>
-                <SelectTrigger className="h-12 bg-white border-slate-300 text-slate-700 rounded-lg shadow-sm">
+                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
                   <SelectValue placeholder="Selecione um cliente" />
                 </SelectTrigger>
-                <SelectContent className="bg-white z-50">
+                <SelectContent className="bg-card z-50">
                   <SelectItem value="__todos__">Todos os Clientes</SelectItem>
                   {clientes.map((c) => (
                     <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
@@ -214,12 +214,12 @@ const GestaoClientes = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 mb-2">Contribuinte</label>
+              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Contribuinte</label>
               <Select value={nomeRazaoSocial} onValueChange={setNomeRazaoSocial}>
-                <SelectTrigger className="h-12 bg-white border-slate-300 text-slate-700 rounded-lg shadow-sm">
+                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
-                <SelectContent className="bg-white z-50">
+                <SelectContent className="bg-card z-50">
                   {contribuintes.map((c) => (
                     <SelectItem key={c.id} value={c.nome_razao_social}>{c.nome_razao_social}</SelectItem>
                   ))}
@@ -227,36 +227,36 @@ const GestaoClientes = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 mb-2">Status</label>
+              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Status</label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="h-12 bg-white border-slate-300 text-slate-700 rounded-lg shadow-sm">
+                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
                   <SelectValue placeholder="Todos os status" />
                 </SelectTrigger>
-                <SelectContent className="bg-white z-50">
+                <SelectContent className="bg-card z-50">
                   <SelectItem value="true">Ativo</SelectItem>
                   <SelectItem value="false">Inativo</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 mb-2">Tipo</label>
+              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Tipo</label>
               <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger className="h-12 bg-white border-slate-300 text-slate-700 rounded-lg shadow-sm">
+                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
-                <SelectContent className="bg-white z-50">
+                <SelectContent className="bg-card z-50">
                   <SelectItem value="Sim">Fixos</SelectItem>
                   <SelectItem value="Não">Pontuais</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-slate-900 mb-2">Categoria</label>
+              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Categoria</label>
               <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="h-12 bg-white border-slate-300 text-slate-700 rounded-lg shadow-sm">
+                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
-                <SelectContent className="bg-white z-50">
+                <SelectContent className="bg-card z-50">
                   <SelectItem value="Bronze">Bronze</SelectItem>
                   <SelectItem value="Prata">Prata</SelectItem>
                   <SelectItem value="Ouro">Ouro</SelectItem>
@@ -267,7 +267,7 @@ const GestaoClientes = () => {
           </div>
         </div>
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+        <div className="px-6 py-4 bg-muted border-t border-border flex justify-end gap-3">
           <Button
             variant="ghost"
             onClick={handleClear}
@@ -286,8 +286,8 @@ const GestaoClientes = () => {
 
       {/* Resultados */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold text-slate-900">Resultados recentes</h3>
-        <span className="text-sm text-slate-500">
+        <h3 className="text-lg font-bold text-foreground">Resultados recentes</h3>
+        <span className="text-sm text-muted-foreground">
           Mostrando {resultados.length} resultado{resultados.length !== 1 ? "s" : ""}
         </span>
       </div>
@@ -295,37 +295,37 @@ const GestaoClientes = () => {
       {!searched || isLoading ? (
         isLoading ? (
           <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-teal-600" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-slate-300 bg-white h-48 flex items-center justify-center gap-3 text-slate-500 shadow-sm">
+          <div className="rounded-xl border border-dashed border-border bg-card h-48 flex items-center justify-center gap-3 text-muted-foreground shadow-sm">
             <Search className="h-5 w-5" />
             <span className="text-sm">Utilize os filtros acima para encontrar clientes.</span>
           </div>
         )
       ) : resultados.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white h-48 flex items-center justify-center gap-3 text-slate-500 shadow-sm">
+        <div className="rounded-xl border border-dashed border-border bg-card h-48 flex items-center justify-center gap-3 text-muted-foreground shadow-sm">
           <Users className="h-5 w-5" />
           <span className="text-sm">Nenhum resultado encontrado. Tente ajustar os filtros.</span>
         </div>
       ) : (
         <div className="flex flex-col">
-          <div className="rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <div className="rounded-xl border border-border overflow-hidden shadow-sm">
             <Table>
-              <TableHeader className="bg-slate-50">
-               <TableRow className="hover:bg-slate-50 border-b-2 border-slate-200">
+              <TableHeader className="bg-muted">
+               <TableRow className="hover:bg-muted border-b-2 border-border">
                    <TableHead className="w-10 px-2" />
-                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Nome Cliente</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Categoria</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Status</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Tipo Cliente</TableHead>
-                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Telefone</TableHead>
-                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Setor</TableHead>
-                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4">Clusters</TableHead>
-                   {canEdit && <TableHead className="text-xs font-semibold uppercase tracking-wider text-slate-600 h-12 px-4 w-16">Ações</TableHead>}
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Nome Cliente</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Categoria</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Status</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Tipo Cliente</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Telefone</TableHead>
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Setor</TableHead>
+                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Clusters</TableHead>
+                   {canEdit && <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4 w-16">Ações</TableHead>}
                 </TableRow>
               </TableHeader>
-              <TableBody className="divide-y divide-slate-100">
+              <TableBody className="divide-y divide-border">
                 {paginatedResults.map((row, index) => {
                   const isExpanded = expandedClienteId === row.id;
                   const totalCols = canEdit ? 9 : 8;
@@ -333,7 +333,7 @@ const GestaoClientes = () => {
                     <> 
                       <TableRow
                         key={row.id}
-                        className={cn("cursor-pointer transition-colors hover:bg-teal-50/60", index % 2 === 1 && "bg-slate-50/50")}
+                        className={cn("cursor-pointer transition-colors hover:bg-primary/10", index % 2 === 1 && "bg-muted/50")}
                         onClick={() => handleClienteClick({ id: row.id })}
                       >
                         <TableCell className="px-2 py-3.5 w-10">
@@ -348,12 +348,12 @@ const GestaoClientes = () => {
                             <ChevronRight className={cn("h-4 w-4 transition-transform duration-200", isExpanded && "rotate-90")} />
                           </button>
                         </TableCell>
-                        <TableCell className="px-4 py-3.5 font-medium text-slate-900">{row.nome || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5 font-medium text-foreground">{row.nome || "-"}</TableCell>
                         <TableCell className="px-4 py-3.5">{formatCategoria(row.categoria)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{formatStatus(row.ativo)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{formatTipo(row.fixo)}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.telefone || "-"}</TableCell>
-                        <TableCell className="px-4 py-3.5 text-slate-600">{row.setor_cliente || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-muted-foreground">{formatStatus(row.ativo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-muted-foreground">{formatTipo(row.fixo)}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-muted-foreground">{row.telefone || "-"}</TableCell>
+                        <TableCell className="px-4 py-3.5 text-muted-foreground">{row.setor_cliente || "-"}</TableCell>
                         <TableCell className="px-4 py-3.5">
                           {row._clusters && row._clusters.length > 0
                             ? row._clusters.map((name: string) => (
@@ -396,12 +396,12 @@ const GestaoClientes = () => {
           </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 px-2 pb-2">
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-muted-foreground">
                 Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
                 {Math.min(currentPage * ITEMS_PER_PAGE, resultados.length)} de {resultados.length}
               </span>
               <div className="flex items-center gap-3">
-                <span className="text-xs text-slate-500">Página {currentPage} de {totalPages}</span>
+                <span className="text-xs text-muted-foreground">Página {currentPage} de {totalPages}</span>
                 <div className="flex gap-1">
                   <Button variant="outline" size="icon" className="h-7 w-7" disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)}>
                     <ChevronLeft className="h-4 w-4" />

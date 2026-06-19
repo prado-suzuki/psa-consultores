@@ -101,7 +101,7 @@
                    >
                      <RadioGroupItem value={member.id} id={member.id} />
                      <Avatar className="h-8 w-8">
-                       <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">
+                       <AvatarFallback className="bg-success/10 text-success text-xs">
                          {getInitials(member.name)}
                        </AvatarFallback>
                      </Avatar>

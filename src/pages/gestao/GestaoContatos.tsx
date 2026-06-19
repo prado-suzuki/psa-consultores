@@ -79,10 +79,10 @@ const comoConheceuLabels: Record<string, string> = {
 };
 
 const statusOptions = [
-  { value: "novo", label: "Novo", color: "bg-blue-500" },
-  { value: "em_andamento", label: "Em Andamento", color: "bg-yellow-500" },
-  { value: "convertido", label: "Convertido", color: "bg-green-500" },
-  { value: "arquivado", label: "Arquivado", color: "bg-gray-500" },
+  { value: "novo", label: "Novo", color: "bg-info" },
+  { value: "em_andamento", label: "Em Andamento", color: "bg-warning" },
+  { value: "convertido", label: "Convertido", color: "bg-success" },
+  { value: "arquivado", label: "Arquivado", color: "bg-muted-foreground" },
 ];
 
 const getStatusBadge = (status: string) => {
@@ -255,12 +255,12 @@ const GestaoContatos = () => {
               filteredContatos.map((contato) => (
                 <TableRow
                   key={contato.id}
-                  className={contato.status === "novo" ? "bg-blue-50/50" : ""}
+                  className={contato.status === "novo" ? "bg-info/10" : ""}
                 >
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       {contato.status === "novo" && (
-                        <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="h-2 w-2 rounded-full bg-info animate-pulse" />
                       )}
                       {contato.nome_completo}
                     </div>

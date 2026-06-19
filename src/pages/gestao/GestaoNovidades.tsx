@@ -53,10 +53,10 @@ interface Novidade {
 }
 
 const categoriaConfig = {
-  empresa: { label: 'Empresa', icon: Building2, color: 'bg-slate-100 text-slate-800' },
+  empresa: { label: 'Empresa', icon: Building2, color: 'bg-muted text-foreground' },
   tributario: { label: 'Sistema Tributário', icon: Scale, color: 'bg-primary/10 text-primary' },
-  servicos: { label: 'Serviços', icon: Briefcase, color: 'bg-blue-100 text-blue-800' },
-  cases: { label: 'Cases de Sucesso', icon: Trophy, color: 'bg-amber-100 text-amber-800' },
+  servicos: { label: 'Serviços', icon: Briefcase, color: 'bg-info/10 text-info' },
+  cases: { label: 'Cases de Sucesso', icon: Trophy, color: 'bg-warning/10 text-warning' },
 };
 
 type CategoriaType = 'empresa' | 'tributario' | 'servicos' | 'cases';
@@ -430,7 +430,7 @@ const GestaoNovidades = () => {
                         <button
                           type="button"
                           onClick={() => removeItem(index)}
-                          className="ml-1 hover:text-red-500"
+                          className="ml-1 hover:text-destructive"
                         >
                           ×
                         </button>
@@ -522,7 +522,7 @@ const GestaoNovidades = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Total de Novidades</CardDescription>
-              <Newspaper className="h-4 w-4 text-gray-400" />
+              <Newspaper className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
@@ -542,9 +542,9 @@ const GestaoNovidades = () => {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Rascunhos</CardDescription>
-              <EyeOff className="h-4 w-4 text-gray-400" />
+              <EyeOff className="h-4 w-4 text-muted-foreground" />
             </div>
-            <CardTitle className="text-3xl text-gray-500">{stats.inativas}</CardTitle>
+            <CardTitle className="text-3xl text-muted-foreground">{stats.inativas}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -595,7 +595,7 @@ const GestaoNovidades = () => {
                       <TableCell className="font-medium max-w-[300px] truncate">
                         {novidade.titulo}
                       </TableCell>
-                      <TableCell className="text-gray-500">
+                      <TableCell className="text-muted-foreground">
                         {format(new Date(novidade.data_publicacao), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="text-right">
@@ -610,7 +610,7 @@ const GestaoNovidades = () => {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-red-500 hover:text-red-700"
+                            className="text-destructive hover:text-destructive"
                             onClick={() => {
                               if (confirm('Deseja realmente excluir esta novidade?')) {
                                 deleteMutation.mutate(novidade.id);
@@ -627,7 +627,7 @@ const GestaoNovidades = () => {
               </TableBody>
             </Table>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-muted-foreground">
               <Newspaper className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Nenhuma novidade cadastrada ainda.</p>
               <Button 

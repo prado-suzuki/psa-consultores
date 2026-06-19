@@ -25,8 +25,8 @@ function AlertCard({ icon: Icon, label, count, colorClass, bgClass, onClick }: A
           <Icon className="h-5 w-5 text-white" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-slate-900">{count}</p>
-          <p className="text-sm text-slate-600">{label}</p>
+          <p className="text-2xl font-bold text-foreground">{count}</p>
+          <p className="text-sm text-muted-foreground">{label}</p>
         </div>
       </CardContent>
     </Card>
@@ -56,16 +56,16 @@ export function DemandaAlertCards({
         icon={AlertTriangle}
         label="Atrasadas"
         count={atrasadasCount}
-        colorClass="bg-red-500"
-        bgClass="bg-red-50 hover:bg-red-100"
+        colorClass="bg-destructive"
+        bgClass="bg-destructive/5 hover:bg-destructive/10"
         onClick={onClickAtrasadas}
       />
       <AlertCard
         icon={Calendar}
         label="Para Hoje"
         count={hojeCount}
-        colorClass="bg-amber-500"
-        bgClass="bg-amber-50 hover:bg-amber-100"
+        colorClass="bg-warning"
+        bgClass="bg-warning/5 hover:bg-warning/10"
         onClick={onClickHoje}
       />
       <AlertCard

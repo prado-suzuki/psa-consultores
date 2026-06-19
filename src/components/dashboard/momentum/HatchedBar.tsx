@@ -95,7 +95,7 @@ export function HatchedBar({
         {/* Tooltip flutuante sobre segmento hovered */}
         {tooltipSeg && tooltipIdx !== null && tooltipSeg.value > 0 && (
           <div
-            className="absolute -top-9 px-3 py-1.5 bg-slate-900 text-white rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
+            className="absolute -top-9 px-3 py-1.5 bg-foreground text-white rounded-lg shadow-lg pointer-events-none whitespace-nowrap"
             style={{
               left: `${(() => {
                 let acc = 0;
@@ -137,8 +137,8 @@ export function HatchedBar({
                       : tone,
                   }}
                 />
-                <span className="text-[11px] text-slate-600">
-                  {seg.label} <span className="text-slate-400">{pct}%</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {seg.label} <span className="text-muted-foreground">{pct}%</span>
                 </span>
               </div>
             );

@@ -114,7 +114,7 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
               column.color
             )}>
               <span className="font-medium text-sm">{column.label}</span>
-              <span className="text-xs bg-white/60 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-card/60 px-2 py-0.5 rounded-full">
                 {columnTasks.length}
               </span>
             </div>
@@ -125,7 +125,7 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                   <div key={task.id}>
                     <Card
                       className={cn(
-                        "bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow",
+                        "bg-card border-border cursor-pointer hover:shadow-md transition-shadow",
                         draggedTask?.id === task.id && "opacity-50"
                       )}
                       draggable
@@ -138,28 +138,28 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                           {task.subtaskCount > 0 && (
                             <button
                               onClick={(e) => toggleTaskExpanded(task.id, e)}
-                              className="mt-0.5 p-0.5 hover:bg-gray-100 rounded flex-shrink-0"
+                              className="mt-0.5 p-0.5 hover:bg-muted rounded flex-shrink-0"
                             >
                               {expandedTasks.has(task.id) ? (
-                                <ChevronDown className="h-4 w-4 text-gray-500" />
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
                               ) : (
-                                <ChevronRight className="h-4 w-4 text-gray-500" />
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
                               )}
                             </button>
                           )}
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-3 break-words">
+                            <h4 className="text-foreground text-sm font-medium mb-2 line-clamp-3 break-words">
                               {task.title}
                             </h4>
                             {task.project?.name && (
-                              <span className="text-xs text-blue-600 mb-1 block break-words line-clamp-2">{task.project.name}</span>
+                              <span className="text-xs text-info mb-1 block break-words line-clamp-2">{task.project.name}</span>
                             )}
-                            <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
                               <span className="break-words">{task.assigned_to_name || 'Não atribuído'}</span>
                               <span className="flex-shrink-0 ml-1">{formatDueDate(task.due_date)}</span>
                             </div>
                             {(task as any).contribuinte?.nome_razao_social && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-gray-400">
+                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                 <Building2 className="h-3 w-3 flex-shrink-0" />
                                 <span className="break-words line-clamp-2">{(task as any).contribuinte.nome_razao_social}</span>
                               </div>
@@ -171,7 +171,7 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                                   className={cn(
                                     "text-xs",
                                     task.completedSubtasks === task.subtaskCount && task.subtaskCount > 0
-                                      ? "bg-green-100 text-green-700"
+                                      ? "bg-success/10 text-success"
                                       : ""
                                   )}
                                 >
@@ -185,12 +185,12 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                     </Card>
 
                     {expandedTasks.has(task.id) && task.subtasks.length > 0 && (
-                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-3">
+                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-border pl-3">
                         {task.subtasks.map(subtask => (
                           <div
                             key={subtask.id}
                             className={cn(
-                              "flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50",
+                              "flex items-center gap-2 p-2 rounded-md bg-card border border-border text-sm cursor-pointer hover:bg-muted",
                               subtask.status === 'done' && "opacity-60"
                             )}
                             onClick={() => onEdit(subtask)}
@@ -203,14 +203,14 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                             />
                             <div className="flex-1 min-w-0">
                               <span className={cn(
-                                "text-gray-700",
+                                "text-foreground",
                                 subtask.status === 'done' && "line-through"
                               )}>
                                 {subtask.title}
                               </span>
                             </div>
                             {subtask.due_date && (
-                              <span className="text-xs text-gray-400 flex-shrink-0">
+                              <span className="text-xs text-muted-foreground flex-shrink-0">
                                 {formatDueDate(subtask.due_date)}
                               </span>
                             )}

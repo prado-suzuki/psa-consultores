@@ -52,10 +52,10 @@ type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'department' | 'created_by' | 'updated_at' | 'activity_status' | null;
 
 const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500 hover:bg-blue-600',
-  em_andamento: 'bg-yellow-500 hover:bg-yellow-600',
-  resolvido: 'bg-green-500 hover:bg-green-600',
-  fechado: 'bg-gray-500 hover:bg-gray-600',
+  aberto: 'bg-info hover:bg-info',
+  em_andamento: 'bg-warning hover:bg-warning',
+  resolvido: 'bg-success hover:bg-success',
+  fechado: 'bg-muted-foreground hover:bg-muted-foreground/90',
 };
 
 const statusLabels: Record<string, string> = {
@@ -344,7 +344,7 @@ export default function GestaoChamados() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Total</CardDescription>
-              <MessageSquare className="h-4 w-4 text-gray-400" />
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </div>
             <CardTitle className="text-3xl">{stats.total}</CardTitle>
           </CardHeader>
@@ -354,9 +354,9 @@ export default function GestaoChamados() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Abertos</CardDescription>
-              <AlertTriangle className="h-4 w-4 text-blue-400" />
+              <AlertTriangle className="h-4 w-4 text-info" />
             </div>
-            <CardTitle className="text-3xl text-blue-600">{stats.abertos}</CardTitle>
+            <CardTitle className="text-3xl text-info">{stats.abertos}</CardTitle>
           </CardHeader>
         </Card>
 
@@ -364,9 +364,9 @@ export default function GestaoChamados() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Em Andamento</CardDescription>
-              <Clock className="h-4 w-4 text-yellow-400" />
+              <Clock className="h-4 w-4 text-warning" />
             </div>
-            <CardTitle className="text-3xl text-yellow-600">{stats.emAndamento}</CardTitle>
+            <CardTitle className="text-3xl text-warning">{stats.emAndamento}</CardTitle>
           </CardHeader>
         </Card>
 
@@ -374,9 +374,9 @@ export default function GestaoChamados() {
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
               <CardDescription>Resolvidos</CardDescription>
-              <CheckCircle className="h-4 w-4 text-green-400" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <CardTitle className="text-3xl text-green-600">{stats.resolvidos}</CardTitle>
+            <CardTitle className="text-3xl text-success">{stats.resolvidos}</CardTitle>
           </CardHeader>
         </Card>
       </div>
@@ -481,7 +481,7 @@ export default function GestaoChamados() {
       <div className="flex items-center gap-3 mb-6">
         <Button
           onClick={() => setCreateDialogOpen(true)}
-          className="bg-teal-600 hover:bg-teal-700 text-white"
+          className="bg-primary hover:bg-primary text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Chamado
@@ -489,7 +489,7 @@ export default function GestaoChamados() {
         <Button
           variant="outline"
           onClick={() => navigate('/gestao/chamados/dashboard')}
-          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <BarChart3 className="h-4 w-4 mr-2" />
           Dashboard
@@ -497,7 +497,7 @@ export default function GestaoChamados() {
         <Button
           variant="outline"
           onClick={handleExport}
-          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <Download className="h-4 w-4 mr-2" />
           Exportar
@@ -506,7 +506,7 @@ export default function GestaoChamados() {
           <Button
             variant="outline"
             onClick={() => setDeleteDialogOpen(true)}
-            className="border-red-200 text-red-600 hover:bg-red-50"
+            className="border-destructive/20 text-destructive hover:bg-destructive/5"
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Excluir ({selectedTickets.length})
@@ -569,7 +569,7 @@ export default function GestaoChamados() {
                     </div>
                   </TableHead>
                   <TableHead>Fechado em</TableHead>
-                  <TableHead className="sticky right-0 bg-background z-10 border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">Ações</TableHead>
+                  <TableHead className="sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -590,23 +590,23 @@ export default function GestaoChamados() {
                       <div className="flex items-center gap-2">
                         {ticket.title}
                         {ticket.attachment_count && ticket.attachment_count > 0 && (
-                          <Paperclip className="h-4 w-4 text-slate-400" />
+                          <Paperclip className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-muted-foreground">
                       {departmentLabels[ticket.department] || ticket.department}
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-muted-foreground">
                       {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-muted-foreground">
                       {ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '—' : '—'}
                     </TableCell>
                     <TableCell>
                       {ticket.profiles?.first_name} {ticket.profiles?.last_name}
                     </TableCell>
-                    <TableCell className="text-slate-500">
+                    <TableCell className="text-muted-foreground">
                       {ticket.cliente_nome || '—'}
                     </TableCell>
                     <TableCell>
@@ -649,12 +649,12 @@ export default function GestaoChamados() {
                           const isToday = isTodayBrazil(deadlineDate);
                           const isTomorrow = isTomorrowBrazil(deadlineDate);
                           const colorClass = isClosed
-                            ? 'text-slate-500'
+                            ? 'text-muted-foreground'
                             : isPast
-                              ? 'text-red-600 font-semibold'
+                              ? 'text-destructive font-semibold'
                               : (isToday || isTomorrow)
-                                ? 'text-amber-600 font-medium'
-                                : 'text-green-600';
+                                ? 'text-warning font-medium'
+                                : 'text-success';
                           return (
                             <div className={`flex items-center gap-1 text-xs ${colorClass}`}>
                               {!isClosed && isPast && <AlertTriangle className="h-3 w-3" />}
@@ -664,20 +664,20 @@ export default function GestaoChamados() {
                         })()}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500 text-sm">
+                    <TableCell className="text-muted-foreground text-sm">
                       {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}
                     </TableCell>
-                    <TableCell className="text-slate-500 text-sm">
+                    <TableCell className="text-muted-foreground text-sm">
                       {ticket.closed_at
                         ? format(new Date(ticket.closed_at), 'dd/MM/yyyy HH:mm')
                         : '—'}
                     </TableCell>
-                    <TableCell className="sticky right-0 bg-background z-10 border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">
+                    <TableCell className="sticky right-0 bg-background z-10 border-l border-border shadow-[-4px_0_10px_rgba(0,0,0,0.04)] w-[80px] min-w-[80px]">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => navigate(`/gestao/chamados/${ticket.id}`)}
-                        className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
+                        className="border-border text-muted-foreground hover:bg-muted hover:text-primary"
                       >
                         Ver
                       </Button>
@@ -701,20 +701,20 @@ export default function GestaoChamados() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="bg-white">
+        <AlertDialogContent className="bg-card">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-slate-900">Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-500">
+            <AlertDialogTitle className="text-foreground">Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
               Você está prestes a excluir {selectedTickets.length} chamado(s). Esta ação não pode ser desfeita.
               Todas as mensagens e anexos associados também serão removidos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-200 text-slate-600">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel className="border-border text-muted-foreground">Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteTickets}
               disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-destructive text-white"
             >
               {deleting ? (
                 <span className="flex items-center gap-2">

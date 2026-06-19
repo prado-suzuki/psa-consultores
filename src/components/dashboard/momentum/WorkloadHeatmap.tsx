@@ -63,7 +63,7 @@ export function WorkloadHeatmap({
               {columnLabels.map((d, i) => (
                 <th
                   key={i}
-                  className="text-[10px] font-medium text-slate-400 px-0.5 text-center min-w-[18px]"
+                  className="text-[10px] font-medium text-muted-foreground px-0.5 text-center min-w-[18px]"
                 >
                   {d}
                 </th>
@@ -73,7 +73,7 @@ export function WorkloadHeatmap({
           <tbody>
             {rows.map((row, rIdx) => (
               <tr key={rIdx}>
-                <td className="text-[10px] font-semibold text-slate-600 pr-2 text-right uppercase tracking-wide">
+                <td className="text-[10px] font-semibold text-muted-foreground pr-2 text-right uppercase tracking-wide">
                   {row.label}
                 </td>
                 {row.cells.map((cell, cIdx) => {
@@ -95,7 +95,7 @@ export function WorkloadHeatmap({
       </div>
 
       {showLegend && (
-        <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-slate-500">
+        <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
           <span>Low</span>
           {tones.slice(1).map((t, i) => (
             <span key={i} className="h-3 w-3 rounded-sm" style={{ background: t }} />

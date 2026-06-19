@@ -88,15 +88,15 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
               onClick={() => dayTasks.length > 0 && setSelectedDate(day)}
               className={cn(
                 "min-h-[80px] sm:min-h-[100px] p-1 border rounded-lg transition-colors flex flex-col items-start overflow-hidden",
-                isToday && "border-emerald-500 bg-emerald-50",
+                isToday && "border-success bg-success/5",
                 dayTasks.length > 0 && "hover:bg-muted/50 cursor-pointer",
                 dayTasks.length === 0 && "cursor-default",
-                selectedDate && isSameDay(day, selectedDate) && "ring-2 ring-emerald-500"
+                selectedDate && isSameDay(day, selectedDate) && "ring-2 ring-success"
               )}
             >
               <span className={cn(
                 "text-sm font-medium",
-                isToday && "text-emerald-700"
+                isToday && "text-success"
               )}>
                 {format(day, 'd')}
               </span>
@@ -104,7 +104,7 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                 <div className="flex flex-col gap-0.5 mt-1 w-full">
                   {dayTasks.slice(0, 2).map(task => (
                     <div key={task.id} className="flex items-center gap-1 w-full">
-                      <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[task.status]?.bgSolid || 'bg-slate-400')} />
+                      <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[task.status]?.bgSolid || 'bg-muted-foreground')} />
                       <span className="text-[10px] leading-tight truncate">{task.title}</span>
                     </div>
                   ))}
@@ -144,12 +144,12 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                         onEdit(task);
                       }
                     }}
-                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    className="border rounded-lg p-3 hover:bg-muted/50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-success"
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <Badge className={cn("text-white text-xs", statusColors[task.status]?.bgSolid || 'bg-slate-400')}>
+                          <Badge className={cn("text-white text-xs", statusColors[task.status]?.bgSolid || 'bg-muted-foreground')}>
                             {statusColors[task.status]?.label || task.status}
                           </Badge>
                         </div>
@@ -168,7 +168,7 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
                           size="sm"
                           variant="ghost"
                           onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/5"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>

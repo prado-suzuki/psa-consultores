@@ -18,10 +18,10 @@ import { ptBR } from 'date-fns/locale';
 import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
 
 const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500',
-  em_andamento: 'bg-yellow-500',
-  resolvido: 'bg-green-500',
-  fechado: 'bg-gray-500',
+  aberto: 'bg-info',
+  em_andamento: 'bg-warning',
+  resolvido: 'bg-success',
+  fechado: 'bg-muted-foreground',
 };
 
 const statusLabels: Record<string, string> = {
@@ -192,7 +192,7 @@ export default function GestaoDetalhesChamado() {
     return (
       <GestaoLayout title="Carregando..." subtitle="Aguarde">
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       </GestaoLayout>
     );
@@ -213,7 +213,7 @@ export default function GestaoDetalhesChamado() {
         <Button
           variant="outline"
           onClick={() => navigate('/gestao/chamados')}
-          className="border-slate-200 text-slate-600 hover:bg-slate-50"
+          className="border-border text-muted-foreground hover:bg-muted"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
@@ -221,18 +221,18 @@ export default function GestaoDetalhesChamado() {
       }
     >
       <div className="max-w-4xl mx-auto space-y-6">
-        <Card className="p-6 bg-white border-slate-200/60 shadow-sm">
+        <Card className="p-6 bg-card border-border/60 shadow-sm">
           <div className="space-y-4">
             <div className="flex items-start justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-slate-900">{ticket.title}</h1>
-                <p className="text-sm text-slate-500 mt-1">
+                <h1 className="text-2xl font-bold text-foreground">{ticket.title}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
                   Cliente: {ticket.profiles?.first_name} {ticket.profiles?.last_name}
                 </p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <Select value={ticket.status} onValueChange={handleStatusChange}>
-                  <SelectTrigger className="w-40 bg-white border-slate-200">
+                  <SelectTrigger className="w-40 bg-card border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -243,7 +243,7 @@ export default function GestaoDetalhesChamado() {
                   </SelectContent>
                 </Select>
                 <Select value={ticket.assigned_to || 'none'} onValueChange={handleAssign}>
-                  <SelectTrigger className="w-48 bg-white border-slate-200">
+                  <SelectTrigger className="w-48 bg-card border-border">
                     <SelectValue placeholder="Responsável" />
                   </SelectTrigger>
                   <SelectContent>
@@ -260,7 +260,7 @@ export default function GestaoDetalhesChamado() {
                   onValueChange={handleDeadlineChange}
                   disabled={updateDeadline.isPending}
                 >
-                  <SelectTrigger className="w-40 bg-white border-slate-200">
+                  <SelectTrigger className="w-40 bg-card border-border">
                     <SelectValue placeholder="Prazo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -276,14 +276,14 @@ export default function GestaoDetalhesChamado() {
               <Badge className={statusColors[ticket.status]}>
                 {statusLabels[ticket.status]}
               </Badge>
-              <Badge variant="outline" className="border-slate-200 text-slate-600">
+              <Badge variant="outline" className="border-border text-muted-foreground">
                 Prioridade: {priorityLabels[ticket.priority] || ticket.priority}
               </Badge>
-              <Badge variant="outline" className="border-slate-200 text-slate-600">
+              <Badge variant="outline" className="border-border text-muted-foreground">
                 Departamento: {departmentLabels[ticket.department] || ticket.department}
               </Badge>
               {ticket.areaName && (
-                <Badge variant="outline" className="border-teal-200 text-teal-700">
+                <Badge variant="outline" className="border-primary/20 text-primary">
                   Área: {ticket.areaName}
                 </Badge>
               )}
@@ -293,10 +293,10 @@ export default function GestaoDetalhesChamado() {
                 const isToday = isTodayBrazil(deadlineDate);
                 const isTomorrow = isTomorrowBrazil(deadlineDate);
                 const cls = isPast
-                  ? 'border-red-200 text-red-700 bg-red-50'
+                  ? 'border-destructive/20 text-destructive bg-destructive/5'
                   : isToday || isTomorrow
-                    ? 'border-amber-200 text-amber-700 bg-amber-50'
-                    : 'border-slate-200 text-slate-600';
+                    ? 'border-warning/20 text-warning bg-warning/5'
+                    : 'border-border text-muted-foreground';
                 return (
                   <Badge variant="outline" className={cls}>
                     Prazo: {format(deadlineDate, "dd/MM/yyyy (EEE)", { locale: ptBR })}
@@ -306,17 +306,17 @@ export default function GestaoDetalhesChamado() {
             </div>
 
             {/* Roteamento — Cliente / Cluster / Área (cascata) */}
-            <div className="rounded-md border border-slate-200 bg-slate-50/60 p-4">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">Roteamento</h3>
+            <div className="rounded-md border border-border bg-muted/60 p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Roteamento</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Cliente</label>
+                  <label className="text-xs text-muted-foreground">Cliente</label>
                   <Select
                     value={ticket.cliente_id || 'none'}
                     onValueChange={(v) => handleRoutingChange('cliente_id', v)}
                     disabled={updateRouting.isPending}
                   >
-                    <SelectTrigger className="bg-white border-slate-200">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder="Selecione o cliente" />
                     </SelectTrigger>
                     <SelectContent>
@@ -329,13 +329,13 @@ export default function GestaoDetalhesChamado() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Cluster</label>
+                  <label className="text-xs text-muted-foreground">Cluster</label>
                   <Select
                     value={ticket.cluster_id || 'none'}
                     onValueChange={(v) => handleRoutingChange('cluster_id', v)}
                     disabled={!ticket.cliente_id || updateRouting.isPending}
                   >
-                    <SelectTrigger className="bg-white border-slate-200">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder={ticket.cliente_id ? 'Selecione o cluster' : 'Selecione o cliente primeiro'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -348,13 +348,13 @@ export default function GestaoDetalhesChamado() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs text-slate-500">Área</label>
+                  <label className="text-xs text-muted-foreground">Área</label>
                   <Select
                     value={ticket.estrutura_area_id || 'none'}
                     onValueChange={(v) => handleRoutingChange('estrutura_area_id', v)}
                     disabled={!ticket.cluster_id || updateRouting.isPending}
                   >
-                    <SelectTrigger className="bg-white border-slate-200">
+                    <SelectTrigger className="bg-card border-border">
                       <SelectValue placeholder={ticket.cluster_id ? 'Selecione a área' : 'Selecione o cluster primeiro'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -369,8 +369,8 @@ export default function GestaoDetalhesChamado() {
             </div>
 
 
-            <p className="text-slate-600">{ticket.description}</p>
-            <div className="text-sm text-slate-500 space-y-0.5">
+            <p className="text-muted-foreground">{ticket.description}</p>
+            <div className="text-sm text-muted-foreground space-y-0.5">
               <div>
                 Aberto em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
               </div>
@@ -382,28 +382,28 @@ export default function GestaoDetalhesChamado() {
             </div>
 
             {attachments.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                <h3 className="text-sm font-semibold text-slate-700 mb-2">Anexos ({attachments.length})</h3>
+              <div className="mt-4 pt-4 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-2">Anexos ({attachments.length})</h3>
                 <div className="space-y-2">
                   {attachments.map((attachment) => (
                     <div
                       key={attachment.id}
-                      className="flex items-center gap-2 p-2 bg-slate-50 rounded text-sm"
+                      className="flex items-center gap-2 p-2 bg-muted rounded text-sm"
                     >
                       {isImageFile(attachment.file_type) ? (
-                        <ImageIcon className="h-4 w-4 text-slate-400" />
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
                       ) : (
-                        <FileText className="h-4 w-4 text-slate-400" />
+                        <FileText className="h-4 w-4 text-muted-foreground" />
                       )}
-                      <span className="flex-1 truncate text-slate-700">{attachment.file_name}</span>
-                      <span className="text-slate-400">
+                      <span className="flex-1 truncate text-foreground">{attachment.file_name}</span>
+                      <span className="text-muted-foreground">
                         ({(attachment.file_size / 1024).toFixed(1)} KB)
                       </span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDownloadFile(attachment.file_path, attachment.file_name)}
-                        className="text-slate-600 hover:text-teal-600"
+                        className="text-muted-foreground hover:text-primary"
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -415,11 +415,11 @@ export default function GestaoDetalhesChamado() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-white border-slate-200/60 shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900 mb-4">Mensagens</h2>
+        <Card className="p-6 bg-card border-border/60 shadow-sm">
+          <h2 className="text-xl font-semibold text-foreground mb-4">Mensagens</h2>
           <div className="space-y-4 mb-6 max-h-96 overflow-y-auto">
             {messages.length === 0 ? (
-              <p className="text-center text-slate-500 py-8">
+              <p className="text-center text-muted-foreground py-8">
                 Nenhuma mensagem ainda.
               </p>
             ) : (
@@ -428,19 +428,19 @@ export default function GestaoDetalhesChamado() {
                   key={message.id}
                   className={`p-4 rounded-lg ${
                     message.is_admin
-                      ? 'bg-teal-50 ml-8 border border-teal-100'
-                      : 'bg-slate-100 mr-8 border border-slate-200'
+                      ? 'bg-primary/5 ml-8 border border-primary/10'
+                      : 'bg-muted mr-8 border border-border'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className={`text-sm font-semibold ${message.is_admin ? 'text-teal-700' : 'text-slate-700'}`}>
+                    <span className={`text-sm font-semibold ${message.is_admin ? 'text-primary' : 'text-foreground'}`}>
                       {message.is_admin ? 'Equipe PSA' : 'Cliente'}
                     </span>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-muted-foreground">
                       {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
                     </span>
                   </div>
-                  <p className="text-sm text-slate-700">{message.message}</p>
+                  <p className="text-sm text-foreground">{message.message}</p>
                 </div>
               ))
             )}
@@ -452,12 +452,12 @@ export default function GestaoDetalhesChamado() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               rows={4}
-              className="bg-white border-slate-200"
+              className="bg-card border-border"
             />
             <Button 
               onClick={handleSendMessage} 
               disabled={sending || !newMessage.trim()}
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+              className="bg-primary hover:bg-primary text-white"
             >
               {sending ? (
                 <span className="flex items-center gap-2">
