@@ -324,6 +324,17 @@
   flex-direction: column;
   gap: 10px;
 }
+/* Reordenação por arraste: cada item é uma alça (sem botão dedicado). O
+   container espelha o gap da .cadastro-lista para não alterar o espaçamento. */
+.processo-reorder-group{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.processo-reorder-item{ position: relative; }
+.processo-reorder-item .cadastro-item{ cursor: grab; }
+.processo-reorder-item:active .cadastro-item{ cursor: grabbing; }
+
 .cadastro-item{
   position: relative;
   display: flex;

@@ -126,29 +126,30 @@ export function diagnosticarRoi(
 
   // ---- 1. Dados do Processo ----
   const catProcesso: ItemDiagnostico[] = [];
-  const freq = processo.frequency;
   const ann = execucoesAnuais(processo);
 
-  if (!freq) {
+  if (!ann) {
     catProcesso.push(item({
-      campo: 'Frequência',
+      campo: 'Volume Anual',
       origem: 'Processo → editar metadados (lápis no card)',
       valor: null,
       status: 'faltando',
       impacto: 'execuções anuais, custo anual, horas anuais',
-      formula: 'FATOR_ANUAL[frequency]',
-      camposFonte: ['processos.frequency'],
+      formula: 'volume_executions (fallback: FATOR_ANUAL[frequency])',
+      camposFonte: ['processos.volume_executions'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   } else {
+    const fonte = processo.volume_executions != null && processo.volume_executions > 0
+      ? `${ann} exec./ano` : `${ann} exec./ano (via frequência ${processo.frequency} — legado)`;
     catProcesso.push(item({
-      campo: 'Frequência',
+      campo: 'Volume Anual',
       origem: 'Processo → editar metadados',
-      valor: `${freq} (${ann} exec./ano)`,
+      valor: fonte,
       status: 'ok',
       impacto: 'multiplicador anual de custos e horas',
-      formula: 'FATOR_ANUAL[frequency]',
-      camposFonte: ['processos.frequency'],
+      formula: 'volume_executions (fallback: FATOR_ANUAL[frequency])',
+      camposFonte: ['processos.volume_executions'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   }
@@ -358,9 +359,9 @@ export function diagnosticarRoi(
   }
 
   // Melhorias e investimentos — uma melhoria entra no investment do processo
-  // se resolve um gargalo que se manifesta numa etapa do processo (DERIVADO via
-  // gargalo_melhorias + gargalo_etapas; melhoria_processos foi aposentado).
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  // quando está vinculada DIRETAMENTE a ele (melhoria_processos). Sem
+  // dependência de gargalo.
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const melhoriasRelevantes = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   if (melhoriasRelevantes.length === 0) {
@@ -371,7 +372,7 @@ export function diagnosticarRoi(
       status: 'zerado',
       impacto: 'investment em melhorias (treinamento, execução, custo externo)',
       formula: 'Σ horas_treinamento×CH + executadoPor.horas×CH + custo_externo_unico',
-      camposFonte: ['melhoria_processos', 'gargalo_melhorias', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
+      camposFonte: ['melhoria_processos', 'melhorias.horas_treinamento', 'melhoria_responsaveis.horas', 'melhorias.custo_externo_unico'],
     }));
   } else {
     for (const m of melhoriasRelevantes) {
@@ -444,10 +445,10 @@ export function diagnosticarRoi(
 
   // ---- Resumo dinâmico ----
   let resumo: string;
-  if (!freq && etapas.length === 0) {
-    resumo = 'O mapeamento está vazio. Comece definindo a frequência do processo e cadastrando as etapas na aba "Como era".';
-  } else if (!freq) {
-    resumo = 'Defina a frequência do processo (Diária, Semanal, etc.) para calcular a projeção anual. Edite o card do processo (ícone de lápis).';
+  if (!ann && etapas.length === 0) {
+    resumo = 'O mapeamento está vazio. Comece definindo o volume anual do processo e cadastrando as etapas na aba "Como era".';
+  } else if (!ann) {
+    resumo = 'Defina o volume anual do processo (execuções/ano) para calcular a projeção. Edite o card do processo (ícone de lápis).';
   } else if (etapas.length === 0) {
     resumo = 'Cadastre as etapas do processo na aba "Como era" → "Editar etapas". Sem etapas não há custo de mão de obra para calcular.';
   } else if (criticos.length > 0) {

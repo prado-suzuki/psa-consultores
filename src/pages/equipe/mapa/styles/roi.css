@@ -1005,6 +1005,13 @@
   overflow: auto;
   max-height: 640px;
 }
+/* Durante a exportação (HTML/PDF) desclampa scrolls internos para a captura
+   pegar o conteúdo INTEIRO (senão tabelas longas saem cortadas em 640px). */
+.dashv2-content.exporting .dashv2-table-wrap{
+  max-height: none !important;
+  overflow: visible !important;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .dashv2-table{
   width: 100%;
   border-collapse: separate;

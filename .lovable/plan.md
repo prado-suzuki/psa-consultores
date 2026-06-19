@@ -1,35 +1,79 @@
-## Checklist de validação — `20260619100000_psa_08_reestrutura_projetos_osg.sql`
+## Problema
 
-1. ✅ **Reagrupa 33 processos OSG em 3 projetos (19/6/8, sem órfão).**
-   - Pré-condição (linhas 53-56): aborta se `count(processes WHERE cluster_id = OSG) <> 33`.
-   - VALUES da linha 117-164 lista exatamente 33 códigos `PROC-GERAL-*` — 19 → Contratos, 6 → Gestão, 8 → Planejamento.
-   - Pós-validação 6.1 (linhas 178-182) aborta se a distribuição final não for 19/6/8.
-   - Pós-validação 6.2 (linhas 185-191) aborta se sobrar qualquer processo OSG fora dos 3 projetos.
+A política `rls_org_tasks_select` atual está desalinhada da `rls_org_projects_select`:
 
-2. ✅ **"Contratos" reaproveita projeto existente, não cria outro.**
-   - `v_contratos := '70c8b198-…'` (ex "P10 - Contratos", já criado pela coordenadora com `cluster_id = NULL`).
-   - Há apenas `UPDATE public.projects … WHERE id = v_contratos` (linhas 78-94). Nenhum `INSERT INTO public.projects` em toda a migração.
+- **Líder/admin** vê *todas* as tarefas globalmente (sem filtrar por área).
+- **Sub-líder** cai no balde genérico de `team_member+` e enxerga tarefas pela área do projeto.
+- **Membro comum** vê tarefas por ser membro do projeto ou da área — mais permissivo que a regra do projeto, que exige relação direta (`created_by`, `responsible_id`, `leader_id`, membro do projeto, ou caminho líder/sublíder via `can_view_org_project`).
 
-3. ✅ **Em `processes` só mudam `project_id` e `order_index`.**
-   - `UPDATE public.processes SET project_id = m.proj, order_index = m.ord` (linhas 113-115). Nenhum outro campo no SET.
-   - Cláusula `WHERE p.code = m.code AND p.cluster_id = v_osg` garante a trava por cluster.
+Resultado: tarefas aparecem com `project` nulo no join porque o usuário tem acesso à tarefa mas não ao projeto.
 
-4. ✅ **Nenhuma etapa é tocada.**
-   - Não há `INSERT/UPDATE/DELETE` em `process_stages`, `etapa_documentos`, `etapa_sistemas`, `etapa_responsaveis` ou `gargalo_etapas`.
-   - Snapshot antes (0.3, linhas 59-62) e depois (6.3, linhas 194-200) com `RAISE EXCEPTION` se a contagem divergir.
-   - Como nenhum `process.id` muda nem nenhum processo é deletado, as FKs `process_stages.process_id` permanecem válidas.
+## Solução
 
-5. ✅ **Nada fora do cluster OSG é lido, alterado ou deletado.**
-   - Todos os SELECTs/UPDATEs em `processes` filtram por `cluster_id = v_osg` ou por `id` específico.
-   - Os 3 `UPDATE public.projects` usam `WHERE id = <uuid fixo>` (Contratos/Gestão/Planejamento).
-   - O `DELETE FROM public.projects WHERE id = ANY(v_del)` (linha 171) usa os 4 UUIDs fixos dos ex-P2/P3/P4/P5.
-   - `DELETE FROM public.projeto_justificativas WHERE projeto_id = v_planejamento` é escopado por id.
+Substituir apenas a política de **SELECT** de `org_tasks` por uma versão alinhada à visibilidade de projeto, reaproveitando `public.can_view_org_project`, que já implementa corretamente os critérios de líder (por área) e sublíder (por equipe).
 
-6. ✅ **Os 4 projetos deletados não têm referência em sprints/dailies/tasks.**
-   - Bloco 0.4 (linhas 65-74) soma referências em `sprints`, `process_improvements`, `process_scenarios`, `org_tasks` e `client_visible_projects` para `project_id = ANY(v_del)` e aborta se `> 0`.
-   - Observação: `daily_standups` referencia `process_id`, não `project_id` — como nenhum processo é deletado, dailies ficam intactas por construção.
-   - Pós-validação 6.4 (linhas 203-205) confirma que os 4 projetos foram efetivamente removidos.
+### Novas regras de SELECT em `org_tasks`
 
-**Toda a migração roda em `BEGIN; … COMMIT;` com `RAISE EXCEPTION` em cada checkpoint — qualquer divergência aborta a transação inteira.**
+| Papel | Condição |
+|---|---|
+| Admin | Vê todas as tarefas |
+| Líder | Vê tarefa se `project_id IS NOT NULL` E `can_view_org_project(auth.uid(), project_id)` (que para líder exige membro do projeto em uma de suas áreas) |
+| Sub-líder | Idem líder, mas `can_view_org_project` resolve por equipe |
+| Membro/Team_member | Vê **apenas** se `assigned_to = auth.uid()` |
 
-Aguardando aprovação para aplicar via `supabase--migration`.
+`INSERT`, `UPDATE` e `DELETE` permanecem intactos.
+
+## Migração (SQL)
+
+```sql
+DROP POLICY IF EXISTS rls_org_tasks_select ON public.org_tasks;
+
+CREATE POLICY rls_org_tasks_select
+ON public.org_tasks
+FOR SELECT
+TO authenticated
+USING (
+  -- Admin: tudo
+  public.has_role(auth.uid(), 'admin'::app_role)
+  -- Líder/Sub-líder: tarefas de projetos visíveis para eles
+  -- (can_view_org_project já resolve área para líder e equipe para sublíder)
+  OR (
+    project_id IS NOT NULL
+    AND (
+      public.has_role(auth.uid(), 'lider'::app_role)
+      OR public.has_role(auth.uid(), 'sublider'::app_role)
+    )
+    AND public.can_view_org_project(auth.uid(), project_id)
+  )
+  -- Membro comum: somente tarefas atribuídas a ele
+  OR assigned_to = auth.uid()
+);
+```
+
+## Casos de borda — decisões propostas (precisam de confirmação)
+
+1. **Tarefas sem `project_id`**: ficam visíveis apenas para admin e para quem está em `assigned_to`. Líder e sublíder *não* veem tarefas órfãs. Compatível com o enunciado.
+2. **Criador (`created_by`)**: pela regra estrita, um membro comum que criou uma tarefa **não** a verá se não estiver em `assigned_to`. Isso pode quebrar fluxos onde alguém cria uma tarefa para outro. Recomendo adicionar `OR created_by = auth.uid()` — **aguardando sua confirmação** antes de aplicar.
+3. **`responsible_id`/`leader_id` do projeto**: continuam vendo via `can_view_org_project` (que já cobre isso) desde que tenham papel líder/sublíder. Se um responsável for membro comum, ele perde acesso às tarefas — geralmente aceitável porque a regra do projeto também o cobre via outra rota; sinalizo se for problema.
+
+## Validação após aplicar
+
+1. Conta admin → continua vendo todas as tarefas com projeto preenchido.
+2. Conta líder de uma área → lista de tarefas inclui só projetos cujos membros pertencem àquela área; `task.project` nunca vem nulo.
+3. Conta sublíder de uma equipe → mesma coisa para a equipe.
+4. Conta membro comum sem atribuição → não vê tarefas de projetos dos quais participa, só as atribuídas.
+5. Conta de automação OSG do bug original → tarefas órfãs de projeto desaparecem; tarefas visíveis trazem `project` populado.
+
+Consulta para sanity check:
+```sql
+SELECT t.id, t.title, t.project_id, p.id AS join_project
+FROM public.org_tasks t
+LEFT JOIN public.org_projects p ON p.id = t.project_id
+WHERE t.project_id IS NOT NULL AND p.id IS NULL;
+-- Deve retornar 0 linhas para o usuário logado.
+```
+
+## Antes de aplicar — me confirme:
+
+- (a) Incluir `OR created_by = auth.uid()` para preservar visibilidade do criador?
+- (b) Manter tarefas sem `project_id` invisíveis para líder/sublíder (apenas admin + assigned)?

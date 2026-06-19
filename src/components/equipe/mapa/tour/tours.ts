@@ -389,8 +389,8 @@ const modalGargaloForm = formModalSteps({
 const modalMelhoriaForm = formModalSteps({
   campo1Titulo: 'Nome',
   campo1: 'O nome da melhoria proposta.',
-  campo2Titulo: 'Gargalos resolvidos',
-  campo2: 'Os gargalos que esta melhoria ataca — é o vínculo que liga a melhoria às etapas impactadas e alimenta o plano de ação.',
+  campo2Titulo: 'Ações TD',
+  campo2: 'As ações de Transformação Digital desta melhoria. O vínculo com gargalos é por associação ao processo (ambos no mesmo processo), feito no mapeamento.',
   salvar: 'Grava a melhoria e seus custos (execução, treinamento) para o ROI.',
 });
 

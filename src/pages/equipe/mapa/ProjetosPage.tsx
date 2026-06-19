@@ -103,7 +103,7 @@ export default function ProjetosPage() {
       .filter(m => {
         if ((m.improvement_status || 'Não iniciado') !== 'Backlog') return false;
         if ((m as MelhoriaComProjeto).project_id === detalhe.id) return true;
-        return processoIdsDaMelhoria(m.id, gargalos).some(pid => processIds.has(pid));
+        return processoIdsDaMelhoria(m).some(pid => processIds.has(pid));
       })
       .sort((a, b) => a.improvement_description.localeCompare(b.improvement_description));
   }, [detalhe, processosPorProjeto, melhorias, gargalos]);

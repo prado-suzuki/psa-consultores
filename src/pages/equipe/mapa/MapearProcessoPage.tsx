@@ -6,12 +6,12 @@
 //   - Configurar ROI (wizard inline)
 // Histórico de medições fica acessível via botão no header.
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, ArrowLeft, FileText, GitCompare, Layers, Network, Pencil, Settings2 } from 'lucide-react';
+import { ArrowLeft, FileText, GitCompare, Layers, Network, Pencil, Settings2 } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
@@ -43,8 +43,8 @@ import {
 } from '@/hooks/useDominioListas';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
 import { useUpdateMelhoria } from '@/hooks/useMelhorias';
-import { syncVinculosEtapa } from '@/hooks/etapaVinculosSync';
-import { gargalosDoProcesso } from '@/utils/gargaloMelhorias';
+import { useUpdateGargalo } from '@/hooks/useGargalos';
+import { gargalosDoProcesso, melhoriasDoProcesso } from '@/utils/gargaloMelhorias';
 import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
@@ -77,7 +77,6 @@ function melhoriaLabel(desc: string): string {
 interface EtapasDraft {
   mode: 'era' | 'ficou';
   list: Etapa[];
-  links: Record<string, string[]>;
   removed: string[];
   activeIndex: number;
   ts: number;
@@ -116,14 +115,7 @@ export default function MapearProcessoPage() {
   const deleteEtapa = useDeleteEtapa();
   const upsertEtapaToBe = useUpsertEtapaToBe();
   const updateMelhoria = useUpdateMelhoria();
-
-  // Vínculos gargalo↔melhoria editados no painel: melhoriaId → gargaloIds.
-  // Guardo o snapshot original pra gravar (updateMelhoria) só o que mudou.
-  const [linksByMelhoria, setLinksByMelhoria] = useState<Record<string, string[]>>({});
-  const linksOriginaisRef = useRef<Record<string, string[]>>({});
-  // Gargalo que disparou o "Cadastrar nova melhoria" — pra já vincular a melhoria
-  // recém-criada a ele (quick-add a partir do card do gargalo).
-  const [melhoriaQuickGargalo, setMelhoriaQuickGargalo] = useState<string | null>(null);
+  const updateGargalo = useUpdateGargalo();
 
   // Edit Etapas (modal) — usado por "Como era" e "Como ficou"
   const [editEtapasOpen, setEditEtapasOpen] = useState(false);
@@ -151,7 +143,6 @@ export default function MapearProcessoPage() {
       const draft: EtapasDraft = {
         mode: editEtapasMode,
         list: editEtapasList,
-        links: linksByMelhoria,
         removed: [...removedEtapaIds],
         activeIndex: editEtapasActiveIndex,
         ts: Date.now(),
@@ -159,7 +150,7 @@ export default function MapearProcessoPage() {
       localStorage.setItem(draftKey(editEtapasMode), JSON.stringify(draft));
     } catch { /* localStorage indisponível — mantém só em memória */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editEtapasOpen, editEtapasDirty, editEtapasList, linksByMelhoria, removedEtapaIds, editEtapasActiveIndex, editEtapasMode, id]);
+  }, [editEtapasOpen, editEtapasDirty, editEtapasList, removedEtapaIds, editEtapasActiveIndex, editEtapasMode, id]);
 
   // Cadastro rápido a partir das listas suspensas do editor de etapas —
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
@@ -176,7 +167,9 @@ export default function MapearProcessoPage() {
   const docIdByNome = useMemo(() => new Map(documentos.map(d => [d.nome, d.id])), [documentos]);
   const sisIdByNome = useMemo(() => new Map(sistemas.map(s => [s.nome, s.id])), [sistemas]);
   const respIdByNome = useMemo(() => new Map(responsaveis.map(r => [r.name, r.id])), [responsaveis]);
-  const gargaloNomeById = useMemo(() => new Map(gargalos.map(g => [g.id, g.nome])), [gargalos]);
+  // Gargalos e melhorias vinculados a ESTE processo (grão = processo).
+  const procGargalos = useMemo(() => gargalosDoProcesso(gargalos, id ?? ''), [gargalos, id]);
+  const procMelhorias = useMemo(() => melhoriasDoProcesso(melhorias, id ?? ''), [melhorias, id]);
 
   if (loading) {
     return <div className="loading-container"><div className="spinner" /></div>;
@@ -262,7 +255,6 @@ export default function MapearProcessoPage() {
     docsSaida: (e.docsSaida || []).filter(d => d.nome?.trim()),
     executadoPor: (e.executadoPor || []).filter(r => r.nome?.trim()),
     sistemas: (e.sistemas || []).filter(s => s?.trim()),
-    gargalos: (e.gargalos || []).filter(g => g?.trim()),
   });
 
   const openEditEtapas = (mode: 'era' | 'ficou', focusEtapaId?: string) => {
@@ -297,10 +289,6 @@ export default function MapearProcessoPage() {
     setEditEtapasList(prepared);
     setEditEtapasActiveIndex(focoIdx >= 0 ? focoIdx : 0);
     setRemovedEtapaIds(new Set());
-    const links: Record<string, string[]> = {};
-    melhorias.forEach(m => { links[m.id] = [...(m.gargalos || [])]; });
-    setLinksByMelhoria(links);
-    linksOriginaisRef.current = Object.fromEntries(Object.entries(links).map(([k, v]) => [k, [...v]]));
     // Abre "limpo" (sem edições pendentes). Se houver rascunho salvo deste
     // processo+modo, oferece recuperação (não aplica automático).
     setEditEtapasDirty(false);
@@ -418,32 +406,7 @@ export default function MapearProcessoPage() {
           await deleteEtapa.mutateAsync({ id: rid, old: { id: rid } as Etapa });
         }
       }
-      // No modo "ficou" o upsertEtapaToBe não mexe nos gargalos (AS-IS) — então
-      // sincronizo só os gargalos da etapa explicitamente. No "era" isso já é
-      // feito pelo create/updateEtapa (syncVinculosEtapa AS-IS no save da row).
-      if (editEtapasMode === 'ficou') {
-        for (const e of cleaned) {
-          if (!existingIds.has(e.id)) continue;
-          await syncVinculosEtapa(e.id, 'AS-IS', { gargalos: e.gargalos ?? [] });
-        }
-      }
-
-      // Vínculos gargalo↔melhoria editados no painel — grava só os que mudaram.
-      const mesmoConjunto = (a: string[], b: string[]) =>
-        a.length === b.length && a.every(x => b.includes(x));
-      for (const m of melhorias) {
-        const novos = linksByMelhoria[m.id];
-        if (novos === undefined) continue;
-        const orig = linksOriginaisRef.current[m.id] ?? (m.gargalos ?? []);
-        const limpos = [...new Set(novos.filter(Boolean))];
-        if (!mesmoConjunto(orig, limpos)) {
-          await updateMelhoria.mutateAsync({ id: m.id, old: m, patch: { gargalos: limpos } });
-        }
-      }
-
-      // gargalo_etapas (cascata) e process_stages podem ter mudado fora dos
-      // onSuccess acima (sync explícito no ficou) — invalida pra UI refrescar.
-      queryClient.invalidateQueries({ queryKey: ['gargalos'] });
+      // process_stages pode ter mudado nos onSuccess acima — invalida pra UI refrescar.
       queryClient.invalidateQueries({ queryKey: ['process_stages'] });
       // React Query invalida a lista de etapas (process_stages) nos onSuccess
       // dos hooks — a UI rerenderiza com o estado fresco.
@@ -476,7 +439,6 @@ export default function MapearProcessoPage() {
   const usarRascunho = () => {
     if (!rascunhoPendente) return;
     setEditEtapasList(rascunhoPendente.list);
-    setLinksByMelhoria(rascunhoPendente.links ?? {});
     setRemovedEtapaIds(new Set(rascunhoPendente.removed ?? []));
     setEditEtapasActiveIndex(Math.min(rascunhoPendente.activeIndex ?? 0, Math.max(0, (rascunhoPendente.list?.length ?? 1) - 1)));
     setEditEtapasDirty(true);
@@ -575,6 +537,20 @@ export default function MapearProcessoPage() {
         </button>
       </div>
 
+      {/* Gargalos & Melhorias — grão do PROCESSO (gargalo_processos / melhoria_processos) */}
+      <GargalosMelhoriasPanel
+        gargalos={procGargalos.map(g => ({ id: g.id, nome: g.nome }))}
+        melhorias={procMelhorias.map(m => ({ id: m.id, nome: melhoriaLabel(m.improvement_description) }))}
+        gargaloOptions={gargalos.map(g => ({ id: g.id, nome: g.nome }))}
+        melhoriaOptions={melhorias.map(m => ({ id: m.id, nome: melhoriaLabel(m.improvement_description) }))}
+        onAddGargalo={(gid) => { const g = gargalos.find(x => x.id === gid); if (g) updateGargalo.mutateAsync({ id: gid, old: g, patch: { processos: [...new Set([...(g.processos || []), processo.id])] } }).catch(err => toast.error('Erro ao vincular gargalo', { description: err instanceof Error ? err.message : String(err) })); }}
+        onRemoveGargalo={(gid) => { const g = gargalos.find(x => x.id === gid); if (g) updateGargalo.mutateAsync({ id: gid, old: g, patch: { processos: (g.processos || []).filter(p => p !== processo.id) } }).catch(err => toast.error('Erro ao desvincular gargalo', { description: err instanceof Error ? err.message : String(err) })); }}
+        onAddMelhoria={(mid) => { const m = melhorias.find(x => x.id === mid); if (m) updateMelhoria.mutateAsync({ id: mid, old: m, patch: { processos: [...new Set([...(m.processos || []), processo.id])] } }).catch(err => toast.error('Erro ao vincular melhoria', { description: err instanceof Error ? err.message : String(err) })); }}
+        onRemoveMelhoria={(mid) => { const m = melhorias.find(x => x.id === mid); if (m) updateMelhoria.mutateAsync({ id: mid, old: m, patch: { processos: (m.processos || []).filter(p => p !== processo.id) } }).catch(err => toast.error('Erro ao desvincular melhoria', { description: err instanceof Error ? err.message : String(err) })); }}
+        onQuickAddGargalo={() => setCadastroRapido('gargalo')}
+        onQuickAddMelhoria={() => setCadastroRapido('melhoria')}
+      />
+
       {/* Navegação por abas — indicador deslizante (framer) */}
       <div className="mapear-tabs" role="tablist" data-tour="mapear-tabs">
         {ABAS.map(a => {
@@ -633,7 +609,6 @@ export default function MapearProcessoPage() {
                 etapas={etapas}
                 fmtPct={fmtPct}
                 sumHorasEtapa={sumHorasEtapa}
-                gargaloNomeById={gargaloNomeById}
                 onEditar={() => openEditEtapas('era')}
               />
             </motion.div>
@@ -839,24 +814,6 @@ export default function MapearProcessoPage() {
                   )}
                 </div>
 
-                <GargalosMelhoriasPanel
-                  gargalos={(active.gargalos || []).filter(Boolean).map(id => ({ id, nome: gargaloNomeById.get(id) ?? id }))}
-                  linksByMelhoria={linksByMelhoria}
-                  gargaloOptions={gargalos.map(g => ({ id: g.id, nome: g.nome }))}
-                  melhoriaOptions={melhorias.map(m => ({ id: m.id, nome: melhoriaLabel(m.improvement_description) }))}
-                  onAddGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...new Set([...(active.gargalos || []), gid])])}
-                  onRemoveGargalo={(gid) => handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', (active.gargalos || []).filter(x => x !== gid))}
-                  onLinkMelhoria={(gid, mid) => { setEditEtapasDirty(true); setLinksByMelhoria(prev => {
-                    const cur = prev[mid] ?? [];
-                    return cur.includes(gid) ? prev : { ...prev, [mid]: [...cur, gid] };
-                  }); }}
-                  onUnlinkMelhoria={(gid, mid) => { setEditEtapasDirty(true); setLinksByMelhoria(prev => ({ ...prev, [mid]: (prev[mid] ?? []).filter(x => x !== gid) })); }}
-                  onQuickAddGargalo={() => setCadastroRapido('gargalo')}
-                  onQuickAddMelhoria={(gid) => { setMelhoriaQuickGargalo(gid); setCadastroRapido('melhoria'); }}
-                />
-                <div className="mapear-gm-hint" style={{ marginTop: 8 }}>
-                  Gargalos valem para <strong>esta etapa</strong>; as melhorias entram no <strong>processo</strong> (todas as etapas herdam). Tudo é salvo em <strong>"Salvar todas"</strong>.
-                </div>
 
                 </div>
               </div>
@@ -918,22 +875,18 @@ export default function MapearProcessoPage() {
         isOpen={cadastroRapido === 'gargalo'}
         onClose={() => setCadastroRapido(null)}
         onCreated={(g) => {
-          const atual = editEtapasList[editEtapasActiveIndex];
-          if (!atual) return;
-          handleUpdateEtapaField(editEtapasActiveIndex, 'gargalos', [...(atual.gargalos || []), g.id]);
+          // grão = processo: vincula o gargalo recém-criado a ESTE processo.
+          updateGargalo.mutateAsync({ id: g.id, old: g, patch: { processos: [...new Set([...(g.processos || []), processo.id])] } })
+            .catch(err => toast.error('Erro ao vincular gargalo', { description: err instanceof Error ? err.message : String(err) }));
         }}
       />
       <NovoMelhoriaModal
         isOpen={cadastroRapido === 'melhoria'}
-        onClose={() => { setCadastroRapido(null); setMelhoriaQuickGargalo(null); }}
+        onClose={() => setCadastroRapido(null)}
         onCreated={(m) => {
-          // A melhoria nova entra no processo de forma DERIVADA: basta vinculá-la
-          // ao gargalo que disparou o cadastro (gargalo_melhorias).
-          if (melhoriaQuickGargalo) {
-            const gid = melhoriaQuickGargalo;
-            setEditEtapasDirty(true);
-            setLinksByMelhoria(prev => ({ ...prev, [m.id]: [...(prev[m.id] ?? []), gid] }));
-          }
+          // grão = processo: vincula a melhoria recém-criada a ESTE processo.
+          updateMelhoria.mutateAsync({ id: m.id, old: m, patch: { processos: [...new Set([...(m.processos || []), processo.id])] } })
+            .catch(err => toast.error('Erro ao vincular melhoria', { description: err instanceof Error ? err.message : String(err) }));
         }}
       />
     </div>
@@ -1006,27 +959,13 @@ function MapearTabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtit
   );
 }
 
-function GargalosDaEtapa({ ids, gargaloNomeById }: { ids?: string[]; gargaloNomeById: Map<string, string> }) {
-  const nomes = (ids || []).map(gid => gargaloNomeById.get(gid) ?? gid).filter(Boolean);
-  if (!nomes.length) return null;
-  return (
-    <div className="mapear-etapa-gargalos">
-      <span className="mapear-etapa-gargalos-label"><AlertTriangle size={13} /> Gargalos</span>
-      <div className="mapear-chips">
-        {nomes.map((n, i) => <span key={`${n}-${i}`} className="mapear-chip amber">{n}</span>)}
-      </div>
-    </div>
-  );
-}
-
 interface ComoEraProps {
   etapas: Etapa[];
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
-  gargaloNomeById: Map<string, string>;
   onEditar: () => void;
 }
-function ComoEraView({ etapas, fmtPct, sumHorasEtapa, gargaloNomeById, onEditar }: ComoEraProps) {
+function ComoEraView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoEraProps) {
   return (
     <div className="mapear-tab-content">
       <MapearTabHead titulo="Como era" subtitulo="O retrato atual do processo, etapa por etapa." onEditar={onEditar} />
@@ -1055,7 +994,6 @@ function ComoEraView({ etapas, fmtPct, sumHorasEtapa, gargaloNomeById, onEditar 
                 <EtapaCampo label="Equipe">{pessoaChips(e.executadoPor)}</EtapaCampo>
                 <EtapaCampo label="Sistemas">{sistemaChips(e.sistemas)}</EtapaCampo>
               </div>
-              <GargalosDaEtapa ids={e.gargalos} gargaloNomeById={gargaloNomeById} />
               <div className="mapear-metrics">
                 <Metric label="Horas/projeto" value={formatDecimal(sumHorasEtapa(e), 'h')} />
                 <Metric label="Volume" value={formatDecimal(e.volume_per_process || 0)} />

@@ -91,10 +91,10 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
     ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length
     : 0;
 
-  // Derivado via gargalo_etapas / gargalo_melhorias (melhoria_processos e
-  // gargalo_processos foram aposentados).
+  // Gargalos do processo via gargalo_processos; melhorias via vínculo DIRETO
+  // melhoria_processos (sem gargalo_melhorias — esse vínculo não existe mais).
   const gargalosDoProc = filtraGargalosDoProcesso(gargalos, processo.id);
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(gargalos, processo.id);
+  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const melhoriasDoProc = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
   // ── Métricas derivadas do horizonte (mesmo padrão do Dashboard ROI) ──

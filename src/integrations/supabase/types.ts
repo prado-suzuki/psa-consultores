@@ -1646,6 +1646,117 @@ export type Database = {
           },
         ]
       }
+      documento_arquivo: {
+        Row: {
+          ambiente: string
+          bem_id: string | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          checksum: string | null
+          cliente_id: string
+          contribuinte_id: string | null
+          created_at: string
+          created_by: string | null
+          documento_gerado_id: string | null
+          excluido: boolean
+          fonte: Database["public"]["Enums"]["osg_doc_fonte"]
+          gcs_uri: string | null
+          id: string
+          matricula_id: string | null
+          mime: string | null
+          nome_original: string
+          org_projects_id: string | null
+          pessoa_id: string | null
+          status: Database["public"]["Enums"]["osg_doc_status"]
+          tamanho: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ambiente?: string
+          bem_id?: string | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          checksum?: string | null
+          cliente_id: string
+          contribuinte_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id?: string | null
+          excluido?: boolean
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          gcs_uri?: string | null
+          id?: string
+          matricula_id?: string | null
+          mime?: string | null
+          nome_original: string
+          org_projects_id?: string | null
+          pessoa_id?: string | null
+          status?: Database["public"]["Enums"]["osg_doc_status"]
+          tamanho?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ambiente?: string
+          bem_id?: string | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"]
+          checksum?: string | null
+          cliente_id?: string
+          contribuinte_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          documento_gerado_id?: string | null
+          excluido?: boolean
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          gcs_uri?: string | null
+          id?: string
+          matricula_id?: string | null
+          mime?: string | null
+          nome_original?: string
+          org_projects_id?: string | null
+          pessoa_id?: string | null
+          status?: Database["public"]["Enums"]["osg_doc_status"]
+          tamanho?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_arquivo_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_documento_gerado_id_fkey"
+            columns: ["documento_gerado_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_gerado: {
         Row: {
           caminho_arquivo: string | null
@@ -7990,6 +8101,17 @@ export type Database = {
         | "in_progress"
         | "review"
         | "done"
+      osg_doc_categoria:
+        | "bens_direitos"
+        | "cadastros_fiscais"
+        | "declaracao_ir"
+        | "agrarios"
+        | "pessoais"
+        | "societarios"
+        | "sucessorios"
+        | "outros"
+      osg_doc_fonte: "cliente" | "psa" | "arquivar"
+      osg_doc_status: "pendente" | "ativo"
       scenario_kind: "scale" | "efficiency" | "investment"
       scenario_status:
         | "draft"
@@ -8187,6 +8309,18 @@ export const Constants = {
         "review",
         "done",
       ],
+      osg_doc_categoria: [
+        "bens_direitos",
+        "cadastros_fiscais",
+        "declaracao_ir",
+        "agrarios",
+        "pessoais",
+        "societarios",
+        "sucessorios",
+        "outros",
+      ],
+      osg_doc_fonte: ["cliente", "psa", "arquivar"],
+      osg_doc_status: ["pendente", "ativo"],
       scenario_kind: ["scale", "efficiency", "investment"],
       scenario_status: [
         "draft",

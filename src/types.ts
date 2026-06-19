@@ -143,6 +143,10 @@ export interface Processo extends BaseEntity {
   training_hours?: number | null;
   project_id?: string | null;
   order_index?: number | null;
+  /** Volume anual de execuções do processo (modelo novo de ROI). Multiplicador
+   *  anual primário; `frequency` virou fallback legado. */
+  volume_executions?: number | null;
+  /** @deprecated Mantido como fallback legado de volume; o ROI usa volume_executions. */
   frequency?: FrequenciaProcesso | null;
   deliverable?: string | null;
   evaluation_status?: StatusAvaliacao | null;
@@ -178,10 +182,8 @@ export interface Gargalo {
    *  jusante (etapa → docsSaida → etapas que consomem → ...) que define a
    *  cascata, derivada em tempo real e exibida na CascataPage. */
   etapasOrigem: GargaloEtapaRef[];
-  /** @deprecated Use `melhorias` (N:M via gargalo_melhorias). Mantido por compat. */
-  melhoria_id?: string | null;
-  /** Melhorias que atacam este gargalo. Hidratado via `gargalo_melhorias` (N:M). */
-  melhorias?: string[];
+  // Não há vínculo direto gargalo↔melhoria: a relação é por associação ao
+  // processo (gargalo e melhoria atuando no mesmo processo). Ver `gargaloMelhorias.ts`.
   origem?: string;
   cluster_id?: string | null;
   /** Nome do cluster, hidratado via JOIN. */
@@ -358,8 +360,6 @@ export interface Melhoria {
   treinamentoPor?: ResponsavelHoras[];
   /** Hidratado via `melhoria_acoes_td`. */
   acoesTd?: AcaoTd[];
-  /** Gargalos atacados por esta melhoria. Hidratado via `gargalo_melhorias` (N:M). */
-  gargalos?: string[];
 }
 
 // ═════════════════════════════════════════════════════════════════════════

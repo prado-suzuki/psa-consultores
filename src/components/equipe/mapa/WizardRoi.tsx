@@ -9,7 +9,7 @@ import type {
 } from '@/types';
 import type { ItemDiagnostico } from '@/utils/diagnosticoRoi';
 import { calcularRoi, execucoesAnuais } from '@/utils/roiCalculator';
-import { melhoriaIdsDoProcesso, gargalosDoProcesso } from '@/utils/gargaloMelhorias';
+import { melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
 import {
   diagnosticarRoi,
   type StatusItem,
@@ -401,13 +401,13 @@ export default function WizardRoi({
     return sistemas.filter(s => ids.has(s.id) || ids.has(s.nome));
   }, [etapas, sistemas]);
 
-  // Melhorias relevantes para este processo: DERIVADAS via gargalo (a melhoria
-  // ataca um gargalo que se manifesta numa etapa deste processo).
+  // Melhorias relevantes para este processo: vínculo DIRETO melhoria↔processo
+  // (melhoria_processos). Sem dependência de gargalo.
   const melhoriasRelevantes = useMemo(() => {
     if (!processo) return [];
-    const relevantes = melhoriaIdsDoProcesso(gargalos, processo.id);
+    const relevantes = melhoriaIdsDoProcesso(melhorias, processo.id);
     return melhorias.filter(m => relevantes.has(m.id));
-  }, [processo, gargalos, melhorias]);
+  }, [processo, melhorias]);
 
   if (!processo || !diag) return null;
 
@@ -665,12 +665,12 @@ export default function WizardRoi({
               </table>
             </div>
 
-            {!processo.frequency && (
+            {!processo.volume_executions && !processo.frequency && (
               <div className="roi-callout is-warn">
                 <span className="roi-callout-icon"><Icon name="alert" size={16} /></span>
                 <div className="roi-callout-body">
-                  Frequência do processo não definida — projeção anual está zerada. Defina a
-                  frequência no card do processo para ativar o cálculo.
+                  Volume anual do processo não definido — projeção anual está zerada. Defina o
+                  Volume Anual (execuções/ano) no card do processo para ativar o cálculo.
                 </div>
               </div>
             )}
@@ -762,8 +762,8 @@ export default function WizardRoi({
               <h3>Sistemas &amp; Investimento</h3>
               <p>
                 Custo recorrente dos <strong>sistemas</strong> (custo fixo/licença mensal × 12 × rateio%) e
-                <strong> investment</strong> one-shot das melhorias vinculadas aos gargalos do
-                processo — entradas que determinam <strong>ROI %</strong> e <strong>payback</strong>.
+                <strong> investment</strong> one-shot das melhorias do processo — entradas que
+                determinam <strong>ROI %</strong> e <strong>payback</strong>.
               </p>
             </div>
 
@@ -783,7 +783,7 @@ export default function WizardRoi({
               <KpiExec
                 label="Melhorias vinculadas"
                 value={String(melhoriasRelevantes.length)}
-                formula={`em ${gargalosDoProcesso(gargalos, processo.id).length} gargalo(s) do processo`}
+                formula="vinculadas a este processo"
                 variant="default"
               />
             </div>
@@ -838,7 +838,7 @@ export default function WizardRoi({
                 </thead>
                 <tbody>
                   {melhoriasRelevantes.length === 0 ? (
-                    <tr><td colSpan={5} className="is-empty">Nenhuma melhoria vinculada aos gargalos deste processo.</td></tr>
+                    <tr><td colSpan={5} className="is-empty">Nenhuma melhoria vinculada a este processo.</td></tr>
                   ) : melhoriasRelevantes.map(m => {
                     const treino = (m.training_hours || 0) * custoHM;
                     const exec = (m.executadoPor || []).reduce((acc, r) => {

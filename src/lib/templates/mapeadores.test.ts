@@ -10,6 +10,7 @@ import {
   mapearQuadroSocietario,
   mapearSociedade,
   mapearSocio,
+  reidratarItensPorLista,
   type ItemLista,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
@@ -318,6 +319,21 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     // Identidade, não número: quem numera ("parágrafo segundo") é a composição,
     // carimbando {{ ref }} neste mesmo objeto.
     expect((pMaria.imoveis as ItemLista[])[0].refItem).toBe(pJose);
+  });
+
+  it('reidratarItensPorLista religa refItem ao item real após o round-trip do snapshot (jsonb)', () => {
+    const itens = mapearIntegralizacoes([jose, maria], matriculas);
+    // Snapshot jsonb: JSON.stringify duplica refItem (cópia solta) → quebra a identidade.
+    const snapshot = JSON.parse(JSON.stringify({ integralizacoes: itens })) as {
+      integralizacoes: ItemLista[];
+    };
+    const [sJose, sMaria] = snapshot.integralizacoes;
+    expect((sMaria.imoveis as ItemLista[])[0].refItem).not.toBe(sJose);
+
+    reidratarItensPorLista(snapshot);
+    // Identidade restaurada: refItem aponta ao item de topo do MESMO array (onde
+    // a composição carimba {{ ref }}).
+    expect((sMaria.imoveis as ItemLista[])[0].refItem).toBe(sJose);
   });
 
   it('fecha os centavos no último sócio (69.013,61 + 69.013,60 = 138.027,21, como no MMS)', () => {

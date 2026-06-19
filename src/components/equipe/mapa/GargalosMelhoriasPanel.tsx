@@ -1,13 +1,12 @@
-// Painel "Gargalos & Melhorias" do editor de etapas — modelo gargalo-cêntrico:
-// cada gargalo da etapa é um card separado e tem seu próprio "+ Melhoria"
-// (as melhorias que o resolvem ficam listadas dentro do card, em verde).
-//   • gargalo → vínculo gargalo_etapas (por etapa)
-//   • melhoria sob um gargalo → vínculo gargalo_melhorias + entra no processo
+// Painel "Gargalos & Melhorias" no nível do PROCESSO (grão = processo).
+//   • gargalo → vínculo gargalo_processos (processo)
+//   • melhoria → vínculo melhoria_processos (processo, direto)
+// O vínculo gargalo↔melhoria (qual melhoria resolve qual gargalo) é editado nos
+// formulários de cadastro de Gargalo/Melhoria, não aqui.
 //
-// Apresentacional: todo o estado vive no chamador (MapearProcessoPage), que
-// persiste no "Salvar todas".
+// Apresentacional: todo o estado/persistência vive no chamador (MapearProcessoPage).
 
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle, Lightbulb, X } from 'lucide-react';
 import Select from '@/components/equipe/mapa/Select';
 
 export interface RelRef {
@@ -16,86 +15,87 @@ export interface RelRef {
 }
 
 interface Props {
-  /** Gargalos da etapa ativa. */
+  /** Gargalos vinculados a ESTE processo. */
   gargalos: RelRef[];
-  /** melhoriaId → gargaloIds que ela resolve. */
-  linksByMelhoria: Record<string, string[]>;
+  /** Melhorias vinculadas a ESTE processo. */
+  melhorias: RelRef[];
   /** Catálogo completo (MAPA) para os seletores "adicionar". */
   gargaloOptions: RelRef[];
   melhoriaOptions: RelRef[];
   onAddGargalo: (id: string) => void;
   onRemoveGargalo: (id: string) => void;
-  onLinkMelhoria: (gargaloId: string, melhoriaId: string) => void;
-  onUnlinkMelhoria: (gargaloId: string, melhoriaId: string) => void;
+  onAddMelhoria: (id: string) => void;
+  onRemoveMelhoria: (id: string) => void;
   onQuickAddGargalo: () => void;
-  onQuickAddMelhoria: (gargaloId: string) => void;
+  onQuickAddMelhoria: () => void;
 }
 
 export default function GargalosMelhoriasPanel({
-  gargalos, linksByMelhoria, gargaloOptions, melhoriaOptions,
-  onAddGargalo, onRemoveGargalo, onLinkMelhoria, onUnlinkMelhoria,
+  gargalos, melhorias, gargaloOptions, melhoriaOptions,
+  onAddGargalo, onRemoveGargalo, onAddMelhoria, onRemoveMelhoria,
   onQuickAddGargalo, onQuickAddMelhoria,
 }: Props) {
-  const resolve = (mid: string, gid: string) => (linksByMelhoria[mid] ?? []).includes(gid);
   const gargalosDisponiveis = gargaloOptions.filter(o => !gargalos.some(g => g.id === o.id));
+  const melhoriasDisponiveis = melhoriaOptions.filter(o => !melhorias.some(m => m.id === o.id));
 
   return (
-    <div className="modal-section">
-      <div className="modal-section-title">Gargalos &amp; Melhorias</div>
-      <p className="mapear-gm-hint">Para cada gargalo desta etapa, registre as melhorias que o resolvem.</p>
-
-      <div className="mapear-gm-list">
-        {gargalos.length === 0 && <span className="mapear-vazio">Nenhum gargalo nesta etapa ainda.</span>}
-        {gargalos.map(g => {
-          const vinculadas = melhoriaOptions.filter(m => resolve(m.id, g.id));
-          const disponiveis = melhoriaOptions.filter(m => !resolve(m.id, g.id));
-          return (
-            <div key={g.id} className="mapear-gm-card">
-              <div className="mapear-gm-card-head">
-                <AlertTriangle size={14} className="mapear-gm-garg-ic" />
-                <span className="mapear-gm-garg-nome">{g.nome}</span>
-                <button type="button" className="mapear-gm-x" aria-label={`Remover gargalo ${g.nome}`} onClick={() => onRemoveGargalo(g.id)}>
-                  <X size={14} />
-                </button>
-              </div>
-              <div className="mapear-gm-card-body">
-                <span className="mapear-gm-label">Melhorias que resolvem</span>
-                <div className="mapear-gm-chips">
-                  {vinculadas.length === 0 && <span className="mapear-vazio">Nenhuma melhoria vinculada ainda.</span>}
-                  {vinculadas.map(m => (
-                    <span key={m.id} className="mapear-gm-chip">
-                      {m.nome}
-                      <button type="button" aria-label={`Desvincular ${m.nome}`} onClick={() => onUnlinkMelhoria(g.id, m.id)}>
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="mapear-gm-add">
-                  <Select
-                    value=""
-                    onChange={(v) => { if (v) onLinkMelhoria(g.id, v); }}
-                    options={disponiveis.map(m => ({ value: m.id, label: m.nome }))}
-                    placeholder="+ Melhoria"
-                    compact
-                    footerAction={{ label: 'Cadastrar nova melhoria', onClick: () => onQuickAddMelhoria(g.id) }}
-                  />
-                </div>
-              </div>
-            </div>
-          );
-        })}
+    <div className="mapear-gm-processo">
+      {/* Gargalos do processo */}
+      <div className="modal-section">
+        <div className="modal-section-title">
+          <AlertTriangle size={14} className="mapear-gm-garg-ic" /> Gargalos do processo
+        </div>
+        <p className="mapear-gm-hint">Problemas/gargalos que se manifestam neste processo.</p>
+        <div className="mapear-gm-chips">
+          {gargalos.length === 0 && <span className="mapear-vazio">Nenhum gargalo neste processo ainda.</span>}
+          {gargalos.map(g => (
+            <span key={g.id} className="mapear-chip amber">
+              {g.nome}
+              <button type="button" aria-label={`Remover gargalo ${g.nome}`} onClick={() => onRemoveGargalo(g.id)}>
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="mapear-gm-add-garg">
+          <Select
+            value=""
+            onChange={(v) => { if (v) onAddGargalo(v); }}
+            options={gargalosDisponiveis.map(o => ({ value: o.id, label: o.nome }))}
+            placeholder="+ Adicionar gargalo"
+            compact
+            footerAction={{ label: 'Cadastrar novo gargalo', onClick: onQuickAddGargalo }}
+          />
+        </div>
       </div>
 
-      <div className="mapear-gm-add-garg">
-        <Select
-          value=""
-          onChange={(v) => { if (v) onAddGargalo(v); }}
-          options={gargalosDisponiveis.map(o => ({ value: o.id, label: o.nome }))}
-          placeholder="+ Adicionar gargalo"
-          compact
-          footerAction={{ label: 'Cadastrar novo gargalo', onClick: onQuickAddGargalo }}
-        />
+      {/* Melhorias do processo */}
+      <div className="modal-section">
+        <div className="modal-section-title">
+          <Lightbulb size={14} className="mapear-gm-melh-ic" /> Melhorias do processo
+        </div>
+        <p className="mapear-gm-hint">Melhorias/ações de TD que atacam este processo (entram no ROI).</p>
+        <div className="mapear-gm-chips">
+          {melhorias.length === 0 && <span className="mapear-vazio">Nenhuma melhoria neste processo ainda.</span>}
+          {melhorias.map(m => (
+            <span key={m.id} className="mapear-gm-chip">
+              {m.nome}
+              <button type="button" aria-label={`Remover melhoria ${m.nome}`} onClick={() => onRemoveMelhoria(m.id)}>
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
+        <div className="mapear-gm-add-garg">
+          <Select
+            value=""
+            onChange={(v) => { if (v) onAddMelhoria(v); }}
+            options={melhoriasDisponiveis.map(o => ({ value: o.id, label: o.nome }))}
+            placeholder="+ Adicionar melhoria"
+            compact
+            footerAction={{ label: 'Cadastrar nova melhoria', onClick: onQuickAddMelhoria }}
+          />
+        </div>
       </div>
     </div>
   );

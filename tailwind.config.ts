@@ -106,6 +106,7 @@ export default {
           moss: "hsl(var(--osg-moss) / <alpha-value>)",
           highlighter: "hsl(var(--osg-highlighter) / <alpha-value>)",
           canvas: "hsl(var(--osg-canvas) / <alpha-value>)",
+          red: "hsl(var(--osg-red) / <alpha-value>)",
         },
       },
       backgroundImage: {

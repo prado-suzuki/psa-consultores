@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { Melhoria, AcaoTd, ResponsavelHoras } from '@/types';
 
 const TABLE = 'process_improvements';
-const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td), gargalo_melhorias(gargalo_id), melhoria_responsaveis(responsavel_id, papel, horas)';
+const SELECT = '*, estrutura_clusters(name), melhoria_processos(processo_id), melhoria_sistemas(sistema_id), melhoria_acoes_td(acao_td), melhoria_responsaveis(responsavel_id, papel, horas)';
 
 type DbRow = Record<string, unknown>;
 type MelhoriaRespRow = { responsavel_id: string; papel: string; horas: number | null };
@@ -33,7 +33,6 @@ function hydrate(row: DbRow): Melhoria {
     processos: pluck<string>(row.melhoria_processos, 'processo_id'),
     sistemas: pluck<string>(row.melhoria_sistemas, 'sistema_id'),
     acoesTd: pluck<AcaoTd>(row.melhoria_acoes_td, 'acao_td'),
-    gargalos: pluck<string>(row.gargalo_melhorias, 'gargalo_id'),
     executadoPor: exec,
     treinamentoPor: treino,
   };
@@ -48,33 +47,45 @@ function stripSyntheticFields(patch: Partial<Melhoria>): Record<string, unknown>
   delete out.executadoPor;
   delete out.treinamentoPor;
   delete out.acoesTd;
-  delete out.gargalos;
   return out;
 }
 
 export type MelhoriaInput = Omit<Melhoria, 'id' | 'clusterName' | 'processos' | 'sistemas' | 'executadoPor' | 'acoesTd' | 'treinamentoPor'> & {
   // Campos opcionais que a UI envia pra serem persistidos em queries
   // separadas (junções) — não fazem parte do INSERT da row principal.
+  processos?: string[];
   sistemas?: string[];
   executadoPor?: Melhoria['executadoPor'];
   treinamentoPor?: Melhoria['treinamentoPor'];
   acoesTd?: Melhoria['acoesTd'];
-  gargalos?: string[];
 };
 
-/** Sincroniza gargalo_melhorias (N:M) pelo lado da MELHORIA: apaga todos os
- *  vínculos da melhoria e reinsere os selecionados. É a fonte de verdade do
- *  vínculo problema↔solução; o processo da melhoria é DERIVADO daí (via
- *  gargalo_etapas). O vínculo direto melhoria_processos foi aposentado. */
-async function syncGargalos(melhoriaId: string, gargaloIds: string[]): Promise<void> {
-  const { error: delErr } = await supabase
-    .from('gargalo_melhorias' as never)
-    .delete()
+/** Sincroniza melhoria_processos (N:M) — grão = PROCESSO (vínculo direto da
+ *  melhoria ao processo, independente de gargalo). */
+async function syncProcessos(melhoriaId: string, processoIds: string[]): Promise<void> {
+  const desejados = [...new Set(processoIds.filter(Boolean))];
+
+  const { data: atuaisRows, error: selErr } = await supabase
+    .from('melhoria_processos' as never)
+    .select('processo_id')
     .eq('melhoria_id', melhoriaId);
-  if (delErr) throw new Error(delErr.message);
-  if (gargaloIds.length > 0) {
-    const rows = gargaloIds.map((gargalo_id) => ({ gargalo_id, melhoria_id: melhoriaId }));
-    const { error: insErr } = await supabase.from('gargalo_melhorias' as never).insert(rows as never);
+  if (selErr) throw new Error(selErr.message);
+  const atuais = ((atuaisRows ?? []) as Array<{ processo_id: string }>).map((r) => r.processo_id);
+
+  const aRemover = atuais.filter((p) => !desejados.includes(p));
+  const aInserir = desejados.filter((p) => !atuais.includes(p));
+
+  if (aRemover.length > 0) {
+    const { error: delErr } = await supabase
+      .from('melhoria_processos' as never)
+      .delete()
+      .eq('melhoria_id', melhoriaId)
+      .in('processo_id', aRemover);
+    if (delErr) throw new Error(delErr.message);
+  }
+  if (aInserir.length > 0) {
+    const rows = aInserir.map((processo_id) => ({ melhoria_id: melhoriaId, processo_id }));
+    const { error: insErr } = await supabase.from('melhoria_processos' as never).insert(rows as never);
     if (insErr) throw new Error(insErr.message);
   }
 }
@@ -115,7 +126,7 @@ export function useCreateMelhoria(): UseMutationResult<Melhoria, Error, Melhoria
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: MelhoriaInput) => {
-      const gargalos = input.gargalos;
+      const processos = input.processos;
       const { data, error } = await supabase
         .from(TABLE as never)
         .insert(stripSyntheticFields(input as Partial<Melhoria>) as never)
@@ -123,7 +134,7 @@ export function useCreateMelhoria(): UseMutationResult<Melhoria, Error, Melhoria
         .single();
       if (error) throw new Error(error.message);
       const created = data as unknown as Melhoria;
-      if (gargalos !== undefined) await syncGargalos(created.id, gargalos);
+      if (processos !== undefined) await syncProcessos(created.id, processos);
       const { data: full } = await supabase
         .from(TABLE as never)
         .select(SELECT)
@@ -143,7 +154,7 @@ export function useUpdateMelhoria(): UseMutationResult<
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }) => {
-      const novosGargalos = patch.gargalos;
+      const novosProcessos = patch.processos;
       const dbPatch = stripSyntheticFields(patch);
       if (Object.keys(dbPatch).length > 0) {
         const { error } = await supabase
@@ -152,7 +163,7 @@ export function useUpdateMelhoria(): UseMutationResult<
           .eq('id', id);
         if (error) throw new Error(error.message);
       }
-      if (novosGargalos !== undefined) await syncGargalos(id, novosGargalos);
+      if (novosProcessos !== undefined) await syncProcessos(id, novosProcessos);
       const { data, error: selErr } = await supabase
         .from(TABLE as never)
         .select(SELECT)

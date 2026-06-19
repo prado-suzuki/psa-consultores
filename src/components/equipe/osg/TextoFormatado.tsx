@@ -31,9 +31,36 @@ const CLASSE_ALINHAMENTO: Record<Alinhamento, string> = {
   right: 'text-right',
 };
 
-function runs(linha: string): ReactNode {
+// Placeholder do engine: {{ campo }}, {{#colecao}}, {{/colecao}}. Na prévia da
+// Montagem (texto cru, antes do preenchimento) viram marca-texto osg-highlighter.
+const TOKEN_PLACEHOLDER = /\{\{[^{}]*\}\}/g;
+
+/** Quebra o texto cru em nós, envolvendo cada {{ ... }} num marca-texto. */
+function realcarPlaceholders(texto: string): ReactNode {
+  const partes: ReactNode[] = [];
+  let cursor = 0;
+  let k = 0;
+  for (const m of texto.matchAll(TOKEN_PLACEHOLDER)) {
+    const inicio = m.index!;
+    if (inicio > cursor) partes.push(texto.slice(cursor, inicio));
+    partes.push(
+      <mark
+        key={`ph-${k++}`}
+        className="rounded-[2px] bg-osg-highlighter/60 px-0.5 text-inherit [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
+      >
+        {m[0]}
+      </mark>,
+    );
+    cursor = inicio + m[0].length;
+  }
+  if (partes.length === 0) return texto;
+  if (cursor < texto.length) partes.push(texto.slice(cursor));
+  return partes;
+}
+
+function runs(linha: string, realcarCampos = false): ReactNode {
   return extrairRunsLinha(linha).map((run, j) => {
-    let no: ReactNode = run.texto;
+    let no: ReactNode = realcarCampos ? realcarPlaceholders(run.texto) : run.texto;
     if (run.sublinhado) no = <u>{no}</u>;
     if (run.italico) no = <em>{no}</em>;
     if (run.negrito) no = <strong>{no}</strong>;
@@ -139,9 +166,21 @@ interface TextoFormatadoProps extends ClickOrigem {
   texto?: string;
   /** Modo segmentado (render estruturado): quando presente, `texto` é ignorado. */
   segmentos?: SegmentoRender[];
+  /**
+   * Prévia da Montagem: o texto ainda tem placeholders crus ({{ ... }}), que
+   * viram marca-texto osg-highlighter. Só vale no modo `texto` (no segmentado os
+   * placeholders já foram resolvidos em valores).
+   */
+  realcarPlaceholders?: boolean;
 }
 
-export function TextoFormatado({ texto, segmentos, onClickOrigem, origemClicavel }: TextoFormatadoProps) {
+export function TextoFormatado({
+  texto,
+  segmentos,
+  onClickOrigem,
+  origemClicavel,
+  realcarPlaceholders: realcar = false,
+}: TextoFormatadoProps) {
   if (segmentos) {
     const click: ClickOrigem = { onClickOrigem, origemClicavel };
     const segs: SegmentoProveniencia[] = segmentarComProveniencia(segmentos);
@@ -171,6 +210,7 @@ export function TextoFormatado({ texto, segmentos, onClickOrigem, origemClicavel
   }
 
   const segmentados = segmentar((texto ?? '').split('\n'));
+  const renderLinha = (linha: string) => runs(linha, realcar);
   return (
     <>
       {segmentados.map((seg, s) => {
@@ -178,8 +218,8 @@ export function TextoFormatado({ texto, segmentos, onClickOrigem, origemClicavel
           return (
             <Tabela
               key={s}
-              cabecalho={seg.cabecalho.map(runs)}
-              corpo={seg.corpo.map((cels) => cels.map(runs))}
+              cabecalho={seg.cabecalho.map(renderLinha)}
+              corpo={seg.corpo.map((cels) => cels.map(renderLinha))}
               alinhamentos={seg.alinhamentos}
             />
           );
@@ -190,7 +230,7 @@ export function TextoFormatado({ texto, segmentos, onClickOrigem, origemClicavel
         return (
           <Fragment key={s}>
             {quebra && '\n'}
-            {runs(seg.texto)}
+            {renderLinha(seg.texto)}
           </Fragment>
         );
       })}

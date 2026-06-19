@@ -27,13 +27,13 @@ interface Bloco {
 const PROCESSO: Bloco[] = [
   {
     titulo: 'Base anual',
-    intro: 'Todo custo/hora por execução é multiplicado pela frequência do processo para virar valor anual.',
+    intro: 'Todo custo/hora por execução é multiplicado pelo Volume Anual do processo (execuções/ano) para virar valor anual.',
     linhas: [
       {
         indicador: 'Execuções por ano',
-        formula: 'FATOR_ANUAL[frequência] — Diária=252, Semanal=52, Quinzenal=26, Mensal=12, Trimestral=4, Anual=1',
-        fontes: ['frequency — Processos (editar metadados)'],
-        nota: 'É a frequência do processo que anualiza os custos — não há multiplicador "projetos por ano".',
+        formula: 'volume_executions (nº de execuções/ano declarado no processo)',
+        fontes: ['volume_executions — Processos (editar metadados, campo "Volume Anual")'],
+        nota: 'O Volume Anual do processo anualiza os custos. A frequência enum é apenas fallback legado para processos ainda não migrados.',
       },
     ],
   },
@@ -184,8 +184,8 @@ const DASHBOARD: Bloco[] = [
       },
       {
         indicador: 'De → Para (gargalo × melhoria)',
-        formula: 'liga cada gargalo às melhorias que o atacam via a tabela N:M gargalo_melhorias (um gargalo pode ter várias melhorias e vice-versa)',
-        fontes: ['gargalo_melhorias', 'processos[] — Gargalos'],
+        formula: 'não há vínculo direto gargalo↔melhoria — a relação é por associação ao PROCESSO: lista as melhorias que atuam no(s) mesmo(s) processo(s) do gargalo',
+        fontes: ['gargalo_processos', 'melhoria_processos'],
       },
     ],
   },

@@ -27,7 +27,7 @@ interface AuditLog {
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },
   updated: { label: 'Edição', color: 'bg-blue-100 text-blue-700' },
-  deleted: { label: 'Exclusão', color: 'bg-red-100 text-red-700' },
+  deleted: { label: 'Exclusão', color: 'bg-osg-red/10 text-osg-red' },
 };
 
 const ENTITY_LABELS_OSG: Record<string, string> = {
@@ -240,7 +240,7 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
                           <div key={idx} className="space-y-0.5">
                             <span className="font-medium text-osg-700">{c.label}</span>
                             <div className="flex flex-wrap items-baseline gap-1.5">
-                              <span className="text-red-600 line-through">{c.oldValue}</span>
+                              <span className="text-osg-red line-through">{c.oldValue}</span>
                               <span className="text-muted-foreground">→</span>
                               <span className="text-emerald-700">{c.newValue}</span>
                             </div>

@@ -55,6 +55,41 @@ export function useDocumentoGeradoRascunho({ clienteId, modeloId, pjPessoaId }: 
   });
 }
 
+/** Uma versão da linhagem de um documento, com o número de ordem cronológico. */
+export interface VersaoDocumento {
+  row: DocumentoGeradoRow;
+  /** 1-based, na ordem em que as versões foram criadas (1 = raiz). */
+  numero: number;
+  /** A head viva e editável (status 'rascunho'); as demais estão seladas. */
+  ehHead: boolean;
+}
+
+/**
+ * Linhagem completa de um documento, em ordem cronológica (raiz → … → head).
+ * Todas as versões compartilham o mesmo documento_raiz_id (a raiz aponta para si
+ * mesma). Cada linha carrega o snapshot que a torna reproduzível, então o viewer
+ * de versão antiga renderiza direto daqui — sem tocar nos cadastros vivos.
+ */
+export function useDocumentoVersoes(raizId: string | null) {
+  return useQuery({
+    queryKey: ['documento-versoes', raizId],
+    enabled: !!raizId,
+    queryFn: async (): Promise<VersaoDocumento[]> => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .select('*')
+        .eq('documento_raiz_id', raizId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return ((data ?? []) as DocumentoGeradoRow[]).map((row, i) => ({
+        row,
+        numero: i + 1,
+        ehHead: row.status === 'rascunho',
+      }));
+    },
+  });
+}
+
 /**
  * True se o cliente possui ao menos um documento_gerado (qualquer status/versão).
  * Usado como gate de exibição do histórico de alterações nos modais de cadastro:
@@ -185,10 +220,15 @@ export function useSalvarDocumentoGerado() {
       }
 
       // Head existe + commit deliberado: SELA a head atual e FORKA uma nova.
-      // 1. Selo: rascunho → revisao. Não toco no snapshot — fica congelado.
+      // 1. Selo: rascunho → revisao, CONGELANDO o estado atual no snapshot. A head
+      //    renderiza ao vivo (Biblioteca + overrides aplicados na composição), então
+      //    seu snapshot_versoes_blocos fica defasado assim que um override é criado/
+      //    editado/revertido — só validarVersao o re-congela, e mexer em override não
+      //    dispara isso. Sem gravar snapshotCols aqui, a versão selada renderizaria o
+      //    texto PRÉ-override (o viewer de versão lê do snapshot, não dos cadastros).
       const { error: erroSelo } = await supabase
         .from('documento_gerado')
-        .update({ status: 'revisao' })
+        .update({ status: 'revisao', ...snapshotCols })
         .eq('id', head.id);
       if (erroSelo) throw erroSelo;
 
@@ -237,6 +277,8 @@ export function useSalvarDocumentoGerado() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [RASCUNHO_KEY] });
+      // Selar/forkar muda a linhagem: o histórico de versões precisa refletir.
+      queryClient.invalidateQueries({ queryKey: ['documento-versoes'] });
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao validar a versão', description: error.message, variant: 'destructive' });
@@ -305,6 +347,11 @@ export function useDocumentoOverrides(documentoGeradoId: string | null) {
 
       return { porBlocoAlvo: new Map(lista.map((o) => [o.blocoAlvoId, o])), lista };
     },
-    initialData: SEM_OVERRIDES,
+    // placeholderData (e NÃO initialData): mostra o shape vazio enquanto carrega,
+    // mas nunca entra no cache como dado "fresco". Com initialData + o staleTime
+    // global de 1 min, um cold load (F5) tratava o vazio inicial como fresco e
+    // PULAVA o fetch — os overrides do documento só reapareciam após uma
+    // invalidação explícita (ex.: salvar outro ajuste). placeholderData sempre busca.
+    placeholderData: SEM_OVERRIDES,
   });
 }

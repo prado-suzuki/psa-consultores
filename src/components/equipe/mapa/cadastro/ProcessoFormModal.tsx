@@ -4,17 +4,18 @@
 // ações no topo, corpo rolável) para os dois modais conversarem visualmente.
 // O mapeamento de etapas/ROI vive em /processos/:id/mapear — aqui só metadados.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
 import { dica } from '@/utils/tooltips';
-import type { Processo, FrequenciaProcesso, StatusAvaliacao } from '@/types';
+import type { Processo, StatusAvaliacao } from '@/types';
 import { useProjetosLista } from '@/hooks/useDominioListas';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useCreateProcesso, useUpdateProcesso } from '@/hooks/useProcessos';
 import {
-  FREQUENCIA_OPCOES, STATUS_AVALIACAO_OPCOES, COMPLEXIDADE_OPCOES, normalizarComplexidade,
+  STATUS_AVALIACAO_OPCOES, COMPLEXIDADE_OPCOES, normalizarComplexidade,
 } from '@/components/equipe/mapa/cadastros/processoOpcoes';
 import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
@@ -30,11 +31,12 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   const createProcesso = useCreateProcesso();
   const updateProcesso = useUpdateProcesso();
   const { data: projetos = [] } = useProjetosLista();
+  const { cluster } = useClusterGlobal();
 
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [projetoId, setProjetoId] = useState('');
-  const [frequencia, setFrequencia] = useState('');
+  const [volumeAnual, setVolumeAnual] = useState('');
   const [statusAvaliacao, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
   const [complexidade, setComplexidade] = useState('');
   const [erro, setErro] = useState('');
@@ -49,11 +51,11 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
       setNome(processo.name);
       setDescricao(processo.description || '');
       setProjetoId(processo.project_id || '');
-      setFrequencia(processo.frequency || '');
+      setVolumeAnual(processo.volume_executions != null ? String(processo.volume_executions) : '');
       setStatusAvaliacao(processo.evaluation_status || 'Não avaliado');
       setComplexidade(normalizarComplexidade(processo.complexity_level));
     } else {
-      setNome(''); setDescricao(''); setProjetoId(''); setFrequencia('');
+      setNome(''); setDescricao(''); setProjetoId(''); setVolumeAnual('');
       setStatusAvaliacao('Não avaliado'); setComplexidade('');
     }
     setErro('');
@@ -61,6 +63,16 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
 
   const touch = () => { tocado.current = true; };
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
+
+  // Opções de projeto filtradas pelo cluster escolhido no ambiente ('' = todos).
+  // Mantém o projeto já vinculado ao processo em edição mesmo que seja de outro
+  // cluster, para não sumir da lista e perder o vínculo silenciosamente.
+  const projetoOpcoes = useMemo(() =>
+    projetos
+      .filter(p => !cluster || p.cluster_id === cluster || p.id === projetoId)
+      .map(p => ({ value: p.id, label: p.name })),
+    [projetos, cluster, projetoId],
+  );
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do processo.'); return; }
@@ -71,7 +83,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
       name: nome.trim(),
       description: descricao.trim(),
       project_id: projetoId,
-      frequency: (frequencia || undefined) as FrequenciaProcesso | undefined,
+      volume_executions: volumeAnual.trim() !== '' ? Number(volumeAnual) : undefined,
       evaluation_status: statusAvaliacao,
       complexity_level: normalizarComplexidade(complexidade) || undefined,
     };
@@ -144,13 +156,18 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
             <Select
               value={projetoId}
               onChange={(v) => { touch(); setProjetoId(v); if (erro) setErro(''); }}
-              options={projetos.map(p => ({ value: p.id, label: p.name }))}
+              options={projetoOpcoes}
               placeholder="Selecione o projeto..."
             />
           </FormField>
           <div className="cadastro-form-row">
-            <FormField label="Frequência" tooltip={dica('processos.form.frequency')}>
-              <Select value={frequencia} onChange={(v) => { touch(); setFrequencia(v); }} options={FREQUENCIA_OPCOES} />
+            <FormField label="Volume Anual (execuções/ano)" tooltip={dica('processos.form.frequency')}>
+              <input
+                type="number" min={0} step="1"
+                value={volumeAnual}
+                onChange={(e) => { touch(); setVolumeAnual(e.target.value); }}
+                placeholder="Ex.: 20 (nº de projetos/execuções por ano)"
+              />
             </FormField>
             <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
               <Select

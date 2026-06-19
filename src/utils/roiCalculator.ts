@@ -7,8 +7,8 @@ import type {
 } from '../types';
 import { melhoriaIdsDoProcesso } from './gargaloMelhorias';
 
-// Multiplicador anual derivado da frequência declarada do processo.
-// 'Anual' = 1 execução/ano (volumes já são anuais).
+// Fallback legado: multiplicador anual derivado da frequência enum, usado só
+// para processos que ainda não têm `volume_executions` (ex.: Fiscal a migrar).
 const FATOR_ANUAL: Record<FrequenciaProcesso, number> = {
   'Diária': 252,
   'Semanal': 52,
@@ -18,7 +18,11 @@ const FATOR_ANUAL: Record<FrequenciaProcesso, number> = {
   'Anual': 1,
 };
 
-export function execucoesAnuais(p: Pick<Processo, 'frequency'>): number {
+// Execuções anuais = MODELO DE VOLUME. O multiplicador anual do ROI é o
+// `volume_executions` (nº de execuções/ano declarado no processo). A frequência
+// enum vira fallback só enquanto o processo não tiver volume_executions.
+export function execucoesAnuais(p: Pick<Processo, 'frequency' | 'volume_executions'>): number {
+  if (p.volume_executions != null && p.volume_executions > 0) return p.volume_executions;
   if (p.frequency && FATOR_ANUAL[p.frequency]) return FATOR_ANUAL[p.frequency];
   return 0;
 }
@@ -106,13 +110,13 @@ function custoMedioHora(responsaveis: Responsavel[]): number {
   return total / responsaveis.length;
 }
 
-// Melhorias relevantes a um processo: DERIVADAS via gargalo — a melhoria ataca
-// um gargalo que se manifesta numa etapa do processo (gargalo_melhorias +
-// gargalo_etapas). Fonte única usada tanto para contar a abrangência (rateio do
-// investimento) quanto para selecionar as melhorias dentro de calcProcesso.
-// (Aposentados os vínculos diretos melhoria_processos e gargalo_processos.)
+// Melhorias relevantes a um processo: vínculo DIRETO melhoria↔processo
+// (melhoria_processos). Sem dependência de gargalo. Fonte única usada tanto
+// para contar a abrangência (rateio do investimento) quanto para selecionar as
+// melhorias dentro de calcProcesso. O parâmetro `gargalos` é mantido por
+// assinatura/compat, mas não participa mais da seleção.
 function melhoriasRelevantesIds(proc: Processo, gargalos: Gargalo[], melhorias: Melhoria[]): Set<string> {
-  const derivadas = melhoriaIdsDoProcesso(gargalos, proc.id);
+  const derivadas = melhoriaIdsDoProcesso(melhorias, proc.id);
   return new Set(melhorias.filter(m => derivadas.has(m.id)).map(m => m.id));
 }
 
