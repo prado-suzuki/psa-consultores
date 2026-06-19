@@ -487,13 +487,23 @@ export default function DashboardRoiPage() {
   const exportVisual = async (formato: 'html' | 'pdf') => {
     setExportando(true);
     const abaOriginal = aba;
+    const node = captureRef.current;
     try {
       const { capturarNodePng, montarHtml, montarPdf, baixarBlob } = await import('@/lib/roiVisualExport');
+      // Garante fontes carregadas (senão a captura sai com fonte fallback).
+      if (document.fonts?.ready) { try { await document.fonts.ready; } catch { /* noop */ } }
+      // Modo de exportação: desclampa scrolls internos p/ capturar conteúdo inteiro.
+      node?.classList.add('exporting');
+
       const secoes: SecaoImagem[] = [];
+      let warmedUp = false;
       for (const a of ABAS) {
         setAba(a.id);
         await esperarPaint();
         if (!captureRef.current) continue;
+        // Warm-up: a 1ª chamada do html-to-image costuma vir incompleta
+        // (embute recursos lazy). Captura uma vez e descarta na 1ª seção.
+        if (!warmedUp) { try { await capturarNodePng(captureRef.current); } catch { /* noop */ } warmedUp = true; }
         const img = await capturarNodePng(captureRef.current);
         secoes.push({ label: a.label, ...img });
       }
@@ -506,6 +516,7 @@ export default function DashboardRoiPage() {
         await montarPdf(secoes, `${base}.pdf`);
       }
     } finally {
+      node?.classList.remove('exporting');
       setAba(abaOriginal);
       setExportando(false);
       setExportOpen(false);
@@ -614,32 +625,46 @@ export default function DashboardRoiPage() {
       <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
 
       <Modal isOpen={exportOpen} onClose={() => setExportOpen(false)}>
-        <div className="modal" style={{ maxWidth: 440 }}>
-          <h2>Exportar Dashboard ROI</h2>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: -4 }}>
-            CSV traz os dados consolidados por processo (para a Ferramenta C). HTML e PDF capturam a
-            apresentação visual — todas as seções, com os gráficos.
+        <div className="modal" style={{ maxWidth: 460, width: '100%' }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', color: '#0f172a' }}>Exportar Dashboard ROI</h2>
+          <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0 0 16px', lineHeight: 1.45 }}>
+            Escolha o formato. O <strong>CSV</strong> traz os dados consolidados por processo (Ferramenta C);
+            <strong> HTML</strong> e <strong>PDF</strong> capturam a apresentação visual — todas as seções, com os gráficos.
           </p>
-          <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-            <button
-              className="btn-secondary"
-              disabled={exportando}
-              onClick={() => { setExportOpen(false); handleExportCsv(); }}
-            >
-              CSV — dados consolidados por processo
-            </button>
-            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('html')}>
-              HTML — apresentação visual (com gráficos)
-            </button>
-            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('pdf')}>
-              PDF — apresentação visual (com gráficos)
-            </button>
-            {exportando && (
-              <span style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
-                Gerando… percorrendo as seções para capturar os gráficos.
-              </span>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {([
+              { fmt: 'csv', titulo: 'CSV', sub: 'Dados consolidados por processo', icone: <path d="M3 3h18v18H3z M3 9h18 M3 15h18 M9 3v18 M15 3v18" /> },
+              { fmt: 'html', titulo: 'HTML', sub: 'Apresentação visual (com gráficos)', icone: <><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></> },
+              { fmt: 'pdf', titulo: 'PDF', sub: 'Apresentação visual (com gráficos)', icone: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></> },
+            ] as const).map((opt) => (
+              <button
+                key={opt.fmt}
+                type="button"
+                disabled={exportando}
+                onClick={() => { if (opt.fmt === 'csv') { setExportOpen(false); handleExportCsv(); } else { exportVisual(opt.fmt); } }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10,
+                  background: '#fff', textAlign: 'left',
+                  cursor: exportando ? 'default' : 'pointer', opacity: exportando ? 0.55 : 1,
+                }}
+              >
+                <span style={{ display: 'inline-flex', width: 36, height: 36, flex: '0 0 36px', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: '#f1f5f9', color: '#0d9488' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{opt.icone}</svg>
+                </span>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>{opt.titulo}</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{opt.sub}</span>
+                </span>
+              </button>
+            ))}
           </div>
+          {exportando && (
+            <p style={{ marginTop: 14, marginBottom: 0, fontSize: '0.82rem', color: '#0d9488', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="dashv2-spinner" aria-hidden style={{ width: 14, height: 14, border: '2px solid #99f6e4', borderTopColor: '#0d9488', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+              Gerando… percorrendo as seções e capturando os gráficos.
+            </p>
+          )}
         </div>
       </Modal>
 
