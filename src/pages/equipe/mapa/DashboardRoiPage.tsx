@@ -1263,6 +1263,20 @@ export default function DashboardRoiPage() {
         )}
       </div>
 
+      {/* Rodapé — data da última atualização + respiro no fim da página */}
+      <footer
+        style={{
+          marginTop: 32,
+          paddingTop: 16,
+          paddingBottom: 48,
+          borderTop: '1px solid #e2e8f0',
+          textAlign: 'center',
+          fontSize: '0.8rem',
+          color: '#64748b',
+        }}
+      >
+        Última atualização: {ultimaAtualizacao}
+      </footer>
     </div>
   );
 }
