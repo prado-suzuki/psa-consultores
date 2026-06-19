@@ -7,6 +7,7 @@ import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { useClusters } from '@/hooks/useClusters';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import HistoricoMedicoes from '@/components/equipe/mapa/HistoricoMedicoes';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
@@ -47,12 +48,12 @@ const fmtNum = (v: number, dp = 1) =>
 const fmtPct = (v: number) => `${fmtNum(v, 1)}%`;
 
 const ABAS: { id: Aba; label: string; numero: string; subtitulo: string }[] = [
-  { id: 'mapeamento', label: 'O Mapeamento', numero: '1', subtitulo: 'Escopo analisado' },
-  { id: 'diagnostico', label: 'Diagnóstico', numero: '2', subtitulo: 'Como era — dores e custos' },
-  { id: 'melhorias', label: 'As Melhorias', numero: '3', subtitulo: 'Plano de ação e investment' },
-  { id: 'futuro', label: 'Cenário Futuro', numero: '4', subtitulo: 'Como ficará — estado projetado' },
-  { id: 'roi', label: 'ROI Consolidado', numero: '5', subtitulo: 'Investimento × retorno' },
-  { id: 'sumario', label: 'Sumário Executivo', numero: '6', subtitulo: 'A história em um olhar' },
+  { id: 'sumario', label: 'Sumário Executivo', numero: '1', subtitulo: 'A história em um olhar' },
+  { id: 'mapeamento', label: 'O Mapeamento', numero: '2', subtitulo: 'Escopo analisado' },
+  { id: 'diagnostico', label: 'Diagnóstico', numero: '3', subtitulo: 'Como era — dores e custos' },
+  { id: 'melhorias', label: 'As Melhorias', numero: '4', subtitulo: 'Plano de ação e investment' },
+  { id: 'futuro', label: 'Cenário Futuro', numero: '5', subtitulo: 'Como ficará — estado projetado' },
+  { id: 'roi', label: 'ROI Consolidado', numero: '6', subtitulo: 'Investimento × retorno' },
 ];
 
 // ============================================================
@@ -303,7 +304,7 @@ function EmptyRow({ cols, msg = 'Sem dados — preencha o cadastro para visualiz
 // ============================================================
 
 export default function DashboardRoiPage() {
-  const [aba, setAba] = useState<Aba>('mapeamento');
+  const [aba, setAba] = useState<Aba>('sumario');
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -322,6 +323,7 @@ export default function DashboardRoiPage() {
 
   // Cluster vem do seletor global no header.
   const { cluster: filtroCluster } = useClusterGlobal();
+  const { data: clusters = [] } = useClusters();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
@@ -330,13 +332,18 @@ export default function DashboardRoiPage() {
   const captureRef = useRef<HTMLDivElement>(null);
   const [notasOpen, setNotasOpen] = useState(false);
 
-  // Quando a lista de projetos chega, seleciona o primeiro como filtro default.
-  useEffect(() => {
-    if (projetos.length > 0) setFiltroProjeto(prev => prev || projetos[0].id);
-  }, [projetos]);
+  // Sem auto-seleção: o padrão é "Todos os projetos" (filtroProjeto vazio),
+  // que o dashboard já sabe agregar. O usuário escolhe um projeto no filtro.
 
   const projetoAtivo = projetos.find((p) => p.id === filtroProjeto);
-  const tituloProjeto = projetoAtivo?.name || 'Projeto não selecionado';
+  // No modo "Todos os projetos", o título vira uma visão geral nomeada pelo
+  // cluster ativo (filtroCluster = UUID; '' = todos os clusters).
+  const clusterNome = clusters.find((c) => c.id === filtroCluster)?.nome;
+  const tituloProjeto =
+    projetoAtivo?.name
+    || (filtroCluster && clusterNome
+          ? `Visão Geral — ${clusterNome}`
+          : 'Visão Geral — Todos os projetos');
   const projetoStatus: ProjetoStatus = projetoAtivo?.status || 'Mapeamento';
   const statusIdx = STATUS_ORDEM.indexOf(projetoStatus);
 
@@ -441,7 +448,7 @@ export default function DashboardRoiPage() {
   const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
 
   const limparFiltros = () => {
-    setFiltroProjeto(projetos[0]?.id || '');
+    setFiltroProjeto('');
     setFiltroProcesso('');
   };
 
@@ -592,7 +599,8 @@ export default function DashboardRoiPage() {
       <div className="dashv2-hero">
         <div className="dashv2-hero-text">
           <div className="dashv2-hero-eyebrow">
-            <span className="dashv2-fase-badge">Fase: {projetoStatus}</span>
+            {/* "Fase" é por projeto; no modo visão geral (todos) não há fase única. */}
+            {projetoAtivo && <span className="dashv2-fase-badge">Fase: {projetoStatus}</span>}
             <span className="dashv2-hero-update">Última atualização: {ultimaAtualizacao}</span>
           </div>
           <h1>{tituloProjeto}</h1>
@@ -709,7 +717,9 @@ export default function DashboardRoiPage() {
       <div className="dashv2-stepper" data-tour="roi-stepper">
         {ABAS.map((a, i) => {
           const ativaIdx = ABAS.findIndex((x) => x.id === aba);
-          const fasePrevia = STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
+          // Gating por fase só vale para um projeto específico. No modo "Todos"
+          // os dados são agregados de todo o cluster — todas as abas disponíveis.
+          const fasePrevia = !projetoAtivo || STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
           return (
             <button
               key={a.id}
@@ -733,7 +743,7 @@ export default function DashboardRoiPage() {
         {/* =================== SUMÁRIO EXECUTIVO =================== */}
         {aba === 'sumario' && (
           <StorySection
-            numero="6"
+            numero="1"
             titulo="Sumário Executivo"
             intro="A apresentação completa em três linhas: o que mapeamos, o quanto o cenário atual custa, e qual o retorno do investment na transformação."
           >
@@ -768,7 +778,7 @@ export default function DashboardRoiPage() {
         {/* =================== O MAPEAMENTO =================== */}
         {aba === 'mapeamento' && (
           <StorySection
-            numero="1"
+            numero="2"
             titulo="O Mapeamento"
             intro="O ponto de partida: para entender o que pode ser melhorado, mapeamos integralmente o escopo da operação — pessoas, processos, sistemas e documentos."
           >
@@ -841,7 +851,7 @@ export default function DashboardRoiPage() {
         {/* =================== DIAGNÓSTICO =================== */}
         {aba === 'diagnostico' && (
           <StorySection
-            numero="2"
+            numero="3"
             titulo="Diagnóstico — Como Era"
             intro="O custo do status quo: este é o cenário antes das melhorias. Aqui estão as dores quantificadas em horas, dinheiro e erros — base para o business case da transformação."
           >
@@ -976,7 +986,7 @@ export default function DashboardRoiPage() {
         {/* =================== MELHORIAS =================== */}
         {aba === 'melhorias' && (
           <StorySection
-            numero="3"
+            numero="4"
             titulo="As Melhorias Propostas"
             intro="O plano de ação: cada melhoria foi desenhada para resolver um ou mais gargalos identificados no diagnóstico. Aqui está o que será implementado e quanto custa."
           >
@@ -1089,7 +1099,7 @@ export default function DashboardRoiPage() {
         {/* =================== CENÁRIO FUTURO =================== */}
         {aba === 'futuro' && (
           <StorySection
-            numero="4"
+            numero="5"
             titulo="Cenário Futuro — Como Ficará"
             intro="O estado projetado após implementadas todas as melhorias. Este é o novo patamar de eficiência da operação."
           >
@@ -1156,7 +1166,7 @@ export default function DashboardRoiPage() {
         {/* =================== ROI CONSOLIDADO =================== */}
         {aba === 'roi' && (
           <StorySection
-            numero="5"
+            numero="6"
             titulo="ROI Consolidado"
             intro="A síntese: a comparação direta entre o cenário atual e o otimizado, traduzida em retorno financeiro, payback e ganho de qualidade."
           >
