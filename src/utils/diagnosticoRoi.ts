@@ -445,10 +445,10 @@ export function diagnosticarRoi(
 
   // ---- Resumo dinâmico ----
   let resumo: string;
-  if (!freq && etapas.length === 0) {
-    resumo = 'O mapeamento está vazio. Comece definindo a frequência do processo e cadastrando as etapas na aba "Como era".';
-  } else if (!freq) {
-    resumo = 'Defina a frequência do processo (Diária, Semanal, etc.) para calcular a projeção anual. Edite o card do processo (ícone de lápis).';
+  if (!ann && etapas.length === 0) {
+    resumo = 'O mapeamento está vazio. Comece definindo o volume anual do processo e cadastrando as etapas na aba "Como era".';
+  } else if (!ann) {
+    resumo = 'Defina o volume anual do processo (execuções/ano) para calcular a projeção. Edite o card do processo (ícone de lápis).';
   } else if (etapas.length === 0) {
     resumo = 'Cadastre as etapas do processo na aba "Como era" → "Editar etapas". Sem etapas não há custo de mão de obra para calcular.';
   } else if (criticos.length > 0) {
