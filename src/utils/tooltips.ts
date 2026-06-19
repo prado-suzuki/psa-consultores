@@ -23,7 +23,7 @@ export const TOOLTIPS: Record<string, string> = {
   'processos.form.nome': 'Nome do processo macro (ex.: P1 Organização Patrimonial).',
   'processos.form.descricao': 'O que o processo entrega de ponta a ponta.',
   'processos.form.projeto': 'Projeto/pilar a que este processo pertence — obrigatório; define o cluster usado nos rateios e relatórios.',
-  'processos.form.frequency': 'Quantas vezes o processo roda por ano — anualiza os custos no ROI.',
+  'processos.form.frequency': 'Volume anual: quantas vezes o processo é executado por ano (execuções/ano). É o multiplicador que anualiza horas e custos no ROI.',
   'processos.form.deliverable': 'Resultado final entregue ao concluir o processo.',
   'processos.form.evaluation_status': 'Situação da avaliação: Não avaliado, Em avaliação ou Avaliado.',
   'processos.form.complexity_level': 'Grau de complexity_level do processo (Baixa, Média, Alta).',

@@ -126,29 +126,30 @@ export function diagnosticarRoi(
 
   // ---- 1. Dados do Processo ----
   const catProcesso: ItemDiagnostico[] = [];
-  const freq = processo.frequency;
   const ann = execucoesAnuais(processo);
 
-  if (!freq) {
+  if (!ann) {
     catProcesso.push(item({
-      campo: 'Frequência',
+      campo: 'Volume Anual',
       origem: 'Processo → editar metadados (lápis no card)',
       valor: null,
       status: 'faltando',
       impacto: 'execuções anuais, custo anual, horas anuais',
-      formula: 'FATOR_ANUAL[frequency]',
-      camposFonte: ['processos.frequency'],
+      formula: 'volume_executions (fallback: FATOR_ANUAL[frequency])',
+      camposFonte: ['processos.volume_executions'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   } else {
+    const fonte = processo.volume_executions != null && processo.volume_executions > 0
+      ? `${ann} exec./ano` : `${ann} exec./ano (via frequência ${processo.frequency} — legado)`;
     catProcesso.push(item({
-      campo: 'Frequência',
+      campo: 'Volume Anual',
       origem: 'Processo → editar metadados',
-      valor: `${freq} (${ann} exec./ano)`,
+      valor: fonte,
       status: 'ok',
       impacto: 'multiplicador anual de custos e horas',
-      formula: 'FATOR_ANUAL[frequency]',
-      camposFonte: ['processos.frequency'],
+      formula: 'volume_executions (fallback: FATOR_ANUAL[frequency])',
+      camposFonte: ['processos.volume_executions'],
       alvo: { rota: '/processos', focusId: processo.id },
     }));
   }

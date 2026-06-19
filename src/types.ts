@@ -143,6 +143,10 @@ export interface Processo extends BaseEntity {
   training_hours?: number | null;
   project_id?: string | null;
   order_index?: number | null;
+  /** Volume anual de execuções do processo (modelo novo de ROI). Multiplicador
+   *  anual primário; `frequency` virou fallback legado. */
+  volume_executions?: number | null;
+  /** @deprecated Mantido como fallback legado de volume; o ROI usa volume_executions. */
   frequency?: FrequenciaProcesso | null;
   deliverable?: string | null;
   evaluation_status?: StatusAvaliacao | null;
