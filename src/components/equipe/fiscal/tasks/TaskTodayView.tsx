@@ -18,10 +18,10 @@ import { parseDate } from '@/lib/dateUtils';
  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
  
  const priorityColors = {
-   urgent: 'text-red-600',
-   high: 'text-amber-600',
-   medium: 'text-blue-600',
-   low: 'text-slate-600',
+   urgent: 'text-destructive',
+   high: 'text-warning',
+   medium: 'text-info',
+   low: 'text-muted-foreground',
  };
  
  const priorityLabels = {
@@ -54,11 +54,11 @@ import { parseDate } from '@/lib/dateUtils';
          </h2>
          <div className="flex gap-4 text-sm">
            <span className="text-muted-foreground">
-             <AlertCircle className="h-4 w-4 inline mr-1 text-amber-500" />
+             <AlertCircle className="h-4 w-4 inline mr-1 text-warning" />
              {pendingTasks.length} pendentes
            </span>
            <span className="text-muted-foreground">
-             <CheckCircle2 className="h-4 w-4 inline mr-1 text-emerald-500" />
+             <CheckCircle2 className="h-4 w-4 inline mr-1 text-success" />
              {completedTasks.length} concluídas
            </span>
          </div>

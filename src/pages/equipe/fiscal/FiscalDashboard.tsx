@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { format, differenceInDays, startOfDay, subDays, eachDayOfInterval, addDays } from 'date-fns';
 import { statusList } from '@/lib/taskStatusColors';
+import type { AreaKey } from '@/config/areaCategories';
 import { useEstruturaAreas } from '@/hooks/useEstruturaAreas';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import {
@@ -35,22 +36,40 @@ const ALL = '__ALL__';
 type UrgencyFilter = typeof ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
 // Conteúdo do Dashboard — agnóstico de layout (fonte única compartilhada entre
-// Tax e OSG). A navegação interna é resolvida pela área atual (areaBase), então
-// um deep-link de tarefa abre a aba de Tarefas da própria área.
-const DashboardContent = () => {
+// Tax e OSG). A área é recebida por prop (mesmo padrão do PainelTarefas): define
+// tanto a navegação interna (areaBase) quanto o recorte das métricas — só os
+// projetos/tarefas da área atual entram nos KPIs.
+const DashboardContent = ({ area = 'tax' }: { area?: AreaKey }) => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const areaBase = location.pathname.startsWith('/equipe/osg') ? '/equipe/osg' : '/equipe/tax';
-  const { data: projects = [], isLoading: loadingProjects } = useFiscalDashProjects();
+  const areaBase = area === 'osg' ? '/equipe/osg' : '/equipe/tax';
+  const { data: allProjects = [], isLoading: loadingProjects } = useFiscalDashProjects();
   const { data: tasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
   const { data: clients = [] } = useFiscalClientsList();
   const { data: contribuintes = [] } = useFiscalDashContribuintes();
   const { data: clientNames = [] } = useFiscalDashClientNames();
-  const { data: areas = [] } = useEstruturaAreas('tax');
-  const { data: equipes = [] } = useEstruturaEquipesByCategory('tax');
+  const { data: areas = [], isLoading: loadingAreas } = useEstruturaAreas(area);
+  const { data: equipes = [] } = useEstruturaEquipesByCategory(area);
   const { data: members = [] } = useTeamProfilesSafe();
 
-  const isLoading = loadingProjects || loadingTasks;
+  const isLoading = loadingProjects || loadingTasks || loadingAreas;
+
+  // ═══════════════════════ RECORTE POR ÁREA ═══════════════════════
+  // Cada projeto pertence a uma área via estrutura_area_id → estrutura_areas
+  // (que carrega o cluster). Mantemos apenas os projetos da área atual. Projetos
+  // sem área definida são tratados como Tax (área padrão/legado): a OSG é recente,
+  // então todo projeto pré-existente nasceu no contexto fiscal.
+  const areaIds = useMemo(() => new Set(areas.map(a => a.id)), [areas]);
+  const projects = useMemo(() =>
+    allProjects.filter(p =>
+      p.estrutura_area_id
+        ? areaIds.has(p.estrutura_area_id)
+        : area === 'tax'
+    ),
+  [allProjects, areaIds, area]);
+  const scopedProjectIds = useMemo(() => new Set(projects.map(p => p.id)), [projects]);
+  const scopedTasks = useMemo(() =>
+    tasks.filter(t => t.project_id && scopedProjectIds.has(t.project_id)),
+  [tasks, scopedProjectIds]);
 
   // ═══════════════════════ FILTROS ═══════════════════════
   const [filterStartDate, setFilterStartDate] = useState('');
@@ -125,7 +144,7 @@ const DashboardContent = () => {
   );
 
   const filteredTasks = useMemo(() => {
-    return tasks.filter(t => {
+    return scopedTasks.filter(t => {
       // Projeto & derivados (equipe, status de projeto)
       if (filterProject !== ALL && t.project_id !== filterProject) return false;
       if (filterProjectStatus !== ALL || filterEquipe !== ALL) {
@@ -166,7 +185,7 @@ const DashboardContent = () => {
       return true;
     });
   }, [
-    tasks, filteredProjectIds, contribuinteToClient, projectMap,
+    scopedTasks, filteredProjectIds, contribuinteToClient, projectMap,
     filterProject, filterProjectStatus, filterEquipe, filterClient,
     filterTaskStatus, filterMember, filterStartDate, filterEndDate, filterUrgency,
   ]);
@@ -314,19 +333,19 @@ const DashboardContent = () => {
   return (
     <div className="space-y-6">
         {/* ═══════════════════════ BARRA DE FILTROS ═══════════════════════ */}
-        <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+        <Card className="border-border/60 shadow-sm rounded-2xl">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-              <Filter className="h-4 w-4 text-teal-600" />
+            <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+              <Filter className="h-4 w-4 text-primary" />
               Filtros Estratégicos
               {activeFiltersCount > 0 && (
-                <Badge className="bg-teal-100 text-teal-700 border-0 text-[10px] ml-1">
+                <Badge className="bg-primary/10 text-primary border-0 text-[10px] ml-1">
                   {activeFiltersCount} {activeFiltersCount === 1 ? 'ativo' : 'ativos'}
                 </Badge>
               )}
             </CardTitle>
             {activeFiltersCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-xs text-slate-600 hover:text-teal-700 h-8">
+              <Button variant="ghost" size="sm" onClick={handleClearFilters} className="text-xs text-muted-foreground hover:text-primary h-8">
                 <X className="h-3.5 w-3.5 mr-1" />
                 Limpar tudo
               </Button>
@@ -336,7 +355,7 @@ const DashboardContent = () => {
             {/* Linha 1: Período + Urgência + Status */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500 flex items-center gap-1">
+                <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
                   <CalendarRange className="h-3 w-3" />
                   Vencimento de
                 </Label>
@@ -348,7 +367,7 @@ const DashboardContent = () => {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Vencimento até</Label>
+                <Label className="text-[11px] text-muted-foreground">Vencimento até</Label>
                 <Input
                   type="date"
                   value={filterEndDate}
@@ -357,7 +376,7 @@ const DashboardContent = () => {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Urgência</Label>
+                <Label className="text-[11px] text-muted-foreground">Urgência</Label>
                 <Select value={filterUrgency} onValueChange={(v) => setFilterUrgency(v as UrgencyFilter)}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -370,7 +389,7 @@ const DashboardContent = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Status da Tarefa</Label>
+                <Label className="text-[11px] text-muted-foreground">Status da Tarefa</Label>
                 <Select value={filterTaskStatus} onValueChange={setFilterTaskStatus}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -382,7 +401,7 @@ const DashboardContent = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Status do Projeto</Label>
+                <Label className="text-[11px] text-muted-foreground">Status do Projeto</Label>
                 <Select value={filterProjectStatus} onValueChange={setFilterProjectStatus}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -398,7 +417,7 @@ const DashboardContent = () => {
             {/* Linha 2: Cliente + Projeto + Responsável + Área */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Cliente</Label>
+                <Label className="text-[11px] text-muted-foreground">Cliente</Label>
                 <Select value={filterClient} onValueChange={setFilterClient}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -410,7 +429,7 @@ const DashboardContent = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Projeto</Label>
+                <Label className="text-[11px] text-muted-foreground">Projeto</Label>
                 <Select value={filterProject} onValueChange={setFilterProject}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -422,7 +441,7 @@ const DashboardContent = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Responsável</Label>
+                <Label className="text-[11px] text-muted-foreground">Responsável</Label>
                 <Select value={filterMember} onValueChange={setFilterMember}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -436,7 +455,7 @@ const DashboardContent = () => {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] text-slate-500">Equipe Fiscal</Label>
+                <Label className="text-[11px] text-muted-foreground">Equipe Fiscal</Label>
                 <Select value={filterEquipe} onValueChange={setFilterEquipe}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -450,13 +469,13 @@ const DashboardContent = () => {
             </div>
 
             {/* Quick presets */}
-            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-              <span className="text-[11px] text-slate-500 uppercase tracking-wide">Atalhos:</span>
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wide">Atalhos:</span>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={() => { handleClearFilters(); setFilterUrgency('overdue'); }}
-                className="h-7 text-[11px] border-red-200 text-red-700 hover:bg-red-50"
+                className="h-7 text-[11px] border-destructive/20 text-destructive hover:bg-destructive/5"
               >
                 Apenas atrasadas
               </Button>
@@ -464,7 +483,7 @@ const DashboardContent = () => {
                 size="sm"
                 variant="outline"
                 onClick={() => { handleClearFilters(); setFilterUrgency('next_7'); }}
-                className="h-7 text-[11px] border-amber-200 text-amber-700 hover:bg-amber-50"
+                className="h-7 text-[11px] border-warning/20 text-warning hover:bg-warning/5"
               >
                 Próximos 7 dias
               </Button>
@@ -472,7 +491,7 @@ const DashboardContent = () => {
                 size="sm"
                 variant="outline"
                 onClick={() => { handleClearFilters(); setFilterTaskStatus('in_progress'); }}
-                className="h-7 text-[11px] border-blue-200 text-blue-700 hover:bg-blue-50"
+                className="h-7 text-[11px] border-info/20 text-info hover:bg-info/5"
               >
                 Em progresso
               </Button>
@@ -480,7 +499,7 @@ const DashboardContent = () => {
                 size="sm"
                 variant="outline"
                 onClick={() => { handleClearFilters(); setFilterProjectStatus('active'); setFilterTaskStatus('todo'); }}
-                className="h-7 text-[11px] border-slate-200 text-slate-700 hover:bg-slate-50"
+                className="h-7 text-[11px] border-border text-foreground hover:bg-muted"
               >
                 Backlog ativo
               </Button>
@@ -533,10 +552,11 @@ const DashboardContent = () => {
         {/* LINHA 2 — Hero Banner + KPIs secundários */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <HeroBanner
+            area={area}
             className="lg:col-span-2"
-            eyebrow="PSA Tax"
+            eyebrow={area === 'osg' ? 'PSA OSG' : 'PSA Tax'}
             title={overdueTasks.length === 0
-              ? 'Operação fiscal sem atrasos — momentum alto'
+              ? 'Operação sem atrasos — momentum alto'
               : `${overdueTasks.length} tarefas precisam de atenção`}
             description={activeFiltersCount > 0
               ? `Visão com ${activeFiltersCount} filtro(s) aplicado(s). ${totalTasks} tarefas no recorte atual.`
@@ -576,10 +596,10 @@ const DashboardContent = () => {
 
         {/* LINHA 3 — Hatched Bars */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+          <Card className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <ListChecks className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <ListChecks className="h-4 w-4 text-primary" />
                 Distribuição por Status
               </CardTitle>
             </CardHeader>
@@ -594,10 +614,10 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+          <Card className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <FolderKanban className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <FolderKanban className="h-4 w-4 text-primary" />
                 Distribuição por Área Fiscal
               </CardTitle>
             </CardHeader>
@@ -615,10 +635,10 @@ const DashboardContent = () => {
 
         {/* LINHA 4 — Heatmap + Top Clientes */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl lg:col-span-2">
+          <Card className="border-border/60 shadow-sm rounded-2xl lg:col-span-2">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Users className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
                 Workload por Membro · próximos 14 dias
               </CardTitle>
             </CardHeader>
@@ -633,10 +653,10 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+          <Card className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Clock className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
                 Top Clientes · Horas
               </CardTitle>
             </CardHeader>
@@ -653,12 +673,12 @@ const DashboardContent = () => {
                     return (
                       <li key={i}>
                         <div className="flex justify-between mb-1">
-                          <span className="text-xs font-medium text-slate-700 truncate max-w-[160px]">{c.name}</span>
-                          <span className="text-xs text-slate-500 tabular-nums">{c.hours.toFixed(0)}h</span>
+                          <span className="text-xs font-medium text-foreground truncate max-w-[160px]">{c.name}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">{c.hours.toFixed(0)}h</span>
                         </div>
-                        <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-teal-400 to-teal-600 rounded-full transition-all"
+                            className="h-full bg-gradient-to-r from-primary to-primary rounded-full transition-all"
                             style={{ width: `${pct}%` }}
                           />
                         </div>
@@ -673,14 +693,14 @@ const DashboardContent = () => {
 
         {/* LINHA 5 — Tabelas */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+          <Card className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <AlertCircle className="h-4 w-4 text-red-500" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 text-destructive" />
                 Tarefas Atrasadas
               </CardTitle>
               {overdueRows.length > 0 && (
-                <Badge className="bg-red-50 text-red-700 border-0 text-[10px]">{overdueRows.length}</Badge>
+                <Badge className="bg-destructive/5 text-destructive border-0 text-[10px]">{overdueRows.length}</Badge>
               )}
             </CardHeader>
             <CardContent>
@@ -693,10 +713,10 @@ const DashboardContent = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-[11px] uppercase tracking-wide text-slate-500">Tarefa</TableHead>
-                        <TableHead className="text-[11px] uppercase tracking-wide text-slate-500">Cliente</TableHead>
-                        <TableHead className="text-[11px] uppercase tracking-wide text-slate-500">Resp.</TableHead>
-                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-slate-500">Atraso</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Tarefa</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Cliente</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Resp.</TableHead>
+                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Atraso</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -704,13 +724,13 @@ const DashboardContent = () => {
                         <TableRow
                           key={r.id}
                           onClick={() => navigate(`${areaBase}/projetos/tarefas?taskId=${r.id}`)}
-                          className="cursor-pointer hover:bg-slate-50 transition-colors"
+                          className="cursor-pointer hover:bg-muted transition-colors"
                           title="Abrir tarefa em Tarefas"
                         >
                           <TableCell className="text-sm font-medium max-w-[180px] truncate">{r.title}</TableCell>
-                          <TableCell className="text-xs text-slate-600 max-w-[120px] truncate">{r.client}</TableCell>
-                          <TableCell className="text-xs text-slate-600">{r.responsible}</TableCell>
-                          <TableCell className="text-sm font-bold text-red-600 text-right tabular-nums">{r.daysOverdue}d</TableCell>
+                          <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{r.client}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{r.responsible}</TableCell>
+                          <TableCell className="text-sm font-bold text-destructive text-right tabular-nums">{r.daysOverdue}d</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -720,10 +740,10 @@ const DashboardContent = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-slate-200/60 shadow-sm rounded-2xl">
+          <Card className="border-border/60 shadow-sm rounded-2xl">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Users className="h-4 w-4 text-teal-600" />
+              <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Users className="h-4 w-4 text-primary" />
                 Carga por Membro
               </CardTitle>
             </CardHeader>
@@ -737,19 +757,19 @@ const DashboardContent = () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="text-[11px] uppercase tracking-wide text-slate-500">Membro</TableHead>
-                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-slate-500">Ativas</TableHead>
-                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-slate-500">Horas</TableHead>
-                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-slate-500">Atrasadas</TableHead>
+                        <TableHead className="text-[11px] uppercase tracking-wide text-muted-foreground">Membro</TableHead>
+                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Ativas</TableHead>
+                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Horas</TableHead>
+                        <TableHead className="text-right text-[11px] uppercase tracking-wide text-muted-foreground">Atrasadas</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {memberRows.map((r, i) => (
                         <TableRow key={i}>
                           <TableCell className="text-sm font-medium">{r.name}</TableCell>
-                          <TableCell className="text-sm text-slate-600 text-right tabular-nums">{r.active}</TableCell>
-                          <TableCell className="text-sm text-slate-600 text-right tabular-nums">{r.hours > 0 ? `${r.hours}h` : '-'}</TableCell>
-                          <TableCell className={`text-sm font-bold text-right tabular-nums ${r.overdue > 0 ? 'text-red-600' : 'text-slate-400'}`}>{r.overdue}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground text-right tabular-nums">{r.active}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground text-right tabular-nums">{r.hours > 0 ? `${r.hours}h` : '-'}</TableCell>
+                          <TableCell className={`text-sm font-bold text-right tabular-nums ${r.overdue > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>{r.overdue}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -766,7 +786,7 @@ const DashboardContent = () => {
 function LoadingSpinner() {
   return (
     <div className="h-32 flex items-center justify-center">
-      <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>
   );
 }
@@ -774,7 +794,7 @@ function LoadingSpinner() {
 function EmptyMsg({ msg }: { msg: string }) {
   return (
     <div className="h-32 flex items-center justify-center">
-      <p className="text-sm text-slate-500">{msg}</p>
+      <p className="text-sm text-muted-foreground">{msg}</p>
     </div>
   );
 }
@@ -783,7 +803,7 @@ function EmptyMsg({ msg }: { msg: string }) {
 // conteúdo compartilhado. A OSG renderiza o mesmo <DashboardContent /> no OsgLayout.
 const FiscalDashboard = () => (
   <FiscalLayout title="Dashboard" subtitle="Visão geral da área fiscal — atualizado em tempo real">
-    <DashboardContent />
+    <DashboardContent area="tax" />
   </FiscalLayout>
 );
 

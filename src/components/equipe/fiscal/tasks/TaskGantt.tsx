@@ -15,7 +15,7 @@ interface TaskGanttProps {
 
 const getBarColor = (status: OrgTaskStatus) => {
   const cfg = statusColors[status];
-  return cfg?.bgSolid || 'bg-gray-400';
+  return cfg?.bgSolid || 'bg-muted-foreground';
 };
 
 export const TaskGantt = ({ tasks, onEdit }: TaskGanttProps) => {

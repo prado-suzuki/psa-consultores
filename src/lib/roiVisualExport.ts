@@ -15,15 +15,19 @@ export async function capturarNodePng(
   node: HTMLElement,
 ): Promise<{ dataUrl: string; width: number; height: number }> {
   const { toPng } = await import('html-to-image');
-  const rect = node.getBoundingClientRect();
+  // Dimensões TOTAIS do conteúdo (não só a caixa visível) — garante que
+  // tabelas/seções inteiras entrem mesmo se houver scroll interno.
+  const w = Math.max(node.scrollWidth, node.offsetWidth);
+  const h = Math.max(node.scrollHeight, node.offsetHeight);
   const dataUrl = await toPng(node, {
     backgroundColor: '#ffffff',  // áreas transparentes viram branco
     pixelRatio: 2,               // nitidez (retina)
     cacheBust: true,
-    width: Math.ceil(rect.width),
-    height: Math.ceil(rect.height),
+    width: w,
+    height: h,
+    style: { overflow: 'visible' },
   });
-  return { dataUrl, width: Math.round(rect.width), height: Math.round(rect.height) };
+  return { dataUrl, width: w, height: h };
 }
 
 export function baixarBlob(blob: Blob, filename: string): void {

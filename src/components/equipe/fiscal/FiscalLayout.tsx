@@ -16,14 +16,14 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="h-screen bg-slate-50 flex w-full overflow-hidden">
+    <div className="h-screen bg-muted flex w-full overflow-hidden">
       {/* Sidebar */}
       <FiscalSidebar isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
       
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-14 bg-white border-b border-slate-200/60 px-6 flex items-center justify-between flex-shrink-0">
+        <header className="h-14 bg-card border-b border-border/60 px-6 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
             {isCollapsed && (
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsCollapsed(false)}>
@@ -31,8 +31,8 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
               </Button>
             )}
             <div>
-              <h1 className="font-semibold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+              <h1 className="font-semibold text-foreground">{title}</h1>
+              {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           
@@ -40,11 +40,11 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
             {headerActions}
             
             {/* User Info */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200/60">
-              <div className="h-6 w-6 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <User className="h-3.5 w-3.5 text-emerald-600" />
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border/60">
+              <div className="h-6 w-6 rounded-full bg-success/10 flex items-center justify-center">
+                <User className="h-3.5 w-3.5 text-success" />
               </div>
-              <span className="text-sm font-medium text-slate-700">
+              <span className="text-sm font-medium text-foreground">
                 {user?.email?.split('@')[0] || 'Usuario'}
               </span>
             </div>

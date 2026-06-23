@@ -43,10 +43,10 @@ interface TaskCardProps {
 }
 
 const priorityColors = {
-  urgent: 'bg-red-100 text-red-700 border-red-200',
-  high: 'bg-amber-100 text-amber-700 border-amber-200',
-  medium: 'bg-blue-100 text-blue-700 border-blue-200',
-  low: 'bg-slate-100 text-slate-700 border-slate-200',
+  urgent: 'bg-destructive/10 text-destructive border-destructive/20',
+  high: 'bg-warning/10 text-warning border-warning/20',
+  medium: 'bg-info/10 text-info border-info/20',
+  low: 'bg-muted text-muted-foreground border-border',
 };
 
 const priorityLabels = {
@@ -116,7 +116,7 @@ export const TaskCard = ({
     return (
       <div 
         className={cn(
-          "p-3 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow",
+          "p-3 bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow",
           isFixedEvent && "border-l-4 border-l-purple-500"
         )}
       >
@@ -152,7 +152,7 @@ export const TaskCard = ({
           {task.assigned_to_name && (
             <div className="flex items-center gap-2 mt-2">
               <Avatar className="h-5 w-5">
-                <AvatarFallback className="text-xs bg-emerald-100 text-emerald-700">
+                <AvatarFallback className="text-xs bg-success/10 text-success">
                   {getInitials(task.assigned_to_name)}
                 </AvatarFallback>
               </Avatar>
@@ -212,7 +212,7 @@ export const TaskCard = ({
             <div className="flex items-center gap-2 mb-2">
               <StatusIcon className={cn(
                 "h-4 w-4",
-                task.status === 'done' ? 'text-emerald-500' : 'text-muted-foreground'
+                task.status === 'done' ? 'text-success' : 'text-muted-foreground'
               )} />
               <h4 className="font-medium truncate">{task.title}</h4>
               {task.is_recurring && (
@@ -296,7 +296,7 @@ export const TaskCard = ({
           <div className="flex items-center gap-2">
             {task.assigned_to_name && (
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">
+                <AvatarFallback className="bg-success/10 text-success text-xs">
                   {getInitials(task.assigned_to_name)}
                 </AvatarFallback>
               </Avatar>
@@ -325,7 +325,7 @@ export const TaskCard = ({
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => onDelete(task.id)}
-                  className="text-red-600"
+                  className="text-destructive"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
                   Excluir

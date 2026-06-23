@@ -186,7 +186,8 @@ export default function ProcessosPage() {
 
   const metaDe = (p: Processo): string | undefined => {
     const proj = p.project_id ? projetoNomePorId.get(p.project_id) : undefined;
-    return [proj, p.frequency].filter(Boolean).join(' · ') || undefined;
+    const vol = p.volume_executions != null ? `${p.volume_executions} exec./ano` : undefined;
+    return [proj, vol].filter(Boolean).join(' · ') || undefined;
   };
 
   const mapearUrl = (p: Processo) => `/equipe/digital/mapa/processos/${encodeURIComponent(p.id)}/mapear`;

@@ -584,13 +584,13 @@ const ProjetosCadastroContent = () => {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-emerald-100 text-emerald-700">Ativo</Badge>;
+        return <Badge className="bg-success/10 text-success">Ativo</Badge>;
       case 'completed':
-        return <Badge className="bg-blue-100 text-blue-700">Concluído</Badge>;
+        return <Badge className="bg-info/10 text-info">Concluído</Badge>;
       case 'on_hold':
-        return <Badge className="bg-amber-100 text-amber-700">Pausado</Badge>;
+        return <Badge className="bg-warning/10 text-warning">Pausado</Badge>;
       case 'cancelled':
-        return <Badge className="bg-red-100 text-red-700">Cancelado</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive">Cancelado</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -600,13 +600,13 @@ const ProjetosCadastroContent = () => {
     if (!situacao) return null;
     switch (situacao) {
       case 'em_andamento':
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-200 text-xs">Em Andamento</Badge>;
+        return <Badge className="bg-info/10 text-info border-info/20 text-xs">Em Andamento</Badge>;
       case 'concluida':
-        return <Badge className="bg-emerald-100 text-emerald-700 border-emerald-200 text-xs">Concluída</Badge>;
+        return <Badge className="bg-success/10 text-success border-success/20 text-xs">Concluída</Badge>;
       case 'pendente':
-        return <Badge className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Pendente</Badge>;
+        return <Badge className="bg-warning/10 text-warning border-warning/20 text-xs">Pendente</Badge>;
       case 'cancelada':
-        return <Badge className="bg-red-100 text-red-700 border-red-200 text-xs">Cancelada</Badge>;
+        return <Badge className="bg-destructive/10 text-destructive border-destructive/20 text-xs">Cancelada</Badge>;
       default:
         return <Badge variant="outline" className="text-xs">{situacao}</Badge>;
     }
@@ -663,11 +663,11 @@ const ProjetosCadastroContent = () => {
         {/* Header Actions */}
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <FolderKanban className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-lg bg-tool-icon-bg flex items-center justify-center">
+              <FolderKanban className="h-5 w-5 text-tool-icon" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Projetos Tax</h2>
+              <h2 className="text-lg font-semibold text-foreground">Projetos Tax</h2>
               <p className="text-sm text-muted-foreground">
                 {hasActiveFilters
                   ? `${filteredProjects.length} de ${projects.length} projetos`
@@ -675,7 +675,7 @@ const ProjetosCadastroContent = () => {
               </p>
             </div>
           </div>
-          <Button onClick={() => handleOpenModal()} className="bg-emerald-600 hover:bg-emerald-700">
+          <Button onClick={() => handleOpenModal()}>
             <Plus className="h-4 w-4 mr-2" />
             Novo Projeto
           </Button>
@@ -971,7 +971,7 @@ const ProjetosCadastroContent = () => {
 
               {/* ── SEÇÃO 1: IDENTIFICAÇÃO ─────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
                   Identificação
                 </h3>
@@ -1020,7 +1020,7 @@ const ProjetosCadastroContent = () => {
                               onClick={() => setSelectedOsId(osId)}
                               className={`border rounded-lg p-3 cursor-pointer transition-colors ${
                                 isSelected
-                                  ? 'border-blue-400 bg-blue-50/60 ring-1 ring-blue-200'
+                                  ? 'border-info bg-info/10 ring-1 ring-info/20'
                                   : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'
                               }`}
                             >
@@ -1180,7 +1180,7 @@ const ProjetosCadastroContent = () => {
 
               {/* ── SEÇÃO 2: PERÍODO ───────────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Período
                 </h3>
@@ -1206,7 +1206,7 @@ const ProjetosCadastroContent = () => {
 
               {/* ── SEÇÃO 3: EQUIPE ────────────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-2">
                   <Users className="h-4 w-4" />
                   Equipe
                 </h3>
@@ -1222,7 +1222,7 @@ const ProjetosCadastroContent = () => {
                             {formData.leader_ids.map(id => {
                               const m = teamMembers.find(t => t.id === id);
                               return m ? (
-                                <Badge key={id} variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                <Badge key={id} variant="outline" className="bg-success/5 text-success border-success/20">
                                   {m.first_name} {m.last_name}
                                 </Badge>
                               ) : null;
@@ -1309,7 +1309,7 @@ const ProjetosCadastroContent = () => {
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="h-7 text-xs gap-1 text-emerald-700 hover:text-emerald-800 hover:bg-emerald-50"
+                        className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/5"
                         onClick={() => {
                           const excludeIds = new Set(formData.leader_ids);
                           const eligibleIds = equipeMemberIds.filter(id => !excludeIds.has(id));
@@ -1490,7 +1490,7 @@ const ProjetosCadastroContent = () => {
 
               {/* ── SEÇÃO 4: DETALHES ──────────────────────────────── */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-slate-900 border-b pb-2">Detalhes</h3>
+                <h3 className="text-sm font-semibold text-foreground border-b pb-2">Detalhes</h3>
                 <div>
                   <Label>Descrição do Projeto <span className="text-destructive">*</span></Label>
                   <Textarea
@@ -1513,7 +1513,6 @@ const ProjetosCadastroContent = () => {
             <Button
               onClick={handleSubmit}
               disabled={createProject.isPending || updateProject.isPending}
-              className="bg-emerald-600 hover:bg-emerald-700"
             >
               {editingProject ? 'Salvar' : 'Criar'}
             </Button>
@@ -1542,7 +1541,7 @@ const ProjetosCadastroContent = () => {
                   );
                 }
               }}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive"
             >
               Excluir
             </AlertDialogAction>

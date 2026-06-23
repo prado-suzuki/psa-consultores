@@ -11,6 +11,9 @@ All colors MUST be HSL.
     --background: 0 0% 100%;
     --foreground: 220 26% 12%;
 
+    /* Canvas = fundo da página (slate-50). OSG sobrescreve com osg-canvas. */
+    --canvas: 210 20% 98%;
+
     --card: 0 0% 100%;
     --card-foreground: 220 26% 12%;
 
@@ -33,6 +36,18 @@ All colors MUST be HSL.
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
+
+    /* Status semânticos — Tax. OSG sobrescreve em .osg-theme. */
+    --success: 160 84% 30%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 28 45% 18%;
+    --info: 221 83% 53%;
+    --info-foreground: 0 0% 100%;
+
+    /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
@@ -63,7 +78,7 @@ All colors MUST be HSL.
     --osg-700: 17 25% 19%;
     --osg-moss: 149 66% 22%; /* verde musgo (#125837) */
     --osg-highlighter: 41 73% 71%; /* amarelo dourado (#EBC97D) — marca-texto */
-    --osg-red: 356 59% 45%; /* carmim/tijolo (#B62F38) — vermelho da OSG (excluir/cancelar/erro) */
+    --osg-red: 356 59% 45%; /* vermelho carmim/tijolo (#B62F38) — exclusão/cancelar */
 
     /* Paleta Gray - #111827 base, #F9FAFB light */
     --gray-50: 210 20% 98%;
@@ -104,6 +119,16 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
 
+    /* Status na OSG: ok = verde musgo, aviso = dourado (marca-texto).
+       info permanece azul — a paleta OSG não tem azul, então herda o tom da Tax
+       (azul mais próximo dos demais itens da página). */
+    --success: var(--osg-moss);
+    --warning: var(--osg-highlighter);
+    /* Ícones de ferramenta/card na OSG: taupe da paleta (igual ao OSG Work):
+       ícone osg-600 sobre quadrado osg-100 (bege quente) — match exato. */
+    --tool-icon: var(--osg-600);
+    --tool-icon-bg: var(--osg-100);
+
     /* Superfícies da área OSG: branco com um toque bem sutil de marrom
        (matiz da paleta osg) no lugar do branco-puro estéril. */
     --background: 32 28% 98.5%;
@@ -113,7 +138,15 @@ All colors MUST be HSL.
     /* Canvas (fundo da página) — areia clara, mesma matiz porém um pouco mais
        escura que os cards, para eles "saltarem". Substitui o slate-50 azulado. */
     --osg-canvas: 32 24% 96%;
+    --canvas: var(--osg-canvas);
 
+    /* Superfícies "muted" (barras de filtro, cabeçalho de tabela, linhas zebra):
+       trocam o cinza-azulado padrão pelo bege quente osg-50 (#f0ebe5), o mesmo
+       fundo da barra CLIENTE do OSG Work. */
+    --muted: var(--osg-50);
+
+    /* Vermelho de exclusão/cancelar — carmim/tijolo OSG (osg-red), menos berrante
+       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
     /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
        que o vermelho puro padrão, para conviver com a paleta quente da OSG.
        Fonte única: --osg-red (token osg-red). */
@@ -124,6 +157,12 @@ All colors MUST be HSL.
      no lugar do cinza padrão (muted). */
   .osg-theme tbody tr:hover {
     background-color: hsl(var(--osg-50) / 0.6);
+  }
+
+  /* Card KPI sólido (ex.: "Horas Planejadas"): só na OSG ganha um degradê
+     escuro da esquerda para a direita sobre o moss. Na Tax fica liso (original). */
+  .osg-theme .kpi-hero-solid {
+    background-image: linear-gradient(to left, hsl(0 0% 0% / 0.45) 0%, transparent 75%);
   }
 
   .dark {

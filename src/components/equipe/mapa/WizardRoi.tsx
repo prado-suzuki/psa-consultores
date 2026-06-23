@@ -665,12 +665,12 @@ export default function WizardRoi({
               </table>
             </div>
 
-            {!processo.frequency && (
+            {!processo.volume_executions && !processo.frequency && (
               <div className="roi-callout is-warn">
                 <span className="roi-callout-icon"><Icon name="alert" size={16} /></span>
                 <div className="roi-callout-body">
-                  Frequência do processo não definida — projeção anual está zerada. Defina a
-                  frequência no card do processo para ativar o cálculo.
+                  Volume anual do processo não definido — projeção anual está zerada. Defina o
+                  Volume Anual (execuções/ano) no card do processo para ativar o cálculo.
                 </div>
               </div>
             )}

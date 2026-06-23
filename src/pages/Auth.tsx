@@ -30,8 +30,9 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'register');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user, isAdmin } = useAuth();
+  const { signIn, signUp, user, isAdmin, isTeamMember, isLider, isSublider, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -48,14 +49,19 @@ export default function Auth() {
   const [errors, setErrors] = useState<any>({});
 
   useEffect(() => {
-    if (user) {
-      if (user.user_metadata?.must_change_password === true) {
-        navigate('/primeiro-acesso', { replace: true });
-        return;
-      }
-      navigate(isAdmin ? '/gestao' : '/cliente');
+    // Aguarda o AuthContext confirmar user + roles antes de decidir o destino.
+    // Sem isso, os roles (assíncronos) ainda não resolveram e o interno cairia em /cliente.
+    if (authLoading || !user) return;
+
+    if (user.user_metadata?.must_change_password === true) {
+      navigate('/primeiro-acesso', { replace: true });
+      return;
     }
-  }, [user, isAdmin, navigate]);
+
+    // Internos (inclusive admin) → seletor de área da equipe.
+    // Clientes (sem role) → página de chamados deles.
+    navigate(isInternalUser ? '/equipe' : '/cliente/chamados', { replace: true });
+  }, [user, isInternalUser, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

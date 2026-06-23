@@ -7,6 +7,7 @@ import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { useClusters } from '@/hooks/useClusters';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import HistoricoMedicoes from '@/components/equipe/mapa/HistoricoMedicoes';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
@@ -47,12 +48,12 @@ const fmtNum = (v: number, dp = 1) =>
 const fmtPct = (v: number) => `${fmtNum(v, 1)}%`;
 
 const ABAS: { id: Aba; label: string; numero: string; subtitulo: string }[] = [
-  { id: 'mapeamento', label: 'O Mapeamento', numero: '1', subtitulo: 'Escopo analisado' },
-  { id: 'diagnostico', label: 'Diagnóstico', numero: '2', subtitulo: 'Como era — dores e custos' },
-  { id: 'melhorias', label: 'As Melhorias', numero: '3', subtitulo: 'Plano de ação e investment' },
-  { id: 'futuro', label: 'Cenário Futuro', numero: '4', subtitulo: 'Como ficará — estado projetado' },
-  { id: 'roi', label: 'ROI Consolidado', numero: '5', subtitulo: 'Investimento × retorno' },
-  { id: 'sumario', label: 'Sumário Executivo', numero: '6', subtitulo: 'A história em um olhar' },
+  { id: 'sumario', label: 'Sumário Executivo', numero: '1', subtitulo: 'A história em um olhar' },
+  { id: 'mapeamento', label: 'O Mapeamento', numero: '2', subtitulo: 'Escopo analisado' },
+  { id: 'diagnostico', label: 'Diagnóstico', numero: '3', subtitulo: 'Como era — dores e custos' },
+  { id: 'melhorias', label: 'As Melhorias', numero: '4', subtitulo: 'Plano de ação e investment' },
+  { id: 'futuro', label: 'Cenário Futuro', numero: '5', subtitulo: 'Como ficará — estado projetado' },
+  { id: 'roi', label: 'ROI Consolidado', numero: '6', subtitulo: 'Investimento × retorno' },
 ];
 
 // ============================================================
@@ -303,7 +304,7 @@ function EmptyRow({ cols, msg = 'Sem dados — preencha o cadastro para visualiz
 // ============================================================
 
 export default function DashboardRoiPage() {
-  const [aba, setAba] = useState<Aba>('mapeamento');
+  const [aba, setAba] = useState<Aba>('sumario');
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
@@ -322,6 +323,7 @@ export default function DashboardRoiPage() {
 
   // Cluster vem do seletor global no header.
   const { cluster: filtroCluster } = useClusterGlobal();
+  const { data: clusters = [] } = useClusters();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
@@ -330,13 +332,18 @@ export default function DashboardRoiPage() {
   const captureRef = useRef<HTMLDivElement>(null);
   const [notasOpen, setNotasOpen] = useState(false);
 
-  // Quando a lista de projetos chega, seleciona o primeiro como filtro default.
-  useEffect(() => {
-    if (projetos.length > 0) setFiltroProjeto(prev => prev || projetos[0].id);
-  }, [projetos]);
+  // Sem auto-seleção: o padrão é "Todos os projetos" (filtroProjeto vazio),
+  // que o dashboard já sabe agregar. O usuário escolhe um projeto no filtro.
 
   const projetoAtivo = projetos.find((p) => p.id === filtroProjeto);
-  const tituloProjeto = projetoAtivo?.name || 'Projeto não selecionado';
+  // No modo "Todos os projetos", o título vira uma visão geral nomeada pelo
+  // cluster ativo (filtroCluster = UUID; '' = todos os clusters).
+  const clusterNome = clusters.find((c) => c.id === filtroCluster)?.nome;
+  const tituloProjeto =
+    projetoAtivo?.name
+    || (filtroCluster && clusterNome
+          ? `Visão Geral — ${clusterNome}`
+          : 'Visão Geral — Todos os projetos');
   const projetoStatus: ProjetoStatus = projetoAtivo?.status || 'Mapeamento';
   const statusIdx = STATUS_ORDEM.indexOf(projetoStatus);
 
@@ -441,7 +448,7 @@ export default function DashboardRoiPage() {
   const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
 
   const limparFiltros = () => {
-    setFiltroProjeto(projetos[0]?.id || '');
+    setFiltroProjeto('');
     setFiltroProcesso('');
   };
 
@@ -487,13 +494,23 @@ export default function DashboardRoiPage() {
   const exportVisual = async (formato: 'html' | 'pdf') => {
     setExportando(true);
     const abaOriginal = aba;
+    const node = captureRef.current;
     try {
       const { capturarNodePng, montarHtml, montarPdf, baixarBlob } = await import('@/lib/roiVisualExport');
+      // Garante fontes carregadas (senão a captura sai com fonte fallback).
+      if (document.fonts?.ready) { try { await document.fonts.ready; } catch { /* noop */ } }
+      // Modo de exportação: desclampa scrolls internos p/ capturar conteúdo inteiro.
+      node?.classList.add('exporting');
+
       const secoes: SecaoImagem[] = [];
+      let warmedUp = false;
       for (const a of ABAS) {
         setAba(a.id);
         await esperarPaint();
         if (!captureRef.current) continue;
+        // Warm-up: a 1ª chamada do html-to-image costuma vir incompleta
+        // (embute recursos lazy). Captura uma vez e descarta na 1ª seção.
+        if (!warmedUp) { try { await capturarNodePng(captureRef.current); } catch { /* noop */ } warmedUp = true; }
         const img = await capturarNodePng(captureRef.current);
         secoes.push({ label: a.label, ...img });
       }
@@ -506,6 +523,7 @@ export default function DashboardRoiPage() {
         await montarPdf(secoes, `${base}.pdf`);
       }
     } finally {
+      node?.classList.remove('exporting');
       setAba(abaOriginal);
       setExportando(false);
       setExportOpen(false);
@@ -581,7 +599,8 @@ export default function DashboardRoiPage() {
       <div className="dashv2-hero">
         <div className="dashv2-hero-text">
           <div className="dashv2-hero-eyebrow">
-            <span className="dashv2-fase-badge">Fase: {projetoStatus}</span>
+            {/* "Fase" é por projeto; no modo visão geral (todos) não há fase única. */}
+            {projetoAtivo && <span className="dashv2-fase-badge">Fase: {projetoStatus}</span>}
             <span className="dashv2-hero-update">Última atualização: {ultimaAtualizacao}</span>
           </div>
           <h1>{tituloProjeto}</h1>
@@ -614,32 +633,46 @@ export default function DashboardRoiPage() {
       <NotasMetodologicasModal isOpen={notasOpen} onClose={() => setNotasOpen(false)} escopo="dashboard" />
 
       <Modal isOpen={exportOpen} onClose={() => setExportOpen(false)}>
-        <div className="modal" style={{ maxWidth: 440 }}>
-          <h2>Exportar Dashboard ROI</h2>
-          <p style={{ color: '#64748b', fontSize: '0.85rem', marginTop: -4 }}>
-            CSV traz os dados consolidados por processo (para a Ferramenta C). HTML e PDF capturam a
-            apresentação visual — todas as seções, com os gráficos.
+        <div className="modal" style={{ maxWidth: 460, width: '100%' }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', color: '#0f172a' }}>Exportar Dashboard ROI</h2>
+          <p style={{ color: '#64748b', fontSize: '0.84rem', margin: '0 0 16px', lineHeight: 1.45 }}>
+            Escolha o formato. O <strong>CSV</strong> traz os dados consolidados por processo (Ferramenta C);
+            <strong> HTML</strong> e <strong>PDF</strong> capturam a apresentação visual — todas as seções, com os gráficos.
           </p>
-          <div style={{ display: 'grid', gap: 10, marginTop: 16 }}>
-            <button
-              className="btn-secondary"
-              disabled={exportando}
-              onClick={() => { setExportOpen(false); handleExportCsv(); }}
-            >
-              CSV — dados consolidados por processo
-            </button>
-            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('html')}>
-              HTML — apresentação visual (com gráficos)
-            </button>
-            <button className="btn-secondary" disabled={exportando} onClick={() => exportVisual('pdf')}>
-              PDF — apresentação visual (com gráficos)
-            </button>
-            {exportando && (
-              <span style={{ fontSize: '0.8rem', color: '#64748b', textAlign: 'center' }}>
-                Gerando… percorrendo as seções para capturar os gráficos.
-              </span>
-            )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {([
+              { fmt: 'csv', titulo: 'CSV', sub: 'Dados consolidados por processo', icone: <path d="M3 3h18v18H3z M3 9h18 M3 15h18 M9 3v18 M15 3v18" /> },
+              { fmt: 'html', titulo: 'HTML', sub: 'Apresentação visual (com gráficos)', icone: <><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></> },
+              { fmt: 'pdf', titulo: 'PDF', sub: 'Apresentação visual (com gráficos)', icone: <><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></> },
+            ] as const).map((opt) => (
+              <button
+                key={opt.fmt}
+                type="button"
+                disabled={exportando}
+                onClick={() => { if (opt.fmt === 'csv') { setExportOpen(false); handleExportCsv(); } else { exportVisual(opt.fmt); } }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, width: '100%',
+                  padding: '12px 14px', border: '1px solid #e2e8f0', borderRadius: 10,
+                  background: '#fff', textAlign: 'left',
+                  cursor: exportando ? 'default' : 'pointer', opacity: exportando ? 0.55 : 1,
+                }}
+              >
+                <span style={{ display: 'inline-flex', width: 36, height: 36, flex: '0 0 36px', alignItems: 'center', justifyContent: 'center', borderRadius: 8, background: '#f1f5f9', color: '#0d9488' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{opt.icone}</svg>
+                </span>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  <span style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.9rem' }}>{opt.titulo}</span>
+                  <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{opt.sub}</span>
+                </span>
+              </button>
+            ))}
           </div>
+          {exportando && (
+            <p style={{ marginTop: 14, marginBottom: 0, fontSize: '0.82rem', color: '#0d9488', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="dashv2-spinner" aria-hidden style={{ width: 14, height: 14, border: '2px solid #99f6e4', borderTopColor: '#0d9488', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+              Gerando… percorrendo as seções e capturando os gráficos.
+            </p>
+          )}
         </div>
       </Modal>
 
@@ -684,7 +717,9 @@ export default function DashboardRoiPage() {
       <div className="dashv2-stepper" data-tour="roi-stepper">
         {ABAS.map((a, i) => {
           const ativaIdx = ABAS.findIndex((x) => x.id === aba);
-          const fasePrevia = STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
+          // Gating por fase só vale para um projeto específico. No modo "Todos"
+          // os dados são agregados de todo o cluster — todas as abas disponíveis.
+          const fasePrevia = !projetoAtivo || STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
           return (
             <button
               key={a.id}
@@ -708,7 +743,7 @@ export default function DashboardRoiPage() {
         {/* =================== SUMÁRIO EXECUTIVO =================== */}
         {aba === 'sumario' && (
           <StorySection
-            numero="6"
+            numero="1"
             titulo="Sumário Executivo"
             intro="A apresentação completa em três linhas: o que mapeamos, o quanto o cenário atual custa, e qual o retorno do investment na transformação."
           >
@@ -743,7 +778,7 @@ export default function DashboardRoiPage() {
         {/* =================== O MAPEAMENTO =================== */}
         {aba === 'mapeamento' && (
           <StorySection
-            numero="1"
+            numero="2"
             titulo="O Mapeamento"
             intro="O ponto de partida: para entender o que pode ser melhorado, mapeamos integralmente o escopo da operação — pessoas, processos, sistemas e documentos."
           >
@@ -816,7 +851,7 @@ export default function DashboardRoiPage() {
         {/* =================== DIAGNÓSTICO =================== */}
         {aba === 'diagnostico' && (
           <StorySection
-            numero="2"
+            numero="3"
             titulo="Diagnóstico — Como Era"
             intro="O custo do status quo: este é o cenário antes das melhorias. Aqui estão as dores quantificadas em horas, dinheiro e erros — base para o business case da transformação."
           >
@@ -951,7 +986,7 @@ export default function DashboardRoiPage() {
         {/* =================== MELHORIAS =================== */}
         {aba === 'melhorias' && (
           <StorySection
-            numero="3"
+            numero="4"
             titulo="As Melhorias Propostas"
             intro="O plano de ação: cada melhoria foi desenhada para resolver um ou mais gargalos identificados no diagnóstico. Aqui está o que será implementado e quanto custa."
           >
@@ -1064,7 +1099,7 @@ export default function DashboardRoiPage() {
         {/* =================== CENÁRIO FUTURO =================== */}
         {aba === 'futuro' && (
           <StorySection
-            numero="4"
+            numero="5"
             titulo="Cenário Futuro — Como Ficará"
             intro="O estado projetado após implementadas todas as melhorias. Este é o novo patamar de eficiência da operação."
           >
@@ -1131,7 +1166,7 @@ export default function DashboardRoiPage() {
         {/* =================== ROI CONSOLIDADO =================== */}
         {aba === 'roi' && (
           <StorySection
-            numero="5"
+            numero="6"
             titulo="ROI Consolidado"
             intro="A síntese: a comparação direta entre o cenário atual e o otimizado, traduzida em retorno financeiro, payback e ganho de qualidade."
           >
@@ -1228,6 +1263,20 @@ export default function DashboardRoiPage() {
         )}
       </div>
 
+      {/* Rodapé — data da última atualização + respiro no fim da página */}
+      <footer
+        style={{
+          marginTop: 32,
+          paddingTop: 16,
+          paddingBottom: 48,
+          borderTop: '1px solid #e2e8f0',
+          textAlign: 'center',
+          fontSize: '0.8rem',
+          color: '#64748b',
+        }}
+      >
+        Última atualização: {ultimaAtualizacao}
+      </footer>
     </div>
   );
 }

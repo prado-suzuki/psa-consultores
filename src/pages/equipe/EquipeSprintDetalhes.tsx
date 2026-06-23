@@ -95,6 +95,8 @@ interface ProjectProcess {
 }
 
 
+
+
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -108,6 +110,7 @@ export default function EquipeSprintDetalhes() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -288,6 +291,7 @@ export default function EquipeSprintDetalhes() {
         .select("id, name")
         .order("name");
       setProjects(projectsData || []);
+
 
       const { data: processesData } = await supabase
         .from("processes")
@@ -1342,6 +1346,7 @@ export default function EquipeSprintDetalhes() {
                     due_date: sprint?.end_date || '',
                     estimated_hours: '',
                     parent_id: '',
+                    
                     project_id: '',
                     process_id: '',
                     task_code: ''
@@ -2255,6 +2260,7 @@ export default function EquipeSprintDetalhes() {
               />
             </div>
 
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-project">Projeto</Label>
@@ -2294,9 +2300,12 @@ export default function EquipeSprintDetalhes() {
                     {processes
                       .filter(proc => {
                         if (!editForm.project_id) return true;
-                        // Usar a tabela project_processes para verificar associação
-                        return projectProcesses.some(
-                          pp => pp.process_id === proc.id && pp.project_id === editForm.project_id
+                        // Aceita vínculo via tabela de junção OU FK direta em processes.project_id
+                        return (
+                          proc.project_id === editForm.project_id ||
+                          projectProcesses.some(
+                            pp => pp.process_id === proc.id && pp.project_id === editForm.project_id
+                          )
                         );
                       })
                       .map(proc => (
@@ -2481,6 +2490,8 @@ export default function EquipeSprintDetalhes() {
               </div>
             </div>
 
+
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="create-project">Projeto</Label>
@@ -2520,9 +2531,12 @@ export default function EquipeSprintDetalhes() {
                     {processes
                       .filter(proc => {
                         if (!createForm.project_id) return true;
-                        // Usar a tabela project_processes para verificar associação
-                        return projectProcesses.some(
-                          pp => pp.process_id === proc.id && pp.project_id === createForm.project_id
+                        // Aceita vínculo via tabela de junção OU FK direta em processes.project_id
+                        return (
+                          proc.project_id === createForm.project_id ||
+                          projectProcesses.some(
+                            pp => pp.process_id === proc.id && pp.project_id === createForm.project_id
+                          )
                         );
                       })
                       .map(proc => (

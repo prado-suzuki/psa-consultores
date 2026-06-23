@@ -354,7 +354,7 @@ export const TaskModal = ({
           </DialogTitle>
           <DialogDescription className="sr-only">Formulário de tarefa fiscal</DialogDescription>
           {showDraftNotice && (
-            <p className="text-xs text-amber-600 mt-1 animate-pulse">
+            <p className="text-xs text-warning mt-1 animate-pulse">
               Rascunho restaurado — clique em Salvar para confirmar.
             </p>
           )}
@@ -614,11 +614,11 @@ export const TaskModal = ({
                   <div
                     className={cn(
                       'rounded-md transition-all',
-                      needsAttention && 'border-2 border-amber-400 bg-amber-50 p-3 dark:bg-amber-950/20 dark:border-amber-500',
+                      needsAttention && 'border-2 border-warning bg-warning/5 p-3 dark:bg-warning/20 dark:border-warning',
                     )}
                   >
                     {isDone && (
-                      <div className="flex items-start gap-2 mb-3 text-sm text-amber-800 dark:text-amber-200">
+                      <div className="flex items-start gap-2 mb-3 text-sm text-warning dark:text-warning/20">
                         <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
                         <span>
                           Tarefa concluída — informe as <strong>horas realizadas</strong> para conseguir salvar.
@@ -653,7 +653,7 @@ export const TaskModal = ({
                         name="actual_hours"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className={cn(needsAttention && 'text-amber-900 dark:text-amber-100 font-semibold')}>
+                            <FormLabel className={cn(needsAttention && 'text-warning dark:text-warning/10 font-semibold')}>
                               Horas realizadas {isDone && <RequiredMark />}
                             </FormLabel>
                             <FormControl>
@@ -665,7 +665,7 @@ export const TaskModal = ({
                                 disabled={!isDone}
                                 autoFocus={isDone && !actualHoursValue}
                                 className={cn(
-                                  needsAttention && 'border-amber-500 ring-2 ring-amber-300 focus-visible:ring-amber-400 bg-white dark:bg-background',
+                                  needsAttention && 'border-warning ring-2 ring-warning focus-visible:ring-warning bg-card dark:bg-background',
                                 )}
                                 {...field}
                                 value={field.value ?? ''}

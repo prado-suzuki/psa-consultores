@@ -90,7 +90,7 @@ export default function ProcessoDetalheModal({
               {processo.evaluation_status && processo.evaluation_status !== 'Não avaliado' && (
                 <StatusBadge variant="diagnostic">{processo.evaluation_status}</StatusBadge>
               )}
-              {processo.frequency && <StatusBadge variant="accent">{processo.frequency}</StatusBadge>}
+              {processo.volume_executions != null && <StatusBadge variant="accent">{processo.volume_executions} exec./ano</StatusBadge>}
               {projetoNome && <span className="processo-det-projeto">{projetoNome}</span>}
             </div>
           </div>
