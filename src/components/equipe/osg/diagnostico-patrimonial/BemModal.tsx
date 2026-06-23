@@ -60,6 +60,7 @@ import {
 } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
 import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import { MatriculaModal } from './MatriculaModal';
 import { TitularidadesPanel } from './TitularidadesPanel';
@@ -186,7 +187,7 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
   const mostrarHistorico = isEdit && temDocumento;
   // A barra de abas aparece quando há titularidade a exibir. O histórico não é
   // aba — flutua à direita do modal.
-  const mostrarTabsList = temTitularidade;
+  const mostrarTabsList = temTitularidade || isEdit;
 
   // Snapshots do estado inicial para detectar "dirty" e pedir confirmação ao fechar.
   const initialDraftRef = useRef<string>('');
@@ -334,6 +335,9 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                       )}
                     </TabsTrigger>
                   )}
+                  <TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>
+                    Documentos
+                  </TabsTrigger>
                 </TabsList>
               )}
             </div>
@@ -705,6 +709,12 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
                       </p>
                     </div>
                   </FieldSection>
+                )}
+              </TabsContent>
+
+              <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">
+                {isEdit && bem?.id && (
+                  <DocumentosTab clienteId={clienteId} vinculo={{ bemId: bem.id }} categoriaPadrao="bens_direitos" />
                 )}
               </TabsContent>
 
