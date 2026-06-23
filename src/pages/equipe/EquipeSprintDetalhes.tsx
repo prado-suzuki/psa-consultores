@@ -81,6 +81,7 @@ interface Profile {
 interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
 }
 
 interface Process {
@@ -92,6 +93,11 @@ interface Process {
 interface ProjectProcess {
   process_id: string;
   project_id: string;
+}
+
+interface Cluster {
+  id: string;
+  name: string;
 }
 
 
@@ -108,6 +114,7 @@ export default function EquipeSprintDetalhes() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
@@ -132,6 +139,7 @@ export default function EquipeSprintDetalhes() {
     estimated_hours: '',
     status: 'pending',
     parent_id: '',
+    cluster_id: '',
     project_id: '',
     process_id: '',
     task_code: ''
@@ -150,6 +158,7 @@ export default function EquipeSprintDetalhes() {
     due_date: '',
     estimated_hours: '',
     parent_id: '',
+    cluster_id: '',
     project_id: '',
     process_id: '',
     task_code: ''
@@ -285,9 +294,17 @@ export default function EquipeSprintDetalhes() {
       // Carregar projetos e processos
       const { data: projectsData } = await supabase
         .from("projects")
-        .select("id, name")
+        .select("id, name, cluster_id")
         .order("name");
       setProjects(projectsData || []);
+
+      // Carregar clusters
+      const { data: clustersData } = await supabase
+        .from("estrutura_clusters")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      setClusters(clustersData || []);
 
       const { data: processesData } = await supabase
         .from("processes")
@@ -337,6 +354,7 @@ export default function EquipeSprintDetalhes() {
   };
 
   const openEditModal = (deliverable: Deliverable) => {
+    const proj = projects.find(p => p.id === deliverable.project_id);
     setEditingDeliverable(deliverable);
     setEditForm({
       title: deliverable.title,
@@ -347,6 +365,7 @@ export default function EquipeSprintDetalhes() {
       estimated_hours: deliverable.estimated_hours?.toString() || '',
       status: deliverable.status || 'pending',
       parent_id: deliverable.parent_id || '',
+      cluster_id: proj?.cluster_id || '',
       project_id: deliverable.project_id || '',
       process_id: deliverable.process_id || '',
       task_code: deliverable.task_code || ''
@@ -583,6 +602,7 @@ export default function EquipeSprintDetalhes() {
         due_date: '',
         estimated_hours: '',
         parent_id: '',
+        cluster_id: '',
         project_id: '',
         process_id: '',
         task_code: ''
@@ -1342,6 +1362,7 @@ export default function EquipeSprintDetalhes() {
                     due_date: sprint?.end_date || '',
                     estimated_hours: '',
                     parent_id: '',
+                    cluster_id: '',
                     project_id: '',
                     process_id: '',
                     task_code: ''
@@ -2255,6 +2276,29 @@ export default function EquipeSprintDetalhes() {
               />
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="edit-cluster">Cluster</Label>
+              <Select
+                value={editForm.cluster_id || "none"}
+                onValueChange={(value) => setEditForm(prev => ({
+                  ...prev,
+                  cluster_id: value === "none" ? "" : value,
+                  project_id: "",
+                  process_id: "",
+                }))}
+              >
+                <SelectTrigger id="edit-cluster">
+                  <SelectValue placeholder="Selecionar cluster" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-project">Projeto</Label>
@@ -2271,11 +2315,13 @@ export default function EquipeSprintDetalhes() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {projects.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
+                    {projects
+                      .filter(p => !editForm.cluster_id || p.cluster_id === editForm.cluster_id)
+                      .map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -2481,6 +2527,29 @@ export default function EquipeSprintDetalhes() {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <Label htmlFor="create-cluster">Cluster</Label>
+              <Select
+                value={createForm.cluster_id || "none"}
+                onValueChange={(value) => setCreateForm(prev => ({
+                  ...prev,
+                  cluster_id: value === "none" ? "" : value,
+                  project_id: "",
+                  process_id: "",
+                }))}
+              >
+                <SelectTrigger id="create-cluster">
+                  <SelectValue placeholder="Selecionar cluster" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="create-project">Projeto</Label>
@@ -2497,11 +2566,13 @@ export default function EquipeSprintDetalhes() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {projects.map(p => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
-                    ))}
+                    {projects
+                      .filter(p => !createForm.cluster_id || p.cluster_id === createForm.cluster_id)
+                      .map(p => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
