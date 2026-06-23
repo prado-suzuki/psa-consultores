@@ -2594,9 +2594,12 @@ export default function EquipeSprintDetalhes() {
                     {processes
                       .filter(proc => {
                         if (!createForm.project_id) return true;
-                        // Usar a tabela project_processes para verificar associação
-                        return projectProcesses.some(
-                          pp => pp.process_id === proc.id && pp.project_id === createForm.project_id
+                        // Aceita vínculo via tabela de junção OU FK direta em processes.project_id
+                        return (
+                          proc.project_id === createForm.project_id ||
+                          projectProcesses.some(
+                            pp => pp.process_id === proc.id && pp.project_id === createForm.project_id
+                          )
                         );
                       })
                       .map(proc => (
