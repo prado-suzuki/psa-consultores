@@ -114,6 +114,7 @@ export default function EquipeSprintDetalhes() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filtros
