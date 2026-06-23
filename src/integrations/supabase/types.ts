@@ -8140,6 +8140,19 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_accessible_dashboards: {
+        Args: { _target_page?: string }
+        Returns: {
+          filter_type: string
+          id: string
+          name: string
+          target_page: string
+        }[]
+      }
+      get_dashboard_embed_url: {
+        Args: { _dashboard_id: string }
+        Returns: Json
+      }
       get_internal_users: {
         Args: never
         Returns: {
@@ -8229,6 +8242,8 @@ export type Database = {
         Returns: number
       }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
+      resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
+      resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
