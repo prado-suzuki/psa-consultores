@@ -587,7 +587,6 @@ export default function EquipeSprintDetalhes() {
         due_date: '',
         estimated_hours: '',
         parent_id: '',
-        cluster_id: '',
         project_id: '',
         process_id: '',
         task_code: ''
@@ -1347,7 +1346,7 @@ export default function EquipeSprintDetalhes() {
                     due_date: sprint?.end_date || '',
                     estimated_hours: '',
                     parent_id: '',
-                    cluster_id: '',
+                    
                     project_id: '',
                     process_id: '',
                     task_code: ''
@@ -2261,28 +2260,6 @@ export default function EquipeSprintDetalhes() {
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="edit-cluster">Cluster</Label>
-              <Select
-                value={editForm.cluster_id || "none"}
-                onValueChange={(value) => setEditForm(prev => ({
-                  ...prev,
-                  cluster_id: value === "none" ? "" : value,
-                  project_id: "",
-                  process_id: "",
-                }))}
-              >
-                <SelectTrigger id="edit-cluster">
-                  <SelectValue placeholder="Selecionar cluster" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {clusters.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
