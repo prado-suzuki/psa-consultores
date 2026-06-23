@@ -158,6 +158,7 @@ export default function EquipeSprintDetalhes() {
     due_date: '',
     estimated_hours: '',
     parent_id: '',
+    cluster_id: '',
     project_id: '',
     process_id: '',
     task_code: ''
