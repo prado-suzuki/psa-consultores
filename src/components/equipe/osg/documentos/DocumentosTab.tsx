@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { fieldCls } from '@/components/equipe/osg/formKit';
+import { ACCEPT, CATEGORIAS, MAX_BYTES, categoriaLabel, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import {
   useBaixarDocumento,
   useDocumentosByVinculo,
@@ -23,47 +24,23 @@ import {
   type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
 
-const CATEGORIAS: { value: DocCategoria; label: string }[] = [
-  { value: 'bens_direitos', label: 'Bens e Direitos' },
-  { value: 'cadastros_fiscais', label: 'Cadastros Fiscais' },
-  { value: 'declaracao_ir', label: 'Declaração IR' },
-  { value: 'agrarios', label: 'Agrários' },
-  { value: 'pessoais', label: 'Pessoais' },
-  { value: 'societarios', label: 'Societários' },
-  { value: 'sucessorios', label: 'Sucessórios' },
-  { value: 'outros', label: 'Outros' },
-];
-
-const MAX_BYTES = 50 * 1024 * 1024;
-const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
-
-function formatBytes(n: number | null): string {
-  if (!n) return '—';
-  const u = ['B', 'KB', 'MB', 'GB'];
-  let i = 0;
-  let v = n;
-  while (v >= 1024 && i < u.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(i ? 1 : 0)} ${u[i]}`;
-}
-
 interface Props {
   clienteId: string;
   vinculo: VinculoDoc;
   categoriaPadrao: DocCategoria;
+  nrMatricula?: string | null;
 }
 
-export function DocumentosTab({ clienteId, vinculo, categoriaPadrao }: Props) {
+export function DocumentosTab({ clienteId, vinculo, categoriaPadrao, nrMatricula }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [categoria, setCategoria] = useState<DocCategoria>(categoriaPadrao);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
   const { data: docs = [], isLoading } = useDocumentosByVinculo(clienteId, vinculo);
   const upload = useUploadDocumento();
-  const excluir = useExcluirDocumento(clienteId, vinculo);
+  const excluir = useExcluirDocumento(clienteId);
   const baixar = useBaixarDocumento();
+  const georefInvalido = categoria === 'georreferenciamento' && (!vinculo.matriculaId || !nrMatricula?.trim());
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -73,7 +50,15 @@ export function DocumentosTab({ clienteId, vinculo, categoriaPadrao }: Props) {
       toast({ title: 'Arquivo muito grande', description: 'Limite de 50 MB.', variant: 'destructive' });
       return;
     }
-    upload.mutate({ clienteId, vinculo, categoria, file });
+    if (georefInvalido) {
+      toast({
+        title: 'Vincule uma matrícula',
+        description: 'Documentos de georreferenciamento precisam de matrícula e número identificados.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    upload.mutate({ clienteId, vinculo, categoria, file, nrMatricula });
   };
 
   return (
@@ -94,7 +79,7 @@ export function DocumentosTab({ clienteId, vinculo, categoriaPadrao }: Props) {
           </select>
         </label>
         <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />
-        <Button type="button" onClick={() => inputRef.current?.click()} disabled={upload.isPending}>
+        <Button type="button" onClick={() => inputRef.current?.click()} disabled={upload.isPending || georefInvalido}>
           {upload.isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
@@ -103,6 +88,11 @@ export function DocumentosTab({ clienteId, vinculo, categoriaPadrao }: Props) {
           Anexar arquivo
         </Button>
       </div>
+      {georefInvalido && (
+        <p className="text-xs text-destructive">
+          Georreferenciamento só pode ser anexado em uma aba de matrícula com número identificado.
+        </p>
+      )}
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando…</p>
@@ -116,7 +106,7 @@ export function DocumentosTab({ clienteId, vinculo, categoriaPadrao }: Props) {
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{d.nome_original}</p>
                 <p className="text-xs text-muted-foreground">
-                  {CATEGORIAS.find((c) => c.value === d.categoria)?.label} · {formatBytes(d.tamanho)} ·{' '}
+                  {categoriaLabel(d.categoria)} · {formatBytes(d.tamanho)} ·{' '}
                   {new Date(d.created_at).toLocaleDateString('pt-BR')}
                 </p>
               </div>

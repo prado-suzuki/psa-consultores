@@ -867,6 +867,7 @@ export function MatriculaModal({
                     clienteId={clienteId}
                     vinculo={{ matriculaId: matricula.id, bemId: bemId ?? null }}
                     categoriaPadrao="agrarios"
+                    nrMatricula={matricula.numero}
                   />
                 )}
               </TabsContent>
