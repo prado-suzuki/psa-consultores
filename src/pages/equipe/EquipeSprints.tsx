@@ -107,7 +107,6 @@ const EquipeSprints = () => {
       const { data: projectsData } = await supabase
         .from('projects')
         .select('id, name')
-        .eq('status', 'active')
         .order('name');
 
       setProjects(projectsData || []);
