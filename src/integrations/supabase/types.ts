@@ -8106,11 +8106,11 @@ export type Database = {
         | "cadastros_fiscais"
         | "declaracao_ir"
         | "agrarios"
-        | "georreferenciamento"
         | "pessoais"
         | "societarios"
         | "sucessorios"
         | "outros"
+        | "georreferenciamento"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_status: "pendente" | "ativo"
       scenario_kind: "scale" | "efficiency" | "investment"
@@ -8319,6 +8319,7 @@ export const Constants = {
         "societarios",
         "sucessorios",
         "outros",
+        "georreferenciamento",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_status: ["pendente", "ativo"],
