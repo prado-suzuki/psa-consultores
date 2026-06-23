@@ -68,6 +68,7 @@ const EquipeSprints = () => {
   
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [clusters, setClusters] = useState<Cluster[]>([]);
   const [sprintHoursMap, setSprintHoursMap] = useState<Record<string, SprintHours[]>>({});
   const [sprintImpactMap, setSprintImpactMap] = useState<Record<string, SprintImpact>>({});
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ const EquipeSprints = () => {
     goal: '',
     start_date: '',
     end_date: '',
+    cluster_id: '',
     project_id: projectFilter || ''
   });
   const [editSprint, setEditSprint] = useState({
@@ -110,12 +112,13 @@ const EquipeSprints = () => {
 
   const fetchData = async () => {
     try {
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('id, name')
-        .order('name');
+      const [projectsRes, clustersRes] = await Promise.all([
+        supabase.from('projects').select('id, name, cluster_id').order('name'),
+        supabase.from('estrutura_clusters').select('id, name').eq('is_active', true).order('name'),
+      ]);
 
-      setProjects(projectsData || []);
+      setProjects(projectsRes.data || []);
+      setClusters(clustersRes.data || []);
 
       // Fetch sprints
       let query = supabase
@@ -295,7 +298,7 @@ const EquipeSprints = () => {
       });
 
       setIsDialogOpen(false);
-      setNewSprint({ name: '', goal: '', start_date: '', end_date: '', project_id: projectFilter || '' });
+      setNewSprint({ name: '', goal: '', start_date: '', end_date: '', cluster_id: '', project_id: projectFilter || '' });
       fetchData();
     } catch (error) {
       console.error('Error creating sprint:', error);
