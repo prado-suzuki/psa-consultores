@@ -35,50 +35,100 @@ export function useUserEstrutura(userId?: string): UserEstrutura {
     queryKey: ['user-estrutura', targetUserId],
     enabled: !!targetUserId,
     queryFn: async () => {
-      // 1. Get user's team memberships
-      const { data: memberships, error: mErr } = await supabase
-        .from('estrutura_equipe_membros')
-        .select('equipe_id')
-        .eq('user_id', targetUserId!);
-      if (mErr) throw mErr;
-      if (!memberships?.length) return { equipes: [], areas: [], clusters: [] };
+      const uid = targetUserId!;
 
-      const equipeIds = memberships.map(m => m.equipe_id);
+      // 1. Os 3 caminhos de usuário → cluster, em paralelo:
+      //    (1) membro de equipe  : estrutura_equipe_membros.user_id → equipe → área → cluster
+      //    (2) gestor de equipe  : estrutura_equipes.gestor_id → área → cluster
+      //    (3) gestor de área    : estrutura_areas.gestor_chamados_id → cluster
+      // Sem isso, gestores (sem vínculo de membro) resolviam clusters: [] e caiam em
+      // fail-open nos dashboards. Espelha o CTE `user_cluster_src` das views BQ.
+      const [membrosRes, equipesGestorRes, areasGestorRes] = await Promise.all([
+        supabase
+          .from('estrutura_equipe_membros')
+          .select('equipe_id')
+          .eq('user_id', uid),
+        supabase
+          .from('estrutura_equipes')
+          .select('id, name, area_id')
+          .eq('gestor_id', uid),
+        supabase
+          .from('estrutura_areas')
+          .select('id, name, color, cluster_id')
+          .eq('gestor_chamados_id', uid),
+      ]);
+      if (membrosRes.error) throw membrosRes.error;
+      if (equipesGestorRes.error) throw equipesGestorRes.error;
+      if (areasGestorRes.error) throw areasGestorRes.error;
 
-      // 2. Get teams
-      const { data: equipes, error: eErr } = await supabase
-        .from('estrutura_equipes')
-        .select('id, name, area_id')
-        .in('id', equipeIds);
-      if (eErr) throw eErr;
+      const equipeIdsMembro = (membrosRes.data || [])
+        .map((m) => m.equipe_id)
+        .filter(Boolean);
+      const equipesGestor = equipesGestorRes.data || [];
+      const areasGestor = (areasGestorRes.data || []) as EstruturaArea[];
 
-      const areaIds = [...new Set((equipes || []).map(e => e.area_id))];
-      if (!areaIds.length) return { equipes: equipes || [], areas: [], clusters: [] };
+      // 2. Equipes do caminho 1 (membro). Caminho 2 já veio acima.
+      let equipesMembro: EstruturaEquipe[] = [];
+      if (equipeIdsMembro.length) {
+        const { data, error } = await supabase
+          .from('estrutura_equipes')
+          .select('id, name, area_id')
+          .in('id', equipeIdsMembro);
+        if (error) throw error;
+        equipesMembro = (data || []) as EstruturaEquipe[];
+      }
 
-      // 3. Get areas
-      const { data: areas, error: aErr } = await supabase
-        .from('estrutura_areas')
-        .select('id, name, color, cluster_id')
-        .in('id', areaIds);
-      if (aErr) throw aErr;
+      // Equipes = caminho 1 ∪ caminho 2 (dedup por id).
+      const equipeMap = new Map<string, EstruturaEquipe>();
+      for (const e of [...equipesMembro, ...equipesGestor] as EstruturaEquipe[]) {
+        if (e?.id) equipeMap.set(e.id, e);
+      }
+      const equipes = [...equipeMap.values()];
 
-      const clusterIds = [...new Set((areas || []).map(a => a.cluster_id))];
-      if (!clusterIds.length) return { equipes: equipes || [], areas: areas || [], clusters: [] };
+      // 3. Áreas dos caminhos 1 e 2 (via area_id das equipes). Caminho 3 já veio.
+      const areaIdsFromEquipes = [
+        ...new Set(equipes.map((e) => e.area_id).filter(Boolean)),
+      ];
+      let areasFromEquipes: EstruturaArea[] = [];
+      if (areaIdsFromEquipes.length) {
+        const { data, error } = await supabase
+          .from('estrutura_areas')
+          .select('id, name, color, cluster_id')
+          .in('id', areaIdsFromEquipes);
+        if (error) throw error;
+        areasFromEquipes = (data || []) as EstruturaArea[];
+      }
 
-      // 4. Get clusters
+      // Áreas = caminho 1 ∪ caminho 2 ∪ caminho 3 (dedup por id).
+      const areaMap = new Map<string, EstruturaArea>();
+      for (const a of [...areasFromEquipes, ...areasGestor]) {
+        if (a?.id) areaMap.set(a.id, a);
+      }
+      const areas = [...areaMap.values()];
+
+      // 4. Clusters = união dos cluster_id de todas as áreas (3 caminhos), dedup e
+      // ordenados por id (determinístico — espelha ARRAY_AGG ... ORDER BY das views).
+      const clusterIds = [
+        ...new Set(areas.map((a) => a.cluster_id).filter(Boolean)),
+      ];
+      if (!clusterIds.length) {
+        return { equipes, areas, clusters: [] };
+      }
+
       const { data: clusters, error: cErr } = await supabase
         .from('estrutura_clusters')
         .select('id, name')
-        .in('id', clusterIds);
+        .in('id', clusterIds)
+        .eq('is_active', true);
       if (cErr) throw cErr;
 
-      const resolvedClusters = targetUserId === '0a58af80-e2d4-4a7d-bbd1-0a532b71e3e6'
-        ? [{ id: 'b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3', name: 'PSA Consultores' }]
-        : (clusters || []);
+      const resolvedClusters = ((clusters || []) as EstruturaCluster[])
+        .slice()
+        .sort((a, b) => a.id.localeCompare(b.id));
 
       return {
-        equipes: equipes || [],
-        areas: areas || [],
+        equipes,
+        areas,
         clusters: resolvedClusters,
       };
     },

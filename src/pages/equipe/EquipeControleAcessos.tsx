@@ -33,11 +33,13 @@ import {
   Building2,
   FolderKanban,
   Workflow,
+  LayoutDashboard,
 } from 'lucide-react';
 import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
 import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
+import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
@@ -290,12 +292,19 @@ const EquipeControleAcessos = () => {
                   <Users className="h-4 w-4 mr-2" />
                   Cadastros Clientes
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="cadastro_categorias" 
+                <TabsTrigger
+                  value="cadastro_categorias"
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
                   <FolderKanban className="h-4 w-4 mr-2" />
                   Cadastro Categorias
+                </TabsTrigger>
+                <TabsTrigger
+                  value="dashboards"
+                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                >
+                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                  Dashboards
                 </TabsTrigger>
               </TabsList>
 
@@ -322,6 +331,11 @@ const EquipeControleAcessos = () => {
               {/* Cadastro Categorias Tab */}
               <TabsContent value="cadastro_categorias" className="space-y-4">
                 <CadastroCategorias />
+              </TabsContent>
+
+              {/* Dashboards Tab (cadastro) */}
+              <TabsContent value="dashboards" className="space-y-4">
+                <DashboardsTab />
               </TabsContent>
             </Tabs>
 
