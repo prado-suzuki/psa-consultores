@@ -139,6 +139,7 @@ export default function EquipeSprintDetalhes() {
     estimated_hours: '',
     status: 'pending',
     parent_id: '',
+    cluster_id: '',
     project_id: '',
     process_id: '',
     task_code: ''
