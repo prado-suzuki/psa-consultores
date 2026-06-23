@@ -1,33 +1,41 @@
-## Causa raiz
+## Bug
 
-Em `src/pages/equipe/EquipeSprints.tsx` (linhas 107–111), a query que popula o dropdown "Projeto" do modal **Criar Nova Sprint** filtra por `status = 'active'`:
+No modal de Sprint (criar/editar entregável) em `/equipe/sprints`, ao escolher um projeto do cluster **OSG**, o select de **Processo** fica vazio. No cluster **PSA Consultores** funciona.
+
+## Causa
+
+`EquipeSprintDetalhes.tsx` filtra processos olhando **apenas** a tabela de junção `project_processes` (linhas 2343-2345 e 2594-2596):
 
 ```ts
-const { data: projectsData } = await supabase
-  .from('projects')
-  .select('id, name')
-  .eq('status', 'active')
-  .order('name');
+processes.filter(proc =>
+  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
+)
 ```
 
-Mas na tabela `public.projects` os únicos valores de `status` em uso hoje são `Melhorias` (10) e `Mapeamento` (6) — nenhum projeto tem `status = 'active'`. Resultado: `projectsData` vem vazio e o `<Select>` fica sem opções.
+Confirmado no banco:
 
-Outras telas que listam projetos (Kanban, Análise Inteligente, Daily) não aplicam esse filtro e funcionam normalmente.
+| Cluster | projects | processes | linhas em `project_processes` |
+|---|---|---|---|
+| PSA Consultores | 10 | 17 | **4.420** |
+| OSG | 6 | 34 | **0** |
+
+Os 34 processos do OSG têm vínculo direto via `processes.project_id` (todos preenchidos), e nunca foram populados em `project_processes`. Logo, o filtro do modal retorna vazio para qualquer projeto OSG.
 
 ## Correção proposta
 
-Remover o filtro inválido e alinhar com o padrão das demais páginas de equipe, mantendo a ordenação por nome:
+Aceitar os dois modelos de vínculo no filtro — junção `project_processes` **OU** FK direta `processes.project_id`. Mudança somente no frontend, nos dois selects de Processo do `EquipeSprintDetalhes.tsx`:
 
 ```ts
-const { data: projectsData } = await supabase
-  .from('projects')
-  .select('id, name')
-  .order('name');
+processes.filter(proc =>
+  proc.project_id === form.project_id ||
+  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
+)
 ```
 
-Mudança mínima, em um único arquivo (`src/pages/equipe/EquipeSprints.tsx`, função `fetchData`). Sem alterações de schema, hooks ou UI.
+Requer também incluir `project_id` no SELECT de `processes` (linha ~310) e no tipo `Process` local.
 
-## Validação após aplicar
+Nenhuma alteração de schema, hook ou backend. Comportamento do PSA Consultores permanece idêntico (continua casando pela junção).
 
-1. Abrir `/equipe/sprints` → clicar em "Nova Sprint" → o select "Projeto" deve listar os 16 projetos existentes.
-2. Conferir que a listagem de sprints abaixo do modal continua igual (a query de sprints não muda).
+## Validação
+
+Abrir Nova Sprint → cluster OSG → selecionar projeto → os 5–6 processos daquele projeto aparecem. Repetir com PSA Consultores: lista segue igual à atual.
