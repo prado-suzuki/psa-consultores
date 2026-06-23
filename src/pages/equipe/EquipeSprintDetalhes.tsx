@@ -2277,13 +2277,11 @@ export default function EquipeSprintDetalhes() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Nenhum</SelectItem>
-                    {projects
-                      .filter(p => !editForm.cluster_id || p.cluster_id === editForm.cluster_id)
-                      .map(p => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {p.name}
-                        </SelectItem>
-                      ))}
+                    {projects.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -2492,28 +2490,7 @@ export default function EquipeSprintDetalhes() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="create-cluster">Cluster</Label>
-              <Select
-                value={createForm.cluster_id || "none"}
-                onValueChange={(value) => setCreateForm(prev => ({
-                  ...prev,
-                  cluster_id: value === "none" ? "" : value,
-                  project_id: "",
-                  process_id: "",
-                }))}
-              >
-                <SelectTrigger id="create-cluster">
-                  <SelectValue placeholder="Selecionar cluster" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {clusters.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
