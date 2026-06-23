@@ -292,9 +292,17 @@ export default function EquipeSprintDetalhes() {
       // Carregar projetos e processos
       const { data: projectsData } = await supabase
         .from("projects")
-        .select("id, name")
+        .select("id, name, cluster_id")
         .order("name");
       setProjects(projectsData || []);
+
+      // Carregar clusters
+      const { data: clustersData } = await supabase
+        .from("estrutura_clusters")
+        .select("id, name")
+        .eq("is_active", true)
+        .order("name");
+      setClusters(clustersData || []);
 
       const { data: processesData } = await supabase
         .from("processes")
