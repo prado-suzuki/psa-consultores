@@ -81,6 +81,7 @@ interface Profile {
 interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
 }
 
 interface Process {
@@ -92,6 +93,11 @@ interface Process {
 interface ProjectProcess {
   process_id: string;
   project_id: string;
+}
+
+interface Cluster {
+  id: string;
+  name: string;
 }
 
 
