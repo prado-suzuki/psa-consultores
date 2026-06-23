@@ -81,7 +81,6 @@ interface Profile {
 interface Project {
   id: string;
   name: string;
-  cluster_id: string | null;
 }
 
 interface Process {
@@ -95,10 +94,7 @@ interface ProjectProcess {
   project_id: string;
 }
 
-interface Cluster {
-  id: string;
-  name: string;
-}
+
 
 
 export default function EquipeSprintDetalhes() {
