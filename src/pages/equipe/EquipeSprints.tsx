@@ -445,6 +445,27 @@ const EquipeSprints = () => {
             </DialogHeader>
             <form onSubmit={handleCreateSprint} className="space-y-4">
               <div className="space-y-2">
+                <Label htmlFor="cluster" className="text-gray-700">Cluster</Label>
+                <Select
+                  value={newSprint.cluster_id || 'none'}
+                  onValueChange={(value) => setNewSprint({
+                    ...newSprint,
+                    cluster_id: value === 'none' ? '' : value,
+                    project_id: '',
+                  })}
+                >
+                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectValue placeholder="Selecione um cluster (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white border-gray-200">
+                    <SelectItem value="none">Todos</SelectItem>
+                    {clusters.map((c) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="project" className="text-gray-700">Projeto</Label>
                 <Select 
                   value={newSprint.project_id} 
@@ -454,9 +475,11 @@ const EquipeSprints = () => {
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
-                    {projects.map((project) => (
-                      <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                    ))}
+                    {projects
+                      .filter((p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id)
+                      .map((project) => (
+                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
