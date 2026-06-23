@@ -8106,7 +8106,6 @@ export type Database = {
         | "cadastros_fiscais"
         | "declaracao_ir"
         | "agrarios"
-        | "georreferenciamento"
         | "pessoais"
         | "societarios"
         | "sucessorios"
