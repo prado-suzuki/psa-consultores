@@ -3,10 +3,17 @@ import { ArrowLeft } from 'lucide-react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DashboardEmbedView } from '@/components/dashboards/DashboardEmbedView';
 
-const LOOKER_STUDIO_URL =
-  'https://datastudio.google.com/embed/reporting/17ad7220-2c94-4df0-9c43-acee47aebe8a/page/p_ilwof7ab2d';
-
+/**
+ * Visualização interna do PERDCOMP (Digital DEV) — DB-driven, com controle de acesso.
+ * Cadastre o(s) dashboard(s) com target_page = "dev_perdcomp".
+ *
+ * Atenção: se o relatório do Looker já estiver com a Consulta Personalizada de RLS
+ * por id_cliente (param vazio = fail-closed), um cadastro com filter_type="nenhum"
+ * mostrará VAZIO. Para a visão interna ver tudo, use uma fonte/relatório SEM o
+ * filtro de RLS (decisão de Data Studio, fora do código do app).
+ */
 const PerdcompDashboard = () => {
   const navigate = useNavigate();
 
@@ -23,17 +30,11 @@ const PerdcompDashboard = () => {
     >
       <Card className="overflow-hidden border-slate-200/70 shadow-sm">
         <CardContent className="p-2 md:p-3">
-          <div className="mx-auto w-full max-w-[1280px] overflow-hidden rounded-xl" style={{ aspectRatio: '1280 / 925' }}>
-            <iframe
-              title="Dashboard PERDCOMP"
-              src={LOOKER_STUDIO_URL}
-              frameBorder="0"
-              style={{ border: 0 }}
-              allowFullScreen
-              sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-              className="block h-full w-full"
-            />
-          </div>
+          <DashboardEmbedView
+            targetPage="dev_perdcomp"
+            emptyMessage="Nenhum dashboard PERDCOMP liberado para o seu usuário."
+            height={925}
+          />
         </CardContent>
       </Card>
     </DevLayout>

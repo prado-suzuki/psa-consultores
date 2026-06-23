@@ -20,6 +20,7 @@ import {
   useDashboardsList, useDashboardSave, useDashboardToggle, useDashboardDelete,
   type Dashboard, type DashboardFilterType,
 } from '@/hooks/useDashboards';
+import { DASHBOARD_PAGES, DASHBOARD_PAGE_LABEL } from '@/config/dashboardPages';
 
 const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cluster: 'Por cluster',
@@ -32,14 +33,12 @@ const FILTER_HELP: Record<DashboardFilterType, string> = {
   nenhum: 'Dashboard sem RLS — sem ?params= (interno/público).',
 };
 
-const parseParams = (t: string) => t.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean);
-
 export default function DashboardsTab() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [embedUrl, setEmbedUrl] = useState('');
-  const [paramsText, setParamsText] = useState('');
+  const [paramNames, setParamNames] = useState<string[]>(['']);
   const [filterType, setFilterType] = useState<DashboardFilterType>('cluster');
   const [targetPage, setTargetPage] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Dashboard | null>(null);
@@ -52,7 +51,7 @@ export default function DashboardsTab() {
   const handleSave = async () => {
     try {
       await save(editId, {
-        name, embed_url: embedUrl, param_names: parseParams(paramsText),
+        name, embed_url: embedUrl, param_names: paramNames.map((s) => s.trim()).filter(Boolean),
         filter_type: filterType, target_page: targetPage,
       });
       setOpen(false);
@@ -62,12 +61,12 @@ export default function DashboardsTab() {
   };
 
   const openCreate = () => {
-    setEditId(null); setName(''); setEmbedUrl(''); setParamsText(''); setFilterType('cluster'); setTargetPage('');
+    setEditId(null); setName(''); setEmbedUrl(''); setParamNames(['']); setFilterType('cluster'); setTargetPage('board_relatorios');
     setOpen(true);
   };
   const openEdit = (d: Dashboard) => {
     setEditId(d.id); setName(d.name); setEmbedUrl(d.embed_url);
-    setParamsText((d.param_names || []).join(', ')); setFilterType(d.filter_type);
+    setParamNames((d.param_names || []).length ? d.param_names : ['']); setFilterType(d.filter_type);
     setTargetPage(d.target_page || ''); setOpen(true);
   };
   const executeRemove = async (d: Dashboard) => { await remove(d); setDeleteTarget(null); };
@@ -106,7 +105,7 @@ export default function DashboardsTab() {
                       : d.param_names.map((p) => <Badge key={p} variant="secondary" className="font-mono text-[11px]">{p}</Badge>)}
                   </div>
                 </TableCell>
-                <TableCell className="text-slate-500 text-sm">{d.target_page || '—'}</TableCell>
+                <TableCell className="text-slate-500 text-sm">{d.target_page ? (DASHBOARD_PAGE_LABEL[d.target_page] ?? d.target_page) : '—'}</TableCell>
                 <TableCell><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} /></TableCell>
                 <TableCell>
                   <div className="flex gap-1">
@@ -143,10 +142,51 @@ export default function DashboardsTab() {
             </div>
             <div>
               <Label>Chaves de parâmetro (dsN)</Label>
-              <Input value={paramsText} onChange={(e) => setParamsText(e.target.value)} placeholder="ds0.cluster_id_param, ds13.cluster_id_param" className="font-mono text-xs" />
-              <p className="text-xs text-slate-500 mt-1">Separe por vírgula. Uma por fonte do relatório (multi-fonte = várias).</p>
+              <div className="space-y-2 mt-1">
+                {paramNames.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Input
+                      value={p}
+                      onChange={(e) => setParamNames((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
+                      placeholder="ds0.cluster_id_param"
+                      className="font-mono text-xs"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
+                      onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}
+                      aria-label="Remover chave"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2"
+                onClick={() => setParamNames((prev) => [...prev, ''])}
+              >
+                <Plus className="h-4 w-4 mr-1" />Adicionar chave
+              </Button>
+              <p className="text-xs text-slate-500 mt-1">Uma chave por fonte do relatório (multi-fonte = várias). Só p/ dashboards com filtro.</p>
             </div>
-            <div><Label>Página (onde aparece)</Label><Input value={targetPage} onChange={(e) => setTargetPage(e.target.value)} placeholder="Ex: board/relatorios, cliente/perdcomp" /></div>
+            <div>
+              <Label>Página (onde aparece)</Label>
+              <Select value={targetPage} onValueChange={setTargetPage}>
+                <SelectTrigger><SelectValue placeholder="Selecione a página" /></SelectTrigger>
+                <SelectContent>
+                  {DASHBOARD_PAGES.map((p) => (
+                    <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">Define em qual tela o dashboard é listado.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
