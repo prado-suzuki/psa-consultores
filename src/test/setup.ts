@@ -1,6 +1,51 @@
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
+
+// Polyfill de Web Storage em memória.
+//
+// No Node 24+ a Web Storage API nativa vem ligada por padrão e define um global
+// `localStorage` ANTES do jsdom carregar. Sem um `--localstorage-file` válido
+// esse global é um objeto não-funcional (sem clear/getItem/setItem) que o jsdom
+// não consegue substituir — então `localStorage.clear()` etc. lançam TypeError.
+// Aqui instalamos um Storage funcional e isolado por teste, independente da
+// versão do Node e de quem fornece o global.
+class MemoryStorage implements Storage {
+  private store = new Map<string, string>();
+  get length() {
+    return this.store.size;
+  }
+  clear() {
+    this.store.clear();
+  }
+  getItem(key: string) {
+    return this.store.has(key) ? this.store.get(key)! : null;
+  }
+  key(index: number) {
+    return Array.from(this.store.keys())[index] ?? null;
+  }
+  removeItem(key: string) {
+    this.store.delete(key);
+  }
+  setItem(key: string, value: string) {
+    this.store.set(key, String(value));
+  }
+}
+
+function installStorage(name: 'localStorage' | 'sessionStorage') {
+  const storage = new MemoryStorage();
+  Object.defineProperty(globalThis, name, {
+    value: storage,
+    configurable: true,
+    writable: true,
+  });
+}
+
+// Storage limpo antes de cada teste (substitui o global quebrado do Node).
+beforeEach(() => {
+  installStorage('localStorage');
+  installStorage('sessionStorage');
+});
 
 // Limpa o DOM entre testes. Sem isso, componentes renderizados em testes
 // anteriores ficam acumulados e quebram queries por texto/role.
