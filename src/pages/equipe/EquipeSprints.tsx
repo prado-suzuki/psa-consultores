@@ -31,6 +31,12 @@ interface Sprint {
 interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
+}
+
+interface Cluster {
+  id: string;
+  name: string;
 }
 
 interface SprintHours {
