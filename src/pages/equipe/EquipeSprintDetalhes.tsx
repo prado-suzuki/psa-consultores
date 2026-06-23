@@ -353,6 +353,7 @@ export default function EquipeSprintDetalhes() {
   };
 
   const openEditModal = (deliverable: Deliverable) => {
+    const proj = projects.find(p => p.id === deliverable.project_id);
     setEditingDeliverable(deliverable);
     setEditForm({
       title: deliverable.title,
@@ -363,6 +364,7 @@ export default function EquipeSprintDetalhes() {
       estimated_hours: deliverable.estimated_hours?.toString() || '',
       status: deliverable.status || 'pending',
       parent_id: deliverable.parent_id || '',
+      cluster_id: proj?.cluster_id || '',
       project_id: deliverable.project_id || '',
       process_id: deliverable.process_id || '',
       task_code: deliverable.task_code || ''
