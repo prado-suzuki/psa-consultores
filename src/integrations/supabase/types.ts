@@ -8241,6 +8241,16 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      preview_dashboard_embed_url: {
+        Args: {
+          _cliente_id?: string
+          _cluster_ids?: string[]
+          _dashboard_id: string
+          _mode: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
