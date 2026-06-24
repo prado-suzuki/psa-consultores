@@ -91,7 +91,7 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
   const { data: profiles = {} } = useQuery({
     queryKey: ['audit-lookup-profiles'],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles').select('id, first_name, last_name');
+      const { data } = await supabase.from('profiles_safe' as any).select('id, first_name, last_name');
       const map: Record<string, string> = {};
       data?.forEach((p) => {
         map[p.id] = `${p.first_name} ${p.last_name ?? ''}`.trim();
