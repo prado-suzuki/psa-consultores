@@ -39,8 +39,8 @@ const DesempenhoVisaoGeral = () => {
   const { data: profiles } = useQuery({
     queryKey: ['profiles_safe_all'],
     queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name, email');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string; email: string }[];
+      const { data } = await supabase.from('profiles_safe' as any).select('id, first_name, last_name');
+      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
     },
   });
 
