@@ -17,6 +17,22 @@ export interface DashboardAccessRow {
   override_all_clusters: boolean;
 }
 
+/**
+ * Todas as linhas de dashboard_access (lido por lider+). Usado na aba Dashboards
+ * pra montar a coluna "Acesso" cruzando com a lista de usuários no client.
+ */
+export function useAllDashboardAccess() {
+  return useQuery({
+    queryKey: ['all-dashboard-access'],
+    queryFn: async (): Promise<{ dashboard_id: string; user_id: string }[]> => {
+      const { data, error } = await (supabase.from('dashboard_access' as any) as any)
+        .select('dashboard_id, user_id');
+      if (error) throw error;
+      return (data || []) as { dashboard_id: string; user_id: string }[];
+    },
+  });
+}
+
 export function useUserDashboardAccess(userId?: string | null) {
   const enabled = userId !== null && userId !== undefined;
   return useQuery({
@@ -42,9 +58,11 @@ export function useDashboardAccessMutations() {
   };
 
   const grant = useMutation({
-    mutationFn: async ({ userId, dashboardId }: { userId: string; dashboardId: string }) => {
+    mutationFn: async ({
+      userId, dashboardId, overrideAllClusters = false,
+    }: { userId: string; dashboardId: string; overrideAllClusters?: boolean }) => {
       const { error } = await (supabase.from('dashboard_access' as any) as any).upsert(
-        { dashboard_id: dashboardId, user_id: userId, created_by: user?.id },
+        { dashboard_id: dashboardId, user_id: userId, created_by: user?.id, override_all_clusters: overrideAllClusters },
         { onConflict: 'dashboard_id,user_id', ignoreDuplicates: true },
       );
       if (error) throw error;
@@ -83,4 +101,44 @@ export function useDashboardAccessMutations() {
   });
 
   return { grant, revoke, setOverride };
+}
+
+/**
+ * Define (diff) o conjunto de usuários com acesso a UM dashboard — usado no modal
+ * de edição (grant pelo dashboard). Sem toast por usuário. Não mexe em override
+ * (grant entra com override_all_clusters=false; sócio configura na aba Usuários).
+ */
+export function useSetDashboardUsers() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ dashboardId, userIds }: { dashboardId: string; userIds: string[] }) => {
+      const { data: current, error: e1 } = await (supabase.from('dashboard_access' as any) as any)
+        .select('user_id').eq('dashboard_id', dashboardId);
+      if (e1) throw e1;
+      const currentIds = new Set(((current || []) as { user_id: string }[]).map((r) => r.user_id));
+      const target = new Set(userIds);
+      const toGrant = userIds.filter((id) => !currentIds.has(id));
+      const toRevoke = [...currentIds].filter((id) => !target.has(id));
+
+      if (toGrant.length) {
+        const { error } = await (supabase.from('dashboard_access' as any) as any).upsert(
+          toGrant.map((uid) => ({ dashboard_id: dashboardId, user_id: uid, created_by: user?.id })),
+          { onConflict: 'dashboard_id,user_id', ignoreDuplicates: true },
+        );
+        if (error) throw error;
+      }
+      if (toRevoke.length) {
+        const { error } = await (supabase.from('dashboard_access' as any) as any)
+          .delete().eq('dashboard_id', dashboardId).in('user_id', toRevoke);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['all-dashboard-access'] });
+      qc.invalidateQueries({ queryKey: ['user-dashboard-access'] });
+      qc.invalidateQueries({ queryKey: ['accessible-dashboards'] });
+    },
+  });
 }

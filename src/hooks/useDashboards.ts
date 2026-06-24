@@ -43,7 +43,8 @@ export const useDashboardSave = () => {
   const qc = useQueryClient();
 
   return {
-    save: async (editId: string | null, form: DashboardForm) => {
+    // devolve o id do dashboard (novo ou editado) p/ encadear o grant de usuários.
+    save: async (editId: string | null, form: DashboardForm): Promise<string> => {
       if (!form.name.trim()) { toast.error('Nome é obrigatório'); throw new Error('Validation'); }
       if (!form.embed_url.trim()) { toast.error('URL do embed é obrigatória'); throw new Error('Validation'); }
       const payload: Record<string, unknown> = {
@@ -54,16 +55,19 @@ export const useDashboardSave = () => {
         target_page: form.target_page.trim() || null,
       };
       try {
+        let id = editId;
         if (editId) {
           const { error } = await (supabase.from('dashboards' as any) as any).update(payload).eq('id', editId);
           if (error) throw error;
           toast.success('Dashboard atualizado');
         } else {
-          const { error } = await (supabase.from('dashboards' as any) as any).insert(payload);
+          const { data, error } = await (supabase.from('dashboards' as any) as any).insert(payload).select('id').single();
           if (error) throw error;
+          id = data.id as string;
           toast.success('Dashboard criado');
         }
         qc.invalidateQueries({ queryKey: ['dashboards'] });
+        return id as string;
       } catch (e: any) {
         if (e.message !== 'Validation') toast.error(e.message || 'Erro ao salvar');
         throw e;

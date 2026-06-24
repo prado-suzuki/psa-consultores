@@ -1,14 +1,18 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Eye } from 'lucide-react';
 import { useDashboardsList } from '@/hooks/useDashboards';
 import {
   useUserDashboardAccess, useDashboardAccessMutations, type DashboardAccessRow,
 } from '@/hooks/useUserDashboardAccess';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
+import { MultiSelectCombobox } from '@/components/dashboards/MultiSelectCombobox';
+import { DashboardPreviewDialog, type PreviewTarget } from '@/components/dashboards/DashboardPreviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_LABEL } from '@/config/dashboardPages';
 
 const FILTER_BADGE: Record<string, string> = {
@@ -29,6 +33,7 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
   const { data: access = [] } = useUserDashboardAccess(userId);
   const { clusters: userClusters, isLoading: loadingEstrutura } = useUserEstrutura(userId);
   const { grant, revoke, setOverride } = useDashboardAccessMutations();
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
 
   const { data: allClusters = [] } = useQuery({
     queryKey: ['estrutura-clusters-ativos'],
@@ -67,6 +72,7 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
   }
 
   return (
+    <>
     <div className="space-y-4">
       {grouped.map(([pageKey, items]) => (
         <div key={pageKey} className="space-y-2">
@@ -85,13 +91,30 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
                       checked={granted}
                       disabled={grant.isPending || revoke.isPending}
                       onCheckedChange={(v) =>
-                        v ? grant.mutate({ userId, dashboardId: d.id }) : revoke.mutate({ userId, dashboardId: d.id })
+                        v
+                          ? grant.mutate({
+                              userId, dashboardId: d.id,
+                              overrideAllClusters: d.filter_type === 'cluster' && userHasNoCluster,
+                            })
+                          : revoke.mutate({ userId, dashboardId: d.id })
                       }
                       aria-label={`Acesso a ${d.name}`}
                       className="border-slate-300"
                     />
                     <span className="text-sm text-slate-900 flex-1 truncate">{d.name}</span>
                     <Badge variant="secondary" className="text-[10px]">{FILTER_BADGE[d.filter_type]}</Badge>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-slate-400 hover:text-teal-600"
+                      onClick={() => setPreviewTarget({
+                        dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type,
+                        initialMode: 'user', initialUserId: userId,
+                      })}
+                      aria-label={`Pré-visualizar ${d.name} como este usuário`}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {showOverride && row && (
@@ -113,29 +136,18 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
                         Todos os clusters ativos
                       </label>
                       {!row.override_all_clusters && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {allClusters.map((c) => {
-                            const checked = row.override_cluster_ids.includes(c.id);
-                            return (
-                              <label key={c.id} className="flex items-center gap-1.5 text-xs text-slate-700">
-                                <Checkbox
-                                  checked={checked}
-                                  onCheckedChange={(v) => {
-                                    const next = v
-                                      ? [...row.override_cluster_ids, c.id]
-                                      : row.override_cluster_ids.filter((x) => x !== c.id);
-                                    setOverride.mutate({
-                                      userId, dashboardId: d.id,
-                                      overrideClusterIds: next, overrideAllClusters: false,
-                                    });
-                                  }}
-                                  className="border-slate-300"
-                                />
-                                {c.name}
-                              </label>
-                            );
-                          })}
-                        </div>
+                        <MultiSelectCombobox
+                          options={allClusters.map((c) => ({ value: c.id, label: c.name }))}
+                          selected={row.override_cluster_ids}
+                          onChange={(next) =>
+                            setOverride.mutate({
+                              userId, dashboardId: d.id, overrideClusterIds: next, overrideAllClusters: false,
+                            })
+                          }
+                          placeholder="Selecionar clusters específicos…"
+                          searchPlaceholder="Buscar cluster…"
+                          emptyText="Nenhum cluster encontrado."
+                        />
                       )}
                     </div>
                   )}
@@ -146,5 +158,7 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
         </div>
       ))}
     </div>
+    <DashboardPreviewDialog target={previewTarget} onOpenChange={(o) => { if (!o) setPreviewTarget(null); }} />
+    </>
   );
 }

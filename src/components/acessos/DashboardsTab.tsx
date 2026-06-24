@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,11 @@ import {
   useDashboardsList, useDashboardSave, useDashboardToggle, useDashboardDelete,
   type Dashboard, type DashboardFilterType,
 } from '@/hooks/useDashboards';
+import { useAllDashboardAccess, useSetDashboardUsers } from '@/hooks/useUserDashboardAccess';
+import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
+import { MultiSelectCombobox } from '@/components/dashboards/MultiSelectCombobox';
+import { DashboardDetailDialog } from '@/components/dashboards/DashboardDetailDialog';
+import { DashboardPreviewDialog, type PreviewTarget } from '@/components/dashboards/DashboardPreviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_LABEL } from '@/config/dashboardPages';
 
 const FILTER_LABEL: Record<DashboardFilterType, string> = {
@@ -33,6 +38,9 @@ const FILTER_HELP: Record<DashboardFilterType, string> = {
   nenhum: 'Dashboard sem RLS — sem ?params= (interno/público).',
 };
 
+const userLabel = (u: { first_name?: string | null; last_name?: string | null; email: string }) =>
+  `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
+
 export default function DashboardsTab() {
   const [open, setOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -41,40 +49,73 @@ export default function DashboardsTab() {
   const [paramNames, setParamNames] = useState<string[]>(['']);
   const [filterType, setFilterType] = useState<DashboardFilterType>('cluster');
   const [targetPage, setTargetPage] = useState('');
+  const [accessUserIds, setAccessUserIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Dashboard | null>(null);
+  const [detailTarget, setDetailTarget] = useState<Dashboard | null>(null);
+  const [previewTarget, setPreviewTarget] = useState<PreviewTarget | null>(null);
 
   const { data: items = [], isLoading } = useDashboardsList();
+  const { data: allAccess = [] } = useAllDashboardAccess();
+  const { data: users = [] } = useUsersWithRoles();
   const { save } = useDashboardSave();
+  const setUsers = useSetDashboardUsers();
   const toggle = useDashboardToggle();
   const { remove } = useDashboardDelete();
 
+  const usersById = useMemo(() => new Map(users.map((u) => [u.id, u])), [users]);
+  const accessByDashboard = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const a of allAccess) {
+      if (!m.has(a.dashboard_id)) m.set(a.dashboard_id, []);
+      m.get(a.dashboard_id)!.push(a.user_id);
+    }
+    return m;
+  }, [allAccess]);
+
   const handleSave = async () => {
     try {
-      await save(editId, {
+      const id = await save(editId, {
         name, embed_url: embedUrl, param_names: paramNames.map((s) => s.trim()).filter(Boolean),
         filter_type: filterType, target_page: targetPage,
       });
+      await setUsers.mutateAsync({ dashboardId: id, userIds: accessUserIds });
       setOpen(false);
     } catch {
-      // erros tratados no hook
+      // erros tratados nos hooks
     }
   };
 
   const openCreate = () => {
-    setEditId(null); setName(''); setEmbedUrl(''); setParamNames(['']); setFilterType('cluster'); setTargetPage('board_relatorios');
+    setEditId(null); setName(''); setEmbedUrl(''); setParamNames(['']);
+    setFilterType('cluster'); setTargetPage('board_relatorios'); setAccessUserIds([]);
     setOpen(true);
   };
   const openEdit = (d: Dashboard) => {
     setEditId(d.id); setName(d.name); setEmbedUrl(d.embed_url);
     setParamNames((d.param_names || []).length ? d.param_names : ['']); setFilterType(d.filter_type);
-    setTargetPage(d.target_page || ''); setOpen(true);
+    setTargetPage(d.target_page || '');
+    setAccessUserIds(accessByDashboard.get(d.id) ?? []);
+    setOpen(true);
   };
   const executeRemove = async (d: Dashboard) => { await remove(d); setDeleteTarget(null); };
+
+  const renderAccessCell = (d: Dashboard) => {
+    const ids = accessByDashboard.get(d.id) ?? [];
+    if (ids.length === 0) return <span className="text-slate-400 text-xs">—</span>;
+    const names = ids.map((id) => { const u = usersById.get(id); return u ? userLabel(u) : null; }).filter(Boolean) as string[];
+    const shown = names.slice(0, 2).join(', ');
+    const extra = names.length - 2;
+    return (
+      <span className="text-xs text-slate-600">
+        {shown}{extra > 0 && <span className="text-slate-400"> +{extra}</span>}
+      </span>
+    );
+  };
 
   return (
     <>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{items.length} dashboards cadastrados</p>
+        <p className="text-sm text-slate-500">{items.length} dashboards cadastrados · clique numa linha para detalhes</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
       </div>
       <Card className="border-slate-200/60">
@@ -85,17 +126,18 @@ export default function DashboardsTab() {
               <TableHead className="w-32">Filtro</TableHead>
               <TableHead>Parâmetros (dsN)</TableHead>
               <TableHead className="w-40">Página</TableHead>
+              <TableHead className="w-44">Acesso</TableHead>
               <TableHead className="w-20">Ativo</TableHead>
               <TableHead className="w-24">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
             ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-slate-400">Nenhum dashboard cadastrado</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-slate-400">Nenhum dashboard cadastrado</TableCell></TableRow>
             ) : items.map((d) => (
-              <TableRow key={d.id}>
+              <TableRow key={d.id} className="cursor-pointer" onClick={() => setDetailTarget(d)}>
                 <TableCell className="font-medium">{d.name}</TableCell>
                 <TableCell><Badge variant="outline">{FILTER_LABEL[d.filter_type]}</Badge></TableCell>
                 <TableCell>
@@ -106,8 +148,9 @@ export default function DashboardsTab() {
                   </div>
                 </TableCell>
                 <TableCell className="text-slate-500 text-sm">{d.target_page ? (DASHBOARD_PAGE_LABEL[d.target_page] ?? d.target_page) : '—'}</TableCell>
-                <TableCell><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} /></TableCell>
-                <TableCell>
+                <TableCell>{renderAccessCell(d)}</TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} /></TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <div className="flex gap-1">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-700" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></Button>
@@ -120,10 +163,10 @@ export default function DashboardsTab() {
       </Card>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editId ? 'Editar Dashboard' : 'Novo Dashboard'}</DialogTitle>
-            <DialogDescription>Cadastro do dashboard. O acesso (quem vê) é concedido na aba Usuários.</DialogDescription>
+            <DialogDescription>Cadastro do dashboard e quem pode vê-lo.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div><Label>Nome <RequiredMark /></Label><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Controle de uso e envio de documentos" /></div>
@@ -164,13 +207,7 @@ export default function DashboardsTab() {
                   </div>
                 ))}
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => setParamNames((prev) => [...prev, ''])}
-              >
+              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setParamNames((prev) => [...prev, ''])}>
                 <Plus className="h-4 w-4 mr-1" />Adicionar chave
               </Button>
               <p className="text-xs text-slate-500 mt-1">Uma chave por fonte do relatório (multi-fonte = várias). Só p/ dashboards com filtro.</p>
@@ -187,10 +224,24 @@ export default function DashboardsTab() {
               </Select>
               <p className="text-xs text-slate-500 mt-1">Define em qual tela o dashboard é listado.</p>
             </div>
+            <div>
+              <Label>Usuários com acesso</Label>
+              <div className="mt-1">
+                <MultiSelectCombobox
+                  options={users.map((u) => ({ value: u.id, label: userLabel(u) }))}
+                  selected={accessUserIds}
+                  onChange={setAccessUserIds}
+                  placeholder="Selecionar usuários…"
+                  searchPlaceholder="Buscar usuário…"
+                  emptyText="Nenhum usuário."
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-1">Concede acesso a este dashboard. O override de cluster do sócio é ajustado na aba Usuários.</p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave}>Salvar</Button>
+            <Button onClick={handleSave} disabled={setUsers.isPending}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -207,6 +258,20 @@ export default function DashboardsTab() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DashboardDetailDialog
+        dashboard={detailTarget}
+        onOpenChange={(o) => { if (!o) setDetailTarget(null); }}
+        onPreview={(d) => {
+          setDetailTarget(null);
+          setPreviewTarget({ dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type });
+        }}
+      />
+
+      <DashboardPreviewDialog
+        target={previewTarget}
+        onOpenChange={(o) => { if (!o) setPreviewTarget(null); }}
+      />
     </>
   );
 }

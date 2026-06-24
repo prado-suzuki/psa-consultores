@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { RefreshCw } from 'lucide-react';
 import { useAccessibleDashboards } from '@/hooks/useAccessibleDashboards';
-import { useDashboardEmbedUrl, EMBED_REASON_LABEL } from '@/hooks/useDashboardEmbedUrl';
+import { useDashboardEmbedUrl } from '@/hooks/useDashboardEmbedUrl';
+import { DashboardIframe } from '@/components/dashboards/DashboardIframe';
 
 /**
  * Bloco reutilizável de "biblioteca de dashboards" dirigido pelo banco (DB-driven).
@@ -96,32 +96,12 @@ export function DashboardEmbedView({
         </div>
       )}
 
-      {isLoadingUrl ? (
-        <div className="flex items-center justify-center py-16">
-          <RefreshCw className="h-6 w-6 animate-spin text-slate-400" />
-        </div>
-      ) : !embed?.ok || !embed.url ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center">
-          <p className="text-sm text-amber-700">
-            {EMBED_REASON_LABEL[embed?.reason ?? ''] ?? 'Não foi possível carregar este dashboard.'}
-          </p>
-        </div>
-      ) : (
-        <div className="w-full overflow-auto flex justify-center">
-          <iframe
-            key={`${selected?.id}-${embed.url}`}
-            width="1440"
-            height={height}
-            src={embed.url}
-            title={selected?.name ?? 'Dashboard'}
-            frameBorder={0}
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            sandbox="allow-storage-access-by-user-activation allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-          />
-        </div>
-      )}
+      <DashboardIframe
+        embed={embed}
+        isLoading={isLoadingUrl}
+        title={selected?.name ?? 'Dashboard'}
+        height={height}
+      />
     </div>
   );
 }
