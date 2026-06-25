@@ -1,14 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
-import { useClientesList } from '@/hooks/useClientesList';
-import { usePreviewDashboardEmbedUrl, type PreviewMode } from '@/hooks/usePreviewDashboardEmbedUrl';
+import { useAllDashboardAccess } from '@/hooks/useUserDashboardAccess';
+import { useUsersClusterNames } from '@/hooks/useUsersClusterNames';
+import { usePreviewDashboardEmbedUrl } from '@/hooks/usePreviewDashboardEmbedUrl';
 import type { DashboardFilterType } from '@/hooks/useDashboards';
-import { MultiSelectCombobox } from './MultiSelectCombobox';
+import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
 import { SingleSelectCombobox } from './SingleSelectCombobox';
 import { DashboardIframe } from './DashboardIframe';
 
@@ -16,8 +13,7 @@ export interface PreviewTarget {
   dashboardId: string;
   dashboardName: string;
   filterType: DashboardFilterType;
-  /** Pré-seleção (ex.: vindo da aba Usuários: mode='user' + o usuário). */
-  initialMode?: PreviewMode;
+  /** Pré-seleção do usuário (ex.: vindo da aba Usuários). */
   initialUserId?: string | null;
 }
 
@@ -26,127 +22,99 @@ interface DashboardPreviewDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const defaultModeFor = (ft: DashboardFilterType): PreviewMode =>
-  ft === 'cliente' ? 'cliente' : ft === 'cluster' ? 'cluster' : 'nenhum';
-
+/**
+ * Pré-visualiza o dashboard "como" um usuário COM ACESSO — o filtro RLS é
+ * resolvido no servidor pelo usuário escolhido. Sem toggles: só o seletor de
+ * usuário (mostrando o cluster de cada um). Lista apenas quem já tem acesso.
+ */
 export function DashboardPreviewDialog({ target, onOpenChange }: DashboardPreviewDialogProps) {
   const open = !!target;
   const filterType = target?.filterType ?? 'nenhum';
 
-  const [mode, setMode] = useState<PreviewMode>('nenhum');
   const [userId, setUserId] = useState<string | null>(null);
-  const [clusterIds, setClusterIds] = useState<string[]>([]);
-  const [clienteId, setClienteId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!target) return;
-    setMode(target.initialMode ?? defaultModeFor(target.filterType));
-    setUserId(target.initialUserId ?? null);
-    setClusterIds([]);
-    setClienteId(null);
-  }, [target?.dashboardId, target?.initialMode, target?.initialUserId]);
 
   const { data: users = [] } = useUsersWithRoles();
-  const { data: clientes = [] } = useClientesList();
-  const { data: clusters = [] } = useQuery({
-    queryKey: ['estrutura-clusters-ativos'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_clusters').select('id, name').eq('is_active', true).order('name');
-      if (error) throw error;
-      return (data || []) as { id: string; name: string }[];
-    },
-  });
+  const { data: allAccess = [] } = useAllDashboardAccess();
+
+  // usuários que JÁ têm acesso a este dashboard
+  const accessUserIds = useMemo(
+    () => allAccess.filter((a) => a.dashboard_id === target?.dashboardId).map((a) => a.user_id),
+    [allAccess, target?.dashboardId],
+  );
+  const { data: clusterNames } = useUsersClusterNames(accessUserIds);
+
+  const options = useMemo(() => {
+    const byId = new Map(users.map((u) => [u.id, u]));
+    return accessUserIds
+      .map((id) => byId.get(id))
+      .filter(Boolean)
+      .map((u) => {
+        const name = `${u!.first_name ?? ''} ${u!.last_name ?? ''}`.trim() || u!.email;
+        const cluster = clusterNames?.get(u!.id);
+        return { value: u!.id, label: cluster ? `${name} · ${cluster}` : name };
+      });
+  }, [users, accessUserIds, clusterNames]);
+
+  // pré-seleciona o usuário (o da aba Usuários, ou o primeiro com acesso)
+  useEffect(() => {
+    if (!target) return;
+    setUserId(target.initialUserId ?? null);
+  }, [target?.dashboardId, target?.initialUserId]);
+  useEffect(() => {
+    if (!userId && accessUserIds.length) {
+      setUserId(target?.initialUserId && accessUserIds.includes(target.initialUserId) ? target.initialUserId : accessUserIds[0]);
+    }
+  }, [accessUserIds, userId, target?.initialUserId]);
 
   const preview = usePreviewDashboardEmbedUrl({
     dashboardId: target?.dashboardId ?? null,
-    filterType, mode, clusterIds, userId, clienteId,
+    filterType, mode: 'user', userId,
   });
 
-  const audienceOptions: { value: PreviewMode; label: string }[] =
-    filterType === 'cluster'
-      ? [{ value: 'user', label: 'Por usuário' }, { value: 'cluster', label: 'Por cluster' }]
-      : filterType === 'cliente'
-        ? [{ value: 'user', label: 'Por usuário' }, { value: 'cliente', label: 'Por cliente' }]
-        : [];
+  const noUsers = accessUserIds.length === 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[92vw] w-[92vw] h-[90vh] flex flex-col gap-3 p-4">
+      <DialogContent
+        className="max-w-[92vw] w-[92vw] h-[90vh] flex flex-col gap-3 p-4"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-base">Preview — {target?.dashboardName}</DialogTitle>
         </DialogHeader>
 
-        {filterType !== 'nenhum' && (
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex gap-1">
-              {audienceOptions.map((o) => (
-                <button
-                  key={o.value}
-                  type="button"
-                  onClick={() => setMode(o.value)}
-                  className={cn(
-                    'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
-                    mode === o.value
-                      ? 'bg-teal-500/10 text-teal-700 border-teal-200'
-                      : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50',
-                  )}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-
-            {mode === 'user' && (
-              <SingleSelectCombobox
-                options={users.map((u) => ({
-                  value: u.id,
-                  label: `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email,
-                }))}
-                value={userId}
-                onChange={setUserId}
-                placeholder="Selecionar usuário…"
-                searchPlaceholder="Buscar usuário…"
-                emptyText="Nenhum usuário."
-              />
-            )}
-            {mode === 'cluster' && (
-              <MultiSelectCombobox
-                options={clusters.map((c) => ({ value: c.id, label: c.name }))}
-                selected={clusterIds}
-                onChange={setClusterIds}
-                placeholder="Selecionar clusters…"
-                searchPlaceholder="Buscar cluster…"
-                emptyText="Nenhum cluster."
-              />
-            )}
-            {mode === 'cliente' && (
-              <SingleSelectCombobox
-                options={clientes.map((c) => ({ value: c.id, label: c.nome }))}
-                value={clienteId}
-                onChange={setClienteId}
-                placeholder="Selecionar cliente…"
-                searchPlaceholder="Buscar cliente…"
-                emptyText="Nenhum cliente."
-              />
-            )}
-
-            {preview.data?.ok && preview.data.value && (
-              <Badge variant="secondary" className="font-mono text-[11px]">
-                valor injetado: {preview.data.value}
-              </Badge>
-            )}
-          </div>
-        )}
-
-        <div className="flex-1 overflow-auto rounded-lg border border-slate-200 bg-slate-50">
-          <DashboardIframe
-            embed={preview.data}
-            isLoading={preview.isLoading}
-            title={target?.dashboardName ?? 'Dashboard'}
-            width="100%"
-            height={900}
+        <div className="space-y-1.5">
+          <span className="text-xs font-medium text-slate-500 inline-flex items-center gap-1">
+            Pré-visualizar como
+            <DicaIcon text="O filtro é resolvido no servidor pelo usuário escolhido — exatamente como ele veria. Só aparecem usuários com acesso a este dashboard." />
+          </span>
+          <SingleSelectCombobox
+            options={options}
+            value={userId}
+            onChange={setUserId}
+            placeholder={noUsers ? 'Nenhum usuário com acesso' : 'Selecionar usuário…'}
+            searchPlaceholder="Buscar usuário…"
+            emptyText="Nenhum usuário com acesso."
           />
+        </div>
+
+        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          {noUsers ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-slate-500">Conceda acesso a algum usuário pra pré-visualizar.</p>
+            </div>
+          ) : !userId ? (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm text-slate-500">Selecione um usuário acima para visualizar.</p>
+            </div>
+          ) : (
+            <DashboardIframe
+              embed={preview.data}
+              isLoading={preview.isLoading}
+              title={target?.dashboardName ?? 'Dashboard'}
+              fill
+            />
+          )}
         </div>
       </DialogContent>
     </Dialog>

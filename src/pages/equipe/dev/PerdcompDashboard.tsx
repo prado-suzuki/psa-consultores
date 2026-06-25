@@ -33,7 +33,6 @@ const PerdcompDashboard = () => {
           <DashboardEmbedView
             targetPage="dev_perdcomp"
             emptyMessage="Nenhum dashboard PERDCOMP liberado para o seu usuário."
-            height={925}
           />
         </CardContent>
       </Card>

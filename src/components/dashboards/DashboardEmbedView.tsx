@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { BookOpen } from 'lucide-react';
 import { useAccessibleDashboards } from '@/hooks/useAccessibleDashboards';
 import { useDashboardEmbedUrl } from '@/hooks/useDashboardEmbedUrl';
 import { DashboardIframe } from '@/components/dashboards/DashboardIframe';
@@ -19,15 +21,15 @@ interface DashboardEmbedViewProps {
   targetPage: string;
   /** Mensagem quando não há nenhum dashboard liberado para o usuário nesta página. */
   emptyMessage?: string;
-  /** Altura do iframe em px (default 1080). */
-  height?: number;
+  /** Mostra o overlay animado de "Carregando relatório…" sobre o iframe. */
+  loadingOverlay?: boolean;
   className?: string;
 }
 
 export function DashboardEmbedView({
   targetPage,
   emptyMessage = 'Nenhum dashboard disponível para o seu usuário.',
-  height = 1080,
+  loadingOverlay = false,
   className,
 }: DashboardEmbedViewProps) {
   const { data: dashboards = [], isLoading, error } = useAccessibleDashboards(targetPage);
@@ -78,12 +80,12 @@ export function DashboardEmbedView({
 
   return (
     <div className={className}>
-      {dashboards.length > 1 && (
-        <div className="mb-4">
-          <label className="text-xs font-medium mb-1 block text-slate-500">Selecionar Dashboard</label>
+      <div className="mb-3 flex flex-wrap items-end gap-3">
+        <div className="min-w-0">
+          <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-slate-500">Relatório</label>
           <Select value={selectedId} onValueChange={setSelectedId}>
-            <SelectTrigger className="w-[340px] h-10 rounded-full border bg-white/90 px-3 text-left text-sm">
-              <SelectValue placeholder="Selecione um dashboard" />
+            <SelectTrigger className="w-[320px] h-10 rounded-lg border-slate-200 bg-white px-3 text-left text-sm font-medium text-slate-800 shadow-sm">
+              <SelectValue placeholder="Selecione um relatório" />
             </SelectTrigger>
             <SelectContent>
               {dashboards.map((d) => (
@@ -94,14 +96,26 @@ export function DashboardEmbedView({
             </SelectContent>
           </Select>
         </div>
-      )}
+        {selected?.sop_url && (
+          <Button
+            variant="outline"
+            className="h-10 rounded-lg border-slate-200 bg-white text-slate-700 shadow-sm"
+            onClick={() => window.open(selected.sop_url!, '_blank', 'noopener,noreferrer')}
+          >
+            <BookOpen className="h-4 w-4 mr-1.5" />
+            Manual
+          </Button>
+        )}
+      </div>
 
-      <DashboardIframe
-        embed={embed}
-        isLoading={isLoadingUrl}
-        title={selected?.name ?? 'Dashboard'}
-        height={height}
-      />
+      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <DashboardIframe
+          embed={embed}
+          isLoading={isLoadingUrl}
+          title={selected?.name ?? 'Dashboard'}
+          showLoading={loadingOverlay}
+        />
+      </div>
     </div>
   );
 }

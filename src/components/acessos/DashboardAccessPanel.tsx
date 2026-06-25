@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Eye } from 'lucide-react';
@@ -11,7 +10,8 @@ import {
   useUserDashboardAccess, useDashboardAccessMutations, type DashboardAccessRow,
 } from '@/hooks/useUserDashboardAccess';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
-import { MultiSelectCombobox } from '@/components/dashboards/MultiSelectCombobox';
+import { ClusterAccessSelect } from '@/components/dashboards/ClusterAccessSelect';
+import { IconTooltip } from '@/components/equipe/mapa/Tooltip';
 import { DashboardPreviewDialog, type PreviewTarget } from '@/components/dashboards/DashboardPreviewDialog';
 import { DASHBOARD_PAGES, DASHBOARD_PAGE_LABEL } from '@/config/dashboardPages';
 
@@ -103,18 +103,20 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
                     />
                     <span className="text-sm text-slate-900 flex-1 truncate">{d.name}</span>
                     <Badge variant="secondary" className="text-[10px]">{FILTER_BADGE[d.filter_type]}</Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-slate-400 hover:text-teal-600"
-                      onClick={() => setPreviewTarget({
-                        dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type,
-                        initialMode: 'user', initialUserId: userId,
-                      })}
-                      aria-label={`Pré-visualizar ${d.name} como este usuário`}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <IconTooltip label="Pré-visualizar como este usuário">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-slate-400 hover:text-teal-600"
+                        onClick={() => setPreviewTarget({
+                          dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type,
+                          initialUserId: userId,
+                        })}
+                        aria-label={`Pré-visualizar ${d.name} como este usuário`}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </IconTooltip>
                   </div>
 
                   {showOverride && row && (
@@ -122,33 +124,15 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
                       <p className="text-[11px] text-amber-700">
                         Usuário sem cluster derivável (sócio). Defina o que ele enxerga:
                       </p>
-                      <label className="flex items-center gap-2 text-xs text-slate-700">
-                        <Switch
-                          checked={row.override_all_clusters}
-                          onCheckedChange={(checked) =>
-                            setOverride.mutate({
-                              userId, dashboardId: d.id,
-                              overrideClusterIds: checked ? [] : row.override_cluster_ids,
-                              overrideAllClusters: checked,
-                            })
-                          }
-                        />
-                        Todos os clusters ativos
-                      </label>
-                      {!row.override_all_clusters && (
-                        <MultiSelectCombobox
-                          options={allClusters.map((c) => ({ value: c.id, label: c.name }))}
-                          selected={row.override_cluster_ids}
-                          onChange={(next) =>
-                            setOverride.mutate({
-                              userId, dashboardId: d.id, overrideClusterIds: next, overrideAllClusters: false,
-                            })
-                          }
-                          placeholder="Selecionar clusters específicos…"
-                          searchPlaceholder="Buscar cluster…"
-                          emptyText="Nenhum cluster encontrado."
-                        />
-                      )}
+                      <ClusterAccessSelect
+                        clusters={allClusters}
+                        value={{ all: row.override_all_clusters, ids: row.override_cluster_ids }}
+                        onChange={(v) =>
+                          setOverride.mutate({
+                            userId, dashboardId: d.id, overrideClusterIds: v.ids, overrideAllClusters: v.all,
+                          })
+                        }
+                      />
                     </div>
                   )}
                 </div>

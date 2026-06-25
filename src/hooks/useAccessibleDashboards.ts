@@ -15,6 +15,7 @@ export interface AccessibleDashboard {
   name: string;
   filter_type: DashboardFilterType;
   target_page: string | null;
+  sop_url: string | null;
 }
 
 export function useAccessibleDashboards(targetPage: string) {

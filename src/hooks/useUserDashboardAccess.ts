@@ -21,17 +21,27 @@ export interface DashboardAccessRow {
  * Todas as linhas de dashboard_access (lido por lider+). Usado na aba Dashboards
  * pra montar a coluna "Acesso" cruzando com a lista de usuários no client.
  */
+export interface AllAccessRow {
+  dashboard_id: string;
+  user_id: string;
+  override_all_clusters: boolean;
+  override_cluster_ids: string[];
+}
+
 export function useAllDashboardAccess() {
   return useQuery({
     queryKey: ['all-dashboard-access'],
-    queryFn: async (): Promise<{ dashboard_id: string; user_id: string }[]> => {
+    queryFn: async (): Promise<AllAccessRow[]> => {
       const { data, error } = await (supabase.from('dashboard_access' as any) as any)
-        .select('dashboard_id, user_id');
+        .select('dashboard_id, user_id, override_all_clusters, override_cluster_ids');
       if (error) throw error;
-      return (data || []) as { dashboard_id: string; user_id: string }[];
+      return (data || []) as AllAccessRow[];
     },
   });
 }
+
+/** Override por usuário a aplicar junto com o grant (modal do dashboard). */
+export interface UserOverride { all: boolean; ids: string[] }
 
 export function useUserDashboardAccess(userId?: string | null) {
   const enabled = userId !== null && userId !== undefined;
@@ -113,7 +123,9 @@ export function useSetDashboardUsers() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ dashboardId, userIds }: { dashboardId: string; userIds: string[] }) => {
+    mutationFn: async ({
+      dashboardId, userIds, overrides,
+    }: { dashboardId: string; userIds: string[]; overrides?: Record<string, UserOverride> }) => {
       const { data: current, error: e1 } = await (supabase.from('dashboard_access' as any) as any)
         .select('user_id').eq('dashboard_id', dashboardId);
       if (e1) throw e1;
@@ -132,6 +144,19 @@ export function useSetDashboardUsers() {
       if (toRevoke.length) {
         const { error } = await (supabase.from('dashboard_access' as any) as any)
           .delete().eq('dashboard_id', dashboardId).in('user_id', toRevoke);
+        if (error) throw error;
+      }
+
+      // overrides de sócio (só p/ quem segue com acesso)
+      for (const [uid, o] of Object.entries(overrides ?? {})) {
+        if (!target.has(uid)) continue;
+        const { error } = await (supabase.from('dashboard_access' as any) as any)
+          .update({
+            override_all_clusters: o.all,
+            override_cluster_ids: o.all ? [] : o.ids,
+            updated_by: user?.id,
+          })
+          .eq('dashboard_id', dashboardId).eq('user_id', uid);
         if (error) throw error;
       }
     },

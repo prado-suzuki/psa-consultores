@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Check, ChevronsUpDown, X, Eraser } from 'lucide-react';
+import { Check, ChevronsUpDown, X, Eraser, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ComboOption {
@@ -23,6 +23,8 @@ interface MultiSelectComboboxProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyText?: string;
+  /** Texto do atalho "+ adicionar" que indica que dá pra incluir mais itens. */
+  addLabel?: string;
   className?: string;
 }
 
@@ -30,9 +32,10 @@ export function MultiSelectCombobox({
   options,
   selected,
   onChange,
-  placeholder = 'Selecionar…',
+  placeholder = 'Clique para adicionar…',
   searchPlaceholder = 'Buscar…',
   emptyText = 'Nenhum item encontrado.',
+  addLabel = 'adicionar',
   className,
 }: MultiSelectComboboxProps) {
   const [open, setOpen] = useState(false);
@@ -54,9 +57,11 @@ export function MultiSelectCombobox({
             className="min-w-[260px] justify-between h-auto min-h-[34px] py-1.5 font-normal hover:bg-background"
           >
             {selected.length === 0 ? (
-              <span className="text-muted-foreground text-xs">{placeholder}</span>
+              <span className="text-muted-foreground text-xs inline-flex items-center gap-1">
+                <Plus className="h-3.5 w-3.5" />{placeholder}
+              </span>
             ) : (
-              <div className="flex flex-wrap gap-1 mr-2">
+              <div className="flex flex-wrap items-center gap-1 mr-2">
                 {selectedLabels.map((item) => (
                   <Badge key={item.value} variant="secondary" className="text-xs font-normal max-w-[180px] truncate gap-1">
                     <span className="truncate">{item.label}</span>
@@ -73,6 +78,9 @@ export function MultiSelectCombobox({
                     </span>
                   </Badge>
                 ))}
+                <span className="inline-flex items-center gap-0.5 text-[11px] font-medium text-teal-600">
+                  <Plus className="h-3 w-3" />{addLabel}
+                </span>
               </div>
             )}
             <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />

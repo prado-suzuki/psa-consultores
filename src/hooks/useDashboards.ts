@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 // Tabelas `dashboards` / `dashboard_access` criadas pela migration
@@ -15,6 +16,7 @@ export interface Dashboard {
   param_names: string[];
   filter_type: DashboardFilterType;
   target_page: string | null;
+  sop_url: string | null;
   is_active: boolean;
 }
 
@@ -24,6 +26,7 @@ export interface DashboardForm {
   param_names: string[];
   filter_type: DashboardFilterType;
   target_page: string;
+  sop_url: string;
 }
 
 export const useDashboardsList = () =>
@@ -32,7 +35,7 @@ export const useDashboardsList = () =>
     queryFn: async () => {
       const { data, error } = await (supabase
         .from('dashboards' as any)
-        .select('id, name, embed_url, param_names, filter_type, target_page, is_active') as any)
+        .select('id, name, embed_url, param_names, filter_type, target_page, sop_url, is_active') as any)
         .order('name');
       if (error) throw error;
       return (data || []) as Dashboard[];
@@ -41,6 +44,7 @@ export const useDashboardsList = () =>
 
 export const useDashboardSave = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return {
     // devolve o id do dashboard (novo ou editado) p/ encadear o grant de usuários.
@@ -53,15 +57,18 @@ export const useDashboardSave = () => {
         param_names: form.param_names,
         filter_type: form.filter_type,
         target_page: form.target_page.trim() || null,
+        sop_url: form.sop_url.trim() || null,
       };
       try {
         let id = editId;
         if (editId) {
-          const { error } = await (supabase.from('dashboards' as any) as any).update(payload).eq('id', editId);
+          const { error } = await (supabase.from('dashboards' as any) as any)
+            .update({ ...payload, updated_by: user?.id }).eq('id', editId);
           if (error) throw error;
           toast.success('Dashboard atualizado');
         } else {
-          const { data, error } = await (supabase.from('dashboards' as any) as any).insert(payload).select('id').single();
+          const { data, error } = await (supabase.from('dashboards' as any) as any)
+            .insert({ ...payload, created_by: user?.id, updated_by: user?.id }).select('id').single();
           if (error) throw error;
           id = data.id as string;
           toast.success('Dashboard criado');
@@ -78,11 +85,12 @@ export const useDashboardSave = () => {
 
 export const useDashboardToggle = () => {
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (item: Dashboard) => {
       const { error } = await (supabase.from('dashboards' as any) as any)
-        .update({ is_active: !item.is_active }).eq('id', item.id);
+        .update({ is_active: !item.is_active, updated_by: user?.id }).eq('id', item.id);
       if (error) throw error;
       return item;
     },
