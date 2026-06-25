@@ -793,22 +793,12 @@ export default function EquipeChamados() {
                         </TableCell>
                         {canAssignTickets && (
                           <TableCell>
-                            <Select
-                              value={ticket.assigned_to || 'none'}
-                              onValueChange={(v) => handleAssignAgent(ticket.id, v === 'none' ? null : v)}
-                            >
-                              <SelectTrigger className="w-[150px]">
-                                <SelectValue placeholder="Atribuir" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Não atribuído</SelectItem>
-                                {agents.map((agent) => (
-                                  <SelectItem key={agent.id} value={agent.id}>
-                                    {agent.first_name} {agent.last_name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <AssignAgentCell
+                              ticketId={ticket.id}
+                              clusterId={ticket.cluster_id}
+                              value={ticket.assigned_to || null}
+                              onAssign={handleAssignAgent}
+                            />
                           </TableCell>
                         )}
                         <TableCell>
