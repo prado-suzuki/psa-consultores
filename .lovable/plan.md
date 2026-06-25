@@ -1,41 +1,41 @@
-## Bug
+## Objetivo
 
-No modal de Sprint (criar/editar entregável) em `/equipe/sprints`, ao escolher um projeto do cluster **OSG**, o select de **Processo** fica vazio. No cluster **PSA Consultores** funciona.
+Gerar **um arquivo único pra você baixar agora** com o retrato de RLS e policies do banco, e deixar a base pronta pra virar referência viva no app depois.
 
-## Causa
+Tudo somente-leitura. Zero migration, zero edit em código, zero mexer em policy.
 
-`EquipeSprintDetalhes.tsx` filtra processos olhando **apenas** a tabela de junção `project_processes` (linhas 2343-2345 e 2594-2596):
+## Fase 1 — Arquivo pra baixar (agora)
 
-```ts
-processes.filter(proc =>
-  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
-)
-```
+**Entregável único:** `/mnt/documents/arquitetura/rls_e_policies.xlsx`
 
-Confirmado no banco:
+Planilhas dentro do arquivo:
 
-| Cluster | projects | processes | linhas em `project_processes` |
-|---|---|---|---|
-| PSA Consultores | 10 | 17 | **4.420** |
-| OSG | 6 | 34 | **0** |
+1. **`Resumo`** — visão executiva em PT-BR:
+   - Total de tabelas no `public`.
+   - Quantas com RLS habilitado vs desabilitado.
+   - Top riscos: tabelas com policy `USING (true)` sem checagem de role, tabelas sem nenhuma policy mas com RLS off, tabelas críticas (profiles, user_roles, dashboards, tickets, cliente, contribuinte) e o status delas.
+   - Para cada risco, uma frase explicando o que isso significa na prática ("qualquer usuário autenticado consegue ler/deletar tudo nessa tabela").
 
-Os 34 processos do OSG têm vínculo direto via `processes.project_id` (todos preenchidos), e nunca foram populados em `project_processes`. Logo, o filtro do modal retorna vazio para qualquer projeto OSG.
+2. **`Status_por_tabela`** — uma linha por tabela: nome, RLS on/off, nº de policies SELECT/INSERT/UPDATE/DELETE, flag de risco (OK / Atenção / Crítico).
 
-## Correção proposta
+3. **`Policies_detalhadas`** — uma linha por policy: tabela, nome da policy, comando, roles, expressão `USING`, expressão `WITH CHECK`, classificação automática (ex: "admin-only", "self-only", "team_member+", "aberto autenticado", "público").
 
-Aceitar os dois modelos de vínculo no filtro — junção `project_processes` **OU** FK direta `processes.project_id`. Mudança somente no frontend, nos dois selects de Processo do `EquipeSprintDetalhes.tsx`:
+Como vou montar:
+- Queries somente-leitura em `pg_policies` e `pg_class` via `supabase--read_query`.
+- Script Python lê os resultados e escreve o `.xlsx` (biblioteca `xlsxwriter` já disponível).
+- No fim, emito o `<presentation-artifact>` pra você baixar direto do chat.
 
-```ts
-processes.filter(proc =>
-  proc.project_id === form.project_id ||
-  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
-)
-```
+## Fase 2 — Referência viva no app (depois que você revisar a Fase 1)
 
-Requer também incluir `project_id` no SELECT de `processes` (linha ~310) e no tipo `Process` local.
+Quando você confirmar que o formato do diagnóstico te serve, eu proponho um plano separado pra criar uma rota interna (ex: `/admin/arquitetura/rls`) restrita a admin que mostra essas mesmas 3 visões consultando o banco ao vivo, com botão de exportar pro mesmo xlsx. Isso vira código de verdade (componentes + hook + RLS na rota) e merece um plano dedicado depois — não vou misturar com o entregável de download.
 
-Nenhuma alteração de schema, hook ou backend. Comportamento do PSA Consultores permanece idêntico (continua casando pela junção).
+## O que NÃO vou fazer nesta rodada
 
-## Validação
+- Não vou criar a página `/admin/arquitetura` agora (fica pra Fase 2, com plano próprio).
+- Não vou tocar em policies, funções, triggers ou migrations.
+- Não vou incluir ER diagram, índices, lista de funções, nem sync com BigQuery — você pediu escopo menor.
+- Não vou expor secrets nem service role key.
 
-Abrir Nova Sprint → cluster OSG → selecionar projeto → os 5–6 processos daquele projeto aparecem. Repetir com PSA Consultores: lista segue igual à atual.
+## Próximo passo
+
+Aprove e eu rodo a Fase 1: gero o `.xlsx`, te entrego o link de download no chat e um resumo de 5 linhas com os principais riscos achados.
