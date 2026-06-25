@@ -1410,6 +1410,7 @@ export type Database = {
           is_active: boolean
           name: string
           param_names: string[]
+          sop_url: string | null
           target_page: string | null
           updated_at: string
           updated_by: string | null
@@ -1423,6 +1424,7 @@ export type Database = {
           is_active?: boolean
           name: string
           param_names?: string[]
+          sop_url?: string | null
           target_page?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -1436,6 +1438,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           param_names?: string[]
+          sop_url?: string | null
           target_page?: string | null
           updated_at?: string
           updated_by?: string | null
@@ -8146,6 +8149,7 @@ export type Database = {
           filter_type: string
           id: string
           name: string
+          sop_url: string
           target_page: string
         }[]
       }
