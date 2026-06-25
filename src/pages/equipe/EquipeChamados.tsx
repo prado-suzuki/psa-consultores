@@ -157,18 +157,21 @@ export default function EquipeChamados() {
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
 
-  const handleAssignAgent = async (ticketId: string, agentId: string | null) => {
-    const agent = agents.find(a => a.id === agentId);
+  const handleAssignAgent = async (
+    ticketId: string,
+    agentId: string | null,
+    agentName: string | null,
+  ) => {
     try {
       await assignTicket.mutateAsync({
         ticketId,
         agentId,
-        agentName: agent ? `${agent.first_name} ${agent.last_name}` : null,
+        agentName,
       });
       toast({
         title: 'Agente atribuído',
-        description: agentId 
-          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
+        description: agentId && agentName
+          ? `Chamado atribuído a ${agentName}`
           : 'Atribuição removida',
       });
     } catch {
