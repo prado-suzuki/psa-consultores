@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
-import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useTicketsList, useClusterAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket } from '@/hooks/useTicketMutations';
 import { useToast } from '@/hooks/use-toast';
