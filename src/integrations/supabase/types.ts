@@ -8153,6 +8153,14 @@ export type Database = {
           target_page: string
         }[]
       }
+      get_cluster_members: {
+        Args: { _cluster_id: string }
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
       get_dashboard_embed_url: {
         Args: { _dashboard_id: string }
         Returns: Json
