@@ -124,7 +124,7 @@ export default function EquipeChamados() {
     assignedTo: user?.id,
     filterAssigned: !canAssignTickets,
   });
-  const { data: agents = [] } = useTicketAgents();
+  // Agents are now fetched per-ticket (by cluster) inside AssignAgentCell below.
   const { data: areasData = [] } = useAllActiveAreas();
   const { data: clustersData = [] } = useAllActiveClusters();
   const assignTicket = useAssignTicket();
