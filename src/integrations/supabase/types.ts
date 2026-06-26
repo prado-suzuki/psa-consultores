@@ -6401,6 +6401,85 @@ export type Database = {
         }
         Relationships: []
       }
+      roi_snapshots: {
+        Row: {
+          annual_cost: number | null
+          annual_hours: number | null
+          annual_savings: number | null
+          checkpoint_id: string
+          created_at: string
+          created_by: string | null
+          hours_freed: number | null
+          id: string
+          investment: number | null
+          label: string | null
+          payback_months: number | null
+          process_id: string
+          roi_percent: number | null
+          scope_id: string | null
+          scope_kind: string
+          snapshot_at: string
+        }
+        Insert: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
+          checkpoint_id: string
+          created_at?: string
+          created_by?: string | null
+          hours_freed?: number | null
+          id?: string
+          investment?: number | null
+          label?: string | null
+          payback_months?: number | null
+          process_id: string
+          roi_percent?: number | null
+          scope_id?: string | null
+          scope_kind: string
+          snapshot_at?: string
+        }
+        Update: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
+          checkpoint_id?: string
+          created_at?: string
+          created_by?: string | null
+          hours_freed?: number | null
+          id?: string
+          investment?: number | null
+          label?: string | null
+          payback_months?: number | null
+          process_id?: string
+          roi_percent?: number | null
+          scope_id?: string | null
+          scope_kind?: string
+          snapshot_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_snapshots_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routines: {
         Row: {
           assigned_to: string | null
