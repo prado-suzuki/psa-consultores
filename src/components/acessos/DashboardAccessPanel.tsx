@@ -103,16 +103,15 @@ export function DashboardAccessPanel({ userId }: { userId: string }) {
                     />
                     <span className="text-sm text-slate-900 flex-1 truncate">{d.name}</span>
                     <Badge variant="secondary" className="text-[10px]">{FILTER_BADGE[d.filter_type]}</Badge>
-                    <IconTooltip label="Pré-visualizar como este usuário">
+                    <IconTooltip label="Pré-visualizar">
                       <Button
                         variant="ghost"
                         size="icon"
                         className="h-7 w-7 text-slate-400 hover:text-teal-600"
                         onClick={() => setPreviewTarget({
                           dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type,
-                          initialUserId: userId,
                         })}
-                        aria-label={`Pré-visualizar ${d.name} como este usuário`}
+                        aria-label={`Pré-visualizar ${d.name}`}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>

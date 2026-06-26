@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
-import { useAllDashboardAccess } from '@/hooks/useUserDashboardAccess';
-import { useUsersClusterNames } from '@/hooks/useUsersClusterNames';
+import { useClusters } from '@/hooks/useClusters';
+import { useClientesList } from '@/hooks/useClientesList';
 import { usePreviewDashboardEmbedUrl } from '@/hooks/usePreviewDashboardEmbedUrl';
 import type { DashboardFilterType } from '@/hooks/useDashboards';
 import { DicaIcon } from '@/components/equipe/mapa/Tooltip';
@@ -13,8 +12,6 @@ export interface PreviewTarget {
   dashboardId: string;
   dashboardName: string;
   filterType: DashboardFilterType;
-  /** Pré-seleção do usuário (ex.: vindo da aba Usuários). */
-  initialUserId?: string | null;
 }
 
 interface DashboardPreviewDialogProps {
@@ -23,55 +20,44 @@ interface DashboardPreviewDialogProps {
 }
 
 /**
- * Pré-visualiza o dashboard "como" um usuário COM ACESSO — o filtro RLS é
- * resolvido no servidor pelo usuário escolhido. Sem toggles: só o seletor de
- * usuário (mostrando o cluster de cada um). Lista apenas quem já tem acesso.
+ * Pré-visualiza o dashboard escolhendo o ALVO pelo tipo de filtro:
+ *  - cluster → seletor com TODOS os clusters (ativos);
+ *  - cliente → seletor com TODOS os clientes;
+ *  - nenhum  → sem seletor (todos veem o mesmo).
+ * O filtro é resolvido no servidor (RPC preview_dashboard_embed_url, lider+).
  */
 export function DashboardPreviewDialog({ target, onOpenChange }: DashboardPreviewDialogProps) {
   const open = !!target;
   const filterType = target?.filterType ?? 'nenhum';
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: users = [] } = useUsersWithRoles();
-  const { data: allAccess = [] } = useAllDashboardAccess();
-
-  // usuários que JÁ têm acesso a este dashboard
-  const accessUserIds = useMemo(
-    () => allAccess.filter((a) => a.dashboard_id === target?.dashboardId).map((a) => a.user_id),
-    [allAccess, target?.dashboardId],
-  );
-  const { data: clusterNames } = useUsersClusterNames(accessUserIds);
+  const { data: clusters = [] } = useClusters();
+  const { data: clientes = [] } = useClientesList();
 
   const options = useMemo(() => {
-    const byId = new Map(users.map((u) => [u.id, u]));
-    return accessUserIds
-      .map((id) => byId.get(id))
-      .filter(Boolean)
-      .map((u) => {
-        const name = `${u!.first_name ?? ''} ${u!.last_name ?? ''}`.trim() || u!.email;
-        const cluster = clusterNames?.get(u!.id);
-        return { value: u!.id, label: cluster ? `${name} · ${cluster}` : name };
-      });
-  }, [users, accessUserIds, clusterNames]);
+    if (filterType === 'cluster') return clusters.filter((c) => c.ativo).map((c) => ({ value: c.id, label: c.nome }));
+    if (filterType === 'cliente') return clientes.map((c) => ({ value: c.id, label: c.nome }));
+    return [];
+  }, [filterType, clusters, clientes]);
 
-  // pré-seleciona o usuário (o da aba Usuários, ou o primeiro com acesso)
+  // reseta ao trocar de dashboard
+  useEffect(() => { setSelectedId(null); }, [target?.dashboardId]);
+  // auto-seleciona o primeiro item da lista (nunca abre vazio)
   useEffect(() => {
-    if (!target) return;
-    setUserId(target.initialUserId ?? null);
-  }, [target?.dashboardId, target?.initialUserId]);
-  useEffect(() => {
-    if (!userId && accessUserIds.length) {
-      setUserId(target?.initialUserId && accessUserIds.includes(target.initialUserId) ? target.initialUserId : accessUserIds[0]);
-    }
-  }, [accessUserIds, userId, target?.initialUserId]);
+    if (!selectedId && options.length) setSelectedId(options[0].value);
+  }, [options, selectedId]);
 
   const preview = usePreviewDashboardEmbedUrl({
     dashboardId: target?.dashboardId ?? null,
-    filterType, mode: 'user', userId,
+    filterType,
+    mode: filterType === 'cluster' ? 'cluster' : filterType === 'cliente' ? 'cliente' : 'nenhum',
+    clusterIds: filterType === 'cluster' && selectedId ? [selectedId] : [],
+    clienteId: filterType === 'cliente' ? selectedId : null,
   });
 
-  const noUsers = accessUserIds.length === 0;
+  const entidade = filterType === 'cluster' ? 'cluster' : 'cliente';
+  const needsTarget = filterType !== 'nenhum' && !selectedId;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -83,29 +69,29 @@ export function DashboardPreviewDialog({ target, onOpenChange }: DashboardPrevie
           <DialogTitle className="text-base">Preview — {target?.dashboardName}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-1.5">
-          <span className="text-xs font-medium text-slate-500 inline-flex items-center gap-1">
-            Pré-visualizar como
-            <DicaIcon text="O filtro é resolvido no servidor pelo usuário escolhido — exatamente como ele veria. Só aparecem usuários com acesso a este dashboard." />
-          </span>
-          <SingleSelectCombobox
-            options={options}
-            value={userId}
-            onChange={setUserId}
-            placeholder={noUsers ? 'Nenhum usuário com acesso' : 'Selecionar usuário…'}
-            searchPlaceholder="Buscar usuário…"
-            emptyText="Nenhum usuário com acesso."
-          />
-        </div>
+        {filterType !== 'nenhum' ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs font-medium text-slate-500 inline-flex items-center gap-1">
+              Pré-visualizar por {entidade}
+              <DicaIcon text={`Escolha um ${entidade} — o filtro é injetado no servidor, exatamente como esse ${entidade} veria.`} />
+            </span>
+            <SingleSelectCombobox
+              options={options}
+              value={selectedId}
+              onChange={setSelectedId}
+              placeholder={`Selecionar ${entidade}…`}
+              searchPlaceholder={`Buscar ${entidade}…`}
+              emptyText={`Nenhum ${entidade}.`}
+            />
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">Sem filtro — todos com acesso veem o mesmo conteúdo.</p>
+        )}
 
         <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
-          {noUsers ? (
+          {needsTarget ? (
             <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-slate-500">Conceda acesso a algum usuário pra pré-visualizar.</p>
-            </div>
-          ) : !userId ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-slate-500">Selecione um usuário acima para visualizar.</p>
+              <p className="text-sm text-slate-500">Selecione um {entidade} acima para visualizar.</p>
             </div>
           ) : (
             <DashboardIframe

@@ -44,6 +44,10 @@ const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   nenhum: 'border-slate-200 bg-slate-100 text-slate-500',
 };
+// "Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
+const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
+const tipoBadgeClass = (ft: DashboardFilterType) =>
+  ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do viewer (equipe/gestor) ou do cliente.',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
@@ -145,6 +149,13 @@ export default function DashboardsTab() {
   const setOverride = (uid: string, o: UserOverride) =>
     setOverridesByUser((prev) => ({ ...prev, [uid]: o }));
 
+  // Tipo (UI) derivado do filtro. Interno = sem filtro (nenhum); Externo = cluster/cliente.
+  const tipo: 'interno' | 'externo' = filterType === 'nenhum' ? 'interno' : 'externo';
+  const handleTipo = (t: 'interno' | 'externo') => {
+    if (t === 'interno') { setFilterType('nenhum'); setParamNames(['']); }
+    else if (filterType === 'nenhum') { setFilterType('cluster'); }
+  };
+
   const renderAccessCell = (d: Dashboard) => {
     const ids = (accessRowsByDashboard.get(d.id) ?? []).map((r) => r.user_id);
     if (ids.length === 0) {
@@ -187,6 +198,7 @@ export default function DashboardsTab() {
           <TableHeader>
             <TableRow className="bg-slate-50/80 hover:bg-slate-50/80 border-slate-200/70">
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Nome</TableHead>
+              <TableHead className="w-24 text-[11px] font-semibold uppercase tracking-wide text-slate-500"><span className="inline-flex items-center gap-1">Tipo <DicaIcon text="Externo: filtrado por cluster/cliente. Interno: sem filtro (visão da equipe)." /></span></TableHead>
               <TableHead className="w-32 text-[11px] font-semibold uppercase tracking-wide text-slate-500"><span className="inline-flex items-center gap-1">Filtro <DicaIcon text="Como o RLS é resolvido: por cluster, por cliente, ou sem filtro (interno)." /></span></TableHead>
               <TableHead className="text-[11px] font-semibold uppercase tracking-wide text-slate-500"><span className="inline-flex items-center gap-1">Parâmetros (dsN) <DicaIcon text="Chaves dsN.param da URL do Looker — uma por fonte do relatório." /></span></TableHead>
               <TableHead className="w-40 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Página</TableHead>
@@ -197,9 +209,9 @@ export default function DashboardsTab() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-12"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-12"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
             ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center py-12">
+              <TableRow><TableCell colSpan={8} className="text-center py-12">
                 <div className="flex flex-col items-center gap-2 text-slate-400">
                   <LayoutDashboard className="h-8 w-8" />
                   <p className="text-sm">Nenhum dashboard cadastrado ainda.</p>
@@ -209,6 +221,7 @@ export default function DashboardsTab() {
             ) : items.map((d) => (
               <TableRow key={d.id} className="cursor-pointer border-slate-100 transition-colors hover:bg-teal-50/40" onClick={() => setDetailTarget(d)}>
                 <TableCell className="py-3 font-medium text-slate-800">{d.name}</TableCell>
+                <TableCell className="py-3"><Badge variant="outline" className={tipoBadgeClass(d.filter_type)}>{tipoLabel(d.filter_type)}</Badge></TableCell>
                 <TableCell className="py-3"><Badge variant="outline" className={FILTER_BADGE_CLASS[d.filter_type]}>{FILTER_LABEL[d.filter_type]}</Badge></TableCell>
                 <TableCell className="py-3">
                   <div className="flex flex-wrap gap-1">
@@ -256,40 +269,59 @@ export default function DashboardsTab() {
               <Input value={embedUrl} onChange={(e) => setEmbedUrl(e.target.value)} placeholder="https://datastudio.google.com/embed/reporting/.../page/..." className="font-mono text-xs" />
             </div>
             <div>
-              <Label className="inline-flex items-center gap-1">Tipo de filtro <DicaIcon text="cluster: por equipe/gestor. cliente: por id_cliente. nenhum: sem RLS (interno)." /></Label>
-              <Select value={filterType} onValueChange={(v) => setFilterType(v as DashboardFilterType)}>
+              <Label className="inline-flex items-center gap-1">Tipo <DicaIcon text="Externo: filtrado por cluster/cliente (board / área do cliente). Interno: visão da equipe, sem filtro (sem RLS)." /></Label>
+              <Select value={tipo} onValueChange={(v) => handleTipo(v as 'interno' | 'externo')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cluster">Por cluster</SelectItem>
-                  <SelectItem value="cliente">Por cliente</SelectItem>
-                  <SelectItem value="nenhum">Sem filtro</SelectItem>
+                  <SelectItem value="externo">Externo (com filtro)</SelectItem>
+                  <SelectItem value="interno">Interno (sem filtro)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500 mt-1">{FILTER_HELP[filterType]}</p>
+              <p className="text-xs text-slate-500 mt-1">
+                {tipo === 'externo'
+                  ? 'Filtra os dados por cluster ou cliente do usuário.'
+                  : 'Sem RLS — mostra tudo. Use p/ visão interna da equipe.'}
+              </p>
             </div>
-            <div>
-              <Label className="inline-flex items-center gap-1">Chaves de parâmetro (dsN) <DicaIcon text="A chave dsN.param de cada fonte do relatório (Gerenciar variáveis no Looker). Uma por fonte." /></Label>
-              <div className="space-y-2 mt-1">
-                {paramNames.map((p, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <Input
-                      value={p}
-                      onChange={(e) => setParamNames((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
-                      placeholder="ds0.cluster_id_param"
-                      className="font-mono text-xs"
-                    />
-                    <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
-                      onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}>
-                      <Trash2 className="h-4 w-4" />
-                    </IconAction>
+
+            {tipo === 'externo' && (
+              <>
+                <div>
+                  <Label className="inline-flex items-center gap-1">Filtrar por <DicaIcon text="cluster: por equipe/gestor. cliente: por id_cliente (ex.: PERDCOMP)." /></Label>
+                  <Select value={filterType} onValueChange={(v) => setFilterType(v as DashboardFilterType)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cluster">Por cluster</SelectItem>
+                      <SelectItem value="cliente">Por cliente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-slate-500 mt-1">{FILTER_HELP[filterType]}</p>
+                </div>
+                <div>
+                  <Label className="inline-flex items-center gap-1">Chaves de parâmetro (dsN) <DicaIcon text="A chave dsN.param de cada fonte do relatório (Gerenciar variáveis no Looker). Uma por fonte." /></Label>
+                  <div className="space-y-2 mt-1">
+                    {paramNames.map((p, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <Input
+                          value={p}
+                          onChange={(e) => setParamNames((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
+                          placeholder="ds0.cluster_id_param"
+                          className="font-mono text-xs"
+                        />
+                        <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
+                          onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}>
+                          <Trash2 className="h-4 w-4" />
+                        </IconAction>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setParamNames((prev) => [...prev, ''])}>
-                <Plus className="h-4 w-4 mr-1" />Adicionar chave
-              </Button>
-              <p className="text-xs text-slate-500 mt-1">Uma chave por fonte do relatório (multi-fonte = várias). Só p/ dashboards com filtro.</p>
-            </div>
+                  <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setParamNames((prev) => [...prev, ''])}>
+                    <Plus className="h-4 w-4 mr-1" />Adicionar chave
+                  </Button>
+                  <p className="text-xs text-slate-500 mt-1">Uma chave por fonte do relatório (multi-fonte = várias).</p>
+                </div>
+              </>
+            )}
             <div>
               <Label className="inline-flex items-center gap-1">Página (onde aparece) <DicaIcon text="Em qual tela do app este dashboard é listado." /></Label>
               <Select value={targetPage} onValueChange={setTargetPage}>
