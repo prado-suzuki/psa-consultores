@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
+import { DashboardMetrics } from '@/components/equipe/DashboardMetrics';
 import { useToast } from '@/hooks/use-toast';
 import {
   BarChart,
@@ -157,6 +158,7 @@ const EquipeDashboard = () => {
       <Tabs defaultValue="sprint" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
           <TabsTrigger value="sprint">Sprint</TabsTrigger>
+          <TabsTrigger value="metricas">Métricas</TabsTrigger>
           <TabsTrigger value="impacto">Impacto Digital</TabsTrigger>
         </TabsList>
 
@@ -352,6 +354,10 @@ const EquipeDashboard = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="metricas">
+          <DashboardMetrics />
         </TabsContent>
 
         <TabsContent value="impacto">
