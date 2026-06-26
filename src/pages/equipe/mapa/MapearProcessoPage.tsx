@@ -636,8 +636,28 @@ export default function MapearProcessoPage() {
       <Modal isOpen={editEtapasOpen} onClose={requestCloseEtapas}>
         {(() => {
           const active = editEtapasList[editEtapasActiveIndex];
-          if (!active) return null;
           const isFicou = editEtapasMode === 'ficou';
+          // Processo sem etapas (ex.: recém-criado) — em vez de abrir o modal
+          // vazio (bug do `return null`), oferece adicionar a primeira etapa
+          // (ou orienta a mapear o "Como era" antes, no cenário "Como ficou").
+          if (!active) {
+            return (
+              <div className="modal-etapas edit-modal" style={{ position: 'relative' }}>
+                <div className="modal-header">
+                  <h2>{isFicou ? 'Editar Etapas — Como Ficou' : 'Editar Etapas — Como Era'}</h2>
+                </div>
+                <EmptyStateCadastro
+                  icone={<Layers size={28} strokeWidth={1.8} />}
+                  titulo="Nenhuma etapa ainda"
+                  texto={isFicou
+                    ? 'Mapeie o "Como era" primeiro para depois projetar o "Como ficou".'
+                    : 'Adicione a primeira etapa para começar a mapear como o processo funciona hoje.'}
+                  ctaLabel={isFicou ? undefined : 'Adicionar primeira etapa'}
+                  onCta={isFicou ? undefined : addNovaEtapa}
+                />
+              </div>
+            );
+          }
           return (
             <div className="modal-etapas edit-modal" style={{ position: 'relative' }}>
               {rascunhoPendente && (

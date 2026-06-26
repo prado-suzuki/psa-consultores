@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularRoi, type RoiInput } from './roiCalculator';
-import type { Processo, Etapa, Responsavel } from '../types';
+import type { Processo, Etapa, Responsavel, Projeto, ProjetoStatus } from '../types';
 
 // Motor honesto (Fase 4): processo NÃO-calculável fica FORA de todos os agregados
 // (emMapeamento), nunca com número fabricado (sem volume=1, sem custo médio, sem 0).
@@ -65,5 +65,35 @@ describe('calcularRoi — gating de calculabilidade (motor honesto)', () => {
     expect(r.custoAtualAno).toBe(0);
     expect(r.emMapeamento.map(p => p.processoId)).toEqual(['p1']);
     expect(r.emMapeamento[0].camposFaltando).toContain('Volume anual do processo');
+  });
+});
+
+describe('calcularRoi — gate de status do projeto (doutor.ok E status != Mapeamento)', () => {
+  const projeto = (id: string, status: ProjetoStatus): Projeto => ({ id, name: id, status }) as Projeto;
+  const baseProj = (statusP1: ProjetoStatus): RoiInput => ({
+    processos: [proc('p1', { project_id: 'prj' })],
+    etapas: [etapaCompleta('e1', 'p1')],
+    responsaveis: [resp], sistemas: [], gargalos: [], melhorias: [],
+    projetos: [projeto('prj', statusP1)],
+  });
+
+  it('processo completo MAS projeto em Mapeamento → fica de fora (em mapeamento)', () => {
+    const r = calcularRoi(baseProj('Mapeamento'));
+    expect(r.porProcesso).toEqual([]);
+    expect(r.custoAtualAno).toBe(0);
+    expect(r.emMapeamento.map(p => p.processoId)).toEqual(['p1']);
+    expect(r.emMapeamento[0].camposFaltando).toContain('Projeto em mapeamento');
+  });
+
+  it('processo completo + projeto fora de Mapeamento (ROI) → entra no consolidado', () => {
+    const r = calcularRoi(baseProj('ROI'));
+    expect(r.porProcesso.map(p => p.processoId)).toEqual(['p1']);
+    expect(r.custoAtualAno).toBeCloseTo(CUSTO, 6);
+    expect(r.emMapeamento).toEqual([]);
+  });
+
+  it('sem projeto vinculado (sem projetos) → status não bloqueia; vale só o doutor', () => {
+    const r = calcularRoi(base([proc('p1')], [etapaCompleta('e1', 'p1')]));
+    expect(r.porProcesso.map(p => p.processoId)).toEqual(['p1']);
   });
 });

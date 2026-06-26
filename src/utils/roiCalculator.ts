@@ -522,17 +522,21 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
     }
   }
 
-  // INVARIANTE: processo com "Como era" incompleto é NÃO-calculável → fica FORA
-  // de TODOS os agregados (em mapeamento), nunca com número fabricado.
+  // Critério de entrada no Dashboard ROI = doutor (dados completos, sem fallback)
+  // E status do projeto ≠ 'Mapeamento'. Quem não passa fica FORA de TODOS os
+  // agregados (em mapeamento) — nunca com número fabricado.
   const porProcesso: RoiProcesso[] = [];
   const emMapeamento: ProcessoEmMapeamento[] = [];
   for (const p of input.processos) {
     const vd = processoCalculavel(p, input.etapas, input.responsaveis);
-    if (!vd.ok) {
-      emMapeamento.push({ processoId: p.id, processoNome: p.name, camposFaltando: vd.faltando });
+    const proj = p.project_id ? projetoById.get(p.project_id) : undefined;
+    const projetoEmMapeamento = proj?.status === 'Mapeamento';
+    if (!vd.ok || projetoEmMapeamento) {
+      const camposFaltando = projetoEmMapeamento ? [...vd.faltando, 'Projeto em mapeamento'] : vd.faltando;
+      emMapeamento.push({ processoId: p.id, processoNome: p.name, camposFaltando });
       continue;
     }
-    const cluster = (p.project_id && projetoById.get(p.project_id)?.clusterName) || '';
+    const cluster = proj?.clusterName || '';
     porProcesso.push(calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou));
   }
 

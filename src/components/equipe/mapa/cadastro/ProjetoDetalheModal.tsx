@@ -145,6 +145,14 @@ export default function ProjetoDetalheModal({
               <p className="processo-det-vazio">Nenhum processo vinculado a este projeto.</p>
             ) : (
               <>
+                {/* Gate de status: projeto em Mapeamento não entra no Dashboard ROI,
+                    mesmo com processos de ROI completo (critério = doutor + status). */}
+                {(projeto.status || 'Mapeamento') === 'Mapeamento' && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 12, padding: '8px 12px', borderRadius: 8, background: '#d9770614', color: '#9a3412', fontSize: '0.82rem' }}>
+                    <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>Projeto em <strong>Mapeamento</strong> — os processos só entram no Dashboard ROI quando o status mudar (mesmo os com ROI completo). Altere em <strong>Editar projeto</strong>.</span>
+                  </div>
+                )}
                 {/* Resumo do doutor — quantos processos entram no ROI consolidado */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '0.85rem', color: '#475569', flexWrap: 'wrap' }}>
                   <strong style={{ color: '#0f172a' }}>{completos}</strong> de
