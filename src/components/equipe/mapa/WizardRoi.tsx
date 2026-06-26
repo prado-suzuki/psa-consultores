@@ -17,6 +17,7 @@ import {
   type CategoriaIcone,
 } from '@/utils/diagnosticoRoi';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
+import { fmtRoi, fmtPayback } from '@/utils/roiGuards';
 import { Icon, StatusGlyph, type RoiIconName } from '@/components/icons/RoiIcons';
 import { useSnapshots, useCreateSnapshot } from '@/hooks/useSnapshots';
 
@@ -971,12 +972,12 @@ export default function WizardRoi({
               />
               <KpiExec
                 label="ROI"
-                value={formatDecimal(indicadores.roi_percent, '%')}
+                value={visualizandoHistorico ? formatDecimal(indicadores.roi_percent, '%') : fmtRoi(calc?.roiPercentual)}
                 formula="= economia ÷ investment × 100"
               />
               <KpiExec
                 label="Payback"
-                value={formatDecimal(indicadores.payback_months, ' meses')}
+                value={visualizandoHistorico ? formatDecimal(indicadores.payback_months, ' meses') : fmtPayback(calc?.paybackMeses)}
                 formula="= investment ÷ (economia / 12)"
                 variant="payback"
               />

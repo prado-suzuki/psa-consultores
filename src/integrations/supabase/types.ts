@@ -1314,6 +1314,166 @@ export type Database = {
           },
         ]
       }
+      dashboard_access: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dashboard_id: string
+          id: string
+          override_all_clusters: boolean
+          override_cluster_ids: string[]
+          updated_at: string
+          updated_by: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_id: string
+          id?: string
+          override_all_clusters?: boolean
+          override_cluster_ids?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dashboard_id?: string
+          id?: string
+          override_all_clusters?: boolean
+          override_cluster_ids?: string[]
+          updated_at?: string
+          updated_by?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboard_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboards: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          embed_url: string
+          filter_type: string
+          id: string
+          is_active: boolean
+          name: string
+          param_names: string[]
+          sop_url: string | null
+          target_page: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          embed_url: string
+          filter_type?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          param_names?: string[]
+          sop_url?: string | null
+          target_page?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          embed_url?: string
+          filter_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          param_names?: string[]
+          sop_url?: string | null
+          target_page?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dashboards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboards_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboards_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboards_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dcomp: {
         Row: {
           atualizado_em: string | null
@@ -6241,6 +6401,85 @@ export type Database = {
         }
         Relationships: []
       }
+      roi_snapshots: {
+        Row: {
+          annual_cost: number | null
+          annual_hours: number | null
+          annual_savings: number | null
+          checkpoint_id: string
+          created_at: string
+          created_by: string | null
+          hours_freed: number | null
+          id: string
+          investment: number | null
+          label: string | null
+          payback_months: number | null
+          process_id: string
+          roi_percent: number | null
+          scope_id: string | null
+          scope_kind: string
+          snapshot_at: string
+        }
+        Insert: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
+          checkpoint_id: string
+          created_at?: string
+          created_by?: string | null
+          hours_freed?: number | null
+          id?: string
+          investment?: number | null
+          label?: string | null
+          payback_months?: number | null
+          process_id: string
+          roi_percent?: number | null
+          scope_id?: string | null
+          scope_kind: string
+          snapshot_at?: string
+        }
+        Update: {
+          annual_cost?: number | null
+          annual_hours?: number | null
+          annual_savings?: number | null
+          checkpoint_id?: string
+          created_at?: string
+          created_by?: string | null
+          hours_freed?: number | null
+          id?: string
+          investment?: number | null
+          label?: string | null
+          payback_months?: number | null
+          process_id?: string
+          roi_percent?: number | null
+          scope_id?: string | null
+          scope_kind?: string
+          snapshot_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roi_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_snapshots_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roi_snapshots_process_id_fkey"
+            columns: ["process_id"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       routines: {
         Row: {
           assigned_to: string | null
@@ -7983,6 +8222,28 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      get_accessible_dashboards: {
+        Args: { _target_page?: string }
+        Returns: {
+          filter_type: string
+          id: string
+          name: string
+          sop_url: string
+          target_page: string
+        }[]
+      }
+      get_cluster_members: {
+        Args: { _cluster_id: string }
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+        }[]
+      }
+      get_dashboard_embed_url: {
+        Args: { _dashboard_id: string }
+        Returns: Json
+      }
       get_internal_users: {
         Args: never
         Returns: {
@@ -8071,7 +8332,19 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      preview_dashboard_embed_url: {
+        Args: {
+          _cliente_id?: string
+          _cluster_ids?: string[]
+          _dashboard_id: string
+          _mode: string
+          _user_id?: string
+        }
+        Returns: Json
+      }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
+      resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
+      resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
@@ -8110,6 +8383,7 @@ export type Database = {
         | "societarios"
         | "sucessorios"
         | "outros"
+        | "georreferenciamento"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_status: "pendente" | "ativo"
       scenario_kind: "scale" | "efficiency" | "investment"
@@ -8318,6 +8592,7 @@ export const Constants = {
         "societarios",
         "sucessorios",
         "outros",
+        "georreferenciamento",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_status: ["pendente", "ativo"],

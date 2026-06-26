@@ -23,6 +23,7 @@ import {
   osgTabsListCls, osgTabTriggerCls,
 } from '@/components/equipe/osg/formKit';
 import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
+import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
 import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import type { AdministracaoEnriched, PessoaRow, TipoPessoa } from '@/hooks/useQualificacaoDasPartes';
 import {
@@ -291,7 +292,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
   const mostrarHistorico = isEdit && temDocumento;
   // PF não tem abas (Dados apenas); PJ ganha a aba Administração. O histórico
   // não entra como aba — flutua à direita do modal.
-  const mostrarTabsList = !isPF;
+  const mostrarTabsList = !isPF || isEdit;
 
   useEffect(() => {
     if (!open) return;
@@ -476,6 +477,9 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                   Administração
                 </TabsTrigger>
               )}
+              <TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>
+                Documentos
+              </TabsTrigger>
             </TabsList>
           )}
         </div>
@@ -896,6 +900,12 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
         <TabsContent value="administracao" className="mt-0 focus-visible:ring-0">
           {!isPF && isEdit && pessoa && (
             <AdministracaoPanel pjPessoaId={pessoa.id} pessoasCliente={pessoasCliente} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">
+          {isEdit && pessoa?.id && (
+            <DocumentosTab clienteId={clienteId} vinculo={{ pessoaId: pessoa.id }} categoriaPadrao="pessoais" />
           )}
         </TabsContent>
 

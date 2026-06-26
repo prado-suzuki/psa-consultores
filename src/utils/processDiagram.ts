@@ -11,6 +11,7 @@ import type {
   ResponsavelEtapa,
 } from '../types';
 import { gargalosDoProcesso, melhoriaIdsDoProcesso } from './gargaloMelhorias';
+import { isEtapaEliminada } from './pdf/helpers';
 
 export interface BuildDiagramInput {
   processo: Processo;
@@ -21,6 +22,14 @@ export interface BuildDiagramInput {
   gargalos: Gargalo[];
   melhorias: Melhoria[];
   projeto?: Projeto | null;
+  /**
+   * Cenário do diagrama:
+   * - `'era'` (padrão): As-Is — etapas e junções do cenário atual; mostra Gargalos.
+   * - `'ficou'`: To-Be — usa os campos do `etapa.ficou` (com fallback ao As-Is
+   *   quando não projetado), ignora etapas eliminadas e oculta Gargalos (tidos
+   *   como resolvidos no cenário otimizado). Melhorias aparecem nos dois.
+   */
+  mode?: 'era' | 'ficou';
 }
 
 /**
@@ -52,6 +61,7 @@ function docKey(d: DocRef | string): string {
  */
 export function buildProcessDiagram(input: BuildDiagramInput): string {
   const { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto } = input;
+  const useFicou = input.mode === 'ficou';
 
   // ---------- Coleta ----------
   const docEntradaKeys = new Set<string>();
@@ -67,10 +77,19 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
   };
 
   for (const e of etapas) {
-    (e.docsEntrada || []).forEach(d => docEntradaKeys.add(docKey(d)));
-    (e.docsSaida   || []).forEach(d => docSaidaKeys.add(docKey(d)));
-    collectResp(e.executadoPor);
-    (e.sistemas || []).forEach(s => sisKeys.add(s));
+    // No To-Be, etapas eliminadas saem do mapa; campos usam o projetado
+    // (`ficou`) com fallback ao As-Is quando aquele campo não foi alterado.
+    if (useFicou && isEtapaEliminada(e)) continue;
+    const f = useFicou ? e.ficou : null;
+    const docsEntradaEt = (useFicou ? (f?.docsEntrada ?? e.docsEntrada) : e.docsEntrada) || [];
+    const docsSaidaEt   = (useFicou ? (f?.docsSaida   ?? e.docsSaida)   : e.docsSaida)   || [];
+    const execEt        = (useFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
+    const sistemasEt    = (useFicou ? (f?.sistemas    ?? e.sistemas)    : e.sistemas)    || [];
+
+    docsEntradaEt.forEach(d => docEntradaKeys.add(docKey(d)));
+    docsSaidaEt.forEach(d => docSaidaKeys.add(docKey(d)));
+    collectResp(execEt);
+    sistemasEt.forEach(s => sisKeys.add(s));
   }
 
   const docsEntrada = Array.from(docEntradaKeys)
@@ -88,7 +107,8 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
 
   // Gargalos/melhorias do processo derivados via gargalo_etapas → etapa
   // (vínculos diretos gargalo_processos/melhoria_processos foram aposentados).
-  const procGargalos = gargalosDoProcesso(gargalos, processo.id);
+  // No To-Be os gargalos são tidos como resolvidos → não entram no mapa.
+  const procGargalos = useFicou ? [] : gargalosDoProcesso(gargalos, processo.id);
   const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const procMelhorias = melhorias.filter(m => melhoriaIdsProc.has(m.id));
 
@@ -105,7 +125,7 @@ export function buildProcessDiagram(input: BuildDiagramInput): string {
 
   // ---------- Geração ----------
   const lines: string[] = [];
-  lines.push('%% Diagrama do Processo — gerado pelo MAPA');
+  lines.push(`%% Diagrama do Processo (${useFicou ? 'Cenário Otimizado · To-Be' : 'Cenário Atual · As-Is'}) — gerado pelo MAPA`);
   lines.push('flowchart LR');
   lines.push('  %% ===== nós =====');
 

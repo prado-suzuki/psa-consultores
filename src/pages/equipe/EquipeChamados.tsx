@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
-import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
+import { useTicketsList } from '@/hooks/useTickets';
+import { AssignAgentCell } from '@/components/chamados/AssignAgentCell';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket } from '@/hooks/useTicketMutations';
 import { useToast } from '@/hooks/use-toast';
@@ -124,7 +125,7 @@ export default function EquipeChamados() {
     assignedTo: user?.id,
     filterAssigned: !canAssignTickets,
   });
-  const { data: agents = [] } = useTicketAgents();
+  // Agents are now fetched per-ticket (by cluster) inside AssignAgentCell below.
   const { data: areasData = [] } = useAllActiveAreas();
   const { data: clustersData = [] } = useAllActiveClusters();
   const assignTicket = useAssignTicket();
@@ -157,18 +158,21 @@ export default function EquipeChamados() {
   });
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
 
-  const handleAssignAgent = async (ticketId: string, agentId: string | null) => {
-    const agent = agents.find(a => a.id === agentId);
+  const handleAssignAgent = async (
+    ticketId: string,
+    agentId: string | null,
+    agentName: string | null,
+  ) => {
     try {
       await assignTicket.mutateAsync({
         ticketId,
         agentId,
-        agentName: agent ? `${agent.first_name} ${agent.last_name}` : null,
+        agentName,
       });
       toast({
         title: 'Agente atribuído',
-        description: agentId 
-          ? `Chamado atribuído a ${agent?.first_name} ${agent?.last_name}` 
+        description: agentId && agentName
+          ? `Chamado atribuído a ${agentName}`
           : 'Atribuição removida',
       });
     } catch {
@@ -790,22 +794,12 @@ export default function EquipeChamados() {
                         </TableCell>
                         {canAssignTickets && (
                           <TableCell>
-                            <Select
-                              value={ticket.assigned_to || 'none'}
-                              onValueChange={(v) => handleAssignAgent(ticket.id, v === 'none' ? null : v)}
-                            >
-                              <SelectTrigger className="w-[150px]">
-                                <SelectValue placeholder="Atribuir" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">Não atribuído</SelectItem>
-                                {agents.map((agent) => (
-                                  <SelectItem key={agent.id} value={agent.id}>
-                                    {agent.first_name} {agent.last_name}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            <AssignAgentCell
+                              ticketId={ticket.id}
+                              clusterId={ticket.cluster_id}
+                              value={ticket.assigned_to || null}
+                              onAssign={handleAssignAgent}
+                            />
                           </TableCell>
                         )}
                         <TableCell>

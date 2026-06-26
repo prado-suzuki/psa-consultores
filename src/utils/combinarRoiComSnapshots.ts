@@ -8,6 +8,7 @@
 // cálculo ao vivo.
 
 import type { RoiAgregado } from '@/utils/roiCalculator';
+import { ratioRoi, ratioPayback } from '@/utils/roiCalculator';
 import type { ProcessSnapshot } from '@/types';
 
 export function combinarRoiComSnapshots(
@@ -77,8 +78,8 @@ export function combinarRoiComSnapshots(
       economiaMensal: economiaAnualSnap / 12,
       horasLiberadas: hoursFreedSnap,
       investimento: investSnap,
-      roiPercentual: Number(snap.roi_percent) || p.roiPercentual,
-      paybackMeses: Number(snap.payback_months) || p.paybackMeses,
+      roiPercentual: ratioRoi(economiaAnualSnap, investSnap),
+      paybackMeses: ratioPayback(economiaAnualSnap / 12, investSnap),
       custosCategoria: {
         pessoas: p.custosCategoria.pessoas * ratioCusto,
         sistemas: p.custosCategoria.sistemas * ratioCusto,
@@ -108,7 +109,7 @@ export function combinarRoiComSnapshots(
     investimentoBreakdown: investBreakdown,
     custosCategoria: escalado,
     custosCategoriaFicou: escaladoF,
-    roiPercentual: investimento > 0 ? (economiaAnual / investimento) * 100 : 0,
-    paybackMeses: economiaMensal > 0 ? investimento / economiaMensal : 0,
+    roiPercentual: ratioRoi(economiaAnual, investimento),
+    paybackMeses: ratioPayback(economiaMensal, investimento),
   };
 }

@@ -171,6 +171,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Guard: cliente respondendo em ticket sem responsável atribuído.
+    // Nesse caso, o cliente normalmente está complementando o chamado recém-aberto;
+    // não há a quem notificar (workflow n8n quebraria buscando "responsavel" no payload).
+    if (
+      event_type === "ticket_replied" &&
+      actor_name === "Cliente" &&
+      !ticket.assigned_to
+    ) {
+      console.log(
+        `[notify-ticket] Skipped: client reply on unassigned ticket ${ticket.id}`
+      );
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, reason: "client_reply_on_unassigned_ticket" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const ticketDepartment = departmentLabels[ticket.department] || ticket.department || "N/A";
     const recipients: Recipient[] = [];
 

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Select from '@/components/equipe/mapa/Select';
-import type { ProjetoStatus, Sistema, ProcessSnapshot } from '@/types';
-import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
-import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
-import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso } from '@/utils/gargaloMelhorias';
+import type { ProjetoStatus, Sistema, MelhoriaStatus } from '@/types';
+import {
+  calcularRoi, execucoesAnuais, statusEconomiaProcesso,
+  type RoiAgregado, type RoiProcesso,
+} from '@/utils/roiCalculator';
+import { fmtRoi, roiDisponivel } from '@/utils/roiGuards';
+import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso, gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useClusters } from '@/hooks/useClusters';
@@ -23,24 +26,31 @@ import Modal from '@/components/equipe/mapa/Modal';
 import type { SecaoImagem } from '@/lib/roiVisualExport';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
-// `combinarRoi` foi extraído para `@/utils/combinarRoiComSnapshots` para
-// também ser usado pelo SetorEvolucaoPage. Manter a função local apenas como
-// alias para reduzir o diff nesta página.
-function combinarRoi(calculo: RoiAgregado, snaps: ProcessSnapshot[]): RoiAgregado {
-  return combinarRoiComSnapshots(calculo, snaps);
-}
+// Dashboard ROI = 100% AO VIVO (Fase 4). Snapshot NÃO entra no consolidado —
+// o cálculo ao vivo (calcularRoi) é a única fonte; processos não-calculáveis
+// ficam fora (emMapeamento). Histórico/snapshot é tela separada (Fase 5).
 
-type Aba = 'sumario' | 'mapeamento' | 'diagnostico' | 'melhorias' | 'futuro' | 'roi';
+type Aba = 'sumario' | 'mapeamento' | 'diagnostico' | 'melhorias' | 'futuro' | 'evolucao';
 
 const STATUS_ORDEM: ProjetoStatus[] = ['Mapeamento', 'Diagnóstico', 'Melhorias', 'ROI'];
 const ABA_STATUS_MIN: Record<Aba, ProjetoStatus> = {
   mapeamento: 'Mapeamento',
   diagnostico: 'Diagnóstico',
   melhorias: 'Melhorias',
-  futuro: 'ROI',
-  roi: 'ROI',
-  sumario: 'ROI',
+  futuro: 'Melhorias',
+  evolucao: 'Melhorias',
+  sumario: 'Mapeamento',
 };
+
+// Filtro de maturidade (estreita o escopo por fase atingida).
+type FiltroMaturidade = '' | 'mapeado' | 'diagnosticado' | 'futuro' | 'implementado';
+const MATURIDADE_OPCOES: { value: FiltroMaturidade; label: string }[] = [
+  { value: '', label: 'Todas as fases' },
+  { value: 'mapeado', label: 'Mapeado' },
+  { value: 'diagnosticado', label: 'Diagnosticado' },
+  { value: 'futuro', label: 'Com cenário futuro' },
+  { value: 'implementado', label: 'Implementado' },
+];
 const fmtBRL = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
 const fmtNum = (v: number, dp = 1) =>
@@ -53,7 +63,7 @@ const ABAS: { id: Aba; label: string; numero: string; subtitulo: string }[] = [
   { id: 'diagnostico', label: 'Diagnóstico', numero: '3', subtitulo: 'Como era — dores e custos' },
   { id: 'melhorias', label: 'As Melhorias', numero: '4', subtitulo: 'Plano de ação e investment' },
   { id: 'futuro', label: 'Cenário Futuro', numero: '5', subtitulo: 'Como ficará — estado projetado' },
-  { id: 'roi', label: 'ROI Consolidado', numero: '6', subtitulo: 'Investimento × retorno' },
+  { id: 'evolucao', label: 'Evolução', numero: '6', subtitulo: 'Realizado vs Potencial' },
 ];
 
 // ============================================================
@@ -251,6 +261,157 @@ function MiniSparkline({ points, color = '#0d9488' }: { points: number[]; color?
 }
 
 // ============================================================
+//  Maturidade & Evolução (Realizado vs Potencial)
+// ============================================================
+
+type NivelAlerta = 'ok' | 'warn' | 'crit';
+const alertaDePct = (pct: number): NivelAlerta => (pct >= 67 ? 'ok' : pct >= 34 ? 'warn' : 'crit');
+const ALERTA_GLYPH: Record<NivelAlerta, string> = { ok: '🟢', warn: '🟡', crit: '🔴' };
+
+function AlertChip({ pct }: { pct: number }) {
+  const n = alertaDePct(pct);
+  return <span className={`dashv2-alert-chip ${n}`} aria-label={`${pct}%`}>{ALERTA_GLYPH[n]}</span>;
+}
+
+// Texto-narrativa acima/abaixo de um gráfico ("insight callout").
+function InsightCallout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="dashv2-callout">
+      <span className="dashv2-callout-icon" aria-hidden>💡</span>
+      <p>{children}</p>
+    </div>
+  );
+}
+
+// Heatmap de maturidade: linhas = processos, colunas = fases. CSS-grid (não SVG)
+// para exportar limpo. Célula ✓ (fase concluída) ou ∅ (pendente).
+const HEATMAP_COLS: { key: 'isMapeado' | 'temDiagnostico' | 'temCenarioFuturo' | 'temInvestimento' | 'implementado'; label: string }[] = [
+  { key: 'isMapeado', label: 'Mapeado' },
+  { key: 'temDiagnostico', label: 'Diagnóstico' },
+  { key: 'temCenarioFuturo', label: 'Cenário Futuro' },
+  { key: 'temInvestimento', label: 'Investimento' },
+  { key: 'implementado', label: 'Implementado' },
+];
+function MaturityHeatmap({ processos }: { processos: RoiProcesso[] }) {
+  if (processos.length === 0) {
+    return <p className="dashv2-empty-row" style={{ padding: 16 }}>Sem processos no escopo.</p>;
+  }
+  return (
+    <div className="dashv2-heatmap" role="table" aria-label="Maturidade por processo">
+      <div className="dashv2-heatmap-row dashv2-heatmap-head" role="row">
+        <div className="dashv2-heatmap-proc" role="columnheader">Processo</div>
+        {HEATMAP_COLS.map(c => <div key={c.key} className="dashv2-heatmap-cell" role="columnheader">{c.label}</div>)}
+      </div>
+      {processos.map(p => (
+        <div key={p.processoId} className="dashv2-heatmap-row" role="row">
+          <div className="dashv2-heatmap-proc" role="cell" title={p.processoNome}>{p.processoNome}</div>
+          {HEATMAP_COLS.map(c => {
+            const on = !!p.maturidade[c.key];
+            return (
+              <div key={c.key} className={`dashv2-heatmap-cell ${on ? 'on' : 'off'}`} role="cell" aria-label={`${c.label}: ${on ? 'sim' : 'não'}`}>
+                {on ? '✓' : '∅'}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Waterfall: ponte do custo atual ao custo futuro, separando a economia já
+// realizada (melhorias concluídas) do potencial restante.
+function WaterfallChart({ custoAtual, economiaRealizada, economiaProjetada, custoFuturo }: {
+  custoAtual: number; economiaRealizada: number; economiaProjetada: number; custoFuturo: number;
+}) {
+  const W = 1000, H = 240, padTop = 26, padBottom = 52, padX = 30;
+  const innerH = H - padTop - padBottom;
+  const innerW = W - padX * 2;
+  const max = Math.max(custoAtual, 1);
+  const y = (val: number) => padTop + innerH * (1 - val / max);
+  const slot = innerW / 4;
+  const barW = slot * 0.5;
+  const cols = [
+    { label: 'Custo atual', base: 0, top: custoAtual, cor: '#1e3a8a', val: custoAtual },
+    { label: '− Realizada', base: custoAtual - economiaRealizada, top: custoAtual, cor: '#0d9488', val: economiaRealizada },
+    { label: '− Potencial', base: custoFuturo, top: custoAtual - economiaRealizada, cor: '#5eead4', val: economiaProjetada },
+    { label: 'Custo futuro', base: 0, top: custoFuturo, cor: '#475569', val: custoFuturo },
+  ];
+  return (
+    <div className="dashv2-chart">
+      <div className="dashv2-chart-wrap" style={{ aspectRatio: `${W} / ${H}` }}>
+        <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet" style={{ width: '100%', height: '100%' }}>
+          {[0, 0.25, 0.5, 0.75, 1].map(p => (
+            <line key={p} x1={padX} x2={W - padX} y1={padTop + innerH * p} y2={padTop + innerH * p} stroke="#e2e8f0" strokeWidth="0.8" />
+          ))}
+          {cols.map((c, i) => {
+            const x = padX + i * slot + (slot - barW) / 2;
+            const yt = y(c.top);
+            const h = Math.max(2, y(c.base) - yt);
+            const prev = cols[i - 1];
+            return (
+              <g key={c.label}>
+                {i > 0 && (
+                  <line x1={padX + (i - 1) * slot + (slot + barW) / 2} x2={x} y1={y(prev.base)} y2={y(prev.base)} stroke="#cbd5e1" strokeWidth="0.8" strokeDasharray="3 3" />
+                )}
+                <rect x={x} y={yt} width={barW} height={h} fill={c.cor} rx="2" />
+                <text x={x + barW / 2} y={yt - 6} fontSize="11" textAnchor="middle" fill="#334155" fontWeight="700">{fmtBRL(c.val)}</text>
+                <text x={x + barW / 2} y={padTop + innerH + 18} fontSize="11" textAnchor="middle" fill="#334155" fontWeight="600">{c.label}</text>
+              </g>
+            );
+          })}
+          <line x1={padX} x2={W - padX} y1={padTop + innerH} y2={padTop + innerH} stroke="#94a3b8" strokeWidth="1" />
+        </svg>
+      </div>
+      <div className="dashv2-legend">
+        <span><i style={{ background: '#0d9488' }} /> Economia realizada</span>
+        <span><i style={{ background: '#5eead4' }} /> Potencial restante</span>
+      </div>
+    </div>
+  );
+}
+
+// Bullet: barra = realizado, marcador = meta (potencial total).
+function BulletChart({ realizado, meta }: { realizado: number; meta: number }) {
+  const max = Math.max(meta, realizado, 1);
+  const pct = Math.min(100, (realizado / max) * 100);
+  const metaPct = Math.min(100, (meta / max) * 100);
+  return (
+    <div className="dashv2-bullet">
+      <div className="dashv2-bullet-track">
+        <div className="dashv2-bullet-fill" style={{ width: `${pct}%` }} />
+        <div className="dashv2-bullet-meta" style={{ left: `${metaPct}%` }} title={`Meta ${fmtBRL(meta)}`} />
+      </div>
+      <div className="dashv2-bullet-labels">
+        <span><i style={{ background: '#0d9488' }} /> Realizado {fmtBRL(realizado)}</span>
+        <span>Meta {fmtBRL(meta)}</span>
+      </div>
+    </div>
+  );
+}
+
+// Funil de status das melhorias (Backlog → Não iniciado → Em progresso → Concluído).
+function FunnelChart({ items }: { items: { label: string; valor: number; cor: string }[] }) {
+  const max = Math.max(1, ...items.map(i => i.valor));
+  return (
+    <div className="dashv2-funnel">
+      {items.map(it => {
+        const pct = it.valor > 0 ? Math.max(8, (it.valor / max) * 100) : 0;
+        return (
+          <div key={it.label} className="dashv2-funnel-row">
+            <span className="dashv2-funnel-label">{it.label}</span>
+            <div className="dashv2-funnel-track">
+              <div className="dashv2-funnel-bar" style={{ width: `${pct}%`, background: it.cor }} />
+            </div>
+            <span className="dashv2-funnel-val">{it.valor}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
 //  Cards utilitários
 // ============================================================
 
@@ -326,6 +487,7 @@ export default function DashboardRoiPage() {
   const { data: clusters = [] } = useClusters();
   const [filtroProjeto, setFiltroProjeto] = useState<string>('');
   const [filtroProcesso, setFiltroProcesso] = useState<string>('');
+  const [filtroMaturidade, setFiltroMaturidade] = useState<FiltroMaturidade>('');
   const [horizonte, setHorizonte] = useState<12 | 24 | 36>(24);
   const [exportando, setExportando] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -365,8 +527,20 @@ export default function DashboardRoiPage() {
     if (filtroCluster) arr = arr.filter(p => p.project_id && clusterIdPorProjetoId.get(p.project_id) === filtroCluster);
     if (filtroProjeto) arr = arr.filter(p => p.project_id === filtroProjeto);
     if (filtroProcesso) arr = arr.filter(p => p.id === filtroProcesso);
+    if (filtroMaturidade) {
+      arr = arr.filter(p => {
+        const ets = etapas.filter(e => e.process_id === p.id);
+        switch (filtroMaturidade) {
+          case 'mapeado': return ets.length > 0 && execucoesAnuais(p) > 0;
+          case 'diagnosticado': return gargalosDoProcesso(gargalos, p.id).length > 0 || ets.some(e => (e.error_rate ?? 0) > 0 || (e.rework_rate ?? 0) > 0);
+          case 'futuro': return ets.some(e => e.ficou != null);
+          case 'implementado': return statusEconomiaProcesso(p, melhorias) === 'realizado';
+          default: return true;
+        }
+      });
+    }
     return arr;
-  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, clusterIdPorProjetoId]);
+  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, filtroMaturidade, clusterIdPorProjetoId, etapas, gargalos, melhorias]);
 
   const etapasFiltradas = useMemo(() => {
     const idsProc = new Set(processosFiltrados.map(p => p.id));
@@ -414,7 +588,7 @@ export default function DashboardRoiPage() {
       melhorias: melhoriasDoEscopo,
       projetos,
     });
-    const agregado = combinarRoi(calculo, latestDoEscopo);
+    const agregado = calculo; // 100% ao vivo — sem overlay de snapshot
     // Sistemas novos (internos/Digital) só existem no "Como Ficou" — são os
     // referenciados pelas melhorias do escopo. Não contam no escopo atual (AS-IS).
     const novosSisIds = new Set(melhoriasDoEscopo.flatMap(m => m.sistemas || []));
@@ -433,7 +607,7 @@ export default function DashboardRoiPage() {
       qtdDocumentos: documentosDoEscopo.length,
       qtdResponsaveis: responsaveis.length,
     };
-  }, [latestDoEscopo, filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
+  }, [filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
 
   // Métricas dependentes do horizonte de análise selecionado (12/24/36 meses).
   // Os campos *Ano em `v` são sempre anuais; multiplicamos por `horizonteFator`
@@ -446,10 +620,16 @@ export default function DashboardRoiPage() {
   const economiaHorizonte = v.economiaMensal * horizonte;
   const resultadoLiquidoHorizonte = economiaHorizonte - v.investimentoTotal;
   const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
+  // Guarda de honestidade: sem investimento informado, ROI/payback não têm
+  // sentido — mostramos "em construção" em vez de um número enganoso.
+  const roiDisp = roiDisponivel(v.investimentoTotal);
+  const roiHorizonteTxt = roiDisp ? fmtPct(roiHorizonte) : 'em construção';
+  const paybackTxt = v.paybackMeses == null ? 'em construção' : `${fmtNum(v.paybackMeses, 0)} meses`;
 
   const limparFiltros = () => {
     setFiltroProjeto('');
     setFiltroProcesso('');
+    setFiltroMaturidade('');
   };
 
   // Ao trocar o cluster global, zera projeto/processo se saírem do escopo do cluster.
@@ -544,6 +724,38 @@ export default function DashboardRoiPage() {
     { label: 'Execução de Melhorias',   valor: v.investimentoBreakdown.execucaoMelhorias,    cor: '#1e3a8a' },
     { label: 'Custo Externo',           valor: v.investimentoBreakdown.externo,              cor: '#b45309' },
   ];
+
+  // Funil de status das melhorias do escopo (aba Evolução).
+  const statusMelhoriasFunnel = useMemo(() => {
+    const cont: Record<MelhoriaStatus, number> = { 'Backlog': 0, 'Não iniciado': 0, 'Em progresso': 0, 'Concluído': 0 };
+    for (const m of melhoriasDoEscopo) {
+      const st = (m.improvement_status as MelhoriaStatus) || 'Não iniciado';
+      if (st in cont) cont[st] += 1; else cont['Não iniciado'] += 1;
+    }
+    return [
+      { label: 'Backlog', valor: cont['Backlog'], cor: '#94a3b8' },
+      { label: 'Não iniciado', valor: cont['Não iniciado'], cor: '#b45309' },
+      { label: 'Em progresso', valor: cont['Em progresso'], cor: '#1e3a8a' },
+      { label: 'Concluído', valor: cont['Concluído'], cor: '#0d9488' },
+    ];
+  }, [melhoriasDoEscopo]);
+  const pctRealizado = v.economiaAnual > 0 ? Math.round((v.economiaRealizada / v.economiaAnual) * 100) : 0;
+
+  // Navegação: maturidade por aba (integra o medidor às páginas — sem banner separado).
+  const matPctEscopo = (n: number) => (v.maturidade.total ? Math.round((n / v.maturidade.total) * 100) : 0);
+  const matPorAba: Partial<Record<Aba, number>> = {
+    mapeamento: matPctEscopo(v.maturidade.mapeados),
+    diagnostico: matPctEscopo(v.maturidade.comDiagnostico),
+    futuro: matPctEscopo(v.maturidade.comCenarioFuturo),
+    evolucao: matPctEscopo(v.maturidade.implementados),
+  };
+  // "Maiores" do escopo — alimentam os insights automáticos de cada aba.
+  const topCustoProc = [...v.porProcesso].sort((a, b) => b.custoAnual - a.custoAnual)[0];
+  const topHorasProc = [...v.porProcesso].sort((a, b) => b.horasAnual - a.horasAnual)[0];
+  const topCategoria = [...custosCategoria].sort((a, b) => b.atual - a.atual)[0];
+  const gargaloTop = [...gargalosFiltrados].sort((a, b) => processoIdsDoGargalo(b).length - processoIdsDoGargalo(a).length)[0];
+  // Valor "puro" (sem unidade) — a unidade (R$ / h) vai no TÍTULO do gráfico.
+  const fmtPlain = (x: number) => x.toLocaleString('pt-BR', { maximumFractionDigits: 0 });
 
   // Diff helper
   const delta = (atual: number, ficou: number) => atual - ficou;
@@ -703,6 +915,15 @@ export default function DashboardRoiPage() {
           />
         </div>
         <div className="dashv2-filter">
+          <label>Fase / Maturidade</label>
+          <Select
+            value={filtroMaturidade}
+            onChange={(val) => setFiltroMaturidade(val as FiltroMaturidade)}
+            options={MATURIDADE_OPCOES}
+            placeholder="Todas as fases"
+          />
+        </div>
+        <div className="dashv2-filter">
           <label><Tooltip text={dica('dashboard.filtro.horizonte')}>Horizonte</Tooltip></label>
           <div className="dashv2-segment">
             <button className={horizonte === 12 ? 'active' : ''} onClick={() => setHorizonte(12)}>12m</button>
@@ -713,29 +934,36 @@ export default function DashboardRoiPage() {
         <button className="dashv2-filter-clear" onClick={limparFiltros}>Limpar</button>
       </div>
 
-      {/* Stepper narrativo */}
-      <div className="dashv2-stepper" data-tour="roi-stepper">
-        {ABAS.map((a, i) => {
-          const ativaIdx = ABAS.findIndex((x) => x.id === aba);
-          // Gating por fase só vale para um projeto específico. No modo "Todos"
-          // os dados são agregados de todo o cluster — todas as abas disponíveis.
-          const fasePrevia = !projetoAtivo || STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
-          return (
-            <button
-              key={a.id}
-              className={`dashv2-step${aba === a.id ? ' active' : ''}${ativaIdx > i ? ' done' : ''}${fasePrevia ? ' fase-ok' : ''}`}
-              onClick={() => setAba(a.id)}
-              title={fasePrevia ? `${a.subtitulo} — dados disponíveis nesta fase` : `${a.subtitulo} — dados serão preenchidos quando o projeto chegar nesta fase`}
-            >
-              <div className="dashv2-step-num">{a.numero}</div>
-              <div className="dashv2-step-body">
-                <div className="dashv2-step-label">{a.label}</div>
-                <div className="dashv2-step-sub">{a.subtitulo}</div>
-              </div>
-              {i < ABAS.length - 1 && <div className="dashv2-step-conn" />}
-            </button>
-          );
-        })}
+      {/* Navegação — páginas do relatório (maturidade integrada às abas) */}
+      <div className="dashv2-pagenav" data-tour="roi-stepper">
+        <div className="dashv2-pagenav-head">
+          <span className="dashv2-pagenav-eyebrow">Páginas do relatório · {ABAS.findIndex((x) => x.id === aba) + 1}/{ABAS.length} — clique para navegar</span>
+          <span className="dashv2-pagenav-mat">Maturidade do escopo: <strong>{v.maturidade.completudePct}%</strong></span>
+        </div>
+        <div className="dashv2-tabs" role="tablist">
+          {ABAS.map((a) => {
+            const mat = matPorAba[a.id];
+            // Gating só vale para um projeto específico; em "Todos" tudo é navegável.
+            const fasePrevia = !projetoAtivo || STATUS_ORDEM.indexOf(ABA_STATUS_MIN[a.id]) <= statusIdx;
+            return (
+              <button
+                key={a.id}
+                role="tab"
+                aria-selected={aba === a.id}
+                className={`dashv2-tab${aba === a.id ? ' active' : ''}${fasePrevia ? '' : ' pendente'}`}
+                onClick={() => setAba(a.id)}
+                title={fasePrevia ? a.subtitulo : `${a.subtitulo} — dados completos quando o projeto chegar nesta fase`}
+              >
+                <span className="dashv2-tab-num">{a.numero}</span>
+                <span className="dashv2-tab-text">
+                  <span className="dashv2-tab-label">{a.label}</span>
+                  <span className="dashv2-tab-sub">{a.subtitulo}</span>
+                </span>
+                {mat != null && <span className="dashv2-tab-mat"><AlertChip pct={mat} /> {mat}%</span>}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Conteúdo */}
@@ -749,18 +977,34 @@ export default function DashboardRoiPage() {
           >
             <div className="dashv2-kpi-grid">
               <KPICard variant="highlight" label={`Economia ${periodoSufixo}`} valor={fmtBRL(economiaHorizonte)} hint={`≈ ${fmtBRL(v.economiaMensal)} / mês`} tooltip={dica('dashboard.kpi.annual_savings')} />
-              <KPICard variant="highlight" label="Retorno (ROI)" valor={fmtPct(roiHorizonte)} positivo={roiHorizonte >= 0} hint={`Em ${horizonte} meses`} tooltip={dica('dashboard.kpi.roi')} />
+              <KPICard variant="highlight" label="Retorno (ROI)" valor={roiHorizonteTxt} positivo={roiDisp ? roiHorizonte >= 0 : undefined} hint={roiDisp ? `Em ${horizonte} meses` : 'Investimento não informado'} tooltip={dica('dashboard.kpi.roi')} />
               <KPICard label={`Resultado líquido (${horizonte}m)`} valor={fmtBRL(resultadoLiquidoHorizonte)} positivo={resultadoLiquidoHorizonte >= 0} hint="Economia acum. − investment" />
-              <KPICard label="Payback" valor={v.paybackMeses > 0 ? `${fmtNum(v.paybackMeses, 0)} meses` : '—'} hint="Tempo de recuperação" tooltip={dica('dashboard.kpi.payback')} />
+              <KPICard label="Payback" valor={paybackTxt} hint="Tempo de recuperação" tooltip={dica('dashboard.kpi.payback')} />
               <KPICard label={`Horas Liberadas ${periodoSufixo}`} valor={`${fmtNum(v.horasLiberadas * horizonteFator)} h`} hint="Capacidade humana" tooltip={dica('dashboard.kpi.hours_freed')} />
             </div>
+
+            <InsightCallout>
+              {topCustoProc
+                ? <>Escopo <strong>{v.maturidade.completudePct}%</strong> modelado. Maior custo operacional hoje: <strong>{topCustoProc.processoNome}</strong> — {fmtBRL(topCustoProc.custoAnual * horizonteFator)} em {horizonte}m.</>
+                : <>Nenhum processo no escopo selecionado.</>}
+            </InsightCallout>
 
             <div className="dashv2-quote">
               <div className="dashv2-quote-mark">"</div>
               <div className="dashv2-quote-body">
-                Investindo <strong>{fmtBRL(v.investimentoTotal)}</strong> no plano de melhorias, a operação passa a economizar
-                <strong> {fmtBRL(economiaHorizonte)} em {horizonte} meses</strong>, com retorno do investment em{' '}
-                <strong>{fmtNum(v.paybackMeses, 0)} meses</strong> — liberando <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período.
+                {roiDisp ? (
+                  <>
+                    Investindo <strong>{fmtBRL(v.investimentoTotal)}</strong> no plano de melhorias, a operação passa a economizar
+                    <strong> {fmtBRL(economiaHorizonte)} em {horizonte} meses</strong>, com retorno do investment em{' '}
+                    <strong>{paybackTxt}</strong> — liberando <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período.
+                  </>
+                ) : (
+                  <>
+                    O escopo ainda está em construção: o cenário futuro e o investimento não foram totalmente informados, então
+                    <strong> ROI e payback aparecem como "em construção"</strong>. O custo operacional mapeado hoje é de{' '}
+                    <strong>{fmtBRL(v.custoAtualAno * horizonteFator)} em {horizonte} meses</strong> — base para o business case quando as melhorias forem desenhadas.
+                  </>
+                )}
               </div>
             </div>
 
@@ -789,6 +1033,7 @@ export default function DashboardRoiPage() {
             <div className="dashv2-stat-grid">
               <StatChip label="Projetos" valor={v.qtdProjetos} />
               <StatChip label="Processos" valor={v.qtdProcessos} />
+              {v.emMapeamento.length > 0 && <StatChip label="Em mapeamento" valor={v.emMapeamento.length} variant="warning" />}
               <StatChip label="Etapas" valor={v.qtdEtapas} variant="highlight" />
               <StatChip label="Responsáveis" valor={v.qtdResponsaveis} />
               <StatChip label="Documentos" valor={v.qtdDocumentos} />
@@ -796,14 +1041,23 @@ export default function DashboardRoiPage() {
               <StatChip label="Gargalos" valor={v.qtdGargalos} variant="warning" />
             </div>
 
+            <InsightCallout>
+              {topHorasProc
+                ? <>Processo de maior carga horária: <strong>{topHorasProc.processoNome}</strong> — {fmtPlain(topHorasProc.horasAnual * horizonteFator)} h em {horizonte}m. <strong>{v.maturidade.mapeados}/{v.maturidade.total}</strong> processos mapeados.</>
+                : <>Sem processos no escopo.</>}
+              {v.emMapeamento.length > 0 && <> {' '}<strong>{v.emMapeamento.length}</strong> processo{v.emMapeamento.length > 1 ? 's' : ''} em mapeamento (dados de ROI incompletos) {v.emMapeamento.length > 1 ? 'ficam' : 'fica'} fora do consolidado.</>}
+            </InsightCallout>
+
             <div className="dashv2-section-header">
-              <h3>Carga horária por processo</h3>
-              <span className="dashv2-section-sub">Horas atuais mapeadas em cada processo macro</span>
+              <h3>Carga horária por processo (h)</h3>
+              <span className="dashv2-section-sub">Horas atuais por processo — do maior para o menor</span>
             </div>
             <div className="dashv2-card">
               <HBarChart
-                items={v.porProcesso.map((p) => ({ label: p.processoNome, valor: p.horasAnual * horizonteFator, cor: 'var(--accent-color)' }))}
-                valueFmt={(x) => `${fmtNum(x)} h`}
+                items={[...v.porProcesso]
+                  .map((p) => ({ label: p.processoNome, valor: p.horasAnual * horizonteFator, cor: 'var(--accent-color)' }))
+                  .sort((a, b) => b.valor - a.valor)}
+                valueFmt={fmtPlain}
               />
             </div>
 
@@ -866,12 +1120,18 @@ export default function DashboardRoiPage() {
               <KPICard variant="warning" label="Retrabalho" valor={fmtPct(v.taxaRetrabalhoAtual * 100)} hint="% do tempo refazendo" tooltip={dica('dashboard.kpi.retrabalho')} />
             </div>
 
+            <InsightCallout>
+              {topCategoria && topCategoria.atual > 0
+                ? <>Maior frente de custo: <strong>{topCategoria.label}</strong> — {fmtBRL(topCategoria.atual)} de {fmtBRL(v.custoAtualAno * horizonteFator)} em {horizonte}m.</>
+                : <>Custo do estado atual ainda não quantificado neste escopo.</>}
+            </InsightCallout>
+
             <div className="dashv2-section-header">
-              <h3>Onde o dinheiro é gasto</h3>
-              <span className="dashv2-section-sub">Composição do custo operacional atual</span>
+              <h3>Onde o dinheiro é gasto (R$)</h3>
+              <span className="dashv2-section-sub">Composição do custo operacional atual — do maior para o menor</span>
             </div>
             <div className="dashv2-card">
-              <HBarChart items={custosCategoria.map((c) => ({ label: c.label, valor: c.atual, cor: c.cor }))} />
+              <HBarChart items={[...custosCategoria].map((c) => ({ label: c.label, valor: c.atual, cor: c.cor })).sort((a, b) => b.valor - a.valor)} valueFmt={fmtPlain} />
             </div>
 
             <div className="dashv2-section-header">
@@ -879,44 +1139,60 @@ export default function DashboardRoiPage() {
               <span className="dashv2-section-sub">Os pontos de fricção mapeados</span>
             </div>
             <div className="dashv2-kpi-grid">
-              <KPICard variant="warning" label="Gargalos identificados" valor={fmtNum(v.qtdGargalos, 0)} hint="Total catalogado" />
-              <KPICard label="Impacto total" valor={`${fmtNum(gargalosFiltrados.reduce((s, g) => s + (g.horas_gastas || 0), 0) * horizonte)} h`} hint={`Horas perdidas em ${horizonte} meses`} />
-              <KPICard label="Custo de retrabalho" valor={fmtBRL(v.custosCategoria.retrabalho * horizonteFator)} hint={`Retrabalho em ${horizonte} meses`} />
+              <KPICard variant="warning" label="Gargalos identificados" valor={fmtNum(v.qtdGargalos, 0)} hint="Total catalogado no escopo" />
+              <KPICard
+                label="Gargalos endereçados"
+                valor={`${gargalosFiltrados.filter(g => melhoriasRelacionadasAoGargalo(g, melhorias).length > 0).length} / ${v.qtdGargalos}`}
+                hint="Já têm melhoria no mesmo processo"
+              />
               <KPICard
                 label="Processos afetados"
                 valor={fmtNum(new Set(gargalosFiltrados.flatMap(g => processoIdsDoGargalo(g))).size, 0)}
-                hint="Pelo menos um gargalo"
+                hint="Com ao menos um gargalo"
               />
+              <KPICard label="Origens distintas" valor={fmtNum(gargalosPorOrigem.length, 0)} hint="Cliente, Processo, Sistema…" />
+            </div>
+
+            <InsightCallout>
+              Os gargalos são mapeados <strong>qualitativamente</strong> (origem, processos afetados e cobertura por melhorias). O custo quantitativo do estado atual vem das <strong>etapas</strong> (seção acima), que têm horas e responsáveis cadastrados.
+            </InsightCallout>
+
+            <div className="dashv2-grid2">
+              <div>
+                <div className="dashv2-section-header">
+                  <h3>Gargalos por origem</h3>
+                  <span className="dashv2-section-sub">De onde vem cada ponto de fricção</span>
+                </div>
+                <div className="dashv2-card">
+                  {gargalosPorOrigem.length === 0
+                    ? <p className="dashv2-empty-row" style={{ padding: 16 }}>Nenhum gargalo cadastrado no escopo.</p>
+                    : <HBarChart items={[...gargalosPorOrigem].sort((a, b) => b.valor - a.valor)} valueFmt={(x) => `${fmtNum(x, 0)}`} />}
+                </div>
+              </div>
+              <div>
+                <div className="dashv2-section-header">
+                  <h3>Gargalos por processo</h3>
+                  <span className="dashv2-section-sub">Onde os pontos de fricção se concentram</span>
+                </div>
+                <div className="dashv2-card">
+                  <HBarChart
+                    items={processosFiltrados
+                      .map(p => ({
+                        label: p.name,
+                        valor: gargalosFiltrados.filter(g => processoIdsDoGargalo(g).includes(p.id)).length,
+                        cor: 'var(--accent-color)',
+                      }))
+                      .filter(it => it.valor > 0)
+                      .sort((a, b) => b.valor - a.valor)}
+                    valueFmt={(x) => `${fmtNum(x, 0)}`}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="dashv2-section-header">
-              <h3>Gargalos por origem</h3>
-              <span className="dashv2-section-sub">De onde vem cada ponto de fricção</span>
-            </div>
-            <div className="dashv2-card">
-              {gargalosPorOrigem.length === 0
-                ? <p className="dashv2-empty-row" style={{ padding: 16 }}>Nenhum gargalo cadastrado no escopo.</p>
-                : <HBarChart items={gargalosPorOrigem} valueFmt={(x) => `${fmtNum(x, 0)}`} />}
-            </div>
-
-            <div className="dashv2-section-header">
-              <h3>Impacto dos gargalos por processo</h3>
-              <span className="dashv2-section-sub">Quantas horas cada processo perde com gargalos</span>
-            </div>
-            <div className="dashv2-card">
-              <HBarChart
-                items={processosFiltrados.map(p => ({
-                  label: p.name,
-                  valor: gargalosFiltrados.filter(g => processoIdsDoGargalo(g).includes(p.id)).reduce((s, g) => s + (g.horas_gastas || 0), 0) * horizonte,
-                  cor: 'var(--accent-color)',
-                }))}
-                valueFmt={(x) => `${fmtNum(x)} h`}
-              />
-            </div>
-
-            <div className="dashv2-section-header">
-              <h3>Top gargalos identificados</h3>
-              <span className="dashv2-section-sub">Ranqueados por impacto em horas</span>
+              <h3>Gargalos identificados</h3>
+              <span className="dashv2-section-sub">Ranqueados por nº de processos afetados</span>
             </div>
             <div className="dashv2-table-wrap">
               <table className="dashv2-table">
@@ -925,26 +1201,24 @@ export default function DashboardRoiPage() {
                     <th>#</th>
                     <th>Gargalo</th>
                     <th>Processos afetados</th>
-                    <th>{`Impacto (h em ${horizonte}m)`}</th>
-                    <th>{`Custo estimado em ${horizonte}m`}</th>
                     <th>Origem</th>
+                    <th>Endereçado por melhoria</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {gargalosFiltrados.length === 0 ? <EmptyRow cols={6} /> : [...gargalosFiltrados]
-                    .sort((a, b) => (b.horas_gastas || 0) - (a.horas_gastas || 0))
-                    .slice(0, 10)
+                  {gargalosFiltrados.length === 0 ? <EmptyRow cols={5} /> : [...gargalosFiltrados]
+                    .sort((a, b) => processoIdsDoGargalo(b).length - processoIdsDoGargalo(a).length)
+                    .slice(0, 12)
                     .map((g, i) => {
-                      const custoHM = responsaveis.length ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length : 0;
                       const procs = processoIdsDoGargalo(g).map(pid => procNomeById.get(pid) || pid);
+                      const ms = melhoriasRelacionadasAoGargalo(g, melhorias);
                       return (
                         <tr key={g.id}>
                           <td>{i + 1}</td>
                           <td>{g.nome}</td>
                           <td>{procs.length ? procs.join(', ') : '—'}</td>
-                          <td>{fmtNum((g.horas_gastas || 0) * horizonte)}</td>
-                          <td>{fmtBRL((g.horas_gastas || 0) * horizonte * custoHM)}</td>
                           <td>{g.origem || '—'}</td>
+                          <td>{ms.length ? ms.map(m => m.improvement_description).join('; ') : '—'}</td>
                         </tr>
                       );
                     })}
@@ -1014,43 +1288,49 @@ export default function DashboardRoiPage() {
               />
             </div>
 
-            <div className="dashv2-section-header">
-              <h3>Composição do investment</h3>
-              <span className="dashv2-section-sub">Para onde vai cada real investido</span>
-            </div>
-            <div className="dashv2-card">
-              <HBarChart items={investimentoComposicao} />
-            </div>
+            <InsightCallout>
+              <><strong>{statusMelhoriasFunnel[3].valor}</strong> de <strong>{v.qtdMelhorias}</strong> melhorias concluídas · investimento total {fmtBRL(v.investimentoTotal)}{v.investimentoTotal === 0 ? ' (ainda não informado)' : ''}.</>
+            </InsightCallout>
 
-            <div className="dashv2-section-header">
-              <h3>De → Para: gargalo × melhoria</h3>
-              <span className="dashv2-section-sub">Mapa de impacto direto</span>
-            </div>
-            <div className="dashv2-table-wrap">
-              <table className="dashv2-table">
-                <thead>
-                  <tr>
-                    <th>Gargalo</th>
-                    <th>Processos afetados</th>
-                    <th>Melhoria(s) que resolve(m)</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {gargalosFiltrados.length === 0 ? <EmptyRow cols={4} /> : gargalosFiltrados.map(g => {
-                    const ms = melhoriasRelacionadasAoGargalo(g, melhorias);
-                    const procs = processoIdsDoGargalo(g).map(pid => procNomeById.get(pid) || pid);
-                    return (
-                      <tr key={g.id}>
-                        <td>{g.nome}</td>
-                        <td>{procs.length ? procs.join(', ') : '—'}</td>
-                        <td>{ms.length ? ms.map(m => m.improvement_description).join('; ') : '—'}</td>
-                        <td>{ms.length ? 'Coberto' : 'Aberto'}</td>
+            <div className="dashv2-grid2">
+              <div>
+                <div className="dashv2-section-header">
+                  <h3>Composição do investimento (R$)</h3>
+                  <span className="dashv2-section-sub">Para onde vai cada real investido — do maior para o menor</span>
+                </div>
+                <div className="dashv2-card">
+                  <HBarChart items={[...investimentoComposicao].sort((a, b) => b.valor - a.valor)} valueFmt={fmtPlain} />
+                </div>
+              </div>
+              <div>
+                <div className="dashv2-section-header">
+                  <h3>De → Para: gargalo × melhoria</h3>
+                  <span className="dashv2-section-sub">Quais melhorias resolvem cada gargalo</span>
+                </div>
+                <div className="dashv2-table-wrap">
+                  <table className="dashv2-table">
+                    <thead>
+                      <tr>
+                        <th>Gargalo</th>
+                        <th>Melhoria(s) que resolve(m)</th>
+                        <th>Status</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {gargalosFiltrados.length === 0 ? <EmptyRow cols={3} /> : gargalosFiltrados.map(g => {
+                        const ms = melhoriasRelacionadasAoGargalo(g, melhorias);
+                        return (
+                          <tr key={g.id}>
+                            <td>{g.nome}</td>
+                            <td>{ms.length ? ms.map(m => m.improvement_description).join('; ') : '—'}</td>
+                            <td>{ms.length ? 'Coberto' : 'Aberto'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
             <div className="dashv2-section-header">
@@ -1114,12 +1394,18 @@ export default function DashboardRoiPage() {
               <KPICard label="Retrabalho" valor={fmtPct(v.taxaRetrabalhoFuturo * 100)} hint="% do tempo refazendo" tooltip={dica('dashboard.kpi.retrabalho')} />
             </div>
 
+            <InsightCallout>
+              {v.custoFuturoAno < v.custoAtualAno
+                ? <>Redução projetada de custo: <strong>{fmtPct(deltaPct(v.custoAtualAno, v.custoFuturoAno))}</strong> · <strong>{fmtPlain(v.horasLiberadas * horizonteFator)} h</strong> liberadas em {horizonte}m.</>
+                : <>Cenário futuro ainda não desenhado neste escopo (0 etapas com "como ficará").</>}
+            </InsightCallout>
+
             <div className="dashv2-section-header">
-              <h3>Nova distribuição de custos</h3>
-              <span className="dashv2-section-sub">Composição do custo otimizado</span>
+              <h3>Nova distribuição de custos (R$)</h3>
+              <span className="dashv2-section-sub">Composição do custo otimizado — do maior para o menor</span>
             </div>
             <div className="dashv2-card">
-              <HBarChart items={custosCategoria.map((c) => ({ label: c.label, valor: c.otimizado, cor: c.cor }))} />
+              <HBarChart items={[...custosCategoria].map((c) => ({ label: c.label, valor: c.otimizado, cor: c.cor })).sort((a, b) => b.valor - a.valor)} valueFmt={fmtPlain} />
             </div>
 
             <div className="dashv2-section-header">
@@ -1163,30 +1449,68 @@ export default function DashboardRoiPage() {
           </StorySection>
         )}
 
-        {/* =================== ROI CONSOLIDADO =================== */}
-        {aba === 'roi' && (
+        {/* =================== EVOLUÇÃO — REALIZADO vs POTENCIAL =================== */}
+        {aba === 'evolucao' && (
           <StorySection
             numero="6"
-            titulo="ROI Consolidado"
-            intro="A síntese: a comparação direta entre o cenário atual e o otimizado, traduzida em retorno financeiro, payback e ganho de qualidade."
+            titulo="Evolução — Realizado vs Potencial"
+            intro="Quanto do retorno mapeado já foi capturado (melhorias concluídas) e quanto ainda é potencial. À medida que as melhorias são implementadas, a economia migra de potencial para realizada."
           >
             <div className="dashv2-section-header">
-              <h3>Resultado do investment</h3>
-              <span className="dashv2-section-sub">Indicadores consolidados da transformação</span>
+              <h3>Retorno: realizado e potencial</h3>
+              <span className="dashv2-section-sub">O que já foi capturado vs o que ainda há a destravar</span>
             </div>
             <div className="dashv2-kpi-grid">
-              <KPICard variant="highlight" label={`Economia ${periodoSufixo}`} valor={fmtBRL(economiaHorizonte)} variacao={fmtPct(deltaPct(v.custoAtualAno, v.custoFuturoAno))} positivo={economiaHorizonte >= 0} hint="Vs. cenário atual" tooltip={dica('dashboard.kpi.annual_savings')} />
-              <KPICard variant="highlight" label="ROI" valor={fmtPct(roiHorizonte)} positivo={roiHorizonte >= 0} hint={`Em ${horizonte} meses`} tooltip={dica('dashboard.kpi.roi')} />
-              <KPICard label={`Resultado líquido (${horizonte}m)`} valor={fmtBRL(resultadoLiquidoHorizonte)} positivo={resultadoLiquidoHorizonte >= 0} hint="Economia acum. − investment" />
-              <KPICard label="Payback" valor={v.paybackMeses > 0 ? `${fmtNum(v.paybackMeses, 0)} meses` : '—'} hint="Recuperação" tooltip={dica('dashboard.kpi.payback')} />
+              <KPICard variant="highlight" label="Economia Realizada / ano" valor={fmtBRL(v.economiaRealizada)} hint={`${v.maturidade.implementados}/${v.maturidade.total} processos implementados`} />
+              <KPICard label="Potencial restante / ano" valor={fmtBRL(v.economiaProjetada)} hint="A capturar com as melhorias" />
+              <KPICard variant="highlight" label="ROI Realizado" valor={fmtRoi(v.roiRealizado)} positivo={v.roiRealizado != null ? v.roiRealizado >= 0 : undefined} hint="Economia ÷ investimento realizado" />
+              <KPICard label="Maturidade do escopo" valor={`${v.maturidade.completudePct}%`} hint="Média das fases concluídas" />
+            </div>
+
+            <InsightCallout>
+              {v.economiaAnual > 0
+                ? <>Das <strong>{fmtBRL(v.economiaAnual)}</strong> de economia anual possível, <strong>{fmtBRL(v.economiaRealizada)}</strong> ({pctRealizado}%) já foram capturadas; restam <strong>{fmtBRL(v.economiaProjetada)}</strong> a destravar.</>
+                : <>O cenário futuro ainda não foi desenhado neste escopo — a economia aparece quando as etapas tiverem o "como ficará".</>}
+            </InsightCallout>
+
+            <div className="dashv2-section-header">
+              <h3>Ponte: do custo atual ao custo futuro</h3>
+              <span className="dashv2-section-sub">Economia já realizada vs potencial restante (por ano)</span>
+            </div>
+            <div className="dashv2-card">
+              <WaterfallChart custoAtual={v.custoAtualAno} economiaRealizada={v.economiaRealizada} economiaProjetada={v.economiaProjetada} custoFuturo={v.custoFuturoAno} />
             </div>
 
             <div className="dashv2-section-header">
-              <h3>Custos por categoria — Como Era × Como Ficará</h3>
-              <span className="dashv2-section-sub">Barras agrupadas para visualizar a redução em cada frente</span>
+              <h3>Captura da economia</h3>
+              <span className="dashv2-section-sub">Realizado vs meta (economia potencial total)</span>
             </div>
             <div className="dashv2-card">
-              <BarChart data={custosCategoria.map((c) => ({ label: c.label, atual: c.atual, otimizado: c.otimizado }))} />
+              <BulletChart realizado={v.economiaRealizada} meta={v.economiaAnual} />
+            </div>
+
+            <div className="dashv2-section-header">
+              <h3>Entrega das melhorias</h3>
+              <span className="dashv2-section-sub">Status do plano de melhorias do escopo</span>
+            </div>
+            <div className="dashv2-card">
+              <FunnelChart items={statusMelhoriasFunnel} />
+            </div>
+
+            <div className="dashv2-section-header">
+              <h3>Maturidade por processo</h3>
+              <span className="dashv2-section-sub">Em que fase cada processo está</span>
+            </div>
+            <div className="dashv2-card">
+              <MaturityHeatmap processos={v.porProcesso} />
+            </div>
+
+            <div className="dashv2-section-header">
+              <h3>Custos por categoria — Como Era × Como Ficará (R$)</h3>
+              <span className="dashv2-section-sub">Comparação lado a lado por frente de custo</span>
+            </div>
+            <div className="dashv2-card">
+              <BarChart data={custosCategoria.map((c) => ({ label: c.label, atual: c.atual, otimizado: c.otimizado }))} valueFmt={fmtPlain} />
             </div>
 
             <div className="dashv2-section-header">
@@ -1254,9 +1578,11 @@ export default function DashboardRoiPage() {
             <div className="dashv2-quote dashv2-quote-final">
               <div className="dashv2-quote-mark">★</div>
               <div className="dashv2-quote-body">
-                Recomendação: o investment de <strong>{fmtBRL(v.investimentoTotal)}</strong> se paga em
-                <strong> {fmtNum(v.paybackMeses, 0)} meses</strong> e gera ROI de <strong>{fmtPct(roiHorizonte)}</strong> em {horizonte} meses,
-                além de liberar <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período para atividades de maior valor.
+                {roiDisp ? (
+                  <>Recomendação: o investimento de <strong>{fmtBRL(v.investimentoTotal)}</strong> se paga em <strong>{paybackTxt}</strong> e gera ROI de <strong>{roiHorizonteTxt}</strong> em {horizonte} meses, além de liberar <strong>{fmtNum(v.horasLiberadas * horizonteFator)} horas</strong> da equipe no período para atividades de maior valor.</>
+                ) : (
+                  <>Já foram realizados <strong>{fmtBRL(v.economiaRealizada)}/ano</strong> de economia ({pctRealizado}% do potencial mapeado). ROI e payback serão consolidados quando o investimento das melhorias for informado.</>
+                )}
               </div>
             </div>
           </StorySection>

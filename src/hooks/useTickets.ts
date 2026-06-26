@@ -325,6 +325,27 @@ export function useTicketAgents() {
   });
 }
 
+// ── useClusterAgents ──────────────────────────────────────────
+// Usuários internos vinculados a UM cluster específico (via áreas → equipes).
+// Usado nos dropdowns de "Responsável" em Chamados para evitar vazamento
+// de membros entre clusters (ex.: chamado do Tax mostrando gente do OSG).
+
+export function useClusterAgents(clusterId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['tickets', 'cluster-agents', clusterId],
+    queryFn: async (): Promise<TicketProfile[]> => {
+      if (!clusterId) return [];
+      const { data, error } = await (supabase.rpc as any)('get_cluster_members', {
+        _cluster_id: clusterId,
+      });
+      if (error) throw error;
+      return (data || []) as TicketProfile[];
+    },
+    enabled: !!clusterId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 // ── useTicketsFirstResponse ───────────────────────────────────
 // First admin response per ticket — alimenta o dashboard (tempo médio de resposta
 // e ranking de responsáveis efetivos pela primeira resposta).

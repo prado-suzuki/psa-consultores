@@ -1,41 +1,38 @@
-## Bug
+## Objetivo
+Adicionar guarda em `notify-ticket` para não disparar webhook n8n quando cliente responde em chamado sem responsável atribuído.
 
-No modal de Sprint (criar/editar entregável) em `/equipe/sprints`, ao escolher um projeto do cluster **OSG**, o select de **Processo** fica vazio. No cluster **PSA Consultores** funciona.
+## Alteração
+Arquivo: `supabase/functions/notify-ticket/index.ts`
 
-## Causa
-
-`EquipeSprintDetalhes.tsx` filtra processos olhando **apenas** a tabela de junção `project_processes` (linhas 2343-2345 e 2594-2596):
-
-```ts
-processes.filter(proc =>
-  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
-)
-```
-
-Confirmado no banco:
-
-| Cluster | projects | processes | linhas em `project_processes` |
-|---|---|---|---|
-| PSA Consultores | 10 | 17 | **4.420** |
-| OSG | 6 | 34 | **0** |
-
-Os 34 processos do OSG têm vínculo direto via `processes.project_id` (todos preenchidos), e nunca foram populados em `project_processes`. Logo, o filtro do modal retorna vazio para qualquer projeto OSG.
-
-## Correção proposta
-
-Aceitar os dois modelos de vínculo no filtro — junção `project_processes` **OU** FK direta `processes.project_id`. Mudança somente no frontend, nos dois selects de Processo do `EquipeSprintDetalhes.tsx`:
+Inserir bloco logo após o `if (ticketError || !ticket) { ... }` e antes de `const ticketDepartment = ...`:
 
 ```ts
-processes.filter(proc =>
-  proc.project_id === form.project_id ||
-  projectProcesses.some(pp => pp.process_id === proc.id && pp.project_id === form.project_id)
-)
+// Guard: cliente respondendo em ticket sem responsável atribuído.
+// Nesse caso, o cliente normalmente está complementando o chamado recém-aberto;
+// não há a quem notificar (workflow n8n quebraria buscando "responsavel" no payload).
+if (
+  event_type === "ticket_replied" &&
+  actor_name === "Cliente" &&
+  !ticket.assigned_to
+) {
+  console.log(
+    `[notify-ticket] Skipped: client reply on unassigned ticket ${ticket.id}`
+  );
+  return new Response(
+    JSON.stringify({ success: true, skipped: true, reason: "client_reply_on_unassigned_ticket" }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
 ```
 
-Requer também incluir `project_id` no SELECT de `processes` (linha ~310) e no tipo `Process` local.
+Observação: corrigi o trecho truncado `corsHeadeion/json"` para `...corsHeaders, "Content-Type": "application/json"`, coerente com os demais returns da função.
 
-Nenhuma alteração de schema, hook ou backend. Comportamento do PSA Consultores permanece idêntico (continua casando pela junção).
+## Escopo / Não-escopo
+- Afeta apenas `event_type === "ticket_replied"` com `actor_name === "Cliente"` e `assigned_to` nulo.
+- Demais eventos (`ticket_created`, `ticket_assigned`, `ticket_replied` por equipe, `ticket_overdue`, `ticket_resolved`) seguem inalterados.
+
+## Deploy
+Após a edição, deploy automático da edge function (Lovable Cloud) — sem ação manual.
 
 ## Validação
-
-Abrir Nova Sprint → cluster OSG → selecionar projeto → os 5–6 processos daquele projeto aparecem. Repetir com PSA Consultores: lista segue igual à atual.
+- Verificar no log da function que requisições `ticket_replied` + `Cliente` + ticket sem responsável retornam `{ skipped: true }` sem chamar `fetch(webhookUrl, ...)`.

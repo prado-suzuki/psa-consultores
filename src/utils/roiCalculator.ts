@@ -3,28 +3,124 @@
 // Reutilizado por: DashboardRoiPage, WizardRoi (preview), SetorEvolucaoPage, snapshots.
 
 import type {
-  Processo, Projeto, Etapa, Responsavel, Sistema, Gargalo, Melhoria, FrequenciaProcesso,
+  Processo, Projeto, Etapa, Responsavel, Sistema, Gargalo, Melhoria,
 } from '../types';
-import { melhoriaIdsDoProcesso } from './gargaloMelhorias';
+import { melhoriaIdsDoProcesso, gargalosDoProcesso } from './gargaloMelhorias';
+import { execucoesAnuais } from './roiVolume';
+import { processoCalculavel } from './processoCalculavel';
 
-// Fallback legado: multiplicador anual derivado da frequência enum, usado só
-// para processos que ainda não têm `volume_executions` (ex.: Fiscal a migrar).
-const FATOR_ANUAL: Record<FrequenciaProcesso, number> = {
-  'Diária': 252,
-  'Semanal': 52,
-  'Quinzenal': 26,
-  'Mensal': 12,
-  'Trimestral': 4,
-  'Anual': 1,
-};
+// Re-export para compatibilidade — execucoesAnuais foi movido para o módulo-folha
+// `roiVolume` (quebra o ciclo com processoCalculavel). Importadores existentes
+// (`import { execucoesAnuais } from '@/utils/roiCalculator'`) seguem funcionando.
+export { execucoesAnuais } from './roiVolume';
 
-// Execuções anuais = MODELO DE VOLUME. O multiplicador anual do ROI é o
-// `volume_executions` (nº de execuções/ano declarado no processo). A frequência
-// enum vira fallback só enquanto o processo não tiver volume_executions.
-export function execucoesAnuais(p: Pick<Processo, 'frequency' | 'volume_executions'>): number {
-  if (p.volume_executions != null && p.volume_executions > 0) return p.volume_executions;
-  if (p.frequency && FATOR_ANUAL[p.frequency]) return FATOR_ANUAL[p.frequency];
-  return 0;
+// ---------------------------------------------------------------------------
+// Guardas de razão (ROI / payback): retornam null quando a razão é indefinida
+// (investimento ≈ 0) — NUNCA um 0/∞ falso. A UI renderiza null como
+// "em construção". ROI negativo continua número (sinal real de cenário pior).
+// ---------------------------------------------------------------------------
+const EPS = 1e-9;
+
+export function ratioRoi(economiaAnual: number, investimento: number): number | null {
+  if (!(investimento > EPS)) return null;
+  return (economiaAnual / investimento) * 100;
+}
+
+export function ratioPayback(economiaMensal: number, investimento: number): number | null {
+  if (!(investimento > EPS)) return null;
+  if (!(economiaMensal > EPS)) return null;
+  return investimento / economiaMensal;
+}
+
+// ---------------------------------------------------------------------------
+// Status da economia (Realizado vs Projetado) + Maturidade do processo.
+// "Realizado" = melhoria de fato implementada (improvement_status 'Concluído').
+// Tudo derivado de dados existentes — sem coluna nova no banco.
+// ---------------------------------------------------------------------------
+export type StatusEconomia = 'realizado' | 'emAndamento' | 'projetado' | 'sem-melhoria';
+
+export interface MaturidadeProcesso {
+  isMapeado: boolean;
+  temDiagnostico: boolean;
+  temCenarioFuturo: boolean;
+  temInvestimento: boolean;
+  implementado: boolean;
+  /** Nº de fases preenchidas (0–5): mapeado, diagnóstico, cenário futuro, investimento, implementado. */
+  nivel: 0 | 1 | 2 | 3 | 4 | 5;
+  statusEconomia: StatusEconomia;
+}
+
+export interface MaturidadeEscopo {
+  total: number;
+  mapeados: number;
+  comDiagnostico: number;
+  comCenarioFuturo: number;
+  comInvestimento: number;
+  implementados: number;
+  porStatusEconomia: Record<StatusEconomia, number>;
+  /** Média do nível / 5, em %. Alimenta o banner "X% do escopo modelado". */
+  completudePct: number;
+}
+
+// A economia nasce no PROCESSO (custoAnual − custoAnualFicou). O status de
+// implementação vive na MELHORIA (M:N). Regra (Opção A): a economia do processo
+// é "realizada" só quando há ≥1 melhoria vinculada e TODAS estão Concluído; se
+// alguma está Concluído/Em progresso (mas não todas) → "emAndamento"; se há
+// melhorias mas nenhuma avançou → "projetado"; sem melhoria → "sem-melhoria".
+export function statusEconomiaProcesso(
+  proc: Pick<Processo, 'id'>, melhorias: Melhoria[],
+): StatusEconomia {
+  const ids = melhoriaIdsDoProcesso(melhorias, proc.id);
+  if (ids.size === 0) return 'sem-melhoria';
+  const linked = melhorias.filter(m => ids.has(m.id));
+  const concluida = (m: Melhoria) => m.improvement_status === 'Concluído';
+  const andamento = (m: Melhoria) => m.improvement_status === 'Em progresso';
+  if (linked.every(concluida)) return 'realizado';
+  if (linked.some(m => concluida(m) || andamento(m))) return 'emAndamento';
+  return 'projetado';
+}
+
+export function maturidadeProcesso(args: {
+  proc: Processo;
+  etapasDoProc: Etapa[];
+  gargalos: Gargalo[];
+  melhorias: Melhoria[];
+  investimento: number;
+}): MaturidadeProcesso {
+  const { proc, etapasDoProc, gargalos, melhorias, investimento } = args;
+  const isMapeado = etapasDoProc.length > 0 && execucoesAnuais(proc) > 0;
+  const temGargalo = gargalosDoProcesso(gargalos, proc.id).length > 0;
+  const temQualidade = etapasDoProc.some(e => (e.error_rate ?? 0) > 0 || (e.rework_rate ?? 0) > 0);
+  const temDiagnostico = temGargalo || temQualidade;
+  const temCenarioFuturo = etapasDoProc.some(e => e.ficou != null);
+  const temInvestimento = investimento > EPS;
+  const statusEconomia = statusEconomiaProcesso(proc, melhorias);
+  const implementado = statusEconomia === 'realizado';
+  // nivel = nº de fases preenchidas (contagem, não escada estrita) — o dado é
+  // não-monotônico (investimento fica vazio mesmo em melhorias concluídas), então
+  // contar gates verdadeiros é mais justo e bate com os ✓ do heatmap.
+  const gates = [isMapeado, temDiagnostico, temCenarioFuturo, temInvestimento, implementado];
+  const nivel = gates.filter(Boolean).length as MaturidadeProcesso['nivel'];
+  return { isMapeado, temDiagnostico, temCenarioFuturo, temInvestimento, implementado, nivel, statusEconomia };
+}
+
+export function maturidadeEscopo(mats: MaturidadeProcesso[]): MaturidadeEscopo {
+  const porStatusEconomia: Record<StatusEconomia, number> = {
+    realizado: 0, emAndamento: 0, projetado: 0, 'sem-melhoria': 0,
+  };
+  let mapeados = 0, comDiagnostico = 0, comCenarioFuturo = 0, comInvestimento = 0, implementados = 0, somaNivel = 0;
+  for (const m of mats) {
+    if (m.isMapeado) mapeados += 1;
+    if (m.temDiagnostico) comDiagnostico += 1;
+    if (m.temCenarioFuturo) comCenarioFuturo += 1;
+    if (m.temInvestimento) comInvestimento += 1;
+    if (m.implementado) implementados += 1;
+    porStatusEconomia[m.statusEconomia] += 1;
+    somaNivel += m.nivel;
+  }
+  const total = mats.length;
+  const completudePct = total ? Math.round((somaNivel / total) / 5 * 100) : 0;
+  return { total, mapeados, comDiagnostico, comCenarioFuturo, comInvestimento, implementados, porStatusEconomia, completudePct };
 }
 
 interface CategoriaCusto {
@@ -62,8 +158,19 @@ export interface RoiProcesso {
     execucaoMelhorias: number;
     externo: number;
   };
-  roiPercentual: number;
-  paybackMeses: number;
+  // Partição Realizado vs Projetado (Opção A: gate pela conclusão das melhorias).
+  statusEconomia: StatusEconomia;
+  economiaRealizada: number;
+  economiaEmAndamento: number;
+  economiaProjetada: number;   // = economiaAnual − economiaRealizada
+  investimentoRealizado: number;
+  investimentoProjetado: number;
+  // Razões: null quando indefinidas (investimento ≈ 0) → UI mostra "em construção".
+  roiPercentual: number | null;
+  paybackMeses: number | null;
+  roiRealizado: number | null;
+  roiProjetado: number | null;
+  maturidade: MaturidadeProcesso;
 }
 
 export interface RoiInput {
@@ -77,8 +184,18 @@ export interface RoiInput {
   projetos?: Projeto[];
 }
 
+/** Processo excluído do consolidado por dado obrigatório faltante (não-calculável).
+ *  Não entra em NENHUM agregado — é listado como "em mapeamento". */
+export interface ProcessoEmMapeamento {
+  processoId: string;
+  processoNome: string;
+  camposFaltando: string[];
+}
+
 export interface RoiAgregado {
   porProcesso: RoiProcesso[];
+  /** Processos NÃO-calculáveis (Como era incompleto) — fora dos somatórios. */
+  emMapeamento: ProcessoEmMapeamento[];
   // KPIs globais (somatórios) — campos sintéticos da UI, não colunas de DB.
   custoAtualAno: number;
   custoFuturoAno: number;
@@ -98,8 +215,16 @@ export interface RoiAgregado {
   };
   custosCategoria: CategoriaCusto;
   custosCategoriaFicou: CategoriaCusto;
-  roiPercentual: number;
-  paybackMeses: number;
+  economiaRealizada: number;
+  economiaEmAndamento: number;
+  economiaProjetada: number;
+  investimentoRealizado: number;
+  investimentoProjetado: number;
+  roiPercentual: number | null;
+  paybackMeses: number | null;
+  roiRealizado: number | null;
+  roiProjetado: number | null;
+  maturidade: MaturidadeEscopo;
 }
 
 const zeroCategoria = (): CategoriaCusto => ({ pessoas: 0, sistemas: 0, retrabalho: 0, externo: 0 });
@@ -179,11 +304,12 @@ function calcProcesso(
     for (const r of arr) {
       const horas = r.horas ?? 0;
       const rid = r.responsavelId;
-      // Se temos o responsável no cadastro, respeita o custo cadastrado — inclusive zero
-      // (recurso externo / cliente). Só usa o custo médio como fallback se o vínculo
-      // não puder ser resolvido (ex.: responsável deletado mas ainda referenciado).
+      // INVARIANTE: sem fallback de média. Só processos CALCULÁVEIS chegam aqui
+      // (gated por processoCalculavel), então o responsável sempre resolve e o
+      // custo cadastrado é respeitado — inclusive ZERO (externo/cliente grátis).
+      // O else é inalcançável (vínculo quebrado torna o processo não-calculável).
       const resp = rid ? respById.get(rid) : undefined;
-      const ch = resp ? resp.hourly_rate : custoHoraMedio;
+      const ch = resp ? resp.hourly_rate : 0;
       h += horas;
       c += horas * ch;
     }
@@ -192,8 +318,10 @@ function calcProcesso(
 
   for (const e of etapasDoProc) {
     const f = e.ficou; // null/undefined quando não há projeção salva
-    const volEra = e.volume_per_process || 1;
-    const volFicou = (f?.volume_per_process ?? e.volume_per_process) || 1;
+    // INVARIANTE: proibido assumir 1. Volume é obrigatório (gated pelo doutor).
+    // ficou cai pro era (fallback #3, adiado junto com o critério "Como ficou").
+    const volEra = e.volume_per_process ?? 0;
+    const volFicou = f?.volume_per_process ?? e.volume_per_process ?? 0;
 
     const exeEra  = sumResp(e.executadoPor);
     const exeFic  = sumResp(f?.executadoPor ?? e.executadoPor);
@@ -259,18 +387,32 @@ function calcProcesso(
   // via gargalo), cada processo absorve apenas 1/N. Assim o somatório por
   // processo reconstrói o custo real da melhoria — sem multiplicar.
   const rateioMelhoria = (m: Melhoria) => 1 / Math.max(abrangenciaMelhorias.get(m.id) ?? 1, 1);
-  const investTreinamentoMelhorias = melhoriasRelevantes.reduce((s, m) => s + ((m.training_hours || 0) * custoHoraTreino) * rateioMelhoria(m), 0);
-  const investExecucaoMelhorias = melhoriasRelevantes.reduce((s, m) => {
-    const horasExec = (m.executadoPor || []).reduce((acc, r) => {
-      const ch = (r.responsavelId && respById.get(r.responsavelId)?.hourly_rate) || custoHoraMedio;
-      return acc + (r.horas || 0) * ch;
-    }, 0);
-    return s + horasExec * rateioMelhoria(m);
-  }, 0);
-  const investExterno = melhoriasRelevantes.reduce((s, m) => s + (m.one_time_external_cost || 0) * rateioMelhoria(m), 0);
   // Implantação interna (horas de quem desenvolve o sistema) é rateada na MELHORIA
   // (melhoria.executadoPor), não no sistema. Mantido como 0 para o breakdown.
   const investSistemas = 0;
+  // Partição do investimento pelo status DA PRÓPRIA melhoria: o custo de uma
+  // melhoria já Concluído é "realizado" (gasto afundado), independente de a
+  // economia do processo já ter sido toda capturada.
+  let investTreinamentoMelhorias = 0;
+  let investExecucaoMelhorias = 0;
+  let investExterno = 0;
+  let investimentoRealizado = 0;
+  let investimentoProjetado = investSistemas; // mantém investimento = realizado + projetado
+  for (const m of melhoriasRelevantes) {
+    const r = rateioMelhoria(m);
+    const treino = (m.training_hours || 0) * custoHoraTreino * r;
+    const execucao = (m.executadoPor || []).reduce((acc, rr) => {
+      const ch = (rr.responsavelId && respById.get(rr.responsavelId)?.hourly_rate) || custoHoraMedio;
+      return acc + (rr.horas || 0) * ch;
+    }, 0) * r;
+    const externo = (m.one_time_external_cost || 0) * r;
+    investTreinamentoMelhorias += treino;
+    investExecucaoMelhorias += execucao;
+    investExterno += externo;
+    const mInvest = treino + execucao + externo;
+    if (m.improvement_status === 'Concluído') investimentoRealizado += mInvest;
+    else investimentoProjetado += mInvest;
+  }
 
   const horasAnual = horasPorExec * ann;
   const horasAnualFicou = horasPorExecFicou * ann;
@@ -290,8 +432,19 @@ function calcProcesso(
   const horasLiberadas = horasAnual - horasAnualFicou;
 
   const investimento = investTreinamentoMelhorias + investExecucaoMelhorias + investExterno + investSistemas;
-  const roiPercentual = investimento > 0 ? (economiaAnual / investimento) * 100 : 0;
-  const paybackMeses = economiaMensal > 0 ? investimento / economiaMensal : 0;
+
+  // Maturidade + status da economia (Realizado vs Projetado).
+  const maturidade = maturidadeProcesso({ proc, etapasDoProc, gargalos, melhorias, investimento });
+  const statusEconomia = maturidade.statusEconomia;
+  // Opção A: economia realizada só quando todas as melhorias do processo estão Concluído.
+  const economiaRealizada = statusEconomia === 'realizado' ? economiaAnual : 0;
+  const economiaEmAndamento = statusEconomia === 'emAndamento' ? economiaAnual : 0;
+  const economiaProjetada = economiaAnual - economiaRealizada; // invariante de 2 vias
+
+  const roiPercentual = ratioRoi(economiaAnual, investimento);
+  const paybackMeses = ratioPayback(economiaMensal, investimento);
+  const roiRealizado = ratioRoi(economiaRealizada, investimentoRealizado);
+  const roiProjetado = roiPercentual;
 
   return {
     processoId: proc.id,
@@ -329,8 +482,17 @@ function calcProcesso(
       execucaoMelhorias: investExecucaoMelhorias,
       externo: investExterno,
     },
+    statusEconomia,
+    economiaRealizada,
+    economiaEmAndamento,
+    economiaProjetada,
+    investimentoRealizado,
+    investimentoProjetado,
     roiPercentual,
     paybackMeses,
+    roiRealizado,
+    roiProjetado,
+    maturidade,
   };
 }
 
@@ -360,10 +522,23 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
     }
   }
 
-  const porProcesso = input.processos.map(p => {
-    const cluster = (p.project_id && projetoById.get(p.project_id)?.clusterName) || '';
-    return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou);
-  });
+  // Critério de entrada no Dashboard ROI = doutor (dados completos, sem fallback)
+  // E status do projeto ≠ 'Mapeamento'. Quem não passa fica FORA de TODOS os
+  // agregados (em mapeamento) — nunca com número fabricado.
+  const porProcesso: RoiProcesso[] = [];
+  const emMapeamento: ProcessoEmMapeamento[] = [];
+  for (const p of input.processos) {
+    const vd = processoCalculavel(p, input.etapas, input.responsaveis);
+    const proj = p.project_id ? projetoById.get(p.project_id) : undefined;
+    const projetoEmMapeamento = proj?.status === 'Mapeamento';
+    if (!vd.ok || projetoEmMapeamento) {
+      const camposFaltando = projetoEmMapeamento ? [...vd.faltando, 'Projeto em mapeamento'] : vd.faltando;
+      emMapeamento.push({ processoId: p.id, processoNome: p.name, camposFaltando });
+      continue;
+    }
+    const cluster = proj?.clusterName || '';
+    porProcesso.push(calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou));
+  }
 
   const sum = <K extends keyof RoiProcesso>(k: K, src = porProcesso): number =>
     src.reduce((s, p) => s + (Number(p[k]) || 0), 0);
@@ -378,10 +553,18 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   };
 
   const investimentoTotal = sum('investimento');
+  const investimentoRealizado = sum('investimentoRealizado');
+  const investimentoProjetado = sum('investimentoProjetado');
   const economiaAnual = sum('economiaAnual');
+  const economiaRealizada = sum('economiaRealizada');
+  const economiaEmAndamento = sum('economiaEmAndamento');
+  const economiaProjetada = sum('economiaProjetada');
   const economiaMensal = economiaAnual / 12;
-  const roiPercentual = investimentoTotal > 0 ? (economiaAnual / investimentoTotal) * 100 : 0;
-  const paybackMeses = economiaMensal > 0 ? investimentoTotal / economiaMensal : 0;
+  const roiPercentual = ratioRoi(economiaAnual, investimentoTotal);
+  const paybackMeses = ratioPayback(economiaMensal, investimentoTotal);
+  const roiRealizado = ratioRoi(economiaRealizada, investimentoRealizado);
+  const roiProjetado = roiPercentual;
+  const maturidade = maturidadeEscopo(porProcesso.map(p => p.maturidade));
 
   const invBd = porProcesso.reduce((acc, p) => ({
     treinamentoMelhorias: acc.treinamentoMelhorias + p.investimentoBreakdown.treinamentoMelhorias,
@@ -395,6 +578,7 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
 
   return {
     porProcesso,
+    emMapeamento,
     custoAtualAno: sum('custoAnual'),
     custoFuturoAno: sum('custoAnualFicou'),
     horasAtualAno,
@@ -408,7 +592,15 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
     investimentoBreakdown: invBd,
     custosCategoria: sumCat('custosCategoria'),
     custosCategoriaFicou: sumCat('custosCategoriaFicou'),
+    economiaRealizada,
+    economiaEmAndamento,
+    economiaProjetada,
+    investimentoRealizado,
+    investimentoProjetado,
     roiPercentual,
     paybackMeses,
+    roiRealizado,
+    roiProjetado,
+    maturidade,
   };
 }

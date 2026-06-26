@@ -28,10 +28,10 @@ export function useAuditAutores() {
   return useQuery({
     queryKey: ['audit-lookup-profiles'],
     queryFn: async (): Promise<Record<string, string>> => {
-      const { data } = await supabase.from('profiles').select('id, first_name, last_name');
+      const { data } = await supabase.from('profiles_safe').select('id, first_name, last_name');
       const map: Record<string, string> = {};
       for (const p of data ?? []) {
-        map[p.id] = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
+        if (p.id) map[p.id] = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
       }
       return map;
     },

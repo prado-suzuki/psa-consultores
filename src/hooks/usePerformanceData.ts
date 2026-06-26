@@ -196,7 +196,7 @@ export const usePerformanceData = (periodo: string, area: string) => {
             area:estrutura_areas!estrutura_equipes_area_id_fkey(name)
           )
         `),
-        supabase.from('profiles').select('id, first_name, last_name'),
+        supabase.from('profiles_safe' as any).select('id, first_name, last_name'),
       ]);
 
       return { members: membersRes.data || [], profiles: profilesRes.data || [] };

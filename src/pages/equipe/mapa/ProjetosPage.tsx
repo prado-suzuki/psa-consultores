@@ -4,9 +4,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { FolderKanban, SearchX } from 'lucide-react';
+import { FolderKanban, SearchX, Search, X } from 'lucide-react';
 import CadastroPageShell from '@/components/equipe/mapa/cadastro/CadastroPageShell';
-import CadastroToolbar from '@/components/equipe/mapa/cadastro/CadastroToolbar';
 import CadastroLista from '@/components/equipe/mapa/cadastro/CadastroLista';
 import CadastroItem from '@/components/equipe/mapa/cadastro/CadastroItem';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
@@ -18,7 +17,7 @@ import { useFocusParam } from '@/utils/useFocusParam';
 import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import { useProjetos, useDeleteProjeto } from '@/hooks/useProjetos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useEtapasLista, useMelhoriasLista, useGargalosLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useMelhoriasLista, useGargalosLista, useResponsaveisLista } from '@/hooks/useDominioListas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
@@ -44,6 +43,7 @@ export default function ProjetosPage() {
   const { data: etapas = [] } = useEtapasLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: gargalos = [] } = useGargalosLista();
+  const { data: responsaveis = [] } = useResponsaveisLista();
   const { cluster: fCluster } = useClusterGlobal();
 
   const [busca, setBusca] = useState('');
@@ -64,6 +64,25 @@ export default function ProjetosPage() {
       canon(p.status || '').includes(q) || canon(p.description || '').includes(q)
     );
   }, [noEscopo, busca]);
+
+  // Filtro de status (mesmos chips da página de Processos): um projeto é
+  // "mapeado" quando tem ≥1 processo com etapas mapeadas.
+  const [fMapeado, setFMapeado] = useState<'todos' | 'mapeados' | 'faltam'>('todos');
+  const processosComEtapas = useMemo(() => new Set(etapas.map(e => e.process_id)), [etapas]);
+  const projetosMapeadosIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const p of processos) {
+      if (p.project_id && processosComEtapas.has(p.id)) s.add(p.project_id);
+    }
+    return s;
+  }, [processos, processosComEtapas]);
+  const nMapeados = useMemo(() => visiveis.filter(p => projetosMapeadosIds.has(p.id)).length, [visiveis, projetosMapeadosIds]);
+  const nFaltam = visiveis.length - nMapeados;
+  const listaExibida = useMemo(() => {
+    if (fMapeado === 'mapeados') return visiveis.filter(p => projetosMapeadosIds.has(p.id));
+    if (fMapeado === 'faltam') return visiveis.filter(p => !projetosMapeadosIds.has(p.id));
+    return visiveis;
+  }, [visiveis, fMapeado, projetosMapeadosIds]);
 
   // --- Dados de apoio para a Modal da Paz ---
   const processosPorProjeto = useMemo(() => {
@@ -130,18 +149,56 @@ export default function ProjetosPage() {
       carregando={isLoading}
     >
       {noEscopo.length > 0 && (
-        <CadastroToolbar
-          busca={busca}
-          onBusca={setBusca}
-          total={noEscopo.length}
-          visiveis={visiveis.length}
-          substantivo={['projeto', 'projetos']}
-          placeholder="Buscar por nome, cluster ou status..."
-        />
+        <div className="cadastro-toolbar">
+          <label className="cadastro-busca" data-tour="page-search">
+            <Search size={15} strokeWidth={2.2} />
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar por nome, cluster ou status..."
+              aria-label="Buscar"
+            />
+            {busca && (
+              <button type="button" className="cadastro-busca-limpar" onClick={() => setBusca('')} aria-label="Limpar busca" title="Limpar busca">
+                <X size={14} />
+              </button>
+            )}
+          </label>
+          <div className="cadastro-tags" data-tour="projetos-tags">
+            <button
+              type="button"
+              className={`cadastro-tag${fMapeado === 'todos' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'todos'}
+              onClick={() => setFMapeado('todos')}
+              title="Mostrar todos os projetos"
+            >
+              <strong>{visiveis.length}</strong> {visiveis.length === 1 ? 'projeto' : 'projetos'}
+            </button>
+            <button
+              type="button"
+              className={`cadastro-tag cadastro-tag-ok${fMapeado === 'mapeados' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'mapeados'}
+              onClick={() => setFMapeado(m => (m === 'mapeados' ? 'todos' : 'mapeados'))}
+              title="Filtrar só os projetos com processos mapeados"
+            >
+              <strong>{nMapeados}</strong> {nMapeados === 1 ? 'mapeado' : 'mapeados'}
+            </button>
+            <button
+              type="button"
+              className={`cadastro-tag cadastro-tag-warn${fMapeado === 'faltam' ? ' ativa' : ''}`}
+              aria-pressed={fMapeado === 'faltam'}
+              onClick={() => setFMapeado(m => (m === 'faltam' ? 'todos' : 'faltam'))}
+              title="Filtrar só os projetos que faltam mapear"
+            >
+              <strong>{nFaltam}</strong> {nFaltam === 1 ? 'falta' : 'faltam'}
+            </button>
+          </div>
+        </div>
       )}
       <CadastroLista
         vazio={noEscopo.length === 0}
-        semResultadoBusca={visiveis.length === 0}
+        semResultadoBusca={listaExibida.length === 0}
         emptyState={
           <EmptyStateCadastro
             icone={<FolderKanban size={32} strokeWidth={1.8} />}
@@ -155,13 +212,21 @@ export default function ProjetosPage() {
           <EmptyStateCadastro
             compacto
             icone={<SearchX size={20} />}
-            titulo={`Nenhum projeto para "${busca.trim()}"`}
-            ctaLabel="Limpar busca"
-            onCta={() => setBusca('')}
+            titulo={
+              busca.trim()
+                ? `Nenhum projeto para "${busca.trim()}"`
+                : fMapeado === 'mapeados'
+                  ? 'Nenhum projeto mapeado neste escopo'
+                  : fMapeado === 'faltam'
+                    ? 'Tudo mapeado neste escopo 🎉'
+                    : 'Nenhum projeto neste escopo'
+            }
+            ctaLabel="Limpar filtros"
+            onCta={() => { setBusca(''); setFMapeado('todos'); }}
           />
         }
       >
-        {visiveis.map((p) => (
+        {listaExibida.map((p) => (
           <CadastroItem
             key={p.id}
             titulo={p.name}
@@ -183,6 +248,7 @@ export default function ProjetosPage() {
         backlog={detalheBacklog}
         processoNomeById={processoNomeById}
         gargalos={gargalos}
+        responsaveis={responsaveis}
         onClose={() => setDetalhe(null)}
         onEditar={() => { const p = detalhe; setDetalhe(null); if (p) abrirEditar(p); }}
       />

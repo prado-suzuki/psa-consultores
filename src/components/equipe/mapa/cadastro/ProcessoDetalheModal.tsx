@@ -7,12 +7,13 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  AlertTriangle, ChevronDown, Cpu, FileText, Pencil, Sparkles, Users, Waypoints, Workflow,
+  AlertTriangle, ChevronDown, Cpu, FileCode2, FileText, Network, Pencil, Sparkles, Users, Waypoints, Workflow,
 } from 'lucide-react';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import Modal from '@/components/equipe/mapa/Modal';
 import type { Processo, Etapa } from '@/types';
 import { normalizarComplexidade } from '@/components/equipe/mapa/cadastros/processoOpcoes';
+import { useMapaExports } from '@/hooks/useMapaExports';
 
 interface Props {
   aberto: boolean;
@@ -68,8 +69,10 @@ export default function ProcessoDetalheModal({
 }: Props) {
   const [abertas, setAbertas] = useState<Record<string, boolean>>({ etapas: true });
   const toggle = (k: string) => setAbertas((s) => ({ ...s, [k]: !s[k] }));
+  const exports = useMapaExports();
 
   if (!processo) return <Modal isOpen={aberto} onClose={onClose}><div /></Modal>;
+  const pid = processo.id;
 
   const docs = uniq(etapas.flatMap(e => [...(e.docsEntrada || []), ...(e.docsSaida || [])].map(d => d.nome)));
   const sistemas = uniq(etapas.flatMap(e => e.sistemas || []));
@@ -106,6 +109,19 @@ export default function ProcessoDetalheModal({
         </header>
 
         <div className="processo-det-body">
+          <div className="processo-det-export" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', marginRight: 2 }}>Exportar</span>
+            <button type="button" className="btn-cancel" onClick={() => exports.exportSopPdf(pid, 'era')} title="SOP em PDF (cenário atual)">
+              <FileText size={14} /> SOP (PDF)
+            </button>
+            <button type="button" className="btn-cancel" onClick={() => exports.exportSopMd(pid, 'era')} title="SOP em Markdown — mesmo conteúdo do PDF (ideal para refinar o mapeamento)">
+              <FileCode2 size={14} /> SOP (MD)
+            </button>
+            <button type="button" className="btn-cancel" onClick={() => exports.exportDiagramaMmd(pid)} title="Diagrama do processo (.mmd)">
+              <Network size={14} /> Diagrama (.mmd)
+            </button>
+          </div>
+
           {processo.description && (
             <p className="processo-det-descricao">{processo.description}</p>
           )}

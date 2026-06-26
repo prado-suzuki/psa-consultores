@@ -110,6 +110,7 @@ import BibliotecaModelos from "./pages/equipe/osg/BibliotecaModelos";
 import MontagemDocumentos from "./pages/equipe/osg/MontagemDocumentos";
 import GerarDocumento from "./pages/equipe/osg/GerarDocumento";
 import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
+import DocumentosCliente from "./pages/equipe/osg/DocumentosCliente";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
@@ -246,6 +247,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
               </Route>
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 

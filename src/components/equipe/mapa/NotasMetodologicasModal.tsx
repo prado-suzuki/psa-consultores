@@ -196,11 +196,14 @@ const DASHBOARD: Bloco[] = [
     ],
   },
   {
-    titulo: '5. ROI Consolidado',
+    titulo: '5. Evolução — Realizado vs Potencial',
+    intro: 'A economia mapeada é separada entre o que já foi capturado (melhorias concluídas) e o que ainda é potencial. À medida que as melhorias são implementadas, a economia migra de potencial para realizada.',
     linhas: [
       { indicador: 'Economia anual', formula: 'Σ annual_savings dos processos (pode ser negativa)', fontes: ['derivado'] },
-      { indicador: 'ROI / Resultado líquido (horizonte)', formula: 'ROI = (economiaMensal × horizonte) ÷ investment · Resultado líquido = economiaMensal × horizonte − investment', fontes: ['Horizonte — filtro do Dashboard'], nota: 'KPIs recalculam ao trocar o horizonte (12/24/36 meses); ROI e resultado líquido podem ser negativos antes do payback.' },
-      { indicador: 'Payback', formula: 'investimentoTotal ÷ (economia/12)', fontes: ['derivado'] },
+      { indicador: 'Realizada vs Projetada', formula: 'a economia de um processo é "realizada" quando TODAS as melhorias vinculadas estão Concluído; senão é projetada (potencial). Invariante: realizada + projetada = economia anual', fontes: ['improvement_status — Melhorias', 'etapa.ficou.* — Etapas'] },
+      { indicador: 'ROI / ROI Realizado', formula: 'ROI = (economiaMensal × horizonte) ÷ investimento · ROI Realizado = economia realizada ÷ investimento realizado', fontes: ['Horizonte — filtro do Dashboard', 'improvement_status — Melhorias'], nota: 'Quando o investimento ≈ 0 (ainda não informado), ROI e Payback aparecem como "em construção" — nunca um número enganoso.' },
+      { indicador: 'Payback', formula: 'investimentoTotal ÷ (economia/12) — "em construção" se investimento ou economia mensal ≈ 0', fontes: ['derivado'] },
+      { indicador: 'Maturidade do escopo', formula: '% médio das fases concluídas por processo: mapeado → diagnóstico → cenário futuro → investimento → implementado', fontes: ['Etapas, Gargalos, Melhorias — presença de dados'] },
       { indicador: 'Curva break-even', formula: 'economia mensal acumulada × horizonte (12/24/36) vs. investment', fontes: ['Horizonte — filtro do Dashboard'] },
     ],
   },
