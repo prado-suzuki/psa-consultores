@@ -213,5 +213,5 @@ export async function generateProjetoZip(input: GenerateProjetoZipInput): Promis
 
   const zipBytes = makeZip(entries);
   const projSlug = slugFilename(projeto.name, projeto.id);
-  downloadBlob(new Blob([zipBytes], { type: 'application/zip' }), `Projeto_${projSlug}_${today()}.zip`);
+  downloadBlob(new Blob([zipBytes as BlobPart], { type: 'application/zip' }), `Projeto_${projSlug}_${today()}.zip`);
 }
