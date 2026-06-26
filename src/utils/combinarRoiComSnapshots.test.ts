@@ -15,10 +15,19 @@ function calculoBase(): RoiAgregado {
     economiaAnual: 400, economiaMensal: 400 / 12, horasLiberadas: 10,
     investimento: 500,
     investimentoBreakdown: { treinamentoMelhorias: 100, sistemas: 0, execucaoMelhorias: 150, externo: 250 },
+    statusEconomia: 'projetado',
+    economiaRealizada: 0, economiaEmAndamento: 0, economiaProjetada: 400,
+    investimentoRealizado: 0, investimentoProjetado: 500,
     roiPercentual: 80, paybackMeses: 15,
+    roiRealizado: null, roiProjetado: 80,
+    maturidade: {
+      isMapeado: true, temDiagnostico: false, temCenarioFuturo: true,
+      temInvestimento: true, implementado: false, nivel: 3, statusEconomia: 'projetado',
+    },
   };
   return {
     porProcesso: [p1],
+    emMapeamento: [],
     custoAtualAno: 1000, custoFuturoAno: 600, horasAtualAno: 25, horasFuturoAno: 15,
     economiaAnual: 400, economiaMensal: 400 / 12, horasLiberadas: 10,
     taxaRetrabalhoAtual: 0, taxaRetrabalhoFuturo: 0,
@@ -26,7 +35,16 @@ function calculoBase(): RoiAgregado {
     investimentoBreakdown: { treinamentoMelhorias: 100, sistemas: 0, execucaoMelhorias: 150, externo: 250 },
     custosCategoria: { pessoas: 800, sistemas: 200, retrabalho: 0, externo: 0 },
     custosCategoriaFicou: { pessoas: 400, sistemas: 200, retrabalho: 0, externo: 0 },
+    economiaRealizada: 0, economiaEmAndamento: 0, economiaProjetada: 400,
+    investimentoRealizado: 0, investimentoProjetado: 500,
     roiPercentual: 80, paybackMeses: 15,
+    roiRealizado: null, roiProjetado: 80,
+    maturidade: {
+      total: 1, mapeados: 1, comDiagnostico: 0, comCenarioFuturo: 1,
+      comInvestimento: 1, implementados: 0,
+      porStatusEconomia: { realizado: 0, emAndamento: 0, projetado: 1, 'sem-melhoria': 0 },
+      completudePct: 60,
+    },
   };
 }
 
@@ -79,5 +97,33 @@ describe('combinarRoiComSnapshots', () => {
     expect(p.horasLiberadas).toBeCloseTo(20, 6);
     expect(p.roiPercentual).toBeCloseTo(60, 6);
     expect(p.custosCategoria.pessoas).toBeCloseTo(1600, 6);  // ratioCusto = 2000/1000 = 2
+  });
+
+  it('snapshot com investimento 0: razões ficam null (em construção)', () => {
+    const calc = calculoBase();
+    const snaps = [{
+      process_id: 'p1',
+      annual_cost: 2000, annual_savings: 600, investment: 0,
+      annual_hours: 50, hours_freed: 20, roi_percent: 0, payback_months: 0,
+    } as unknown as ProcessSnapshot];
+    const r = combinarRoiComSnapshots(calc, snaps);
+    expect(r.roiPercentual).toBeNull();
+    expect(r.paybackMeses).toBeNull();
+    expect(r.porProcesso[0].roiPercentual).toBeNull();
+    expect(r.porProcesso[0].paybackMeses).toBeNull();
+  });
+
+  it('partição realizado/projetado e maturidade passam intactas (overlay não as toca)', () => {
+    const calc = calculoBase();
+    const snaps = [{
+      process_id: 'p1',
+      annual_cost: 2000, annual_savings: 600, investment: 1000,
+      annual_hours: 50, hours_freed: 20, roi_percent: 60, payback_months: 20,
+    } as unknown as ProcessSnapshot];
+    const r = combinarRoiComSnapshots(calc, snaps);
+    expect(r.economiaRealizada).toBe(0);
+    expect(r.economiaProjetada).toBe(400);
+    expect(r.porProcesso[0].statusEconomia).toBe('projetado');
+    expect(r.porProcesso[0].maturidade.nivel).toBe(3);
   });
 });

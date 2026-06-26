@@ -432,6 +432,7 @@ export default function ProcessosPage() {
         backlog={detalheProjBacklog}
         processoNomeById={processoNomeById}
         gargalos={gargalos}
+        responsaveis={responsaveis}
         onClose={() => setProjetoDetalhe(null)}
         onEditar={() => { const pj = projetoDetalhe; setProjetoDetalhe(null); if (pj) setProjEmEdicao(pj); }}
       />

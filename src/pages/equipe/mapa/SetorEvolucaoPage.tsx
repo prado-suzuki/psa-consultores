@@ -12,10 +12,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Select from '@/components/equipe/mapa/Select';
 import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
-import { combinarRoiComSnapshots } from '@/utils/combinarRoiComSnapshots';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { processoIdsDoGargalo } from '@/utils/gargaloMelhorias';
 import { formatarMoeda, formatDecimal } from '@/utils/format';
+import { fmtRoi } from '@/utils/roiGuards';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
@@ -127,21 +127,10 @@ export default function SetorEvolucaoPage() {
     projetos,
   }), [processosFiltrados, etapasFiltradas, responsaveis, sistemas, gargalosFiltrados, melhorias, projetos]);
 
-  // Quando há snapshots no escopo, substitui os totais/breakdown pelo snapshot
-  // validado (mesma estratégia do DashboardRoiPage) — garante que economia/
-  // horas/ROI por processo aqui batam com a aba ROI Consolidado.
-  const snapshotsLatestDoEscopo = useMemo(() => {
-    const byProc = new Map<string, typeof snapshots[number]>();
-    for (const s of [...snapshots].sort((a, b) => a.snapshot_at < b.snapshot_at ? 1 : -1)) {
-      if (!idsProc.has(s.process_id)) continue;
-      if (!byProc.has(s.process_id)) byProc.set(s.process_id, s);
-    }
-    return [...byProc.values()];
-  }, [snapshots, idsProc]);
-  const roi: RoiAgregado = useMemo(
-    () => combinarRoiComSnapshots(roiLive, snapshotsLatestDoEscopo),
-    [roiLive, snapshotsLatestDoEscopo],
-  );
+  // Fase 4: setor/evolução também 100% AO VIVO (snapshot não entra no
+  // consolidado). A curva temporal abaixo continua usando o histórico de
+  // snapshots — esse é dado inerentemente histórico, não o consolidado atual.
+  const roi: RoiAgregado = roiLive;
 
   // Comparativo por processo: Como Era × Como Ficará (live).
   const comparativoPorProcesso = useMemo(() => {
@@ -285,7 +274,7 @@ export default function SetorEvolucaoPage() {
           />
           <KPICard
             label="ROI do portfólio"
-            valor={`${fmtNum(roiMedio, 1)}%`}
+            valor={fmtRoi(roiMedio)}
             hint={`Investimento ${fmtBRL(roi.investimentoTotal)}`}
             tooltip={dica('setor.kpi.roiMedio')}
           />
@@ -347,7 +336,7 @@ export default function SetorEvolucaoPage() {
                     {formatDecimal(l.deltaCustoPct, '%')}
                   </td>
                   <td>{formatDecimal(l.deltaHoras, ' h')}</td>
-                  <td>{formatDecimal(l.roi_percent, '%')}</td>
+                  <td>{fmtRoi(l.roi_percent)}</td>
                 </tr>
               ))}
             </tbody>

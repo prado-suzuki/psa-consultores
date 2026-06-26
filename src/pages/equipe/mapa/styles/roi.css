@@ -1003,7 +1003,7 @@
   border-radius: 12px;
   box-shadow: 0 1px 2px rgba(15,23,42,0.04);
   overflow: auto;
-  max-height: 640px;
+  max-height: 360px;
 }
 /* Durante a exportação (HTML/PDF) desclampa scrolls internos para a captura
    pegar o conteúdo INTEIRO (senão tabelas longas saem cortadas em 640px). */
@@ -1089,10 +1089,10 @@
 .dashv2-chart-wrap{
   width: 100%;
   max-width: 100%;
-  max-height: 240px;
+  max-height: 185px;
   margin: 0 auto;
 }
-.dashv2-chart-wrap svg{ display: block; max-height: 240px; }
+.dashv2-chart-wrap svg{ display: block; max-height: 185px; }
 
 .dashv2-legend{
   display: flex;
@@ -1264,7 +1264,7 @@
 .dashv2-step:last-child .dashv2-step-conn{ display: none; }
 
 /* ============ Story section — header de cada aba ============ */
-.dashv2-story{ display: flex; flex-direction: column; gap: 20px; }
+.dashv2-story{ display: flex; flex-direction: column; gap: 13px; }
 .dashv2-story-header{
   display: flex;
   gap: 16px;
@@ -2475,5 +2475,159 @@
 .cascata-sim-controls .speed-grp button.active{
   background: #0d9488;
   color: #fff;
+}
+
+/* ============================================================
+   Maturidade & Evolução (Redesign Dashboard ROI)
+   ============================================================ */
+
+/* Faixa de maturidade — medidor de progresso do escopo. Visual DISTINTO do
+   stepper de navegação (sem círculos numerados nem conectores): título à
+   esquerda + 4 medidores + completude à direita. */
+.dashv2-maturity-banner{
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+}
+.dashv2-mat-title{
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #94a3b8; max-width: 96px; line-height: 1.25; flex: 0 0 auto;
+}
+.dashv2-mat-fases{
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; flex: 1; min-width: 0;
+}
+.dashv2-mat-pill{ min-width: 0; }
+.dashv2-mat-pill-head{ display: flex; align-items: center; gap: 6px; }
+.dashv2-mat-pill-label{ font-size: 0.8rem; font-weight: 600; color: #334155; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dashv2-mat-pill-pct{ font-size: 0.92rem; font-weight: 800; color: #0f172a; }
+.dashv2-mat-bar{ height: 6px; border-radius: 3px; background: #eef2f6; overflow: hidden; margin-top: 5px; }
+.dashv2-mat-bar > div{ height: 100%; background: #0d9488; border-radius: 3px; }
+.dashv2-alert-chip{ font-size: 0.78rem; line-height: 1; flex: 0 0 auto; }
+.dashv2-mat-completude{
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding-left: 18px; border-left: 1px solid #e2e8f0; min-width: 96px; flex: 0 0 auto;
+}
+.dashv2-mat-completude-val{ font-size: 1.5rem; font-weight: 800; color: #0d9488; line-height: 1; }
+.dashv2-mat-completude-lbl{ font-size: 0.68rem; color: #64748b; text-align: center; margin-top: 3px; }
+
+/* Insight callout — narrativa acima/abaixo de gráficos */
+.dashv2-callout{
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-left: 4px solid #0d9488;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 4px 0 14px;
+}
+.dashv2-callout-icon{ font-size: 1rem; line-height: 1.4; }
+.dashv2-callout p{ margin: 0; font-size: 0.86rem; color: #0f172a; line-height: 1.45; }
+
+/* Heatmap de maturidade (CSS-grid, exporta limpo) */
+.dashv2-heatmap{ display: flex; flex-direction: column; gap: 4px; padding: 4px; }
+.dashv2-heatmap-row{
+  display: grid;
+  grid-template-columns: minmax(160px, 2fr) repeat(5, 1fr);
+  gap: 4px;
+  align-items: stretch;
+}
+.dashv2-heatmap-head{ position: sticky; top: 0; }
+.dashv2-heatmap-head .dashv2-heatmap-cell,
+.dashv2-heatmap-head .dashv2-heatmap-proc{
+  background: #1e293b; color: #fff; font-weight: 700; font-size: 0.72rem;
+}
+.dashv2-heatmap-proc{
+  display: flex; align-items: center;
+  padding: 6px 10px; border-radius: 6px; background: #f8fafc;
+  font-size: 0.82rem; color: #334155; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.dashv2-heatmap-cell{
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px; border-radius: 6px; font-size: 0.9rem; font-weight: 700;
+}
+.dashv2-heatmap-cell.on{ background: #ccfbf1; color: #0f766e; }
+.dashv2-heatmap-cell.off{ background: #f1f5f9; color: #cbd5e1; }
+
+/* Bullet — realizado vs meta */
+.dashv2-bullet{ padding: 18px 8px 8px; }
+.dashv2-bullet-track{
+  position: relative; height: 26px; border-radius: 6px;
+  background: #f1f5f9; border: 1px solid #e2e8f0; overflow: visible;
+}
+.dashv2-bullet-fill{ height: 100%; background: #0d9488; border-radius: 6px 0 0 6px; }
+.dashv2-bullet-meta{
+  position: absolute; top: -6px; width: 3px; height: 38px;
+  background: #1e3a8a; transform: translateX(-50%);
+}
+.dashv2-bullet-labels{
+  display: flex; justify-content: space-between; margin-top: 8px;
+  font-size: 0.8rem; color: #475569;
+}
+.dashv2-bullet-labels i{ display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+/* Funil de status das melhorias */
+.dashv2-funnel{ display: flex; flex-direction: column; gap: 8px; padding: 6px 4px; }
+.dashv2-funnel-row{ display: grid; grid-template-columns: 120px 1fr 36px; gap: 10px; align-items: center; }
+.dashv2-funnel-label{ font-size: 0.82rem; color: #475569; font-weight: 600; }
+.dashv2-funnel-track{ background: #f1f5f9; border-radius: 6px; height: 20px; overflow: hidden; }
+.dashv2-funnel-bar{ height: 100%; border-radius: 6px; min-width: 2px; transition: width .2s; }
+.dashv2-funnel-val{ font-size: 0.85rem; font-weight: 700; color: #0f172a; text-align: right; }
+
+/* Navegação por páginas (tabs) — substitui o stepper e deixa claro que o
+   relatório TEM páginas; a maturidade da fase entra como chip em cada tab. */
+.dashv2-pagenav{ margin-bottom: 16px; }
+.dashv2-pagenav-head{
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  margin-bottom: 8px; padding: 0 2px;
+}
+.dashv2-pagenav-eyebrow{ font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #94a3b8; }
+.dashv2-pagenav-mat{ font-size: 0.78rem; color: #64748b; }
+.dashv2-pagenav-mat strong{ color: #0d9488; }
+.dashv2-tabs{ display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.dashv2-tab{
+  display: flex; align-items: center; gap: 9px;
+  padding: 9px 11px; border: 1px solid #e2e8f0; border-radius: 10px;
+  background: #fff; cursor: pointer; text-align: left; min-width: 0;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+}
+.dashv2-tab:hover{ border-color: #cbd5e1; background: #f8fafc; }
+.dashv2-tab-num{
+  flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: #f1f5f9; color: #64748b; font-size: 0.74rem; font-weight: 800;
+}
+.dashv2-tab-text{ display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.dashv2-tab-label{ font-size: 0.8rem; font-weight: 700; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dashv2-tab-sub{ font-size: 0.68rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dashv2-tab-mat{ flex: 0 0 auto; display: inline-flex; align-items: center; gap: 3px; font-size: 0.72rem; font-weight: 700; color: #475569; }
+.dashv2-tab.active{ border-color: #0d9488; background: #f0fdfa; box-shadow: inset 0 0 0 1px #0d9488; }
+.dashv2-tab.active .dashv2-tab-num{ background: #0d9488; color: #fff; }
+.dashv2-tab.active .dashv2-tab-label{ color: #0f766e; }
+.dashv2-tab.pendente{ opacity: 0.55; }
+
+/* Par de painéis lado a lado (gráficos/tabelas alinhados em 2 colunas) */
+.dashv2-grid2{ display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+.dashv2-grid2 > div{ display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.dashv2-grid2 .dashv2-section-header{ margin-top: 0; }
+.dashv2-grid2 .dashv2-table-wrap{ max-height: 420px; }
+@media (max-width: 900px){ .dashv2-grid2{ grid-template-columns: 1fr; } }
+
+/* Responsivo: tabs e banner empilham em telas estreitas */
+@media (max-width: 1024px){
+  .dashv2-tabs{ grid-template-columns: repeat(3, 1fr); }
+  .dashv2-tab-sub{ display: none; }
+}
+@media (max-width: 720px){
+  .dashv2-tabs{ grid-template-columns: repeat(2, 1fr); }
+  .dashv2-maturity-banner{ flex-direction: column; align-items: stretch; }
+  .dashv2-mat-fases{ grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .dashv2-mat-completude{ border-left: 0; border-top: 1px solid #e2e8f0; padding-left: 0; padding-top: 10px; }
 }
 

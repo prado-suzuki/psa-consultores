@@ -1,20 +1,21 @@
 // SOP simples — Cenário Atual (As-Is) OU Cenário Otimizado (To-Be).
-// Substitui o gerador legado em sopGenerator.ts (html2canvas + jsPDF) por
-// React-PDF. Estrutura:
-//   - Capa
-//   - Identificação do processo
-//   - Etapas (uma seção por etapa)
-//   - Sistemas, Documentos, Responsáveis, Gargalos, Melhorias (quando aplicável)
+// Renderiza em React-PDF a partir do modelo PURO `buildSopModel` — a MESMA
+// fonte de texto/valores usada pelo Markdown (sopMarkdown) e pelo script de
+// extração. Assim PDF e MD ficam idênticos por construção.
+//
+// Estrutura: Capa · Identificação · Etapas · Sistemas · Documentos ·
+// Responsáveis · Gargalos (As-Is) / Melhorias (To-Be).
 
-import { Document, Page, Text, View } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image } from '@react-pdf/renderer';
 import type {
-  Processo, Etapa, Documento, Sistema, Responsavel, Gargalo, Melhoria,
+  Processo, Projeto, Etapa, Documento, Sistema, Responsavel, Gargalo, Melhoria,
 } from '@/types';
+import logoPsaWhite from '@/assets/logo-psa.png';
 import { styles, PDF_COLORS } from './theme';
-import { fmtPercent, joinDocs, joinPeople, todayBR, pad2 } from './helpers';
-import { melhoriaIdsDoProcesso } from '../gargaloMelhorias';
+import { pad2 } from './helpers';
+import { buildSopModel, type SOPMode } from './sopModel';
 
-export type SOPMode = 'era' | 'ficou';
+export type { SOPMode };
 
 export interface SopDocumentProps {
   processo: Processo;
@@ -24,14 +25,16 @@ export interface SopDocumentProps {
   responsaveis: Responsavel[];
   gargalos: Gargalo[];
   melhorias?: Melhoria[];
+  /** Projeto do processo — usado na capa (nome + cluster). Opcional. */
+  projeto?: Projeto | null;
   mode: SOPMode;
 }
 
-function PageHeader({ processo, scenarioLabel }: { processo: Processo; scenarioLabel: string }) {
+function PageHeader({ titulo, scenarioLabel }: { titulo: string; scenarioLabel: string }) {
   return (
     <View style={styles.pageHeader} fixed>
       <View>
-        <Text style={styles.pageHeaderTitle}>{processo.name}</Text>
+        <Text style={styles.pageHeaderTitle}>{titulo}</Text>
         <Text style={styles.pageHeaderSub}>{scenarioLabel}</Text>
       </View>
       <Text style={styles.pageHeaderSub}>PSA Consultores · MAPA</Text>
@@ -69,132 +72,98 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 export function SopDocument(props: SopDocumentProps) {
-  const { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias = [], mode } = props;
-  const isFicou = mode === 'ficou';
-  const scenarioLabel = isFicou ? 'Cenário Otimizado · As-If' : 'Cenário Atual · As-Is';
-  const data = todayBR();
-
-  // Gargalos pertencem à ETAPA (gargalo_etapas) — resolvidos por etapa abaixo.
-  // Melhorias do processo vêm do vínculo DIRETO melhoria_processos (sem
-  // gargalo_melhorias — esse vínculo não existe mais).
-  const gargaloById = new Map(gargalos.map(g => [g.id, g]));
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
-  const procMelhorias = isFicou ? melhorias.filter(m => melhoriaIdsProc.has(m.id)) : [];
-
-  // Sistemas/documentos do cenário
-  const sisOf = (e: Etapa) => ((isFicou ? (e.ficou?.sistemas ?? e.sistemas) : e.sistemas) || []);
-  const docsEntOf = (e: Etapa) => ((isFicou ? (e.ficou?.docsEntrada ?? e.docsEntrada) : e.docsEntrada) || []);
-  const docsSaiOf = (e: Etapa) => ((isFicou ? (e.ficou?.docsSaida ?? e.docsSaida) : e.docsSaida) || []);
-
-  const docEntradaNames = new Set<string>();
-  etapas.forEach(e =>
-    docsEntOf(e).forEach(d => docEntradaNames.add(typeof d === 'string' ? d : d.nome)),
-  );
-  const docsEntrada = documentos.filter(d => docEntradaNames.has(d.nome));
-
-  const docSaidaNames = new Set<string>();
-  etapas.forEach(e =>
-    docsSaiOf(e).forEach(d => docSaidaNames.add(typeof d === 'string' ? d : d.nome)),
-  );
-  const docsSaida = documentos.filter(d => docSaidaNames.has(d.nome));
-
-  const sisKeys = new Set<string>();
-  etapas.forEach(e => sisOf(e).forEach(s => sisKeys.add(s)));
-  const sisList = sistemas.filter(s => sisKeys.has(s.id) || sisKeys.has(s.nome));
-
-  const respNames = new Set<string>();
-  etapas.forEach(e => {
-    const exec = (isFicou ? (e.ficou?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
-    exec.forEach(r => r.nome && respNames.add(r.nome));
-  });
-  const respList = responsaveis.filter(r => respNames.has(r.name));
-
+  const m = buildSopModel(props);
+  const { identificacao: id } = m;
   let sectionNum = 0;
   const nextNum = () => ++sectionNum;
+  const projetoLinha = [m.projetoNome, m.clusterNome].filter(Boolean).join('   ·   ');
 
   return (
-    <Document title={`SOP - ${processo.name}`} author="PSA Consultores">
+    <Document title={`SOP - ${id.nome}`} author="PSA Consultores">
       {/* CAPA */}
       <Page size="A4" style={styles.coverPage}>
-        <Text style={styles.coverEyebrow}>SOP · PROCEDIMENTO OPERACIONAL</Text>
-        <Text style={styles.coverTitle}>{processo.name}</Text>
-        <Text style={styles.coverSub}>{scenarioLabel}</Text>
-        <Text style={styles.coverMeta}>Emissão · {data}</Text>
+        <Image src={logoPsaWhite} style={styles.coverLogo} />
+        <View style={styles.coverCenter}>
+          <Text style={styles.coverEyebrow}>SOP · PROCEDIMENTO OPERACIONAL</Text>
+          <Text style={styles.coverTitle}>{id.nome}</Text>
+          <Text style={styles.coverSub}>{m.scenarioLabel}</Text>
+          {!!projetoLinha && <Text style={styles.coverProject}>{projetoLinha}</Text>}
+        </View>
+        <Text style={styles.coverMeta}>Emissão · {m.data}</Text>
       </Page>
 
       {/* CONTEÚDO */}
       <Page size="A4" style={styles.page}>
-        <PageHeader processo={processo} scenarioLabel={scenarioLabel} />
+        <PageHeader titulo={id.nome} scenarioLabel={m.scenarioLabel} />
 
-        {/* Identificação */}
+        {/* Identificação — ficha */}
         <View style={styles.section}>
           <SectionHeader num={nextNum()} title="Identificação" />
-          <InfoRow label="Nome" value={processo.name} />
-          <InfoRow label="Descrição" value={processo.description || ''} />
-          <InfoRow label="Entregável" value={processo.deliverable || ''} />
-          <InfoRow label="Frequência" value={processo.frequency || ''} />
-          <InfoRow label="Complexidade" value={processo.complexity_level || ''} />
+          {(!!id.frequencia || !!id.complexidade) && (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 }}>
+              {!!id.frequencia && <Text style={styles.chip}>Frequência · {id.frequencia}</Text>}
+              {!!id.complexidade && <Text style={styles.chip}>Complexidade · {id.complexidade}</Text>}
+            </View>
+          )}
+          {!!id.descricao && (
+            <View style={{ marginBottom: 6 }}>
+              <Text style={[styles.small, styles.muted, { marginBottom: 1 }]}>Descrição</Text>
+              <Text style={[styles.small, { lineHeight: 1.4 }]}>{id.descricao}</Text>
+            </View>
+          )}
+          {!!id.entregavel && (
+            <View>
+              <Text style={[styles.small, styles.muted, { marginBottom: 1 }]}>Entregável</Text>
+              <Text style={[styles.small, { lineHeight: 1.4 }]}>{id.entregavel}</Text>
+            </View>
+          )}
         </View>
 
         {/* Etapas */}
         <View style={styles.section}>
-          <SectionHeader num={nextNum()} title={`Etapas (${etapas.length})`} />
-          {etapas.length === 0 && (
+          <SectionHeader num={nextNum()} title={`Etapas (${m.etapas.length})`} />
+          {m.etapas.length === 0 && (
             <Text style={[styles.small, styles.muted]}>Nenhuma etapa cadastrada.</Text>
           )}
-          {etapas.map((e, i) => {
-            const f = isFicou ? e.ficou : null;
-            const descricao = (isFicou ? (f?.description ?? e.description) : e.description) || '';
-            const execution = (isFicou ? (f?.execution ?? e.execution) : e.execution) || '';
-            const exec = (isFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
-            const sisEtapa = sisOf(e);
-            const docsE = docsEntOf(e);
-            const docsS = docsSaiOf(e);
-            const taxa = (isFicou ? (f?.rework_rate ?? e.rework_rate) : e.rework_rate) ?? 0;
-            // Gargalos são do cenário AS-IS (vínculo na própria etapa).
-            const gargalosDaEtapa = isFicou
-              ? []
-              : (e.gargalos || []).map(id => gargaloById.get(id)).filter((g): g is Gargalo => Boolean(g));
-            return (
-              <View key={e.id} style={styles.card} wrap={false}>
-                <Text style={styles.cardTitle}>{i + 1}. {e.name}</Text>
-                {!!descricao && (
-                  <Text style={[styles.small, { marginBottom: 4 }]}>{descricao}</Text>
-                )}
-                <InfoRow label="Execução" value={execution} />
-                <InfoRow label="Executado por" value={joinPeople(exec)} />
-                <InfoRow label="Sistemas" value={sisEtapa.map(s => sistemas.find(x => x.id === s || x.nome === s)?.nome ?? s).join(' · ') || '—'} />
-                <InfoRow label="Docs entrada" value={joinDocs(docsE)} />
-                <InfoRow label="Docs saída" value={joinDocs(docsS)} />
-                <InfoRow label="Taxa retrabalho" value={fmtPercent(taxa)} />
-                {gargalosDaEtapa.length > 0 && (
-                  <View style={{ marginTop: 4 }}>
-                    <Text style={[styles.small, styles.muted, { marginBottom: 1 }]}>Gargalos desta etapa</Text>
-                    {gargalosDaEtapa.map(g => (
-                      <Text key={g.id} style={styles.small}>
-                        • {g.nome}{g.descricao ? ` — ${g.descricao}` : ''}{g.origem ? ` (${g.origem})` : ''}
-                      </Text>
-                    ))}
-                  </View>
-                )}
-              </View>
-            );
-          })}
+          {m.etapas.map((e, i) => (
+            <View key={i} style={styles.card} wrap={false}>
+              <Text style={styles.cardTitle}>{e.ordem}. {e.nome}</Text>
+              {!!e.descricao && (
+                <Text style={[styles.small, { marginBottom: 4 }]}>{e.descricao}</Text>
+              )}
+              <InfoRow label="Execução" value={e.execucao} />
+              <InfoRow label="Executado por" value={e.executadoPor} />
+              <InfoRow label="Sistemas" value={e.sistemas} />
+              <InfoRow label="Docs entrada" value={e.docsEntrada} />
+              <InfoRow label="Docs saída" value={e.docsSaida} />
+              <InfoRow label="Taxa retrabalho" value={e.taxaRetrabalho} />
+              {e.gargalos.length > 0 && (
+                <View style={{ marginTop: 4 }}>
+                  <Text style={[styles.small, styles.muted, { marginBottom: 1 }]}>Gargalos desta etapa</Text>
+                  {e.gargalos.map((g, gi) => (
+                    <Text key={gi} style={styles.small}>
+                      • {g.nome}{g.descricao ? ` — ${g.descricao}` : ''}{g.origem ? ` (${g.origem})` : ''}
+                    </Text>
+                  ))}
+                </View>
+              )}
+            </View>
+          ))}
         </View>
 
         {/* Sistemas */}
-        {sisList.length > 0 && (
-          <View style={styles.section} wrap={false}>
+        {m.sistemas.length > 0 && (
+          <View style={styles.section}>
             <SectionHeader num={nextNum()} title="Sistemas" />
             <View style={styles.table}>
               <View style={styles.trHeader}>
                 <Text style={[styles.th, { width: '40%' }]}>Sistema</Text>
                 <Text style={[styles.th, { flex: 1 }]}>Descrição</Text>
               </View>
-              {sisList.map(s => (
-                <View key={s.id} style={styles.tr}>
+              {m.sistemas.map((s, i) => (
+                <View key={i} style={styles.tr}>
                   <Text style={[styles.td, { width: '40%' }]}>{s.nome}</Text>
-                  <Text style={[styles.td, { flex: 1 }]}>{s.descricao || '—'}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{s.descricao}</Text>
                 </View>
               ))}
             </View>
@@ -202,8 +171,8 @@ export function SopDocument(props: SopDocumentProps) {
         )}
 
         {/* Documentos entrada */}
-        {docsEntrada.length > 0 && (
-          <View style={styles.section} wrap={false}>
+        {m.docsEntrada.length > 0 && (
+          <View style={styles.section}>
             <SectionHeader num={nextNum()} title="Documentos · Entrada" />
             <View style={styles.table}>
               <View style={styles.trHeader}>
@@ -211,11 +180,11 @@ export function SopDocument(props: SopDocumentProps) {
                 <Text style={[styles.th, { width: '20%' }]}>Tipo</Text>
                 <Text style={[styles.th, { flex: 1 }]}>Origem</Text>
               </View>
-              {docsEntrada.map(d => (
-                <View key={d.id} style={styles.tr}>
+              {m.docsEntrada.map((d, i) => (
+                <View key={i} style={styles.tr}>
                   <Text style={[styles.td, { width: '40%' }]}>{d.nome}</Text>
-                  <Text style={[styles.td, { width: '20%' }]}>{d.tipo || '—'}</Text>
-                  <Text style={[styles.td, { flex: 1 }]}>{d.origem || '—'}</Text>
+                  <Text style={[styles.td, { width: '20%' }]}>{d.tipo}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{d.origem}</Text>
                 </View>
               ))}
             </View>
@@ -223,8 +192,8 @@ export function SopDocument(props: SopDocumentProps) {
         )}
 
         {/* Documentos saída */}
-        {docsSaida.length > 0 && (
-          <View style={styles.section} wrap={false}>
+        {m.docsSaida.length > 0 && (
+          <View style={styles.section}>
             <SectionHeader num={nextNum()} title="Documentos · Saída" />
             <View style={styles.table}>
               <View style={styles.trHeader}>
@@ -232,11 +201,11 @@ export function SopDocument(props: SopDocumentProps) {
                 <Text style={[styles.th, { width: '20%' }]}>Tipo</Text>
                 <Text style={[styles.th, { flex: 1 }]}>Origem</Text>
               </View>
-              {docsSaida.map(d => (
-                <View key={d.id} style={styles.tr}>
+              {m.docsSaida.map((d, i) => (
+                <View key={i} style={styles.tr}>
                   <Text style={[styles.td, { width: '40%' }]}>{d.nome}</Text>
-                  <Text style={[styles.td, { width: '20%' }]}>{d.tipo || '—'}</Text>
-                  <Text style={[styles.td, { flex: 1 }]}>{d.origem || '—'}</Text>
+                  <Text style={[styles.td, { width: '20%' }]}>{d.tipo}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{d.origem}</Text>
                 </View>
               ))}
             </View>
@@ -244,8 +213,8 @@ export function SopDocument(props: SopDocumentProps) {
         )}
 
         {/* Responsáveis */}
-        {respList.length > 0 && (
-          <View style={styles.section} wrap={false}>
+        {m.responsaveis.length > 0 && (
+          <View style={styles.section}>
             <SectionHeader num={nextNum()} title="Responsáveis" />
             <View style={styles.table}>
               <View style={styles.trHeader}>
@@ -253,30 +222,40 @@ export function SopDocument(props: SopDocumentProps) {
                 <Text style={[styles.th, { width: '30%' }]}>Cargo</Text>
                 <Text style={[styles.th, { flex: 1 }]}>Custo/hora</Text>
               </View>
-              {respList.map(r => (
-                <View key={r.id} style={styles.tr}>
-                  <Text style={[styles.td, { width: '40%' }]}>{r.name}</Text>
-                  <Text style={[styles.td, { width: '30%' }]}>{r.level || '—'}</Text>
-                  <Text style={[styles.td, { flex: 1 }]}>
-                    {r.hourly_rate ? `R$ ${r.hourly_rate.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}
-                  </Text>
+              {m.responsaveis.map((r, i) => (
+                <View key={i} style={styles.tr}>
+                  <Text style={[styles.td, { width: '40%' }]}>{r.nome}</Text>
+                  <Text style={[styles.td, { width: '30%' }]}>{r.cargo}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{r.custoHora}</Text>
                 </View>
               ))}
             </View>
           </View>
         )}
 
-        {/* Gargalos aparecem por etapa (acima). No To-Be, listamos as melhorias. */}
-        {isFicou && procMelhorias.length > 0 && (
-          <View style={styles.section} wrap={false}>
-            <SectionHeader num={nextNum()} title={`Melhorias projetadas (${procMelhorias.length})`} />
-            {procMelhorias.map(m => (
-              <View key={m.id} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: PDF_COLORS.accentSoft }]}>
-                <Text style={styles.cardTitle}>{m.improvement_description}</Text>
-                {!!m.improvement_description && <Text style={[styles.small, { marginBottom: 2 }]}>{m.improvement_description}</Text>}
-                {!!m.improvement_status && (
-                  <Text style={[styles.small, styles.muted]}>Status: {m.improvement_status}</Text>
-                )}
+        {/* Gargalos do processo (As-Is) — mesma fonte do diagrama. */}
+        {!m.isFicou && m.gargalos.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader num={nextNum()} title={`Gargalos identificados (${m.gargalos.length})`} />
+            {m.gargalos.map((g, i) => (
+              <View key={i} wrap={false} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: PDF_COLORS.warning }]}>
+                <Text style={styles.cardTitle}>{g.nome}</Text>
+                {!!g.descricao && <Text style={[styles.small, { marginBottom: 2 }]}>{g.descricao}</Text>}
+                {!!g.origem && <Text style={[styles.small, styles.muted]}>Origem: {g.origem}</Text>}
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* No To-Be, listamos as melhorias projetadas. */}
+        {m.isFicou && m.melhorias.length > 0 && (
+          <View style={styles.section}>
+            <SectionHeader num={nextNum()} title={`Melhorias projetadas (${m.melhorias.length})`} />
+            {m.melhorias.map((mel, i) => (
+              <View key={i} wrap={false} style={[styles.card, { borderLeftWidth: 3, borderLeftColor: PDF_COLORS.accentSoft }]}>
+                <Text style={styles.cardTitle}>{mel.titulo}</Text>
+                {!!mel.status && <Text style={[styles.small, styles.muted]}>Status: {mel.status}</Text>}
+                {!!mel.acoes && <Text style={[styles.small, styles.muted]}>Ações: {mel.acoes}</Text>}
               </View>
             ))}
           </View>

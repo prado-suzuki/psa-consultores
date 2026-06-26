@@ -103,11 +103,28 @@ export const styles = StyleSheet.create({
   // Capa
   coverPage: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 50,
+    paddingVertical: 72,
     backgroundColor: PDF_COLORS.primary,
     color: PDF_COLORS.white,
+  },
+  coverLogo: {
+    width: 150,
+    height: 84,
+    objectFit: 'contain',
+  },
+  coverCenter: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  coverProject: {
+    fontSize: PDF_FONT_SIZE.sm,
+    color: '#cbd5e1',
+    textAlign: 'center',
+    marginTop: 18,
   },
   coverEyebrow: {
     fontSize: PDF_FONT_SIZE.sm,

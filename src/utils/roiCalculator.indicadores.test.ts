@@ -42,7 +42,7 @@ function cenario(): RoiInput {
   } as unknown as Etapa;
   const melhorias = [
     {
-      id: 'm1', improvement_description: 'Automação p1',
+      id: 'm1', improvement_description: 'Automação p1', improvement_status: 'Concluído',
       processos: ['p1'], sistemas: [],
       executadoPor: [{ responsavelId: 'r2', nome: '', horas: 3 }],
       training_hours: 4, one_time_external_cost: 1000,
@@ -93,8 +93,8 @@ describe('calcularRoi — todos os indicadores e séries do Dashboard ROI', () =
     expect(p2.custoAnualFicou).toBeCloseTo(1000, 6);
     expect(p2.economiaAnual).toBeCloseTo(0, 6);
     expect(p2.investimento).toBeCloseTo(0, 6);
-    expect(p2.roiPercentual).toBeCloseTo(0, 6);
-    expect(p2.paybackMeses).toBeCloseTo(0, 6);
+    expect(p2.roiPercentual).toBeNull();   // investimento 0 → razão indefinida (não 0%)
+    expect(p2.paybackMeses).toBeNull();
   });
 
   it('KPIs globais (cards do topo)', () => {
@@ -148,5 +148,37 @@ describe('calcularRoi — todos os indicadores e séries do Dashboard ROI', () =
     expect(p1.economiaAnual + p2.economiaAnual).toBeCloseTo(r.economiaAnual, 6);
     expect(p1.investimento + p2.investimento).toBeCloseTo(r.investimentoTotal, 6);
     expect(p1.horasLiberadas + p2.horasLiberadas).toBeCloseTo(r.horasLiberadas, 6);
+  });
+
+  it('partição Realizado vs Projetado + maturidade (m1 Concluído ⇒ p1 realizado)', () => {
+    // p1: única melhoria (m1) está Concluído ⇒ economia toda realizada
+    expect(p1.statusEconomia).toBe('realizado');
+    expect(p1.economiaRealizada).toBeCloseTo(4248, 6);
+    expect(p1.economiaProjetada).toBeCloseTo(0, 6);
+    expect(p1.investimentoRealizado).toBeCloseTo(2200, 6);
+    expect(p1.investimentoProjetado).toBeCloseTo(0, 6);
+    expect(p1.roiRealizado).toBeCloseTo(193.0909, 3);
+    expect(p1.roiProjetado).toBeCloseTo(193.0909, 3);
+    // p1 maturidade: mapeado + diagnóstico (rework>0) + futuro (ficou) + investimento + implementado
+    expect(p1.maturidade).toMatchObject({
+      isMapeado: true, temDiagnostico: true, temCenarioFuturo: true,
+      temInvestimento: true, implementado: true, nivel: 5,
+    });
+    // p2: sem melhoria ⇒ sem-melhoria, sem cenário futuro
+    expect(p2.statusEconomia).toBe('sem-melhoria');
+    expect(p2.economiaRealizada).toBeCloseTo(0, 6);
+    expect(p2.maturidade).toMatchObject({ temCenarioFuturo: false, temInvestimento: false, implementado: false, nivel: 1 });
+    // agregado + invariantes de 2 vias
+    expect(r.economiaRealizada).toBeCloseTo(4248, 6);
+    expect(r.economiaProjetada).toBeCloseTo(0, 6);
+    expect(r.investimentoRealizado).toBeCloseTo(2200, 6);
+    expect(r.roiRealizado).toBeCloseTo(193.0909, 3);
+    expect(r.economiaRealizada + r.economiaProjetada).toBeCloseTo(r.economiaAnual, 6);
+    expect(r.investimentoRealizado + r.investimentoProjetado).toBeCloseTo(r.investimentoTotal, 6);
+    // maturidade de escopo: 2 processos, 1 implementado
+    expect(r.maturidade.total).toBe(2);
+    expect(r.maturidade.implementados).toBe(1);
+    expect(r.maturidade.porStatusEconomia.realizado).toBe(1);
+    expect(r.maturidade.porStatusEconomia['sem-melhoria']).toBe(1);
   });
 });

@@ -11,14 +11,13 @@ import type { ReactNode } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, FileText, GitCompare, Layers, Network, Pencil, Settings2 } from 'lucide-react';
+import { ArrowLeft, FileCode2, FileText, GitCompare, Layers, Network, Pencil, Settings2 } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import ChipSelector from '@/components/equipe/mapa/ChipSelector';
 import DecimalInput from '@/components/equipe/mapa/DecimalInput';
 import Select from '@/components/equipe/mapa/Select';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
-import WizardRoi from '@/components/equipe/mapa/WizardRoi';
 import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCadastro';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
@@ -30,6 +29,8 @@ import { generateSOP, generateSOPComparativo } from '@/utils/pdf/generators';
 import { calcularRoi } from '@/utils/roiCalculator';
 import { diagnosticarRoi } from '@/utils/diagnosticoRoi';
 import { buildProcessDiagram } from '@/utils/processDiagram';
+import { slugFilename } from '@/utils/slugify';
+import { useMapaExports } from '@/hooks/useMapaExports';
 import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
 import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
 import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
@@ -54,12 +55,11 @@ const EXECUCAO_OPCOES = [
   { value: 'automatica', label: 'Automática' },
 ];
 
-type Aba = 'como-era' | 'como-ficou' | 'configurar-roi';
+type Aba = 'como-era' | 'como-ficou';
 
 const ABAS: { id: Aba; label: string }[] = [
   { id: 'como-era',        label: 'Como era' },
   { id: 'como-ficou',      label: 'Como ficou' },
-  { id: 'configurar-roi',  label: 'Configurar ROI' },
 ];
 
 // Ordem canônica das etapas (a reordenação é persistida na coluna `ordem`).
@@ -116,6 +116,7 @@ export default function MapearProcessoPage() {
   const upsertEtapaToBe = useUpsertEtapaToBe();
   const updateMelhoria = useUpdateMelhoria();
   const updateGargalo = useUpdateGargalo();
+  const mapaExports = useMapaExports();
 
   // Edit Etapas (modal) — usado por "Como era" e "Como ficou"
   const [editEtapasOpen, setEditEtapasOpen] = useState(false);
@@ -189,7 +190,8 @@ export default function MapearProcessoPage() {
   // ============================================================
   const handleGenerateSOP = async (mode: 'era' | 'ficou') => {
     try {
-      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode);
+      const projetoDoProcesso = projetos.find(p => p.id === processo.project_id) || null;
+      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode, { projeto: projetoDoProcesso });
     } catch (err) {
       toast.error('Erro ao gerar SOP', { description: err instanceof Error ? err.message : String(err) });
     }
@@ -239,7 +241,7 @@ export default function MapearProcessoPage() {
     melhorias,
     projeto: projetos.find(p => p.id === processo.project_id) || null,
   });
-  const diagramaFilename = `Diagrama_${processo.id}_${new Date().toISOString().slice(0, 10)}`;
+  const diagramaFilename = `Diagrama_${slugFilename(processo.name, processo.id)}_${new Date().toISOString().slice(0, 10)}`;
 
   // ============================================================
   //  Handlers — Editar Etapas (Como era / Como ficou)
@@ -531,6 +533,18 @@ export default function MapearProcessoPage() {
           <GitCompare size={15} strokeWidth={2.1} />
           <span>SOP (comparativo)</span>
         </button>
+        <button className="mapear-dl-btn" onClick={() => mapaExports.exportSopMd(processo.id, 'era')} title="Baixar SOP em Markdown — Como Era (mesmo conteúdo do PDF; ideal para refinar o mapeamento)">
+          <FileCode2 size={15} strokeWidth={2.1} />
+          <span>SOP MD (antes)</span>
+        </button>
+        <button className="mapear-dl-btn" onClick={() => mapaExports.exportSopMd(processo.id, 'ficou')} title="Baixar SOP em Markdown — Como Ficou (cenário projetado)">
+          <FileCode2 size={15} strokeWidth={2.1} />
+          <span>SOP MD (como ficou)</span>
+        </button>
+        <button className="mapear-dl-btn" onClick={() => mapaExports.exportComparativoMd(processo.id)} title="Baixar SOP comparativo em Markdown (mesmo conteúdo do PDF comparativo)">
+          <FileCode2 size={15} strokeWidth={2.1} />
+          <span>SOP MD (comparativo)</span>
+        </button>
         <button className="mapear-dl-btn" onClick={() => setDiagramaOpen(true)} title="Visualizar e baixar o diagrama de ligações do processo (processo · etapas)">
           <Network size={15} strokeWidth={2.1} />
           <span>Diagrama (processo · etapas)</span>
@@ -564,9 +578,7 @@ export default function MapearProcessoPage() {
               onClick={() => setAba(a.id)}
             >
               <Tooltip text={dica(
-                a.id === 'como-era' ? 'mapear.aba.comoEra'
-                : a.id === 'como-ficou' ? 'mapear.aba.comoFicou'
-                : 'mapear.aba.configurarRoi'
+                a.id === 'como-era' ? 'mapear.aba.comoEra' : 'mapear.aba.comoFicou'
               )}>{a.label}</Tooltip>
               {ativa && (
                 <motion.span
@@ -582,20 +594,8 @@ export default function MapearProcessoPage() {
 
       {/* Painel das abas */}
       <div className="mapear-painel">
-        {/* "Configurar ROI" fica sempre montado para preservar o estado do wizard */}
-        <div style={{ display: aba === 'configurar-roi' ? 'block' : 'none' }}>
-          <WizardRoi
-            processo={processo}
-            etapas={etapas}
-            responsaveis={responsaveis}
-            sistemas={sistemas}
-            gargalos={gargalosDoProcesso(gargalos, processo.id)}
-            melhorias={melhorias}
-            onSnapshotCriado={handleSnapshotCriado}
-            onEditarEtapas={(etapaId) => openEditEtapas('era', etapaId)}
-          />
-        </div>
-
+        {/* Aba "Configurar ROI" removida (Fase 4): diagnóstico migrou para o doutor
+            no modal do projeto; salvar mensuração volta na Fase 5 (snapshot). */}
         <AnimatePresence mode="wait">
           {aba === 'como-era' && (
             <motion.div

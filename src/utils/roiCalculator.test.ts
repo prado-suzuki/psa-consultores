@@ -15,6 +15,7 @@ function cenario(): RoiInput {
     process_id: procId,
     name: `etapa ${id}`,
     rework_rate: 0,
+    volume_per_process: 1,
     executadoPor: [{ responsavelId: 'r1', nome: '', horas: 1 }],
     sistemas: [],
     ficou: {
@@ -96,16 +97,20 @@ describe('calcularRoi — custo recorrente de sistema (não multiplicado)', () =
   // pessoas, para isolar o custo de sistema).
   function cenarioSistema(nProcessos: number): RoiInput {
     const sistema = { id: 's1', nome: 'Sistema X', custo_variavel_por_uso: 100, clustersRateio: [] } as unknown as Sistema;
+    // Responsável de custo/hora 0 (externo/cliente — válido) torna o processo
+    // calculável SEM adicionar custo de pessoas, isolando o custo de sistema.
+    const responsaveis = [{ id: 'r0', hourly_rate: 0 } as unknown as Responsavel];
     const processos: Processo[] = [];
     const etapas: Etapa[] = [];
     for (let i = 1; i <= nProcessos; i++) {
       processos.push({ id: `p${i}`, name: `Processo ${i}`, frequency: 'Mensal' } as unknown as Processo);
       etapas.push({
         id: `e${i}`, process_id: `p${i}`, name: `etapa ${i}`, rework_rate: 0,
-        executadoPor: [], sistemas: ['s1'],
+        volume_per_process: 1,
+        executadoPor: [{ responsavelId: 'r0', nome: '', horas: 1 }], sistemas: ['s1'],
       } as unknown as Etapa);
     }
-    return { processos, etapas, responsaveis: [], sistemas: [sistema], gargalos: [], melhorias: [] };
+    return { processos, etapas, responsaveis, sistemas: [sistema], gargalos: [], melhorias: [] };
   }
 
   it('rateia o custo recorrente entre os processos que usam o sistema; total = custo único', () => {

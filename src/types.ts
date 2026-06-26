@@ -363,12 +363,21 @@ export interface Melhoria {
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-//  ProcessSnapshot — tabela `process_scenarios`
+//  ProcessSnapshot — tabela `roi_snapshots`
 // ═════════════════════════════════════════════════════════════════════════
+
+/** Escopo do "Salvar mensuração": processo isolado ou checkpoint de projeto. */
+export type RoiSnapshotScope = 'process' | 'project';
 
 export interface ProcessSnapshot {
   id: string;
+  /** Agrupa as linhas de um mesmo save (1 no escopo process; N no project). */
+  checkpoint_id: string;
+  scope_kind: RoiSnapshotScope;
+  /** process_id ou project_id conforme scope_kind. */
+  scope_id: string | null;
   process_id: string;
+  label?: string | null;
   snapshot_at: string;             // ISO 8601 — única fonte de ordenação
   annual_cost: number;
   annual_hours: number;
@@ -378,6 +387,24 @@ export interface ProcessSnapshot {
   hours_freed: number;
   investment: number;
   created_by?: string | null;
+}
+
+/** Ponto do histórico CONSOLIDADO do projeto — soma das linhas de um checkpoint
+ *  de escopo 'project'. Derivado (não é linha de tabela). */
+export interface ConsolidatedCheckpoint {
+  checkpoint_id: string;
+  snapshot_at: string;
+  label?: string | null;
+  /** Quantos processos compõem este checkpoint. */
+  qtdProcessos: number;
+  annual_cost: number;
+  annual_hours: number;
+  annual_savings: number;
+  hours_freed: number;
+  investment: number;
+  /** Razões recalculadas sobre os somatórios (null quando indefinidas). */
+  roi_percent: number | null;
+  payback_months: number | null;
 }
 
 
