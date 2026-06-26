@@ -89,7 +89,7 @@ export default function MapearProcessoPage() {
 
   const [aba, setAba] = useState<Aba>('como-era');
   const [editProcessoOpen, setEditProcessoOpen] = useState(false);
-  const [diagramaOpen, setDiagramaOpen] = useState(false);
+  const [diagramaScenario, setDiagramaScenario] = useState<'era' | 'ficou' | null>(null);
 
   // ── Dados base via hooks (Hook-First) ──────────────────────────────────
   const processoQuery = useProcessoUnico(id);
@@ -230,8 +230,9 @@ export default function MapearProcessoPage() {
     }
   };
 
-  // Diagrama (Mermaid) — Processo + grupos de ligações.
-  const diagramaCode = buildProcessDiagram({
+  // Diagrama (Mermaid) — Processo + grupos de ligações. As-Is sempre; To-Be
+  // (mesmo modelo, dados do `etapa.ficou`) quando há cenário projetado.
+  const diagramaBase = {
     processo,
     etapas,
     documentos,
@@ -240,8 +241,14 @@ export default function MapearProcessoPage() {
     gargalos,
     melhorias,
     projeto: projetos.find(p => p.id === processo.project_id) || null,
-  });
-  const diagramaFilename = `Diagrama_${slugFilename(processo.name, processo.id)}_${new Date().toISOString().slice(0, 10)}`;
+  };
+  const temFicou = etapas.some(e => e.ficou);
+  const diagramaCode = buildProcessDiagram({ ...diagramaBase, mode: 'era' });
+  const diagramaCodeFicou = temFicou ? buildProcessDiagram({ ...diagramaBase, mode: 'ficou' }) : '';
+  const diagramaSlug = slugFilename(processo.name, processo.id);
+  const diagramaData = new Date().toISOString().slice(0, 10);
+  const diagramaFilename = `Diagrama_${diagramaSlug}_${diagramaData}`;
+  const diagramaFilenameFicou = `Diagrama_${diagramaSlug}_COMO_FICOU_${diagramaData}`;
 
   // ============================================================
   //  Handlers — Editar Etapas (Como era / Como ficou)
@@ -545,10 +552,16 @@ export default function MapearProcessoPage() {
           <FileCode2 size={15} strokeWidth={2.1} />
           <span>SOP MD (comparativo)</span>
         </button>
-        <button className="mapear-dl-btn" onClick={() => setDiagramaOpen(true)} title="Visualizar e baixar o diagrama de ligações do processo (processo · etapas)">
+        <button className="mapear-dl-btn" onClick={() => setDiagramaScenario('era')} title="Visualizar e baixar o diagrama de ligações do processo — Como Era (cenário atual)">
           <Network size={15} strokeWidth={2.1} />
-          <span>Diagrama (processo · etapas)</span>
+          <span>Diagrama (antes)</span>
         </button>
+        {temFicou && (
+          <button className="mapear-dl-btn" onClick={() => setDiagramaScenario('ficou')} title="Visualizar e baixar o diagrama de ligações do processo — Como Ficou (cenário projetado)">
+            <Network size={15} strokeWidth={2.1} />
+            <span>Diagrama (como ficou)</span>
+          </button>
+        )}
       </div>
 
       {/* Gargalos & Melhorias — grão do PROCESSO (gargalo_processos / melhoria_processos) */}
@@ -879,11 +892,11 @@ export default function MapearProcessoPage() {
 
       {/* Diagrama Mermaid do processo */}
       <DiagramViewer
-        isOpen={diagramaOpen}
-        onClose={() => setDiagramaOpen(false)}
-        code={diagramaCode}
-        filename={diagramaFilename}
-        title={`Diagrama: ${processo.name}`}
+        isOpen={diagramaScenario !== null}
+        onClose={() => setDiagramaScenario(null)}
+        code={diagramaScenario === 'ficou' ? diagramaCodeFicou : diagramaCode}
+        filename={diagramaScenario === 'ficou' ? diagramaFilenameFicou : diagramaFilename}
+        title={`Diagrama${diagramaScenario === 'ficou' ? ' · Como Ficou' : ' · Como Era'}: ${processo.name}`}
       />
 
       {/* Cadastro rápido a partir do editor de etapas */}

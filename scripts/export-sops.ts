@@ -1,28 +1,65 @@
 #!/usr/bin/env bun
 /**
- * Extrai SOPs em Markdown (As-Is + To-Be) e Diagramas (.mmd) direto do banco,
- * sem abrir o app. Reusa os MESMOS módulos puros do front (buildSopMarkdown,
- * buildProcessDiagram, enrichEtapas, buildEtapasComFicou), então o conteúdo é
+ * Exporta TODOS os artefatos do MAPA por processo, direto do banco, sem abrir o
+ * app. Reusa os MESMOS módulos puros do front (buildSopMarkdown,
+ * buildSopComparativoMarkdown, buildProcessDiagram, SopDocument,
+ * SopComparativoDocument, calcularRoi, diagnosticarRoi), então o conteúdo é
  * idêntico ao que o app gera.
  *
+ * Estrutura de saída:
+ *   <OUT>/<projeto>/<processo>/
+ *     como-era/      SOP_as-is.md   SOP_as-is.pdf   Diagrama.mmd
+ *     como-ficou/    SOP_to-be.md   SOP_to-be.pdf            (só se há cenário projetado)
+ *     comparativo/   SOP_comparativo.md  SOP_comparativo.pdf (só se há cenário projetado)
+ *
  * Uso (precisa de JWT + ANON no ambiente — mesmo padrão dos dumps em _roi_dump):
- *   JWT=... ANON=... bun scripts/export-sops.ts [--cluster=ID] [--project=ID] [--process=ID] [--out=DIR]
+ *   JWT=... ANON=... bun scripts/export-sops.ts [--cluster=ID] [--project=ID] [--process=ID] [--out=DIR] [--no-pdf]
  *
  * Sem filtro → exporta todos os processos. Saída padrão: _sops_export/
+ * --no-pdf → gera só os .md e .mmd (pula a renderização dos PDFs; iteração rápida).
  */
 
-import { mkdirSync, writeFileSync } from 'node:fs';
+// O plugin precisa ser registrado ANTES de importar os componentes PDF (que
+// fazem `import logo from '*.png'`). Em Node o @react-pdf não resolve um path
+// cru do Windows como <Image src>; o plugin troca o import do .png por um
+// data-URI, que funciona tanto no browser quanto headless. Por isso os
+// componentes PDF são carregados por import dinâmico, mais abaixo.
+import { plugin } from 'bun';
+import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+plugin({
+  name: 'png-as-dataurl',
+  setup(build) {
+    build.onLoad({ filter: /\.png$/ }, (args) => ({
+      exports: { default: `data:image/png;base64,${readFileSync(args.path).toString('base64')}` },
+      loader: 'object',
+    }));
+  },
+});
+
 import { join } from 'node:path';
+import { createElement } from 'react';
+import { renderToBuffer } from '@react-pdf/renderer';
 import type {
   Processo, Projeto, Documento, Sistema, Responsavel, Gargalo, Melhoria, AcaoTd,
 } from '@/types';
 import { buildEtapasComFicou, type EtapaDbRow } from '@/utils/etapaHydrate';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { buildSopMarkdown } from '@/utils/pdf/sopMarkdown';
+import { buildSopComparativoMarkdown } from '@/utils/pdf/sopComparativoMarkdown';
 import { buildProcessDiagram } from '@/utils/processDiagram';
+import { calcularRoi } from '@/utils/roiCalculator';
+import { diagnosticarRoi } from '@/utils/diagnosticoRoi';
+import { gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import { slugFilename } from '@/utils/slugify';
 
-const BASE = process.env.SUPABASE_URL || 'https://zwoainzzqhudmmknuycq.supabase.co/rest/v1';
+// Componentes PDF — import dinâmico para o plugin de .png já estar ativo.
+const { SopDocument } = await import('@/utils/pdf/SopDocument');
+const { SopComparativoDocument } = await import('@/utils/pdf/SopComparativoDocument');
+
+// Aceita SUPABASE_URL com ou sem /rest/v1 (o .env do repo define só o host,
+// e o bun auto-carrega o .env — sem isto o script monta .../processes e dá 404).
+const RAW_BASE = process.env.SUPABASE_URL || 'https://zwoainzzqhudmmknuycq.supabase.co';
+const BASE = /\/rest\/v\d+$/.test(RAW_BASE) ? RAW_BASE : `${RAW_BASE.replace(/\/$/, '')}/rest/v1`;
 const JWT = process.env.JWT;
 const ANON = process.env.ANON;
 
@@ -34,13 +71,14 @@ if (!JWT || !ANON) {
 function parseArgs(): Record<string, string> {
   const out: Record<string, string> = {};
   for (const a of process.argv.slice(2)) {
-    const m = a.match(/^--([^=]+)=(.*)$/);
-    if (m) out[m[1]] = m[2];
+    const m = a.match(/^--([^=]+)(?:=(.*))?$/);
+    if (m) out[m[1]] = m[2] ?? '';
   }
   return out;
 }
 const args = parseArgs();
 const OUT = args.out || '_sops_export';
+const NO_PDF = 'no-pdf' in args;
 
 async function get<T = Record<string, unknown>>(table: string, query: string): Promise<T[]> {
   const url = `${BASE}/${table}?${query}${query.includes('limit=') ? '' : '&limit=10000'}`;
@@ -55,6 +93,11 @@ async function get<T = Record<string, unknown>>(table: string, query: string): P
 
 const pluck = <T>(arr: Array<Record<string, unknown>> | null | undefined, key: string): T[] =>
   (arr ?? []).map(o => o[key]).filter((v): v is T => v != null);
+
+/** Renderiza um documento react-pdf em Buffer (headless). */
+async function renderPdf(element: React.ReactElement): Promise<Uint8Array> {
+  return renderToBuffer(element);
+}
 
 async function main() {
   // Processos (com filtros opcionais)
@@ -105,24 +148,60 @@ async function main() {
 
   mkdirSync(OUT, { recursive: true });
   let count = 0;
+  let pdfCount = 0;
   for (const processo of procsRaw) {
     const etapas = allEtapas.filter(e => e.process_id === processo.id);
     const projeto = projetos.find(p => p.id === processo.project_id) || null;
     const projSlug = slugFilename(projeto?.name || 'sem-projeto', processo.project_id || 'sem-projeto');
     const procSlug = slugFilename(processo.name, processo.id);
-    const dir = join(OUT, projSlug);
-    mkdirSync(dir, { recursive: true });
+    const procDir = join(OUT, projSlug, procSlug);
+    const temFicou = etapas.some(e => e.ficou);
 
     const common = { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto };
-    writeFileSync(join(dir, `${procSlug}__SOP_as-is.md`), buildSopMarkdown({ ...common, mode: 'era' }), 'utf-8');
-    if (etapas.some(e => e.ficou)) {
-      writeFileSync(join(dir, `${procSlug}__SOP_to-be.md`), buildSopMarkdown({ ...common, mode: 'ficou' }), 'utf-8');
+
+    // ── como-era ── SOP As-Is (md + pdf) + Diagrama As-Is (.mmd)
+    const dirEra = join(procDir, 'como-era');
+    mkdirSync(dirEra, { recursive: true });
+    writeFileSync(join(dirEra, 'SOP_as-is.md'), buildSopMarkdown({ ...common, mode: 'era' }), 'utf-8');
+    writeFileSync(join(dirEra, 'Diagrama.mmd'), buildProcessDiagram({ ...common, mode: 'era' }), 'utf-8');
+    if (!NO_PDF) {
+      writeFileSync(join(dirEra, 'SOP_as-is.pdf'), await renderPdf(createElement(SopDocument, { ...common, mode: 'era' })));
+      pdfCount++;
     }
-    writeFileSync(join(dir, `${procSlug}__Diagrama.mmd`), buildProcessDiagram(common), 'utf-8');
+
+    // ── como-ficou + comparativo ── só quando há cenário projetado
+    if (temFicou) {
+      const dirFicou = join(procDir, 'como-ficou');
+      mkdirSync(dirFicou, { recursive: true });
+      writeFileSync(join(dirFicou, 'SOP_to-be.md'), buildSopMarkdown({ ...common, mode: 'ficou' }), 'utf-8');
+      writeFileSync(join(dirFicou, 'Diagrama.mmd'), buildProcessDiagram({ ...common, mode: 'ficou' }), 'utf-8');
+      if (!NO_PDF) {
+        writeFileSync(join(dirFicou, 'SOP_to-be.pdf'), await renderPdf(createElement(SopDocument, { ...common, mode: 'ficou' })));
+        pdfCount++;
+      }
+
+      // Comparativo — roi/diagnostico computados como na MapearProcessoPage.
+      const roi = calcularRoi({ processos: [processo], etapas, responsaveis, sistemas, gargalos, melhorias, projetos });
+      const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
+      const compInput = {
+        processo, etapas, sistemas, responsaveis,
+        gargalos: gargalosDoProcesso(gargalos, processo.id),
+        melhorias, projeto, roi, diagnostico, horizonteMeses: 24,
+      };
+      const dirComp = join(procDir, 'comparativo');
+      mkdirSync(dirComp, { recursive: true });
+      writeFileSync(join(dirComp, 'SOP_comparativo.md'), buildSopComparativoMarkdown(compInput), 'utf-8');
+      if (!NO_PDF) {
+        writeFileSync(join(dirComp, 'SOP_comparativo.pdf'), await renderPdf(createElement(SopComparativoDocument, compInput)));
+        pdfCount++;
+      }
+    }
+
     count++;
-    console.log(`✓ ${projSlug}/${procSlug} (${etapas.length} etapas)`);
+    console.log(`✓ ${projSlug}/${procSlug} (${etapas.length} etapas${temFicou ? ', +to-be +comparativo' : ''})`);
   }
   console.log(`\nPronto: ${count} processo(s) exportado(s) em ${OUT}/`);
+  console.log(NO_PDF ? 'PDFs pulados (--no-pdf): apenas .md e .mmd.' : `PDFs gerados: ${pdfCount}.`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });

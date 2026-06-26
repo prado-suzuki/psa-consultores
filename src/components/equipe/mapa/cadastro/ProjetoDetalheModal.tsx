@@ -94,7 +94,7 @@ export default function ProjetoDetalheModal({
             </div>
           </div>
           <div className="processo-det-acoes">
-            <button className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)} title="Exportar .zip com SOP (PDF + Markdown) e Diagrama (.mmd) de cada processo do projeto">
+            <button className="btn-cancel" onClick={() => exports.exportProjetoZip(projeto.id)} title="Exportar .zip por processo: como-era e como-ficou (SOP em PDF + Markdown + Diagrama .mmd) e comparativo (PDF + Markdown)">
               <FileArchive size={15} strokeWidth={2.2} />
               <span>Exportar projeto (.zip)</span>
             </button>

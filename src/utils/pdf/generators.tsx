@@ -9,8 +9,9 @@ import { pdf } from '@react-pdf/renderer';
 import type {
   Processo, Etapa, Documento, Sistema, Responsavel, Gargalo, Melhoria, Projeto,
 } from '@/types';
-import type { RoiAgregado } from '@/utils/roiCalculator';
-import type { DiagnosticoRoi } from '@/utils/diagnosticoRoi';
+import { calcularRoi, type RoiAgregado } from '@/utils/roiCalculator';
+import { diagnosticarRoi, type DiagnosticoRoi } from '@/utils/diagnosticoRoi';
+import { gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import { slugFilename } from '@/utils/slugify';
 import { makeZip, type ZipEntry } from '@/utils/zip';
 import { buildProcessDiagram } from '../processDiagram';
@@ -99,10 +100,13 @@ export interface GenerateSopComparativoInput {
 }
 
 /**
- * Gera o SOP Comparativo (Sumário Executivo + páginas Era×Ficou) e dispara
- * download. Mantém a mesma assinatura do gerador legado.
+ * Gera o SOP Comparativo (Sumário Executivo + páginas Era×Ficou). Por padrão
+ * dispara download; com `returnBlob` devolve o Blob (usado no ZIP do projeto).
  */
-export async function generateSOPComparativo(input: GenerateSopComparativoInput): Promise<void> {
+export async function generateSOPComparativo(
+  input: GenerateSopComparativoInput,
+  options: { returnBlob?: boolean } = {},
+): Promise<Blob | void> {
   const instance = pdf(
     <SopComparativoDocument
       processo={input.processo}
@@ -118,6 +122,7 @@ export async function generateSOPComparativo(input: GenerateSopComparativoInput)
     />,
   );
   const blob = await instance.toBlob();
+  if (options.returnBlob) return blob;
   const slug = slugFilename(input.processo.name, input.processo.id);
   const filename = `SOP_COMPARATIVO_${slug}_${new Date().toISOString().slice(0, 10)}.pdf`;
   downloadBlob(blob, filename);
@@ -163,8 +168,9 @@ export function generateDiagramaMmd(
 ): string | void {
   const code = buildProcessDiagram(input);
   if (opts.returnString) return code;
+  const sufixo = input.mode === 'ficou' ? '_COMO_FICOU' : '';
   const slug = slugFilename(input.processo.name, input.processo.id);
-  downloadText(code, `Diagrama_${slug}_${today()}.mmd`, 'text/plain;charset=utf-8');
+  downloadText(code, `Diagrama_${slug}${sufixo}_${today()}.mmd`, 'text/plain;charset=utf-8');
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -180,34 +186,53 @@ export interface GenerateProjetoZipInput {
   responsaveis: Responsavel[];
   gargalos: Gargalo[];
   melhorias: Melhoria[];
+  /** Todos os projetos — necessário ao calcularRoi (rateio de sistemas por cluster). */
+  projetos: Projeto[];
 }
 
 /**
- * Gera um .zip com, por processo: SOP As-Is (pdf+md) + Diagrama (.mmd), e
- * também SOP To-Be (pdf+md) quando o processo tem cenário projetado (etapa.ficou).
+ * Gera um .zip do projeto, por processo, na estrutura:
+ *   <processo>/como-era/    SOP_as-is.pdf · SOP_as-is.md · Diagrama.mmd
+ *   <processo>/como-ficou/  SOP_to-be.pdf · SOP_to-be.md · Diagrama.mmd   (se há cenário projetado)
+ *   <processo>/comparativo/ SOP_comparativo.pdf · SOP_comparativo.md      (se há cenário projetado)
+ *
+ * As duas pastas de cenário trazem os três tipos (PDF, MD, MMD). O conteúdo é o
+ * MESMO dos geradores individuais (mesma fonte buildSopModel / buildProcessDiagram).
  */
 export async function generateProjetoZip(input: GenerateProjetoZipInput): Promise<void> {
-  const { projeto, processos, etapasByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias } = input;
+  const { projeto, processos, etapasByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetos } = input;
   const entries: ZipEntry[] = [];
 
   for (const processo of processos) {
     const etapas = etapasByProcesso.get(processo.id) ?? [];
     const slug = slugFilename(processo.name, processo.id);
-    const base = (mode: SOPMode): SopModelInput => ({
-      processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto, mode,
-    });
+    const common = { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto };
+    const base = (mode: SOPMode): SopModelInput => ({ ...common, mode });
 
-    // As-Is — sempre
+    // ── como-era ── SOP As-Is (pdf+md) + Diagrama As-Is (.mmd)
     const pdfEra = await (generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, 'era', { returnBlob: true, projeto }) as Promise<Blob>);
-    entries.push({ name: `${slug}/SOP_as-is.pdf`, data: new Uint8Array(await pdfEra.arrayBuffer()) });
-    entries.push({ name: `${slug}/SOP_as-is.md`, data: buildSopMarkdown(base('era')) });
-    entries.push({ name: `${slug}/Diagrama.mmd`, data: buildProcessDiagram({ processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto }) });
+    entries.push({ name: `${slug}/como-era/SOP_as-is.pdf`, data: new Uint8Array(await pdfEra.arrayBuffer()) });
+    entries.push({ name: `${slug}/como-era/SOP_as-is.md`, data: buildSopMarkdown(base('era')) });
+    entries.push({ name: `${slug}/como-era/Diagrama.mmd`, data: buildProcessDiagram({ ...common, mode: 'era' }) });
 
-    // To-Be — só quando há cenário projetado
+    // ── como-ficou + comparativo ── só quando há cenário projetado
     if (etapas.some(e => e.ficou)) {
       const pdfFicou = await (generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, 'ficou', { returnBlob: true, projeto }) as Promise<Blob>);
-      entries.push({ name: `${slug}/SOP_to-be.pdf`, data: new Uint8Array(await pdfFicou.arrayBuffer()) });
-      entries.push({ name: `${slug}/SOP_to-be.md`, data: buildSopMarkdown(base('ficou')) });
+      entries.push({ name: `${slug}/como-ficou/SOP_to-be.pdf`, data: new Uint8Array(await pdfFicou.arrayBuffer()) });
+      entries.push({ name: `${slug}/como-ficou/SOP_to-be.md`, data: buildSopMarkdown(base('ficou')) });
+      entries.push({ name: `${slug}/como-ficou/Diagrama.mmd`, data: buildProcessDiagram({ ...common, mode: 'ficou' }) });
+
+      // Comparativo — roi/diagnostico como na MapearProcessoPage/useMapaExports.
+      const roi = calcularRoi({ processos: [processo], etapas, responsaveis, sistemas, gargalos, melhorias, projetos });
+      const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
+      const compInput = {
+        processo, etapas, sistemas, responsaveis,
+        gargalos: gargalosDoProcesso(gargalos, processo.id),
+        melhorias, projeto, roi, diagnostico, horizonteMeses: 24,
+      };
+      const pdfComp = await (generateSOPComparativo(compInput, { returnBlob: true }) as Promise<Blob>);
+      entries.push({ name: `${slug}/comparativo/SOP_comparativo.pdf`, data: new Uint8Array(await pdfComp.arrayBuffer()) });
+      entries.push({ name: `${slug}/comparativo/SOP_comparativo.md`, data: buildSopComparativoMarkdown(compInput) });
     }
   }
 

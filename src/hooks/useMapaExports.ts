@@ -93,12 +93,12 @@ export function useMapaExports() {
       generateSopComparativoMarkdown(comparativoInput(processo));
     }), [getProcesso, comparativoInput]);
 
-  const exportDiagramaMmd = useCallback((processoId: string) =>
+  const exportDiagramaMmd = useCallback((processoId: string, mode: SOPMode = 'era') =>
     wrap('Erro ao gerar diagrama', async () => {
       const processo = getProcesso(processoId);
       if (!processo) throw new Error('Processo não encontrado.');
       const etapas = etapasDoProcesso(processoId);
-      generateDiagramaMmd({ processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto: projetoDoProcesso(processo) });
+      generateDiagramaMmd({ processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto: projetoDoProcesso(processo), mode });
     }), [getProcesso, etapasDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetoDoProcesso]);
 
   const exportProjetoZip = useCallback((projetoId: string) =>
@@ -109,7 +109,7 @@ export function useMapaExports() {
       if (procs.length === 0) throw new Error('Projeto sem processos para exportar.');
       const etapasByProcesso = new Map<string, Etapa[]>(procs.map(p => [p.id, etapasDoProcesso(p.id)]));
       toast.message('Gerando pacote do projeto…', { description: `${procs.length} processo(s).` });
-      await generateProjetoZip({ projeto, processos: procs, etapasByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias });
+      await generateProjetoZip({ projeto, processos: procs, etapasByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetos });
     }), [projetos, processos, etapasDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias]);
 
   return useMemo(() => ({

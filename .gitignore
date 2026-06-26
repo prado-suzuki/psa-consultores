@@ -35,3 +35,7 @@ CLAUDE.md
 
 # Pasta de mapeamento local
 Mapeamento/
+
+# Exports/dumps gerados localmente pelos scripts do MAPA (SOPs, diagramas, ROI)
+_sops_export/
+_roi_dump/
