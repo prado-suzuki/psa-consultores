@@ -363,7 +363,7 @@ export default function EquipeChamados() {
           </Button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">
-              {canAssignTickets ? 'Gestão de Chamados' : 'Meus Chamados Atribuídos'}
+              {canAssignTickets ? 'Gestão de Chamados' : 'Equipe Chamados'}
             </h1>
             <p className="text-sm text-slate-500">
               {canAssignTickets
