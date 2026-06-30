@@ -1566,7 +1566,7 @@ const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey }
 // Página de Cadastro de Projetos da área Tax — moldura (FiscalLayout) em volta do
 // conteúdo compartilhado. A OSG renderiza o mesmo <ProjetosCadastroContent />.
 const FiscalProjetosCadastro = () => (
-  <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
+  <FiscalLayout title="Projetos Tax" subtitle="Gerencie os projetos da área Tax">
     <ProjetosCadastroContent />
   </FiscalLayout>
 );
