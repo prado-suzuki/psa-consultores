@@ -112,7 +112,7 @@ const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey }
 
   // ── Hooks centralizados ──────────────────────────────────────────────
   const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
-  const { data: projects: allProjects = [], isLoading } = useOrgProjects();
+  const { data: allProjects = [], isLoading } = useOrgProjects();
   // Filtro de visualização por cluster (não afeta escrita/atribuição).
   // Tax inclui órfãos (legado sem área); demais áreas não, para evitar vazamento.
   const { data: clusterId } = useClusterIdByPageCategory(area);
