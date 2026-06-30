@@ -17,6 +17,8 @@ import {
   useContribuintesExpand,
 } from "@/hooks/useGestaoClientes";
 import { useDeleteCliente } from "@/hooks/useDeleteCliente";
+import { useClusterIdByPageCategory } from "@/hooks/useTaxReferenceData";
+import type { AreaKey } from "@/config/areaCategories";
 import NewClientModal from "@/components/equipe/NewClientModal";
 
 /* ── Sub-componente: contribuintes expandidos ── */
@@ -55,7 +57,7 @@ const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
 
 const ITEMS_PER_PAGE = 10;
 
-const GestaoClientes = () => {
+const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
   const canEdit = isAdmin || isLider || isSublider;
   const [clienteId, setClienteId] = useState("");
@@ -78,13 +80,19 @@ const GestaoClientes = () => {
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null);
 
   // Hooks centralizados
+  const { data: clusterId } = useClusterIdByPageCategory(area);
   const { data: clientes = [] } = useClientesLista();
   const { data: contribuintes = [] } = useContribuintesPorCliente(clienteId);
   const {
     data: resultados = [],
     isLoading,
     refetch,
-  } = useClientesFiltrados({ clienteId, status, tipo, categoria, nomeRazaoSocial }, searched);
+  } = useClientesFiltrados(
+    { clienteId, status, tipo, categoria, nomeRazaoSocial },
+    searched,
+    clusterId ?? undefined,
+    area === 'tax',
+  );
   const deleteMutation = useDeleteCliente();
 
   // Verifica se há filtros ativos

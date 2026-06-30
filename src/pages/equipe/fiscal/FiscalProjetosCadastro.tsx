@@ -69,6 +69,9 @@ import {
 } from '@/hooks/useOrgProjects';
 import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
+import { useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
+import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
+import type { AreaKey } from '@/config/areaCategories';
 import { useTeamMembersByArea } from '@/hooks/useTeamMembersByArea';
 import { useProjectMemberAreas } from '@/hooks/useProjectMemberAreas';
 import { Switch } from '@/components/ui/switch';
@@ -92,7 +95,7 @@ const emptyForm = {
 
 // Conteúdo do Cadastro de Projetos — agnóstico de layout (fonte única
 // compartilhada entre Tax e OSG). Cada área o renderiza no seu próprio layout.
-const ProjetosCadastroContent = () => {
+const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
@@ -108,8 +111,16 @@ const ProjetosCadastroContent = () => {
   const isOpeningEditRef = useRef(false);
 
   // ── Hooks centralizados ──────────────────────────────────────────────
-  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory('tax');
-  const { data: projects = [], isLoading } = useOrgProjects();
+  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
+  const { data: allProjects = [], isLoading } = useOrgProjects();
+  // Filtro de visualização por cluster (não afeta escrita/atribuição).
+  // Tax inclui órfãos (legado sem área); demais áreas não, para evitar vazamento.
+  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { ids: visibleProjectIds } = useDashboardProjectIds(clusterId, area === 'tax');
+  const projects = useMemo(() => {
+    if (!visibleProjectIds) return [];
+    return allProjects.filter(p => visibleProjectIds.has(p.id));
+  }, [allProjects, visibleProjectIds]);
   const { data: projectHours = {} } = useProjectHours();
   const { data: projectMemberAreas = {} } = useProjectMemberAreas();
 
@@ -667,7 +678,7 @@ const ProjetosCadastroContent = () => {
               <FolderKanban className="h-5 w-5 text-tool-icon" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Projetos Tax</h2>
+              <h2 className="text-lg font-semibold text-foreground">{area === 'osg' ? 'Projetos OSG' : 'Projetos Tax'}</h2>
               <p className="text-sm text-muted-foreground">
                 {hasActiveFilters
                   ? `${filteredProjects.length} de ${projects.length} projetos`
@@ -1555,7 +1566,7 @@ const ProjetosCadastroContent = () => {
 // Página de Cadastro de Projetos da área Tax — moldura (FiscalLayout) em volta do
 // conteúdo compartilhado. A OSG renderiza o mesmo <ProjetosCadastroContent />.
 const FiscalProjetosCadastro = () => (
-  <FiscalLayout title="Cadastro de Projetos" subtitle="Gerencie os projetos da área Tax">
+  <FiscalLayout title="Projetos Tax" subtitle="Gerencie os projetos da área Tax">
     <ProjetosCadastroContent />
   </FiscalLayout>
 );

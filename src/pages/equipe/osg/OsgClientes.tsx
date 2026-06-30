@@ -5,7 +5,7 @@ import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 // conteúdo compartilhado (<GestaoClientesContent />), no layout da OSG.
 const OsgClientes = () => (
   <OsgLayout title="Clientes" subtitle="Cadastros de clientes e contribuintes">
-    <GestaoClientesContent />
+    <GestaoClientesContent area="osg" />
   </OsgLayout>
 );
 

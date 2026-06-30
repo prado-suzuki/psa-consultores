@@ -8222,6 +8222,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      dashboard_project_ids_for_cluster: {
+        Args: { _cluster_id: string; _include_orphans?: boolean }
+        Returns: string[]
+      }
       get_accessible_dashboards: {
         Args: { _target_page?: string }
         Returns: {
@@ -8331,6 +8335,10 @@ export type Database = {
       mark_stuck_procedimentos: {
         Args: { timeout_minutes?: number }
         Returns: number
+      }
+      org_project_cluster_ids: {
+        Args: { _project_id: string }
+        Returns: string[]
       }
       preview_dashboard_embed_url: {
         Args: {
