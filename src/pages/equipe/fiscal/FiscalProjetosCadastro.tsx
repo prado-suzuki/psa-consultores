@@ -678,7 +678,7 @@ const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey }
               <FolderKanban className="h-5 w-5 text-tool-icon" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Projetos Tax</h2>
+              <h2 className="text-lg font-semibold text-foreground">{area === 'osg' ? 'Projetos OSG' : 'Projetos Tax'}</h2>
               <p className="text-sm text-muted-foreground">
                 {hasActiveFilters
                   ? `${filteredProjects.length} de ${projects.length} projetos`
