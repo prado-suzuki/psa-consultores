@@ -69,6 +69,9 @@ import {
 } from '@/hooks/useOrgProjects';
 import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
+import { useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
+import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
+import type { AreaKey } from '@/config/areaCategories';
 import { useTeamMembersByArea } from '@/hooks/useTeamMembersByArea';
 import { useProjectMemberAreas } from '@/hooks/useProjectMemberAreas';
 import { Switch } from '@/components/ui/switch';
