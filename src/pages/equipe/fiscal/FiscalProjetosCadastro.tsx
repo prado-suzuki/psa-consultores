@@ -95,7 +95,7 @@ const emptyForm = {
 
 // Conteúdo do Cadastro de Projetos — agnóstico de layout (fonte única
 // compartilhada entre Tax e OSG). Cada área o renderiza no seu próprio layout.
-const ProjetosCadastroContent = () => {
+const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
   const { user } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
@@ -111,8 +111,16 @@ const ProjetosCadastroContent = () => {
   const isOpeningEditRef = useRef(false);
 
   // ── Hooks centralizados ──────────────────────────────────────────────
-  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory('tax');
-  const { data: projects = [], isLoading } = useOrgProjects();
+  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
+  const { data: projects: allProjects = [], isLoading } = useOrgProjects();
+  // Filtro de visualização por cluster (não afeta escrita/atribuição).
+  // Tax inclui órfãos (legado sem área); demais áreas não, para evitar vazamento.
+  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { ids: visibleProjectIds } = useDashboardProjectIds(clusterId, area === 'tax');
+  const projects = useMemo(() => {
+    if (!visibleProjectIds) return [];
+    return allProjects.filter(p => visibleProjectIds.has(p.id));
+  }, [allProjects, visibleProjectIds]);
   const { data: projectHours = {} } = useProjectHours();
   const { data: projectMemberAreas = {} } = useProjectMemberAreas();
 
