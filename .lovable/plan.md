@@ -1,77 +1,71 @@
-## Pré-checagens (Passo 1)
+## Objetivo
 
-**(1) Policy atual de SELECT** — confirma regressão:
-```
-USING (has_role(auth.uid(),'admin')
-       OR has_role_or_higher(auth.uid(),'team_member')
-       OR assigned_to = auth.uid()
-       OR created_by = auth.uid())
-```
-Contém `has_role_or_higher(..., 'team_member')` → **pré-condição satisfeita**, pode prosseguir.
+Isolar a **visualização** de projetos por cluster na tela "Cadastro de Projetos" do OSG, mantendo escrita/atribuição cross-cluster e o comportamento do Tax 100% idêntico. Projetos multidisciplinares aparecem em todos os clusters envolvidos.
 
-**(2) Função `can_view_org_project`**: existe (`pronargs=2`). OK.
+## Parte A — Banco (migration única, aditiva)
 
-**(3) Inventário de policies em `org_tasks`**: 4 policies, uma por comando (DELETE/INSERT/SELECT/UPDATE). Só a de SELECT será tocada.
+### A1. Pré-checagens (read-only, abortar se faltar)
+- `resolve_user_cluster_ids(uuid)` existe em `public`.
+- `org_projects`, `org_project_members`, `estrutura_areas` existem.
 
-## Impacto (Passo 2)
+### A2. Criar 2 funções (CREATE OR REPLACE, transação única)
 
-Total: **345 tarefas**. Resumo do que cada perfil passará a enxergar:
+**`public.org_project_cluster_ids(_project_id uuid) RETURNS uuid[]`**
+- `STABLE SECURITY DEFINER`, `search_path=public`.
+- União de:
+  - `cluster_id` da área principal (`org_projects.estrutura_area_id → estrutura_areas.cluster_id`).
+  - `unnest(resolve_user_cluster_ids(opm.user_id))` para cada membro de `org_project_members`.
+- `GRANT EXECUTE ... TO authenticated`.
 
-- **Admins (6)**: Alexandre, Bernardo, Carlos Prado, Patricia Melo, Eduardo, Mariana → **345/345** (vê tudo). ✓
-- **Líderes/Sublíderes com escopo amplo** (Geizi 342; Washington/Felipe/Ricardo/Diego/Gabriel/Mayara/Marcely/Monica 338; Maria Lizot 280) → continuam vendo as tarefas dos projetos das áreas/equipes que gerenciam via `can_view_org_project`. ✓
-- **Membros sem escopo de liderança**: Anderson 24, Hercio 19, Leonardo 16, Maritsa/Anne/Luana/Fernando 8, João 7, Karlene 1 → veem só atribuídas/criadas por si. ✓
-- **Sem tarefas atribuídas**: IAplicada, Thiago, Jakeline, James, Luciano, Automação PSA, Welber → 0. ✓ (esperado — não têm atribuições; vazamento cross-cluster eliminado)
+**`public.dashboard_project_ids_for_cluster(_cluster_id uuid, _include_orphans boolean DEFAULT false) RETURNS SETOF uuid`**
+- `STABLE SECURITY INVOKER` (respeita RLS de `org_projects`).
+- Retorna `p.id` onde `_cluster_id = ANY(org_project_cluster_ids(p.id))` OR (`_include_orphans` AND set vazio).
+- `GRANT EXECUTE ... TO authenticated`.
 
-Padrão coerente com o objetivo: admin tudo, líder/sublíder limitado por área, member só o seu. Nenhuma concessão nova — apenas restrição.
+### A3. Pós-validação (read-only)
+- Listar as 2 funções em `pg_proc`.
+- `count(*)` de `dashboard_project_ids_for_cluster('0523512c-...', false)` (PSA OSG).
+- Amostra de projetos multidisciplinares.
 
-## Migration proposta (Passo 3)
+### Garantias
+- Zero alteração em tabelas, dados, RLS, policies, triggers ou demais funções.
+- Reuso integral de `resolve_user_cluster_ids`.
+- Impacto comportamental = 0 até o frontend chamar (apenas leitura, sem consumidor atual).
 
-Arquivo novo: `supabase/migrations/<timestamp>_restore_rls_org_tasks_select.sql`
+## Parte B — Frontend (somente 3 pontos)
 
-```sql
-BEGIN;
+### B1. `src/hooks/useDashboardProjectIds.ts` (novo)
+- `useDashboardProjectIds(clusterId: string | null | undefined, includeOrphans: boolean)`.
+- `supabase.rpc('dashboard_project_ids_for_cluster', { _cluster_id, _include_orphans })`.
+- Retorna `Set<string>` (e `isLoading`). `enabled: !!clusterId`.
 
-DROP POLICY IF EXISTS rls_org_tasks_select ON public.org_tasks;
+### B2. `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` (`ProjetosCadastroContent`)
+- Nova prop `area: AreaKey = 'tax'` (default preserva Tax).
+- Título dinâmico: `'Projetos OSG'` quando `area==='osg'`, senão `'Projetos Tax'`.
+- Trocar `useEstruturaEquipesByCategory('tax')` por `useEstruturaEquipesByCategory(area)`.
+- Resolver cluster via `useClusterIdByPageCategory(area)`.
+- Filtrar `projects` por `useDashboardProjectIds(clusterId, area==='tax')`:
+  - Enquanto `clusterId` não resolver → não exibe projetos de outros clusters (lista vazia ou skeleton).
+  - Tax usa `_include_orphans=true` para não perder legado sem área.
+- Não tocar em modal de criação/edição nem em nenhuma escrita.
 
-CREATE POLICY rls_org_tasks_select
-ON public.org_tasks
-FOR SELECT
-TO authenticated
-USING (
-  public.has_role(auth.uid(), 'admin'::app_role)
-  OR (
-    project_id IS NOT NULL
-    AND (
-      public.has_role(auth.uid(), 'lider'::app_role)
-      OR public.has_role(auth.uid(), 'sublider'::app_role)
-    )
-    AND public.can_view_org_project(auth.uid(), project_id)
-  )
-  OR assigned_to = auth.uid()
-  OR created_by = auth.uid()
-);
+### B3. `src/pages/equipe/osg/OsgProjetos.tsx`
+- `<ProjetosCadastroContent area="osg" />`.
 
-COMMIT;
-```
+### Não-mexer (explícito)
+- `useCreateOrgProject` / `useUpdateOrgProject` / `useDeleteOrgProject`.
+- Seletores de responsável/membros (cross-cluster permanece).
+- RLS de INSERT/UPDATE/DELETE em `org_projects`/`org_project_members`.
+- `/equipe/chamados`, `org_tasks`, Tarefas, Clientes (fora de escopo desta tarefa).
+- Comportamento da página Tax (área Tax continua via default `area='tax'`).
 
-Características:
-- Transação única e idempotente (`DROP POLICY IF EXISTS` + `CREATE POLICY`).
-- Toca **apenas** `rls_org_tasks_select`. Demais policies (INSERT/UPDATE/DELETE), schema, RLS, funções e outras tabelas permanecem intactos.
-- Apenas restringe leitura — não há risco de vazamento.
+## Testes a reportar
+1. OSG → Cadastro: título "Projetos OSG"; só projetos do cluster PSA OSG; projetos exclusivamente Tax somem.
+2. Tax → Cadastro: título "Projetos Tax"; lista idêntica à atual (com legado via `_include_orphans=true`).
+3. Multidisciplinar (área de um cluster + membro de outro): aparece nos DOIS clusters.
+4. Escrita: criar/editar projeto e atribuir responsável/membro de outro cluster continua funcionando.
+5. Chamados inalterado.
 
-## Pós-validação (Passo 4)
-
-Após executar, rodarei:
-```sql
-SELECT policyname, cmd, qual FROM pg_policies
-WHERE schemaname='public' AND tablename='org_tasks' AND policyname='rls_org_tasks_select';
-
-SELECT policyname, cmd FROM pg_policies
-WHERE schemaname='public' AND tablename='org_tasks' ORDER BY cmd, policyname;
-```
-Esperado: novo `qual` aplicado, mesmas 4 policies do inventário inicial.
-
-## Rollback (caso quebre algo crítico)
-Recria a policy permissiva anterior (mesmo conteúdo do estado atual) — também idempotente em transação única.
-
-Aguardando aprovação para executar a migration.
+## Rollback
+- Parte A: `DROP FUNCTION` das 2 funções novas.
+- Parte B: reverter os 3 arquivos (sem efeito colateral, pois nada além deles muda).
