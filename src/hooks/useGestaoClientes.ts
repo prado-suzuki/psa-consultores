@@ -94,12 +94,17 @@ export function useContribuintesPorCliente(clienteId: string) {
 }
 
 /** Query principal com filtros + enriquecimento de clusters */
-export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: boolean) {
+export function useClientesFiltrados(
+  params: ClientesFiltradosParams,
+  enabled: boolean,
+  scopeClusterId?: string,
+  includeUnmapped = false,
+) {
   const { clienteId, status, tipo, categoria, nomeRazaoSocial } = params;
   const hasContribuinteFilters = !!nomeRazaoSocial;
 
   return useQuery<ClienteFiltrado[]>({
-    queryKey: ['clientes-filtrados', clienteId, status, tipo, categoria, nomeRazaoSocial],
+    queryKey: ['clientes-filtrados', clienteId, status, tipo, categoria, nomeRazaoSocial, scopeClusterId, includeUnmapped],
     queryFn: async () => {
       let filteredClienteIds: string[] | null = null;
 
@@ -140,6 +145,7 @@ export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: b
       // Enrich with cluster names + setor_cliente vindo da OS mais recente
       const clienteIds = (data || []).map((c) => c.id);
       const clusterMap: Record<string, string[]> = {};
+      const clusterIdMap: Record<string, string[]> = {};
       const setorMap: Record<string, string | null> = {};
       if (clienteIds.length > 0) {
         const { data: ccRows } = await supabase
@@ -149,9 +155,12 @@ export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: b
         if (ccRows) {
           for (const row of ccRows) {
             const cid = row.cliente_id as string;
+            const clId = row.cluster_id as string | null;
             const cname = (row.estrutura_clusters as unknown as { name: string } | null)?.name;
             if (!clusterMap[cid]) clusterMap[cid] = [];
             if (cname) clusterMap[cid].push(cname);
+            if (!clusterIdMap[cid]) clusterIdMap[cid] = [];
+            if (clId) clusterIdMap[cid].push(clId);
           }
         }
 
@@ -163,11 +172,19 @@ export function useClientesFiltrados(params: ClientesFiltradosParams, enabled: b
         }
       }
 
-      return (data || []).map((c) => ({
+      const result = (data || []).map((c) => ({
         ...c,
         setor_cliente: setorMap[c.id] ?? null,
         _clusters: clusterMap[c.id] || [],
       })) as ClienteFiltrado[];
+
+      // Escopo por cluster (visualização). Sem scopeClusterId → sem filtro (compat).
+      // includeUnmapped: mantém clientes sem vínculo de cluster (legado) — usar só no Tax.
+      if (!scopeClusterId) return result;
+      return result.filter((c) => {
+        const ids = clusterIdMap[c.id] || [];
+        return ids.includes(scopeClusterId) || (includeUnmapped && ids.length === 0);
+      });
     },
     enabled,
   });

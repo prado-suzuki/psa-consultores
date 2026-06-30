@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart } from 'lucide-react';
 import { toast } from 'sonner';
@@ -13,6 +13,7 @@ import {
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
+import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -58,12 +59,24 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
 
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
-  const { data: tasks = [], isLoading } = useOrgTasks(deepLinkTaskId ? {} : filters);
+  const { data: allTasks = [], isLoading } = useOrgTasks(deepLinkTaskId ? {} : filters);
   const deleteTask = useDeleteOrgTask(area);
 
   const { data: clusterId } = useClusterIdByPageCategory(area);
   const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
+
+  // Escopo de VISUALIZAÇÃO por cluster: só tarefas de projetos do cluster atual.
+  // Tarefas sem projeto (sem cluster) permanecem. Deep-link ignora o escopo para
+  // garantir que a tarefa-alvo apareça. Escrita/atribuição não é afetada.
+  const { ids: visibleProjectIds } = useDashboardProjectIds(clusterId, area === 'tax');
+  const tasks = useMemo(() => {
+    if (deepLinkTaskId) return allTasks;
+    // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
+    // comportamento atual em vez de esconder tarefas indevidamente.
+    if (!visibleProjectIds) return allTasks;
+    return allTasks.filter(t => !t.project_id || visibleProjectIds.has(t.project_id));
+  }, [allTasks, visibleProjectIds, deepLinkTaskId]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
