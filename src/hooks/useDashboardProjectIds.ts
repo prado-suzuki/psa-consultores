@@ -18,14 +18,21 @@ export function useDashboardProjectIds(
     queryKey: ['dashboard-project-ids-for-cluster', clusterId, includeOrphans],
     enabled: !!clusterId,
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('dashboard_project_ids_for_cluster', {
-        _cluster_id: clusterId!,
-        _include_orphans: includeOrphans,
-      });
-      if (error) throw error;
-      return new Set<string>((data || []).map((r: { id?: string } | string) =>
-        typeof r === 'string' ? r : r.id!,
-      ));
+      // RPC retorna SETOF uuid → PostgREST devolve array de uuids (string[])
+      // ou array de objetos { dashboard_project_ids_for_cluster: uuid }, dependendo do client.
+      const { data, error } = await (supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: unknown }>)(
+        'dashboard_project_ids_for_cluster',
+        { _cluster_id: clusterId!, _include_orphans: includeOrphans },
+      );
+      if (error) throw error as Error;
+      const rows = (data ?? []) as Array<string | Record<string, string>>;
+      const ids = rows.map(r =>
+        typeof r === 'string' ? r : Object.values(r)[0] as string,
+      );
+      return new Set<string>(ids);
     },
   });
 
