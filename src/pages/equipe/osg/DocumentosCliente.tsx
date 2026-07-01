@@ -29,12 +29,20 @@ interface Leaf {
   docs: DocumentoArquivoRow[];
   vinculo: VinculoDoc;
 }
+interface SubGroup {
+  key: string;
+  label: string;
+  Icon: LucideIcon;
+  docs: DocumentoArquivoRow[];
+  leaves: Leaf[];
+}
 interface Group {
   key: string;
   label: string;
   Icon: LucideIcon;
   docs: DocumentoArquivoRow[];
   leaves: Leaf[];
+  subgroups?: SubGroup[];
 }
 
 const bemLabelOf = (b?: { referencia_dp: string | null; denominacao: string | null }) =>
@@ -93,16 +101,28 @@ const DocumentosCliente = () => {
     const flat = (mp: Map<string, DocumentoArquivoRow[]>) =>
       [...mp.values()].flat().sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
 
-    const pessoaLeaves: Leaf[] = [...pessoaDocs.entries()].map(([id, ds]) => {
+    // Pessoas divididas em PF/PJ (via tipo_pessoa) — dois subgrupos na árvore.
+    const pessoaEntries = [...pessoaDocs.entries()].map(([id, ds]) => {
       const p = pById.get(id);
+      const isPJ = p?.tipo_pessoa === 'PJ';
       return {
-        key: `pessoa:${id}`,
-        label: p?.denominacao ?? 'Pessoa removida',
-        Icon: p?.tipo_pessoa === 'PJ' ? Building2 : User,
+        isPJ,
         docs: ds,
-        vinculo: { pessoaId: id } as VinculoDoc,
+        leaf: {
+          key: `pessoa:${id}`,
+          label: p?.denominacao ?? 'Pessoa removida',
+          Icon: isPJ ? Building2 : User,
+          docs: ds,
+          vinculo: { pessoaId: id } as VinculoDoc,
+        } as Leaf,
       };
-    }).sort(byPt);
+    });
+    const sortDocs = (arr: DocumentoArquivoRow[]) =>
+      [...arr].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+    const pfLeaves = pessoaEntries.filter((e) => !e.isPJ).map((e) => e.leaf).sort(byPt);
+    const pjLeaves = pessoaEntries.filter((e) => e.isPJ).map((e) => e.leaf).sort(byPt);
+    const pfDocs = sortDocs(pessoaEntries.filter((e) => !e.isPJ).flatMap((e) => e.docs));
+    const pjDocs = sortDocs(pessoaEntries.filter((e) => e.isPJ).flatMap((e) => e.docs));
 
     const bemLeaves: Leaf[] = [...bemDocs.entries()].map(([id, ds]) => ({
       key: `bem:${id}`,
@@ -123,8 +143,13 @@ const DocumentosCliente = () => {
       };
     }).sort(byPt);
 
+    // "Pessoas" é o nó pai; PF/PJ são subgrupos expansíveis dentro dele.
+    const pessoaSubgroups: SubGroup[] = [];
+    if (pfLeaves.length) pessoaSubgroups.push({ key: 'pessoas_pf', label: 'Pessoas Físicas', Icon: User, docs: pfDocs, leaves: pfLeaves });
+    if (pjLeaves.length) pessoaSubgroups.push({ key: 'pessoas_pj', label: 'Pessoas Jurídicas', Icon: Building2, docs: pjDocs, leaves: pjLeaves });
+
     const grps: Group[] = [];
-    if (pessoaLeaves.length) grps.push({ key: 'pessoas', label: 'Pessoas', Icon: Users, docs: flat(pessoaDocs), leaves: pessoaLeaves });
+    if (pessoaSubgroups.length) grps.push({ key: 'pessoas', label: 'Pessoas', Icon: Users, docs: flat(pessoaDocs), leaves: [], subgroups: pessoaSubgroups });
     if (bemLeaves.length) grps.push({ key: 'bens', label: 'Bens', Icon: Landmark, docs: flat(bemDocs), leaves: bemLeaves });
     if (matriculaLeaves.length) grps.push({ key: 'matriculas', label: 'Matrículas', Icon: ScrollText, docs: flat(matriculaDocs), leaves: matriculaLeaves });
 
@@ -133,10 +158,17 @@ const DocumentosCliente = () => {
     const vByKey = new Map<string, VinculoDoc>();
     dByKey.set('all', docs); lByKey.set('all', 'Todos os documentos');
     dByKey.set('sem', sem); lByKey.set('sem', 'Sem vínculo');
+    const indexLeaves = (leaves: Leaf[]) => {
+      for (const lf of leaves) {
+        dByKey.set(lf.key, lf.docs); lByKey.set(lf.key, lf.label); vByKey.set(lf.key, lf.vinculo);
+      }
+    };
     for (const g of grps) {
       dByKey.set(g.key, g.docs); lByKey.set(g.key, g.label);
-      for (const lf of g.leaves) {
-        dByKey.set(lf.key, lf.docs); lByKey.set(lf.key, lf.label); vByKey.set(lf.key, lf.vinculo);
+      indexLeaves(g.leaves);
+      for (const sg of g.subgroups ?? []) {
+        dByKey.set(sg.key, sg.docs); lByKey.set(sg.key, sg.label);
+        indexLeaves(sg.leaves);
       }
     }
 
@@ -205,7 +237,35 @@ const DocumentosCliente = () => {
                     expanded={isExp(g.key)}
                     onToggle={() => toggle(g.key)}
                   />
-                  {isExp(g.key) && g.leaves.map((lf) => (
+                  {/* Subgrupos (ex.: Pessoas → PF/PJ), cada um expansível até as entidades. */}
+                  {isExp(g.key) && g.subgroups?.map((sg) => (
+                    <div key={sg.key}>
+                      <TreeRow
+                        active={selected === sg.key}
+                        onClick={() => setSelected(sg.key)}
+                        Icon={sg.Icon}
+                        label={sg.label}
+                        count={sg.docs.length}
+                        depth={1}
+                        expandable
+                        expanded={isExp(sg.key)}
+                        onToggle={() => toggle(sg.key)}
+                      />
+                      {isExp(sg.key) && sg.leaves.map((lf) => (
+                        <TreeRow
+                          key={lf.key}
+                          active={selected === lf.key}
+                          onClick={() => setSelected(lf.key)}
+                          Icon={lf.Icon}
+                          label={lf.label}
+                          count={lf.docs.length}
+                          depth={2}
+                        />
+                      ))}
+                    </div>
+                  ))}
+                  {/* Grupos sem subgrupos (Bens, Matrículas): folhas direto no nível 1. */}
+                  {isExp(g.key) && !g.subgroups && g.leaves.map((lf) => (
                     <TreeRow
                       key={lf.key}
                       active={selected === lf.key}
@@ -340,7 +400,7 @@ function TreeRow({
       }}
       className={cn(
         'group flex cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-sm transition-colors',
-        depth ? 'ml-4' : '',
+        depth === 2 ? 'ml-8' : depth === 1 ? 'ml-4' : '',
         active
           ? 'bg-osg-100 font-medium text-osg-700'
           : 'text-slate-600 hover:bg-osg-50 hover:text-osg-700',

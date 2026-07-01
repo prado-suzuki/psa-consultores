@@ -7,11 +7,16 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { ACCEPT, CATEGORIAS, MAX_BYTES } from './docMeta';
+import { categoriaDoTipo, tiposPorCategoria } from './docTipos';
 import {
   useUploadDocumento,
   type DocCategoria,
+  type DocFonte,
   type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
+
+const ORDEM_CATEGORIAS = CATEGORIAS.map((c) => c.value);
+const categoriaTexto = (v: DocCategoria) => CATEGORIAS.find((c) => c.value === v)?.label ?? v;
 
 export interface EntidadeOpcao {
   id: string;
@@ -56,10 +61,25 @@ export function DocUploadDialog({
   open, onOpenChange, clienteId, pessoas, bens, matriculas, vinculoInicial, categoriaInicial,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [fonte, setFonte] = useState<DocFonte>('cliente');
+  const [tipo, setTipo] = useState<string>('');
   const [categoria, setCategoria] = useState<DocCategoria>(categoriaInicial ?? 'outros');
   const [alvo, setAlvo] = useState<string>(vinculoToValue(vinculoInicial));
   const [file, setFile] = useState<File | null>(null);
   const upload = useUploadDocumento();
+  const gruposTipos = tiposPorCategoria(fonte === 'psa' ? 'psa' : 'cliente', ORDEM_CATEGORIAS);
+
+  // Escolher um tipo pré-seleciona a categoria correta (o tipo em si não é gravado na Fase 1).
+  const onTipoChange = (t: string) => {
+    setTipo(t);
+    const cat = categoriaDoTipo(t);
+    if (cat) setCategoria(cat);
+  };
+  // Trocar a origem troca o conjunto de tipos disponíveis; zera o tipo escolhido.
+  const onFonteChange = (f: DocFonte) => {
+    setFonte(f);
+    setTipo('');
+  };
   const vinculoSelecionado = valueToVinculo(alvo);
   const nrMatriculaSelecionada = matriculaNumero(vinculoSelecionado.matriculaId, matriculas);
   const georefSemMatricula = categoria === 'georreferenciamento' && !vinculoSelecionado.matriculaId;
@@ -69,6 +89,8 @@ export function DocUploadDialog({
   // Reabriu a partir de outra pasta: ressincroniza os campos com o contexto.
   useEffect(() => {
     if (open) {
+      setFonte('cliente');
+      setTipo('');
       setCategoria(categoriaInicial ?? 'outros');
       setAlvo(vinculoToValue(vinculoInicial));
       setFile(null);
@@ -105,7 +127,7 @@ export function DocUploadDialog({
       return;
     }
     upload.mutate(
-      { clienteId, vinculo: vinculoSelecionado, categoria, file, nrMatricula: nrMatriculaSelecionada },
+      { clienteId, vinculo: vinculoSelecionado, categoria, file, nrMatricula: nrMatriculaSelecionada, fonte },
       { onSuccess: () => onOpenChange(false) },
     );
   };
@@ -118,11 +140,55 @@ export function DocUploadDialog({
         <DialogHeader>
           <DialogTitle>Anexar documento</DialogTitle>
           <DialogDescription>
-            Envie um arquivo recebido e escolha a categoria e, se quiser, a entidade à qual ele pertence.
+            Escolha a origem e o tipo do documento (a categoria é preenchida automaticamente) e,
+            se quiser, a entidade à qual ele pertence.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <label className={labelCls}>Origem</label>
+            <div className="flex gap-1 rounded-md border border-osg-200 bg-osg-50/60 p-1">
+              {([
+                { v: 'cliente', label: 'Recebido do cliente' },
+                { v: 'psa', label: 'Produzido pela PSA' },
+              ] as const).map((o) => (
+                <button
+                  key={o.v}
+                  type="button"
+                  onClick={() => onFonteChange(o.v)}
+                  className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
+                    fonte === o.v
+                      ? 'bg-white text-osg-700 shadow-sm'
+                      : 'text-muted-foreground hover:text-osg-700'
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className={labelCls}>
+              Tipo de documento{' '}
+              <span className="font-normal text-muted-foreground">(opcional)</span>
+            </label>
+            <select className={selectCls} value={tipo} onChange={(e) => onTipoChange(e.target.value)}>
+              <option value="">— Selecionar da lista (define a categoria) —</option>
+              {gruposTipos.map((g) => (
+                <optgroup key={g.categoria} label={categoriaTexto(g.categoria)}>
+                  {g.tipos.map((t) => (
+                    <option key={t.tipo} value={t.tipo}>{t.tipo}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              Escolher um tipo preenche a categoria abaixo — você ainda pode ajustá-la.
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <label className={labelCls}>Categoria</label>
             <select

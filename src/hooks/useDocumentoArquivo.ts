@@ -7,6 +7,7 @@ import type { Database } from '@/integrations/supabase/types';
 
 export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'];
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
+export type DocFonte = Database['public']['Enums']['osg_doc_fonte'];
 
 export interface VinculoDoc {
   bemId?: string | null;
@@ -69,6 +70,8 @@ interface UploadArgs {
   categoria: DocCategoria;
   file: File;
   nrMatricula?: string | null;
+  /** Origem do arquivo; default 'cliente' (recebido). 'psa' = produzido internamente. */
+  fonte?: DocFonte;
 }
 
 interface SignUploadPayload {
@@ -94,7 +97,7 @@ export function useUploadDocumento() {
   const { fetchWithAuth } = useApiAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ clienteId, vinculo, categoria, file, nrMatricula }: UploadArgs): Promise<DocumentoArquivoRow> => {
+    mutationFn: async ({ clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' }: UploadArgs): Promise<DocumentoArquivoRow> => {
       const isGeorreferenciamento = categoria === 'georreferenciamento';
       const numeroMatricula = nrMatricula?.trim() || null;
       if (isGeorreferenciamento && !vinculo.matriculaId) {
@@ -148,7 +151,7 @@ export function useUploadDocumento() {
         .from('documento_arquivo')
         .insert({
           cliente_id: clienteId,
-          fonte: 'cliente',
+          fonte,
           categoria,
           bem_id: vinculo.bemId ?? null,
           matricula_id: vinculo.matriculaId ?? null,
