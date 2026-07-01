@@ -149,9 +149,9 @@ const DocumentosCliente = () => {
     if (pjLeaves.length) pessoaSubgroups.push({ key: 'pessoas_pj', label: 'Pessoas Jurídicas', Icon: Building2, docs: pjDocs, leaves: pjLeaves });
 
     const grps: Group[] = [];
-    if (pessoaSubgroups.length) grps.push({ key: 'pessoas', label: 'Qualificação das Partes', Icon: Users, docs: flat(pessoaDocs), leaves: [], subgroups: pessoaSubgroups });
+    if (pessoaSubgroups.length) grps.push({ key: 'pessoas', label: 'Pessoas', Icon: Users, docs: flat(pessoaDocs), leaves: [], subgroups: pessoaSubgroups });
     if (bemLeaves.length) grps.push({ key: 'bens', label: 'Bens', Icon: Landmark, docs: flat(bemDocs), leaves: bemLeaves });
-    if (matriculaLeaves.length) grps.push({ key: 'matriculas', label: 'Controle de Matrículas', Icon: ScrollText, docs: flat(matriculaDocs), leaves: matriculaLeaves });
+    if (matriculaLeaves.length) grps.push({ key: 'matriculas', label: 'Matrículas', Icon: ScrollText, docs: flat(matriculaDocs), leaves: matriculaLeaves });
 
     const dByKey = new Map<string, DocumentoArquivoRow[]>();
     const lByKey = new Map<string, string>();
