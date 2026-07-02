@@ -47,7 +47,7 @@ const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'E
 const tipoBadgeClass = (ft: DashboardFilterType) =>
   ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
-  cluster: 'Valor resolvido do cluster do viewer (equipe/gestor) ou do cliente.',
+  cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
   nenhum: 'Dashboard sem RLS — não envia ?params=. ⚠️ Para mostrar tudo, a fonte no Data Studio NÃO pode ter parâmetro de RLS com "Modificar no URL" ativo: desative o "Modificar no URL" desse parâmetro (com ele ativo + padrão vazio, fica fail-closed e o dashboard aparece VAZIO).',
 };
@@ -84,9 +84,9 @@ export default function DashboardsTab() {
   const [targetPage, setTargetPage] = useState('');
   const [sopUrl, setSopUrl] = useState('');
   const [grupo, setGrupo] = useState('');
-  // Acesso: cluster/nenhum -> min_role + (todos os gestores | clusters); cliente -> clientes.
+  // Acesso: cluster/nenhum -> min_role + (todos os clusters | clusters); cliente -> clientes.
   const [minRole, setMinRole] = useState<MinRole>('team_member');
-  const [todosGestores, setTodosGestores] = useState(false);
+  const [todosClusters, setTodosClusters] = useState(false);
   const [allowedClusterIds, setAllowedClusterIds] = useState<string[]>([]);
   const [allowedClienteIds, setAllowedClienteIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Dashboard | null>(null);
@@ -160,13 +160,13 @@ export default function DashboardsTab() {
       const id = await save(editId, {
         name, embed_url: embedUrl, param_names: paramNames.map((s) => s.trim()).filter(Boolean),
         filter_type: filterType, target_page: targetPage, sop_url: sopUrl, grupo,
-        min_role: minRole, all_clusters: todosGestores,
+        min_role: minRole, all_clusters: todosClusters,
         allowed_cluster_ids: allowedClusterIds, allowed_cliente_ids: allowedClienteIds,
       });
       // as listas de acesso vão para as tabelas de junção
       await setAccess.mutateAsync({
         dashboardId: id, filterType,
-        clusterIds: todosGestores ? [] : allowedClusterIds,
+        clusterIds: todosClusters ? [] : allowedClusterIds,
         clienteIds: allowedClienteIds,
       });
       setOpen(false);
@@ -178,14 +178,14 @@ export default function DashboardsTab() {
   const openCreate = () => {
     setEditId(null); setName(''); setEmbedUrl(''); setParamNames(['']);
     setFilterType('cluster'); setTargetPage('board_relatorios'); setSopUrl(''); setGrupo('');
-    setMinRole('team_member'); setTodosGestores(false); setAllowedClusterIds([]); setAllowedClienteIds([]);
+    setMinRole('team_member'); setTodosClusters(false); setAllowedClusterIds([]); setAllowedClienteIds([]);
     setOpen(true);
   };
   const openEdit = (d: Dashboard) => {
     setEditId(d.id); setName(d.name); setEmbedUrl(d.embed_url);
     setParamNames((d.param_names || []).length ? d.param_names : ['']); setFilterType(d.filter_type);
     setTargetPage(d.target_page || ''); setSopUrl(d.sop_url || ''); setGrupo(d.grupo || '');
-    setMinRole(d.min_role ?? 'team_member'); setTodosGestores(d.all_clusters);
+    setMinRole(d.min_role ?? 'team_member'); setTodosClusters(d.all_clusters);
     setAllowedClusterIds(clustersByDashboard.get(d.id) ?? []);
     setAllowedClienteIds(clientesByDashboard.get(d.id) ?? []);
     setOpen(true);
@@ -217,7 +217,7 @@ export default function DashboardsTab() {
         </div>
       );
     }
-    // cluster / nenhum -> nível + (todos os gestores | clusters | só admin)
+    // cluster / nenhum -> nível + (todos os clusters | clusters | só admin)
     const ids = clustersByDashboard.get(d.id) ?? [];
     return (
       <div className="flex flex-wrap items-center gap-1">
@@ -225,9 +225,9 @@ export default function DashboardsTab() {
           <Shield className="h-3 w-3" />{MIN_ROLE_LABEL[d.min_role ?? 'team_member']}
         </span>
         {d.all_clusters
-          ? <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">Todos os gestores</span>
+          ? <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-medium text-teal-700">Todos os clusters</span>
           : ids.length === 0
-            ? <span className="text-xs text-slate-400">só admin</span>
+            ? <span className="text-xs text-slate-400">só Admin</span>
             : (
               <>
                 {ids.slice(0, 2).map((id) => (
@@ -242,7 +242,7 @@ export default function DashboardsTab() {
 
   // Uma linha de dashboard (usada solta ou como membro de um grupo).
   const renderRow = (d: Dashboard, indent = false) => (
-    <TableRow key={d.id} className="cursor-pointer border-slate-100 transition-colors hover:bg-teal-50/40" onClick={() => setDetailTarget(d)}>
+    <TableRow key={d.id} className="group cursor-pointer border-slate-100 transition-colors hover:bg-teal-50/40" onClick={() => setDetailTarget(d)}>
       <TableCell className={`py-3 font-medium text-slate-800 ${indent ? 'pl-10' : ''}`}>{d.name}</TableCell>
       <TableCell className="py-3"><Badge variant="outline" className={tipoBadgeClass(d.filter_type)}>{tipoLabel(d.filter_type)}</Badge></TableCell>
       <TableCell className="py-3"><Badge variant="outline" className={FILTER_BADGE_CLASS[d.filter_type]}>{FILTER_LABEL[d.filter_type]}</Badge></TableCell>
@@ -265,7 +265,7 @@ export default function DashboardsTab() {
         </IconTooltip>
       </TableCell>
       <TableCell className="py-3 text-right" onClick={(e) => e.stopPropagation()}>
-        <div className="flex justify-end gap-1">
+        <div className="flex justify-end gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
           <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-slate-500 hover:text-teal-600 hover:bg-teal-50" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
           <IconAction label="Excluir dashboard" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
         </div>
@@ -396,7 +396,7 @@ export default function DashboardsTab() {
             {tipo === 'externo' && (
               <>
                 <div>
-                  <Label className="inline-flex items-center gap-1">Filtrar por <DicaIcon text="cluster: por equipe/gestor. cliente: por id_cliente (ex.: PERDCOMP)." /></Label>
+                  <Label className="inline-flex items-center gap-1">Filtrar por <DicaIcon text="cluster: pelo cluster do usuário que abre. cliente: por id_cliente (ex.: PERDCOMP)." /></Label>
                   <Select value={filterType} onValueChange={(v) => setFilterType(v as DashboardFilterType)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -491,40 +491,43 @@ export default function DashboardsTab() {
                     </SelectContent>
                   </Select>
 
-                  <div className="mt-3 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2">
+                  <Label className="inline-flex items-center gap-1 text-xs text-slate-500 mt-3">
+                    <Users className="h-3.5 w-3.5" /> Clusters com acesso
+                    <DicaIcon text="Quais clusters podem abrir. Vazio (e 'Todos os clusters' desligado) = só Admin. Use p/ relatórios exclusivos (ex.: PERDCOMP = cluster PSA Consultores)." />
+                  </Label>
+                  {todosClusters ? (
+                    <div className="mt-1 rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2 text-xs text-slate-500">
+                      Todos os clusters ativos — lista específica desativada.
+                    </div>
+                  ) : (
+                    <div className="mt-1">
+                      <MultiSelectCombobox
+                        options={allClusters.map((c) => ({ value: c.id, label: c.name }))}
+                        selected={allowedClusterIds}
+                        onChange={setAllowedClusterIds}
+                        placeholder="Adicionar clusters…"
+                        searchPlaceholder="Buscar cluster…"
+                        emptyText="Nenhum cluster."
+                        addLabel="adicionar cluster"
+                      />
+                    </div>
+                  )}
+
+                  <div className="mt-2 flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2">
                     <Label className="inline-flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
-                      <Users className="h-3.5 w-3.5" /> Todos os gestores
-                      <DicaIcon text="Ligado = qualquer gestor (no nível mínimo) abre, sem enumerar clusters. Desligado = só os clusters marcados abaixo (ou só admin, se nenhum)." />
+                      <Users className="h-3.5 w-3.5" /> Todos os clusters
+                      <DicaIcon text="Ligado = qualquer cluster; quem estiver no nível mínimo abre e vê o próprio cluster, sem precisar listar. Desligado = só os clusters marcados acima (ou só Admin, se nenhum)." />
                     </Label>
-                    <Switch checked={todosGestores} onCheckedChange={setTodosGestores} aria-label="Todos os gestores" />
+                    <Switch checked={todosClusters} onCheckedChange={setTodosClusters} aria-label="Todos os clusters" />
                   </div>
 
-                  {!todosGestores && (
-                    <>
-                      <Label className="inline-flex items-center gap-1 text-xs text-slate-500 mt-3">
-                        <Users className="h-3.5 w-3.5" /> Clusters com acesso
-                        <DicaIcon text="Quais clusters (gestores) podem abrir. Vazio + 'Todos os gestores' desligado = só admin. Use p/ relatórios exclusivos (ex.: PERDCOMP = cluster PSA)." />
-                      </Label>
-                      <div className="mt-1">
-                        <MultiSelectCombobox
-                          options={allClusters.map((c) => ({ value: c.id, label: c.name }))}
-                          selected={allowedClusterIds}
-                          onChange={setAllowedClusterIds}
-                          placeholder="Adicionar clusters…"
-                          searchPlaceholder="Buscar cluster…"
-                          emptyText="Nenhum cluster."
-                          addLabel="adicionar cluster"
-                        />
-                      </div>
-                    </>
-                  )}
                   <p className="text-xs text-slate-500 mt-1">
                     Abre quem tem <strong>{MIN_ROLE_LABEL[minRole]}</strong>{' '}
-                    {todosGestores
-                      ? <>(<strong>todos os gestores</strong>)</>
+                    {todosClusters
+                      ? <>(<strong>todos os clusters</strong>)</>
                       : allowedClusterIds.length > 0
                         ? <><em>e</em> pertence a um dos clusters marcados</>
-                        : <>(<strong>só admin</strong> — nenhum cluster marcado)</>}. Cada gestor vê o próprio cluster; <strong>admin/digital vê todos consolidado</strong>.
+                        : <>(<strong>só Admin</strong> — nenhum cluster marcado)</>}. Cada usuário vê o próprio cluster; <strong>Admin vê todos consolidado</strong>.
                   </p>
                 </>
               )}
@@ -557,11 +560,20 @@ export default function DashboardsTab() {
           setDetailTarget(null);
           setPreviewTarget({ dashboardId: d.id, dashboardName: d.name, filterType: d.filter_type });
         }}
+        onEdit={(d) => {
+          setDetailTarget(null);
+          openEdit(d);
+        }}
       />
 
       <DashboardPreviewDialog
         target={previewTarget}
         onOpenChange={(o) => { if (!o) setPreviewTarget(null); }}
+        onEdit={() => {
+          const d = items.find((x) => x.id === previewTarget?.dashboardId);
+          setPreviewTarget(null);
+          if (d) openEdit(d);
+        }}
       />
     </>
   );

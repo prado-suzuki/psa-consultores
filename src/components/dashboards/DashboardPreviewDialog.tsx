@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Pencil } from 'lucide-react';
 import { useClusters } from '@/hooks/useClusters';
 import { useClientesList } from '@/hooks/useClientesList';
 import { usePreviewDashboardEmbedUrl } from '@/hooks/usePreviewDashboardEmbedUrl';
@@ -17,6 +19,8 @@ export interface PreviewTarget {
 interface DashboardPreviewDialogProps {
   target: PreviewTarget | null;
   onOpenChange: (open: boolean) => void;
+  /** Abre a edição deste dashboard sem precisar fechar o preview antes. */
+  onEdit?: () => void;
 }
 
 /**
@@ -26,7 +30,7 @@ interface DashboardPreviewDialogProps {
  *  - nenhum  → sem seletor (todos veem o mesmo).
  * O filtro é resolvido no servidor (RPC preview_dashboard_embed_url, lider+).
  */
-export function DashboardPreviewDialog({ target, onOpenChange }: DashboardPreviewDialogProps) {
+export function DashboardPreviewDialog({ target, onOpenChange, onEdit }: DashboardPreviewDialogProps) {
   const open = !!target;
   const filterType = target?.filterType ?? 'nenhum';
 
@@ -66,7 +70,14 @@ export function DashboardPreviewDialog({ target, onOpenChange }: DashboardPrevie
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <DialogHeader className="space-y-1">
-          <DialogTitle className="text-base">Preview — {target?.dashboardName}</DialogTitle>
+          <div className="flex items-center justify-between gap-2 pr-8">
+            <DialogTitle className="text-base">Preview — {target?.dashboardName}</DialogTitle>
+            {onEdit && (
+              <Button variant="outline" size="sm" onClick={onEdit} className="shrink-0">
+                <Pencil className="h-3.5 w-3.5 mr-1" />Editar
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         {filterType !== 'nenhum' ? (
