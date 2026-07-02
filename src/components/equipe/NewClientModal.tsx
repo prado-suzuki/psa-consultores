@@ -85,9 +85,14 @@ export default function NewClientModal({
   const hasDraftRepresentanteData = () => !!(draftRepresentante.nome?.trim());
   const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_produto_segmento?.trim());
 
+  // Edição inline em andamento (linha "Editar" de um contribuinte existente).
+  // Sem esse guard, o Save do modal ignora as mudanças em edição.
+  const [inlineEditingContrib, setInlineEditingContrib] = useState(false);
+
   const getDraftPendingTabs = (): string[] => {
     const tabs: string[] = [];
     if (hasDraftEntityData()) tabs.push("Contribuintes");
+    if (inlineEditingContrib) tabs.push("Contribuintes (edição em andamento)");
     if (hasDraftRepresentanteData()) tabs.push("Representantes");
     if (hasDraftContractData()) tabs.push("OS");
     return tabs;
@@ -270,6 +275,7 @@ export default function NewClientModal({
                       cnpjLoading={cnpjLoading} cepLoading={cepLoading}
                       cnpjLookup={cnpjLookup} cepLookup={cepLookup}
                       isReadOnly={isReadOnly}
+                      onInlineEditingChange={setInlineEditingContrib}
                     />
                   </TabsContent>
 

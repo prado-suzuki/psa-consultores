@@ -227,8 +227,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
-          const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
+          // Usar .select() garante que uma falha silenciosa de RLS (0 rows
+          // afetadas) apareça como erro, em vez de o save "concluir" sem gravar.
+          const { data: updRows, error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId).select("id");
           if (error) throw error;
+          if (!updRows || updRows.length === 0) {
+            throw new Error(`UPDATE de contribuinte ${e._dbId} não atingiu nenhuma linha (RLS ou id inválido).`);
+          }
         } else {
           const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
           if (error) throw error;
@@ -575,14 +580,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const clientDiff = snap
         ? computeFieldDiff(snap.clientData as unknown as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
         : null;
-      logAction({
-        area: 'dev',
-        entity_type: 'cliente',
-        entity_id: auditClienteId,
-        entity_name: clientData.nome.trim(),
-        action: isEditing ? 'updated' : 'created',
-        changed_fields: clientDiff && Object.keys(clientDiff).length > 0 ? clientDiff : undefined,
-      });
+      const clientHasChange = !!clientDiff && Object.keys(clientDiff).length > 0;
+      // Só emitir audit de cliente se houve criação OU se realmente houve alteração
+      // (evita "fantasmas" com changed_fields=null quando o usuário salva sem mudar nada).
+      if (!isEditing || clientHasChange) {
+        logAction({
+          area: 'dev',
+          entity_type: 'cliente',
+          entity_id: auditClienteId,
+          entity_name: clientData.nome.trim(),
+          action: isEditing ? 'updated' : 'created',
+          changed_fields: clientHasChange ? clientDiff : undefined,
+        });
+      }
 
       // Contribuintes
       const contribDiffs = snap
@@ -667,7 +677,20 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      // Feedback preciso: se estava editando e nenhuma entidade teve diff real,
+      // informar explicitamente para o usuário perceber que o que ele editou
+      // não chegou ao estado salvo (ex.: edição inline não commitada na aba).
+      const nothingChanged =
+        isEditing &&
+        !clientHasChange &&
+        contribDiffs.length === 0 &&
+        partDiffs.length === 0 &&
+        osDiffs.length === 0;
+      if (nothingChanged) {
+        toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
+      } else {
+        toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      }
       onSuccess();
     } catch (error: any) {
       // Rollback: delete newly created client (CASCADE removes children)

@@ -1,71 +1,67 @@
-## Objetivo
+## Diagnóstico — Contribuintes some ao salvar
 
-Isolar a **visualização** de projetos por cluster na tela "Cadastro de Projetos" do OSG, mantendo escrita/atribuição cross-cluster e o comportamento do Tax 100% idêntico. Projetos multidisciplinares aparecem em todos os clusters envolvidos.
+**Fatos:**
+- 3 UPDATEs de `cliente` registrados hoje, todos com `changed_fields = NULL`. `updated_at` de Família Lunardi bumpado (17:42:50).
+- **Nenhum** audit de `entity_type='contribuinte'` no dia — o diff calculado (`computeEntityListDiff`) veio vazio, ou seja, no instante do save o array `entities` já era idêntico ao `originalSnapshot`.
+- Papel `lider` passa em todas as policies (`sublider+` em contribuinte).
 
-## Parte A — Banco (migration única, aditiva)
+**Causa raiz (identificada por leitura):**
 
-### A1. Pré-checagens (read-only, abortar se faltar)
-- `resolve_user_cluster_ids(uuid)` existe em `public`.
-- `org_projects`, `org_project_members`, `estrutura_areas` existem.
+Em `src/components/equipe/client-form/ContribuintesTab.tsx`, o painel de "Editar" de um contribuinte existente commita a edição na linha 152:
 
-### A2. Criar 2 funções (CREATE OR REPLACE, transação única)
+```
+setEntities(entities.map((e) => (e._id === editingEntityId ? ({...e, ...editingEntityData}) : e)));
+```
 
-**`public.org_project_cluster_ids(_project_id uuid) RETURNS uuid[]`**
-- `STABLE SECURITY DEFINER`, `search_path=public`.
-- União de:
-  - `cluster_id` da área principal (`org_projects.estrutura_area_id → estrutura_areas.cluster_id`).
-  - `unnest(resolve_user_cluster_ids(opm.user_id))` para cada membro de `org_project_members`.
-- `GRANT EXECUTE ... TO authenticated`.
+O casamento é por `_id`, um número gerado em `useClientEditData.ts` com `Date.now() + Math.random()` (linha 81). Esse `_id` é **regerado toda vez que `useClientEditData` executa** — e o `useEffect` desse hook depende de `[open, editingClienteId]`, mas também é vulnerável a qualquer re-run causado por `open` transitando (React 18 StrictMode, focus/visibility, revalidations).
 
-**`public.dashboard_project_ids_for_cluster(_cluster_id uuid, _include_orphans boolean DEFAULT false) RETURNS SETOF uuid`**
-- `STABLE SECURITY INVOKER` (respeita RLS de `org_projects`).
-- Retorna `p.id` onde `_cluster_id = ANY(org_project_cluster_ids(p.id))` OR (`_include_orphans` AND set vazio).
-- `GRANT EXECUTE ... TO authenticated`.
+Fluxo que reproduz o bug:
+1. Maritsa abre o modal do cliente Família Lunardi → load popula `entities` com `_id=X`.
+2. Ela clica em "Editar" num contribuinte → `editingEntityId = X`.
+3. Ela digita alterações.
+4. O load re-dispara por qualquer motivo → `setEntities` recria a lista com `_id=Y` (novos números).
+5. Ela clica "Salvar" na linha → `entities.map(e => e._id === X ? ...)` → **nenhum match**, no-op silencioso.
+6. Ela clica "Salvar" no modal → `entities` idêntico ao snapshot → `UPDATE` roda com payload igual, `changed_fields=null`, toast diz "sucesso".
 
-### A3. Pós-validação (read-only)
-- Listar as 2 funções em `pg_proc`.
-- `count(*)` de `dashboard_project_ids_for_cluster('0523512c-...', false)` (PSA OSG).
-- Amostra de projetos multidisciplinares.
+Contribui também: a `useEffect` do load não é idempotente — não há guard `loadedForId` — e o save principal em `useSaveClientTransaction.ts:230` faz `.update(...)` **sem `.select()`**, então uma eventual falha silenciosa de RLS não seria detectada (não é o caso aqui, mas fica como fragilidade).
 
-### Garantias
-- Zero alteração em tabelas, dados, RLS, policies, triggers ou demais funções.
-- Reuso integral de `resolve_user_cluster_ids`.
-- Impacto comportamental = 0 até o frontend chamar (apenas leitura, sem consumidor atual).
+## Plano de correção (frontend, sem migrations)
 
-## Parte B — Frontend (somente 3 pontos)
+### Fix 1 — Identidade estável do contribuinte (raiz do bug)
+`src/hooks/useClientEditData.ts`:
+- Trocar `_id: Date.now() + Math.random()` por `_id: <hash estável do _dbId>` (ex.: `parseInt(String(c.id).replace(/-/g,'').slice(0,12),16)`) OU passar a usar `_dbId` como chave onde hoje se usa `_id`.
 
-### B1. `src/hooks/useDashboardProjectIds.ts` (novo)
-- `useDashboardProjectIds(clusterId: string | null | undefined, includeOrphans: boolean)`.
-- `supabase.rpc('dashboard_project_ids_for_cluster', { _cluster_id, _include_orphans })`.
-- Retorna `Set<string>` (e `isLoading`). `enabled: !!clusterId`.
+`src/components/equipe/client-form/ContribuintesTab.tsx`:
+- Onde o código compara `e._id === editingEntityId`, priorizar `_dbId` quando existir: `(e._dbId && e._dbId === editingEntityDbId) || e._id === editingEntityId`.
+- Aplicar o mesmo raciocínio ao `expandedEntityId`, ao remove (linha 271) e ao commit inline de IE.
+- Repetir o padrão em `RepresentantesTab.tsx` e `ContratosTab.tsx` se usarem o mesmo casamento por `_id`.
 
-### B2. `src/pages/equipe/fiscal/FiscalProjetosCadastro.tsx` (`ProjetosCadastroContent`)
-- Nova prop `area: AreaKey = 'tax'` (default preserva Tax).
-- Título dinâmico: `'Projetos OSG'` quando `area==='osg'`, senão `'Projetos Tax'`.
-- Trocar `useEstruturaEquipesByCategory('tax')` por `useEstruturaEquipesByCategory(area)`.
-- Resolver cluster via `useClusterIdByPageCategory(area)`.
-- Filtrar `projects` por `useDashboardProjectIds(clusterId, area==='tax')`:
-  - Enquanto `clusterId` não resolver → não exibe projetos de outros clusters (lista vazia ou skeleton).
-  - Tax usa `_include_orphans=true` para não perder legado sem área.
-- Não tocar em modal de criação/edição nem em nenhuma escrita.
+### Fix 2 — Load idempotente
+`src/hooks/useClientEditData.ts`:
+- Adicionar `loadedForIdRef = useRef<string | null>(null)` e sair cedo se `loadedForIdRef.current === editingClienteId`.
+- Zerar o ref quando `open` vira `false` ou `editingClienteId` muda.
+- Se `initialSnapshotRef.current` já existir e o snapshot atual estiver "sujo" (usuário digitou), **não** chamar os setters no fim do load (log via `console.warn`).
 
-### B3. `src/pages/equipe/osg/OsgProjetos.tsx`
-- `<ProjetosCadastroContent area="osg" />`.
+### Fix 3 — Bloquear Save enquanto carrega
+`src/components/equipe/NewClientModal.tsx`:
+- Adicionar `|| loadingEdit` no `disabled` do botão Salvar.
+- `toast.warning("Carregando dados, aguarde…")` no caminho `executeSave` se `loadingEdit === true`.
 
-### Não-mexer (explícito)
-- `useCreateOrgProject` / `useUpdateOrgProject` / `useDeleteOrgProject`.
-- Seletores de responsável/membros (cross-cluster permanece).
-- RLS de INSERT/UPDATE/DELETE em `org_projects`/`org_project_members`.
-- `/equipe/chamados`, `org_tasks`, Tarefas, Clientes (fora de escopo desta tarefa).
-- Comportamento da página Tax (área Tax continua via default `area='tax'`).
+### Fix 4 — "Nada a salvar" explícito + endurecimento
+`src/hooks/useSaveClientTransaction.ts`:
+- Ao final, se `isEditing` e todos os diffs (client + contribs + parts + os) estão vazios, exibir `toast.info("Nenhuma alteração detectada")` no lugar de `toast.success("Cliente atualizado…")` e **não** emitir o `logAction` de cliente com `changed_fields` vazio (elimina os "fantasmas" que vimos em audit).
+- Trocar `supabase.from(contribuinteTable).update(payload).eq("id", e._dbId)` por `.update(payload).eq("id", e._dbId).select("id")` — se `data.length === 0`, `throw new Error('UPDATE de contribuinte não atingiu nenhuma linha')`. Blindagem contra futuras regressões silenciosas de RLS.
 
-## Testes a reportar
-1. OSG → Cadastro: título "Projetos OSG"; só projetos do cluster PSA OSG; projetos exclusivamente Tax somem.
-2. Tax → Cadastro: título "Projetos Tax"; lista idêntica à atual (com legado via `_include_orphans=true`).
-3. Multidisciplinar (área de um cluster + membro de outro): aparece nos DOIS clusters.
-4. Escrita: criar/editar projeto e atribuir responsável/membro de outro cluster continua funcionando.
-5. Chamados inalterado.
+### Fix 5 — Validação
+- Como líder, abrir Família Lunardi, editar um contribuinte (ex.: telefone), salvar.
+- Conferir na barra de sucesso, reabrir o modal e ver que o valor persistiu.
+- Em `audit_logs`, verificar que o novo registro traz `entity_type='contribuinte'` e `changed_fields={telefone:{...}}`.
+- Regressão rápida: aba Contratos e Representantes editando inline.
+
+## Escopo e não-escopo
+- **Frontend + hook data-loader apenas.** Nada de migração, RLS, policy ou trigger.
+- Não altera regras de negócio nem o payload persistido; muda somente identidade em memória, idempotência de load e feedback de UX.
+- Arquivos tocados: `useClientEditData.ts`, `ContribuintesTab.tsx`, `RepresentantesTab.tsx` e `ContratosTab.tsx` (se aplicável), `NewClientModal.tsx`, `useSaveClientTransaction.ts`.
 
 ## Rollback
-- Parte A: `DROP FUNCTION` das 2 funções novas.
-- Parte B: reverter os 3 arquivos (sem efeito colateral, pois nada além deles muda).
+Reverter os 4-5 arquivos citados — mudança 100% frontend, sem estado persistido novo.

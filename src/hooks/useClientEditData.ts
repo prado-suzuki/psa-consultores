@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 import { formatCpfCnpj } from '@/components/equipe/client-form/constants';
+
+// _id determinístico derivado do UUID do banco. Evita que reloads regenerem os
+// _id de linhas existentes e invalidem edições inline (que casam por _id).
+const stableIdFromUuid = (uuid: string | null | undefined): number => {
+  if (!uuid) return Date.now() + Math.random();
+  const clean = String(uuid).replace(/-/g, '').slice(0, 12);
+  const n = parseInt(clean, 16);
+  return Number.isFinite(n) ? n : Date.now() + Math.random();
+};
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
@@ -40,8 +49,18 @@ export const useClientEditData = (
     contracts: DraftOrdemServico[];
   } | null>(null);
 
+  // Guard idempotente: garante que o load só popule os setters uma vez por
+  // (open + editingClienteId). Sem isso, um re-render que redispare o effect
+  // poderia sobrescrever edições em andamento do usuário.
+  const loadedForRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open || !editingClienteId) return;
+    if (!open || !editingClienteId) {
+      if (!open) loadedForRef.current = null;
+      return;
+    }
+    if (loadedForRef.current === editingClienteId) return;
+    loadedForRef.current = editingClienteId;
 
     const loadData = async () => {
       setLoadingEdit(true);
@@ -78,7 +97,7 @@ export const useClientEditData = (
         let snapEntities: DraftEntity[] = [];
         if (contribs) {
           const mapped = contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(c.id),
               _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
               cpf_cnpj: formatCpfCnpj(c.cpf_cnpj || "", c.tipo_pessoa || "PJ"),
@@ -118,7 +137,7 @@ export const useClientEditData = (
               const key = ie.contribuinte_id as string;
               if (!map[key]) map[key] = [];
               map[key].push({
-                _tempId: Date.now() + Math.random(),
+                _tempId: stableIdFromUuid(ie.id),
                 _dbId: ie.id,
                 situacao: ie.situacao || "sim",
                 numero_ie: ie.numero_ie || "",
@@ -139,7 +158,7 @@ export const useClientEditData = (
           .eq("excluido", false);
         if (parts) {
           const mapped = parts.map((p: any) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(p.id_representante || p.id),
               _dbId: p.id_representante || p.id,
               nome: p.nome || "",
               tipo_representante: p.tipo_representante || "",
@@ -181,7 +200,7 @@ export const useClientEditData = (
           (produtosData || []).forEach((p: any) => {
             if (!produtosMap[p.ordem_servico_id]) produtosMap[p.ordem_servico_id] = [];
             produtosMap[p.ordem_servico_id].push({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(p.id),
               _dbId: p.id,
               produto_segmento_id: p.produto_segmento_id,
               horas_contratadas: p.horas_contratadas != null ? Number(p.horas_contratadas) : undefined,
@@ -189,7 +208,7 @@ export const useClientEditData = (
           });
 
           const mappedContracts = existingOS.map((os: any) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(os.id),
               _dbId: os.id,
               ordem_servico: os.numero_os || "",
               data_emissao: os.data_emissao || "",
