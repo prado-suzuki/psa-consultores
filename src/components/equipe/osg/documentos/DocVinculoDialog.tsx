@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { Link2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { toast } from '@/hooks/use-toast';
@@ -43,6 +46,8 @@ interface Props {
 export function DocVinculoDialog({ open, onOpenChange, doc, clienteId, pessoas, bens, matriculas }: Props) {
   const [alvo, setAlvo] = useState<string>('sem');
   const atualizar = useAtualizarDocumento(clienteId);
+  const pessoasPF = pessoas.filter((p) => p.tipo !== 'PJ');
+  const pessoasPJ = pessoas.filter((p) => p.tipo === 'PJ');
 
   // Ao abrir, começa do vínculo atual do documento.
   useEffect(() => {
@@ -66,8 +71,6 @@ export function DocVinculoDialog({ open, onOpenChange, doc, clienteId, pessoas, 
     );
   };
 
-  const selectCls = `${fieldCls} w-full px-3`;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -79,26 +82,48 @@ export function DocVinculoDialog({ open, onOpenChange, doc, clienteId, pessoas, 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5 py-2">
+        <div className="space-y-1.5 py-2 min-w-0">
           <label className={labelCls}>Vincular a</label>
-          <select className={selectCls} value={alvo} onChange={(e) => setAlvo(e.target.value)}>
-            <option value="sem">Sem vínculo — apenas o cliente</option>
-            {pessoas.length > 0 && (
-              <optgroup label="Pessoas">
-                {pessoas.map((p) => <option key={p.id} value={`pessoa:${p.id}`}>{p.label}</option>)}
-              </optgroup>
-            )}
-            {bens.length > 0 && (
-              <optgroup label="Bens">
-                {bens.map((b) => <option key={b.id} value={`bem:${b.id}`}>{b.label}</option>)}
-              </optgroup>
-            )}
-            {matriculas.length > 0 && (
-              <optgroup label="Matrículas">
-                {matriculas.map((m) => <option key={m.id} value={`matricula:${m.id}`}>{m.label}</option>)}
-              </optgroup>
-            )}
-          </select>
+          <Select value={alvo} onValueChange={setAlvo}>
+            <SelectTrigger className={fieldCls}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="sem">Sem vínculo — apenas o cliente</SelectItem>
+              {pessoasPF.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Pessoas Físicas</SelectLabel>
+                  {pessoasPF.map((p) => (
+                    <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {pessoasPJ.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Pessoas Jurídicas</SelectLabel>
+                  {pessoasPJ.map((p) => (
+                    <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {bens.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Bens</SelectLabel>
+                  {bens.map((b) => (
+                    <SelectItem key={b.id} value={`bem:${b.id}`}>{b.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+              {matriculas.length > 0 && (
+                <SelectGroup>
+                  <SelectLabel>Matrículas</SelectLabel>
+                  {matriculas.map((m) => (
+                    <SelectItem key={m.id} value={`matricula:${m.id}`}>{m.label}</SelectItem>
+                  ))}
+                </SelectGroup>
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
         <DialogFooter>

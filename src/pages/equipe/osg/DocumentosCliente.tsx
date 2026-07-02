@@ -182,7 +182,7 @@ const DocumentosCliente = () => {
 
   // Opções para o seletor "vincular a" (todas as entidades, não só as com docs).
   const pessoaOpts = useMemo(
-    () => pessoas.map((p) => ({ id: p.id, label: p.denominacao ?? 'Pessoa' }))
+    () => pessoas.map((p) => ({ id: p.id, label: p.denominacao ?? 'Pessoa', tipo: p.tipo_pessoa }))
       .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
     [pessoas],
   );

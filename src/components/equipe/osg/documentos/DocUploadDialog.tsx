@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Loader2, Paperclip, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
+  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { toast } from '@/hooks/use-toast';
@@ -22,6 +25,8 @@ export interface EntidadeOpcao {
   id: string;
   label: string;
   numero?: string | null;
+  /** Só para Pessoas — permite separar PF/PJ no seletor de vínculo. */
+  tipo?: string | null;
 }
 
 interface Props {
@@ -68,6 +73,8 @@ export function DocUploadDialog({
   const [file, setFile] = useState<File | null>(null);
   const upload = useUploadDocumento();
   const gruposTipos = tiposPorCategoria(fonte === 'psa' ? 'psa' : 'cliente', ORDEM_CATEGORIAS);
+  const pessoasPF = pessoas.filter((p) => p.tipo !== 'PJ');
+  const pessoasPJ = pessoas.filter((p) => p.tipo === 'PJ');
 
   // Escolher um tipo pré-seleciona a categoria correta (o tipo em si não é gravado na Fase 1).
   const onTipoChange = (t: string) => {
@@ -132,8 +139,6 @@ export function DocUploadDialog({
     );
   };
 
-  const selectCls = `${fieldCls} w-full px-3`;
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -145,7 +150,7 @@ export function DocUploadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
+        <div className="space-y-4 py-2 min-w-0">
           <div className="space-y-1.5">
             <label className={labelCls}>Origem</label>
             <div className="flex gap-1 rounded-md border border-osg-200 bg-osg-50/60 p-1">
@@ -174,16 +179,21 @@ export function DocUploadDialog({
               Tipo de documento{' '}
               <span className="font-normal text-muted-foreground">(opcional)</span>
             </label>
-            <select className={selectCls} value={tipo} onChange={(e) => onTipoChange(e.target.value)}>
-              <option value="">— Selecionar da lista (define a categoria) —</option>
-              {gruposTipos.map((g) => (
-                <optgroup key={g.categoria} label={categoriaTexto(g.categoria)}>
-                  {g.tipos.map((t) => (
-                    <option key={t.tipo} value={t.tipo}>{t.tipo}</option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+            <Select value={tipo || undefined} onValueChange={onTipoChange}>
+              <SelectTrigger className={fieldCls}>
+                <SelectValue placeholder="Selecionar da lista (define a categoria)" />
+              </SelectTrigger>
+              <SelectContent>
+                {gruposTipos.map((g) => (
+                  <SelectGroup key={g.categoria}>
+                    <SelectLabel>{categoriaTexto(g.categoria)}</SelectLabel>
+                    {g.tipos.map((t) => (
+                      <SelectItem key={t.tipo} value={t.tipo}>{t.tipo}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                ))}
+              </SelectContent>
+            </Select>
             <p className="text-[11px] text-muted-foreground">
               Escolher um tipo preenche a categoria abaixo — você ainda pode ajustá-la.
             </p>
@@ -191,15 +201,16 @@ export function DocUploadDialog({
 
           <div className="space-y-1.5">
             <label className={labelCls}>Categoria</label>
-            <select
-              className={selectCls}
-              value={categoria}
-              onChange={(e) => setCategoria(e.target.value as DocCategoria)}
-            >
-              {CATEGORIAS.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
+            <Select value={categoria} onValueChange={(v) => setCategoria(v as DocCategoria)}>
+              <SelectTrigger className={fieldCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CATEGORIAS.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1.5">
@@ -209,24 +220,46 @@ export function DocUploadDialog({
                 {categoria === 'georreferenciamento' ? '(obrigatório para georreferenciamento)' : '(opcional)'}
               </span>
             </label>
-            <select className={selectCls} value={alvo} onChange={(e) => setAlvo(e.target.value)}>
-              <option value="sem">Sem vínculo — apenas o cliente</option>
-              {pessoas.length > 0 && (
-                <optgroup label="Pessoas">
-                  {pessoas.map((p) => <option key={p.id} value={`pessoa:${p.id}`}>{p.label}</option>)}
-                </optgroup>
-              )}
-              {bens.length > 0 && (
-                <optgroup label="Bens">
-                  {bens.map((b) => <option key={b.id} value={`bem:${b.id}`}>{b.label}</option>)}
-                </optgroup>
-              )}
-              {matriculas.length > 0 && (
-                <optgroup label="Matrículas">
-                  {matriculas.map((m) => <option key={m.id} value={`matricula:${m.id}`}>{m.label}</option>)}
-                </optgroup>
-              )}
-            </select>
+            <Select value={alvo} onValueChange={setAlvo}>
+              <SelectTrigger className={fieldCls}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sem">Sem vínculo — apenas o cliente</SelectItem>
+                {pessoasPF.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Pessoas Físicas</SelectLabel>
+                    {pessoasPF.map((p) => (
+                      <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {pessoasPJ.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Pessoas Jurídicas</SelectLabel>
+                    {pessoasPJ.map((p) => (
+                      <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {bens.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Bens</SelectLabel>
+                    {bens.map((b) => (
+                      <SelectItem key={b.id} value={`bem:${b.id}`}>{b.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+                {matriculas.length > 0 && (
+                  <SelectGroup>
+                    <SelectLabel>Matrículas</SelectLabel>
+                    {matriculas.map((m) => (
+                      <SelectItem key={m.id} value={`matricula:${m.id}`}>{m.label}</SelectItem>
+                    ))}
+                  </SelectGroup>
+                )}
+              </SelectContent>
+            </Select>
             {georefSemMatricula && (
               <p className="text-[11px] text-destructive">
                 Selecione uma matrícula para anexar documentos de georreferenciamento.
@@ -248,7 +281,10 @@ export function DocUploadDialog({
               className={`${fieldCls} flex w-full items-center gap-2 px-3 text-left text-sm`}
             >
               <Paperclip className="h-4 w-4 shrink-0 text-osg-moss" />
-              <span className={file ? 'truncate text-slate-700' : 'text-muted-foreground'}>
+              <span
+                className={`min-w-0 flex-1 truncate ${file ? 'text-slate-700' : 'text-muted-foreground'}`}
+                title={file?.name}
+              >
                 {file ? file.name : 'Escolher arquivo…'}
               </span>
             </button>
