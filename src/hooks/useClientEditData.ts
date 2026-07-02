@@ -1,8 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 import { formatCpfCnpj } from '@/components/equipe/client-form/constants';
+
+// _id determinístico derivado do UUID do banco. Evita que reloads regenerem os
+// _id de linhas existentes e invalidem edições inline (que casam por _id).
+const stableIdFromUuid = (uuid: string | null | undefined): number => {
+  if (!uuid) return Date.now() + Math.random();
+  const clean = String(uuid).replace(/-/g, '').slice(0, 12);
+  const n = parseInt(clean, 16);
+  return Number.isFinite(n) ? n : Date.now() + Math.random();
+};
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
