@@ -1,6 +1,8 @@
 // Metadados compartilhados dos documentos OSG: rótulos de categoria, limites de
 // upload e formatação. Nasceram na DocumentosTab e foram extraídos aqui para que a
 // aba (nos modais) e a tela central "Documentos do Cliente" usem a mesma fonte.
+import type { LucideIcon } from 'lucide-react';
+import { File, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
 import type { DocCategoria } from '@/hooks/useDocumentoArquivo';
 
 export const CATEGORIAS: { value: DocCategoria; label: string }[] = [
@@ -33,4 +35,18 @@ export function formatBytes(n: number | null): string {
     i++;
   }
   return `${v.toFixed(i ? 1 : 0)} ${u[i]}`;
+}
+
+// Ícone + cor por tipo de arquivo (usa extensão do nome; mime como reforço).
+const EXT_IMG = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg'];
+export function fileIconOf(nome: string, mime?: string | null): { Icon: LucideIcon; className: string } {
+  const ext = (nome.split('.').pop() ?? '').toLowerCase();
+  const m = (mime ?? '').toLowerCase();
+  if (ext === 'pdf' || m.includes('pdf')) return { Icon: FileText, className: 'text-red-500' };
+  if (EXT_IMG.includes(ext) || m.startsWith('image/')) return { Icon: ImageIcon, className: 'text-purple-500' };
+  if (['xls', 'xlsx', 'csv'].includes(ext) || m.includes('sheet') || m.includes('excel') || m.includes('csv')) {
+    return { Icon: FileSpreadsheet, className: 'text-emerald-600' };
+  }
+  if (['doc', 'docx'].includes(ext) || m.includes('word')) return { Icon: FileText, className: 'text-blue-500' };
+  return { Icon: File, className: 'text-slate-400' };
 }

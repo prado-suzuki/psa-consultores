@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, ChevronRight, Download, FileText, FolderArchive,
+  Building2, ChevronRight, Download, FolderArchive,
   FolderOpen, Inbox, Landmark, Link2, Pencil, ScrollText, Trash2, Upload, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
@@ -20,7 +20,7 @@ import {
   useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
-import { categoriaLabel, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+import { categoriaLabel, fileIconOf, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
@@ -350,7 +350,7 @@ const DocumentosCliente = () => {
                   <ul className="divide-y divide-osg-100/70">
                     {selectedDocs.map((d) => (
                       <li key={d.id} className="flex items-center gap-3 px-2 py-2.5 text-sm">
-                        <FileText className="h-4 w-4 shrink-0 text-osg-moss/70" />
+                        <FileIcon nome={d.nome_original} mime={d.mime} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
                           <p className="truncate text-xs text-muted-foreground">
@@ -457,6 +457,11 @@ const DocumentosCliente = () => {
     </OsgLayout>
   );
 };
+
+function FileIcon({ nome, mime }: { nome: string; mime: string | null }) {
+  const { Icon, className } = fileIconOf(nome, mime);
+  return <Icon className={cn('h-4 w-4 shrink-0', className)} />;
+}
 
 function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
   // Mesma animação do agrupador "Oficina de Contratos" (grid-rows 0fr↔1fr +
