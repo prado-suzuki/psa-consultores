@@ -1314,100 +1314,123 @@ export type Database = {
           },
         ]
       }
-      dashboard_access: {
+      dashboard_cliente_access: {
         Row: {
+          cliente_id: string
           created_at: string
           created_by: string | null
           dashboard_id: string
           id: string
-          override_all_clusters: boolean
-          override_cluster_ids: string[]
-          updated_at: string
-          updated_by: string | null
-          user_id: string
         }
         Insert: {
+          cliente_id: string
           created_at?: string
           created_by?: string | null
           dashboard_id: string
           id?: string
-          override_all_clusters?: boolean
-          override_cluster_ids?: string[]
-          updated_at?: string
-          updated_by?: string | null
-          user_id: string
         }
         Update: {
+          cliente_id?: string
           created_at?: string
           created_by?: string | null
           dashboard_id?: string
           id?: string
-          override_all_clusters?: boolean
-          override_cluster_ids?: string[]
-          updated_at?: string
-          updated_by?: string | null
-          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "dashboard_access_created_by_fkey"
+            foreignKeyName: "dashboard_cliente_access_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_cliente_access_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboard_access_created_by_fkey"
+            foreignKeyName: "dashboard_cliente_access_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboard_access_dashboard_id_fkey"
+            foreignKeyName: "dashboard_cliente_access_dashboard_id_fkey"
             columns: ["dashboard_id"]
             isOneToOne: false
             referencedRelation: "dashboards"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      dashboard_cluster_access: {
+        Row: {
+          cluster_id: string
+          created_at: string
+          created_by: string | null
+          dashboard_id: string
+          id: string
+        }
+        Insert: {
+          cluster_id: string
+          created_at?: string
+          created_by?: string | null
+          dashboard_id: string
+          id?: string
+        }
+        Update: {
+          cluster_id?: string
+          created_at?: string
+          created_by?: string | null
+          dashboard_id?: string
+          id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "dashboard_access_updated_by_fkey"
-            columns: ["updated_by"]
+            foreignKeyName: "dashboard_cluster_access_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dashboard_cluster_access_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboard_access_updated_by_fkey"
-            columns: ["updated_by"]
+            foreignKeyName: "dashboard_cluster_access_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboard_access_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "dashboard_cluster_access_dashboard_id_fkey"
+            columns: ["dashboard_id"]
             isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dashboard_access_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
+            referencedRelation: "dashboards"
             referencedColumns: ["id"]
           },
         ]
       }
       dashboards: {
         Row: {
+          all_clusters: boolean
           created_at: string
           created_by: string | null
           embed_url: string
           filter_type: string
+          grupo: string | null
           id: string
           is_active: boolean
+          min_role: Database["public"]["Enums"]["app_role"] | null
           name: string
           param_names: string[]
           sop_url: string | null
@@ -1416,12 +1439,15 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          all_clusters?: boolean
           created_at?: string
           created_by?: string | null
           embed_url: string
           filter_type?: string
+          grupo?: string | null
           id?: string
           is_active?: boolean
+          min_role?: Database["public"]["Enums"]["app_role"] | null
           name: string
           param_names?: string[]
           sop_url?: string | null
@@ -1430,12 +1456,15 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          all_clusters?: boolean
           created_at?: string
           created_by?: string | null
           embed_url?: string
           filter_type?: string
+          grupo?: string | null
           id?: string
           is_active?: boolean
+          min_role?: Database["public"]["Enums"]["app_role"] | null
           name?: string
           param_names?: string[]
           sop_url?: string | null
