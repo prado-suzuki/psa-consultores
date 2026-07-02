@@ -190,7 +190,7 @@ export const useClientEditData = (
           (produtosData || []).forEach((p: any) => {
             if (!produtosMap[p.ordem_servico_id]) produtosMap[p.ordem_servico_id] = [];
             produtosMap[p.ordem_servico_id].push({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(p.id),
               _dbId: p.id,
               produto_segmento_id: p.produto_segmento_id,
               horas_contratadas: p.horas_contratadas != null ? Number(p.horas_contratadas) : undefined,
