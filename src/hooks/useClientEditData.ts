@@ -198,7 +198,7 @@ export const useClientEditData = (
           });
 
           const mappedContracts = existingOS.map((os: any) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(os.id),
               _dbId: os.id,
               ordem_servico: os.numero_os || "",
               data_emissao: os.data_emissao || "",
