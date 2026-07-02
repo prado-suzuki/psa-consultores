@@ -677,7 +677,20 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      // Feedback preciso: se estava editando e nenhuma entidade teve diff real,
+      // informar explicitamente para o usuário perceber que o que ele editou
+      // não chegou ao estado salvo (ex.: edição inline não commitada na aba).
+      const nothingChanged =
+        isEditing &&
+        !clientHasChange &&
+        contribDiffs.length === 0 &&
+        partDiffs.length === 0 &&
+        osDiffs.length === 0;
+      if (nothingChanged) {
+        toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
+      } else {
+        toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      }
       onSuccess();
     } catch (error: any) {
       // Rollback: delete newly created client (CASCADE removes children)
