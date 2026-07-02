@@ -44,11 +44,16 @@ export default function ContribuintesTab({
   cnpjLoading, cepLoading,
   cnpjLookup, cepLookup,
   isReadOnly,
+  onInlineEditingChange,
 }: ContribuintesTabProps) {
   const { isAdmin } = useAuth();
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
   const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
+
+  useEffect(() => {
+    onInlineEditingChange?.(editingEntityId != null);
+  }, [editingEntityId, onInlineEditingChange]);
 
   type DupState = { found: true; isLocal: boolean; clienteName?: string | null } | null;
   const [draftDuplicate, setDraftDuplicate] = useState<DupState>(null);
