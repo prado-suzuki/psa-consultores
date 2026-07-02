@@ -11,6 +11,7 @@ import { toast } from '@/hooks/use-toast';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { ACCEPT, CATEGORIAS, MAX_BYTES } from './docMeta';
 import { categoriaDoTipo, tiposPorCategoria } from './docTipos';
+import { VinculoSelect } from './VinculoSelect';
 import {
   useUploadDocumento,
   type DocCategoria,
@@ -200,6 +201,33 @@ export function DocUploadDialog({
           </div>
 
           <div className="space-y-1.5">
+            <label className={labelCls}>
+              Vincular a{' '}
+              <span className="font-normal text-muted-foreground">
+                {categoria === 'georreferenciamento' ? '(obrigatório para georreferenciamento)' : '(opcional)'}
+              </span>
+            </label>
+            <VinculoSelect
+              value={alvo}
+              onChange={setAlvo}
+              pessoasPF={pessoasPF}
+              pessoasPJ={pessoasPJ}
+              bens={bens}
+              matriculas={matriculas}
+            />
+            {georefSemMatricula && (
+              <p className="text-[11px] text-destructive">
+                Selecione uma matrícula para anexar documentos de georreferenciamento.
+              </p>
+            )}
+            {georefSemNumero && (
+              <p className="text-[11px] text-destructive">
+                Não foi possível identificar o número da matrícula selecionada.
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <label className={labelCls}>Categoria</label>
             <Select value={categoria} onValueChange={(v) => setCategoria(v as DocCategoria)}>
               <SelectTrigger className={fieldCls}>
@@ -211,65 +239,6 @@ export function DocUploadDialog({
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className={labelCls}>
-              Vincular a{' '}
-              <span className="font-normal text-muted-foreground">
-                {categoria === 'georreferenciamento' ? '(obrigatório para georreferenciamento)' : '(opcional)'}
-              </span>
-            </label>
-            <Select value={alvo} onValueChange={setAlvo}>
-              <SelectTrigger className={fieldCls}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="sem">Sem vínculo — apenas o cliente</SelectItem>
-                {pessoasPF.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Pessoas Físicas</SelectLabel>
-                    {pessoasPF.map((p) => (
-                      <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {pessoasPJ.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Pessoas Jurídicas</SelectLabel>
-                    {pessoasPJ.map((p) => (
-                      <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {bens.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Bens</SelectLabel>
-                    {bens.map((b) => (
-                      <SelectItem key={b.id} value={`bem:${b.id}`}>{b.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-                {matriculas.length > 0 && (
-                  <SelectGroup>
-                    <SelectLabel>Matrículas</SelectLabel>
-                    {matriculas.map((m) => (
-                      <SelectItem key={m.id} value={`matricula:${m.id}`}>{m.label}</SelectItem>
-                    ))}
-                  </SelectGroup>
-                )}
-              </SelectContent>
-            </Select>
-            {georefSemMatricula && (
-              <p className="text-[11px] text-destructive">
-                Selecione uma matrícula para anexar documentos de georreferenciamento.
-              </p>
-            )}
-            {georefSemNumero && (
-              <p className="text-[11px] text-destructive">
-                Não foi possível identificar o número da matrícula selecionada.
-              </p>
-            )}
           </div>
 
           <div className="space-y-1.5">

@@ -2,13 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { toast } from '@/hooks/use-toast';
-import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
+import { labelCls } from '@/components/equipe/osg/formKit';
+import { VinculoSelect } from './VinculoSelect';
 import {
   useAtualizarDocumento,
   type AtualizarDocumentoPatch,
@@ -84,46 +82,14 @@ export function DocVinculoDialog({ open, onOpenChange, doc, clienteId, pessoas, 
 
         <div className="space-y-1.5 py-2 min-w-0">
           <label className={labelCls}>Vincular a</label>
-          <Select value={alvo} onValueChange={setAlvo}>
-            <SelectTrigger className={fieldCls}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="sem">Sem vínculo — apenas o cliente</SelectItem>
-              {pessoasPF.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Pessoas Físicas</SelectLabel>
-                  {pessoasPF.map((p) => (
-                    <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-              {pessoasPJ.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Pessoas Jurídicas</SelectLabel>
-                  {pessoasPJ.map((p) => (
-                    <SelectItem key={p.id} value={`pessoa:${p.id}`}>{p.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-              {bens.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Bens</SelectLabel>
-                  {bens.map((b) => (
-                    <SelectItem key={b.id} value={`bem:${b.id}`}>{b.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-              {matriculas.length > 0 && (
-                <SelectGroup>
-                  <SelectLabel>Matrículas</SelectLabel>
-                  {matriculas.map((m) => (
-                    <SelectItem key={m.id} value={`matricula:${m.id}`}>{m.label}</SelectItem>
-                  ))}
-                </SelectGroup>
-              )}
-            </SelectContent>
-          </Select>
+          <VinculoSelect
+            value={alvo}
+            onChange={setAlvo}
+            pessoasPF={pessoasPF}
+            pessoasPJ={pessoasPJ}
+            bens={bens}
+            matriculas={matriculas}
+          />
         </div>
 
         <DialogFooter>
