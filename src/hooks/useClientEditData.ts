@@ -49,8 +49,18 @@ export const useClientEditData = (
     contracts: DraftOrdemServico[];
   } | null>(null);
 
+  // Guard idempotente: garante que o load só popule os setters uma vez por
+  // (open + editingClienteId). Sem isso, um re-render que redispare o effect
+  // poderia sobrescrever edições em andamento do usuário.
+  const loadedForRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!open || !editingClienteId) return;
+    if (!open || !editingClienteId) {
+      if (!open) loadedForRef.current = null;
+      return;
+    }
+    if (loadedForRef.current === editingClienteId) return;
+    loadedForRef.current = editingClienteId;
 
     const loadData = async () => {
       setLoadingEdit(true);
