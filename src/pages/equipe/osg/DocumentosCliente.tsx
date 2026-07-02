@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, ChevronDown, ChevronRight, Download, FileText, FolderArchive,
-  FolderOpen, Inbox, Landmark, ScrollText, Trash2, Upload, User, Users,
+  FolderOpen, Inbox, Landmark, Link2, ScrollText, Trash2, Upload, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import {
 } from '@/hooks/useDocumentoArquivo';
 import { categoriaLabel, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
+import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 
 interface Leaf {
   key: string;
@@ -63,6 +64,7 @@ const DocumentosCliente = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
+  const [aVincular, setAVincular] = useState<DocumentoArquivoRow | null>(null);
 
   // useAllMatriculas é global; restringe às matrículas deste cliente (via bem ou titular).
   const matriculasCliente = useMemo(
@@ -324,6 +326,9 @@ const DocumentosCliente = () => {
                             {new Date(d.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
+                        <Button variant="ghost" size="icon" onClick={() => setAVincular(d)} title="Vincular a…">
+                          <Link2 className="h-4 w-4" />
+                        </Button>
                         <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)} title="Baixar">
                           <Download className="h-4 w-4" />
                         </Button>
@@ -349,6 +354,18 @@ const DocumentosCliente = () => {
           bens={bemOpts}
           matriculas={matriculaOpts}
           vinculoInicial={selectedVinculo}
+        />
+      )}
+
+      {clienteId && (
+        <DocVinculoDialog
+          open={!!aVincular}
+          onOpenChange={(o) => !o && setAVincular(null)}
+          doc={aVincular}
+          clienteId={clienteId}
+          pessoas={pessoaOpts}
+          bens={bemOpts}
+          matriculas={matriculaOpts}
         />
       )}
 

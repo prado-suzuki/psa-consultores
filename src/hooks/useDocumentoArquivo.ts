@@ -197,6 +197,45 @@ export function useExcluirDocumento(clienteId: string) {
   });
 }
 
+/**
+ * Campos editáveis de um documento já existente (Fase 0 — base para
+ * classificar/vincular/renomear depois do upload). Só usa colunas que já
+ * existem; a RLS "team_member+ can update documento_arquivo" já autoriza.
+ * O vínculo é polimórfico e mutuamente exclusivo: quem chama envia a entidade
+ * escolhida e zera as outras (ex.: { pessoa_id: X, matricula_id: null, bem_id: null }).
+ */
+export interface AtualizarDocumentoPatch {
+  categoria?: DocCategoria;
+  nome_original?: string;
+  bem_id?: string | null;
+  matricula_id?: string | null;
+  pessoa_id?: string | null;
+}
+
+/** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
+export function useAtualizarDocumento(clienteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: AtualizarDocumentoPatch }): Promise<DocumentoArquivoRow> => {
+      const { data, error } = await supabase
+        .from('documento_arquivo')
+        .update(patch)
+        .eq('id', id)
+        .select('*')
+        .single();
+      if (error) throw error;
+      return data as DocumentoArquivoRow;
+    },
+    onSuccess: () => {
+      // Prefixo [LIST_KEY, clienteId] cobre a lista central e as por vínculo.
+      qc.invalidateQueries({ queryKey: [LIST_KEY, clienteId] });
+      toast({ title: 'Documento atualizado' });
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao atualizar', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
 /** Pede a signed GET URL e abre o download em nova aba. */
 export function useBaixarDocumento() {
   const { fetchWithAuth } = useApiAuth();
