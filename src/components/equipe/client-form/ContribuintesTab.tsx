@@ -33,6 +33,7 @@ export interface ContribuintesTabProps {
   cnpjLookup: (value: string, setter: any) => Promise<void>;
   cepLookup: (value: string, setter: any) => Promise<void>;
   isReadOnly: boolean;
+  onInlineEditingChange?: (isEditing: boolean) => void;
 }
 
 export default function ContribuintesTab({
