@@ -580,14 +580,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const clientDiff = snap
         ? computeFieldDiff(snap.clientData as unknown as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
         : null;
-      logAction({
-        area: 'dev',
-        entity_type: 'cliente',
-        entity_id: auditClienteId,
-        entity_name: clientData.nome.trim(),
-        action: isEditing ? 'updated' : 'created',
-        changed_fields: clientDiff && Object.keys(clientDiff).length > 0 ? clientDiff : undefined,
-      });
+      const clientHasChange = !!clientDiff && Object.keys(clientDiff).length > 0;
+      // Só emitir audit de cliente se houve criação OU se realmente houve alteração
+      // (evita "fantasmas" com changed_fields=null quando o usuário salva sem mudar nada).
+      if (!isEditing || clientHasChange) {
+        logAction({
+          area: 'dev',
+          entity_type: 'cliente',
+          entity_id: auditClienteId,
+          entity_name: clientData.nome.trim(),
+          action: isEditing ? 'updated' : 'created',
+          changed_fields: clientHasChange ? clientDiff : undefined,
+        });
+      }
 
       // Contribuintes
       const contribDiffs = snap
