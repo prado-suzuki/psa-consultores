@@ -227,8 +227,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
-          const { error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId);
+          // Usar .select() garante que uma falha silenciosa de RLS (0 rows
+          // afetadas) apareça como erro, em vez de o save "concluir" sem gravar.
+          const { data: updRows, error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId).select("id");
           if (error) throw error;
+          if (!updRows || updRows.length === 0) {
+            throw new Error(`UPDATE de contribuinte ${e._dbId} não atingiu nenhuma linha (RLS ou id inválido).`);
+          }
         } else {
           const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
           if (error) throw error;
