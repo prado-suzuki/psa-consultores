@@ -63,7 +63,7 @@ const DocumentosCliente = () => {
   const baixar = useBaixarDocumento();
 
   const [selected, setSelected] = useState<string>('all');
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
   const [aVincular, setAVincular] = useState<DocumentoArquivoRow | null>(null);
@@ -203,8 +203,23 @@ const DocumentosCliente = () => {
     return 'Sem vínculo';
   };
 
-  const isExp = (k: string) => expanded[k] !== false;
-  const toggle = (k: string) => setExpanded((s) => ({ ...s, [k]: !(s[k] !== false) }));
+  // Expansão por HOVER (como o agrupador "Oficina de Contratos"): abre ao passar o
+  // cursor; um grupo que contém o item selecionado permanece aberto.
+  const setOpen = (k: string, v: boolean) => setHoverOpen((s) => ({ ...s, [k]: v }));
+  // Ao sair do grupo INTEIRO, recolhe o grupo e todos os seus subgrupos de uma vez.
+  // Não recolhemos um subgrupo ao sair só dele — isso evitava o layout encolher sob
+  // o cursor e fechar a seção toda (bug do hover entre PF e PJ).
+  const closeGroup = (g: Group) =>
+    setHoverOpen((s) => {
+      const next = { ...s, [g.key]: false };
+      for (const sg of g.subgroups ?? []) next[sg.key] = false;
+      return next;
+    });
+  const groupHasSelected = (g: Group) =>
+    selected === g.key
+    || g.leaves.some((l) => l.key === selected)
+    || (g.subgroups?.some((sg) => sg.key === selected || sg.leaves.some((l) => l.key === selected)) ?? false);
+  const subHasSelected = (sg: SubGroup) => selected === sg.key || sg.leaves.some((l) => l.key === selected);
 
   return (
     <OsgLayout
@@ -230,62 +245,73 @@ const DocumentosCliente = () => {
                 label="Todos os documentos"
                 count={docs.length}
               />
-              {groups.map((g) => (
-                <div key={g.key}>
-                  <TreeRow
-                    active={selected === g.key}
-                    onClick={() => setSelected(g.key)}
-                    Icon={g.Icon}
-                    label={g.label}
-                    count={g.docs.length}
-                    expandable
-                    expanded={isExp(g.key)}
-                    onToggle={() => toggle(g.key)}
-                  />
-                  <Collapse open={isExp(g.key)}>
-                    {g.subgroups
-                      ? g.subgroups.map((sg) => (
-                          <div key={sg.key}>
-                            <TreeRow
-                              active={selected === sg.key}
-                              onClick={() => setSelected(sg.key)}
-                              Icon={sg.Icon}
-                              label={sg.label}
-                              count={sg.docs.length}
-                              depth={1}
-                              expandable
-                              expanded={isExp(sg.key)}
-                              onToggle={() => toggle(sg.key)}
-                            />
-                            <Collapse open={isExp(sg.key)}>
-                              {sg.leaves.map((lf) => (
+              {groups.map((g) => {
+                const gOpen = hoverOpen[g.key] || groupHasSelected(g);
+                return (
+                  <div
+                    key={g.key}
+                    onMouseEnter={() => setOpen(g.key, true)}
+                    onMouseLeave={() => closeGroup(g)}
+                  >
+                    <TreeRow
+                      active={selected === g.key}
+                      onClick={() => setSelected(g.key)}
+                      Icon={g.Icon}
+                      label={g.label}
+                      count={g.docs.length}
+                      expandable
+                      expanded={gOpen}
+                    />
+                    <Collapse open={gOpen}>
+                      {g.subgroups
+                        ? g.subgroups.map((sg) => {
+                            const sgOpen = hoverOpen[sg.key] || subHasSelected(sg);
+                            return (
+                              <div
+                                key={sg.key}
+                                onMouseEnter={() => setOpen(sg.key, true)}
+                              >
                                 <TreeRow
-                                  key={lf.key}
-                                  active={selected === lf.key}
-                                  onClick={() => setSelected(lf.key)}
-                                  Icon={lf.Icon}
-                                  label={lf.label}
-                                  count={lf.docs.length}
-                                  depth={2}
+                                  active={selected === sg.key}
+                                  onClick={() => setSelected(sg.key)}
+                                  Icon={sg.Icon}
+                                  label={sg.label}
+                                  count={sg.docs.length}
+                                  depth={1}
+                                  expandable
+                                  expanded={sgOpen}
                                 />
-                              ))}
-                            </Collapse>
-                          </div>
-                        ))
-                      : g.leaves.map((lf) => (
-                          <TreeRow
-                            key={lf.key}
-                            active={selected === lf.key}
-                            onClick={() => setSelected(lf.key)}
-                            Icon={lf.Icon}
-                            label={lf.label}
-                            count={lf.docs.length}
-                            depth={1}
-                          />
-                        ))}
-                  </Collapse>
-                </div>
-              ))}
+                                <Collapse open={sgOpen}>
+                                  {sg.leaves.map((lf) => (
+                                    <TreeRow
+                                      key={lf.key}
+                                      active={selected === lf.key}
+                                      onClick={() => setSelected(lf.key)}
+                                      Icon={lf.Icon}
+                                      label={lf.label}
+                                      count={lf.docs.length}
+                                      depth={2}
+                                    />
+                                  ))}
+                                </Collapse>
+                              </div>
+                            );
+                          })
+                        : g.leaves.map((lf) => (
+                            <TreeRow
+                              key={lf.key}
+                              active={selected === lf.key}
+                              onClick={() => setSelected(lf.key)}
+                              Icon={lf.Icon}
+                              label={lf.label}
+                              count={lf.docs.length}
+                              depth={1}
+                            />
+                          ))}
+                    </Collapse>
+                  </div>
+                );
+              })}
               <TreeRow
                 active={selected === 'sem'}
                 onClick={() => setSelected('sem')}
@@ -434,7 +460,7 @@ const DocumentosCliente = () => {
 
 function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
   // Mesma animação do agrupador "Oficina de Contratos" (grid-rows 0fr↔1fr +
-  // overflow-hidden), porém controlada por CLIQUE (prop `open`), não por hover.
+  // overflow-hidden). `open` é dirigido por hover (ou pelo item selecionado).
   return (
     <div
       className={cn(
@@ -448,7 +474,7 @@ function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
 }
 
 function TreeRow({
-  active, onClick, Icon, label, count, depth = 0, expandable, expanded, onToggle,
+  active, onClick, Icon, label, count, depth = 0, expandable, expanded,
 }: {
   active: boolean;
   onClick: () => void;
@@ -458,7 +484,6 @@ function TreeRow({
   depth?: number;
   expandable?: boolean;
   expanded?: boolean;
-  onToggle?: () => void;
 }) {
   return (
     <div
@@ -477,19 +502,14 @@ function TreeRow({
       )}
     >
       {expandable ? (
-        <button
-          type="button"
-          onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
-          className="shrink-0 text-slate-400 hover:text-osg-700"
-          aria-label={expanded ? 'Recolher' : 'Expandir'}
-        >
+        <span className="shrink-0 text-slate-400">
           <ChevronRight
             className={cn(
               'h-3.5 w-3.5 transition-transform duration-300 ease-out motion-reduce:transition-none',
               expanded && 'rotate-90',
             )}
           />
-        </button>
+        </span>
       ) : (
         <span className="w-3.5 shrink-0" />
       )}
