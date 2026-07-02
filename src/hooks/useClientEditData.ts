@@ -127,7 +127,7 @@ export const useClientEditData = (
               const key = ie.contribuinte_id as string;
               if (!map[key]) map[key] = [];
               map[key].push({
-                _tempId: Date.now() + Math.random(),
+                _tempId: stableIdFromUuid(ie.id),
                 _dbId: ie.id,
                 situacao: ie.situacao || "sim",
                 numero_ie: ie.numero_ie || "",
