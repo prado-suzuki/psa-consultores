@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, ChevronDown, ChevronRight, Download, FileText, FolderArchive,
-  FolderOpen, Inbox, Landmark, Link2, ScrollText, Trash2, Upload, User, Users,
+  Building2, ChevronRight, Download, FileText, FolderArchive,
+  FolderOpen, Inbox, Landmark, Link2, Pencil, ScrollText, Trash2, Upload, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
@@ -22,6 +23,7 @@ import {
 import { categoriaLabel, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
+import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
 
 interface Leaf {
   key: string;
@@ -65,6 +67,7 @@ const DocumentosCliente = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
   const [aVincular, setAVincular] = useState<DocumentoArquivoRow | null>(null);
+  const [aRenomear, setARenomear] = useState<DocumentoArquivoRow | null>(null);
 
   // useAllMatriculas é global; restringe às matrículas deste cliente (via bem ou titular).
   const matriculasCliente = useMemo(
@@ -239,45 +242,48 @@ const DocumentosCliente = () => {
                     expanded={isExp(g.key)}
                     onToggle={() => toggle(g.key)}
                   />
-                  {/* Subgrupos (ex.: Pessoas → PF/PJ), cada um expansível até as entidades. */}
-                  {isExp(g.key) && g.subgroups?.map((sg) => (
-                    <div key={sg.key}>
-                      <TreeRow
-                        active={selected === sg.key}
-                        onClick={() => setSelected(sg.key)}
-                        Icon={sg.Icon}
-                        label={sg.label}
-                        count={sg.docs.length}
-                        depth={1}
-                        expandable
-                        expanded={isExp(sg.key)}
-                        onToggle={() => toggle(sg.key)}
-                      />
-                      {isExp(sg.key) && sg.leaves.map((lf) => (
-                        <TreeRow
-                          key={lf.key}
-                          active={selected === lf.key}
-                          onClick={() => setSelected(lf.key)}
-                          Icon={lf.Icon}
-                          label={lf.label}
-                          count={lf.docs.length}
-                          depth={2}
-                        />
-                      ))}
-                    </div>
-                  ))}
-                  {/* Grupos sem subgrupos (Bens, Matrículas): folhas direto no nível 1. */}
-                  {isExp(g.key) && !g.subgroups && g.leaves.map((lf) => (
-                    <TreeRow
-                      key={lf.key}
-                      active={selected === lf.key}
-                      onClick={() => setSelected(lf.key)}
-                      Icon={lf.Icon}
-                      label={lf.label}
-                      count={lf.docs.length}
-                      depth={1}
-                    />
-                  ))}
+                  <Collapse open={isExp(g.key)}>
+                    {g.subgroups
+                      ? g.subgroups.map((sg) => (
+                          <div key={sg.key}>
+                            <TreeRow
+                              active={selected === sg.key}
+                              onClick={() => setSelected(sg.key)}
+                              Icon={sg.Icon}
+                              label={sg.label}
+                              count={sg.docs.length}
+                              depth={1}
+                              expandable
+                              expanded={isExp(sg.key)}
+                              onToggle={() => toggle(sg.key)}
+                            />
+                            <Collapse open={isExp(sg.key)}>
+                              {sg.leaves.map((lf) => (
+                                <TreeRow
+                                  key={lf.key}
+                                  active={selected === lf.key}
+                                  onClick={() => setSelected(lf.key)}
+                                  Icon={lf.Icon}
+                                  label={lf.label}
+                                  count={lf.docs.length}
+                                  depth={2}
+                                />
+                              ))}
+                            </Collapse>
+                          </div>
+                        ))
+                      : g.leaves.map((lf) => (
+                          <TreeRow
+                            key={lf.key}
+                            active={selected === lf.key}
+                            onClick={() => setSelected(lf.key)}
+                            Icon={lf.Icon}
+                            label={lf.label}
+                            count={lf.docs.length}
+                            depth={1}
+                          />
+                        ))}
+                  </Collapse>
                 </div>
               ))}
               <TreeRow
@@ -326,15 +332,38 @@ const DocumentosCliente = () => {
                             {new Date(d.created_at).toLocaleDateString('pt-BR')}
                           </p>
                         </div>
-                        <Button variant="ghost" size="icon" onClick={() => setAVincular(d)} title="Vincular a…">
-                          <Link2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)} title="Baixar">
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => setAExcluir(d)} title="Remover">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setARenomear(d)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Renomear o nome exibido</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setAVincular(d)}>
+                              <Link2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Vincular a pessoa, matrícula ou bem</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Baixar o arquivo</TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" onClick={() => setAExcluir(d)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Remover da lista</TooltipContent>
+                        </Tooltip>
                       </li>
                     ))}
                   </ul>
@@ -369,6 +398,15 @@ const DocumentosCliente = () => {
         />
       )}
 
+      {clienteId && (
+        <DocRenomearDialog
+          open={!!aRenomear}
+          onOpenChange={(o) => !o && setARenomear(null)}
+          doc={aRenomear}
+          clienteId={clienteId}
+        />
+      )}
+
       <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -393,6 +431,21 @@ const DocumentosCliente = () => {
     </OsgLayout>
   );
 };
+
+function Collapse({ open, children }: { open: boolean; children: ReactNode }) {
+  // Mesma animação do agrupador "Oficina de Contratos" (grid-rows 0fr↔1fr +
+  // overflow-hidden), porém controlada por CLIQUE (prop `open`), não por hover.
+  return (
+    <div
+      className={cn(
+        'grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none',
+        open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+      )}
+    >
+      <div className="overflow-hidden">{children}</div>
+    </div>
+  );
+}
 
 function TreeRow({
   active, onClick, Icon, label, count, depth = 0, expandable, expanded, onToggle,
@@ -430,7 +483,12 @@ function TreeRow({
           className="shrink-0 text-slate-400 hover:text-osg-700"
           aria-label={expanded ? 'Recolher' : 'Expandir'}
         >
-          {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+          <ChevronRight
+            className={cn(
+              'h-3.5 w-3.5 transition-transform duration-300 ease-out motion-reduce:transition-none',
+              expanded && 'rotate-90',
+            )}
+          />
         </button>
       ) : (
         <span className="w-3.5 shrink-0" />
