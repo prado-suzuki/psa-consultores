@@ -87,7 +87,7 @@ export const useClientEditData = (
         let snapEntities: DraftEntity[] = [];
         if (contribs) {
           const mapped = contribs.map((c) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(c.id),
               _dbId: c.id,
               tipo_pessoa: c.tipo_pessoa || "PJ",
               cpf_cnpj: formatCpfCnpj(c.cpf_cnpj || "", c.tipo_pessoa || "PJ"),
