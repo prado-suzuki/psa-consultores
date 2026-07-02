@@ -148,7 +148,7 @@ export const useClientEditData = (
           .eq("excluido", false);
         if (parts) {
           const mapped = parts.map((p: any) => ({
-              _id: Date.now() + Math.random(),
+              _id: stableIdFromUuid(p.id_representante || p.id),
               _dbId: p.id_representante || p.id,
               nome: p.nome || "",
               tipo_representante: p.tipo_representante || "",
