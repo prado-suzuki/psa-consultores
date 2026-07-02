@@ -16,10 +16,17 @@ export interface CadastroItemMeta {
   hint: string;
 }
 
+export interface CadastroItemBadge {
+  label: string;
+  cor?: string;
+}
+
 interface Props {
   titulo: string;
   descricao?: string;
-  badge?: { label: string; cor?: string };
+  badge?: CadastroItemBadge;
+  /** Vários selos categóricos (renderizados lado a lado). Tem precedência sobre `badge`. */
+  badges?: CadastroItemBadge[];
   /** Ícone de identidade exibido no orb à esquerda (cinza em repouso, verde no hover). */
   leading?: ReactNode;
   /** Indicadores de vínculo; só renderizam quando valor > 0 (uso opcional). */
@@ -29,9 +36,10 @@ interface Props {
   onDelete: () => void;
 }
 
-export default function CadastroItem({ titulo, descricao, badge, leading, metas, onOpen, onEdit, onDelete }: Props) {
+export default function CadastroItem({ titulo, descricao, badge, badges, leading, metas, onOpen, onEdit, onDelete }: Props) {
   const metasVisiveis = (metas || []).filter((m) => m.valor > 0);
-  const temTrailing = Boolean(badge) || metasVisiveis.length > 0;
+  const badgesVisiveis = badges ?? (badge ? [badge] : []);
+  const temTrailing = badgesVisiveis.length > 0 || metasVisiveis.length > 0;
   return (
     <div
       className="cadastro-item"
@@ -52,12 +60,12 @@ export default function CadastroItem({ titulo, descricao, badge, leading, metas,
       </div>
       {temTrailing && (
         <div className="cadastro-item-trailing">
-          {badge && (
-            <span className="cadastro-item-badge">
-              {badge.cor && <span className="cadastro-item-badge-dot" style={{ background: badge.cor }} />}
-              {badge.label}
+          {badgesVisiveis.map((b, i) => (
+            <span key={`${b.label}-${i}`} className="cadastro-item-badge">
+              {b.cor && <span className="cadastro-item-badge-dot" style={{ background: b.cor }} />}
+              {b.label}
             </span>
-          )}
+          ))}
           {metasVisiveis.length > 0 && (
             <div className="cadastro-item-metas">
               {metasVisiveis.map((m) => (

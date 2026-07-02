@@ -1,19 +1,26 @@
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Eye } from 'lucide-react';
-import { useAllDashboardAccess } from '@/hooks/useUserDashboardAccess';
-import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
-import { DASHBOARD_PAGE_LABEL } from '@/config/dashboardPages';
-import type { Dashboard, DashboardFilterType } from '@/hooks/useDashboards';
+import { Eye, Shield, Building2, Users } from 'lucide-react';
+import { useClientesList } from '@/hooks/useClientesList';
+import { useDashboardAccessMaps } from '@/hooks/useDashboardAccess';
+import { DASHBOARD_PAGE_PATH } from '@/config/dashboardPages';
+import type { Dashboard, DashboardFilterType, MinRole } from '@/hooks/useDashboards';
 
 const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cluster: 'Por cluster', cliente: 'Por cliente', nenhum: 'Sem filtro',
 };
+const MIN_ROLE_LABEL: Record<MinRole, string> = {
+  team_member: 'Membro (equipe) ou superior', sublider: 'Sublíder ou superior',
+  lider: 'Líder ou superior', admin: 'Admin',
+};
 
 /**
  * Visão somente-leitura do dashboard (aberta ao clicar na linha): config + quem
- * tem acesso + botão pra abrir o preview. Não edita nada.
+ * tem acesso (por cliente, ou por cluster + nível) + botão pra abrir o preview.
  */
 interface DashboardDetailDialogProps {
   dashboard: Dashboard | null;
@@ -22,13 +29,24 @@ interface DashboardDetailDialogProps {
 }
 
 export function DashboardDetailDialog({ dashboard, onOpenChange, onPreview }: DashboardDetailDialogProps) {
-  const { data: allAccess = [] } = useAllDashboardAccess();
-  const { data: users = [] } = useUsersWithRoles();
+  const { data: clientes = [] } = useClientesList();
+  const { data: allClusters = [] } = useQuery({
+    queryKey: ['estrutura-clusters-ativos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('estrutura_clusters').select('id, name').eq('is_active', true).order('name');
+      if (error) throw error;
+      return (data || []) as { id: string; name: string }[];
+    },
+  });
+  const clusterName = useMemo(() => new Map(allClusters.map((c) => [c.id, c.name])), [allClusters]);
+  const clienteName = useMemo(() => new Map(clientes.map((c) => [c.id, c.nome])), [clientes]);
+  const { clustersByDashboard, clientesByDashboard } = useDashboardAccessMaps();
 
-  const userIds = new Set(allAccess.filter((a) => a.dashboard_id === dashboard?.id).map((a) => a.user_id));
-  const accessUsers = users.filter((u) => userIds.has(u.id));
-  const userLabel = (u: { first_name?: string | null; last_name?: string | null; email: string }) =>
-    `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() || u.email;
+  const isCliente = dashboard?.filter_type === 'cliente';
+  const clienteIds = (dashboard && clientesByDashboard.get(dashboard.id)) || [];
+  const clusterIds = (dashboard && clustersByDashboard.get(dashboard.id)) || [];
+  const allClustersOn = dashboard?.all_clusters ?? false;
 
   return (
     <Dialog open={!!dashboard} onOpenChange={onOpenChange}>
@@ -39,10 +57,12 @@ export function DashboardDetailDialog({ dashboard, onOpenChange, onPreview }: Da
 
         {dashboard && (
           <div className="space-y-3 text-sm">
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{FILTER_LABEL[dashboard.filter_type]}</Badge>
               {dashboard.target_page && (
-                <Badge variant="secondary">{DASHBOARD_PAGE_LABEL[dashboard.target_page] ?? dashboard.target_page}</Badge>
+                <Badge variant="secondary" className="font-mono text-[11px]">
+                  {DASHBOARD_PAGE_PATH[dashboard.target_page] ?? dashboard.target_page}
+                </Badge>
               )}
               {!dashboard.is_active && <Badge className="bg-slate-200 text-slate-600">Inativo</Badge>}
             </div>
@@ -63,18 +83,53 @@ export function DashboardDetailDialog({ dashboard, onOpenChange, onPreview }: Da
               </div>
             )}
 
-            <div>
-              <p className="text-xs text-slate-500 mb-1">Usuários com acesso ({accessUsers.length})</p>
-              {accessUsers.length === 0 ? (
-                <p className="text-slate-400 text-xs">Ninguém ainda. Conceda na aba Usuários ou ao editar.</p>
-              ) : (
-                <div className="flex flex-wrap gap-1">
-                  {accessUsers.map((u) => (
-                    <Badge key={u.id} variant="outline" className="text-xs">{userLabel(u)}</Badge>
-                  ))}
+            {/* Acesso */}
+            {isCliente ? (
+              <div>
+                <p className="text-xs text-slate-500 mb-1 inline-flex items-center gap-1">
+                  <Building2 className="h-3.5 w-3.5" /> Clientes com acesso ({clienteIds.length})
+                </p>
+                {clienteIds.length === 0 ? (
+                  <p className="text-slate-400 text-xs">Ninguém ainda. Conceda ao editar.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {clienteIds.map((id) => (
+                      <Badge key={id} variant="outline" className="text-xs border-indigo-200 bg-indigo-50 text-indigo-700">
+                        {clienteName.get(id) ?? id}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xs text-slate-500 mb-1 inline-flex items-center gap-1">
+                    <Shield className="h-3.5 w-3.5" /> Nível mínimo
+                  </p>
+                  <Badge variant="outline" className="text-xs">{MIN_ROLE_LABEL[dashboard.min_role ?? 'team_member']}</Badge>
                 </div>
-              )}
-            </div>
+                <div>
+                  <p className="text-xs text-slate-500 mb-1 inline-flex items-center gap-1">
+                    <Users className="h-3.5 w-3.5" /> Clusters com acesso {!allClustersOn && clusterIds.length > 0 && `(${clusterIds.length})`}
+                  </p>
+                  {allClustersOn ? (
+                    <Badge variant="outline" className="text-xs border-teal-200 bg-teal-50 text-teal-700">Todos os gestores</Badge>
+                  ) : clusterIds.length === 0 ? (
+                    <span className="text-slate-400 text-xs">Só admin (nenhum cluster marcado).</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {clusterIds.map((id) => (
+                        <Badge key={id} variant="outline" className="text-xs border-teal-200 bg-teal-50 text-teal-700">
+                          {clusterName.get(id) ?? id}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-slate-400 mt-1">Gestor vê o próprio cluster · admin/digital vê todos consolidado.</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

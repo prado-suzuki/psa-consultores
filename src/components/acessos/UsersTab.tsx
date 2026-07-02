@@ -13,7 +13,6 @@ import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
-import { DashboardAccessPanel } from './DashboardAccessPanel';
 import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
 
 /**
@@ -245,13 +244,6 @@ export const UsersTab = () => {
                   pages={pages ?? []}
                   userAccess={userAccess ?? []}
                 />
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-slate-900">Dashboards</h4>
-                  <p className="text-xs text-slate-500">
-                    Conceda acesso aos dashboards do Looker. O filtro (cluster/cliente) é resolvido no servidor pelo usuário.
-                  </p>
-                  <DashboardAccessPanel userId={selectedUserId} />
-                </div>
               </div>
             ) : (
               <div className="text-center py-8 text-slate-500">

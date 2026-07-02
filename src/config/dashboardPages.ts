@@ -8,16 +8,21 @@
  * `useAccessibleDashboards(targetPage)` em cada consumidor.
  */
 export const DASHBOARD_PAGES = [
-  { key: 'board_relatorios', label: 'Board → Relatórios' },
-  { key: 'cliente', label: 'Área do Cliente → Dashboards' },
-  { key: 'dev_gerenciar_dados', label: 'Digital DEV → Gerenciar Dados' },
-  { key: 'dev_perdcomp', label: 'Digital DEV → PERDCOMP' },
+  { key: 'board_relatorios', label: 'Board → Relatórios', path: '/equipe/board/relatorios' },
+  { key: 'cliente', label: 'Área do Cliente → Dashboards', path: '/cliente' },
+  { key: 'dev_gerenciar_dados', label: 'Digital DEV → Gerenciar Dados', path: '/equipe/dev/gerenciar-dados/dashboards' },
+  { key: 'dev_perdcomp', label: 'Digital DEV → PERDCOMP', path: '/equipe/dev/perdcomp/dashboard' },
 ] as const;
 
 export type DashboardPageKey = (typeof DASHBOARD_PAGES)[number]['key'];
 
 export const DASHBOARD_PAGE_LABEL: Record<string, string> = Object.fromEntries(
   DASHBOARD_PAGES.map((p) => [p.key, p.label]),
+);
+
+/** Caminho (rota) de cada página — mostrado igual à aba Páginas. */
+export const DASHBOARD_PAGE_PATH: Record<string, string> = Object.fromEntries(
+  DASHBOARD_PAGES.map((p) => [p.key, p.path]),
 );
 
 /**
