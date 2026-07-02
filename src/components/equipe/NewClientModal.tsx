@@ -275,6 +275,7 @@ export default function NewClientModal({
                       cnpjLoading={cnpjLoading} cepLoading={cepLoading}
                       cnpjLookup={cnpjLookup} cepLookup={cepLookup}
                       isReadOnly={isReadOnly}
+                      onInlineEditingChange={setInlineEditingContrib}
                     />
                   </TabsContent>
 
