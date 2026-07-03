@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, ChevronRight, Download, FolderArchive,
-  FolderOpen, Inbox, Landmark, Link2, Pencil, ScrollText, Trash2, Upload, User, Users,
+  FolderOpen, FolderUp, Inbox, Landmark, Link2, Pencil, ScrollText, Trash2, Upload, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDia
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
 import { DocPreviewDialog } from '@/components/equipe/osg/documentos/DocPreviewDialog';
+import { UploadMassaDialog } from '@/components/equipe/osg/documentos/UploadMassaDialog';
 
 interface Leaf {
   key: string;
@@ -67,6 +68,7 @@ const DocumentosCliente = () => {
   const [selected, setSelected] = useState<string>('all');
   const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadMassaOpen, setUploadMassaOpen] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
   const [aVincular, setAVincular] = useState<DocumentoArquivoRow | null>(null);
   const [aRenomear, setARenomear] = useState<DocumentoArquivoRow | null>(null);
@@ -352,9 +354,14 @@ const DocumentosCliente = () => {
                     {selectedDocs.length} {selectedDocs.length === 1 ? 'documento' : 'documentos'}
                   </p>
                 </div>
-                <Button size="sm" onClick={() => setUploadOpen(true)}>
-                  <Upload className="mr-2 h-4 w-4" /> Anexar
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setUploadMassaOpen(true)}>
+                    <FolderUp className="mr-2 h-4 w-4" /> Em massa
+                  </Button>
+                  <Button size="sm" onClick={() => setUploadOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" /> Anexar
+                  </Button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-2">
@@ -454,6 +461,14 @@ const DocumentosCliente = () => {
           bens={bemOpts}
           matriculas={matriculaOpts}
           vinculoInicial={selectedVinculo}
+        />
+      )}
+
+      {clienteId && (
+        <UploadMassaDialog
+          open={uploadMassaOpen}
+          onOpenChange={setUploadMassaOpen}
+          clienteId={clienteId}
         />
       )}
 

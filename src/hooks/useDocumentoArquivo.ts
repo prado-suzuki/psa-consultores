@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -72,6 +73,8 @@ interface UploadArgs {
   nrMatricula?: string | null;
   /** Origem do arquivo; default 'cliente' (recebido). 'psa' = produzido internamente. */
   fonte?: DocFonte;
+  /** Suprime os toasts por-arquivo (usado no upload em massa, que mostra um resumo). */
+  silencioso?: boolean;
 }
 
 interface SignUploadPayload {
@@ -92,90 +95,102 @@ interface SignUploadResponse {
   upload_headers: Record<string, string>;
 }
 
-/** Orquestra sign-upload → PUT direto no GCS → finalize → insert da linha no Supabase. */
+type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
+
+/**
+ * Núcleo do upload de 1 documento: sign-upload → PUT no GCS → finalize → insert.
+ * Isolado (recebe fetchWithAuth) para ser reusado pelo upload em massa e para,
+ * no futuro, ceder lugar a endpoints em lote (sign/finalize/insert de N itens)
+ * sem afetar a UI — só o orquestrador muda.
+ */
+async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs): Promise<DocumentoArquivoRow> {
+  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' } = args;
+  const isGeorreferenciamento = categoria === 'georreferenciamento';
+  const numeroMatricula = nrMatricula?.trim() || null;
+  if (isGeorreferenciamento && !vinculo.matriculaId) {
+    throw new Error('Documentos de georreferenciamento devem estar vinculados a uma matrícula.');
+  }
+  if (isGeorreferenciamento && !numeroMatricula) {
+    throw new Error('Não foi possível identificar o número da matrícula selecionada.');
+  }
+
+  const signPayload: SignUploadPayload = {
+    cliente_id: clienteId,
+    filename: file.name,
+    content_type: file.type,
+    categoria,
+  };
+  if (isGeorreferenciamento) {
+    signPayload.matricula_id = vinculo.matriculaId!;
+    signPayload.nr_matricula = numeroMatricula!;
+  }
+
+  // 1) signed PUT URL — categoria compõe a raiz da chave no GCS
+  const signRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/sign-upload'), {
+    method: 'POST',
+    body: JSON.stringify(signPayload),
+  });
+  if (!signRes.ok) throw new Error('Falha ao solicitar URL de upload');
+  const sign = (await signRes.json()) as SignUploadResponse;
+
+  // 2) PUT direto no GCS (fetch puro, SEM Authorization)
+  const put = await fetch(sign.signed_url, {
+    method: 'PUT',
+    headers: {
+      ...(sign.upload_headers ?? {}),
+      'Content-Type': file.type || 'application/octet-stream',
+    },
+    body: file,
+  });
+  if (!put.ok) throw new Error('Falha ao enviar o arquivo para o storage');
+
+  // 3) finalize (confirma + captura tamanho/checksum)
+  const finRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/finalize'), {
+    method: 'POST',
+    body: JSON.stringify({ object_key: sign.object_key }),
+  });
+  if (!finRes.ok) throw new Error('Falha ao finalizar o upload');
+  const fin = (await finRes.json()) as { tamanho: number; checksum: string; content_type: string | null };
+
+  // 4) grava a linha (RLS)
+  const { data, error } = await supabase
+    .from('documento_arquivo')
+    .insert({
+      cliente_id: clienteId,
+      fonte,
+      categoria,
+      bem_id: vinculo.bemId ?? null,
+      matricula_id: vinculo.matriculaId ?? null,
+      pessoa_id: vinculo.pessoaId ?? null,
+      nome_original: file.name,
+      gcs_uri: sign.gcs_uri,
+      checksum: fin.checksum,
+      mime: fin.content_type ?? file.type ?? null,
+      tamanho: fin.tamanho,
+      status: 'ativo',
+      ambiente: sign.ambiente ?? currentAmbiente,
+    })
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data as DocumentoArquivoRow;
+}
+
+/** Orquestra o upload de 1 documento (usa o núcleo enviarUmDocumento). */
 export function useUploadDocumento() {
   const { fetchWithAuth } = useApiAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' }: UploadArgs): Promise<DocumentoArquivoRow> => {
-      const isGeorreferenciamento = categoria === 'georreferenciamento';
-      const numeroMatricula = nrMatricula?.trim() || null;
-      if (isGeorreferenciamento && !vinculo.matriculaId) {
-        throw new Error('Documentos de georreferenciamento devem estar vinculados a uma matrícula.');
-      }
-      if (isGeorreferenciamento && !numeroMatricula) {
-        throw new Error('Não foi possível identificar o número da matrícula selecionada.');
-      }
-
-      const signPayload: SignUploadPayload = {
-        cliente_id: clienteId,
-        filename: file.name,
-        content_type: file.type,
-        categoria,
-      };
-      if (isGeorreferenciamento) {
-        signPayload.matricula_id = vinculo.matriculaId!;
-        signPayload.nr_matricula = numeroMatricula!;
-      }
-
-      // 1) signed PUT URL
-      const signRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/sign-upload'), {
-        method: 'POST',
-        // categoria compõe a raiz da chave no GCS: {categoria}/{cliente_id}/{uuid}.{ext}
-        body: JSON.stringify(signPayload),
-      });
-      if (!signRes.ok) throw new Error('Falha ao solicitar URL de upload');
-      const sign = (await signRes.json()) as SignUploadResponse;
-
-      // 2) PUT direto no GCS (fetch puro, SEM Authorization)
-      const put = await fetch(sign.signed_url, {
-        method: 'PUT',
-        headers: {
-          ...(sign.upload_headers ?? {}),
-          'Content-Type': file.type || 'application/octet-stream',
-        },
-        body: file,
-      });
-      if (!put.ok) throw new Error('Falha ao enviar o arquivo para o storage');
-
-      // 3) finalize (confirma + captura tamanho/checksum)
-      const finRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/finalize'), {
-        method: 'POST',
-        body: JSON.stringify({ object_key: sign.object_key }),
-      });
-      if (!finRes.ok) throw new Error('Falha ao finalizar o upload');
-      const fin = (await finRes.json()) as { tamanho: number; checksum: string; content_type: string | null };
-
-      // 4) grava a linha (RLS)
-      const { data, error } = await supabase
-        .from('documento_arquivo')
-        .insert({
-          cliente_id: clienteId,
-          fonte,
-          categoria,
-          bem_id: vinculo.bemId ?? null,
-          matricula_id: vinculo.matriculaId ?? null,
-          pessoa_id: vinculo.pessoaId ?? null,
-          nome_original: file.name,
-          gcs_uri: sign.gcs_uri,
-          checksum: fin.checksum,
-          mime: fin.content_type ?? file.type ?? null,
-          tamanho: fin.tamanho,
-          status: 'ativo',
-          ambiente: sign.ambiente ?? currentAmbiente,
-        })
-        .select('*')
-        .single();
-      if (error) throw error;
-      return data as DocumentoArquivoRow;
-    },
+    mutationFn: (args: UploadArgs) => enviarUmDocumento(fetchWithAuth, args),
     onSuccess: (_row, vars) => {
       // Prefixo [LIST_KEY, clienteId] cobre a lista por vínculo e a lista central.
       qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
-      toast({ title: 'Documento anexado' });
+      if (!vars.silencioso) toast({ title: 'Documento anexado' });
     },
-    onError: (e: unknown) => {
-      toast({ title: 'Erro ao anexar documento', description: (e as Error).message, variant: 'destructive' });
+    onError: (e: unknown, vars) => {
+      if (!vars.silencioso) {
+        toast({ title: 'Erro ao anexar documento', description: (e as Error).message, variant: 'destructive' });
+      }
     },
   });
 }
@@ -234,6 +249,63 @@ export function useAtualizarDocumento(clienteId: string) {
     onError: (e: unknown) =>
       toast({ title: 'Erro ao atualizar', description: (e as Error).message, variant: 'destructive' }),
   });
+}
+
+export type StatusItemMassa = 'pendente' | 'enviando' | 'ok' | 'erro';
+export interface ItemMassa {
+  file: File;
+  status: StatusItemMassa;
+  erro?: string;
+}
+/** Base (cliente/categoria/vínculo/origem) aplicada a todos os arquivos do lote. */
+export type BaseMassa = Omit<UploadArgs, 'file' | 'silencioso'>;
+
+/**
+ * Orquestra o upload de N arquivos com concorrência limitada, reusando o núcleo
+ * enviarUmDocumento. É AQUI que, no futuro, entram os endpoints em lote
+ * (sign/finalize/insert de N itens) — a UI que consome este hook não muda.
+ */
+export function useUploadEmMassa() {
+  const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
+  const [itens, setItens] = useState<ItemMassa[]>([]);
+  const [rodando, setRodando] = useState(false);
+
+  const enviar = useCallback(
+    async (files: File[], base: BaseMassa, concorrencia = 5): Promise<{ ok: number; erros: number }> => {
+      setItens(files.map((f) => ({ file: f, status: 'pendente' as StatusItemMassa })));
+      setRodando(true);
+      let cursor = 0;
+      let ok = 0;
+      let erros = 0;
+      const worker = async () => {
+        while (cursor < files.length) {
+          const i = cursor;
+          cursor += 1;
+          setItens((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'enviando' } : it)));
+          try {
+            await enviarUmDocumento(fetchWithAuth, { ...base, file: files[i], silencioso: true });
+            setItens((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'ok' } : it)));
+            ok += 1;
+          } catch (e) {
+            const erro = (e as Error).message;
+            setItens((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'erro', erro } : it)));
+            erros += 1;
+          }
+        }
+      };
+      // Pool: dispara N workers que consomem a fila até esvaziar.
+      const n = Math.min(Math.max(1, concorrencia), files.length);
+      await Promise.all(Array.from({ length: n }, () => worker()));
+      qc.invalidateQueries({ queryKey: [LIST_KEY, base.clienteId] });
+      setRodando(false);
+      return { ok, erros };
+    },
+    [fetchWithAuth, qc],
+  );
+
+  const reset = useCallback(() => setItens([]), []);
+  return { itens, rodando, enviar, reset };
 }
 
 /** Gera a signed GET URL para pré-visualizar inline (sem baixar). */

@@ -71,7 +71,8 @@ export function DocUploadDialog({
   const [tipo, setTipo] = useState<string>('');
   const [categoria, setCategoria] = useState<DocCategoria>(categoriaInicial ?? 'outros');
   const [alvo, setAlvo] = useState<string>(vinculoToValue(vinculoInicial));
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [enviando, setEnviando] = useState(false);
   const upload = useUploadDocumento();
   const gruposTipos = tiposPorCategoria(fonte === 'psa' ? 'psa' : 'cliente', ORDEM_CATEGORIAS);
   const pessoasPF = pessoas.filter((p) => p.tipo !== 'PJ');
@@ -101,23 +102,28 @@ export function DocUploadDialog({
       setTipo('');
       setCategoria(categoriaInicial ?? 'outros');
       setAlvo(vinculoToValue(vinculoInicial));
-      setFile(null);
+      setFiles([]);
     }
   }, [open, categoriaInicial, vinculoInicial]);
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
+    const escolhidos = Array.from(e.target.files ?? []);
     e.target.value = '';
-    if (!f) return;
-    if (f.size > MAX_BYTES) {
-      toast({ title: 'Arquivo muito grande', description: 'Limite de 50 MB.', variant: 'destructive' });
-      return;
+    if (!escolhidos.length) return;
+    const validos = escolhidos.filter((f) => f.size <= MAX_BYTES);
+    const grandes = escolhidos.length - validos.length;
+    if (grandes) {
+      toast({
+        title: 'Arquivo(s) muito grande(s)',
+        description: `${grandes} acima de 50 MB foram ignorados.`,
+        variant: 'destructive',
+      });
     }
-    setFile(f);
+    if (validos.length) setFiles(validos);
   };
 
-  const submit = () => {
-    if (!file) return;
+  const submit = async () => {
+    if (!files.length) return;
     if (categoria === 'georreferenciamento' && !vinculoSelecionado.matriculaId) {
       toast({
         title: 'Vincule uma matrícula',
@@ -134,10 +140,33 @@ export function DocUploadDialog({
       });
       return;
     }
-    upload.mutate(
-      { clienteId, vinculo: vinculoSelecionado, categoria, file, nrMatricula: nrMatriculaSelecionada, fonte },
-      { onSuccess: () => onOpenChange(false) },
-    );
+    // Sobe um por vez (mesma categoria/origem/vínculo p/ todos); coleta falhas.
+    setEnviando(true);
+    let ok = 0;
+    const falhas: File[] = [];
+    for (const f of files) {
+      try {
+        await upload.mutateAsync({
+          clienteId, vinculo: vinculoSelecionado, categoria, file: f,
+          nrMatricula: nrMatriculaSelecionada, fonte, silencioso: true,
+        });
+        ok += 1;
+      } catch {
+        falhas.push(f);
+      }
+    }
+    setEnviando(false);
+    if (ok) toast({ title: ok === 1 ? 'Documento anexado' : `${ok} documentos anexados` });
+    if (falhas.length) {
+      toast({
+        title: `${falhas.length} não enviado(s)`,
+        description: falhas.map((f) => f.name).join(', '),
+        variant: 'destructive',
+      });
+      setFiles(falhas); // mantém só os que falharam, para reenvio
+    } else {
+      onOpenChange(false);
+    }
   };
 
   return (
@@ -243,7 +272,7 @@ export function DocUploadDialog({
 
           <div className="space-y-1.5">
             <label className={labelCls}>Arquivo</label>
-            <input ref={inputRef} type="file" accept={ACCEPT} className="hidden" onChange={onPick} />
+            <input ref={inputRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={onPick} />
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
@@ -251,27 +280,33 @@ export function DocUploadDialog({
             >
               <Paperclip className="h-4 w-4 shrink-0 text-osg-moss" />
               <span
-                className={`min-w-0 flex-1 truncate ${file ? 'text-slate-700' : 'text-muted-foreground'}`}
-                title={file?.name}
+                className={`min-w-0 flex-1 truncate ${files.length ? 'text-slate-700' : 'text-muted-foreground'}`}
+                title={files.map((f) => f.name).join(', ')}
               >
-                {file ? file.name : 'Escolher arquivo…'}
+                {files.length === 0
+                  ? 'Escolher arquivo(s)…'
+                  : files.length === 1
+                    ? files[0].name
+                    : `${files.length} arquivos selecionados`}
               </span>
             </button>
-            <p className="text-[11px] text-muted-foreground">PDF, imagens ou Office · até 50 MB</p>
+            <p className="text-[11px] text-muted-foreground">
+              PDF, imagens ou Office · até 50 MB · pode selecionar vários
+            </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={upload.isPending}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={enviando}>
             Cancelar
           </Button>
-          <Button onClick={submit} disabled={!file || upload.isPending || georefInvalido}>
-            {upload.isPending ? (
+          <Button onClick={submit} disabled={!files.length || enviando || georefInvalido}>
+            {enviando ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Upload className="mr-2 h-4 w-4" />
             )}
-            Anexar
+            {files.length > 1 ? `Anexar ${files.length}` : 'Anexar'}
           </Button>
         </DialogFooter>
       </DialogContent>
