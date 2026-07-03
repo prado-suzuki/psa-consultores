@@ -78,6 +78,11 @@ export default function ContribuintesTab({
     if (findLocalDuplicate(digits, ignoreLocalId)) {
       return { found: true, isLocal: true };
     }
+    // PF (sócio) pode ser contribuinte de mais de um cliente → não trata duplicidade
+    // cross-cliente para CPF (nem bloqueia, nem avisa). PJ (CNPJ) segue 1-por-cliente.
+    if (digits.length !== 14) {
+      return null;
+    }
     try {
       setCheckingDuplicate(true);
       const dup = await checkDuplicate(digits, ignoreDbId);
