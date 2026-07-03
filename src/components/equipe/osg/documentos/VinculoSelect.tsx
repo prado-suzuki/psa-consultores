@@ -69,12 +69,15 @@ export function VinculoSelect({ value, onChange, pessoasPF, pessoasPJ, bens, mat
       <PopoverTrigger asChild>
         <button
           type="button"
-          className={cn(fieldCls, 'flex w-full items-center justify-between px-3 text-left')}
+          className={cn(
+            // Mesmas classes-base do SelectTrigger (ui/select) + fieldCls, para
+            // ficar idêntico aos demais campos (Categoria/Tipo).
+            'flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+            fieldCls,
+          )}
         >
-          <span className={cn('min-w-0 flex-1 truncate', semVinculo && 'text-muted-foreground')}>
-            {labelAtual}
-          </span>
-          <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="min-w-0 flex-1 truncate text-left">{labelAtual}</span>
+          <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
       <PopoverContent

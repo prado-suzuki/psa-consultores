@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { Loader2, Paperclip, Upload } from 'lucide-react';
+import { useEffect, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { FileUp, FolderUp, Loader2, Upload, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
@@ -8,12 +8,13 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { ACCEPT, CATEGORIAS, MAX_BYTES } from './docMeta';
 import { categoriaDoTipo, tiposPorCategoria } from './docTipos';
 import { VinculoSelect } from './VinculoSelect';
 import {
-  useUploadDocumento,
+  useUploadEmMassa,
   type DocCategoria,
   type DocFonte,
   type VinculoDoc,
@@ -21,6 +22,13 @@ import {
 
 const ORDEM_CATEGORIAS = CATEGORIAS.map((c) => c.value);
 const categoriaTexto = (v: DocCategoria) => CATEGORIAS.find((c) => c.value === v)?.label ?? v;
+
+const EXTS = ACCEPT.split(',').map((e) => e.trim().toLowerCase());
+const aceito = (f: File) => {
+  const ext = `.${(f.name.split('.').pop() ?? '').toLowerCase()}`;
+  return EXTS.includes(ext) && f.size <= MAX_BYTES;
+};
+const chaveArq = (f: File) => `${f.name}:${f.size}`;
 
 export interface EntidadeOpcao {
   id: string;
@@ -42,7 +50,7 @@ interface Props {
   categoriaInicial?: DocCategoria;
 }
 
-// O alvo do vínculo viaja codificado no value do <select> ("sem" | "pessoa:<id>"…).
+// O alvo do vínculo viaja codificado no value ("sem" | "pessoa:<id>"…).
 const vinculoToValue = (v?: VinculoDoc): string => {
   if (v?.pessoaId) return `pessoa:${v.pessoaId}`;
   if (v?.matriculaId) return `matricula:${v.matriculaId}`;
@@ -66,36 +74,45 @@ const matriculaNumero = (matriculaId: string | null | undefined, matriculas: Ent
 export function DocUploadDialog({
   open, onOpenChange, clienteId, pessoas, bens, matriculas, vinculoInicial, categoriaInicial,
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const filesRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
   const [fonte, setFonte] = useState<DocFonte>('cliente');
   const [tipo, setTipo] = useState<string>('');
   const [categoria, setCategoria] = useState<DocCategoria>(categoriaInicial ?? 'outros');
   const [alvo, setAlvo] = useState<string>(vinculoToValue(vinculoInicial));
   const [files, setFiles] = useState<File[]>([]);
-  const [enviando, setEnviando] = useState(false);
-  const upload = useUploadDocumento();
+  const [arrastando, setArrastando] = useState(false);
+  const { itens, rodando, enviar } = useUploadEmMassa();
+
   const gruposTipos = tiposPorCategoria(fonte === 'psa' ? 'psa' : 'cliente', ORDEM_CATEGORIAS);
   const pessoasPF = pessoas.filter((p) => p.tipo !== 'PJ');
   const pessoasPJ = pessoas.filter((p) => p.tipo === 'PJ');
 
-  // Escolher um tipo pré-seleciona a categoria correta (o tipo em si não é gravado na Fase 1).
+  // Escolher um tipo pré-seleciona a categoria correta (o tipo em si não é gravado).
   const onTipoChange = (t: string) => {
     setTipo(t);
     const cat = categoriaDoTipo(t);
     if (cat) setCategoria(cat);
   };
-  // Trocar a origem troca o conjunto de tipos disponíveis; zera o tipo escolhido.
   const onFonteChange = (f: DocFonte) => {
     setFonte(f);
     setTipo('');
   };
+
   const vinculoSelecionado = valueToVinculo(alvo);
   const nrMatriculaSelecionada = matriculaNumero(vinculoSelecionado.matriculaId, matriculas);
   const georefSemMatricula = categoria === 'georreferenciamento' && !vinculoSelecionado.matriculaId;
   const georefSemNumero = categoria === 'georreferenciamento' && !!vinculoSelecionado.matriculaId && !nrMatriculaSelecionada;
   const georefInvalido = georefSemMatricula || georefSemNumero;
 
-  // Reabriu a partir de outra pasta: ressincroniza os campos com o contexto.
+  // webkitdirectory não é atributo tipado; seta via ref para escolher pasta inteira.
+  useEffect(() => {
+    if (folderRef.current) {
+      folderRef.current.setAttribute('webkitdirectory', '');
+      folderRef.current.setAttribute('directory', '');
+    }
+  }, [open]);
+
   useEffect(() => {
     if (open) {
       setFonte('cliente');
@@ -103,23 +120,37 @@ export function DocUploadDialog({
       setCategoria(categoriaInicial ?? 'outros');
       setAlvo(vinculoToValue(vinculoInicial));
       setFiles([]);
+      setArrastando(false);
     }
   }, [open, categoriaInicial, vinculoInicial]);
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const escolhidos = Array.from(e.target.files ?? []);
-    e.target.value = '';
-    if (!escolhidos.length) return;
-    const validos = escolhidos.filter((f) => f.size <= MAX_BYTES);
-    const grandes = escolhidos.length - validos.length;
-    if (grandes) {
+  const adicionar = (lista: File[]) => {
+    if (!lista.length) return;
+    const validos = lista.filter(aceito);
+    const rejeitados = lista.length - validos.length;
+    if (rejeitados) {
       toast({
-        title: 'Arquivo(s) muito grande(s)',
-        description: `${grandes} acima de 50 MB foram ignorados.`,
+        title: `${rejeitados} arquivo(s) ignorado(s)`,
+        description: 'Fora do tipo permitido ou acima de 50 MB.',
         variant: 'destructive',
       });
     }
-    if (validos.length) setFiles(validos);
+    if (validos.length) {
+      setFiles((prev) => {
+        const existentes = new Set(prev.map(chaveArq));
+        return [...prev, ...validos.filter((f) => !existentes.has(chaveArq(f)))];
+      });
+    }
+  };
+
+  const onInput = (e: ChangeEvent<HTMLInputElement>) => {
+    adicionar(Array.from(e.target.files ?? []));
+    e.target.value = '';
+  };
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    setArrastando(false);
+    adicionar(Array.from(e.dataTransfer.files ?? []));
   };
 
   const submit = async () => {
@@ -140,47 +171,38 @@ export function DocUploadDialog({
       });
       return;
     }
-    // Sobe um por vez (mesma categoria/origem/vínculo p/ todos); coleta falhas.
-    setEnviando(true);
-    let ok = 0;
-    const falhas: File[] = [];
-    for (const f of files) {
-      try {
-        await upload.mutateAsync({
-          clienteId, vinculo: vinculoSelecionado, categoria, file: f,
-          nrMatricula: nrMatriculaSelecionada, fonte, silencioso: true,
-        });
-        ok += 1;
-      } catch {
-        falhas.push(f);
-      }
-    }
-    setEnviando(false);
-    if (ok) toast({ title: ok === 1 ? 'Documento anexado' : `${ok} documentos anexados` });
-    if (falhas.length) {
+    const r = await enviar(
+      files,
+      { clienteId, vinculo: vinculoSelecionado, categoria, nrMatricula: nrMatriculaSelecionada, fonte },
+      5,
+    );
+    if (r.ok) toast({ title: r.ok === 1 ? 'Documento anexado' : `${r.ok} documentos anexados` });
+    if (r.erros) {
       toast({
-        title: `${falhas.length} não enviado(s)`,
-        description: falhas.map((f) => f.name).join(', '),
+        title: `${r.erros} não enviado(s)`,
+        description: r.falhas.map((f) => f.name).join(', '),
         variant: 'destructive',
       });
-      setFiles(falhas); // mantém só os que falharam, para reenvio
+      setFiles(r.falhas); // mantém só os que falharam, para reenvio
     } else {
       onOpenChange(false);
     }
   };
 
+  const concluidos = itens.filter((i) => i.status === 'ok' || i.status === 'erro').length;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={(o) => { if (!rodando) onOpenChange(o); }}>
+      <DialogContent className="max-h-[88vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Anexar documento</DialogTitle>
           <DialogDescription>
-            Escolha a origem e o tipo do documento (a categoria é preenchida automaticamente) e,
-            se quiser, a entidade à qual ele pertence.
+            Arraste ou escolha arquivos (ou uma pasta). Tipo, vínculo e categoria são opcionais —
+            deixe como estão para organizar/vincular depois.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 min-w-0">
+        <div className="min-w-0 space-y-4 py-2">
           <div className="space-y-1.5">
             <label className={labelCls}>Origem</label>
             <div className="flex gap-1 rounded-md border border-osg-200 bg-osg-50/60 p-1">
@@ -193,9 +215,7 @@ export function DocUploadDialog({
                   type="button"
                   onClick={() => onFonteChange(o.v)}
                   className={`flex-1 rounded px-3 py-1.5 text-xs font-medium transition-colors ${
-                    fonte === o.v
-                      ? 'bg-white text-osg-700 shadow-sm'
-                      : 'text-muted-foreground hover:text-osg-700'
+                    fonte === o.v ? 'bg-white text-osg-700 shadow-sm' : 'text-muted-foreground hover:text-osg-700'
                   }`}
                 >
                   {o.label}
@@ -206,8 +226,7 @@ export function DocUploadDialog({
 
           <div className="space-y-1.5">
             <label className={labelCls}>
-              Tipo de documento{' '}
-              <span className="font-normal text-muted-foreground">(opcional)</span>
+              Tipo de documento <span className="font-normal text-muted-foreground">(opcional)</span>
             </label>
             <Select value={tipo || undefined} onValueChange={onTipoChange}>
               <SelectTrigger className={fieldCls}>
@@ -224,9 +243,6 @@ export function DocUploadDialog({
                 ))}
               </SelectContent>
             </Select>
-            <p className="text-[11px] text-muted-foreground">
-              Escolher um tipo preenche a categoria abaixo — você ainda pode ajustá-la.
-            </p>
           </div>
 
           <div className="space-y-1.5">
@@ -257,7 +273,9 @@ export function DocUploadDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className={labelCls}>Categoria</label>
+            <label className={labelCls}>
+              Categoria <span className="font-normal text-muted-foreground">(opcional)</span>
+            </label>
             <Select value={categoria} onValueChange={(v) => setCategoria(v as DocCategoria)}>
               <SelectTrigger className={fieldCls}>
                 <SelectValue />
@@ -270,42 +288,62 @@ export function DocUploadDialog({
             </Select>
           </div>
 
+          {/* Arquivos: arrastar/soltar + escolher arquivos ou pasta */}
           <div className="space-y-1.5">
-            <label className={labelCls}>Arquivo</label>
-            <input ref={inputRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={onPick} />
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className={`${fieldCls} flex w-full items-center gap-2 px-3 text-left text-sm`}
+            <label className={labelCls}>Arquivos</label>
+            <div
+              onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
+              onDragLeave={() => setArrastando(false)}
+              onDrop={onDrop}
+              className={cn(
+                'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors',
+                arrastando ? 'border-osg-400 bg-osg-50' : 'border-osg-200 bg-osg-50/40',
+              )}
             >
-              <Paperclip className="h-4 w-4 shrink-0 text-osg-moss" />
-              <span
-                className={`min-w-0 flex-1 truncate ${files.length ? 'text-slate-700' : 'text-muted-foreground'}`}
-                title={files.map((f) => f.name).join(', ')}
-              >
-                {files.length === 0
-                  ? 'Escolher arquivo(s)…'
-                  : files.length === 1
-                    ? files[0].name
-                    : `${files.length} arquivos selecionados`}
-              </span>
-            </button>
-            <p className="text-[11px] text-muted-foreground">
-              PDF, imagens ou Office · até 50 MB · pode selecionar vários
-            </p>
+              <FolderUp className="h-7 w-7 text-osg-moss/70" />
+              <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
+              <div className="mt-1 flex gap-2">
+                <Button type="button" variant="outline" size="sm" onClick={() => filesRef.current?.click()}>
+                  <FileUp className="mr-2 h-4 w-4" /> Escolher arquivos
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => folderRef.current?.click()}>
+                  <FolderUp className="mr-2 h-4 w-4" /> Escolher pasta
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">PDF, imagens ou Office · até 50 MB cada</p>
+            </div>
+            <input ref={filesRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={onInput} />
+            <input ref={folderRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={onInput} />
+
+            {files.length > 0 && !rodando && (
+              <div className="flex items-center justify-between text-xs text-slate-600">
+                <span><span className="font-medium">{files.length}</span> arquivo(s) selecionado(s)</span>
+                <button type="button" onClick={() => setFiles([])} className="inline-flex items-center gap-1 hover:text-osg-700">
+                  <X className="h-3 w-3" /> limpar
+                </button>
+              </div>
+            )}
+
+            {rodando && (
+              <div className="space-y-1">
+                <p className="text-xs text-slate-600">Enviando {concluidos} de {itens.length}…</p>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-osg-100">
+                  <div
+                    className="h-full bg-osg-moss transition-[width] duration-200"
+                    style={{ width: `${itens.length ? (concluidos / itens.length) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={enviando}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={rodando}>
             Cancelar
           </Button>
-          <Button onClick={submit} disabled={!files.length || enviando || georefInvalido}>
-            {enviando ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Upload className="mr-2 h-4 w-4" />
-            )}
+          <Button onClick={submit} disabled={!files.length || rodando || georefInvalido}>
+            {rodando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
             {files.length > 1 ? `Anexar ${files.length}` : 'Anexar'}
           </Button>
         </DialogFooter>

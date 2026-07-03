@@ -272,12 +272,13 @@ export function useUploadEmMassa() {
   const [rodando, setRodando] = useState(false);
 
   const enviar = useCallback(
-    async (files: File[], base: BaseMassa, concorrencia = 5): Promise<{ ok: number; erros: number }> => {
+    async (files: File[], base: BaseMassa, concorrencia = 5): Promise<{ ok: number; erros: number; falhas: File[] }> => {
       setItens(files.map((f) => ({ file: f, status: 'pendente' as StatusItemMassa })));
       setRodando(true);
       let cursor = 0;
       let ok = 0;
       let erros = 0;
+      const falhas: File[] = [];
       const worker = async () => {
         while (cursor < files.length) {
           const i = cursor;
@@ -291,6 +292,7 @@ export function useUploadEmMassa() {
             const erro = (e as Error).message;
             setItens((prev) => prev.map((it, k) => (k === i ? { ...it, status: 'erro', erro } : it)));
             erros += 1;
+            falhas.push(files[i]);
           }
         }
       };
@@ -299,7 +301,7 @@ export function useUploadEmMassa() {
       await Promise.all(Array.from({ length: n }, () => worker()));
       qc.invalidateQueries({ queryKey: [LIST_KEY, base.clienteId] });
       setRodando(false);
-      return { ok, erros };
+      return { ok, erros, falhas };
     },
     [fetchWithAuth, qc],
   );
