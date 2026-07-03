@@ -488,6 +488,10 @@ const DocumentosCliente = () => {
         }}
         doc={aVisualizar}
         url={previewUrl}
+        clienteId={clienteId || ''}
+        pessoas={pessoaOpts}
+        bens={bemOpts}
+        matriculas={matriculaOpts}
       />
 
       <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
