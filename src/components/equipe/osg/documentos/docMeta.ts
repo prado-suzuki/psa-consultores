@@ -50,3 +50,13 @@ export function fileIconOf(nome: string, mime?: string | null): { Icon: LucideIc
   if (['doc', 'docx'].includes(ext) || m.includes('word')) return { Icon: FileText, className: 'text-blue-500' };
   return { Icon: File, className: 'text-slate-400' };
 }
+
+// Pré-visualização: apenas imagem e PDF (decisão da OSG).
+export const isImagem = (nome: string, mime?: string | null): boolean => {
+  const ext = (nome.split('.').pop() ?? '').toLowerCase();
+  return EXT_IMG.includes(ext) || (mime ?? '').toLowerCase().startsWith('image/');
+};
+export const isPreviavel = (nome: string, mime?: string | null): boolean => {
+  const ext = (nome.split('.').pop() ?? '').toLowerCase();
+  return ext === 'pdf' || (mime ?? '').toLowerCase().includes('pdf') || isImagem(nome, mime);
+};

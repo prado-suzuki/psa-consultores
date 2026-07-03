@@ -17,13 +17,14 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import { useAllMatriculas, useBensByCliente } from '@/hooks/useDiagnosticoPatrimonial';
 import {
-  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento,
+  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
-import { CATEGORIAS, fileIconOf, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+import { CATEGORIAS, fileIconOf, formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
+import { DocPreviewDialog } from '@/components/equipe/osg/documentos/DocPreviewDialog';
 
 interface Leaf {
   key: string;
@@ -61,6 +62,7 @@ const DocumentosCliente = () => {
 
   const excluir = useExcluirDocumento(clienteId || '');
   const baixar = useBaixarDocumento();
+  const preview = usePreviewUrl();
 
   const [selected, setSelected] = useState<string>('all');
   const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
@@ -68,6 +70,8 @@ const DocumentosCliente = () => {
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
   const [aVincular, setAVincular] = useState<DocumentoArquivoRow | null>(null);
   const [aRenomear, setARenomear] = useState<DocumentoArquivoRow | null>(null);
+  const [aVisualizar, setAVisualizar] = useState<DocumentoArquivoRow | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   // useAllMatriculas é global; restringe às matrículas deste cliente (via bem ou titular).
   const matriculasCliente = useMemo(
@@ -207,6 +211,12 @@ const DocumentosCliente = () => {
     }
     return CATEGORIAS.filter((c) => byCat.has(c.value)).map((c) => ({ label: c.label, docs: byCat.get(c.value)! }));
   })();
+
+  const abrirPreview = (d: DocumentoArquivoRow) => {
+    setAVisualizar(d);
+    setPreviewUrl(null);
+    preview.mutate(d, { onSuccess: (u) => setPreviewUrl(u) });
+  };
 
   const vinculoLabel = (d: DocumentoArquivoRow): string => {
     if (d.pessoa_id) return labelByKey.get(`pessoa:${d.pessoa_id}`) ?? 'Pessoa';
@@ -373,7 +383,18 @@ const DocumentosCliente = () => {
                             <li key={d.id} className="flex items-center gap-3 px-2 py-2.5 text-sm">
                               <FileIcon nome={d.nome_original} mime={d.mime} />
                               <div className="min-w-0 flex-1">
-                                <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
+                                {isPreviavel(d.nome_original, d.mime) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirPreview(d)}
+                                    className="block w-full min-w-0 truncate text-left font-medium text-slate-800 hover:text-osg-700 hover:underline"
+                                    title="Pré-visualizar"
+                                  >
+                                    {d.nome_original}
+                                  </button>
+                                ) : (
+                                  <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
+                                )}
                                 <p className="truncate text-xs text-muted-foreground">
                                   {vinculoLabel(d)} · {formatBytes(d.tamanho)} ·{' '}
                                   {new Date(d.created_at).toLocaleDateString('pt-BR')}
@@ -456,6 +477,18 @@ const DocumentosCliente = () => {
           clienteId={clienteId}
         />
       )}
+
+      <DocPreviewDialog
+        open={!!aVisualizar}
+        onOpenChange={(o) => {
+          if (!o) {
+            setAVisualizar(null);
+            setPreviewUrl(null);
+          }
+        }}
+        doc={aVisualizar}
+        url={previewUrl}
+      />
 
       <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
         <AlertDialogContent>

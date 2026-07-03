@@ -236,6 +236,25 @@ export function useAtualizarDocumento(clienteId: string) {
   });
 }
 
+/** Gera a signed GET URL para pré-visualizar inline (sem baixar). */
+export function usePreviewUrl() {
+  const { fetchWithAuth } = useApiAuth();
+  return useMutation({
+    mutationFn: async (row: DocumentoArquivoRow): Promise<string> => {
+      if (!row.gcs_uri) throw new Error('Documento sem arquivo associado');
+      const res = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/sign-download'), {
+        method: 'POST',
+        body: JSON.stringify({ gcs_uri: row.gcs_uri }),
+      });
+      if (!res.ok) throw new Error('Falha ao gerar link de pré-visualização');
+      const { signed_url } = (await res.json()) as { signed_url: string };
+      return signed_url;
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao pré-visualizar', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
 /** Pede a signed GET URL e abre o download em nova aba. */
 export function useBaixarDocumento() {
   const { fetchWithAuth } = useApiAuth();
