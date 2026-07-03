@@ -20,7 +20,7 @@ import {
   useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
-import { categoriaLabel, fileIconOf, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+import { CATEGORIAS, fileIconOf, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
 import { DocRenomearDialog } from '@/components/equipe/osg/documentos/DocRenomearDialog';
@@ -196,6 +196,18 @@ const DocumentosCliente = () => {
   const selectedLabel = labelByKey.get(selected) ?? 'Documentos';
   const selectedVinculo = vinculoByKey.get(selected);
 
+  // N7: agrupa os documentos da pasta selecionada por CATEGORIA (campo já gravado),
+  // na ordem de CATEGORIAS. Só apresentação — sem mudança de schema.
+  const gruposCategoria = (() => {
+    const byCat = new Map<string, DocumentoArquivoRow[]>();
+    for (const d of selectedDocs) {
+      const a = byCat.get(d.categoria);
+      if (a) a.push(d);
+      else byCat.set(d.categoria, [d]);
+    }
+    return CATEGORIAS.filter((c) => byCat.has(c.value)).map((c) => ({ label: c.label, docs: byCat.get(c.value)! }));
+  })();
+
   const vinculoLabel = (d: DocumentoArquivoRow): string => {
     if (d.pessoa_id) return labelByKey.get(`pessoa:${d.pessoa_id}`) ?? 'Pessoa';
     if (d.matricula_id) return labelByKey.get(`matricula:${d.matricula_id}`) ?? 'Matrícula';
@@ -347,52 +359,64 @@ const DocumentosCliente = () => {
                     </Button>
                   </div>
                 ) : (
-                  <ul className="divide-y divide-osg-100/70">
-                    {selectedDocs.map((d) => (
-                      <li key={d.id} className="flex items-center gap-3 px-2 py-2.5 text-sm">
-                        <FileIcon nome={d.nome_original} mime={d.mime} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
-                          <p className="truncate text-xs text-muted-foreground">
-                            {categoriaLabel(d.categoria)} · {vinculoLabel(d)} · {formatBytes(d.tamanho)} ·{' '}
-                            {new Date(d.created_at).toLocaleDateString('pt-BR')}
-                          </p>
+                  <div className="space-y-3">
+                    {gruposCategoria.map((g) => (
+                      <div key={g.label}>
+                        <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-osg-700/80">
+                          <span>{g.label}</span>
+                          <span className="rounded-full bg-slate-100 px-1.5 text-[11px] tabular-nums text-slate-500">
+                            {g.docs.length}
+                          </span>
                         </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setARenomear(d)}>
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Renomear o nome exibido</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setAVincular(d)}>
-                              <Link2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Vincular a pessoa, matrícula ou bem</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)}>
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Baixar o arquivo</TooltipContent>
-                        </Tooltip>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button variant="ghost" size="icon" onClick={() => setAExcluir(d)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Remover da lista</TooltipContent>
-                        </Tooltip>
-                      </li>
+                        <ul className="divide-y divide-osg-100/70">
+                          {g.docs.map((d) => (
+                            <li key={d.id} className="flex items-center gap-3 px-2 py-2.5 text-sm">
+                              <FileIcon nome={d.nome_original} mime={d.mime} />
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {vinculoLabel(d)} · {formatBytes(d.tamanho)} ·{' '}
+                                  {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => setARenomear(d)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Renomear o nome exibido</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => setAVincular(d)}>
+                                    <Link2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Vincular a pessoa, matrícula ou bem</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => baixar.mutate(d)}>
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Baixar o arquivo</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" onClick={() => setAExcluir(d)}>
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Remover da lista</TooltipContent>
+                              </Tooltip>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 )}
               </div>
             </section>
