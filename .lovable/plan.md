@@ -1,67 +1,57 @@
-## Diagnóstico — Contribuintes some ao salvar
+## RLS-01 — Isolamento por cluster no cadastro OSG (7 tabelas)
 
-**Fatos:**
-- 3 UPDATEs de `cliente` registrados hoje, todos com `changed_fields = NULL`. `updated_at` de Família Lunardi bumpado (17:42:50).
-- **Nenhum** audit de `entity_type='contribuinte'` no dia — o diff calculado (`computeEntityListDiff`) veio vazio, ou seja, no instante do save o array `entities` já era idêntico ao `originalSnapshot`.
-- Papel `lider` passa em todas as policies (`sublider+` em contribuinte).
+### Aviso importante (ler antes de aprovar)
+O projeto usa **um único banco Postgres** para dev e prod (segregação lógica via coluna `ambiente`). **RLS não distingue ambiente** — as policies criadas aqui valem para dev E prod imediatamente. Não há como "aplicar só em dev" no nível do RLS. Se quiser mesmo assim seguir, o plano abaixo executa; caso contrário, me avise para adiar.
 
-**Causa raiz (identificada por leitura):**
+O mesmo vale para o seed do PASSO 4 (`cliente_clusters`): vínculos passam a valer em qualquer ambiente que consulte esses clientes.
 
-Em `src/components/equipe/client-form/ContribuintesTab.tsx`, o painel de "Editar" de um contribuinte existente commita a edição na linha 152:
+### Baseline já verificado (PASSO 1 ✅)
+- Contagens como admin: `pessoa=78, bem=12, capital_integralizacao=42, matricula=10, parentesco=15, quadro_societario=48, titularidade=19` — **bate 100% com o esperado**.
+- Cada uma das 7 tabelas tem **exatamente 1 policy SELECT** hoje — GATE do PASSO 1 passa.
 
-```
-setEntities(entities.map((e) => (e._id === editingEntityId ? ({...e, ...editingEntityData}) : e)));
-```
+### O que a migration vai fazer (PASSO 2)
+Uma migration única, em transação:
 
-O casamento é por `_id`, um número gerado em `useClientEditData.ts` com `Date.now() + Math.random()` (linha 81). Esse `_id` é **regerado toda vez que `useClientEditData` executa** — e o `useEffect` desse hook depende de `[open, editingClienteId]`, mas também é vulnerável a qualquer re-run causado por `open` transitando (React 18 StrictMode, focus/visibility, revalidations).
+1. Criar 4 funções `SECURITY DEFINER` (search_path=public):
+   - `cliente_visivel_para(uuid)` → admin OU cluster do usuário ∈ clusters do cliente (via `cliente_clusters` + `resolve_user_cluster_ids`).
+   - `cliente_id_de_pessoa(uuid)`, `cliente_id_de_bem(uuid)`, `cliente_id_de_matricula(uuid)` → resolvem `cliente_id` a partir da FK indireta.
+   - `GRANT EXECUTE ... TO authenticated` nas 4.
+2. **DROP** de TODA policy `SELECT` existente nas 7 tabelas (bloco `DO $$`), pra evitar duas policies permissivas em OR anulando o isolamento.
+3. **CREATE** de 1 policy SELECT por tabela, `TO authenticated`:
+   - Diretas (usam `cliente_id` da própria linha): `pessoa`, `bem`, `capital_integralizacao`.
+   - Indiretas: `matricula` (via `bem`), `parentesco` (via `pessoa`), `quadro_societario` (via `empresa_pessoa_id → pessoa`), `titularidade` (via `COALESCE(bem, matricula→bem)`).
+4. INSERT/UPDATE/DELETE das 7 tabelas **não são tocados** nesta rodada.
 
-Fluxo que reproduz o bug:
-1. Maritsa abre o modal do cliente Família Lunardi → load popula `entities` com `_id=X`.
-2. Ela clica em "Editar" num contribuinte → `editingEntityId = X`.
-3. Ela digita alterações.
-4. O load re-dispara por qualquer motivo → `setEntities` recria a lista com `_id=Y` (novos números).
-5. Ela clica "Salvar" na linha → `entities.map(e => e._id === X ? ...)` → **nenhum match**, no-op silencioso.
-6. Ela clica "Salvar" no modal → `entities` idêntico ao snapshot → `UPDATE` roda com payload igual, `changed_fields=null`, toast diz "sucesso".
+SQL exato conforme você enviou (copiado literal na migration).
 
-Contribui também: a `useEffect` do load não é idempotente — não há guard `loadedForId` — e o save principal em `useSaveClientTransaction.ts:230` faz `.update(...)` **sem `.select()`**, então uma eventual falha silenciosa de RLS não seria detectada (não é o caso aqui, mas fica como fragilidade).
+### PASSO 3 — Verificação pós-migration
+- `SELECT tablename, count(*) FROM pg_policies ... GROUP BY tablename` → esperado **1 por tabela**, todas com nome `osg_cluster_select_*`.
+- Confirmar existência das 4 funções em `pg_proc`.
+- Se qualquer tabela vier com 2 policies, **rollback** e reportar (não seguir para o PASSO 4).
 
-## Plano de correção (frontend, sem migrations)
+### PASSO 4 — Seed idempotente em `cliente_clusters`
+4 pares (Barralcool, Agro Amazônia, Bom Pastor → PSA OSG; Alessio Sansão → Prado Advogados), com `WHERE NOT EXISTS`. Executado via ferramenta de insert (não é DDL). ⚠️ Vale para prod também (single DB).
 
-### Fix 1 — Identidade estável do contribuinte (raiz do bug)
-`src/hooks/useClientEditData.ts`:
-- Trocar `_id: Date.now() + Math.random()` por `_id: <hash estável do _dbId>` (ex.: `parseInt(String(c.id).replace(/-/g,'').slice(0,12),16)`) OU passar a usar `_dbId` como chave onde hoje se usa `_id`.
+### PASSO 5 — Testes de impersonação
+Rodados via `supabase--read_query` em blocos `BEGIN … ROLLBACK` com `SET LOCAL role authenticated` + `set_config('request.jwt.claims', …)`.
 
-`src/components/equipe/client-form/ContribuintesTab.tsx`:
-- Onde o código compara `e._id === editingEntityId`, priorizar `_dbId` quando existir: `(e._dbId && e._dbId === editingEntityDbId) || e._id === editingEntityId`.
-- Aplicar o mesmo raciocínio ao `expandedEntityId`, ao remove (linha 271) e ao commit inline de IE.
-- Repetir o padrão em `RepresentantesTab.tsx` e `ContratosTab.tsx` se usarem o mesmo casamento por `_id`.
+- **Teste A** — user `automacao` (líder, cluster PSA OSG, não-admin): esperado `pessoa=56`, `bem=6`, `capital=42`, `alessio=0`.
+- **Teste B** — user `Eduardo` (admin): esperado `pessoa=78`, `bem=12`.
 
-### Fix 2 — Load idempotente
-`src/hooks/useClientEditData.ts`:
-- Adicionar `loadedForIdRef = useRef<string | null>(null)` e sair cedo se `loadedForIdRef.current === editingClienteId`.
-- Zerar o ref quando `open` vira `false` ou `editingClienteId` muda.
-- Se `initialSnapshotRef.current` já existir e o snapshot atual estiver "sujo" (usuário digitou), **não** chamar os setters no fim do load (log via `console.warn`).
+Se o runner rejeitar `SET LOCAL role`/`set_config` (pode acontecer via PgBouncer/pooler), reporto isso no PASSO 6 pra você validar logando no app.
 
-### Fix 3 — Bloquear Save enquanto carrega
-`src/components/equipe/NewClientModal.tsx`:
-- Adicionar `|| loadingEdit` no `disabled` do botão Salvar.
-- `toast.warning("Carregando dados, aguarde…")` no caminho `executeSave` se `loadingEdit === true`.
+### PASSO 6 — Relatório
+Devolvo em uma única mensagem: baseline (P1) ✅, contagem de policies (P3), e resultados A/B em formato "esperado vs obtido". **Sem** qualquer promoção — nada mais é tocado sem seu OK explícito.
 
-### Fix 4 — "Nada a salvar" explícito + endurecimento
-`src/hooks/useSaveClientTransaction.ts`:
-- Ao final, se `isEditing` e todos os diffs (client + contribs + parts + os) estão vazios, exibir `toast.info("Nenhuma alteração detectada")` no lugar de `toast.success("Cliente atualizado…")` e **não** emitir o `logAction` de cliente com `changed_fields` vazio (elimina os "fantasmas" que vimos em audit).
-- Trocar `supabase.from(contribuinteTable).update(payload).eq("id", e._dbId)` por `.update(payload).eq("id", e._dbId).select("id")` — se `data.length === 0`, `throw new Error('UPDATE de contribuinte não atingiu nenhuma linha')`. Blindagem contra futuras regressões silenciosas de RLS.
+### Rollback (se qualquer GATE falhar)
+Migration única de rollback: `DROP POLICY IF EXISTS osg_cluster_select_*` nas 7 tabelas + recriar as policies originais `FOR SELECT TO authenticated USING (has_role_or_higher(auth.uid(),'team_member'::app_role))` + `DELETE` dos 4 pares do seed.
 
-### Fix 5 — Validação
-- Como líder, abrir Família Lunardi, editar um contribuinte (ex.: telefone), salvar.
-- Conferir na barra de sucesso, reabrir o modal e ver que o valor persistiu.
-- Em `audit_logs`, verificar que o novo registro traz `entity_type='contribuinte'` e `changed_fields={telefone:{...}}`.
-- Regressão rápida: aba Contratos e Representantes editando inline.
+### Detalhes técnicos
+- Migration DDL (funções + policies) via `supabase--migration` — 1 chamada, transação implícita da ferramenta.
+- Seed do PASSO 4 via `supabase--insert` (é DML, não DDL).
+- Testes do PASSO 5 via `supabase--read_query` — cada teste é um bloco `BEGIN…ROLLBACK` para não deixar sessão suja.
+- Nenhuma alteração de código frontend/hook nesta rodada. `useQuadroSocietario`, `useGestaoClientes`, etc. continuam usando as mesmas queries; a filtragem passa a acontecer no RLS.
 
-## Escopo e não-escopo
-- **Frontend + hook data-loader apenas.** Nada de migração, RLS, policy ou trigger.
-- Não altera regras de negócio nem o payload persistido; muda somente identidade em memória, idempotência de load e feedback de UX.
-- Arquivos tocados: `useClientEditData.ts`, `ContribuintesTab.tsx`, `RepresentantesTab.tsx` e `ContratosTab.tsx` (se aplicável), `NewClientModal.tsx`, `useSaveClientTransaction.ts`.
-
-## Rollback
-Reverter os 4-5 arquivos citados — mudança 100% frontend, sem estado persistido novo.
+### Confirmação que preciso antes de executar
+1. Ciente de que RLS é global (dev+prod compartilham policies) e mesmo assim quer prosseguir? (S/N)
+2. Ciente de que o seed do PASSO 4 grava vínculos definitivos em `cliente_clusters` (também global)? (S/N)
