@@ -1,57 +1,89 @@
-## RLS-01 — Isolamento por cluster no cadastro OSG (7 tabelas)
+## RLS-04 — Fechar policies abertas de `documento_horas_historico`
 
-### Aviso importante (ler antes de aprovar)
-O projeto usa **um único banco Postgres** para dev e prod (segregação lógica via coluna `ambiente`). **RLS não distingue ambiente** — as policies criadas aqui valem para dev E prod imediatamente. Não há como "aplicar só em dev" no nível do RLS. Se quiser mesmo assim seguir, o plano abaixo executa; caso contrário, me avise para adiar.
+### PASSO 1 — Baseline (já capturado, read-only) ✅
+- `count(*) = 0` — tabela vazia.
+- `relrowsecurity = true` — RLS já habilitada.
+- 4 policies atuais, todas abertas para `authenticated`:
 
-O mesmo vale para o seed do PASSO 4 (`cliente_clusters`): vínculos passam a valer em qualquer ambiente que consulte esses clientes.
+| policyname | cmd | roles | qual | with_check |
+|---|---|---|---|---|
+| documento_horas_historico_auth_select | SELECT | {authenticated} | `true` | — |
+| documento_horas_historico_auth_insert | INSERT | {authenticated} | — | `true` |
+| documento_horas_historico_auth_update | UPDATE | {authenticated} | `true` | `true` |
+| documento_horas_historico_auth_delete | DELETE | {authenticated} | `true` | — |
 
-### Baseline já verificado (PASSO 1 ✅)
-- Contagens como admin: `pessoa=78, bem=12, capital_integralizacao=42, matricula=10, parentesco=15, quadro_societario=48, titularidade=19` — **bate 100% com o esperado**.
-- Cada uma das 7 tabelas tem **exatamente 1 policy SELECT** hoje — GATE do PASSO 1 passa.
+GATE PASSO 1 ✅: pelo menos uma policy com `qual='true'` confirmada (todas, na verdade).
 
-### O que a migration vai fazer (PASSO 2)
-Uma migration única, em transação:
+### PASSO 2 — Migration (transação única, via `supabase--migration`)
 
-1. Criar 4 funções `SECURITY DEFINER` (search_path=public):
-   - `cliente_visivel_para(uuid)` → admin OU cluster do usuário ∈ clusters do cliente (via `cliente_clusters` + `resolve_user_cluster_ids`).
-   - `cliente_id_de_pessoa(uuid)`, `cliente_id_de_bem(uuid)`, `cliente_id_de_matricula(uuid)` → resolvem `cliente_id` a partir da FK indireta.
-   - `GRANT EXECUTE ... TO authenticated` nas 4.
-2. **DROP** de TODA policy `SELECT` existente nas 7 tabelas (bloco `DO $$`), pra evitar duas policies permissivas em OR anulando o isolamento.
-3. **CREATE** de 1 policy SELECT por tabela, `TO authenticated`:
-   - Diretas (usam `cliente_id` da própria linha): `pessoa`, `bem`, `capital_integralizacao`.
-   - Indiretas: `matricula` (via `bem`), `parentesco` (via `pessoa`), `quadro_societario` (via `empresa_pessoa_id → pessoa`), `titularidade` (via `COALESCE(bem, matricula→bem)`).
-4. INSERT/UPDATE/DELETE das 7 tabelas **não são tocados** nesta rodada.
+```sql
+ALTER TABLE public.documento_horas_historico ENABLE ROW LEVEL SECURITY;
 
-SQL exato conforme você enviou (copiado literal na migration).
+DO $$
+DECLARE p record;
+BEGIN
+  FOR p IN SELECT policyname FROM pg_policies
+           WHERE schemaname='public' AND tablename='documento_horas_historico'
+  LOOP
+    EXECUTE format('DROP POLICY %I ON public.documento_horas_historico', p.policyname);
+  END LOOP;
+END $$;
 
-### PASSO 3 — Verificação pós-migration
-- `SELECT tablename, count(*) FROM pg_policies ... GROUP BY tablename` → esperado **1 por tabela**, todas com nome `osg_cluster_select_*`.
-- Confirmar existência das 4 funções em `pg_proc`.
-- Se qualquer tabela vier com 2 policies, **rollback** e reportar (não seguir para o PASSO 4).
+CREATE POLICY dhh_select ON public.documento_horas_historico
+  FOR SELECT TO authenticated
+  USING (alterado_por = auth.uid()
+         OR public.has_role_or_higher(auth.uid(), 'lider'::app_role));
 
-### PASSO 4 — Seed idempotente em `cliente_clusters`
-4 pares (Barralcool, Agro Amazônia, Bom Pastor → PSA OSG; Alessio Sansão → Prado Advogados), com `WHERE NOT EXISTS`. Executado via ferramenta de insert (não é DDL). ⚠️ Vale para prod também (single DB).
+CREATE POLICY dhh_insert ON public.documento_horas_historico
+  FOR INSERT TO authenticated
+  WITH CHECK (alterado_por = auth.uid()
+              AND public.has_role_or_higher(auth.uid(), 'team_member'::app_role));
 
-### PASSO 5 — Testes de impersonação
-Rodados via `supabase--read_query` em blocos `BEGIN … ROLLBACK` com `SET LOCAL role authenticated` + `set_config('request.jwt.claims', …)`.
+CREATE POLICY dhh_update ON public.documento_horas_historico
+  FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'::app_role))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
 
-- **Teste A** — user `automacao` (líder, cluster PSA OSG, não-admin): esperado `pessoa=56`, `bem=6`, `capital=42`, `alessio=0`.
-- **Teste B** — user `Eduardo` (admin): esperado `pessoa=78`, `bem=12`.
+CREATE POLICY dhh_delete ON public.documento_horas_historico
+  FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'::app_role));
+```
 
-Se o runner rejeitar `SET LOCAL role`/`set_config` (pode acontecer via PgBouncer/pooler), reporto isso no PASSO 6 pra você validar logando no app.
+Regra: SELECT = autor OU lider+; INSERT = em nome próprio + team_member+; UPDATE/DELETE = admin.
 
-### PASSO 6 — Relatório
-Devolvo em uma única mensagem: baseline (P1) ✅, contagem de policies (P3), e resultados A/B em formato "esperado vs obtido". **Sem** qualquer promoção — nada mais é tocado sem seu OK explícito.
+### PASSO 3 — Verificação (via `supabase--read_query`)
+- `SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename='documento_horas_historico' ORDER BY cmd;`
+- GATE:
+  - Exatamente 4 policies: `dhh_select | dhh_insert | dhh_update | dhh_delete`.
+  - Nenhuma com `qual='true'` ou `with_check='true'`.
+  - `relrowsecurity = true`.
+- Se falhar → rollback imediato (abaixo).
 
-### Rollback (se qualquer GATE falhar)
-Migration única de rollback: `DROP POLICY IF EXISTS osg_cluster_select_*` nas 7 tabelas + recriar as policies originais `FOR SELECT TO authenticated USING (has_role_or_higher(auth.uid(),'team_member'::app_role))` + `DELETE` dos 4 pares do seed.
+### PASSO 4 — Relatório
+Devolvo: baseline do P1 (tabela acima + count 0) + lista final do P3. Sem tocar em nada além.
 
-### Detalhes técnicos
-- Migration DDL (funções + policies) via `supabase--migration` — 1 chamada, transação implícita da ferramenta.
-- Seed do PASSO 4 via `supabase--insert` (é DML, não DDL).
-- Testes do PASSO 5 via `supabase--read_query` — cada teste é um bloco `BEGIN…ROLLBACK` para não deixar sessão suja.
-- Nenhuma alteração de código frontend/hook nesta rodada. `useQuadroSocietario`, `useGestaoClientes`, etc. continuam usando as mesmas queries; a filtragem passa a acontecer no RLS.
+### Rollback (se GATE falhar)
+Migration única recriando exatamente o baseline:
+```sql
+DROP POLICY IF EXISTS dhh_select ON public.documento_horas_historico;
+DROP POLICY IF EXISTS dhh_insert ON public.documento_horas_historico;
+DROP POLICY IF EXISTS dhh_update ON public.documento_horas_historico;
+DROP POLICY IF EXISTS dhh_delete ON public.documento_horas_historico;
 
-### Confirmação que preciso antes de executar
-1. Ciente de que RLS é global (dev+prod compartilham policies) e mesmo assim quer prosseguir? (S/N)
-2. Ciente de que o seed do PASSO 4 grava vínculos definitivos em `cliente_clusters` (também global)? (S/N)
+CREATE POLICY documento_horas_historico_auth_select ON public.documento_horas_historico
+  FOR SELECT TO authenticated USING (true);
+CREATE POLICY documento_horas_historico_auth_insert ON public.documento_horas_historico
+  FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY documento_horas_historico_auth_update ON public.documento_horas_historico
+  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+CREATE POLICY documento_horas_historico_auth_delete ON public.documento_horas_historico
+  FOR DELETE TO authenticated USING (true);
+```
+
+### Avisos
+- RLS é global (dev+prod compartilham); segurança da manobra vem da tabela estar vazia e sem uso no front.
+- Validação é estrutural (não há linhas para testar).
+- Nenhum código frontend/hook é tocado nesta rodada.
+
+### Confirmação
+Ciente do impacto global e OK com a regra proposta (autor+lider / team_member+ / admin-only)?
