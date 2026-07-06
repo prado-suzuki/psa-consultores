@@ -39,3 +39,6 @@ Mapeamento/
 # Exports/dumps gerados localmente pelos scripts do MAPA (SOPs, diagramas, ROI)
 _sops_export/
 _roi_dump/
+
+# Plano de feature (local, não commitar) — especificação para o dev
+docs/plano-revisao-delegada-tarefas.md
