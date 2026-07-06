@@ -8174,6 +8174,13 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      cliente_id_de_bem: { Args: { _bem_id: string }; Returns: string }
+      cliente_id_de_matricula: {
+        Args: { _matricula_id: string }
+        Returns: string
+      }
+      cliente_id_de_pessoa: { Args: { _pessoa_id: string }; Returns: string }
+      cliente_visivel_para: { Args: { _cliente_id: string }; Returns: boolean }
       criar_bem_com_titular: {
         Args: { bem_data: Json; titular_data: Json }
         Returns: {
