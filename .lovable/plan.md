@@ -1,89 +1,71 @@
-## RLS-04 — Fechar policies abertas de `documento_horas_historico`
+## RLS-09 — Ownership no módulo de Desempenho
 
-### PASSO 1 — Baseline (já capturado, read-only) ✅
-- `count(*) = 0` — tabela vazia.
-- `relrowsecurity = true` — RLS já habilitada.
-- 4 policies atuais, todas abertas para `authenticated`:
+Escopo estrito: só o SELECT de 6 tabelas (`metas`, `kpis_meta`, `atualizacoes_meta`, `itens_acao_1a1`, `ppr_regras_ciclo`, `ciclos_avaliacao`). Não toca escrita, não toca `performance_preferencias`, não toca as 4 "já OK".
 
-| policyname | cmd | roles | qual | with_check |
-|---|---|---|---|---|
-| documento_horas_historico_auth_select | SELECT | {authenticated} | `true` | — |
-| documento_horas_historico_auth_insert | INSERT | {authenticated} | — | `true` |
-| documento_horas_historico_auth_update | UPDATE | {authenticated} | `true` | `true` |
-| documento_horas_historico_auth_delete | DELETE | {authenticated} | `true` | — |
-
-GATE PASSO 1 ✅: pelo menos uma policy com `qual='true'` confirmada (todas, na verdade).
+### Baseline (PASSO 1 ✅ — já capturado)
+- Contagens: **0 linhas** em todas as 6 tabelas (preventivo).
+- SELECT atual das 6 alvo: 1 policy cada, todas `rls_<tabela>_select` com `USING has_role_or_higher('team_member')`.
+- Escrita atual das 6: `lider_manage_*` (`FOR ALL`) ou `rls_ppr_regras_ciclo_modify` — **não serão tocadas**.
+- "Já OK" preservadas: `feedbacks`, `comentarios_avaliacao`, `reunioes_1a1`, `analises_semestrais` já têm SELECT ownership-based.
 
 ### PASSO 2 — Migration (transação única, via `supabase--migration`)
 
 ```sql
-ALTER TABLE public.documento_horas_historico ENABLE ROW LEVEL SECURITY;
-
-DO $$
-DECLARE p record;
-BEGIN
-  FOR p IN SELECT policyname FROM pg_policies
-           WHERE schemaname='public' AND tablename='documento_horas_historico'
+-- Drop SÓ dos SELECT das 6 alvo (não toca FOR ALL/escrita)
+DO $$ DECLARE t text; p record; BEGIN
+  FOREACH t IN ARRAY ARRAY['metas','kpis_meta','atualizacoes_meta','itens_acao_1a1','ppr_regras_ciclo','ciclos_avaliacao']
   LOOP
-    EXECUTE format('DROP POLICY %I ON public.documento_horas_historico', p.policyname);
+    FOR p IN SELECT policyname FROM pg_policies
+             WHERE schemaname='public' AND tablename=t AND cmd='SELECT'
+    LOOP EXECUTE format('DROP POLICY %I ON public.%I', p.policyname, t); END LOOP;
   END LOOP;
 END $$;
 
-CREATE POLICY dhh_select ON public.documento_horas_historico
+CREATE POLICY rls_metas_select ON public.metas
   FOR SELECT TO authenticated
-  USING (alterado_por = auth.uid()
-         OR public.has_role_or_higher(auth.uid(), 'lider'::app_role));
+  USING (public.has_role(auth.uid(),'admin'::app_role)
+      OR responsavel_id = auth.uid()
+      OR public.has_role_or_higher(auth.uid(),'lider'::app_role));
 
-CREATE POLICY dhh_insert ON public.documento_horas_historico
-  FOR INSERT TO authenticated
-  WITH CHECK (alterado_por = auth.uid()
-              AND public.has_role_or_higher(auth.uid(), 'team_member'::app_role));
+CREATE POLICY rls_kpis_meta_select ON public.kpis_meta
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.metas m WHERE m.id = kpis_meta.meta_id));
 
-CREATE POLICY dhh_update ON public.documento_horas_historico
-  FOR UPDATE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'::app_role))
-  WITH CHECK (public.has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY rls_atualizacoes_meta_select ON public.atualizacoes_meta
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.metas m WHERE m.id = atualizacoes_meta.meta_id));
 
-CREATE POLICY dhh_delete ON public.documento_horas_historico
-  FOR DELETE TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'::app_role));
+CREATE POLICY rls_itens_acao_1a1_select ON public.itens_acao_1a1
+  FOR SELECT TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.reunioes_1a1 r
+                 WHERE r.id = itens_acao_1a1.reuniao_id
+                   AND (r.lider_id = auth.uid()
+                        OR r.membro_id = auth.uid()
+                        OR public.has_role_or_higher(auth.uid(),'lider'::app_role))));
+
+CREATE POLICY rls_ppr_regras_ciclo_select ON public.ppr_regras_ciclo
+  FOR SELECT TO authenticated
+  USING (public.has_role_or_higher(auth.uid(),'lider'::app_role));
+
+CREATE POLICY rls_ciclos_avaliacao_select ON public.ciclos_avaliacao
+  FOR SELECT TO authenticated
+  USING (public.has_role_or_higher(auth.uid(),'lider'::app_role));
 ```
 
-Regra: SELECT = autor OU lider+; INSERT = em nome próprio + team_member+; UPDATE/DELETE = admin.
-
-### PASSO 3 — Verificação (via `supabase--read_query`)
-- `SELECT policyname, cmd, qual, with_check FROM pg_policies WHERE tablename='documento_horas_historico' ORDER BY cmd;`
-- GATE:
-  - Exatamente 4 policies: `dhh_select | dhh_insert | dhh_update | dhh_delete`.
-  - Nenhuma com `qual='true'` ou `with_check='true'`.
-  - `relrowsecurity = true`.
-- Se falhar → rollback imediato (abaixo).
+### PASSO 3 — GATE de verificação
+- `SELECT tablename, policyname, qual FROM pg_policies WHERE schemaname='public' AND cmd='SELECT' AND tablename IN (…6…);`
+- Exigido: 1 policy SELECT por tabela, com o `USING` esperado por tabela.
+- Conferir que as 4 "já OK" continuam idênticas ao baseline.
+- Conferir que as policies `lider_manage_*` / `rls_ppr_regras_ciclo_modify` (FOR ALL) continuam intactas.
 
 ### PASSO 4 — Relatório
-Devolvo: baseline do P1 (tabela acima + count 0) + lista final do P3. Sem tocar em nada além.
+Baseline (contagens + policies) + resultado do GATE (esperado vs obtido). Nenhuma alteração de código frontend.
 
 ### Rollback (se GATE falhar)
-Migration única recriando exatamente o baseline:
-```sql
-DROP POLICY IF EXISTS dhh_select ON public.documento_horas_historico;
-DROP POLICY IF EXISTS dhh_insert ON public.documento_horas_historico;
-DROP POLICY IF EXISTS dhh_update ON public.documento_horas_historico;
-DROP POLICY IF EXISTS dhh_delete ON public.documento_horas_historico;
-
-CREATE POLICY documento_horas_historico_auth_select ON public.documento_horas_historico
-  FOR SELECT TO authenticated USING (true);
-CREATE POLICY documento_horas_historico_auth_insert ON public.documento_horas_historico
-  FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY documento_horas_historico_auth_update ON public.documento_horas_historico
-  FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
-CREATE POLICY documento_horas_historico_auth_delete ON public.documento_horas_historico
-  FOR DELETE TO authenticated USING (true);
-```
+Drop dos 6 novos SELECT e recriação do estado anterior (`has_role_or_higher('team_member')` em cada uma).
 
 ### Avisos
-- RLS é global (dev+prod compartilham); segurança da manobra vem da tabela estar vazia e sem uso no front.
-- Validação é estrutural (não há linhas para testar).
-- Nenhum código frontend/hook é tocado nesta rodada.
+- RLS é global (dev+prod). Tabelas vazias → sem risco de dado exposto/perdido; validação é estrutural.
+- Não toca frontend, hooks, escrita, nem `performance_preferencias`.
 
-### Confirmação
-Ciente do impacto global e OK com a regra proposta (autor+lider / team_member+ / admin-only)?
+Confirmar para eu aplicar?
