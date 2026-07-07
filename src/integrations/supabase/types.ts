@@ -735,6 +735,174 @@ export type Database = {
         }
         Relationships: []
       }
+      checklist_cliente_item: {
+        Row: {
+          bem_id: string | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox: string | null
+          cliente_id: string
+          confidencial: boolean
+          created_at: string
+          created_by: string | null
+          documento: string
+          entidade: string
+          id: string
+          item_padrao_id: string | null
+          matricula_id: string | null
+          modulo: string
+          nota: string | null
+          obrigatorio: boolean
+          observacao: string | null
+          origem: Database["public"]["Enums"]["osg_checklist_origem"]
+          pessoa_id: string | null
+          status: Database["public"]["Enums"]["osg_checklist_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          bem_id?: string | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          cliente_id: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento: string
+          entidade: string
+          id?: string
+          item_padrao_id?: string | null
+          matricula_id?: string | null
+          modulo: string
+          nota?: string | null
+          obrigatorio?: boolean
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["osg_checklist_origem"]
+          pessoa_id?: string | null
+          status?: Database["public"]["Enums"]["osg_checklist_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          bem_id?: string | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          cliente_id?: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento?: string
+          entidade?: string
+          id?: string
+          item_padrao_id?: string | null
+          matricula_id?: string | null
+          modulo?: string
+          nota?: string | null
+          obrigatorio?: boolean
+          observacao?: string | null
+          origem?: Database["public"]["Enums"]["osg_checklist_origem"]
+          pessoa_id?: string | null
+          status?: Database["public"]["Enums"]["osg_checklist_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_cliente_item_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_cliente_item_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_cliente_item_item_padrao_id_fkey"
+            columns: ["item_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_item_padrao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_cliente_item_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_cliente_item_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_item_padrao: {
+        Row: {
+          ativo: boolean
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox: string | null
+          codigo: string
+          confidencial: boolean
+          created_at: string
+          created_by: string | null
+          documento: string
+          entidade: string
+          granularidade: string
+          id: string
+          modulo: string
+          nota: string | null
+          obrigatorio_default: boolean
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          codigo: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento: string
+          entidade: string
+          granularidade?: string
+          id?: string
+          modulo: string
+          nota?: string | null
+          obrigatorio_default?: boolean
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          codigo?: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento?: string
+          entidade?: string
+          granularidade?: string
+          id?: string
+          modulo?: string
+          nota?: string | null
+          obrigatorio_default?: boolean
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ciclos_avaliacao: {
         Row: {
           created_at: string | null
@@ -1840,6 +2008,7 @@ export type Database = {
           ambiente: string
           bem_id: string | null
           categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          checklist_item_id: string | null
           checksum: string | null
           cliente_id: string
           contribuinte_id: string | null
@@ -1864,6 +2033,7 @@ export type Database = {
           ambiente?: string
           bem_id?: string | null
           categoria: Database["public"]["Enums"]["osg_doc_categoria"]
+          checklist_item_id?: string | null
           checksum?: string | null
           cliente_id: string
           contribuinte_id?: string | null
@@ -1888,6 +2058,7 @@ export type Database = {
           ambiente?: string
           bem_id?: string | null
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"]
+          checklist_item_id?: string | null
           checksum?: string | null
           cliente_id?: string
           contribuinte_id?: string | null
@@ -1914,6 +2085,13 @@ export type Database = {
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_cliente_item"
             referencedColumns: ["id"]
           },
           {
@@ -8418,6 +8596,12 @@ export type Database = {
         | "in_progress"
         | "review"
         | "done"
+      osg_checklist_origem: "padrao" | "manual"
+      osg_checklist_status:
+        | "pendente"
+        | "recebido"
+        | "dispensado"
+        | "nao_aplicavel"
       osg_doc_categoria:
         | "bens_direitos"
         | "cadastros_fiscais"
@@ -8626,6 +8810,13 @@ export const Constants = {
         "in_progress",
         "review",
         "done",
+      ],
+      osg_checklist_origem: ["padrao", "manual"],
+      osg_checklist_status: [
+        "pendente",
+        "recebido",
+        "dispensado",
+        "nao_aplicavel",
       ],
       osg_doc_categoria: [
         "bens_direitos",
