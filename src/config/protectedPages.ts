@@ -571,6 +571,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/relatorios',
+    page_name: 'Relatórios OSG Work',
+    page_description: 'Relatórios por cliente (ex.: checklist de documentos pendentes)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/auditoria',
     page_name: 'Auditoria OSG',
     page_description: 'Histórico de alterações em projetos e tarefas OSG',

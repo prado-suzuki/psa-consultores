@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   FolderKanban,
   ClipboardList,
+  FileBarChart2,
   MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -400,6 +401,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           >
             <FolderArchive className="h-4 w-4" />
             {!collapsed && <span>Documentos do Cliente</span>}
+          </button>
+          <button
+            onClick={() => navigate('/equipe/osg/work/relatorios')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/work/relatorios'
+                ? "bg-osg-100 text-osg-700"
+                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+            )}
+          >
+            <FileBarChart2 className="h-4 w-4" />
+            {!collapsed && <span>Relatórios</span>}
           </button>
           </>
           )}
