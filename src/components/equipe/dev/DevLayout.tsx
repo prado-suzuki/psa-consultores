@@ -380,12 +380,12 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
           </div>
 
           <div className="flex items-center gap-3">
-            <NotificationPopover navigateTo="/equipe/chamados" />
+            <NotificationPopover navigateTo="/equipe/chamados" backTo={location.pathname} />
             {headerActions}
           </div>
         </header>
 
-        <PendingTicketsAlert navigateTo="/equipe/chamados" />
+        <PendingTicketsAlert navigateTo="/equipe/chamados" backTo={location.pathname} />
 
         <div className="flex-1 min-h-0 overflow-x-hidden overflow-y-auto">
           <div className="w-full min-w-0 p-6">{children}</div>

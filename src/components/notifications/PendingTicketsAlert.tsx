@@ -8,9 +8,11 @@ import { cn } from '@/lib/utils';
 
 interface PendingTicketsAlertProps {
   navigateTo: string;
+  /** Origem, para que o botão "Voltar" da lista de chamados retorne à área correta. */
+  backTo?: string;
 }
 
-export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
+export function PendingTicketsAlert({ navigateTo, backTo }: PendingTicketsAlertProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { notifications, unreadCount, urgentCount, isLoading } = useTicketNotifications();
@@ -93,8 +95,8 @@ export function PendingTicketsAlert({ navigateTo }: PendingTicketsAlertProps) {
   
   const handleViewTickets = useCallback(() => {
     handleDismiss();
-    navigate(navigateTo);
-  }, [handleDismiss, navigate, navigateTo]);
+    navigate(navigateTo, backTo ? { state: { from: backTo } } : undefined);
+  }, [handleDismiss, navigate, navigateTo, backTo]);
   
   if (!isVisible) return null;
   

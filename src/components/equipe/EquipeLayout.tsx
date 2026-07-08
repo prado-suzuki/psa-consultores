@@ -271,18 +271,18 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               variant="ghost"
               size="icon"
               className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
-              onClick={() => navigate('/equipe/chamados')}
+              onClick={() => navigate('/equipe/chamados', { state: { from: location.pathname } })}
               title="Ver Chamados"
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
-            <NotificationPopover navigateTo="/equipe/chamados" />
+            <NotificationPopover navigateTo="/equipe/chamados" backTo={location.pathname} />
             {headerActions}
           </div>
         </header>
 
         {/* Pending Tickets Alert */}
-        <PendingTicketsAlert navigateTo="/equipe/chamados" />
+        <PendingTicketsAlert navigateTo="/equipe/chamados" backTo={location.pathname} />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">

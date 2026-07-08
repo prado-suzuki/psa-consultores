@@ -10,6 +10,8 @@ import { ptBR } from 'date-fns/locale';
 
 interface NotificationPopoverProps {
   navigateTo: string;
+  /** Origem, para que o botão "Voltar" da lista de chamados retorne à área correta. */
+  backTo?: string;
 }
 
 const departmentLabels: Record<string, string> = {
@@ -78,18 +80,20 @@ function NotificationItem({ notification, onClick }: { notification: TicketNotif
   );
 }
 
-export function NotificationPopover({ navigateTo }: NotificationPopoverProps) {
+export function NotificationPopover({ navigateTo, backTo }: NotificationPopoverProps) {
   const navigate = useNavigate();
   const { notifications, unreadCount, urgentCount, isLoading } = useTicketNotifications();
-  
+
+  const navState = backTo ? { state: { from: backTo } } : undefined;
+
   const handleNotificationClick = (ticketId: string) => {
     // Navigate to the specific ticket
     const basePath = navigateTo.replace('/chamados', '');
-    navigate(`${basePath}/chamados/${ticketId}`);
+    navigate(`${basePath}/chamados/${ticketId}`, navState);
   };
-  
+
   const handleViewAll = () => {
-    navigate(navigateTo);
+    navigate(navigateTo, navState);
   };
   
   return (
