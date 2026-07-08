@@ -55,7 +55,18 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   };
 
   return (
-    <div className="min-h-screen bg-canvas flex w-full">
+    <div className="min-h-screen bg-canvas flex w-full relative">
+      {/* Toggle Button — fora do <aside> para não ser clipado pelo overflow da sidebar */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-30 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
+        style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
+        onClick={() => setCollapsed(!collapsed)}
+      >
+        {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+      </Button>
+
       {/* Sidebar */}
       <aside
         className={`${collapsed ? 'w-16' : 'w-64'} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
@@ -80,17 +91,6 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
             </div>
           )}
         </div>
-
-        {/* Toggle Button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
-          style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
-        </Button>
 
         {/* Navigation */}
         <nav className="p-4 space-y-1">
