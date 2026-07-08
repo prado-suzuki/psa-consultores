@@ -1,27 +1,36 @@
-## RLS-03 — Isolamento por cluster no SELECT de Chamados
+## RLS-12 — Fechar catálogos abertos ao role `client`
 
-Escopo estrito: SELECT de `tickets`, `ticket_messages`, `ticket_attachments`. INSERT/UPDATE/DELETE não são tocados.
+Escopo estrito: SELECT de 7 tabelas passa de `qualquer autenticado` → `team_member+`. INSERT/UPDATE/DELETE intactos.
 
 ### PASSO 1 — Baseline (capturado ✅)
 
-**Contagens:** `tickets`=323, `ticket_messages`=94, `ticket_attachments`=73.
-**Cluster fill:** 320/323 tickets têm `cluster_id`; **3 tickets sem cluster_id** ficarão invisíveis para internos não-admin/não-autor/não-atribuídos após a mudança.
+**Contagens (`n_live_tup`):**
+- codigo_receita=975, grupo_tributo=23, produto_segmento=19, produto_servico=136, setor_cliente=9, page_permissions=66, rls_precheck_allowed_tables=54.
 
-**Policies SELECT atuais (serão substituídas):**
-- `tickets`: `has_role_or_higher('team_member') OR user_id=auth.uid() OR is_ticket_assigned_to(id,auth.uid())` — hoje qualquer interno vê todos.
-- `ticket_messages`: `has_role_or_higher('team_member') OR EXISTS(ticket com user_id=uid OR assigned)`.
-- `ticket_attachments`: idem messages.
+**Policies SELECT atuais (todas com `qual=true`, cmd=SELECT — serão substituídas):**
+- codigo_receita: `Authenticated can read codigo_receita`
+- grupo_tributo: `Authenticated can read grupo_tributo`
+- produto_segmento: `Authenticated can read produto_segmento`
+- produto_servico: `Authenticated users can view produto_servico`
+- setor_cliente: `Authenticated can read setor_cliente`
+- page_permissions: `rls_page_permissions_select`
+- rls_precheck_allowed_tables: `rls_precheck_allowed_tables_read_authenticated`
 
-**Policies INSERT/UPDATE/DELETE (não serão tocadas):**
-- tickets: insert, update, delete (`admin` p/ delete) — mantidas.
-- ticket_messages: insert, update (autor), delete (`admin`) — mantidas.
-- ticket_attachments: insert, delete (`admin`) — mantidas.
+**GATE 1 ✅:** nenhuma das aberturas vem de `FOR ALL qual=true`. Todas as policies "abertas" estão em `cmd='SELECT'`. Seguro prosseguir.
+
+**Policies de escrita (NÃO serão tocadas):**
+- codigo_receita/grupo_tributo/produto_servico/page_permissions: `FOR ALL` restrito a `has_role('admin')`.
+- produto_segmento: `FOR ALL` restrito a `has_role_or_higher('team_member')`.
+- setor_cliente: INSERT/UPDATE/DELETE separados restritos a `sublider+`.
+- rls_precheck_allowed_tables: sem policies de escrita (permanece assim).
 
 ### PASSO 2 — Migration (transação única via `supabase--migration`)
 
 ```sql
 DO $$ DECLARE t text; p record; BEGIN
-  FOREACH t IN ARRAY ARRAY['tickets','ticket_messages','ticket_attachments']
+  FOREACH t IN ARRAY ARRAY['codigo_receita','grupo_tributo','produto_segmento',
+                           'produto_servico','setor_cliente','page_permissions',
+                           'rls_precheck_allowed_tables']
   LOOP
     FOR p IN SELECT policyname FROM pg_policies
              WHERE schemaname='public' AND tablename=t AND cmd='SELECT'
@@ -29,37 +38,34 @@ DO $$ DECLARE t text; p record; BEGIN
   END LOOP;
 END $$;
 
-CREATE POLICY rls_tickets_select ON public.tickets
-  FOR SELECT TO authenticated
-  USING (
-    public.has_role(auth.uid(),'admin'::app_role)
-    OR (public.has_role_or_higher(auth.uid(),'team_member'::app_role)
-        AND cluster_id = ANY (public.resolve_user_cluster_ids(auth.uid())))
-    OR auth.uid() = user_id
-    OR public.is_ticket_assigned_to(id, auth.uid())
-  );
-
-CREATE POLICY rls_ticket_messages_select ON public.ticket_messages
-  FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.tickets t WHERE t.id = ticket_messages.ticket_id));
-
-CREATE POLICY rls_ticket_attachments_select ON public.ticket_attachments
-  FOR SELECT TO authenticated
-  USING (EXISTS (SELECT 1 FROM public.tickets t WHERE t.id = ticket_attachments.ticket_id));
+CREATE POLICY rls_codigo_receita_select              ON public.codigo_receita
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_grupo_tributo_select               ON public.grupo_tributo
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_produto_segmento_select            ON public.produto_segmento
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_produto_servico_select             ON public.produto_servico
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_setor_cliente_select               ON public.setor_cliente
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_page_permissions_select            ON public.page_permissions
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+CREATE POLICY rls_precheck_allowed_tables_select     ON public.rls_precheck_allowed_tables
+  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
 ```
 
 ### PASSO 3 — GATES
-- 3a: `pg_policies` cmd=SELECT nas 3 → 1 policy por tabela, `tickets` com os 4 ramos (admin / cluster / user_id / assigned), messages/attachments com EXISTS no pai, nenhuma com `team_member` solto sem cluster.
-- 3b: INSERT/UPDATE/DELETE das 3 idênticas ao baseline acima.
+- 3a: 1 policy SELECT por tabela, `qual = has_role_or_higher(auth.uid(),'team_member')`; nenhuma SELECT com `qual=true` remanescente.
+- 3b: INSERT/UPDATE/DELETE das 7 idênticos ao baseline.
 
 ### PASSO 4 — Relatório
 Contagens (1a) + policies antigas (1b) + esperado vs obtido (3a/3b).
 
 ### Rollback (se GATE falhar)
-Dropar os 3 `rls_*_select` novos e recriar exatamente as 3 SELECT do baseline (definições preservadas acima).
+Dropar os 7 `rls_*_select` novos e recriar as 7 SELECTs do baseline com `USING (true)` e os mesmos nomes originais.
 
-### ⚠️ Impacto em produção
-- Vale em prod. Internos deixam de ver chamados de outros clusters — comportamento desejado.
-- 3 tickets sem `cluster_id` ficarão invisíveis a internos exceto admin/autor/atribuído. Se quiser, posso listar os 3 IDs antes de aplicar para você decidir se atribui cluster primeiro.
+### ⚠️ Impacto
+- Usuários com role `client` deixam de ler esses catálogos. Nenhuma tela do portal do cliente os consome — verificado.
+- Sem mudanças de frontend.
 
 Confirmar para eu aplicar?
