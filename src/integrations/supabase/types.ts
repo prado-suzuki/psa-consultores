@@ -1036,6 +1036,7 @@ export type Database = {
           id: string
           municipio: string | null
           nome: string
+          observacoes: string | null
           telefone: string | null
           uf: string | null
           updated_at: string
@@ -1050,6 +1051,7 @@ export type Database = {
           id?: string
           municipio?: string | null
           nome: string
+          observacoes?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string
@@ -1064,6 +1066,7 @@ export type Database = {
           id?: string
           municipio?: string | null
           nome?: string
+          observacoes?: string | null
           telefone?: string | null
           uf?: string | null
           updated_at?: string

@@ -1,0 +1,1 @@
+ALTER TABLE public.cliente ADD COLUMN observacoes text;
