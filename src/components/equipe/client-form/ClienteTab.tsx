@@ -6,6 +6,7 @@ import { RequiredMark } from "@/components/ui/required-mark";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
 import type { defaultClientData } from "./constants";
 
@@ -161,6 +162,27 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
               </div>
             </PopoverContent>
           </Popover>
+        </div>
+
+        {/* 5. Observações */}
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
+            Observações {!clientData.ativo && <RequiredMark />}
+          </Label>
+          <div className="flex-1">
+            <Textarea
+              disabled={isReadOnly}
+              value={clientData.observacoes ?? ""}
+              onChange={(e) => setClientData({ ...clientData, observacoes: e.target.value })}
+              placeholder="Observações sobre o cliente (mín. 20 caracteres se preenchido)..."
+              className="min-h-[60px]"
+            />
+            {!clientData.ativo && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Obrigatória para inativar o cliente (mín. 20 caracteres).
+              </p>
+            )}
+          </div>
         </div>
 
       </div>

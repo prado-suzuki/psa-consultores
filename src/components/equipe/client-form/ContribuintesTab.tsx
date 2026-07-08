@@ -18,6 +18,7 @@ import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
+import { useContribuinteAutofill, type ContribuinteAutofill } from "@/hooks/useContribuinteAutofill";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -60,6 +61,41 @@ export default function ContribuintesTab({
   const [editDuplicate, setEditDuplicate] = useState<DupState>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const checkDuplicate = useContribuinteDuplicateCheck();
+  const checkAutofill = useContribuinteAutofill();
+
+  // Autofill de conveniência para PF: ao informar um CPF já existente na base,
+  // pré-preenche os campos VAZIOS a partir da cópia mais recente. Não cria vínculo
+  // nem reusa id — a linha nova continua sendo inserida com id próprio no save.
+  const applyCpfAutofill = async (
+    rawValue: string,
+    current: Partial<DraftEntity>,
+    setter: React.Dispatch<React.SetStateAction<any>>,
+  ) => {
+    const digits = (rawValue || "").replace(/\D/g, "");
+    if (digits.length !== 11) return;
+    let auto: ContribuinteAutofill | null = null;
+    try {
+      auto = await checkAutofill(rawValue);
+    } catch (err) {
+      console.error("Erro no autofill de CPF:", err);
+      return;
+    }
+    if (!auto) return;
+    const fields: (keyof ContribuinteAutofill)[] = [
+      "nome_razao_social", "telefone", "cep", "logradouro", "numero",
+      "complemento", "bairro", "municipio", "uf",
+    ];
+    const patch: Record<string, string> = {};
+    for (const f of fields) {
+      const cur = (current as any)[f];
+      if ((!cur || String(cur).trim() === "") && auto[f]) {
+        patch[f] = auto[f];
+      }
+    }
+    if (Object.keys(patch).length === 0) return;
+    setter((prev: any) => ({ ...prev, ...patch }));
+    toast.success("Dados preenchidos a partir de um cadastro existente deste CPF.");
+  };
 
   const findLocalDuplicate = (digits: string, ignoreLocalId?: number) => {
     if (digits.length !== 11 && digits.length !== 14) return false;
@@ -100,6 +136,9 @@ export default function ContribuintesTab({
     await cnpjLookup(value, setDraftEntity);
     const dup = await runDuplicateCheck(value);
     setDraftDuplicate(dup);
+    if (draftEntity.tipo_pessoa === "PF") {
+      await applyCpfAutofill(value, draftEntity, setDraftEntity as React.Dispatch<React.SetStateAction<any>>);
+    }
   };
   const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
   const handleInlineCnpjBlur = async (value: string) => {
@@ -110,6 +149,9 @@ export default function ContribuintesTab({
       editingEntityData?._dbId,
     );
     setEditDuplicate(dup);
+    if (editingEntityData?.tipo_pessoa === "PF") {
+      await applyCpfAutofill(value, editingEntityData || {}, setEditingEntityData as React.Dispatch<React.SetStateAction<any>>);
+    }
   };
   const handleInlineCepBlur = (value: string) => cepLookup(value, setEditingEntityData as any);
 

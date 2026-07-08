@@ -25,6 +25,7 @@ interface ClientDataShape {
   telefone: string;
   municipio: string;
   uf: string;
+  observacoes: string;
   cluster_ids: string[];
 }
 
@@ -76,6 +77,7 @@ export const useClientEditData = (
             telefone: cli.telefone || "",
             municipio: cli.municipio || "",
             uf: cli.uf || "",
+            observacoes: (cli as any).observacoes || "",
             cluster_ids: [],
           };
 

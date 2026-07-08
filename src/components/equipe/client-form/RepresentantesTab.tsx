@@ -103,8 +103,8 @@ export default function RepresentantesTab({
         return;
       }
     }
-    if (draftRepresentante.observacoes?.trim() && draftRepresentante.observacoes.trim().length < 3) {
-      toast.error("Observações deve ter no mínimo 3 caracteres");
+    if (draftRepresentante.observacoes?.trim() && draftRepresentante.observacoes.trim().length < 20) {
+      toast.error("Observações deve ter no mínimo 20 caracteres");
       return;
     }
 

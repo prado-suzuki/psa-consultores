@@ -43,6 +43,7 @@ interface ClientDataShape {
   telefone: string;
   municipio: string;
   uf: string;
+  observacoes: string;
   cluster_ids: string[];
 }
 
@@ -84,6 +85,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const executeSave = useCallback(async () => {
     if (!clientData.nome.trim()) {
       toast.error("Nome do cliente é obrigatório");
+      return;
+    }
+
+    // Observações do cliente: obrigatória ao INATIVAR; se preenchida, mín. 20 caracteres.
+    const clienteObs = (clientData.observacoes || "").trim();
+    if (!clientData.ativo && clienteObs.length < 20) {
+      toast.error("Para inativar o cliente, preencha as Observações (mín. 20 caracteres).");
+      return;
+    }
+    if (clienteObs && clienteObs.length < 20) {
+      toast.error("Observações do cliente deve ter no mínimo 20 caracteres.");
       return;
     }
 
@@ -144,6 +156,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         telefone: clientData.telefone.trim() || null,
         municipio: clientData.municipio.trim() || null,
         uf: clientData.uf.trim() || null,
+        observacoes: clienteObs || null,
         ambiente: currentAmbiente,
       };
 
@@ -153,7 +166,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       if (isEditing) {
         const { data: updated, error } = await supabase
           .from(clienteTable)
-          .update(clientPayload)
+          // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
+          .update(clientPayload as any)
           .eq("id", editingClienteId!)
           .select()
           .single();
@@ -191,7 +205,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       } else {
         const { data: newCliente, error: clienteError } = await supabase
           .from(clienteTable)
-          .insert(clientPayload)
+          // cast: idem — `observacoes` ainda não tipada (migração pendente no Lovable)
+          .insert(clientPayload as any)
           .select()
           .single();
         if (clienteError) throw clienteError;
@@ -569,7 +584,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
       // ─── Audit logs with granular changed_fields ─────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
-      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf'];
+      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'observacoes'];
       const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
       const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
       const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];

@@ -160,6 +160,7 @@ export const defaultClientData = {
   telefone: "",
   municipio: "",
   uf: "",
+  observacoes: "",
   cluster_ids: [] as string[],
 };
 
