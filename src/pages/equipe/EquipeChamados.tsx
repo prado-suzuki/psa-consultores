@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
@@ -116,6 +116,9 @@ const departmentLabels: Record<string, string> = {
 
 export default function EquipeChamados() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Origem passada pela sidebar da área (ex.: Tax) para o "Voltar" retornar à área correta.
+  const backTo = (location.state as { from?: string } | null)?.from ?? '/equipe';
   const { user } = useAuth();
   const { toast } = useToast();
   const canAssignTickets = useCanAssignTickets();
@@ -355,7 +358,7 @@ export default function EquipeChamados() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate('/equipe')}
+            onClick={() => navigate(backTo)}
             className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
