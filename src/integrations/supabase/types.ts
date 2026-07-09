@@ -8540,6 +8540,7 @@ export type Database = {
         Args: { _estrutura_area_id: string; _user_id: string }
         Returns: boolean
       }
+      is_membro_digital: { Args: { p_uid: string }; Returns: boolean }
       is_project_member: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
@@ -8570,6 +8571,7 @@ export type Database = {
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
+      sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
