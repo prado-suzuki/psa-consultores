@@ -8351,6 +8351,10 @@ export type Database = {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
       }
+      can_view_contribuinte: {
+        Args: { _contribuinte_id: string; _uid: string }
+        Returns: boolean
+      }
       can_view_org_project: {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
