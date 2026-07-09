@@ -8558,6 +8558,7 @@ export type Database = {
         Args: { _project_id: string }
         Returns: string[]
       }
+      org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
