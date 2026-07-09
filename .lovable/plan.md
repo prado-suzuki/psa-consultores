@@ -1,71 +1,53 @@
-## RLS-12 — Fechar catálogos abertos ao role `client`
+# RLS-08 — Isolar sprints/daily/backlog por cluster (via `projects.cluster_id`)
 
-Escopo estrito: SELECT de 7 tabelas passa de `qualquer autenticado` → `team_member+`. INSERT/UPDATE/DELETE intactos.
+## Baseline capturado ✅
 
-### PASSO 1 — Baseline (capturado ✅)
+**Contagens:** sprints=16 (8 sem `project_id`), sprint_backlog_items=14 (**12 sem `sprint_id`, 11 sem `project_id`**), sprint_deliverables=903, sprint_events=11, sprint_metrics=6, deliverable_attachments=0, daily_standups=298, routines=4, demand_items=0. Membros Digital = 3.
 
-**Contagens (`n_live_tup`):**
-- codigo_receita=975, grupo_tributo=23, produto_segmento=19, produto_servico=136, setor_cliente=9, page_permissions=66, rls_precheck_allowed_tables=54.
+**Policies atuais (padrão nas 9 tabelas):** SELECT aberto p/ `team_member+`; INSERT/UPDATE p/ `team_member` (com `user_id=auth.uid()` em `daily_standups`); DELETE p/ `lider`. Nenhuma escrita fora do previsto → **escritas ficam intactas**.
 
-**Policies SELECT atuais (todas com `qual=true`, cmd=SELECT — serão substituídas):**
-- codigo_receita: `Authenticated can read codigo_receita`
-- grupo_tributo: `Authenticated can read grupo_tributo`
-- produto_segmento: `Authenticated can read produto_segmento`
-- produto_servico: `Authenticated users can view produto_servico`
-- setor_cliente: `Authenticated can read setor_cliente`
-- page_permissions: `rls_page_permissions_select`
-- rls_precheck_allowed_tables: `rls_precheck_allowed_tables_read_authenticated`
+## Refinamento do backlog
 
-**GATE 1 ✅:** nenhuma das aberturas vem de `FOR ALL qual=true`. Todas as policies "abertas" estão em `cmd='SELECT'`. Seguro prosseguir.
+`sprint_backlog_items` tem 12/14 itens sem `sprint_id`. Aplicar apenas `sprint_visivel(sprint_id)` esconderia esses 12 de qualquer não-Digital, mesmo quando o `project_id` do item pertence ao cluster do usuário. Regra ajustada:
 
-**Policies de escrita (NÃO serão tocadas):**
-- codigo_receita/grupo_tributo/produto_servico/page_permissions: `FOR ALL` restrito a `has_role('admin')`.
-- produto_segmento: `FOR ALL` restrito a `has_role_or_higher('team_member')`.
-- setor_cliente: INSERT/UPDATE/DELETE separados restritos a `sublider+`.
-- rls_precheck_allowed_tables: sem policies de escrita (permanece assim).
-
-### PASSO 2 — Migration (transação única via `supabase--migration`)
-
-```sql
-DO $$ DECLARE t text; p record; BEGIN
-  FOREACH t IN ARRAY ARRAY['codigo_receita','grupo_tributo','produto_segmento',
-                           'produto_servico','setor_cliente','page_permissions',
-                           'rls_precheck_allowed_tables']
-  LOOP
-    FOR p IN SELECT policyname FROM pg_policies
-             WHERE schemaname='public' AND tablename=t AND cmd='SELECT'
-    LOOP EXECUTE format('DROP POLICY %I ON public.%I', p.policyname, t); END LOOP;
-  END LOOP;
-END $$;
-
-CREATE POLICY rls_codigo_receita_select              ON public.codigo_receita
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_grupo_tributo_select               ON public.grupo_tributo
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_produto_segmento_select            ON public.produto_segmento
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_produto_servico_select             ON public.produto_servico
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_setor_cliente_select               ON public.setor_cliente
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_page_permissions_select            ON public.page_permissions
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
-CREATE POLICY rls_precheck_allowed_tables_select     ON public.rls_precheck_allowed_tables
-  FOR SELECT TO authenticated USING (public.has_role_or_higher(auth.uid(),'team_member'::app_role));
+```
+admin OR digital
+OR (sprint_id  IS NOT NULL AND sprint_visivel(sprint_id))
+OR (project_id IS NOT NULL AND projects.cluster_id ∈ resolve_user_cluster_ids(auth.uid()))
 ```
 
-### PASSO 3 — GATES
-- 3a: 1 policy SELECT por tabela, `qual = has_role_or_higher(auth.uid(),'team_member')`; nenhuma SELECT com `qual=true` remanescente.
-- 3b: INSERT/UPDATE/DELETE das 7 idênticos ao baseline.
+Backlog global (sem sprint e sem projeto) fica Digital-only — coerente com sprints internas.
 
-### PASSO 4 — Relatório
-Contagens (1a) + policies antigas (1b) + esperado vs obtido (3a/3b).
+## Migração (uma transação)
 
-### Rollback (se GATE falhar)
-Dropar os 7 `rls_*_select` novos e recriar as 7 SELECTs do baseline com `USING (true)` e os mesmos nomes originais.
+### Helpers SECURITY DEFINER
+- `is_membro_digital(uuid) → bool` — membro da área `52f0596b-2904-4f76-a22d-2bad80350458`.
+- `sprint_visivel(uuid) → bool` — admin OR digital OR (sprint tem `project_id` cujo `cluster_id` ∈ clusters do user).
 
-### ⚠️ Impacto
-- Usuários com role `client` deixam de ler esses catálogos. Nenhuma tela do portal do cliente os consome — verificado.
-- Sem mudanças de frontend.
+### Substituição das 9 SELECT
+| Tabela | Regra |
+|---|---|
+| `sprints` | admin OR digital OR (`project_id` mapeado ao cluster do user) |
+| `sprint_backlog_items` | **regra refinada acima** (sprint OR projeto direto) |
+| `sprint_deliverables` | `sprint_visivel(sprint_id)` |
+| `sprint_events` | `sprint_visivel(sprint_id)` |
+| `sprint_metrics` | `sprint_visivel(sprint_id)` |
+| `deliverable_attachments` | via `sprint_deliverables.sprint_id` |
+| `daily_standups` | admin OR digital OR `user_id=auth.uid()` OR `sprint_visivel(sprint_id)` OR (`project_id` mapeado ao cluster) |
+| `routines` | admin OR digital OR `assigned_to=auth.uid()` OR `created_by=auth.uid()` |
+| `demand_items` | admin OR digital OR `assigned_to=auth.uid()` |
 
-Confirmar para eu aplicar?
+Cada `CREATE` precedido de `DROP POLICY IF EXISTS "Team members can view <x>"`. INSERT/UPDATE/DELETE das 9 **não tocados**.
+
+## GATES pós-migração
+1. `is_membro_digital` = true p/ 3 membros Digital; false p/ 1 usuário fora.
+2. Simulando membro Digital (não-admin) via `SET LOCAL request.jwt.claims`: `count(sprints)=16`, `count(sprint_backlog_items)=14`, `count(sprint_deliverables)=903`, `count(daily_standups)=298`.
+3. Simulando usuário sem cluster OSG/Consultores e fora do Digital: `count(sprints)=0`, backlog=0.
+4. Relatório final: policies das 9 tabelas + contagens (2) vs baseline + (3).
+
+**Se qualquer contagem do (2) < baseline → rollback e reportar.**
+
+## Rollback
+Dropar as 9 `<x>_select` novas + os 2 helpers e recriar as 9 SELECT originais (`"Team members can view <x>"` com `USING (has_role_or_higher(auth.uid(),'team_member'))`).
+
+Confirmado — aplicando a migração.
