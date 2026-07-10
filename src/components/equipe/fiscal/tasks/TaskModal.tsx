@@ -320,9 +320,14 @@ export const TaskModal = ({
       client_id: values.client_id || undefined,
       contribuinte_id: values.contribuinte_id || undefined,
       estimated_hours: values.estimated_hours,
-      actual_hours: values.status === 'done' && values.actual_hours !== '' && values.actual_hours != null
-        ? Number(values.actual_hours)
-        : null,
+      // Preserva actual_hours independente do status: horas realizadas são
+      // histórico e não devem ser apagadas ao mover uma tarefa done para
+      // outro status. Sem isso, o diff em useUpdateOrgTask incluía
+      // actual_hours (8 → null) e o trigger org_tasks_team_member_status_only
+      // (RLS-06) bloqueava team_member ao mudar apenas o status.
+      actual_hours: (values.actual_hours === '' || values.actual_hours == null)
+        ? null
+        : Number(values.actual_hours),
     };
 
     try {
