@@ -62,9 +62,12 @@ Toda documentação que **não é código** (planos, análises, roadmaps, design
 | `docs/rls/` | Auditorias e planos de RLS / banco |
 | `docs/geral/` | Docs transversais (roadmaps, notificações) |
 | `docs/sprints/` | Registros de sprint |
+| `docs/<modulo>/apresentacoes/` | Entregáveis renderizados (HTML/PPTX), ex.: `docs/osg/apresentacoes/` |
 | `docs/AI_CONTEXT.md` | Contexto-mestre do projeto ("cérebro") |
 
 **Ao criar um novo plano ou análise**, salve direto na subpasta do módulo correspondente em `docs/` (ou em `docs/planos/` se for um plano de implementação). Se o módulo ainda não tiver pasta, crie `docs/<modulo>/`.
+
+Entregáveis prontos (apresentações, relatórios em HTML/PPTX) vão em `docs/<modulo>/apresentacoes/`, separados dos `.md` de trabalho. **Scripts utilitários** (`.ps1`, `.ts` de automação) ficam em `scripts/`. Nada de artefato solto na raiz — lá só o essencial (`index.html` do Vite, configs).
 
 ## What technologies are used for this project?
 

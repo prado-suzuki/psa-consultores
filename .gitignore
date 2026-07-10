@@ -79,3 +79,7 @@ docs/planos/2026-06-23-extracao-cluster-cliente-app.md
 docs/planos/2026-06-25-roi-doctor-projeto-e-botao-salvar.md
 docs/planos/2026-07-02-fix-rebuscar-ids-save-cliente.md
 docs/planos/2026-07-03-mapeamento-vinculos-por-modulo.md
+
+# Arquivos temporários do Microsoft Office (locks "~$", autorecover) — nunca versionar
+~$*
+*.tmp

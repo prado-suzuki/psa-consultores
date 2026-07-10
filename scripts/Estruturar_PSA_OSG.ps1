@@ -15,7 +15,7 @@
 #  Como rodar:
 #    1. Abra o PowerShell na sua máquina
 #    2. Vá até a pasta deste script:
-#         cd "C:\Users\Patricia Melo\psa-consultores"
+#         cd "C:\Users\Patricia Melo\Repos\psa-consultores\scripts"
 #    3. Libere a execução nesta janela:
 #         Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 #    4. Rode:
@@ -23,7 +23,7 @@
 # =============================================================================
 
 $BASE = "G:\Drives compartilhados\PSA Digital\03_Clientes_Internos\PSA_OSG"
-$LOCAL = "C:\Users\Patricia Melo\psa-consultores"
+$LOCAL = Split-Path $PSScriptRoot -Parent   # raiz do repo (este script vive em \scripts)
 
 Write-Host ""
 Write-Host "==================================================================" -ForegroundColor Cyan
@@ -372,15 +372,15 @@ Write-Host "[3/4] Copiando arquivos do projeto para a estrutura..." -ForegroundC
 
 $arquivos = @(
     @{
-        Origem = "Analise_Estrategica_PSA_OSG.html"
+        Origem = "docs\osg\apresentacoes\Analise_Estrategica_PSA_OSG.html"
         Destino = "02_Diagnostico_Estrategico\Analise_Estrategica\2026-04-27_OSG_Analise_Estrategica_v1.html"
     },
     @{
-        Origem = "Gerar_Forms_PSA_OSG.gs"
+        Origem = "scripts\osg\Gerar_Forms_PSA_OSG.gs"
         Destino = "02_Diagnostico_Estrategico\Forms\Configuracao\Gerar_Forms_PSA_OSG.gs"
     },
     @{
-        Origem = "Guia_Estrutura_Projeto_OSG.html"
+        Origem = "docs\osg\apresentacoes\Guia_Estrutura_Projeto_OSG.html"
         Destino = "LEIA-ME_Estrutura_Visual.html"
     }
 )
