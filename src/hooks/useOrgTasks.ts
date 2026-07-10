@@ -212,10 +212,31 @@ export interface TaskFilters {
        // Fetch current state for diff
        const { data: current } = await supabase.from('org_tasks').select('*').eq('id', id).single();
 
+        // Envia só campos que efetivamente mudaram, para não disparar
+        // triggers de RLS (ex.: org_tasks_team_member_status_only) por
+        // colunas inalteradas presentes no payload do formulário.
+        const changedOnly: Record<string, unknown> = {};
+        if (current) {
+          for (const key of Object.keys(updates)) {
+            if (key === 'id') continue;
+            const oldVal = (current as any)[key] ?? null;
+            const newVal = (updates as any)[key] ?? null;
+            if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+              changedOnly[key] = (updates as any)[key];
+            }
+          }
+        } else {
+          Object.assign(changedOnly, updates);
+        }
+
+        if (Object.keys(changedOnly).length === 0) {
+          return current;
+        }
+
         await assertCanPerform('org_tasks', 'update', id);
         const { data, error } = await supabase
           .from('org_tasks')
-          .update(updates)
+          .update(changedOnly)
           .eq('id', id)
           .select()
           .maybeSingle();
