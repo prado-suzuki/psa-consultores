@@ -23,11 +23,13 @@ interface NovoMelhoriaModalProps {
   onClose: () => void;
   /** Cluster pré-selecionado (opcional) — ex.: herdado do contexto. */
   clusterIdInicial?: string;
+  /** Processo de origem — vira o 1º vínculo (e o process_id legado) no create. */
+  processIdInicial?: string;
   /** Chamado com a melhoria criada (ex.: pra pré-selecionar no processo). */
   onCreated?: (melhoria: Melhoria) => void;
 }
 
-export default function NovoMelhoriaModal({ isOpen, onClose, clusterIdInicial, onCreated }: NovoMelhoriaModalProps) {
+export default function NovoMelhoriaModal({ isOpen, onClose, clusterIdInicial, processIdInicial, onCreated }: NovoMelhoriaModalProps) {
   const createMelhoria = useCreateMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
   const [nome, setNome] = useState('');
@@ -54,6 +56,7 @@ export default function NovoMelhoriaModal({ isOpen, onClose, clusterIdInicial, o
         improvement_description: nome.trim(),
         improvement_status: status,
         cluster_id: clusterId,
+        processos: processIdInicial ? [processIdInicial] : undefined,
       });
       toast.success('Melhoria criada');
       onCreated?.(created);

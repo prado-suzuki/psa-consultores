@@ -143,7 +143,9 @@ export default function DocumentosPage() {
   }, [fCluster, etapasDoEscopo]);
 
   const noEscopo = useMemo(
-    () => items.filter(d => !fCluster || nomesDocumentosDoEscopo?.has(d.nome)),
+    // uso-por-nome só puxa documento SEM cluster próprio (global) — senão um doc de
+    // OUTRO cluster com nome igual vazaria pra este filtro.
+    () => items.filter(d => !fCluster || d.cluster_id === fCluster || (!d.cluster_id && nomesDocumentosDoEscopo?.has(d.nome))),
     [items, fCluster, nomesDocumentosDoEscopo],
   );
 

@@ -80,6 +80,8 @@ export interface Projeto extends BaseEntity {
 
 export interface Sistema {
   id: string;
+  /** Cluster dono do sistema (coluna `sistemas_processo.cluster_id`). NULL = global. */
+  cluster_id?: string | null;
   /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
   nome: string;
   descricao: string;
@@ -115,6 +117,8 @@ export type EstruturacaoDoc = 'Não Estruturado' | 'Semi Estruturado' | 'Estrutu
 
 export interface Documento {
   id: string;
+  /** Cluster dono do documento (coluna `documentos_processo.cluster_id`). NULL = global. */
+  cluster_id?: string | null;
   /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
   nome: string;
   tipo: string;

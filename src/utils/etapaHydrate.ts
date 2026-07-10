@@ -28,7 +28,11 @@ function splitDocs(row: EtapaDbRow): { docsEntrada: DocRef[]; docsSaida: DocRef[
 }
 
 function hydrateExec(row: EtapaDbRow): ResponsavelEtapa[] {
-  return (row.etapa_responsaveis ?? []).map((r) => ({ responsavelId: r.responsavel_id, nome: '', horas: r.horas ?? 0 }));
+  // Só executores. Aprovadores (papel='aprovado') NÃO entram em executadoPor —
+  // senão o sync os regravaria como 'executado', perdendo o papel de aprovador.
+  return (row.etapa_responsaveis ?? [])
+    .filter((r) => r.papel !== 'aprovado')
+    .map((r) => ({ responsavelId: r.responsavel_id, nome: '', horas: r.horas ?? 0 }));
 }
 
 function hydrateSistemas(row: EtapaDbRow): string[] {

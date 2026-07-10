@@ -118,11 +118,13 @@ async function syncEtapaResponsaveis(etapaId: string, scenario: Scenario, execut
 
   const { data, error } = await supabase
     .from('etapa_responsaveis' as never)
-    .select('id, responsavel_id, horas')
+    .select('id, responsavel_id, horas, papel')
     .eq('etapa_id', etapaId)
     .eq('scenario', scenario);
   if (error) throw new Error(error.message);
-  const atuais = (data ?? []) as unknown as Array<{ id: string; responsavel_id: string; horas: number | null }>;
+  const todas = (data ?? []) as unknown as Array<{ id: string; responsavel_id: string; horas: number | null; papel: string }>;
+  // Reconcilia SÓ executores — linhas de aprovador (papel='aprovado') ficam intactas.
+  const atuais = todas.filter((a) => a.papel !== 'aprovado');
 
   const remover = atuais.filter((a) => !desejados.has(a.responsavel_id)).map((a) => a.id);
   if (remover.length > 0) {

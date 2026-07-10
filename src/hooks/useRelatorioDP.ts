@@ -21,6 +21,7 @@ export interface DPMatricula {
   area_documento: number | null;
   area_real: number | null;
   area_unidade: string | null;
+  tipo_exploracao_posse: string | null;
   vlr_contabil: number | null;
   vlr_mercado: number | null;
   titulares: DPTitular[];
@@ -48,7 +49,7 @@ const SELECT = `
   motivo_nao_integralizacao, observacao,
   matricula (
     id, numero, matricula_anterior_texto, municipio_imovel, uf_imovel,
-    area_documento, area_real, area_unidade, vlr_contabil, vlr_mercado,
+    area_documento, area_real, area_unidade, tipo_exploracao_posse, vlr_contabil, vlr_mercado,
     titularidade ( tipo, fracao, integralizador, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
   ),
   titularidade ( tipo, fracao, integralizador, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
@@ -96,6 +97,7 @@ export function useRelatorioDP(clienteId: string | null) {
           area_documento: m.area_documento,
           area_real: m.area_real,
           area_unidade: m.area_unidade,
+          tipo_exploracao_posse: m.tipo_exploracao_posse,
           vlr_contabil: m.vlr_contabil,
           vlr_mercado: m.vlr_mercado,
           titulares: (m.titularidade ?? []).map(mapTit),

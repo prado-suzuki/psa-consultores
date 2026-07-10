@@ -1,14 +1,16 @@
 // Form unificado de Documento (criar/editar) — padrão "Cadastro Puro".
 // `documento === null` ⇒ criação; caso contrário, edição pré-preenchida.
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
 import { dica } from '@/utils/tooltips';
 import type { Documento, EstruturacaoDoc } from '@/types';
-import { useCreateDocumento, useUpdateDocumento } from '@/hooks/useDocumentos';
+import { useCreateDocumento, useUpdateDocumento, useDocumentos } from '@/hooks/useDocumentos';
+import { useClusters } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import {
   TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, FORMATO_SELECT_OPCOES, deriveEstruturado,
 } from '@/components/equipe/mapa/cadastros/documentoOpcoes';
@@ -23,6 +25,13 @@ interface Props {
 export default function DocumentoFormModal({ aberto, documento, onClose }: Props) {
   const createDoc = useCreateDocumento();
   const updateDoc = useUpdateDocumento();
+  const { data: clustersList = [] } = useClusters();
+  const { cluster: fCluster } = useClusterGlobal();
+  const { data: documentos = [] } = useDocumentos();
+  const CLUSTER_OPCOES = useMemo(
+    () => clustersList.filter(c => c.ativo).map(c => ({ value: c.id, label: c.nome })),
+    [clustersList],
+  );
 
   const [nome, setNome] = useState('');
   const [tipo, setTipo] = useState('');
@@ -30,6 +39,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
   const [origem, setOrigem] = useState('Interno');
   const [estrutura, setEstrutura] = useState('');
   const [estruturado, setEstruturado] = useState<EstruturacaoDoc | ''>('');
+  const [clusterId, setClusterId] = useState('');
   const [erro, setErro] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [confirmSair, setConfirmSair] = useState(false);
@@ -45,17 +55,32 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
       setOrigem(documento.origem || 'Interno');
       setEstrutura(documento.estrutura_entrada || '');
       setEstruturado(documento.estruturado || '');
+      setClusterId(documento.cluster_id || '');
     } else {
       setNome(''); setTipo(''); setFormato(''); setOrigem('Interno'); setEstrutura(''); setEstruturado('');
+      setClusterId(fCluster || '');   // pré-carrega o cluster do filtro global (editável)
     }
     setErro('');
-  }, [aberto, documento]);
+  }, [aberto, documento, fCluster]);
 
   const touch = () => { tocado.current = true; };
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
 
+  // Duplicidade ao vivo: mesmo nome no mesmo cluster (ignora o próprio na edição).
+  const duplicado = useMemo(() => {
+    const n = nome.trim().toLowerCase();
+    if (!n) return null;
+    return documentos.find(d =>
+      d.id !== documento?.id &&
+      (d.nome || '').trim().toLowerCase() === n &&
+      (d.cluster_id ?? null) === (clusterId || null),
+    ) || null;
+  }, [documentos, nome, clusterId, documento]);
+
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome do documento.'); return; }
+    if (!clusterId) { setErro('Selecione o cluster do documento.'); return; }
+    if (duplicado) { setErro(`Já existe "${duplicado.nome}" neste cluster.`); return; }
     setErro('');
     setSalvando(true);
     try {
@@ -68,6 +93,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
             tipo: tipo.trim(),
             formato,
             origem,
+            cluster_id: clusterId,
             estrutura_entrada: (estrutura || undefined) as Documento['estrutura_entrada'],
             estruturado: (estruturado || undefined) as EstruturacaoDoc | undefined,
           },
@@ -80,6 +106,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
           formato,
           origem,
           tempo_minutos: 0,
+          cluster_id: clusterId,
           estrutura_entrada: (estrutura || undefined) as Documento['estrutura_entrada'],
           estruturado: (estruturado || undefined) as EstruturacaoDoc | undefined,
         });
@@ -107,6 +134,23 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
             placeholder="Digite o nome do documento"
           />
         </FormField>
+        {duplicado && (
+          <div role="alert" style={{ color: '#b45309', fontSize: '0.8rem', margin: '-4px 0 8px' }}>
+            Já existe <strong>{duplicado.nome}</strong> neste cluster — talvez você queira usar o existente em vez de criar outro.
+          </div>
+        )}
+        <div className="cadastro-form-row">
+          <FormField label="Cluster" required>
+            <Select
+              value={clusterId}
+              onChange={(v) => { touch(); setClusterId(v); }}
+              options={CLUSTER_OPCOES}
+              placeholder="Selecione o cluster..."
+              hasError={!clusterId && !!erro}
+            />
+          </FormField>
+          <div />
+        </div>
         <div className="cadastro-form-row">
           <FormField label="Tipo" tooltip={dica('documentos.form.tipo')} dataTour="modal-campo-2">
             <Select value={tipo} onChange={(v) => { touch(); setTipo(v); }} options={TIPO_OPCOES} placeholder="Selecione..." />
@@ -145,7 +189,7 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
 
         <div className="modal-actions">
           <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
-          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando || !!duplicado}>{salvando ? 'Salvando...' : 'Salvar'}</button>
         </div>
         <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
       </div>

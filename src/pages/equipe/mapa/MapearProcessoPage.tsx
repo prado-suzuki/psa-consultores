@@ -73,6 +73,23 @@ function melhoriaLabel(desc: string): string {
   return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
 }
 
+// Compara uma etapa contra seu estado original (mesmo id) para decidir se há
+// algo a gravar. Evita re-salvar (e reconciliar destrutivamente as junções) de
+// etapas que o usuário não tocou — a causa do "horas zeradas em cascata".
+function etapaMudou(a: Etapa | undefined, b: Etapa): boolean {
+  if (!a) return true;
+  const campos: (keyof Etapa)[] = ['name', 'description', 'execution', 'stage_order',
+    'volume_per_process', 'error_rate', 'rework_rate'];
+  if (campos.some(k => (a[k] ?? null) !== (b[k] ?? null))) return true;
+  const docsKey = (xs?: DocRef[]) => JSON.stringify((xs || []).map(x => [x.documentoId ?? x.nome, x.volume ?? 0]).sort());
+  const respKey = (xs?: ResponsavelEtapa[]) => JSON.stringify((xs || []).map(x => [x.responsavelId ?? x.nome, x.horas ?? 0]).sort());
+  if (docsKey(a.docsEntrada) !== docsKey(b.docsEntrada)) return true;
+  if (docsKey(a.docsSaida) !== docsKey(b.docsSaida)) return true;
+  if (respKey(a.executadoPor) !== respKey(b.executadoPor)) return true;
+  if (JSON.stringify([...(a.sistemas || [])].sort()) !== JSON.stringify([...(b.sistemas || [])].sort())) return true;
+  return false;
+}
+
 // Rascunho do editor de etapas salvo em localStorage (anti-perda de dados).
 interface EtapasDraft {
   mode: 'era' | 'ficou';
@@ -168,6 +185,19 @@ export default function MapearProcessoPage() {
   const docIdByNome = useMemo(() => new Map(documentos.map(d => [d.nome, d.id])), [documentos]);
   const sisIdByNome = useMemo(() => new Map(sistemas.map(s => [s.nome, s.id])), [sistemas]);
   const respIdByNome = useMemo(() => new Map(responsaveis.map(r => [r.name, r.id])), [responsaveis]);
+  // id→nome (p/ validar se o id ainda corresponde ao nome exibido — evita colisão de homônimos).
+  const docById = useMemo(() => new Map(documentos.map(d => [d.id, d.nome])), [documentos]);
+  const respById = useMemo(() => new Map(responsaveis.map(r => [r.id, r.name])), [responsaveis]);
+  // Sistema: o nome pode repetir entre clusters → resolve pelo cluster do processo.
+  const procClusterId = useMemo(
+    () => (processo?.project_id ? (projetos.find(p => p.id === processo.project_id)?.cluster_id ?? null) : null),
+    [processo, projetos],
+  );
+  const sisCandidatosPorNome = useMemo(() => {
+    const m = new Map<string, { id: string; cluster_id?: string | null }[]>();
+    for (const s of sistemas) { const arr = m.get(s.nome) ?? []; arr.push({ id: s.id, cluster_id: s.cluster_id }); m.set(s.nome, arr); }
+    return m;
+  }, [sistemas]);
   // Gargalos e melhorias vinculados a ESTE processo (grão = processo).
   const procGargalos = useMemo(() => gargalosDoProcesso(gargalos, id ?? ''), [gargalos, id]);
   const procMelhorias = useMemo(() => melhoriasDoProcesso(melhorias, id ?? ''), [melhorias, id]);
@@ -258,11 +288,14 @@ export default function MapearProcessoPage() {
     return match ? nome.slice(match[0].length).trim() : nome;
   };
 
+  // Mantém o vínculo que tem nome OU id resolvido. Só descarta linha realmente
+  // vazia (ex.: "+adicionar" clicado sem escolher). Nunca dropar — e portanto
+  // deletar do banco — um vínculo real só porque o nome não resolveu na sessão.
   const cleanEtapa = (e: Etapa): Etapa => ({
     ...e,
-    docsEntrada: (e.docsEntrada || []).filter(d => d.nome?.trim()),
-    docsSaida: (e.docsSaida || []).filter(d => d.nome?.trim()),
-    executadoPor: (e.executadoPor || []).filter(r => r.nome?.trim()),
+    docsEntrada: (e.docsEntrada || []).filter(d => d.nome?.trim() || d.documentoId),
+    docsSaida: (e.docsSaida || []).filter(d => d.nome?.trim() || d.documentoId),
+    executadoPor: (e.executadoPor || []).filter(r => r.nome?.trim() || r.responsavelId),
     sistemas: (e.sistemas || []).filter(s => s?.trim()),
   });
 
@@ -375,15 +408,33 @@ export default function MapearProcessoPage() {
     setEditEtapasDirty(true);
   };
 
-  // O editor opera por nome (ChipSelector); as junções persistem por id.
-  // O nome manda: trocar o nome de um chip troca o vínculo, mesmo que o id
-  // antigo tenha ficado no objeto.
+  // Resolve o id de um vínculo a partir do nome exibido:
+  //  - sem nome → mantém o id atual (vínculo real ainda não resolvido; não dropar);
+  //  - id atual ainda casa com o nome → mantém (evita colisão entre homônimos de clusters diferentes);
+  //  - nome mudou → resolve por nome (undefined faz o sync exigir cadastro, em vez de
+  //    religar silenciosamente ao id antigo).
+  const resolveId = (
+    nome: string | undefined,
+    curId: string | undefined,
+    byNome: Map<string, string>,
+    byId: Map<string, string>,
+  ): string | undefined => {
+    if (!nome?.trim()) return curId;
+    if (curId && byId.get(curId) === nome) return curId;
+    return byNome.get(nome);
+  };
+  // Sistema não carrega id no editor (enrich resolve p/ nome) → escolhe o candidato do cluster do processo.
+  const resolverSistemaId = (nome: string): string => {
+    const cands = sisCandidatosPorNome.get(nome);
+    if (!cands || cands.length === 0) return nome;
+    return (cands.find(c => c.cluster_id === procClusterId) ?? cands.find(c => !c.cluster_id) ?? cands[0]).id;
+  };
   const resolverVinculos = (e: Etapa): Etapa => ({
     ...e,
-    docsEntrada: (e.docsEntrada || []).map(d => ({ ...d, documentoId: docIdByNome.get(d.nome) ?? d.documentoId })),
-    docsSaida: (e.docsSaida || []).map(d => ({ ...d, documentoId: docIdByNome.get(d.nome) ?? d.documentoId })),
-    executadoPor: (e.executadoPor || []).map(r => ({ ...r, responsavelId: respIdByNome.get(r.nome) ?? r.responsavelId })),
-    sistemas: (e.sistemas || []).map(s => sisIdByNome.get(s) ?? s),
+    docsEntrada: (e.docsEntrada || []).map(d => ({ ...d, documentoId: resolveId(d.nome, d.documentoId, docIdByNome, docById) })),
+    docsSaida: (e.docsSaida || []).map(d => ({ ...d, documentoId: resolveId(d.nome, d.documentoId, docIdByNome, docById) })),
+    executadoPor: (e.executadoPor || []).map(r => ({ ...r, responsavelId: resolveId(r.nome, r.responsavelId, respIdByNome, respById) })),
+    sistemas: (e.sistemas || []).map(s => resolverSistemaId(s)),
   });
 
   const handleSaveEtapas = async () => {
@@ -392,11 +443,38 @@ export default function MapearProcessoPage() {
     const cleaned = editEtapasList.map(cleanEtapa).map(resolverVinculos);
     try {
       const existingIds = new Set(etapas.map(e => e.id));
+      // Baseline original com o MESMO tratamento do editor (era OU ficou), p/
+      // detectar o que mudou e não re-gravar/reconciliar etapa intocada.
+      const mergeFicou = (e: Etapa): Etapa => {
+        const f = e.ficou;
+        return {
+          ...e,
+          description: f?.description ?? e.description,
+          execution: f?.execution ?? e.execution,
+          volume_per_process: f?.volume_per_process ?? e.volume_per_process,
+          error_rate: f?.error_rate ?? e.error_rate,
+          rework_rate: f?.rework_rate ?? e.rework_rate ?? 0,
+          executadoPor: f?.executadoPor ?? e.executadoPor,
+          sistemas: f?.sistemas ?? e.sistemas,
+          docsEntrada: f?.docsEntrada ?? e.docsEntrada,
+          docsSaida: f?.docsSaida ?? e.docsSaida,
+        } as Etapa;
+      };
+      const baselineById = new Map(
+        etapas.map(e => [
+          e.id,
+          resolverVinculos(cleanEtapa({ ...(editEtapasMode === 'ficou' ? mergeFicou(e) : e), name: cleanEtapaName(e.name) })),
+        ]),
+      );
       for (let i = 0; i < cleaned.length; i++) {
         const e = { ...cleaned[i], stage_order: i + 1 };
         if (editEtapasMode === 'era') {
           if (existingIds.has(e.id)) {
-            await updateEtapa.mutateAsync({ id: e.id, patch: e as Partial<Etapa>, old: e });
+            // 3.3 — só grava (e reconcilia vínculos) se a etapa mudou de fato.
+            // Etapa intocada não é reescrita → não perde horas/vínculos.
+            if (etapaMudou(baselineById.get(e.id), e)) {
+              await updateEtapa.mutateAsync({ id: e.id, patch: e as Partial<Etapa>, old: e });
+            }
           } else {
             // Etapa nova: o id local é provisório — o banco gera o uuid.
             const { id: _tempId, ...semId } = e;
@@ -404,9 +482,13 @@ export default function MapearProcessoPage() {
             await createEtapa.mutateAsync(semId as Partial<Etapa> as never);
           }
         } else {
-          // mode === 'ficou' — projeção TO-BE via hook (upsert id+scenario).
+          // mode === 'ficou' — projeção TO-BE. MESMO guard do AS-IS: só faz upsert
+          // (e materializa a projeção) se a etapa mudou vs o baseline "como ficou" —
+          // senão abrir "Como ficou" e salvar reescreveria TO-BE de todas as etapas.
           if (!existingIds.has(e.id)) continue;
-          await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
+          if (etapaMudou(baselineById.get(e.id), e)) {
+            await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
+          }
         }
       }
       // Etapas removidas no modal: deleta do banco (somente as que já existiam).
@@ -916,6 +998,8 @@ export default function MapearProcessoPage() {
       <NovoMelhoriaModal
         isOpen={cadastroRapido === 'melhoria'}
         onClose={() => setCadastroRapido(null)}
+        clusterIdInicial={procClusterId ?? undefined}
+        processIdInicial={processo.id}
         onCreated={(m) => {
           // grão = processo: vincula a melhoria recém-criada a ESTE processo.
           updateMelhoria.mutateAsync({ id: m.id, old: m, patch: { processos: [...new Set([...(m.processos || []), processo.id])] } })

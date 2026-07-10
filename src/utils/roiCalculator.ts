@@ -501,32 +501,11 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const custoHoraMedioVal = custoMedioHora(input.responsaveis);
   const projetoById = new Map((input.projetos || []).map(p => [p.id, p]));
 
-  // Abrangência de cada melhoria = nº de processos que ela atende. Usado para
-  // ratear o custo único da melhoria (sem multiplicar no somatório).
-  const abrangenciaMelhorias = new Map<string, number>();
-  for (const p of input.processos) {
-    for (const id of melhoriasRelevantesIds(p, input.gargalos, input.melhorias)) {
-      abrangenciaMelhorias.set(id, (abrangenciaMelhorias.get(id) ?? 0) + 1);
-    }
-  }
-
-  // Idem para sistemas: nº de processos que usam cada sistema (era/ficou), para
-  // ratear o custo recorrente único entre eles.
-  const usoSistemaEra = new Map<string, number>();
-  const usoSistemaFicou = new Map<string, number>();
-  for (const p of input.processos) {
-    const refs = sistemasRefsDoProcesso(p, input.etapas, input.gargalos, input.melhorias);
-    for (const s of input.sistemas) {
-      if (refs.era.has(s.id) || refs.era.has(s.nome)) usoSistemaEra.set(s.id, (usoSistemaEra.get(s.id) ?? 0) + 1);
-      if (refs.ficou.has(s.id) || refs.ficou.has(s.nome)) usoSistemaFicou.set(s.id, (usoSistemaFicou.get(s.id) ?? 0) + 1);
-    }
-  }
-
   // Critério de entrada no Dashboard ROI = doutor (dados completos, sem fallback)
   // E status do projeto ≠ 'Mapeamento'. Quem não passa fica FORA de TODOS os
   // agregados (em mapeamento) — nunca com número fabricado.
-  const porProcesso: RoiProcesso[] = [];
   const emMapeamento: ProcessoEmMapeamento[] = [];
+  const calculaveis: Processo[] = [];
   for (const p of input.processos) {
     const vd = processoCalculavel(p, input.etapas, input.responsaveis);
     const proj = p.project_id ? projetoById.get(p.project_id) : undefined;
@@ -536,9 +515,33 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
       emMapeamento.push({ processoId: p.id, processoNome: p.name, camposFaltando });
       continue;
     }
-    const cluster = proj?.clusterName || '';
-    porProcesso.push(calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou));
+    calculaveis.push(p);
   }
+
+  // Abrangência/uso (denominador do rateio de custo ÚNICO) contam APENAS os
+  // processos calculáveis — quem está "em mapeamento" não soma custo, então
+  // incluí-lo no denominador subestimaria o custo compartilhado reconstruído.
+  const abrangenciaMelhorias = new Map<string, number>();
+  for (const p of calculaveis) {
+    for (const id of melhoriasRelevantesIds(p, input.gargalos, input.melhorias)) {
+      abrangenciaMelhorias.set(id, (abrangenciaMelhorias.get(id) ?? 0) + 1);
+    }
+  }
+  const usoSistemaEra = new Map<string, number>();
+  const usoSistemaFicou = new Map<string, number>();
+  for (const p of calculaveis) {
+    const refs = sistemasRefsDoProcesso(p, input.etapas, input.gargalos, input.melhorias);
+    for (const s of input.sistemas) {
+      if (refs.era.has(s.id) || refs.era.has(s.nome)) usoSistemaEra.set(s.id, (usoSistemaEra.get(s.id) ?? 0) + 1);
+      if (refs.ficou.has(s.id) || refs.ficou.has(s.nome)) usoSistemaFicou.set(s.id, (usoSistemaFicou.get(s.id) ?? 0) + 1);
+    }
+  }
+
+  const porProcesso: RoiProcesso[] = calculaveis.map((p) => {
+    const proj = p.project_id ? projetoById.get(p.project_id) : undefined;
+    const cluster = proj?.clusterName || '';
+    return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou);
+  });
 
   const sum = <K extends keyof RoiProcesso>(k: K, src = porProcesso): number =>
     src.reduce((s, p) => s + (Number(p[k]) || 0), 0);

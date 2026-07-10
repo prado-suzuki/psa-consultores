@@ -18,6 +18,7 @@ import { MELHORIA_STATUSES, ACOES_TD } from '@/types';
 import { useCreateMelhoria, useUpdateMelhoria } from '@/hooks/useMelhorias';
 import { useSistemasLista, useResponsaveisLista } from '@/hooks/useDominioListas';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
+import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 
 type RateioRow = { nome: string; horas: number };
@@ -92,11 +93,14 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
   const createMelhoria = useCreateMelhoria();
   const updateMelhoria = useUpdateMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
+  const { cluster: fCluster } = useClusterGlobal();
   const { data: sistemasList = [] } = useSistemasLista();
   const { data: responsaveisList = [] } = useResponsaveisLista();
 
   const sistemaNomeById = useMemo(() => new Map(sistemasList.map(s => [s.id, s.nome])), [sistemasList]);
   const sistemaIdByNome = useMemo(() => new Map(sistemasList.map(s => [s.nome, s.id])), [sistemasList]);
+  const respNomeById = useMemo(() => new Map(responsaveisList.map(r => [r.id, r.name])), [responsaveisList]);
+  const respIdByNome = useMemo(() => new Map(responsaveisList.map(r => [r.name, r.id])), [responsaveisList]);
   const statusOptions = MELHORIA_STATUSES.map(s => ({ value: s, label: s }));
 
   const sistemaIdsToNames = (ids: string[]) => ids.map(id => sistemaNomeById.get(id)).filter((n): n is string => Boolean(n));
@@ -126,22 +130,25 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
       setClusterId(melhoria.cluster_id || '');
       setSistemas(sistemaIdsToNames(melhoria.sistemas || []));
       setAcoesTd([...(melhoria.acoesTd || [])]);
-      setExecutadoPor((melhoria.executadoPor || []).map(r => ({ ...r })));
+      // Resolve responsavelId→nome (a hidratação vem com nome:'').
+      const toRateio = (r: { responsavelId?: string; nome?: string; horas: number }): RateioRow =>
+        ({ nome: r.nome || respNomeById.get(r.responsavelId ?? '') || '', horas: r.horas });
+      setExecutadoPor((melhoria.executadoPor || []).map(toRateio));
       // Migração: melhoria legada só com scalar training_hours vira UMA entrada
       // órfã (sem responsável), que o usuário pode atribuir depois.
       const treinoSeed: RateioRow[] = melhoria.treinamentoPor && melhoria.treinamentoPor.length > 0
-        ? melhoria.treinamentoPor.map(r => ({ ...r }))
+        ? melhoria.treinamentoPor.map(toRateio)
         : ((melhoria.training_hours ?? 0) > 0 ? [{ nome: '', horas: melhoria.training_hours ?? 0 }] : []);
       setTreinamentoPor(treinoSeed);
       setCustoExternoUnico(melhoria.one_time_external_cost ? formatarMoeda(melhoria.one_time_external_cost) : '');
     } else {
-      setNome(''); setStatus('Não iniciado'); setClusterId('');
+      setNome(''); setStatus('Não iniciado'); setClusterId(fCluster || '');
       setSistemas([]); setAcoesTd([]);
       setExecutadoPor([]); setTreinamentoPor([]); setCustoExternoUnico('');
     }
     setErro('');
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, melhoria, sistemaNomeById]);
+  }, [aberto, melhoria, sistemaNomeById, respNomeById, fCluster]);
 
   const touch = () => { tocado.current = true; };
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
@@ -167,16 +174,22 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
 
   const salvar = async () => {
     if (!nome.trim()) { setErro('Preencha o nome da melhoria.'); return; }
+    if (!clusterId) { setErro('Selecione o cluster da melhoria.'); return; }
     setErro('');
     setSalvando(true);
-    const treinoLimpo = treinamentoPor.filter(r => r.nome?.trim());
+    // Resolve nome→id p/ persistir em melhoria_responsaveis (o editor opera por nome).
+    const toResp = (arr: RateioRow[]) => arr
+      .filter(r => r.nome?.trim())
+      .map(r => ({ responsavelId: respIdByNome.get(r.nome), nome: r.nome, horas: r.horas }));
+    const execLimpo = toResp(executadoPor);
+    const treinoLimpo = toResp(treinamentoPor);
     const payload = {
       improvement_description: nome.trim(),
       improvement_status: status,
-      cluster_id: clusterId || undefined,
+      cluster_id: clusterId,
       sistemas: sistemaNamesToIds(sistemas),
       acoesTd,
-      executadoPor: executadoPor.filter(r => r.nome?.trim()),
+      executadoPor: execLimpo,
       treinamentoPor: treinoLimpo,
       training_hours: sumHoras(treinoLimpo),
       one_time_external_cost: parseMoeda(custoExternoUnico),

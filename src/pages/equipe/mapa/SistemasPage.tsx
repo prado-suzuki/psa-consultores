@@ -82,7 +82,10 @@ export default function SistemasPage() {
   );
 
   const noEscopo = useMemo(() => items.filter(s =>
-    !fCluster || nomesSistemasDoEscopo?.has(s.nome) ||
+    !fCluster || s.cluster_id === fCluster ||
+    // uso-por-nome só puxa sistema SEM cluster próprio (global) — senão um sistema
+    // de OUTRO cluster com nome igual vazaria pra este filtro.
+    (!s.cluster_id && nomesSistemasDoEscopo?.has(s.nome)) ||
     (!!clusterSelecionado && !!rateioNoCluster(s, fCluster, clusterSelecionado.nome))
   ), [items, fCluster, nomesSistemasDoEscopo, clusterSelecionado]);
 

@@ -619,10 +619,11 @@ export default function DashboardRoiPage() {
   const periodoSlash = horizonte === 12 ? '/ ano' : `/ ${horizonte}m`;
   const economiaHorizonte = v.economiaMensal * horizonte;
   const resultadoLiquidoHorizonte = economiaHorizonte - v.investimentoTotal;
-  const roiHorizonte = v.investimentoTotal > 0 ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
   // Guarda de honestidade: sem investimento informado, ROI/payback não têm
-  // sentido — mostramos "em construção" em vez de um número enganoso.
+  // sentido — mostramos "em construção" em vez de um número enganoso. O CÁLCULO
+  // usa o mesmo gate do display (evita dividir por investimento ~0 e mostrar %).
   const roiDisp = roiDisponivel(v.investimentoTotal);
+  const roiHorizonte = roiDisp ? (economiaHorizonte / v.investimentoTotal) * 100 : 0;
   const roiHorizonteTxt = roiDisp ? fmtPct(roiHorizonte) : 'em construção';
   const paybackTxt = v.paybackMeses == null ? 'em construção' : `${fmtNum(v.paybackMeses, 0)} meses`;
 

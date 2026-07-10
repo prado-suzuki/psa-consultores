@@ -115,17 +115,27 @@ export default function SetorEvolucaoPage() {
     () => gargalos.filter(g => processoIdsDoGargalo(g).some(pid => idsProc.has(pid))),
     [gargalos, idsProc],
   );
+  // Catálogos filtrados por cluster — MESMO critério do Dashboard ROI, para os
+  // dois dashboards baterem (senão o rateio de custo usa denominadores diferentes).
+  const sistemasFiltrados = useMemo(
+    () => (filtroCluster ? sistemas.filter(s => (s.cluster_id || '') === filtroCluster) : sistemas),
+    [sistemas, filtroCluster],
+  );
+  const melhoriasFiltradas = useMemo(
+    () => (filtroCluster ? melhorias.filter(m => (m.cluster_id || '') === filtroCluster) : melhorias),
+    [melhorias, filtroCluster],
+  );
 
   // Cálculo ao vivo — mesma fonte do Dashboard ROI.
   const roiLive: RoiAgregado = useMemo(() => calcularRoi({
     processos: processosFiltrados,
     etapas: etapasFiltradas,
     responsaveis,
-    sistemas,
+    sistemas: sistemasFiltrados,
     gargalos: gargalosFiltrados,
-    melhorias,
+    melhorias: melhoriasFiltradas,
     projetos,
-  }), [processosFiltrados, etapasFiltradas, responsaveis, sistemas, gargalosFiltrados, melhorias, projetos]);
+  }), [processosFiltrados, etapasFiltradas, responsaveis, sistemasFiltrados, gargalosFiltrados, melhoriasFiltradas, projetos]);
 
   // Fase 4: setor/evolução também 100% AO VIVO (snapshot não entra no
   // consolidado). A curva temporal abaixo continua usando o histórico de
