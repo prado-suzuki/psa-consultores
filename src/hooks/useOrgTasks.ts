@@ -215,14 +215,18 @@ export interface TaskFilters {
         // Envia só campos que efetivamente mudaram, para não disparar
         // triggers de RLS (ex.: org_tasks_team_member_status_only) por
         // colunas inalteradas presentes no payload do formulário.
+        // Normaliza '' e undefined para null: o TaskModal envia campos
+        // opcionais vazios como '' onde o banco guarda NULL — sem isso
+        // eles entrariam no diff e o trigger bloquearia team_member.
+        const normEmpty = (v: unknown) => (v === '' || v === undefined ? null : v);
         const changedOnly: Record<string, unknown> = {};
         if (current) {
           for (const key of Object.keys(updates)) {
             if (key === 'id') continue;
-            const oldVal = (current as any)[key] ?? null;
-            const newVal = (updates as any)[key] ?? null;
+            const oldVal = normEmpty((current as any)[key]);
+            const newVal = normEmpty((updates as any)[key]);
             if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-              changedOnly[key] = (updates as any)[key];
+              changedOnly[key] = newVal;
             }
           }
         } else {
@@ -253,8 +257,8 @@ export interface TaskFilters {
          if (current) {
            for (const key of Object.keys(updates)) {
              if (key === 'id') continue;
-             const oldVal = (current as any)[key] ?? null;
-             const newVal = (updates as any)[key] ?? null;
+              const oldVal = normEmpty((current as any)[key]);
+              const newVal = normEmpty((updates as any)[key]);
              if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
                changedFields[key] = { old: oldVal, new: newVal };
              }
