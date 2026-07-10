@@ -1,70 +1,65 @@
+## Correção de 2 bugs de front (RLS-06 e RLS-03)
 
-# RLS-03 — Blindagem das policies de `public.tickets`
+Sem migrations. Apenas React/TS.
 
-Sem backfill de dados. Apenas ajusta 2 policies (SELECT e UPDATE) para que o problema de chamados criados sem `cluster_id` (efeito colateral dos clientes agora terem 2 clusters) não deixe chamados invisíveis para líderes, e para restringir escrita de `team_member`.
+### BUG 1 — `useUpdateOrgTask` envia payload inteiro e trigger `org_tasks_team_member_status_only` bloqueia
+Arquivo: `src/hooks/useOrgTasks.ts` (função `useUpdateOrgTask`, linhas ~211-221).
 
-## Pré-voo (já executado)
+Depois do fetch de `current` e antes do `.update()`, montar `changedOnly` comparando `current` × `updates` (mesma lógica já usada abaixo para `changedFields`). Se nada mudou, retornar `current` sem chamar `update`. Caso contrário, chamar `.update(changedOnly)`.
 
-Policies atuais em `public.tickets` (nenhuma cmd=ALL — seguro prosseguir):
+```ts
+const changedOnly: Record<string, unknown> = {};
+if (current) {
+  for (const key of Object.keys(updates)) {
+    if (key === 'id') continue;
+    const oldVal = (current as any)[key] ?? null;
+    const newVal = (updates as any)[key] ?? null;
+    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+      changedOnly[key] = (updates as any)[key];
+    }
+  }
+}
 
-- `rls_tickets_select` (SELECT): `admin OR (team_member+ AND cluster_id = ANY(resolve_user_cluster_ids)) OR user_id=auth.uid() OR is_ticket_assigned_to(id,auth.uid())`
-- `rls_tickets_update` (UPDATE): `(user_id=auth.uid() AND client) OR team_member+` — **problema: qualquer team_member edita/atribui qualquer chamado do sistema**
-- `rls_tickets_insert`: mantida
-- `rls_tickets_delete`: `admin+` — mantida
+if (Object.keys(changedOnly).length === 0) {
+  return current;
+}
 
-Helpers confirmados: `cliente_visivel_para(uuid)`, `resolve_user_cluster_ids(uuid)`, `is_ticket_assigned_to(uuid,uuid)`, `has_role(uuid,app_role)`, `has_role_or_higher(uuid,app_role)`.
-
-## Mudanças (1 migration)
-
-### 1. Recriar `rls_tickets_select` — aditivo, adiciona ramo "herda do cliente"
-
-```sql
-DROP POLICY IF EXISTS rls_tickets_select ON public.tickets;
-CREATE POLICY rls_tickets_select ON public.tickets FOR SELECT TO authenticated
-USING (
-  public.has_role(auth.uid(),'admin'::app_role)
-  OR (public.has_role_or_higher(auth.uid(),'team_member'::app_role)
-      AND cluster_id = ANY (public.resolve_user_cluster_ids(auth.uid())))
-  OR (public.has_role_or_higher(auth.uid(),'team_member'::app_role)   -- NOVO
-      AND cliente_id IS NOT NULL
-      AND public.cliente_visivel_para(cliente_id))
-  OR auth.uid() = user_id
-  OR public.is_ticket_assigned_to(id, auth.uid())
-);
+await assertCanPerform('org_tasks', 'update', id);
+const { data, error } = await supabase
+  .from('org_tasks')
+  .update(changedOnly)
+  .eq('id', id)
+  .select()
+  .maybeSingle();
 ```
 
-Efeito: admin, líder, sublíder e team_member visualizam chamados do seu cluster **ou** cujo cliente enxergam, além dos próprios e atribuídos. Cobre chamados com `cluster_id` NULL cujo cliente é visível.
+O bloco de `changedFields`/`logAction` abaixo permanece igual (pode reutilizar `changedOnly` como base, mas manter o formato `{old,new}` já existente para o audit — sem mudar contrato do log).
 
-### 2. Recriar `rls_tickets_update` — apertar escrita
+Efeito: um team_member que só troca status envia `{status}` → trigger permite. Se tentar mexer em responsável/horas, o payload contém esses campos e a RLS bloqueia como esperado.
 
-```sql
-DROP POLICY IF EXISTS rls_tickets_update ON public.tickets;
-CREATE POLICY rls_tickets_update ON public.tickets FOR UPDATE TO authenticated
-USING (
-  public.has_role(auth.uid(),'admin'::app_role)
-  OR public.has_role_or_higher(auth.uid(),'sublider'::app_role)
-  OR assigned_to = auth.uid()
-  OR (auth.uid() = user_id AND public.has_role(auth.uid(),'client'::app_role))
-)
-WITH CHECK (
-  public.has_role(auth.uid(),'admin'::app_role)
-  OR public.has_role_or_higher(auth.uid(),'sublider'::app_role)
-  OR assigned_to = auth.uid()
-  OR (auth.uid() = user_id AND public.has_role(auth.uid(),'client'::app_role))
-);
+### BUG 2 — `EquipeDetalhesChamado` redireciona por `assigned_to !== user.id`
+Arquivo: `src/pages/equipe/EquipeDetalhesChamado.tsx` (linhas ~77-86).
+
+Substituir o `useEffect` que valida `ticket.assigned_to !== user.id` por um que apenas redireciona quando o carregamento terminou e a RLS não devolveu o chamado:
+
+```tsx
+useEffect(() => {
+  if (!loading && id && !ticket) {
+    toast({
+      title: 'Chamado indisponível',
+      description: 'Você não tem acesso a este chamado ou ele não existe.',
+      variant: 'destructive',
+    });
+    navigate('/equipe/chamados');
+  }
+}, [loading, ticket, id, navigate]);
 ```
 
-Efeito: `team_member` deixa de poder atribuir/editar livremente — só admin, sublíder+, o próprio atribuído, e o cliente autor (mantido para o portal do cliente). INSERT e DELETE não são alterados.
+Remover a dependência `user` que ficava só para a checagem antiga.
 
-## GATE de verificação (via `SET LOCAL request.jwt.claims`)
+### Verificação
+- `tsgo` para garantir tipagem.
+- Fluxo manual: team_member arrasta card no kanban → status atualiza; líder de cluster abre chamado sem `assigned_to` = self → página carrega.
 
-1. **Visualização positiva** — team_member e líder de Consultores enxergam `9ebc473a-5957-4594-9ac8-6cbbc2a9b41f` (Tecnomyl); simular também um ticket com `cluster_id=NULL` cujo cliente é visível → aparece.
-2. **Isolamento** — usuário de outro cluster (sem Consultores/OSG) → não vê chamados da Tecnomyl.
-3. **Escrita** — team_member não-atribuído → UPDATE bloqueado; sublíder → OK; atribuído → OK; admin → OK.
-
-Se qualquer item falhar → rollback (segunda migration que recria as policies originais do dump acima).
-
-## Fora de escopo
-
-- Backfill dos ~3 chamados sem `cluster_id` (não fazer nesta leva).
-- Correção do `useCreateTicketCliente` para multi-cluster (fica como follow-up separado — a blindagem RLS aqui é a rede de segurança).
+### Fora de escopo
+Nada de SQL, nada de mudar policies/triggers, nada em outros hooks/páginas.
