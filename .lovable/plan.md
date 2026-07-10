@@ -1,38 +1,112 @@
-## RLS-06 — Projetos e OS
+# Auditoria RLS — somente leitura
 
-Baseline confirmado ✅
-- `org_tasks.SELECT` já é a versão fina (admin OR (project_id + líder/sublíder + can_view_org_project) OR assigned_to OR created_by) — **não será tocado**.
-- `org_tasks.UPDATE` hoje: `team_member+` (aberto). `INSERT`: `sublider+` OR `team_member+ AND (project_id IS NULL OR is_project_member)`. `DELETE`: `lider+ OR created_by=me`.
-- `org_task_comments.SELECT`: `team_member+` (aberto).
-- `ordem_servico.SELECT`: `team_member+` (aberto). OS tem `id_cliente` e `cluster_id`.
-- `projeto_justificativas.SELECT/INSERT/UPDATE/DELETE`: `true` (totalmente aberto). FK: `projeto_id → projects(id)` (não `org_projects`).
+Snapshot direto de `pg_class` / `pg_policies` / `information_schema`. **Nenhuma alteração feita.**
 
-### Migração (uma transação)
+---
 
-**1. Helper `org_task_visivel(uuid)`** — SECURITY DEFINER, replica a lógica do SELECT de `org_tasks` para reuso em comentários.
+## 1. Cobertura de RLS
 
-**2. `org_tasks` — SÓ escrita (SELECT intocado):**
-- `INSERT`: `admin OR sublider+ OR assigned_to = auth.uid()` (team_member só cria pra si).
-- `UPDATE`: mesma alçada do SELECT (dono / líder|sublíder do projeto / admin).
-- `DELETE`: `lider+` (remove ramo `created_by`).
-- **Trigger** `BEFORE UPDATE`: se usuário não é `sublider+`, rejeita qualquer alteração fora de `status` (comparação via `to_jsonb(NEW) - 'status' - 'updated_at'` vs OLD).
+- **Tabelas em `public`:** 138
+- **RLS habilitado:** **138 / 138 (100%)**
+- **Com ≥ 1 policy:** **134 / 138 (97,1%)**
+- **Sem policies:** 4 (todas backups `_bkp_psa_unify_*`)
 
-**3. `org_task_comments.SELECT`**: `admin OR org_task_visivel(task_id)`.
+🔴 **Zero policies:**
 
-**4. `ordem_servico.SELECT`**: `admin OR cliente_visivel_para(id_cliente) OR (cluster_id IS NOT NULL AND cluster_id = ANY(resolve_user_cluster_ids(auth.uid())))`.
+| tabela | RLS | # policies | S | I | U | D |
+|---|---|---|---|---|---|---|
+| _bkp_psa_unify_20260507_area_servicos | on | 0 | ❌ | ❌ | ❌ | ❌ |
+| _bkp_psa_unify_20260507_catalog_clients | on | 0 | ❌ | ❌ | ❌ | ❌ |
+| _bkp_psa_unify_20260507_org_projects | on | 0 | ❌ | ❌ | ❌ | ❌ |
+| _bkp_psa_unify_20260507_tickets | on | 0 | ❌ | ❌ | ❌ | ❌ |
 
-**5. `projeto_justificativas.SELECT`**: substituir `USING(true)` por `admin OR EXISTS (SELECT 1 FROM projects p WHERE p.id = projeto_id AND (p.cluster_id IS NULL OR p.cluster_id = ANY(resolve_user_cluster_ids(auth.uid()))))`. INSERT/UPDATE/DELETE de justificativas ficam intocados nesta onda (`true`) — Patricia não alinhou escrita ainda.
+Mitigante: essas 4 não têm `GRANT` para `authenticated`/`anon` (só `sandbox_exec`), então não são acessíveis pela PostgREST. Ainda assim é dívida de cleanup.
 
-### GATES pós-migração
-1. **SELECT de `org_tasks` inalterado** (comparar `qual` com baseline). Se mudou → rollback.
-2. **0 tarefas órfãs** verificado ao vivo (382/382 com dono) — nenhum team_member perde visibilidade.
-3. Simular team_member: UPDATE de status próprio ✅; UPDATE de `title` próprio ❌ (trigger); UPDATE de tarefa de outro ❌; INSERT com `assigned_to != me` ❌; DELETE ❌.
-4. Simular sublíder: INSERT/UPDATE em tarefa da equipe ✅; DELETE ❌.
-5. `ordem_servico`: usuário com cluster OSG vê OS dos clientes visíveis + OS com `cluster_id` do usuário; usuário sem cluster relevante vê 0 (admin vê tudo).
-6. `projeto_justificativas`: usuário só vê justificativa de projeto do seu cluster.
+**Distribuição do restante:**
+- 4 policies (SPLIT S/I/U/D): 78 tabelas — padrão desejado.
+- 2 policies (`ALL` + `SELECT`): 32 tabelas — padrão catálogo/read-only.
+- 3 policies: `dashboard_cliente_access`, `dashboard_cluster_access`, `roi_snapshots`, `ticket_attachments`.
+- 5 policies: `novidades`, `representante`, `user_page_access`, `cliente_clusters`.
+- 6 policies: `user_roles`.
+- 1–2 (`INSERT/SELECT` only): `access_change_log`, `audit_logs`, `documento_notificacao_visto`, `rls_precheck_allowed_tables`.
 
-### Rollback
-Dropar policies novas + `org_task_visivel` + trigger/função `org_tasks_team_member_status_only`; recriar policies do baseline (dump acima).
+Nenhuma tabela com RLS off.
 
-### Frontend
-Nenhuma mudança — SELECT de `org_tasks` preservado; hooks existentes continuam funcionando. Se o trigger disparar em edição de team_member, a mensagem "team_member só pode alterar o status da própria tarefa (RLS-06)" será exibida via toast pelo padrão atual de erros de mutação.
+---
+
+## 2. Tabelas sensíveis
+
+| tabela | S | I | U | D | veredicto |
+|---|---|---|---|---|---|
+| cliente | 1 | 1 | 1 | 1 | ✅ split CRUD |
+| contribuinte | 1 | 1 | 1 | 1 | ✅ |
+| ordem_servico | 1 | 1 | 1 | 1 | ✅ |
+| tickets | 1 | 1 | 1 | 1 | ✅ |
+| representante | 2 | 1 | 1 | 1 | ✅ |
+| user_roles | 3 | 1 | 1 | 1 | ✅ (SELECT: admin / team_member+ / self; escrita só admin) |
+| profiles | 2 | 0 | 2 | 0 | ⚠️ sem policy explícita de INSERT/DELETE — INSERT ocorre via trigger `handle_new_user` (SECURITY DEFINER); aceitável, mas convém documentar/ formalizar |
+| cliente_clusters | 2 SELECT + 3 ALL | — | — | — | ⚠️ policies `ALL` sobrepondo SELECT — revisar duplicidade |
+
+Nenhuma tabela sensível está desprotegida.
+
+---
+
+## 3. Policies suspeitas — `USING (true)`
+
+**49 policies com `qual = 'true'`** distribuídas em **21 tabelas**, todas para `authenticated`, sem `has_role()`/cluster/projeto:
+
+**Aceitável (catálogo global de estrutura):**
+- `centros_custo` (SELECT)
+- `estrutura_areas`, `estrutura_clusters`, `estrutura_equipes`, `estrutura_equipe_membros` (SELECT)
+
+**⚠️ Dívida real (dados operacionais expostos a qualquer authenticated, incluindo `client`/representante — em SELECT, UPDATE e DELETE):**
+
+| módulo | tabelas afetadas | comandos `USING(true)` |
+|---|---|---|
+| Processos | `documentos_processo`, `etapa_documentos`, `etapa_responsaveis`, `etapa_sistemas`, `sistemas_processo`, `sistema_clusters`, `sistema_responsaveis` | S/U/D |
+| Gargalos | `gargalos`, `gargalo_processos`, `gargalo_responsaveis` | S/U/D |
+| Melhorias | `melhoria_acoes_td`, `melhoria_processos`, `melhoria_responsaveis`, `melhoria_sistemas` | S/U/D |
+| Projeto | `projeto_justificativas` | U/D |
+
+**16 tabelas** com risco efetivo. Recomenda-se isolar via `can_view_org_project` / cluster no mesmo modelo do RLS-05 Fiscal.
+
+Nenhuma policy filtra `ambiente`/`excluido` (esse filtro é client-side por convenção — leaks cross-ambiente via PostgREST direto são possíveis, mas fora do escopo de RLS).
+
+---
+
+## 4. Checklist da dívida técnica
+
+- ✅ RLS habilitado em 100% das tabelas
+- ✅ Helpers `cliente_visivel_para`, `resolve_user_cluster_ids`, `has_role_or_higher`, `can_view_org_project`, `can_view_contribuinte`
+- ✅ **RLS-05 Fiscal** — 14 tabelas isoladas por contribuinte (migration `20260709214333`)
+- ✅ `cliente` / `contribuinte` / `ordem_servico` / `tickets` / `representante` / `user_roles` — split CRUD com isolamento
+- ✅ Backups `_bkp_psa_unify_*` sem grant para `authenticated`/`anon`
+- ⏳ `cliente_clusters` — coexistência `ALL` + `SELECT` (revisar/consolidar)
+- ⏳ `profiles` — formalizar policy INSERT/DELETE (hoje só via trigger)
+- ❌ **RLS-Processos** — 7 tabelas com `USING(true)` (documentos/etapas/sistemas)
+- ❌ **RLS-Gargalos** — 3 tabelas com `USING(true)`
+- ❌ **RLS-Melhorias** — 4 tabelas com `USING(true)`
+- ❌ `projeto_justificativas` — UPDATE/DELETE `USING(true)`
+- ❌ Cleanup das 4 backups (`DROP` ou mover para schema `archive`)
+- ❌ Decidir se `centros_custo` deve ficar global ou isolar por cluster
+
+---
+
+## 5. Migrations relacionadas a RLS
+
+Todas as migrations em `supabase/migrations/` estão versionadas e aplicadas na ordem cronológica. **Não há migration pendente no repo.**
+
+Últimas relacionadas a RLS/segurança:
+- `20260702143524_…`, `20260706200143_…`, `20260706205822_…` — user_roles / access
+- `20260707114633_…`, `20260707114655_…` — dashboard access
+- `20260707184751_…`, `20260707204659_…` — chamados
+- `20260708135606_…`, `20260708151627_…` — estrutura
+- `20260709180727_…` — RLS-04
+- `20260709202520_…` — helper `can_view_contribuinte`
+- **`20260709214333_…` — RLS-05 Fiscal (última aplicada)**
+
+---
+
+## Resumo em uma frase
+
+**138/138 tabelas com RLS habilitado (100%) e 134/138 (97,1%) com policies efetivas — mas ainda há 21 tabelas com 49 policies `USING (true)`, das quais ~16 (processos, gargalos, melhorias, projeto_justificativas) representam a dívida real de isolamento por cluster/projeto a ser endereçada em um próximo RLS-06.**
