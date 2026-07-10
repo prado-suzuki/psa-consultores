@@ -51,8 +51,6 @@ _osg_planilha/
 
 # Docs de trabalho local (mapeamentos, estudos, materiais OSG/BI/contratos) — não commitar
 docs/2026-07-06-feedback-maritza-osg-projects.md
-docs/mapa-seletor-cluster-global.md
-docs/mapa-refactor.md
 docs/PSA_OSG/
 docs/osg-mapeamento/
 docs/Dashboard BI/
@@ -83,3 +81,6 @@ docs/planos/2026-07-03-mapeamento-vinculos-por-modulo.md
 # Arquivos temporários do Microsoft Office (locks "~$", autorecover) — nunca versionar
 ~$*
 *.tmp
+
+# Pasta temporária de descoberta/mapeamento (gerada localmente) — não versionar
+.discovery_tmp/
