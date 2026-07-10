@@ -50,6 +50,22 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
+## 📁 Documentação do projeto
+
+Toda documentação que **não é código** (planos, análises, roadmaps, design) fica em `docs/`, organizada por módulo. **Não crie arquivos `.md` soltos na raiz do repositório** — eles viram um monte de arquivo solto e ninguém acha depois.
+
+| Pasta | Conteúdo |
+|---|---|
+| `docs/planos/` | Planos de implementação (handoff para execução) |
+| `docs/mapa/` | Docs do módulo MAPA (Digital) |
+| `docs/osg/` | Design do gerador de documentos OSG |
+| `docs/rls/` | Auditorias e planos de RLS / banco |
+| `docs/geral/` | Docs transversais (roadmaps, notificações) |
+| `docs/sprints/` | Registros de sprint |
+| `docs/AI_CONTEXT.md` | Contexto-mestre do projeto ("cérebro") |
+
+**Ao criar um novo plano ou análise**, salve direto na subpasta do módulo correspondente em `docs/` (ou em `docs/planos/` se for um plano de implementação). Se o módulo ainda não tiver pasta, crie `docs/<modulo>/`.
+
 ## What technologies are used for this project?
 
 This project is built with:

@@ -50,6 +50,13 @@ logAction({
 });
 ```
 
+## 📂 ORGANIZAÇÃO DE DOCUMENTAÇÃO (.md que não é código)
+- **NUNCA** crie arquivos `.md` de plano/análise soltos na raiz do repositório. Toda documentação (planos, análises, roadmaps, design) vive em `docs/`, organizada por módulo:
+  - `docs/planos/` — planos de implementação (handoff)
+  - `docs/mapa/`, `docs/osg/`, `docs/rls/` — docs por módulo
+  - `docs/geral/` — transversais · `docs/sprints/` — sprints · `docs/AI_CONTEXT.md` — contexto-mestre
+- Ao criar um novo plano/análise, salve direto na subpasta do módulo correspondente (crie `docs/<modulo>/` se ainda não existir). Não deixe soltos na raiz.
+
 ## 📂 REVELAÇÃO PROGRESSIVA (Leia estes arquivos se precisar de contexto específico)
 - **Permissões e Rotas:** Leia `@src/contexts/AuthContext.tsx` e `@src/config/protectedPages.ts`.
 - **Trilha de Auditoria Exata:** Leia `@src/hooks/useAuditLog.ts` e `@src/lib/diffUtils.ts`.
