@@ -45,3 +45,37 @@ docs/plano-revisao-delegada-tarefas.md
 
 # Relatórios de auditoria de sprint (local, não commitar)
 docs/sprints/
+
+# OSG — planilhas locais (não commitar)
+_osg_planilha/
+
+# Docs de trabalho local (mapeamentos, estudos, materiais OSG/BI/contratos) — não commitar
+docs/2026-07-06-feedback-maritza-osg-projects.md
+docs/mapa-seletor-cluster-global.md
+docs/mapa-refactor.md
+docs/PSA_OSG/
+docs/osg-mapeamento/
+docs/Dashboard BI/
+docs/db-mapping/
+docs/mapeamento-banco-de-dados/
+docs/P5 - Apresentações e relatórios/
+docs/Estudo/
+docs/OSG modelo/
+docs/reuniao/
+docs/P2 - Contratos/
+
+# Limpeza — artefatos/temporários locais e materiais de trabalho (não versionar)
+_tmp_*
+Historico_seção/
+docs/*.csv.bak*
+docs/SKILL.md
+docs/policies.md
+docs/policies_tickets.md
+docs/planos/2026-06-19-dashboard-roi-default-todos-e-ordem-abas.md
+docs/planos/2026-06-19-sop-diagrama-automaticos-mapa.md
+docs/planos/2026-06-23-crud-dashboards-acessos.md
+docs/planos/2026-06-23-dashboard-preview-overview.md
+docs/planos/2026-06-23-extracao-cluster-cliente-app.md
+docs/planos/2026-06-25-roi-doctor-projeto-e-botao-salvar.md
+docs/planos/2026-07-02-fix-rebuscar-ids-save-cliente.md
+docs/planos/2026-07-03-mapeamento-vinculos-por-modulo.md

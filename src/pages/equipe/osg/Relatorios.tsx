@@ -1,13 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, CheckCircle2, Circle, ClipboardCheck, FolderArchive, FolderKanban,
-  Landmark, Link2, MinusCircle, PieChart, Plus, Printer, RefreshCw, ScrollText,
-  Search, ShieldAlert, Trash2, User, Users,
+  Building2, Check, ChevronRight, ClipboardCheck, FileText, FolderArchive, FolderKanban,
+  Info, Landmark, Link2, MinusCircle, PieChart, Plus, Printer, RefreshCw, ScrollText,
+  ShieldAlert, Trash2, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -26,8 +25,17 @@ import {
   useAdicionarCondicional, useDefinirStatusItem, useVincularDocumento, useRemoverChecklistItem,
   itemRecebido, type ChecklistClienteRow, type ChecklistPadraoRow,
 } from '@/hooks/useOsgChecklist';
+import { DiagnosticoPatrimonialReport } from '@/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport';
+import { SocietarioReport } from '@/components/equipe/osg/relatorios/SocietarioReport';
+import { FiscalReport } from '@/components/equipe/osg/relatorios/FiscalReport';
+import { GerarApresentacaoMenu } from '@/components/equipe/osg/relatorios/GerarApresentacao';
 
-const RELATORIOS = [{ value: 'checklist-pendentes', label: 'Checklist de Documentos Pendentes' }];
+const RELATORIOS = [
+  { value: 'checklist-pendentes', label: 'Checklist de Documentos Pendentes' },
+  { value: 'dp', label: 'Diagnóstico Patrimonial' },
+  { value: 'societario', label: 'Quadro Societário / Organograma' },
+  { value: 'fiscal', label: 'Abertura de Demanda — Planejamento Tributário' },
+];
 
 const MODULO_ORDER = ['Qualificação das Partes', 'Diagnóstico Patrimonial', 'Quadro Societário', 'EXTRAS POR PROJETO'];
 const MODULO_ICON: Record<string, LucideIcon> = {
@@ -46,6 +54,21 @@ const ENTIDADE_ICON: Record<string, LucideIcon> = {
 };
 const moduloLabel = (m: string) => (m === 'EXTRAS POR PROJETO' ? 'Extras por Projeto' : m);
 
+type GroupMode = 'entidade' | 'documento' | 'modulo';
+// Agrupamento é sempre por entidade (nativo); seções agrupadas por tipo (rótulo de cluster).
+const TIPO_CLUSTER_LABEL: Record<string, string> = {
+  'Pessoa Física': 'Pessoas Físicas',
+  'Pessoa Jurídica': 'Pessoas Jurídicas',
+  'Pessoa Jurídica (Cooperativa)': 'Pessoas Jurídicas',
+  'Matrícula (Imóvel Rural)': 'Imóveis Rurais',
+  'Matrícula (Imóvel Urbano)': 'Imóveis Urbanos',
+  Bem: 'Bens',
+};
+const TIPO_CLUSTER_ORDER = [
+  'Pessoa Física', 'Pessoa Jurídica', 'Pessoa Jurídica (Cooperativa)',
+  'Matrícula (Imóvel Rural)', 'Matrícula (Imóvel Urbano)', 'Bem',
+];
+
 type StatusEfetivo = 'pendente' | 'recebido' | 'dispensado' | 'nao_aplicavel';
 const efetivo = (r: ChecklistClienteRow): StatusEfetivo => {
   if (r.status === 'dispensado') return 'dispensado';
@@ -63,9 +86,12 @@ const Relatorios = () => {
       subtitle="Relatórios da área OSG Work, por cliente"
       headerActions={
         clienteId ? (
-          <Button variant="outline" size="sm" onClick={() => window.print()}>
-            <Printer className="mr-2 h-4 w-4" /> Imprimir
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => window.print()}>
+              <Printer className="mr-2 h-4 w-4" /> Imprimir
+            </Button>
+            <GerarApresentacaoMenu clienteId={clienteId} />
+          </div>
         ) : undefined
       }
     >
@@ -87,6 +113,12 @@ const Relatorios = () => {
           </div>
         ) : relatorio === 'checklist-pendentes' ? (
           <ChecklistPendentes clienteId={clienteId} />
+        ) : relatorio === 'dp' ? (
+          <DiagnosticoPatrimonialReport clienteId={clienteId} />
+        ) : relatorio === 'societario' ? (
+          <SocietarioReport clienteId={clienteId} />
+        ) : relatorio === 'fiscal' ? (
+          <FiscalReport clienteId={clienteId} />
         ) : null}
       </div>
     </OsgLayout>
@@ -108,26 +140,41 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const vincular = useVincularDocumento(clienteId);
   const remover = useRemoverChecklistItem(clienteId);
 
-  const [q, setQ] = useState('');
-  const [filtro, setFiltro] = useState<'pendente' | 'recebido' | 'todos'>('pendente');
-  const [soObrig, setSoObrig] = useState(false);
+  const agruparPor = 'entidade' as GroupMode;
+  const [openState, setOpenState] = useState<Record<string, boolean>>({});
   const [addOpen, setAddOpen] = useState(false);
   const [vincId, setVincId] = useState<string | null>(null);
 
   const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? '';
 
   // Rótulos das instâncias (de quem é o requisito).
-  const { pessoaById, bemLabelById, matriculaLabelById } = useMemo(() => {
+  const { pessoaById, bemLabelById, matriculaById } = useMemo(() => {
     const pById = new Map(pessoas.map((p) => [p.id, p]));
     const bById = new Map(bens.map((b) => [b.id, [b.referencia_dp, b.denominacao].filter(Boolean).join(' — ')]));
-    const mById = new Map(allMatriculas.map((m) => [m.id, `Matrícula ${m.numero}`]));
-    return { pessoaById: pById, bemLabelById: bById, matriculaLabelById: mById };
+    // A matrícula pertence a um imóvel (bem): a entidade é o imóvel; o nº da matrícula é detalhe.
+    const mById = new Map(allMatriculas.map((m) => [
+      m.id,
+      { imovel: m.bem_denominacao || m.bem_referencia || null, numero: m.numero as string | null },
+    ]));
+    return { pessoaById: pById, bemLabelById: bById, matriculaById: mById };
   }, [pessoas, bens, allMatriculas]);
 
   const instanceLabel = (r: ChecklistClienteRow): string | null => {
     if (r.pessoa_id) return pessoaById.get(r.pessoa_id)?.denominacao ?? 'Pessoa';
-    if (r.matricula_id) return matriculaLabelById.get(r.matricula_id) ?? 'Matrícula';
+    if (r.matricula_id) {
+      const m = matriculaById.get(r.matricula_id);
+      return m?.imovel ?? (m?.numero ? `Matrícula ${m.numero}` : 'Imóvel');
+    }
     if (r.bem_id) return bemLabelById.get(r.bem_id) ?? 'Bem';
+    return null;
+  };
+
+  // Detalhe da linha: nº da matrícula, para desambiguar imóveis com mais de uma matrícula.
+  const instanceDetail = (r: ChecklistClienteRow): string | null => {
+    if (r.matricula_id) {
+      const m = matriculaById.get(r.matricula_id);
+      if (m?.imovel && m.numero) return `Mat. ${m.numero}`;
+    }
     return null;
   };
 
@@ -138,42 +185,56 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       if (e === 'recebido') recebidos++;
       else if (e === 'pendente') { pendentes++; if (r.obrigatorio) obrigPend++; }
     }
-    return { total: itens.length, pendentes, recebidos, obrigPend };
+    const base = recebidos + pendentes; // dispensados não entram no %
+    return { total: itens.length, pendentes, recebidos, obrigPend, pct: base ? Math.round((recebidos / base) * 100) : 0 };
   }, [itens]);
 
-  const filtrados = useMemo(() => {
-    const t = q.trim().toLowerCase();
-    return itens.filter((r) => {
-      const e = efetivo(r);
-      if (filtro === 'pendente' && e !== 'pendente') return false;
-      if (filtro === 'recebido' && e !== 'recebido') return false;
-      if (soObrig && !r.obrigatorio) return false;
-      if (t) {
-        const hay = `${r.documento} ${r.nota ?? ''} ${r.entidade} ${instanceLabel(r) ?? ''}`.toLowerCase();
-        if (!hay.includes(t)) return false;
-      }
-      return true;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, filtro, soObrig, q, pessoaById, bemLabelById, matriculaLabelById]);
-
-  const grupos = useMemo(() => {
-    const mods: { modulo: string; entidades: { entidade: string; items: ChecklistClienteRow[] }[] }[] = [];
-    const idx = new Map<string, number>();
-    for (const it of filtrados) {
-      let mi = idx.get(it.modulo);
-      if (mi === undefined) { mi = mods.length; idx.set(it.modulo, mi); mods.push({ modulo: it.modulo, entidades: [] }); }
-      const mod = mods[mi];
-      let ent = mod.entidades.find((e) => e.entidade === it.entidade);
-      if (!ent) { ent = { entidade: it.entidade, items: [] }; mod.entidades.push(ent); }
-      ent.items.push(it);
+  // Agrupamento por dimensão escolhida (Entidade | Tipo de documento | Módulo).
+  type Grupo = { key: string; label: string; tipo: string | null; items: ChecklistClienteRow[] };
+  const grupos = useMemo<Grupo[]>(() => {
+    const map = new Map<string, Grupo>();
+    for (const it of itens) {
+      let key: string, label: string, tipo: string | null;
+      if (agruparPor === 'entidade') { key = instanceLabel(it) ?? it.entidade; label = key; tipo = it.entidade; }
+      else if (agruparPor === 'documento') { key = it.documento; label = it.documento; tipo = null; }
+      else { key = it.modulo; label = moduloLabel(it.modulo); tipo = null; }
+      let g = map.get(key);
+      if (!g) { g = { key, label, tipo, items: [] }; map.set(key, g); }
+      g.items.push(it);
     }
-    mods.sort((a, b) => {
-      const ia = MODULO_ORDER.indexOf(a.modulo), ib = MODULO_ORDER.indexOf(b.modulo);
-      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    const arr = [...map.values()];
+    const hasPend = (g: Grupo) => g.items.some((x) => efetivo(x) === 'pendente');
+    arr.sort((a, b) => {
+      if (agruparPor === 'entidade') {
+        const ia = TIPO_CLUSTER_ORDER.indexOf(a.tipo ?? ''), ib = TIPO_CLUSTER_ORDER.indexOf(b.tipo ?? '');
+        const to = (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); if (to) return to;
+      } else if (agruparPor === 'modulo') {
+        const ia = MODULO_ORDER.indexOf(a.key), ib = MODULO_ORDER.indexOf(b.key);
+        const to = (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); if (to) return to;
+      }
+      if (hasPend(a) !== hasPend(b)) return hasPend(a) ? -1 : 1;
+      return a.label.localeCompare(b.label, 'pt-BR');
     });
-    return mods;
-  }, [filtrados]);
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itens, agruparPor, pessoaById, bemLabelById, matriculaById]);
+
+  const iconForGroup = (g: Grupo): LucideIcon =>
+    agruparPor === 'documento' ? FileText
+      : agruparPor === 'modulo' ? (MODULO_ICON[g.key] ?? ClipboardCheck)
+        : (ENTIDADE_ICON[g.tipo ?? ''] ?? ClipboardCheck);
+
+  // Texto de cada linha muda conforme a dimensão de agrupamento (a seção já dá o contexto).
+  const rowTexts = (it: ChecklistClienteRow): { primary: string; context: string | null } => {
+    const det = instanceDetail(it);
+    if (agruparPor === 'entidade') return { primary: it.documento, context: det };
+    if (agruparPor === 'documento') {
+      const inst = instanceLabel(it);
+      return { primary: inst ?? it.entidade, context: det ?? (inst ? it.entidade : null) };
+    }
+    const inst = instanceLabel(it);
+    return { primary: it.documento, context: [inst ?? it.entidade, det].filter(Boolean).join(' · ') || null };
+  };
 
   const vincItem = vincId ? itens.find((i) => i.id === vincId) ?? null : null;
 
@@ -200,6 +261,48 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     );
   }
 
+  const renderPanel = (g: Grupo) => {
+    const Icon = iconForGroup(g);
+    const pendN = g.items.filter((x) => efetivo(x) === 'pendente').length;
+    const opened = openState[g.key] ?? false; // recolhido por padrão
+    const items = g.items.slice().sort((a, b) => (efetivo(a) === 'pendente' ? 0 : 1) - (efetivo(b) === 'pendente' ? 0 : 1));
+    return (
+      <div key={g.key} className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
+        <button
+          type="button"
+          onClick={() => setOpenState((s) => ({ ...s, [g.key]: !(s[g.key] ?? false) }))}
+          className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-osg-50/40"
+        >
+          <Icon className="h-4 w-4 shrink-0 text-slate-400" />
+          <h3 className="min-w-0 truncate text-sm font-semibold text-slate-800">{g.label}</h3>
+          <div className="ml-auto flex shrink-0 items-center gap-2.5">
+            {pendN === 0 ? <Pill tone="ok">Completo</Pill> : <Pill tone="pend">{pendN} pendente{pendN > 1 ? 's' : ''}</Pill>}
+            <ChevronRight className={cn('h-4 w-4 text-slate-300 transition-transform', opened && 'rotate-90')} />
+          </div>
+        </button>
+        {opened && (
+          <ul className="divide-y divide-osg-100 border-t border-osg-100">
+            {items.map((it) => {
+              const rt = rowTexts(it);
+              return (
+                <ItemRow
+                  key={it.id}
+                  it={it}
+                  primary={rt.primary}
+                  context={rt.context}
+                  onVincular={() => setVincId(it.id)}
+                  onDispensar={() => setStatus.mutate({ id: it.id, status: 'dispensado' })}
+                  onReativar={() => setStatus.mutate({ id: it.id, status: 'pendente' })}
+                  onRemover={() => remover.mutate(it.id)}
+                />
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -210,92 +313,47 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           <Button variant="outline" size="sm" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
             <RefreshCw className={cn('mr-2 h-4 w-4', gerar.isPending && 'animate-spin')} /> Atualizar
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Condicional
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Adicionar documento
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Contador label="Pendentes" valor={totais.pendentes} tone="pend" />
-        <Contador label="Obrigatórios pendentes" valor={totais.obrigPend} tone="obrig" />
-        <Contador label="Recebidos" valor={totais.recebidos} tone="ok" />
-        <Contador label="Total no checklist" valor={totais.total} tone="neutro" />
+      <ResumoStrip {...totais} />
+
+      <div className="space-y-2.5">
+        {agruparPor === 'entidade'
+          ? (() => {
+              const tipoCount: Record<string, number> = {};
+              grupos.forEach((g) => { const t = g.tipo ?? ''; tipoCount[t] = (tipoCount[t] ?? 0) + 1; });
+              const out: ReactNode[] = [];
+              let last: string | null | undefined;
+              grupos.forEach((g) => {
+                if (g.tipo !== last) {
+                  last = g.tipo;
+                  out.push(
+                    <div key={`c:${g.tipo}`} className="flex items-center gap-2 px-1 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-slate-400 first:pt-1">
+                      {TIPO_CLUSTER_LABEL[g.tipo ?? ''] ?? g.tipo}
+                      <span className="rounded-full bg-slate-100 px-2 text-[11px] font-bold tabular-nums text-slate-500">{tipoCount[g.tipo ?? '']}</span>
+                    </div>,
+                  );
+                }
+                out.push(renderPanel(g));
+              });
+              return out;
+            })()
+          : grupos.map(renderPanel)}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar documento, nota ou de quem…" className="pl-9" />
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-sm">
-            {([
-              { k: 'pendente', label: `Pendentes (${totais.pendentes})` },
-              { k: 'recebido', label: `Recebidos (${totais.recebidos})` },
-              { k: 'todos', label: `Todos (${totais.total})` },
-            ] as { k: typeof filtro; label: string }[]).map(({ k, label }) => (
-              <button key={k} type="button" onClick={() => setFiltro(k)}
-                className={cn('rounded-md px-3 py-1.5 font-medium transition-colors',
-                  filtro === k ? 'bg-background text-osg-700 shadow-sm' : 'text-slate-500 hover:text-osg-700')}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <button type="button" onClick={() => setSoObrig((v) => !v)}
-            className={cn('rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
-              soObrig ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-500 hover:text-osg-700')}>
-            Só obrigatórios
-          </button>
-        </div>
+      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <span>
+          Todo documento listado é <b className="font-semibold text-slate-600">necessário</b> para este cliente
+          (obrigatórios do padrão + condicionais). A etiqueta indica se já foi{' '}
+          <b className="font-semibold text-slate-600">recebido</b> ou está{' '}
+          <b className="font-semibold text-slate-600">pendente</b>. Clique numa seção para expandir.
+        </span>
       </div>
-
-      {grupos.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-slate-300 py-16 text-center text-sm text-muted-foreground">
-          Nenhum documento corresponde ao filtro.
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {grupos.map((g) => {
-            const MIcon = MODULO_ICON[g.modulo] ?? ClipboardCheck;
-            const count = g.entidades.reduce((n, e) => n + e.items.length, 0);
-            return (
-              <section key={g.modulo} className="overflow-hidden rounded-xl border border-osg-200 bg-background">
-                <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/70 px-4 py-2.5">
-                  <MIcon className="h-4 w-4 text-osg-600" />
-                  <h3 className="text-sm font-semibold text-osg-800">{moduloLabel(g.modulo)}</h3>
-                  <span className="rounded-full bg-osg-100 px-2 text-xs font-medium tabular-nums text-osg-700">{count}</span>
-                </header>
-                <div className="divide-y divide-slate-100">
-                  {g.entidades.map((ent) => {
-                    const EIcon = ENTIDADE_ICON[ent.entidade] ?? ClipboardCheck;
-                    return (
-                      <div key={ent.entidade}>
-                        <div className="flex items-center gap-2 bg-slate-50/60 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                          <EIcon className="h-3.5 w-3.5" /> {ent.entidade}
-                        </div>
-                        <ul className="divide-y divide-slate-100">
-                          {ent.items.map((it) => (
-                            <ItemRow
-                              key={it.id}
-                              it={it}
-                              instanceLabel={instanceLabel(it)}
-                              onVincular={() => setVincId(it.id)}
-                              onDispensar={() => setStatus.mutate({ id: it.id, status: 'dispensado' })}
-                              onReativar={() => setStatus.mutate({ id: it.id, status: 'pendente' })}
-                              onRemover={() => remover.mutate(it.id)}
-                            />
-                          ))}
-                        </ul>
-                      </div>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
-        </div>
-      )}
 
       {/* Dialog: vincular documento existente ao item */}
       <Dialog open={!!vincItem} onOpenChange={(o) => !o && setVincId(null)}>
@@ -345,17 +403,18 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         pessoas={pessoas}
         bens={bens}
         matriculas={allMatriculas.filter((m) => m.bem_cliente_id === clienteId || m.titular_cliente_ids.includes(clienteId))}
-        onConfirm={(args) => { addCond.mutate(args); setAddOpen(false); }}
+        onConfirm={(list) => { list.forEach((a) => addCond.mutate(a)); setAddOpen(false); }}
       />
     </div>
   );
 }
 
 function ItemRow({
-  it, instanceLabel, onVincular, onDispensar, onReativar, onRemover,
+  it, primary, context, onVincular, onDispensar, onReativar, onRemover,
 }: {
   it: ChecklistClienteRow;
-  instanceLabel: string | null;
+  primary: string;
+  context: string | null;
   onVincular: () => void;
   onDispensar: () => void;
   onReativar: () => void;
@@ -364,21 +423,18 @@ function ItemRow({
   const e = efetivo(it);
   return (
     <li className="flex items-start gap-3 px-4 py-3">
-      <StatusIcon estado={e} />
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className={cn('font-medium', e === 'recebido' || e === 'dispensado' ? 'text-slate-500' : 'text-slate-800')}>
-            {it.documento}
+            {primary}
           </span>
-          {instanceLabel && (
-            <span className="rounded-full bg-osg-50 px-2 py-0.5 text-[11px] font-medium text-osg-700">{instanceLabel}</span>
-          )}
+          {context && <span className="text-xs text-slate-400">· {context}</span>}
           <ObrigBadge obrigatorio={it.obrigatorio} />
           {it.origem === 'manual' && (
-            <span className="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-medium text-violet-700">manual</span>
+            <span className="rounded-full bg-osg-100 px-2 py-0.5 text-[11px] font-medium text-osg-700">manual</span>
           )}
           {it.confidencial && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-[11px] font-medium text-orange-700">
+            <span className="inline-flex items-center gap-1 rounded-full bg-osg-red/10 px-2 py-0.5 text-[11px] font-medium text-osg-red">
               <ShieldAlert className="h-3 w-3" /> Confidencial
             </span>
           )}
@@ -394,6 +450,11 @@ function ItemRow({
         )}
         {e === 'dispensado' && <p className="mt-1 text-[11px] text-slate-500">Dispensado para este cliente.</p>}
       </div>
+      {e === 'recebido'
+        ? <Pill tone="ok">Recebido</Pill>
+        : e === 'pendente'
+          ? <Pill tone="pend">Pendente</Pill>
+          : <Pill tone="neutral">Dispensado</Pill>}
       <div className="flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="sm" onClick={onVincular} title="Vincular documento">
           <Link2 className="h-4 w-4" />
@@ -426,14 +487,14 @@ function AddCondicionalDialog({
   pessoas: { id: string; denominacao: string | null; tipo_pessoa: string }[];
   bens: { id: string; referencia_dp: string; denominacao: string }[];
   matriculas: { id: string; numero: string }[];
-  onConfirm: (args: { padrao: ChecklistPadraoRow; pessoaId?: string | null; bemId?: string | null; matriculaId?: string | null }) => void;
+  onConfirm: (args: Array<{ padrao: ChecklistPadraoRow; pessoaId?: string | null; bemId?: string | null; matriculaId?: string | null }>) => void;
 }) {
   const condicionais = useMemo(
     () => padrao.filter((p) => !p.obrigatorio_default).sort((a, b) => a.ordem - b.ordem),
     [padrao],
   );
   const [padraoId, setPadraoId] = useState<string>('');
-  const [instId, setInstId] = useState<string>('');
+  const [instIds, setInstIds] = useState<string[]>([]);
   const sel = condicionais.find((p) => p.id === padraoId) ?? null;
   const gran = sel?.granularidade ?? 'cliente';
 
@@ -445,29 +506,32 @@ function AddCondicionalDialog({
     return [];
   }, [gran, pessoas, bens, matriculas]);
 
+  const toggleInst = (id: string) => setInstIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  const argFor = (id: string) => {
+    const a: { padrao: ChecklistPadraoRow; pessoaId?: string | null; bemId?: string | null; matriculaId?: string | null } = { padrao: sel! };
+    if (gran === 'pessoa_pf' || gran === 'pessoa_pj') a.pessoaId = id;
+    else if (gran === 'matricula_rural' || gran === 'matricula_urbana') a.matriculaId = id;
+    else if (gran === 'bem') a.bemId = id;
+    return a;
+  };
+  const reset = () => { setPadraoId(''); setInstIds([]); };
   const confirmar = () => {
     if (!sel) return;
-    const arg: { padrao: ChecklistPadraoRow; pessoaId?: string | null; bemId?: string | null; matriculaId?: string | null } = { padrao: sel };
-    if (instId) {
-      if (gran === 'pessoa_pf' || gran === 'pessoa_pj') arg.pessoaId = instId;
-      else if (gran === 'matricula_rural' || gran === 'matricula_urbana') arg.matriculaId = instId;
-      else if (gran === 'bem') arg.bemId = instId;
-    }
-    onConfirm(arg);
-    setPadraoId(''); setInstId('');
+    onConfirm(instIds.length ? instIds.map(argFor) : [{ padrao: sel }]);
+    reset();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setPadraoId(''); setInstId(''); } }}>
+    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) reset(); }}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Adicionar condicional</DialogTitle>
-          <DialogDescription>Escolha um documento condicional do catálogo para incluir no checklist deste cliente.</DialogDescription>
+          <DialogTitle>Adicionar documento</DialogTitle>
+          <DialogDescription>Escolha um documento condicional do catálogo e, se quiser, aplique a várias entidades de uma vez.</DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Documento</Label>
-            <Select value={padraoId} onValueChange={(v) => { setPadraoId(v); setInstId(''); }}>
+            <Select value={padraoId} onValueChange={(v) => { setPadraoId(v); setInstIds([]); }}>
               <SelectTrigger><SelectValue placeholder="Selecione o condicional…" /></SelectTrigger>
               <SelectContent>
                 {condicionais.map((p) => (
@@ -478,52 +542,101 @@ function AddCondicionalDialog({
           </div>
           {sel && instOpts.length > 0 && (
             <div className="space-y-1.5">
-              <Label className="text-xs">Aplicar a (opcional)</Label>
-              <Select value={instId} onValueChange={setInstId}>
-                <SelectTrigger><SelectValue placeholder="Instância específica…" /></SelectTrigger>
-                <SelectContent>
-                  {instOpts.map((o) => <SelectItem key={o.id} value={o.id}>{o.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Aplicar a (pode marcar vários)</Label>
+                <div className="flex gap-3 text-[11px]">
+                  <button type="button" className="font-medium text-osg-700 hover:underline" onClick={() => setInstIds(instOpts.map((o) => o.id))}>Todas</button>
+                  <button type="button" className="text-slate-500 hover:underline" onClick={() => setInstIds([])}>Limpar</button>
+                </div>
+              </div>
+              <div className="max-h-48 space-y-1 overflow-y-auto rounded-md border border-slate-200 p-1">
+                {instOpts.map((o) => {
+                  const on = instIds.includes(o.id);
+                  return (
+                    <button
+                      key={o.id}
+                      type="button"
+                      onClick={() => toggleInst(o.id)}
+                      className={cn('flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm transition-colors',
+                        on ? 'bg-osg-50 text-osg-800' : 'text-slate-700 hover:bg-slate-50')}
+                    >
+                      <span className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded border',
+                        on ? 'border-osg-moss bg-osg-moss text-white' : 'border-slate-300')}>
+                        {on && <Check className="h-3 w-3" />}
+                      </span>
+                      {o.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-muted-foreground">Sem marcar nenhuma, adiciona um único item genérico.</p>
             </div>
           )}
           {sel?.nota && <p className="text-xs text-muted-foreground">{sel.nota}</p>}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={confirmar} disabled={!sel}>Adicionar</Button>
+          <Button onClick={confirmar} disabled={!sel}>
+            Adicionar{instIds.length > 1 ? ` (${instIds.length})` : ''}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-function Contador({ label, valor, tone }: { label: string; valor: number; tone: 'pend' | 'obrig' | 'ok' | 'neutro' }) {
-  const toneCls = {
-    pend: 'border-rose-200 bg-rose-50 text-rose-800',
-    obrig: 'border-amber-200 bg-amber-50 text-amber-800',
-    ok: 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    neutro: 'border-slate-200 bg-background text-slate-700',
-  }[tone];
+// Tira de resumo sóbria (substitui os cards KPI): Pendentes + Recebidos com barra de progresso.
+function ResumoStrip({ pendentes, recebidos, total, pct, obrigPend }: {
+  pendentes: number; recebidos: number; total: number; pct: number; obrigPend: number;
+}) {
   return (
-    <div className={cn('rounded-xl border px-4 py-3', toneCls)}>
-      <div className="text-2xl font-bold tabular-nums leading-none">{valor}</div>
-      <div className="mt-1 text-xs font-medium opacity-80">{label}</div>
+    <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
+      <div className="flex-1 px-5 py-3.5 max-sm:border-b max-sm:border-osg-100 sm:border-r sm:border-osg-100">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span className="h-2 w-2 rounded-sm bg-amber-500" /> Pendentes
+        </div>
+        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+          {pendentes} <span className="text-[13px] font-normal text-slate-500">de {total} documentos</span>
+        </div>
+        <div className="mt-0.5 text-xs text-slate-500">
+          {obrigPend > 0
+            ? `${obrigPend} obrigatório${obrigPend > 1 ? 's' : ''} · aguardando envio do cliente`
+            : 'aguardando envio do cliente'}
+        </div>
+      </div>
+      <div className="flex-1 px-5 py-3.5">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <span className="h-2 w-2 rounded-sm bg-osg-moss" /> Recebidos
+        </div>
+        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+          {recebidos} <span className="text-[13px] font-normal text-slate-500">· {pct}%</span>
+        </div>
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+          <span className="block h-full rounded-full bg-osg-moss" style={{ width: `${pct}%` }} />
+        </div>
+      </div>
     </div>
   );
 }
 
-function StatusIcon({ estado }: { estado: StatusEfetivo }) {
-  if (estado === 'recebido') return <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-label="Recebido" />;
-  if (estado === 'dispensado' || estado === 'nao_aplicavel') return <MinusCircle className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-label="Dispensado" />;
-  return <Circle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" aria-label="Pendente" />;
+function Pill({ tone, children }: { tone: 'ok' | 'pend' | 'neutral'; children: ReactNode }) {
+  const cls = {
+    ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    pend: 'border-amber-200 bg-amber-50 text-amber-700',
+    neutral: 'border-slate-200 bg-slate-50 text-slate-600',
+  }[tone];
+  return (
+    <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>
+      {children}
+    </span>
+  );
 }
 
 function ObrigBadge({ obrigatorio }: { obrigatorio: boolean }) {
   return obrigatorio ? (
-    <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">Obrigatório</span>
+    <span className="inline-flex items-center rounded-full border border-osg-200 bg-osg-50 px-2 py-0.5 text-[11px] font-medium text-osg-700">Obrigatório</span>
   ) : (
-    <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Condicional</span>
+    <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-500">Condicional</span>
   );
 }
 
