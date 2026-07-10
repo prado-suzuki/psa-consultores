@@ -8359,6 +8359,7 @@ export type Database = {
         Args: { _project_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_ticket: { Args: { _ticket_id: string }; Returns: boolean }
       cliente_id_de_bem: { Args: { _bem_id: string }; Returns: string }
       cliente_id_de_matricula: {
         Args: { _matricula_id: string }
