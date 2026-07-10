@@ -74,16 +74,19 @@ export default function EquipeDetalhesChamado() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Validate that the ticket is assigned to the current user
+  // A RLS já decide quem enxerga o chamado (assigned, líder de cluster,
+  // membro do cliente etc.). Se o hook não retornou o ticket após o load,
+  // é porque o usuário não tem acesso ou o id é inválido.
   useEffect(() => {
-    if (ticket && user && ticket.assigned_to !== user.id) {
+    if (!loading && id && !ticket) {
       toast({
-        title: 'Acesso negado',
-        description: 'Este chamado não está atribuído a você.',
+        title: 'Chamado indisponível',
+        description: 'Você não tem acesso a este chamado ou ele não existe.',
         variant: 'destructive',
       });
       navigate('/equipe/chamados');
     }
-  }, [ticket, user, navigate]);
+  }, [loading, ticket, id, navigate]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
