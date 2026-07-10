@@ -1,42 +1,29 @@
-## Fix: team_member não muda status pelo modal (normalizar '' → null no diff)
+## Fix: preservar `actual_hours` no submit do TaskModal
 
-Arquivo único: `src/hooks/useOrgTasks.ts`, dentro de `useUpdateOrgTask` (bloco `changedOnly`, ~linhas 213-224).
+Arquivo único: `src/components/equipe/fiscal/tasks/TaskModal.tsx`, linhas 323-325.
 
 ### Mudança
-Adicionar helper `normEmpty` e usá-lo tanto na comparação quanto no valor enviado ao `.update()`, para que strings vazias vindas do TaskModal (`project_id: ''`, `department: ''`, `estimated_hours: ''`) igualem `NULL` do banco e não entrem no payload.
+Trocar a atribuição condicional de `actual_hours` (que força `null` sempre que `status !== 'done'`) por uma normalização simples que só converte string vazia/undefined em `null`:
 
 ```ts
-const normEmpty = (v: unknown) => (v === '' || v === undefined ? null : v);
-
-const changedOnly: Record<string, unknown> = {};
-if (current) {
-  for (const key of Object.keys(updates)) {
-    if (key === 'id') continue;
-    const oldVal = normEmpty((current as any)[key]);
-    const newVal = normEmpty((updates as any)[key]);
-    if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-      changedOnly[key] = newVal; // envia null, nunca ''
-    }
-  }
-} else {
-  Object.assign(changedOnly, updates);
-}
-
-if (Object.keys(changedOnly).length === 0) {
-  return current;
-}
+actual_hours: (values.actual_hours === '' || values.actual_hours == null)
+  ? null
+  : Number(values.actual_hours),
 ```
 
-O bloco `changedFields` (audit log) abaixo permanece; opcionalmente aplico o mesmo `normEmpty` ali para o diff do log ficar coerente (old/new com `null` em vez de `''`), sem mudar o contrato do log.
-
 ### Efeito
-- Modal envia só `{status}` quando só o status mudou → trigger `org_tasks_team_member_status_only` permite.
-- Ao esvaziar de fato um campo, vai `null` (tipo correto para uuid/numeric), evitando erro de cast.
-- Kanban/inline continuam iguais (já mandavam poucos campos).
+- Mover uma tarefa `done` (com horas) para `review`/outro status: `actual_hours` sai igual ao banco → `normEmpty` no `useUpdateOrgTask` mantém o campo fora do diff → payload vira `{status}` → trigger `org_tasks_team_member_status_only` permite team_member.
+- Nenhum líder/admin apaga silenciosamente horas realizadas ao mudar status.
+- Alterar de fato as horas continua enviando o novo valor (bloqueado para team_member pelo trigger, como esperado).
 
 ### Fora de escopo
-Nada de SQL, policies, triggers, outros hooks ou o TaskModal.
+SQL, policies, trigger RLS-06, `normEmpty` no hook (já aplicado), Kanban, dropdown inline, outros hooks.
 
-### Verificação
-- `tsgo` para tipagem.
-- Manual: team_member dono → abre modal, muda só status para "Revisão", Salvar → OK. Muda responsável → bloqueado como esperado.
+### Verificação prévia (efeito colateral)
+Antes de aplicar, buscar usos de `actual_hours` no frontend (relatórios, dashboards de sprint, performance) para confirmar que nenhuma tela assume `actual_hours = null` quando `status !== 'done'`. Horas realizadas são histórico e devem persistir; se algum relatório depender dessa suposição, reportar antes de mexer.
+
+### Verificação pós-fix
+1. team_member (Anderson) abre no modal uma tarefa dele `done` com `actual_hours != null`, muda só o status para `review`, Salvar → sucesso; `actual_hours` permanece.
+2. Mesmo team_member tenta trocar responsável ou editar `actual_hours` → bloqueado (regra intacta).
+3. Kanban (drag) e dropdown inline da tabela → seguem funcionando.
+4. `tsgo` limpo.
