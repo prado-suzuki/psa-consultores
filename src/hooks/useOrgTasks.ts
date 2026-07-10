@@ -257,8 +257,8 @@ export interface TaskFilters {
          if (current) {
            for (const key of Object.keys(updates)) {
              if (key === 'id') continue;
-             const oldVal = (current as any)[key] ?? null;
-             const newVal = (updates as any)[key] ?? null;
+              const oldVal = normEmpty((current as any)[key]);
+              const newVal = normEmpty((updates as any)[key]);
              if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
                changedFields[key] = { old: oldVal, new: newVal };
              }
