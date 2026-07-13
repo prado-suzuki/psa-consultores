@@ -4435,6 +4435,7 @@ export type Database = {
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          reviewer_id: string | null
           servico_id: string | null
           start_date: string | null
           status: Database["public"]["Enums"]["fiscal_task_status"]
@@ -4466,6 +4467,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
@@ -4497,6 +4499,7 @@ export type Database = {
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
+          reviewer_id?: string | null
           servico_id?: string | null
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
@@ -4566,6 +4569,20 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_reviewer_id_fkey"
+            columns: ["reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8606,6 +8623,7 @@ export type Database = {
         | "todo"
         | "in_progress"
         | "review"
+        | "em_ajuste"
         | "done"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
@@ -8820,6 +8838,7 @@ export const Constants = {
         "todo",
         "in_progress",
         "review",
+        "em_ajuste",
         "done",
       ],
       osg_checklist_origem: ["padrao", "manual"],
