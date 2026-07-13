@@ -1,29 +1,74 @@
-## Fix: preservar `actual_hours` no submit do TaskModal
+## RLS-06 — liberar `estimated_hours` e `actual_hours` para team_member
 
-Arquivo único: `src/components/equipe/fiscal/tasks/TaskModal.tsx`, linhas 323-325.
+### Passo 1 — Pré-voo (já executado)
 
-### Mudança
-Trocar a atribuição condicional de `actual_hours` (que força `null` sempre que `status !== 'done'`) por uma normalização simples que só converte string vazia/undefined em `null`:
+Trigger `trg_org_tasks_team_member_status_only` em `public.org_tasks` (BEFORE UPDATE, FOR EACH ROW) executa `public.org_tasks_team_member_status_only()`. Corpo atual:
 
-```ts
-actual_hours: (values.actual_hours === '' || values.actual_hours == null)
-  ? null
-  : Number(values.actual_hours),
+```sql
+CREATE OR REPLACE FUNCTION public.org_tasks_team_member_status_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF public.has_role_or_higher(auth.uid(),'sublider'::app_role) THEN
+    RETURN NEW;
+  END IF;
+  IF (to_jsonb(NEW) - 'status' - 'updated_at') IS DISTINCT FROM (to_jsonb(OLD) - 'status' - 'updated_at') THEN
+    RAISE EXCEPTION 'team_member só pode alterar o status da própria tarefa (RLS-06)'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END; $function$
 ```
 
-### Efeito
-- Mover uma tarefa `done` (com horas) para `review`/outro status: `actual_hours` sai igual ao banco → `normEmpty` no `useUpdateOrgTask` mantém o campo fora do diff → payload vira `{status}` → trigger `org_tasks_team_member_status_only` permite team_member.
-- Nenhum líder/admin apaga silenciosamente horas realizadas ao mudar status.
-- Alterar de fato as horas continua enviando o novo valor (bloqueado para team_member pelo trigger, como esperado).
+Existe também o trigger inofensivo `update_org_tasks_updated_at` (função `update_updated_at_column`) — não será tocado.
+
+O padrão `to_jsonb(NEW) - 'status' - 'updated_at'` está presente → prosseguir com o Passo 2.
+
+### Passo 2 — Correção cirúrgica
+
+`CREATE OR REPLACE FUNCTION` com nome, linguagem, `SECURITY DEFINER`, `search_path`, retorno, condição de papel e mensagem idênticos. Única mudança: acrescentar `- 'estimated_hours' - 'actual_hours'` nos dois lados (NEW e OLD) da comparação `to_jsonb(...)`. Nenhuma policy alterada.
+
+Corpo final que será instalado:
+
+```sql
+CREATE OR REPLACE FUNCTION public.org_tasks_team_member_status_only()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+BEGIN
+  IF public.has_role_or_higher(auth.uid(),'sublider'::app_role) THEN
+    RETURN NEW;
+  END IF;
+  IF (to_jsonb(NEW) - 'status' - 'updated_at' - 'estimated_hours' - 'actual_hours')
+     IS DISTINCT FROM
+     (to_jsonb(OLD) - 'status' - 'updated_at' - 'estimated_hours' - 'actual_hours') THEN
+    RAISE EXCEPTION 'team_member só pode alterar o status da própria tarefa (RLS-06)'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END; $function$
+```
+
+### Passo 3 — GATE fail-safe
+
+Rodado como parte da mesma migration (bloco `DO $$ ... $$`), impersonando João Cruz (`2d1c60f5-ed90-40cd-a361-bb56ba3e1686`) na tarefa `7779a346-5fba-4bd2-9f05-a84bdd198898`:
+
+- **TESTE 1** — `UPDATE ... SET status, estimated_hours, actual_hours` deve passar (rollback via `RAISE EXCEPTION 'GATE_OK_1'`).
+- **TESTE 2** — `UPDATE ... SET title = title || ' [gate]'` deve continuar bloqueado pelo trigger.
+
+Qualquer falha em qualquer teste aborta a migration inteira (transação atômica do Supabase) → função volta ao estado anterior automaticamente.
+
+### Entrega no chat pós-execução
+
+1. Saída do Passo 1 (já acima).
+2. Corpo final instalado (via `pg_get_functiondef` após a migration).
+3. Resultado do GATE (`NOTICE "GATE OK ..."` ou o erro que abortou).
 
 ### Fora de escopo
-SQL, policies, trigger RLS-06, `normEmpty` no hook (já aplicado), Kanban, dropdown inline, outros hooks.
 
-### Verificação prévia (efeito colateral)
-Antes de aplicar, buscar usos de `actual_hours` no frontend (relatórios, dashboards de sprint, performance) para confirmar que nenhuma tela assume `actual_hours = null` quando `status !== 'done'`. Horas realizadas são histórico e devem persistir; se algum relatório depender dessa suposição, reportar antes de mexer.
-
-### Verificação pós-fix
-1. team_member (Anderson) abre no modal uma tarefa dele `done` com `actual_hours != null`, muda só o status para `review`, Salvar → sucesso; `actual_hours` permanece.
-2. Mesmo team_member tenta trocar responsável ou editar `actual_hours` → bloqueado (regra intacta).
-3. Kanban (drag) e dropdown inline da tabela → seguem funcionando.
-4. `tsgo` limpo.
+Policies de SELECT/INSERT/UPDATE/DELETE em `org_tasks`, `normEmpty` no hook, TaskModal, Kanban, dropdown inline, RLS-11 (dashboards).
