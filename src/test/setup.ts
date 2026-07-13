@@ -2,6 +2,12 @@ import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
+// jsdom não implementa scrollIntoView — o Select (dropdown custom) chama ao abrir.
+// No-op para os testes que interagem com listas suspensas.
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => {};
+}
+
 // Polyfill de Web Storage em memória.
 //
 // No Node 24+ a Web Storage API nativa vem ligada por padrão e define um global

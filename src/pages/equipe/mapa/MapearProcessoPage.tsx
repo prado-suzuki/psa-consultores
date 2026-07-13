@@ -24,6 +24,8 @@ import { dica } from '@/utils/tooltips';
 import { toast } from 'sonner';
 import type { Etapa, DocRef, ResponsavelEtapa } from '@/types';
 import { enrichEtapas } from '@/utils/enrichEtapas';
+import { etapaMudou } from '@/utils/etapaMudou';
+import { resolveVinculoId, resolveSistemaId } from '@/utils/etapaVinculosResolve';
 import { formatDecimal } from '@/utils/format';
 import { generateSOP, generateSOPComparativo } from '@/utils/pdf/generators';
 import { calcularRoi } from '@/utils/roiCalculator';
@@ -71,23 +73,6 @@ function melhoriaLabel(desc: string): string {
   const i = desc.indexOf(' — ');
   if (i > 0) return desc.slice(0, i).trim();
   return desc.length > 50 ? `${desc.slice(0, 50)}…` : desc;
-}
-
-// Compara uma etapa contra seu estado original (mesmo id) para decidir se há
-// algo a gravar. Evita re-salvar (e reconciliar destrutivamente as junções) de
-// etapas que o usuário não tocou — a causa do "horas zeradas em cascata".
-function etapaMudou(a: Etapa | undefined, b: Etapa): boolean {
-  if (!a) return true;
-  const campos: (keyof Etapa)[] = ['name', 'description', 'execution', 'stage_order',
-    'volume_per_process', 'error_rate', 'rework_rate'];
-  if (campos.some(k => (a[k] ?? null) !== (b[k] ?? null))) return true;
-  const docsKey = (xs?: DocRef[]) => JSON.stringify((xs || []).map(x => [x.documentoId ?? x.nome, x.volume ?? 0]).sort());
-  const respKey = (xs?: ResponsavelEtapa[]) => JSON.stringify((xs || []).map(x => [x.responsavelId ?? x.nome, x.horas ?? 0]).sort());
-  if (docsKey(a.docsEntrada) !== docsKey(b.docsEntrada)) return true;
-  if (docsKey(a.docsSaida) !== docsKey(b.docsSaida)) return true;
-  if (respKey(a.executadoPor) !== respKey(b.executadoPor)) return true;
-  if (JSON.stringify([...(a.sistemas || [])].sort()) !== JSON.stringify([...(b.sistemas || [])].sort())) return true;
-  return false;
 }
 
 // Rascunho do editor de etapas salvo em localStorage (anti-perda de dados).
@@ -408,33 +393,13 @@ export default function MapearProcessoPage() {
     setEditEtapasDirty(true);
   };
 
-  // Resolve o id de um vínculo a partir do nome exibido:
-  //  - sem nome → mantém o id atual (vínculo real ainda não resolvido; não dropar);
-  //  - id atual ainda casa com o nome → mantém (evita colisão entre homônimos de clusters diferentes);
-  //  - nome mudou → resolve por nome (undefined faz o sync exigir cadastro, em vez de
-  //    religar silenciosamente ao id antigo).
-  const resolveId = (
-    nome: string | undefined,
-    curId: string | undefined,
-    byNome: Map<string, string>,
-    byId: Map<string, string>,
-  ): string | undefined => {
-    if (!nome?.trim()) return curId;
-    if (curId && byId.get(curId) === nome) return curId;
-    return byNome.get(nome);
-  };
-  // Sistema não carrega id no editor (enrich resolve p/ nome) → escolhe o candidato do cluster do processo.
-  const resolverSistemaId = (nome: string): string => {
-    const cands = sisCandidatosPorNome.get(nome);
-    if (!cands || cands.length === 0) return nome;
-    return (cands.find(c => c.cluster_id === procClusterId) ?? cands.find(c => !c.cluster_id) ?? cands[0]).id;
-  };
+  // Resolução nome→id dos vínculos no save (helpers puros em @/utils/etapaVinculosResolve).
   const resolverVinculos = (e: Etapa): Etapa => ({
     ...e,
-    docsEntrada: (e.docsEntrada || []).map(d => ({ ...d, documentoId: resolveId(d.nome, d.documentoId, docIdByNome, docById) })),
-    docsSaida: (e.docsSaida || []).map(d => ({ ...d, documentoId: resolveId(d.nome, d.documentoId, docIdByNome, docById) })),
-    executadoPor: (e.executadoPor || []).map(r => ({ ...r, responsavelId: resolveId(r.nome, r.responsavelId, respIdByNome, respById) })),
-    sistemas: (e.sistemas || []).map(s => resolverSistemaId(s)),
+    docsEntrada: (e.docsEntrada || []).map(d => ({ ...d, documentoId: resolveVinculoId(d.nome, d.documentoId, docIdByNome, docById) })),
+    docsSaida: (e.docsSaida || []).map(d => ({ ...d, documentoId: resolveVinculoId(d.nome, d.documentoId, docIdByNome, docById) })),
+    executadoPor: (e.executadoPor || []).map(r => ({ ...r, responsavelId: resolveVinculoId(r.nome, r.responsavelId, respIdByNome, respById) })),
+    sistemas: (e.sistemas || []).map(s => resolveSistemaId(s, sisCandidatosPorNome, procClusterId)),
   });
 
   const handleSaveEtapas = async () => {

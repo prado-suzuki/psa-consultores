@@ -1,10 +1,14 @@
 // Form unificado de Processo (criar/editar) — padrão "Cadastro Puro".
 // `processo === null` ⇒ criação; caso contrário, edição pré-preenchida.
-// Usa a MESMA casca do ProcessoDetalheModal (cabeçalho fixo com identidade +
-// ações no topo, corpo rolável) para os dois modais conversarem visualmente.
 // O mapeamento de etapas/ROI vive em /processos/:id/mapear — aqui só metadados.
+//
+// Padrão-ouro: react-hook-form + zod + UPDATE por DIFF (só os campos alterados).
+// O processo HERDA o cluster do projeto (no create e quando o projeto muda).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
@@ -27,46 +31,51 @@ interface Props {
   onClose: () => void;
 }
 
+const schema = z.object({
+  nome: z.string().trim().min(1, 'Preencha o nome do processo.'),
+  projetoId: z.string().min(1, 'Vincule o processo a um projeto.'),
+  descricao: z.string(),
+  volumeAnual: z.string(),
+  statusAvaliacao: z.string(),
+  complexidade: z.string(),
+});
+type FormValues = z.infer<typeof schema>;
+const EMPTY: FormValues = { nome: '', projetoId: '', descricao: '', volumeAnual: '', statusAvaliacao: 'Não avaliado', complexidade: '' };
+
 export default function ProcessoFormModal({ aberto, processo, codigo, onClose }: Props) {
   const createProcesso = useCreateProcesso();
   const updateProcesso = useUpdateProcesso();
   const { data: projetos = [] } = useProjetosLista();
   const { cluster } = useClusterGlobal();
 
-  const [nome, setNome] = useState('');
-  const [descricao, setDescricao] = useState('');
-  const [projetoId, setProjetoId] = useState('');
-  const [volumeAnual, setVolumeAnual] = useState('');
-  const [statusAvaliacao, setStatusAvaliacao] = useState<StatusAvaliacao>('Não avaliado');
-  const [complexidade, setComplexidade] = useState('');
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
+  const {
+    handleSubmit, control, reset, watch, setError,
+    formState: { errors, dirtyFields, isDirty, isSubmitting },
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   const [confirmSair, setConfirmSair] = useState(false);
 
-  const tocado = useRef(false);
+  const hidratado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
-    if (tocado.current) return;
+    if (!aberto) { hidratado.current = false; setConfirmSair(false); return; }
+    if (hidratado.current) return;
+    hidratado.current = true;
     if (processo) {
-      setNome(processo.name);
-      setDescricao(processo.description || '');
-      setProjetoId(processo.project_id || '');
-      setVolumeAnual(processo.volume_executions != null ? String(processo.volume_executions) : '');
-      setStatusAvaliacao(processo.evaluation_status || 'Não avaliado');
-      setComplexidade(normalizarComplexidade(processo.complexity_level));
+      reset({
+        nome: processo.name,
+        projetoId: processo.project_id || '',
+        descricao: processo.description || '',
+        volumeAnual: processo.volume_executions != null ? String(processo.volume_executions) : '',
+        statusAvaliacao: processo.evaluation_status || 'Não avaliado',
+        complexidade: normalizarComplexidade(processo.complexity_level),
+      });
     } else {
-      setNome(''); setDescricao(''); setProjetoId(''); setVolumeAnual('');
-      setStatusAvaliacao('Não avaliado'); setComplexidade('');
+      reset({ ...EMPTY });
     }
-    setErro('');
-  }, [aberto, processo]);
+  }, [aberto, processo, reset]);
 
-  const touch = () => { tocado.current = true; };
-  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
-
-  // Opções de projeto filtradas pelo cluster escolhido no ambiente ('' = todos).
-  // Mantém o projeto já vinculado ao processo em edição mesmo que seja de outro
-  // cluster, para não sumir da lista e perder o vínculo silenciosamente.
+  const projetoId = watch('projetoId');
+  // Opções de projeto filtradas pelo cluster do ambiente; mantém o projeto já
+  // vinculado ao processo em edição mesmo que seja de outro cluster.
   const projetoOpcoes = useMemo(() =>
     projetos
       .filter(p => !cluster || p.cluster_id === cluster || p.id === projetoId)
@@ -74,38 +83,47 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
     [projetos, cluster, projetoId],
   );
 
-  const salvar = async () => {
-    if (!nome.trim()) { setErro('Preencha o nome do processo.'); return; }
-    if (!projetoId) { setErro('Vincule o processo a um projeto.'); return; }
-    setErro('');
-    setSalvando(true);
-    const payload = {
-      name: nome.trim(),
-      description: descricao.trim(),
-      project_id: projetoId,
-      volume_executions: volumeAnual.trim() !== '' ? Number(volumeAnual) : undefined,
-      evaluation_status: statusAvaliacao,
-      complexity_level: normalizarComplexidade(complexidade) || undefined,
-    };
+  const requestClose = () => { if (isDirty) setConfirmSair(true); else onClose(); };
+
+  const onSubmit = async (v: FormValues) => {
+    // O processo herda o cluster do projeto (senão nasce sem cluster e some da lista).
+    const clusterDoProjeto = projetos.find(p => p.id === v.projetoId)?.cluster_id ?? null;
+    const volume = v.volumeAnual.trim() !== '' ? Number(v.volumeAnual) : undefined;
     try {
       if (processo) {
-        await updateProcesso.mutateAsync({ id: processo.id, old: processo, patch: payload });
+        // UPDATE por DIFF: só os campos alterados. Se o projeto mudou, o cluster acompanha.
+        const patch: Partial<Processo> = {};
+        if (dirtyFields.nome) patch.name = v.nome.trim();
+        if (dirtyFields.descricao) patch.description = v.descricao.trim();
+        if (dirtyFields.projetoId) { patch.project_id = v.projetoId; patch.cluster_id = clusterDoProjeto; }
+        if (dirtyFields.volumeAnual) patch.volume_executions = volume;
+        if (dirtyFields.statusAvaliacao) patch.evaluation_status = v.statusAvaliacao as StatusAvaliacao;
+        if (dirtyFields.complexidade) patch.complexity_level = normalizarComplexidade(v.complexidade) || undefined;
+        if (Object.keys(patch).length > 0) {
+          await updateProcesso.mutateAsync({ id: processo.id, old: processo, patch });
+        }
         toast.success('Processo atualizado');
       } else {
-        await createProcesso.mutateAsync(payload);
+        await createProcesso.mutateAsync({
+          name: v.nome.trim(),
+          description: v.descricao.trim(),
+          project_id: v.projetoId,
+          cluster_id: clusterDoProjeto,
+          volume_executions: volume,
+          evaluation_status: v.statusAvaliacao as StatusAvaliacao,
+          complexity_level: normalizarComplexidade(v.complexidade) || undefined,
+        } as never);
         toast.success('Processo criado');
       }
       onClose();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSalvando(false);
+      setError('root', { message: err instanceof Error ? err.message : String(err) });
     }
   };
 
   return (
     <Modal isOpen={aberto} onClose={requestClose} tourId="modal-processo-form">
-      <div className="modal modal-wide processo-det processo-form">
+      <form className="modal modal-wide processo-det processo-form" onSubmit={handleSubmit(onSubmit)}>
         <header className="processo-det-head">
           <div className="processo-det-head-main">
             {processo ? (
@@ -124,68 +142,49 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
             )}
           </div>
           <div className="processo-det-acoes">
-            <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
-            <button className="cadastro-cta" onClick={salvar} disabled={salvando} data-tour="modal-salvar">
-              {salvando ? 'Salvando...' : 'Salvar'}
+            <button type="button" className="btn-cancel" onClick={requestClose}>Cancelar</button>
+            <button type="submit" className="cadastro-cta" disabled={isSubmitting} data-tour="modal-salvar">
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
             </button>
           </div>
         </header>
 
         <div className="processo-det-body">
           <div className="cadastro-form-secao">Identificação</div>
-          <FormField label="Nome" error={erro} required tooltip={dica('processos.form.nome')} dataTour="modal-campo-1">
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => { touch(); setNome(e.target.value); if (erro) setErro(''); }}
-              placeholder="Digite o nome do processo"
-            />
+          <FormField label="Nome" error={errors.nome?.message || errors.root?.message} required tooltip={dica('processos.form.nome')} dataTour="modal-campo-1">
+            <input type="text" {...control.register('nome')} placeholder="Digite o nome do processo" />
           </FormField>
           <FormField label="Descrição" tooltip={dica('processos.form.descricao')}>
-            <textarea
-              className="cadastro-form-textarea"
-              value={descricao}
-              onChange={(e) => { touch(); setDescricao(e.target.value); }}
-              placeholder="O que o processo faz e onde se encaixa"
-              rows={4}
-            />
+            <textarea className="cadastro-form-textarea" {...control.register('descricao')} placeholder="O que o processo faz e onde se encaixa" rows={4} />
           </FormField>
 
           <div className="cadastro-form-secao">Classificação</div>
-          <FormField label="Projeto" required tooltip={dica('processos.form.projeto')} dataTour="modal-campo-2">
-            <Select
-              value={projetoId}
-              onChange={(v) => { touch(); setProjetoId(v); if (erro) setErro(''); }}
-              options={projetoOpcoes}
-              placeholder="Selecione o projeto..."
-            />
+          <FormField label="Projeto" required error={errors.projetoId?.message} tooltip={dica('processos.form.projeto')} dataTour="modal-campo-2">
+            <Controller name="projetoId" control={control} render={({ field }) => (
+              <Select value={field.value} onChange={field.onChange} options={projetoOpcoes} placeholder="Selecione o projeto..." hasError={!!errors.projetoId} />
+            )} />
           </FormField>
           <div className="cadastro-form-row">
             <FormField label="Volume Anual (execuções/ano)" tooltip={dica('processos.form.frequency')}>
-              <input
-                type="number" min={0} step="1"
-                value={volumeAnual}
-                onChange={(e) => { touch(); setVolumeAnual(e.target.value); }}
-                placeholder="Ex.: 20 (nº de projetos/execuções por ano)"
-              />
+              <input type="number" min={0} step="1" {...control.register('volumeAnual')} placeholder="Ex.: 20 (nº de projetos/execuções por ano)" />
             </FormField>
             <FormField label="Complexidade" tooltip={dica('processos.form.complexity_level')}>
-              <Select
-                value={normalizarComplexidade(complexidade)}
-                onChange={(v) => { touch(); setComplexidade(normalizarComplexidade(v)); }}
-                options={COMPLEXIDADE_OPCOES}
-              />
+              <Controller name="complexidade" control={control} render={({ field }) => (
+                <Select value={normalizarComplexidade(field.value)} onChange={(v) => field.onChange(normalizarComplexidade(v))} options={COMPLEXIDADE_OPCOES} />
+              )} />
             </FormField>
           </div>
           <div className="cadastro-form-row">
             <FormField label="Status de avaliação" tooltip={dica('processos.form.evaluation_status')}>
-              <Select value={statusAvaliacao} onChange={(v) => { touch(); setStatusAvaliacao(v as StatusAvaliacao); }} options={STATUS_AVALIACAO_OPCOES} />
+              <Controller name="statusAvaliacao" control={control} render={({ field }) => (
+                <Select value={field.value} onChange={field.onChange} options={STATUS_AVALIACAO_OPCOES} />
+              )} />
             </FormField>
             <div />
           </div>
         </div>
         <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
-      </div>
+      </form>
     </Modal>
   );
 }

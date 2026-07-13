@@ -1,9 +1,15 @@
 // Form unificado de Melhoria (criar/editar) — padrão "Cadastro Puro".
 // `melhoria === null` ⇒ criação; caso contrário, edição pré-preenchida.
-// Não há vínculo direto melhoria↔gargalo: a relação com gargalos é por
-// associação ao processo (ambos no mesmo processo), editada no mapeamento.
+//
+// Padrão-ouro: react-hook-form + zod nos campos escalares e UPDATE por DIFF
+// (colunas só quando mudam; junções só quando tocadas). Os arrays dinâmicos
+// (rateio de exec/treino, sistemas, ações) ficam em estado local — as junções
+// são sincronizadas por diff pelo próprio hook (useMelhorias).
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { toast } from 'sonner';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
@@ -84,10 +90,17 @@ interface Props {
   aberto: boolean;
   melhoria: Melhoria | null;
   onClose: () => void;
-  /** @deprecated Os gargalos agora são editáveis direto aqui (ChipSelector).
-   *  Prop mantida por compatibilidade com chamadores; não é mais usada. */
   onEditarGargalo?: (id: string) => void;
 }
+
+const schema = z.object({
+  nome: z.string().trim().min(1, 'Preencha o nome da melhoria.'),
+  clusterId: z.string().min(1, 'Selecione o cluster da melhoria.'),
+  status: z.string(),
+  custoExterno: z.string(),
+});
+type FormValues = z.infer<typeof schema>;
+const EMPTY: FormValues = { nome: '', clusterId: '', status: 'Não iniciado', custoExterno: '' };
 
 export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) {
   const createMelhoria = useCreateMelhoria();
@@ -106,130 +119,143 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
   const sistemaIdsToNames = (ids: string[]) => ids.map(id => sistemaNomeById.get(id)).filter((n): n is string => Boolean(n));
   const sistemaNamesToIds = (names: string[]) => names.map(n => sistemaIdByNome.get(n)).filter((id): id is string => Boolean(id));
 
-  const [nome, setNome] = useState('');
-  const [status, setStatus] = useState<MelhoriaStatus>('Não iniciado');
-  const [clusterId, setClusterId] = useState('');
+  const {
+    handleSubmit, control, reset, setError,
+    formState: { errors, dirtyFields, isDirty, isSubmitting },
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
+
+  // Arrays dinâmicos + flag de "vínculos tocados" (estado local; junções via hook).
   const [sistemas, setSistemas] = useState<string[]>([]);
   const [executadoPor, setExecutadoPor] = useState<RateioRow[]>([]);
   const [treinamentoPor, setTreinamentoPor] = useState<RateioRow[]>([]);
   const [acoesTd, setAcoesTd] = useState<AcaoTd[]>([]);
-  const [custoExternoUnico, setCustoExternoUnico] = useState('');
-  const [erro, setErro] = useState('');
-  const [salvando, setSalvando] = useState(false);
+  const [vinculosTocados, setVinculosTocados] = useState(false);
   const [confirmSair, setConfirmSair] = useState(false);
 
-  // Hidratação "reset on open"; re-hidrata quando os mapas id↔nome ficam
-  // prontos (carga fria via ?focus=), mas nunca depois de o usuário tocar.
-  const tocado = useRef(false);
+  const hidratado = useRef(false);
   useEffect(() => {
-    if (!aberto) { tocado.current = false; setConfirmSair(false); return; }
-    if (tocado.current) return;
+    if (!aberto) { hidratado.current = false; setConfirmSair(false); return; }
+    if (hidratado.current) return;
+    // Hidrata UMA vez, mas só depois que os catálogos referenciados carregarem —
+    // senão os nomes de responsável/sistema resolveriam pra vazio. O effect
+    // re-roda quando as listas chegam (deps sistemaNomeById/respNomeById).
     if (melhoria) {
-      setNome(melhoria.improvement_description);
-      setStatus((melhoria.improvement_status as MelhoriaStatus) || 'Não iniciado');
-      setClusterId(melhoria.cluster_id || '');
+      const precisaResp = ((melhoria.executadoPor?.length ?? 0) > 0 || (melhoria.treinamentoPor?.length ?? 0) > 0) && responsaveisList.length === 0;
+      const precisaSis = (melhoria.sistemas?.length ?? 0) > 0 && sistemasList.length === 0;
+      if (precisaResp || precisaSis) return;
+    }
+    hidratado.current = true;
+    const toRateio = (r: { responsavelId?: string; nome?: string; horas: number }): RateioRow =>
+      ({ nome: r.nome || respNomeById.get(r.responsavelId ?? '') || '', horas: r.horas });
+    if (melhoria) {
+      reset({
+        nome: melhoria.improvement_description,
+        clusterId: melhoria.cluster_id || '',
+        status: (melhoria.improvement_status as MelhoriaStatus) || 'Não iniciado',
+        custoExterno: melhoria.one_time_external_cost ? formatarMoeda(melhoria.one_time_external_cost) : '',
+      });
       setSistemas(sistemaIdsToNames(melhoria.sistemas || []));
       setAcoesTd([...(melhoria.acoesTd || [])]);
-      // Resolve responsavelId→nome (a hidratação vem com nome:'').
-      const toRateio = (r: { responsavelId?: string; nome?: string; horas: number }): RateioRow =>
-        ({ nome: r.nome || respNomeById.get(r.responsavelId ?? '') || '', horas: r.horas });
       setExecutadoPor((melhoria.executadoPor || []).map(toRateio));
-      // Migração: melhoria legada só com scalar training_hours vira UMA entrada
-      // órfã (sem responsável), que o usuário pode atribuir depois.
       const treinoSeed: RateioRow[] = melhoria.treinamentoPor && melhoria.treinamentoPor.length > 0
         ? melhoria.treinamentoPor.map(toRateio)
         : ((melhoria.training_hours ?? 0) > 0 ? [{ nome: '', horas: melhoria.training_hours ?? 0 }] : []);
       setTreinamentoPor(treinoSeed);
-      setCustoExternoUnico(melhoria.one_time_external_cost ? formatarMoeda(melhoria.one_time_external_cost) : '');
     } else {
-      setNome(''); setStatus('Não iniciado'); setClusterId(fCluster || '');
-      setSistemas([]); setAcoesTd([]);
-      setExecutadoPor([]); setTreinamentoPor([]); setCustoExternoUnico('');
+      reset({ ...EMPTY, clusterId: fCluster || '' });
+      setSistemas([]); setAcoesTd([]); setExecutadoPor([]); setTreinamentoPor([]);
     }
-    setErro('');
+    setVinculosTocados(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, melhoria, sistemaNomeById, respNomeById, fCluster]);
+  }, [aberto, melhoria, sistemaNomeById, respNomeById, fCluster, reset]);
 
-  const touch = () => { tocado.current = true; };
-  const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
+  const requestClose = () => { if (isDirty || vinculosTocados) setConfirmSair(true); else onClose(); };
 
   const makeRateioHandlers = (arr: RateioRow[], setArr: (v: RateioRow[]) => void) => ({
-    add: () => { touch(); setArr([...arr, { nome: '', horas: 0 }]); },
+    add: () => { setVinculosTocados(true); setArr([...arr, { nome: '', horas: 0 }]); },
     changeNome: (index: number, n: string) => {
       if (!n) return;
       if (arr.filter((_, i) => i !== index).some(r => r.nome === n)) return;
-      touch();
+      setVinculosTocados(true);
       const next = [...arr]; next[index] = { ...next[index], nome: n }; setArr(next);
     },
     changeHoras: (index: number, horasStr: string) => {
-      touch();
+      setVinculosTocados(true);
       const next = [...arr]; next[index] = { ...next[index], horas: parseDecimal(horasStr) }; setArr(next);
     },
-    remove: (index: number) => { touch(); setArr(arr.filter((_, i) => i !== index)); },
+    remove: (index: number) => { setVinculosTocados(true); setArr(arr.filter((_, i) => i !== index)); },
   });
 
   const rateioExec = makeRateioHandlers(executadoPor, setExecutadoPor);
   const rateioTreino = makeRateioHandlers(treinamentoPor, setTreinamentoPor);
   const sumHoras = (arr: { horas: number }[]) => arr.reduce((s, r) => s + (Number(r.horas) || 0), 0);
 
-  const salvar = async () => {
-    if (!nome.trim()) { setErro('Preencha o nome da melhoria.'); return; }
-    if (!clusterId) { setErro('Selecione o cluster da melhoria.'); return; }
-    setErro('');
-    setSalvando(true);
-    // Resolve nome→id p/ persistir em melhoria_responsaveis (o editor opera por nome).
-    const toResp = (arr: RateioRow[]) => arr
-      .filter(r => r.nome?.trim())
-      .map(r => ({ responsavelId: respIdByNome.get(r.nome), nome: r.nome, horas: r.horas }));
-    const execLimpo = toResp(executadoPor);
-    const treinoLimpo = toResp(treinamentoPor);
-    const payload = {
-      improvement_description: nome.trim(),
-      improvement_status: status,
-      cluster_id: clusterId,
-      sistemas: sistemaNamesToIds(sistemas),
-      acoesTd,
-      executadoPor: execLimpo,
-      treinamentoPor: treinoLimpo,
-      training_hours: sumHoras(treinoLimpo),
-      one_time_external_cost: parseMoeda(custoExternoUnico),
-    };
+  // Resolve nome→id p/ persistir em melhoria_responsaveis (o editor opera por nome).
+  const toResp = (arr: RateioRow[]) => arr
+    .filter(r => r.nome?.trim())
+    .map(r => ({ responsavelId: respIdByNome.get(r.nome), nome: r.nome, horas: r.horas }));
+
+  const onSubmit = async (v: FormValues) => {
     try {
+      const execLimpo = toResp(executadoPor);
+      const treinoLimpo = toResp(treinamentoPor);
       if (melhoria) {
-        await updateMelhoria.mutateAsync({ id: melhoria.id, old: melhoria, patch: payload });
+        // UPDATE por DIFF: colunas só quando mudam; junções só quando tocadas.
+        const patch: Partial<Melhoria> = {};
+        if (dirtyFields.nome) patch.improvement_description = v.nome.trim();
+        if (dirtyFields.status) patch.improvement_status = v.status as MelhoriaStatus;
+        if (dirtyFields.clusterId) patch.cluster_id = v.clusterId;
+        if (dirtyFields.custoExterno) patch.one_time_external_cost = parseMoeda(v.custoExterno);
+        if (vinculosTocados) {
+          patch.sistemas = sistemaNamesToIds(sistemas);
+          patch.acoesTd = acoesTd;
+          patch.executadoPor = execLimpo;
+          patch.treinamentoPor = treinoLimpo;
+          patch.training_hours = sumHoras(treinoLimpo);
+        }
+        if (Object.keys(patch).length > 0) {
+          await updateMelhoria.mutateAsync({ id: melhoria.id, old: melhoria, patch });
+        }
         toast.success('Melhoria atualizada');
       } else {
-        await createMelhoria.mutateAsync(payload);
+        await createMelhoria.mutateAsync({
+          improvement_description: v.nome.trim(),
+          improvement_status: v.status as MelhoriaStatus,
+          cluster_id: v.clusterId,
+          sistemas: sistemaNamesToIds(sistemas),
+          acoesTd,
+          executadoPor: execLimpo,
+          treinamentoPor: treinoLimpo,
+          training_hours: sumHoras(treinoLimpo),
+          one_time_external_cost: parseMoeda(v.custoExterno),
+        });
         toast.success('Melhoria criada');
       }
       onClose();
     } catch (err) {
-      setErro(err instanceof Error ? err.message : String(err));
-    } finally {
-      setSalvando(false);
+      setError('root', { message: err instanceof Error ? err.message : String(err) });
     }
   };
 
   return (
     <Modal isOpen={aberto} onClose={requestClose} tourId="modal-melhoria-form">
-      <div className="modal modal-wide">
+      <form className="modal modal-wide" onSubmit={handleSubmit(onSubmit)}>
         <h2>{melhoria ? 'Editar Melhoria' : 'Nova Melhoria'}</h2>
 
         <div className="cadastro-form-secao">Identificação</div>
-        <FormField label="Nome" error={erro} required tooltip={dica('melhorias.form.nome')} dataTour="modal-campo-1">
-          <input
-            type="text"
-            value={nome}
-            onChange={(e) => { touch(); setNome(e.target.value); if (erro) setErro(''); }}
-            placeholder="Digite o nome da melhoria"
-          />
+        <FormField label="Nome" error={errors.nome?.message || errors.root?.message} required tooltip={dica('melhorias.form.nome')} dataTour="modal-campo-1">
+          <input type="text" {...control.register('nome')} placeholder="Digite o nome da melhoria" />
         </FormField>
         <div className="cadastro-form-row">
           <FormField label="Status" tooltip={dica('melhorias.form.status')}>
-            <Select value={status} onChange={(v) => { touch(); setStatus(v as MelhoriaStatus); }} options={statusOptions} />
+            <Controller name="status" control={control} render={({ field }) => (
+              <Select value={field.value} onChange={field.onChange} options={statusOptions} />
+            )} />
           </FormField>
-          <FormField label="Cluster" tooltip={dica('melhorias.form.cluster')}>
-            <Select value={clusterId} onChange={(v) => { touch(); setClusterId(v); }} options={CLUSTER_OPCOES} />
+          <FormField label="Cluster" required error={errors.clusterId?.message} tooltip={dica('melhorias.form.cluster')}>
+            <Controller name="clusterId" control={control} render={({ field }) => (
+              <Select value={field.value} onChange={field.onChange} options={CLUSTER_OPCOES} hasError={!!errors.clusterId} />
+            )} />
           </FormField>
         </div>
 
@@ -238,7 +264,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
           <ChipSelector
             options={ACOES_TD as unknown as string[]}
             value={acoesTd}
-            onChange={(v) => { touch(); setAcoesTd(v as AcaoTd[]); }}
+            onChange={(v) => { setVinculosTocados(true); setAcoesTd(v as AcaoTd[]); }}
             addLabel="Adicionar ação"
           />
         </FormField>
@@ -247,7 +273,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
           <ChipSelector
             options={sistemasList.map((s) => s.nome)}
             value={sistemas}
-            onChange={(v) => { touch(); setSistemas(v as string[]); }}
+            onChange={(v) => { setVinculosTocados(true); setSistemas(v as string[]); }}
           />
         </FormField>
         {sistemas.filter(Boolean).length > 0 && (
@@ -258,7 +284,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
 
         <div className="cadastro-form-secao">Investimento</div>
         <FormField label="Custo externo único (R$)" tooltip={dica('melhorias.form.custoExternoUnico')}>
-          <input type="text" value={custoExternoUnico} onChange={(e) => { touch(); setCustoExternoUnico(e.target.value); }} placeholder="Ex: R$ 3.000,00" />
+          <input type="text" {...control.register('custoExterno')} placeholder="Ex: R$ 3.000,00" />
         </FormField>
         <FormField label="Executado por (rateio em horas)" tooltip={dica('melhorias.form.executadoPor')}>
           <RateioEditor arr={executadoPor} responsaveisList={responsaveisList} handlers={rateioExec} />
@@ -268,11 +294,11 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
         </FormField>
 
         <div className="modal-actions">
-          <button className="btn-cancel" onClick={requestClose}>Cancelar</button>
-          <button className="btn-save" data-tour="modal-salvar" onClick={salvar} disabled={salvando}>{salvando ? 'Salvando...' : 'Salvar'}</button>
+          <button type="button" className="btn-cancel" onClick={requestClose}>Cancelar</button>
+          <button type="submit" className="btn-save" data-tour="modal-salvar" disabled={isSubmitting}>{isSubmitting ? 'Salvando...' : 'Salvar'}</button>
         </div>
         <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
-      </div>
+      </form>
     </Modal>
   );
 }

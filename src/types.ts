@@ -12,6 +12,19 @@
 // FK convention: snake_case com sufixo `_id` (ex.: `project_id`, `cluster_id`)
 // — espelha o DB e o resto do PSA Lovable.
 
+import type { Database } from '@/integrations/supabase/types';
+
+/** Atalho pra linha (colunas reais) de uma tabela do schema GERADO pelo Supabase.
+ *  Fonte de verdade única — o Lovable regenera esse tipo a cada migração, então
+ *  os tipos de domínio que derivam daqui nunca ficam fora de sincronia com o banco. */
+type Row<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row'];
+
+/** Colunas de uma tabela como OBRIGATÓRIAS e NÃO-nulas — para os campos que o
+ *  domínio garante estarem preenchidos (o app já os trata assim). Continua
+ *  derivado do schema: renomear/remover a coluna quebra aqui no typecheck. */
+type ReqCols<T extends keyof Database['public']['Tables'], K extends keyof Row<T>> =
+  { [P in K]-?: NonNullable<Row<T>[P]> };
+
 // Base usado por entidades com schema EN (projects, processes, process_stages,
 // job_roles). Tabelas PT-native (sistemas_processo, documentos_processo,
 // gargalos) declaram `id`/`nome` direto sem extender.
@@ -61,15 +74,15 @@ export const JUSTIFICATIVAS_PROJETO: { value: JustificativaProjeto; label: strin
 //  Projeto — tabela `projects` (Lovable nativa + cols MAPA via integration)
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Projeto extends BaseEntity {
-  description: string;
-  cluster_id?: string | null;
+// DERIVA de `projects`. Obrigatórios: id/name/description. cluster_id, datas,
+// projects_per_year e colunas novas vêm opcional-auto; `status` é refinado.
+export interface Projeto
+  extends ReqCols<'projects', 'id' | 'name' | 'description'>,
+    Partial<Omit<Row<'projects'>, 'id' | 'name' | 'description' | 'status'>> {
+  /** Coluna `status` (texto no DB) refinada pro enum do domínio. */
+  status?: ProjetoStatus;
   /** Nome do cluster, hidratado via PostgREST relation `estrutura_clusters(name)`. */
   clusterName?: string;
-  projects_per_year?: number | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  status?: ProjetoStatus;
   /** Hidratado via junção `projeto_justificativas` (carregado em query separada). */
   justificativas?: JustificativaProjeto[];
 }
@@ -78,30 +91,16 @@ export interface Projeto extends BaseEntity {
 //  Sistema — tabela `sistemas_processo`
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Sistema {
-  id: string;
-  /** Cluster dono do sistema (coluna `sistemas_processo.cluster_id`). NULL = global. */
-  cluster_id?: string | null;
-  /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
-  nome: string;
-  descricao: string;
-  /** Custo da licença/assinatura (recorrente mensal). */
-  custo_licenca_mensal: number;
-  /** Custo variável por uso (mensal). */
-  custo_variavel_por_uso: number;
-  tipo?: string;
-  origem?: string;
-  custo_por_operacao?: number;
-  custo_setup?: number;
-  /** 'fixo' | 'variavel' | 'setup' | 'misto' */
-  tipo_custo?: string;
-  /** Hidratado via `sistema_responsaveis`. */
+// DERIVA de `sistemas_processo` (PT-native: id + nome). Obrigatórios: id, nome,
+// descricao e os dois custos base (entram no ROI). tipo/origem/custos extras/obs
+// e colunas novas vêm opcional-auto. Sintéticos (rateio, responsáveis) no corpo.
+export interface Sistema
+  extends ReqCols<'sistemas_processo', 'id' | 'nome' | 'descricao' | 'custo_licenca_mensal' | 'custo_variavel_por_uso'>,
+    Partial<Omit<Row<'sistemas_processo'>, 'id' | 'nome' | 'descricao' | 'custo_licenca_mensal' | 'custo_variavel_por_uso'>> {
+  /** Hidratado via `sistema_responsaveis` (não é coluna). */
   responsaveisHoras?: ResponsavelHoras[];
-  /** Hidratado via `sistema_clusters` — rateio (%) por cluster (Onda E). */
+  /** Hidratado via `sistema_clusters` — rateio (%) por cluster (não é coluna). */
   clustersRateio?: SistemaClusterRateio[];
-  obs_licenca?: string;
-  obs_variavel?: string;
-  obs_custo_por_operacao?: string;
 }
 
 export interface SistemaClusterRateio {
@@ -115,19 +114,13 @@ export type EstruturacaoDoc = 'Não Estruturado' | 'Semi Estruturado' | 'Estrutu
 //  Documento — tabela `documentos_processo`
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Documento {
-  id: string;
-  /** Cluster dono do documento (coluna `documentos_processo.cluster_id`). NULL = global. */
-  cluster_id?: string | null;
-  /** Tabela PT-native — coluna do DB chama `nome`, não `name`. */
-  nome: string;
-  tipo: string;
-  formato: string;
-  origem: string;
-  /** Tempo de elaboração em minutos. */
-  tempo_minutos: number;
-  categoria?: string;
-  estrutura_entrada?: string;
+// DERIVA de `documentos_processo` (PT-native: id + nome). Fixa como obrigatórios
+// os campos que o app garante (nome/tipo/formato/origem/tempo_minutos); o resto
+// (cluster_id, categoria, estrutura_entrada, e colunas novas) vem opcional-auto.
+export interface Documento
+  extends ReqCols<'documentos_processo', 'id' | 'nome' | 'tipo' | 'formato' | 'origem' | 'tempo_minutos'>,
+    Partial<Omit<Row<'documentos_processo'>, 'id' | 'nome' | 'tipo' | 'formato' | 'origem' | 'tempo_minutos' | 'estruturado'>> {
+  /** Coluna `estruturado` (texto no DB) refinada pro enum do domínio. */
   estruturado?: EstruturacaoDoc;
 }
 
@@ -142,20 +135,19 @@ export type Complexidade = 'Baixa' | 'Média' | 'Alta';
 //  Processo — tabela `processes`
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Processo extends BaseEntity {
-  description: string;
-  training_hours?: number | null;
-  project_id?: string | null;
-  order_index?: number | null;
-  /** Volume anual de execuções do processo (modelo novo de ROI). Multiplicador
-   *  anual primário; `frequency` virou fallback legado. */
-  volume_executions?: number | null;
+// DERIVA da linha real de `processes` (fonte de verdade gerada pelo Lovable).
+// Padrão: `id`/`name` obrigatórios (via Pick, validados contra o schema) + todas
+// as demais colunas como OPCIONAIS (Partial<Omit<…>>) — assim as colunas vêm
+// sozinhas do banco (um `cluster_id` novo aparece automático; um renomeado quebra
+// o typecheck), mantendo a ergonomia leniente de hoje. Só os 3 campos de texto
+// cru são refinados pros enums do domínio.
+export interface Processo
+  extends ReqCols<'processes', 'id' | 'name'>,
+    Partial<Omit<Row<'processes'>, 'id' | 'name' | 'evaluation_status' | 'complexity_level' | 'frequency'>> {
   /** @deprecated Mantido como fallback legado de volume; o ROI usa volume_executions. */
   frequency?: FrequenciaProcesso | null;
-  deliverable?: string | null;
   evaluation_status?: StatusAvaliacao | null;
   complexity_level?: Complexidade | null;
-  mapped_at?: string | null;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -172,32 +164,21 @@ export interface GargaloEtapaRef {
   stage_order?: number;
 }
 
-export interface Gargalo {
-  id: string;
-  /** Coluna PT-native do DB (tabela `gargalos`). Mantém snake_case PT. */
-  nome: string;
-  descricao: string;
+// DERIVA de `gargalos` (PT-native: id + nome). Obrigatórios: id, nome, descricao.
+// origem/cluster_id/horas/taxas/custo e colunas novas vêm opcional-auto. Os
+// vínculos M:N e o nome do cluster são sintéticos (no corpo).
+export interface Gargalo
+  extends ReqCols<'gargalos', 'id' | 'nome' | 'descricao'>,
+    Partial<Omit<Row<'gargalos'>, 'id' | 'nome' | 'descricao'>> {
   /** Hidratado via `gargalo_processos` (M:N). Vínculo MACRO opcional — para
-   *  gargalos "organizacionais" sem etapa específica. NÃO é usado pela
-   *  cascata derivada. */
+   *  gargalos "organizacionais" sem etapa específica. NÃO é usado pela cascata. */
   processos: string[];
   /** Hidratado via `gargalo_etapas` (M:N com FK composta etapa_id+scenario).
-   *  Etapas onde o gargalo se manifesta. Cada etapa-origem inicia uma BFS
-   *  jusante (etapa → docsSaida → etapas que consomem → ...) que define a
-   *  cascata, derivada em tempo real e exibida na CascataPage. */
+   *  Etapas onde o gargalo se manifesta; cada uma inicia a BFS da cascata. */
   etapasOrigem: GargaloEtapaRef[];
-  // Não há vínculo direto gargalo↔melhoria: a relação é por associação ao
-  // processo (gargalo e melhoria atuando no mesmo processo). Ver `gargaloMelhorias.ts`.
-  origem?: string;
-  cluster_id?: string | null;
-  /** Nome do cluster, hidratado via JOIN. */
+  /** Nome do cluster, hidratado via JOIN (não é coluna). */
   clusterName?: string;
-  horas_gastas?: number;
-  horas_implementacao?: number;
-  taxa_ocorrencia?: number;
-  taxa_captura_apos_melhoria?: number;
-  custo_externo_unico?: number;
-  /** Hidratado via `gargalo_responsaveis`. */
+  /** Hidratado via `gargalo_responsaveis` (não é coluna). */
   responsaveisHoras?: ResponsavelHoras[];
 }
 
@@ -205,15 +186,13 @@ export interface Gargalo {
 //  Responsavel — tabela `job_roles`
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Responsavel extends BaseEntity {
-  /** Coluna `level` do DB (junior/pleno/senior/...). */
-  level: string;
-  hourly_rate: number;
-  type?: string;
-  cluster_id?: string | null;
+// DERIVA de `job_roles`. Obrigatórios: id/name/level/hourly_rate (o custo-hora
+// alimenta o ROI). type/category/cluster_id e colunas novas vêm opcional-auto.
+export interface Responsavel
+  extends ReqCols<'job_roles', 'id' | 'name' | 'level' | 'hourly_rate'>,
+    Partial<Omit<Row<'job_roles'>, 'id' | 'name' | 'level' | 'hourly_rate'>> {
+  /** Nome do cluster, hidratado via JOIN (não é coluna). */
   clusterName?: string;
-  /** Coluna `category` do DB. */
-  category?: string;
 }
 
 export interface DocRef {
@@ -258,19 +237,14 @@ export interface EtapaFicou {
   docsSaida?: DocRef[];
 }
 
-export interface Etapa extends BaseEntity {
-  description: string;
-  process_id: string;
-  execution: string;
-  /** Lead time em dias do AS-IS. */
-  lead_time_days?: number;
-  volume_per_process?: number;
-  error_rate?: number;
-  rework_rate: number;
-  error_cost?: number;
-  error_volume?: number;
-  /** Posição da etapa no processo (1-based). */
-  stage_order?: number;
+// DERIVA de `process_stages`. Obrigatórios (o app garante): id, name, description,
+// process_id, execution, rework_rate. As demais colunas (lead_time_days, volumes,
+// taxas, stage_order, scenario, e novas) vêm opcional-auto. Sem colisão entre as
+// colunas reais (systems/responsible/inputs/outputs) e os sintéticos (sistemas/
+// executadoPor/docs*), que são hidratados no hook e ficam no corpo.
+export interface Etapa
+  extends ReqCols<'process_stages', 'id' | 'name' | 'description' | 'process_id' | 'execution' | 'rework_rate'>,
+    Partial<Omit<Row<'process_stages'>, 'id' | 'name' | 'description' | 'process_id' | 'execution' | 'rework_rate'>> {
   // Junções hidratadas no hook (não vêm direto da row de process_stages):
   /** Hidratado via etapa_documentos cenario=AS-IS (sentido=entrada). */
   docsEntrada: DocRef[];
@@ -341,19 +315,16 @@ export const ACOES_TD: AcaoTd[] = [
 //  Melhoria — tabela `process_improvements`
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface Melhoria {
-  id: string;
-  /**
-   * MAPA usa esta coluna do DB pra título — não há `name` na process_improvements.
-   * Mantém snake_case PT (não é EN no DB).
-   */
-  improvement_description: string;
+// DERIVA de `process_improvements`. Obrigatório: id + improvement_description (o
+// título — não há `name` nessa tabela). status é refinado; cluster_id/custos e as
+// demais colunas (inclusive process_id) vêm opcional-auto. Junções são sintéticas.
+export interface Melhoria
+  extends ReqCols<'process_improvements', 'id' | 'improvement_description'>,
+    Partial<Omit<Row<'process_improvements'>, 'id' | 'improvement_description' | 'improvement_status'>> {
+  /** Coluna `improvement_status` (texto no DB) refinada pro enum do domínio. */
   improvement_status?: MelhoriaStatus | null;
-  cluster_id?: string | null;
+  /** Nome do cluster, hidratado via JOIN (não é coluna). */
   clusterName?: string;
-  training_hours?: number | null;
-  one_time_external_cost?: number | null;
-  // Junções hidratadas no hook:
   /** Hidratado via `melhoria_processos`. */
   processos: string[];
   /** Hidratado via `melhoria_sistemas`. */
@@ -373,24 +344,20 @@ export interface Melhoria {
 /** Escopo do "Salvar mensuração": processo isolado ou checkpoint de projeto. */
 export type RoiSnapshotScope = 'process' | 'project';
 
-export interface ProcessSnapshot {
-  id: string;
-  /** Agrupa as linhas de um mesmo save (1 no escopo process; N no project). */
-  checkpoint_id: string;
+// DERIVA de `roi_snapshots`. As métricas (annual_*, roi_percent, payback, etc.)
+// são obrigatórias não-nulas (usadas em cálculo direto); scope_id/label/created_by
+// e colunas novas vêm opcional-auto; `scope_kind` é refinado.
+export interface ProcessSnapshot
+  extends ReqCols<'roi_snapshots',
+    'id' | 'checkpoint_id' | 'process_id' | 'snapshot_at'
+    | 'annual_cost' | 'annual_hours' | 'annual_savings'
+    | 'roi_percent' | 'payback_months' | 'hours_freed' | 'investment'>,
+    Partial<Omit<Row<'roi_snapshots'>,
+      'id' | 'checkpoint_id' | 'process_id' | 'snapshot_at'
+      | 'annual_cost' | 'annual_hours' | 'annual_savings'
+      | 'roi_percent' | 'payback_months' | 'hours_freed' | 'investment' | 'scope_kind'>> {
+  /** Coluna `scope_kind` (texto no DB) refinada pro enum: process isolado ou checkpoint de projeto. */
   scope_kind: RoiSnapshotScope;
-  /** process_id ou project_id conforme scope_kind. */
-  scope_id: string | null;
-  process_id: string;
-  label?: string | null;
-  snapshot_at: string;             // ISO 8601 — única fonte de ordenação
-  annual_cost: number;
-  annual_hours: number;
-  annual_savings: number;
-  roi_percent: number;
-  payback_months: number;
-  hours_freed: number;
-  investment: number;
-  created_by?: string | null;
 }
 
 /** Ponto do histórico CONSOLIDADO do projeto — soma das linhas de um checkpoint

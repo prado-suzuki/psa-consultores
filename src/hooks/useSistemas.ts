@@ -91,10 +91,20 @@ export function useUpdateSistema(): UseMutationResult<Sistema, Error, { id: stri
     mutationFn: async ({ id, patch }) => {
       const rateios = patch.rateios;
       const payload = stripSyntheticFields(patch as unknown as Record<string, unknown>);
-      const { data, error } = await supabase.from(TABLE as never).update(payload as never).eq('id', id).select().single();
-      if (error) throw new Error(error.message);
+      // Update por diff: se nenhuma coluna mudou (ex.: só o rateio), não faz um
+      // `.update({})` vazio — apenas relê a linha e sincroniza o rateio.
+      let row: unknown;
+      if (Object.keys(payload).length > 0) {
+        const { data, error } = await supabase.from(TABLE as never).update(payload as never).eq('id', id).select(SELECT).single();
+        if (error) throw new Error(error.message);
+        row = data;
+      } else {
+        const { data, error } = await supabase.from(TABLE as never).select(SELECT).eq('id', id).maybeSingle();
+        if (error) throw new Error(error.message);
+        row = data;
+      }
       if (rateios) await syncSistemaClusters(id, rateios);
-      return hydrate(data as DbRow);
+      return hydrate(row as DbRow);
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },
   });

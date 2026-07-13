@@ -7,6 +7,20 @@ export const TOOLTIPS: Record<string, string> = {
   'comum.cluster': 'Agrupamento do portfólio (ex.: OSG, Tributário) — usado para filtrar e organizar.',
   'comum.filtro.cluster': 'Mostra apenas os registros do cluster selecionado.',
   'comum.filtro.organizar': 'Alterna o agrupamento da lista em cards expansíveis pela dimensão escolhida.',
+  'comum.busca': 'Filtra a lista pelo texto digitado (nome, descrição…).',
+  'comum.horas': 'Horas gastas por execução nesta atividade.',
+  'comum.volume': 'Quantidade por execução do processo.',
+  'comum.rateioSecao': 'Percentual do custo do sistema atribuído a cada cluster (o custo é único e rateado entre os clusters que o usam).',
+
+  // ───────────── Histórico de medições (ROI) ─────────────
+  'historico.col.quando': 'Data em que a medição/snapshot foi registrada.',
+  'historico.col.custoAno': 'Custo anual do processo no momento da medição.',
+  'historico.col.horasAno': 'Horas/ano gastas no momento da medição.',
+  'historico.col.economiaAno': 'Economia anual projetada com as melhorias.',
+  'historico.col.roi': 'Retorno sobre o investimento (%) no horizonte analisado.',
+  'historico.col.payback': 'Tempo de retorno do investimento, em meses.',
+  'historico.col.horasLiberadas': 'Horas/ano liberadas pelas melhorias (redução de esforço).',
+  'historico.col.deltaCusto': 'Variação de custo em relação à medição anterior.',
 
   // ───────────── Projetos ─────────────
   'projetos.form.nome': 'Nome do projeto/escopo como será exibido em todo o sistema.',
