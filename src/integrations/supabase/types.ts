@@ -8483,6 +8483,14 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_clusters_do_cliente_atual: {
+        Args: never
+        Returns: {
+          cliente_id: string
+          cluster_id: string
+          cluster_name: string
+        }[]
+      }
       get_dashboard_embed_url: {
         Args: { _dashboard_id: string }
         Returns: Json
@@ -8542,6 +8550,14 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+        }[]
+      }
+      get_ticket_atendentes: {
+        Args: { _ticket_ids: string[] }
+        Returns: {
+          first_name: string
+          last_name: string
+          ticket_id: string
         }[]
       }
       has_role: {
