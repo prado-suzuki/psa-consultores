@@ -73,7 +73,10 @@ export interface TicketAttachment {
 }
 
 // ── useMyTickets ──────────────────────────────────────────────
-// Client-side ticket list (MeusChamados)
+// Client-side ticket list (MeusChamados).
+// O nome do atendente vem da RPC `get_ticket_atendentes` (SECURITY DEFINER,
+// autoriza por linha via can_view_ticket). Trocamos o embed em `profiles_safe`
+// para não depender do acesso direto do papel `client` à view.
 
 export function useMyTickets(userId: string | undefined) {
   return useQuery({
@@ -81,15 +84,40 @@ export function useMyTickets(userId: string | undefined) {
     queryFn: async (): Promise<TicketListItem[]> => {
       const { data, error } = await supabase
         .from('tickets')
-        .select(`
-          *,
-          assigned_agent:profiles_safe!assigned_to(first_name, last_name)
-        `)
+        .select('*')
         .eq('user_id', userId!)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return (data || []) as TicketListItem[];
+      const tickets = (data || []) as TicketListItem[];
+      if (tickets.length === 0) return tickets;
+
+      const ticketIds = tickets
+        .filter((t) => t.assigned_to)
+        .map((t) => t.id);
+
+      if (ticketIds.length === 0) {
+        return tickets.map((t) => ({ ...t, assigned_agent: null }));
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: atendentes, error: rpcErr } = await (supabase.rpc as any)(
+        'get_ticket_atendentes',
+        { _ticket_ids: ticketIds },
+      );
+      if (rpcErr) throw rpcErr;
+
+      const agentMap = new Map<string, { first_name: string; last_name: string }>();
+      ((atendentes || []) as Array<{ ticket_id: string; first_name: string; last_name: string }>)
+        .forEach((row) => agentMap.set(row.ticket_id, {
+          first_name: row.first_name,
+          last_name: row.last_name,
+        }));
+
+      return tickets.map((t) => ({
+        ...t,
+        assigned_agent: agentMap.get(t.id) ?? null,
+      }));
     },
     enabled: !!userId,
   });
