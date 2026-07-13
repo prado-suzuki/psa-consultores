@@ -135,7 +135,9 @@ export function useRegistrosPorTipo(clienteId: string | null) {
     // registros segue exaustivo por TipoEntidade.
     const sociedade: Registro[] = pessoa.filter((r) => (r.row as PessoaRow).tipo_pessoa === 'PJ');
 
-    return { pessoa, sociedade, bem, matricula, cartorio };
+    // `vertice` nunca tem registro/seletor (é só item de lista do georref); entra
+    // vazio para satisfazer o Record<TipoEntidade, …>.
+    return { pessoa, sociedade, bem, matricula, cartorio, vertice: [] };
   }, [pessoasQ.data, bensQ.data, matriculasQ.data, cartoriosQ.data, clienteId]);
 
   return {

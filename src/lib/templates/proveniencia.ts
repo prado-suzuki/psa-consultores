@@ -18,7 +18,9 @@ import {
   celulasDaLinha,
   ehLinhaTabela,
   ehSeparadora,
+  gruposDoCabecalho,
   type Alinhamento,
+  type GrupoCabecalho,
 } from './tabela';
 import type { OrigemValor } from './origem';
 import type { SegmentoRender } from './render';
@@ -34,7 +36,14 @@ export interface Pedaco extends Marcas {
 
 export type SegmentoProveniencia =
   | { tipo: 'linha'; pedacos: Pedaco[] }
-  | { tipo: 'tabela'; cabecalho: Pedaco[][]; corpo: Pedaco[][][]; alinhamentos: Alinhamento[] };
+  | {
+      tipo: 'tabela';
+      // Super-cabeçalho opcional (texto estático, sem proveniência).
+      grupos?: GrupoCabecalho[];
+      cabecalho: Pedaco[][];
+      corpo: Pedaco[][][];
+      alinhamentos: Alinhamento[];
+    };
 
 /** Pedaço de segmento já confinado a uma linha (sem '\n'), com a proveniência herdada. */
 interface Fragmento {
@@ -231,23 +240,27 @@ export function segmentarComProveniencia(segmentos: SegmentoRender[]): SegmentoP
 
   const out: SegmentoProveniencia[] = [];
   let i = 0;
-  while (i < linhas.length) {
-    const ehCabecalho =
-      ehLinhaTabela(textos[i]) &&
-      !ehSeparadora(textos[i]) &&
-      i + 1 < linhas.length &&
-      ehSeparadora(textos[i + 1]);
+  const ehLinhaConteudo = (k: number) =>
+    k < linhas.length && ehLinhaTabela(textos[k]) && !ehSeparadora(textos[k]);
 
-    if (ehCabecalho) {
-      const cabecalho = celulasSeguras(linhas[i], textos[i]);
-      const alinhamentos = alinhamentosDaSeparadora(textos[i + 1]);
-      i += 2;
+  while (i < linhas.length) {
+    // Super-cabeçalho (faixas mescladas) + cabeçalho + separadora; ou tabela simples.
+    const temGrupos =
+      ehLinhaConteudo(i) && ehLinhaConteudo(i + 1) && i + 2 < linhas.length && ehSeparadora(textos[i + 2]);
+    const ehCabecalho = ehLinhaConteudo(i) && i + 1 < linhas.length && ehSeparadora(textos[i + 1]);
+
+    if (temGrupos || ehCabecalho) {
+      const grupos = temGrupos ? gruposDoCabecalho(celulasDaLinha(textos[i])) : undefined;
+      const idxCab = temGrupos ? i + 1 : i;
+      const cabecalho = celulasSeguras(linhas[idxCab], textos[idxCab]);
+      const alinhamentos = alinhamentosDaSeparadora(textos[idxCab + 1]);
+      i = idxCab + 2;
       const corpo: Pedaco[][][] = [];
       while (i < linhas.length && ehLinhaTabela(textos[i]) && !ehSeparadora(textos[i])) {
         corpo.push(celulasSeguras(linhas[i], textos[i]));
         i++;
       }
-      out.push({ tipo: 'tabela', cabecalho, corpo, alinhamentos });
+      out.push({ tipo: 'tabela', grupos, cabecalho, corpo, alinhamentos });
     } else {
       out.push({ tipo: 'linha', pedacos: pedacosDe(linhas[i]) });
       i++;

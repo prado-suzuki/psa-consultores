@@ -276,8 +276,22 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
 
   const campos = derivarCampos('matricula', out);
+  // Georref (caminho de volta) é OPCIONAL e vem de fonte assíncrona (BigQuery):
+  // default '' para o documento não travar quando a matrícula não tem georref ou
+  // o dado ainda não chegou. O efeito da tela Gerar sobrescreve quando carrega
+  // (ver useGeorefByMatricula / mapearGeorefCabecalho).
+  for (const id of GEOREF_CAMPOS_MATRICULA) campos[id] = campos[id] ?? '';
   return m.id ? comOrigem(campos, { tipo: 'matricula', id: m.id }) : campos;
 }
+
+/** Campos georef* do binding de matrícula (preenchidos do georref; '' quando ausente). */
+export const GEOREF_CAMPOS_MATRICULA = [
+  'georefArea',
+  'georefPerimetro',
+  'georefSistema',
+  'georefCertificacao',
+  'georefDataCertificacao',
+] as const;
 
 export function mapearCartorio(row: CartorioRow): Campos {
   const { out, set } = coletor();
@@ -697,7 +711,80 @@ export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
       return mapearMatricula(row as MatriculaParaMapear);
     case 'cartorio':
       return mapearCartorio(row as CartorioRow);
+    case 'vertice':
+      // Vértice é sempre item de lista ({{#vertices}}), nunca binding unitário —
+      // não tem registro/seletor próprio. Ver mapearVertice.
+      return {};
   }
+}
+
+// --- Georreferenciamento (memorial SIGEF, do BigQuery via backend) -------------
+
+/** Uma linha de `psa_osg.georef_detalhe`, como o endpoint a devolve (valores fiéis). */
+export interface GeorefVerticeRow {
+  sequencia: number;
+  cod_vertice: string;
+  longitude_dcm: string | null;
+  latitude_dcm: string | null;
+  altitude_m: string | null;
+  cod_vante: string | null;
+  azimute_dcm: string | null;
+  dist_vante_m: string | null;
+  confrontacoes: string | null;
+}
+
+/** Cabeçalho de `psa_osg.georef_cabecalho`, como o endpoint o devolve. */
+export interface GeorefCabecalhoRow {
+  id_georef: string;
+  nr_matricula: string;
+  sistema_referencia: string | null;
+  area_ha: string | null;
+  perimetro_m: string | null;
+  certificacao_sigef: string | null;
+  data_certificacao: string | null;
+  data_geracao: string | null;
+}
+
+/** "214.4921" → "214,4921"; "7781.67" → "7.781,67". Não-numérico volta como veio. */
+function numeroBRDeTexto(bruto: string | null): string {
+  if (!bruto) return '';
+  const n = Number(bruto);
+  return Number.isFinite(n) ? n.toLocaleString('pt-BR', { maximumFractionDigits: 4 }) : bruto;
+}
+
+/** Um vértice → item da seção {{#vertices}} ({ vertice: { codVertice, longitude, … } }). */
+export function mapearVertice(v: GeorefVerticeRow): ItemLista {
+  const { out, set } = coletor();
+  // Coordenadas/azimute/altitude/distância ficam FIÉIS ao PDF (GMS, vírgula decimal).
+  set('codVertice', v.cod_vertice);
+  set('longitude', v.longitude_dcm);
+  set('latitude', v.latitude_dcm);
+  set('altitude', v.altitude_m);
+  set('codVante', v.cod_vante);
+  set('azimute', v.azimute_dcm);
+  set('distancia', v.dist_vante_m);
+  set('confrontacoes', v.confrontacoes);
+  // Campo do catálogo ausente vira '' (como nos itens das outras listas), para o
+  // condicional/célula não derrubar a prévia.
+  const vertice = derivarCampos('vertice', out);
+  for (const c of camposDaEntidade('vertice')) vertice[c.id] = vertice[c.id] ?? '';
+  return { vertice };
+}
+
+/**
+ * Cabeçalho do georref → campos georef* do binding de MATRÍCULA (mesclados em
+ * selecao[imovel]): {{ imovel.georefArea }}, {{ imovel.georefSistema }}, etc.
+ * Área e perímetro saem em número pt-BR; data de certificação em DD/MM/AAAA.
+ */
+export function mapearGeorefCabecalho(cab: GeorefCabecalhoRow | null | undefined): Campos {
+  if (!cab) return {};
+  const { out, set } = coletor();
+  set('georefArea', numeroBRDeTexto(cab.area_ha));
+  set('georefPerimetro', numeroBRDeTexto(cab.perimetro_m));
+  set('georefSistema', cab.sistema_referencia);
+  set('georefCertificacao', cab.certificacao_sigef);
+  set('georefDataCertificacao', formatarDataBR(cab.data_certificacao));
+  return out;
 }
 
 /**

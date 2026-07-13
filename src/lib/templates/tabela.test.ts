@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { celulasDaLinha, ehLinhaTabela, ehSeparadora, segmentar } from './tabela';
+import {
+  celulasDaLinha,
+  ehLinhaTabela,
+  ehSeparadora,
+  gruposDoCabecalho,
+  segmentar,
+} from './tabela';
 
 describe('tabela — detecção de linha e separadora', () => {
   it('reconhece linha de tabela (borda | … |, tolera espaços)', () => {
@@ -65,5 +71,46 @@ describe('tabela — segmentação do bloco', () => {
     const tab = segs[0];
     if (tab.tipo !== 'tabela') throw new Error('esperava tabela');
     expect(tab.corpo).toEqual([['Ana', '50'], ['Bia', '50']]);
+  });
+});
+
+describe('tabela — cabeçalho agrupado (super-cabeçalho)', () => {
+  it('agrupa células: cada texto inicia um grupo; vazias estendem o span', () => {
+    expect(gruposDoCabecalho(['VÉRTICE', '', '', '', 'SEGMENTO VANTE', '', '', ''])).toEqual([
+      { texto: 'VÉRTICE', span: 4 },
+      { texto: 'SEGMENTO VANTE', span: 4 },
+    ]);
+  });
+
+  it('célula vazia no início vira um grupo de texto vazio', () => {
+    expect(gruposDoCabecalho(['', '', 'X'])).toEqual([
+      { texto: '', span: 2 },
+      { texto: 'X', span: 1 },
+    ]);
+  });
+
+  it('duas linhas-pipe seguidas de separadora viram grupos + cabeçalho', () => {
+    const segs = segmentar([
+      '| VÉRTICE | | | SEGMENTO VANTE | |',
+      '| Cód | Long | Lat | Cód | Azim |',
+      '| --- | --- | --- | --- | --- |',
+      '| P1 | a | b | P2 | 90° |',
+    ]);
+    expect(segs).toHaveLength(1);
+    const tab = segs[0];
+    if (tab.tipo !== 'tabela') throw new Error('esperava tabela');
+    expect(tab.grupos).toEqual([
+      { texto: 'VÉRTICE', span: 3 },
+      { texto: 'SEGMENTO VANTE', span: 2 },
+    ]);
+    expect(tab.cabecalho).toEqual(['Cód', 'Long', 'Lat', 'Cód', 'Azim']);
+    expect(tab.corpo).toEqual([['P1', 'a', 'b', 'P2', '90°']]);
+  });
+
+  it('tabela simples (sem grupos) continua sem o campo grupos', () => {
+    const segs = segmentar(['| A | B |', '| --- | --- |', '| 1 | 2 |']);
+    const tab = segs[0];
+    if (tab.tipo !== 'tabela') throw new Error('esperava tabela');
+    expect(tab.grupos).toBeUndefined();
   });
 });

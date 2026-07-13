@@ -120,12 +120,13 @@ function pedacos(lista: Pedaco[], { onClickOrigem, origemClicavel }: ClickOrigem
 }
 
 interface CelulasTabela {
+  grupos?: { texto: ReactNode; span: number }[];
   cabecalho: ReactNode[];
   corpo: ReactNode[][];
   alinhamentos: Alinhamento[];
 }
 
-function Tabela({ cabecalho, corpo, alinhamentos }: CelulasTabela) {
+function Tabela({ grupos, cabecalho, corpo, alinhamentos }: CelulasTabela) {
   const colunas = cabecalho.length;
   const alinhar = (i: number) => CLASSE_ALINHAMENTO[alinhamentos[i] ?? 'left'];
   // Normaliza cada linha do corpo ao número de colunas do cabeçalho.
@@ -133,6 +134,19 @@ function Tabela({ cabecalho, corpo, alinhamentos }: CelulasTabela) {
   return (
     <table className="my-2 w-full border-collapse text-sm">
       <thead>
+        {grupos && grupos.length > 0 && (
+          <tr>
+            {grupos.map((g, i) => (
+              <th
+                key={i}
+                colSpan={g.span}
+                className="border border-slate-300 px-2 py-1 text-center font-semibold"
+              >
+                {g.texto}
+              </th>
+            ))}
+          </tr>
+        )}
         <tr>
           {cabecalho.map((cel, i) => (
             <th
@@ -191,6 +205,7 @@ export function TextoFormatado({
             return (
               <Tabela
                 key={s}
+                grupos={seg.grupos?.map((g) => ({ texto: g.texto, span: g.span }))}
                 cabecalho={seg.cabecalho.map((cel) => pedacos(cel, click))}
                 corpo={seg.corpo.map((cels) => cels.map((cel) => pedacos(cel, click)))}
                 alinhamentos={seg.alinhamentos}
@@ -218,6 +233,7 @@ export function TextoFormatado({
           return (
             <Tabela
               key={s}
+              grupos={seg.grupos?.map((g) => ({ texto: g.texto, span: g.span }))}
               cabecalho={seg.cabecalho.map(renderLinha)}
               corpo={seg.corpo.map((cels) => cels.map(renderLinha))}
               alinhamentos={seg.alinhamentos}

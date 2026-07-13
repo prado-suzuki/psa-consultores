@@ -9,7 +9,7 @@ import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia
 
 export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro';
 
-export type TipoEntidade = 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio';
+export type TipoEntidade = 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio' | 'vertice';
 
 export interface CampoEntidade {
   /** Id do campo dentro da entidade (parte após o ponto no placeholder). */
@@ -385,6 +385,14 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },
       { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
       { id: 'confrontacoes', label: 'Limites e confrontações', tipo: 'textarea' },
+      // Cabeçalho do georreferenciamento (memorial SIGEF), preenchido do BigQuery
+      // quando a matrícula tem georref — ver useGeorefByMatricula / mapearGeorefCabecalho.
+      // Os vértices em si saem na seção de lista {{#vertices}} (entidade `vertice`).
+      { id: 'georefArea', label: 'Georref — Área (ha)', tipo: 'texto' },
+      { id: 'georefPerimetro', label: 'Georref — Perímetro (m)', tipo: 'texto' },
+      { id: 'georefSistema', label: 'Georref — Sistema de referência', tipo: 'texto' },
+      { id: 'georefCertificacao', label: 'Georref — Código de certificação SIGEF', tipo: 'texto' },
+      { id: 'georefDataCertificacao', label: 'Georref — Data da certificação', tipo: 'texto' },
     ],
   },
   cartorio: {
@@ -394,6 +402,23 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'nome', label: 'Nome do cartório', tipo: 'texto' },
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF)', tipo: 'texto' },
+    ],
+  },
+  // Vértice do memorial descritivo (uma linha de georef_detalhe). É sempre item de
+  // lista ({{#vertices}}…{{/vertices}}), nunca binding unitário — não tem registro
+  // próprio na tela Gerar. Valores fiéis ao PDF (coordenadas em GMS preservadas).
+  vertice: {
+    tipo: 'vertice',
+    label: 'Vértice (georreferenciamento)',
+    campos: [
+      { id: 'codVertice', label: 'Código do vértice', tipo: 'texto' },
+      { id: 'longitude', label: 'Longitude', tipo: 'texto' },
+      { id: 'latitude', label: 'Latitude', tipo: 'texto' },
+      { id: 'altitude', label: 'Altitude (m)', tipo: 'texto' },
+      { id: 'codVante', label: 'Código do vértice vante', tipo: 'texto' },
+      { id: 'azimute', label: 'Azimute', tipo: 'texto' },
+      { id: 'distancia', label: 'Distância vante (m)', tipo: 'texto' },
+      { id: 'confrontacoes', label: 'Confrontações', tipo: 'texto' },
     ],
   },
 };

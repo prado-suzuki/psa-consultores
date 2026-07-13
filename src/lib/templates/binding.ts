@@ -45,8 +45,11 @@ export const PAPEIS: Record<string, Papel> = {
 
 // --- Papéis de lista (seções de repetição) -----------------------------------
 
-/** Fonte relacional de uma lista: de onde os itens vêm, dada a empresa (PJ). */
-export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao';
+/**
+ * Fonte de uma lista. As três primeiras vêm da empresa (PJ) escolhida; `georef`
+ * vem do BigQuery pela matrícula selecionada (não depende da empresa).
+ */
+export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef';
 
 export interface CampoExtra {
   id: string;
@@ -102,6 +105,17 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'ordem', label: 'Ordem do sócio na integralização (1, 2…)' },
       { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
     ],
+  },
+  // Vértices do memorial descritivo (georreferenciamento). Diferente das demais
+  // listas, a fonte é o BigQuery pela matrícula selecionada (fonte 'georef'), não
+  // a empresa. Cada item é { vertice: {...campos} }; o cabeçalho (área/perímetro/
+  // sistema/certificação) entra nos campos georef* do binding de matrícula.
+  vertices: {
+    label: 'Vértices (Georreferenciamento)',
+    tipo: 'vertice',
+    itemKey: 'vertice',
+    fonte: 'georef',
+    camposExtras: [],
   },
 };
 

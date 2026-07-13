@@ -54,10 +54,12 @@ import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding } from
 import {
   calcularCapitalSociedade,
   mapearAdministrador,
+  mapearGeorefCabecalho,
   mapearIntegralizacoes,
   mapearQuadroSocietario,
   mapearRegistro,
   mapearSociedade,
+  mapearVertice,
   montarContexto,
   reidratarItensPorLista,
   type ItemLista,
@@ -93,6 +95,7 @@ import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemMod
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
 import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import { PESSOA_LEGADA_PREFIX, useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
+import { useGeorefByMatricula } from '@/hooks/useGeorefByMatricula';
 import {
   useAuditAutores,
   useMarcarNotificacoesVistas,
@@ -420,6 +423,14 @@ const GerarDocumento = () => {
       const reg = id ? registros[b.tipo].find((r) => r.id === id) : undefined;
       if (reg) selecaoFresh[b.nome] = mapearRegistro(b.tipo, reg.row);
     }
+    // mapearRegistro (matrícula) não traz o georref; re-mescla o cabeçalho atual
+    // para o snapshot recém-feito não perder os campos georef* da matrícula.
+    if (bindingMatricula && Object.keys(georefCabecalhoCampos).length > 0) {
+      selecaoFresh[bindingMatricula] = {
+        ...(selecaoFresh[bindingMatricula] ?? {}),
+        ...georefCabecalhoCampos,
+      };
+    }
 
     // Se os flags mudarem a estrutura, repuxa os bindings da estrutura congelada;
     // trocar modelo/empresa ainda força uma remontagem estrutural completa.
@@ -547,9 +558,26 @@ const GerarDocumento = () => {
     [blocosCompostos],
   );
 
+  // --- Georreferenciamento (caminho de volta: BigQuery → memorial no contrato) ---
+  // O georref pende de UMA matrícula: usamos o 1º binding de matrícula do modelo.
+  // O cabeçalho vai para os campos georef* desse binding (mesclado em selecao, via
+  // efeito abaixo); os vértices entram na lista {{#vertices}} de itensPorLista.
+  const bindingMatricula = useMemo(
+    () => bindings.find((b) => b.tipo === 'matricula')?.nome ?? null,
+    [bindings],
+  );
+  const matriculaGeorefId = bindingMatricula ? (registroPorBinding[bindingMatricula] ?? null) : null;
+  const { data: georef } = useGeorefByMatricula(matriculaGeorefId);
+  const georefCabecalhoCampos = useMemo(() => mapearGeorefCabecalho(georef?.cabecalho), [georef]);
+  const verticesItens = useMemo<ItemLista[]>(
+    () => (georef?.vertices ?? []).map(mapearVertice),
+    [georef],
+  );
+
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
   // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
-  const usaListas = listas.length > 0;
+  // Vértices (fonte 'georef') vêm da matrícula, não da empresa — não contam aqui.
+  const usaListas = listas.some((l) => l.papel.fonte !== 'georef');
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
   // aparecer mesmo num modelo que só usa sociedade.* (sem listas nem flags).
@@ -578,8 +606,9 @@ const GerarDocumento = () => {
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes),
+      vertices: verticesItens,
     }),
-    [quadro, socios, administradores, integralizacoes],
+    [quadro, socios, administradores, integralizacoes, verticesItens],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -774,6 +803,22 @@ const GerarDocumento = () => {
     });
   }, [empresaRow, bindings, capitalValor, totalQuotas, congelado]);
 
+  // O cabeçalho do georref (área/perímetro/sistema/certificação) espelha a matrícula
+  // selecionada nos campos georef* do binding de matrícula — como a sociedade espelha
+  // a empresa. Mescla (não substitui) para preservar os campos do cadastro e a origem
+  // clicável já gravada. Sem georref, nada a fazer. Congelado vem do snapshot.
+  useEffect(() => {
+    if (congelado) return;
+    if (!bindingMatricula) return;
+    if (Object.keys(georefCabecalhoCampos).length === 0) return;
+    setSelecao((prev) => {
+      const atual = prev[bindingMatricula] ?? {};
+      const mudou = Object.entries(georefCabecalhoCampos).some(([k, v]) => atual[k] !== v);
+      if (!mudou) return prev;
+      return { ...prev, [bindingMatricula]: { ...atual, ...georefCabecalhoCampos } };
+    });
+  }, [georefCabecalhoCampos, bindingMatricula, congelado]);
+
   const escolherRegistro = (nome: string, tipo: TipoEntidade, registroId: string) => {
     const reg = registros[tipo].find((r) => r.id === registroId);
     if (!reg) return;
@@ -895,9 +940,14 @@ const GerarDocumento = () => {
       // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.
       // O snapshot vem do jsonb (round-trip): reidratar religa as referências
       // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
-      const itensEfetivo = reidratarItensPorLista(
+      let itensEfetivo = reidratarItensPorLista(
         congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista,
       );
+      // Georref: snapshots selados ANTES desta feature não têm a lista 'vertices' —
+      // cai para a fonte viva (do BQ) para a tabela do memorial não sair vazia.
+      if (!itensEfetivo.vertices || itensEfetivo.vertices.length === 0) {
+        itensEfetivo = { ...itensEfetivo, vertices: itensPorLista.vertices ?? [] };
+      }
       const totalEfetivo = congelado ? (snapshotDados?.total ?? quadro.total) : quadro.total;
 
       // A serialização do snapshot também PERDE a proveniência (a origem viaja
@@ -918,6 +968,24 @@ const GerarDocumento = () => {
         if (itensEfetivo !== itensPorLista) copiarOrigemProfunda(itensEfetivo, itensPorLista);
       }
       const ctx = montarContexto(bindings, selecaoEfetiva, livres, itensEfetivo, listas);
+      // Georref: o binding de matrícula SEMPRE carrega os campos georef* (default ''
+      // p/ {{ imovel.georefArea }} nunca ficar indefinido — undefined trava, '' resolve).
+      // O georref vivo (do BQ) é aplicado por cima QUANDO TEM VALOR, cobrindo o caminho
+      // vivo E os snapshots selados antes desta feature (que não têm esses campos).
+      if (bindingMatricula && ctx[bindingMatricula]) {
+        const campos: Record<string, string> = {
+          georefArea: '',
+          georefPerimetro: '',
+          georefSistema: '',
+          georefCertificacao: '',
+          georefDataCertificacao: '',
+          ...(ctx[bindingMatricula] as Record<string, string>),
+        };
+        for (const [k, v] of Object.entries(georefCabecalhoCampos)) {
+          if (v) campos[k] = v;
+        }
+        ctx[bindingMatricula] = campos;
+      }
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
@@ -940,7 +1008,7 @@ const GerarDocumento = () => {
     } catch (e) {
       return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados]);
+  }, [template, templateOriginal, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
