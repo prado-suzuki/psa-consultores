@@ -104,5 +104,5 @@ Hoje essas tabelas permitem acesso irrestrito via PostgREST para qualquer usuár
 ## 🎯 Definição de "dívida quitada"
 
 1. **Zero** policies `USING (true)` em tabelas de dados (só catálogo global tipo `estrutura_*` e `centros_custo`, se decidido, podem permanecer).
-2. **DEC-01 decidida** (`ambiente`/`excluido`).
+2. **DEC-01 decidida** — ✅ `excluido` no RLS; `ambiente` client-side (aceito e documentado).
 3. **Backups removidos** ou arquivados.
