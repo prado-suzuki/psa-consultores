@@ -8607,6 +8607,10 @@ export type Database = {
         }
         Returns: Json
       }
+      process_stage_cluster_visivel: {
+        Args: { _etapa_id: string }
+        Returns: boolean
+      }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
