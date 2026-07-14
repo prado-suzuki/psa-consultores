@@ -31,11 +31,13 @@ Hoje essas tabelas permitem acesso irrestrito via PostgREST para qualquer usuár
 > Cobre as 15 tabelas isolando por `cluster_id` (direto ou via FK), no padrão da RLS-05 Fiscal. Contém 2 helpers (`mapa_cluster_visivel` / `mapa_cluster_gerenciavel`), a limpeza automática das policies `USING(true)` e a query de validação final.
 > **Antes de aplicar, decidir os 3 pontos marcados como `DECISÃO A/B/C` no arquivo:** (A) linhas com `cluster_id NULL`; (B) piso de papel para escrita/DELETE; (C) se `client`/`timecliente` enxergam MAPA.
 
-**Módulo Processos**
-- [ ] `documentos_processo` (SELECT / UPDATE / DELETE)
-- [ ] `etapa_documentos` (SELECT / UPDATE / DELETE)
-- [ ] `etapa_responsaveis` (SELECT / UPDATE / DELETE)
-- [ ] `etapa_sistemas` (SELECT / UPDATE / DELETE)
+**Módulo Processos** ✅ **RESOLVIDO em 14/07/2026** — isolamento por cluster nas 6 tabelas do módulo (as 4 filhas listadas + `processes` e `process_stages` incluídos para manter coerência do módulo). Helper `process_stage_cluster_visivel` criado. DELETE nas 4 filhas endurecido para `lider+`, alinhando com o pai. Sem órfãos (`cluster_id NULL` = 0).
+- [x] `documentos_processo` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `etapa_documentos` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `etapa_responsaveis` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `etapa_sistemas` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `processes` / `process_stages` (bônus — pais do módulo)
+
 
 **Módulo Gargalos**
 - [ ] `gargalos` (SELECT / UPDATE / DELETE)
