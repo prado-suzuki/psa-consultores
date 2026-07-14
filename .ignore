@@ -1,0 +1,2 @@
+supabase/migrations/20260429120000_import_legacy_tickets.sql
+supabase/migrations/20260429130000_import_legacy_tickets_retry.sql
