@@ -6,7 +6,7 @@
 > - `components.json` — configuração shadcn-ui gerenciada externamente
 > - `supabase/config.toml` — configuração Supabase Cloud, gerada automaticamente
 > - `src/integrations/supabase/client.ts` — gerado automaticamente
-> - `src/integrations/supabase/types.ts` — gerado automaticamente a partir do schema
+> - `src/integrations/supabase/types.ts` — gerado automaticamente a partir do schema. **Para consultar o schema, leia `docs/rls/mapa-do-banco.md` (índice legível de tabelas/colunas/FKs/enums) — nunca este arquivo inteiro (8.932 linhas).**
 > - `.env` — gerenciado pelo Lovable Cloud
 >
 > ### Proibições absolutas
