@@ -39,10 +39,10 @@ Hoje essas tabelas permitem acesso irrestrito via PostgREST para qualquer usuár
 - [x] `processes` / `process_stages` (bônus — pais do módulo)
 
 
-**Módulo Gargalos**
-- [ ] `gargalos` (SELECT / UPDATE / DELETE)
-- [ ] `gargalo_processos` (SELECT / UPDATE / DELETE)
-- [ ] `gargalo_responsaveis` (SELECT / UPDATE / DELETE)
+**Módulo Gargalos** ✅ **RESOLVIDO em 14/07/2026** — isolamento por cluster nas 3 tabelas. Helper `gargalo_cluster_visivel` para as duas filhas. DELETE endurecido para `lider+`. Sem órfãos.
+- [x] `gargalos` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `gargalo_processos` (SELECT / INSERT / UPDATE / DELETE)
+- [x] `gargalo_responsaveis` (SELECT / INSERT / UPDATE / DELETE)
 
 **Módulo Melhorias**
 - [ ] `melhoria_acoes_td` (SELECT / UPDATE / DELETE)
