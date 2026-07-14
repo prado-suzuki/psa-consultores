@@ -83,9 +83,8 @@ Hoje essas tabelas permitem acesso irrestrito via PostgREST para qualquer usuár
 
 ## ⚠️ Decisão de arquitetura pendente (bloqueia "fechar" a dívida)
 
-- [ ] **`ambiente` e `excluido` não são filtrados no RLS** — hoje o isolamento é 100% client-side. Quem chamar a PostgREST diretamente lê registros cross-ambiente e registros já excluídos (soft delete).
-  **Decidir:** aceitar como está (e documentar) **ou** levar o filtro para dentro das policies.
-  Candidato natural à **DEC-01** (matriz de criar/editar/excluir de tarefas/projetos — Tax e OSG iguais), que já está pendente.
+- [x] **`excluido` no RLS** — ✅ **RESOLVIDO em 14/07/2026.** Filtro `excluido = false` incorporado nas policies de SELECT/UPDATE/DELETE das 7 tabelas com soft-delete: `cliente`, `contribuinte`, `representante`, `ordem_servico`, `documento_arquivo`, `correcoes_icms`, `distribuicao_receita`. UPDATE mantém `WITH CHECK` sem o filtro para permitir o próprio ato de soft-delete (`SET excluido = true`). INSERT não muda (default `false`).
+- [ ] **`ambiente` no RLS** — **decisão consciente: manter client-side.** Levar para o RLS exigiria injetar o ambiente via Auth Hook (custom claim no JWT) ou interceptor no client (`SET LOCAL app.ambiente`), infra desproporcional ao benefício. Os dois ambientes já usam URLs/anon keys distintas via `src/config/api.ts`, então o vetor "usuário logado em dev lê linhas de prod" só existe para quem tenha login válido nos dois — cenário limitado aos internos, coberto pelo controle de acesso. Registrado como risco aceito.
 
 ---
 
@@ -94,9 +93,11 @@ Hoje essas tabelas permitem acesso irrestrito via PostgREST para qualquer usuár
 - RLS habilitado em 100% das tabelas.
 - Helpers `cliente_visivel_para` / `resolve_user_cluster_ids`.
 - **RLS-05 Fiscal** — 14 tabelas fiscais isoladas por contribuinte (migration `20260709214333`).
+- **RLS-06 Soft-delete no policy** — 7 tabelas com `excluido` isoladas via RLS (migration `20260714`).
 - `user_roles` — 3 SELECTs (admin / team_member+ / self) + escrita só admin.
 - `cliente` / `contribuinte` / `ordem_servico` / `tickets` / `representante` — CRUD split com isolamento por cluster.
 - Backups `_bkp_psa_unify_*` sem grant para roles públicos.
+
 
 ---
 
