@@ -8465,6 +8465,10 @@ export type Database = {
         Args: { _cluster_id: string; _include_orphans?: boolean }
         Returns: string[]
       }
+      gargalo_cluster_visivel: {
+        Args: { _gargalo_id: string }
+        Returns: boolean
+      }
       get_accessible_dashboards: {
         Args: { _target_page?: string }
         Returns: {
