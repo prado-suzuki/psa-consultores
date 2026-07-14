@@ -8,9 +8,7 @@ import type {
   Melhoria,
   Projeto,
   DocRef,
-  ResponsavelEtapa,
 } from '../types';
-import { gargalosDoProcesso, melhoriaIdsDoProcesso } from './gargaloMelhorias';
 import { isEtapaEliminada } from './pdf/helpers';
 
 export interface BuildDiagramInput {
@@ -24,18 +22,14 @@ export interface BuildDiagramInput {
   projeto?: Projeto | null;
   /**
    * Cenário do diagrama:
-   * - `'era'` (padrão): As-Is — etapas e junções do cenário atual; mostra Gargalos.
-   * - `'ficou'`: To-Be — usa os campos do `etapa.ficou` (com fallback ao As-Is
-   *   quando não projetado), ignora etapas eliminadas e oculta Gargalos (tidos
-   *   como resolvidos no cenário otimizado). Melhorias aparecem nos dois.
+   * - `'era'` (padrão): As-Is — fluxo das etapas atuais; mostra Gargalos por etapa.
+   * - `'ficou'`: To-Be — usa os campos do `etapa.ficou` (fallback ao As-Is quando
+   *   não projetado), ignora etapas eliminadas e oculta Gargalos (resolvidos).
    */
   mode?: 'era' | 'ficou';
 }
 
-/**
- * Sanitiza um id para o Mermaid (sem hífen, espaços ou pontuação).
- * Mermaid v11 aceita underscore e alfanuméricos; outros viram "_".
- */
+/** Sanitiza um id para o Mermaid (sem hífen, espaços ou pontuação). */
 export function safeId(prefix: string, raw: string): string {
   return `${prefix}_${raw.replace(/[^A-Za-z0-9_]/g, '_')}`;
 }
@@ -53,162 +47,169 @@ export function safeLabel(s: string): string {
 function docKey(d: DocRef | string): string {
   return typeof d === 'string' ? d : (d.documentoId || d.nome);
 }
+function docNome(d: DocRef | string): string {
+  return typeof d === 'string' ? d : (d.nome || d.documentoId || '');
+}
+
+const STYLES = [
+  '  classDef proc        fill:#0d9488,color:#fff,stroke:#0f766e,stroke-width:2px,font-weight:bold',
+  '  classDef etapa       fill:#0f172a,color:#fff,stroke:#0d9488,stroke-width:2px,font-weight:bold',
+  '  classDef documento   fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:1px',
+  '  classDef responsavel fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:1px',
+  '  classDef sistema     fill:#ede9fe,color:#4c1d95,stroke:#8b5cf6,stroke-width:1px',
+  '  classDef gargalo     fill:#fee2e2,color:#7f1d1d,stroke:#dc2626,stroke-width:1px',
+  '  classDef vazio       fill:#f1f5f9,color:#64748b,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray:4 3',
+];
 
 /**
- * Gera código Mermaid (flowchart LR) com o processo no centro e seis
- * agrupamentos ao redor: Projeto, Documentos (entrada/saída), Responsáveis,
- * Sistemas, Gargalos e Melhorias — com cores semânticas por tipo.
+ * Emite UM processo como um MODELO DE ENTIDADES (sem repetição):
+ *  - Etapas = a espinha do processo (encadeadas por stage_order, esquerda→direita).
+ *  - Responsáveis / Sistemas / Documentos = entidades ÚNICAS, cada uma aparece
+ *    UMA vez, agrupadas por tipo em subgraphs. As etapas se RELACIONAM com elas
+ *    por ligações (resp → etapa; etapa → sistema; doc → etapa / etapa → doc).
+ *  - Gargalos (só As-Is) apontam para a etapa que impactam.
+ * `ns` namespaceia os ids (visão consolidada do projeto).
  */
-export function buildProcessDiagram(input: BuildDiagramInput): string {
-  const { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto } = input;
+function emitProcesso(lines: string[], input: BuildDiagramInput, ns: string): void {
+  const { processo, etapas, gargalos } = input;
   const useFicou = input.mode === 'ficou';
+  const nid = (kind: string, raw: string) => safeId(kind, `${ns}_${raw}`);
+  const eid = (e: Etapa) => nid('E', e.id);
+  const rid = (k: string) => nid('R', k);
+  const sid = (k: string) => nid('S', k);
+  const did = (k: string) => nid('D', k);
+  const gid = (k: string) => nid('G', k);
 
-  // ---------- Coleta ----------
-  const docEntradaKeys = new Set<string>();
-  const docSaidaKeys   = new Set<string>();
-  const respKeys       = new Set<string>();
-  const sisKeys        = new Set<string>();
+  const vis = etapas
+    .filter(e => !(useFicou && isEtapaEliminada(e)))
+    .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
 
-  const collectResp = (arr: ResponsavelEtapa[] | undefined) => {
-    (arr || []).forEach(r => {
-      const key = r.responsavelId || r.nome;
-      if (key) respKeys.add(key);
-    });
-  };
-
-  for (const e of etapas) {
-    // No To-Be, etapas eliminadas saem do mapa; campos usam o projetado
-    // (`ficou`) com fallback ao As-Is quando aquele campo não foi alterado.
-    if (useFicou && isEtapaEliminada(e)) continue;
-    const f = useFicou ? e.ficou : null;
-    const docsEntradaEt = (useFicou ? (f?.docsEntrada ?? e.docsEntrada) : e.docsEntrada) || [];
-    const docsSaidaEt   = (useFicou ? (f?.docsSaida   ?? e.docsSaida)   : e.docsSaida)   || [];
-    const execEt        = (useFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
-    const sistemasEt    = (useFicou ? (f?.sistemas    ?? e.sistemas)    : e.sistemas)    || [];
-
-    docsEntradaEt.forEach(d => docEntradaKeys.add(docKey(d)));
-    docsSaidaEt.forEach(d => docSaidaKeys.add(docKey(d)));
-    collectResp(execEt);
-    sistemasEt.forEach(s => sisKeys.add(s));
+  if (vis.length === 0) {
+    lines.push(`  ${nid('EMPTY', processo.id)}["${safeLabel(processo.name)} · sem etapas"]:::vazio`);
+    return;
   }
 
-  const docsEntrada = Array.from(docEntradaKeys)
-    .map(k => documentos.find(d => d.id === k || d.nome === k) || { id: k, nome: k })
-    .filter(Boolean);
-  const docsSaida = Array.from(docSaidaKeys)
-    .map(k => documentos.find(d => d.id === k || d.nome === k) || { id: k, nome: k })
-    .filter(Boolean);
-
-  const resps = Array.from(respKeys)
-    .map(k => responsaveis.find(r => r.id === k || r.name === k) || { id: k, name: k });
-
-  const sis = Array.from(sisKeys)
-    .map(k => sistemas.find(s => s.id === k || s.nome === k) || { id: k, nome: k });
-
-  // Gargalos/melhorias do processo derivados via gargalo_etapas → etapa
-  // (vínculos diretos gargalo_processos/melhoria_processos foram aposentados).
-  // No To-Be os gargalos são tidos como resolvidos → não entram no mapa.
-  const procGargalos = useFicou ? [] : gargalosDoProcesso(gargalos, processo.id);
-  const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
-  const procMelhorias = melhorias.filter(m => melhoriaIdsProc.has(m.id));
-
-  // ---------- IDs ----------
-  const pId = safeId('P', processo.id);
-  const projId = projeto ? safeId('PROJ', projeto.id) : null;
-
-  const idDocEntrada = (d: { id?: string; nome: string }) => safeId('DE', d.id || d.nome);
-  const idDocSaida   = (d: { id?: string; nome: string }) => safeId('DS', d.id || d.nome);
-  const idResp       = (r: { id?: string; name: string }) => safeId('R',  r.id || r.name);
-  const idSis        = (s: { id?: string; nome: string }) => safeId('S',  s.id || s.nome);
-  const idGar        = (g: Gargalo) => safeId('G', g.id);
-  const idMel        = (m: Melhoria) => safeId('M', m.id);
-
-  // ---------- Geração ----------
-  const lines: string[] = [];
-  lines.push(`%% Diagrama do Processo (${useFicou ? 'Cenário Otimizado · To-Be' : 'Cenário Atual · As-Is'}) — gerado pelo MAPA`);
-  lines.push('flowchart LR');
-  lines.push('  %% ===== nós =====');
-
-  // Rótulos em TEXTO PURO (sem <b>/<i>/<br/>): tags HTML acionam o caminho de
-  // foreignObject do mermaid, que gera SVG com <p>/<br> não-XML (quebra o .svg
-  // exportado) e não rasteriza em canvas (quebra o PNG). O tipo é transmitido
-  // pelas cores/estilos dos nós.
-  lines.push(`  ${pId}["${safeLabel(processo.name)}"]:::processo`);
-
-  if (projeto && projId) {
-    lines.push(`  ${projId}["${safeLabel(projeto.name)}"]:::projeto`);
-  }
-
-  // Subgraphs
-  const renderSubgraph = (
-    sgId: string,
-    title: string,
-    items: string[],
-  ) => {
-    if (items.length === 0) return;
-    lines.push(`  subgraph ${sgId}["${safeLabel(title)}"]`);
-    lines.push('    direction TB');
-    items.forEach(it => lines.push(`    ${it}`));
-    lines.push('  end');
-  };
-
-  renderSubgraph(
-    'SG_DE',
-    `📥 Documentos · Entrada (${docsEntrada.length})`,
-    docsEntrada.map(d => `${idDocEntrada(d)}["${safeLabel(d.nome)}"]:::documento`)
-  );
-  renderSubgraph(
-    'SG_DS',
-    `📤 Documentos · Saída (${docsSaida.length})`,
-    docsSaida.map(d => `${idDocSaida(d)}["${safeLabel(d.nome)}"]:::documento`)
-  );
-  renderSubgraph(
-    'SG_R',
-    `👥 Responsáveis (${resps.length})`,
-    resps.map(r => `${idResp(r)}["${safeLabel(r.name)}"]:::responsavel`)
-  );
-  renderSubgraph(
-    'SG_S',
-    `💻 Sistemas (${sis.length})`,
-    sis.map(s => `${idSis(s)}["${safeLabel(s.nome)}"]:::sistema`)
-  );
-  renderSubgraph(
-    'SG_G',
-    `⚠️ Gargalos (${procGargalos.length})`,
-    procGargalos.map(g => `${idGar(g)}["${safeLabel(g.nome)}"]:::gargalo`)
-  );
-  renderSubgraph(
-    'SG_M',
-    `⚡ Melhorias (${procMelhorias.length})`,
-    procMelhorias.map(m => `${idMel(m)}["${safeLabel(m.improvement_description)}"]:::melhoria`)
-  );
-
-  // ---------- Ligações ----------
-  lines.push('  %% ===== ligações =====');
-
-  if (projId) lines.push(`  ${projId} ==> ${pId}`);
-
-  docsEntrada.forEach(d => lines.push(`  ${idDocEntrada(d)} --> ${pId}`));
-  docsSaida.forEach(d => lines.push(`  ${pId} --> ${idDocSaida(d)}`));
-  resps.forEach(r => lines.push(`  ${idResp(r)} -.-> ${pId}`));
-  sis.forEach(s => lines.push(`  ${pId} -.-> ${idSis(s)}`));
-  procGargalos.forEach(g => lines.push(`  ${idGar(g)} -. impacta .-> ${pId}`));
-
-  // Melhorias linkam ao processo (a relação com os gargalos é implícita pelo
-  // processo — ambos atuam no mesmo processo; não há vínculo direto).
-  procMelhorias.forEach(m => {
-    lines.push(`  ${idMel(m)} -. resolve .-> ${pId}`);
+  // Espinha das etapas (horizontal).
+  vis.forEach((e, i) => {
+    lines.push(`  ${eid(e)}["${i + 1} · ${safeLabel(e.name)}"]:::etapa`);
+    if (i > 0) lines.push(`  ${eid(vis[i - 1])} ==> ${eid(e)}`);
   });
 
-  // ---------- Estilos ----------
-  lines.push('  %% ===== estilos =====');
-  lines.push('  classDef processo    fill:#0f172a,color:#fff,stroke:#0d9488,stroke-width:3px,font-weight:bold');
-  lines.push('  classDef projeto     fill:#0d9488,color:#fff,stroke:#0f766e,stroke-width:2px');
-  lines.push('  classDef documento   fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:1px');
-  lines.push('  classDef responsavel fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:1px');
-  lines.push('  classDef sistema     fill:#ede9fe,color:#4c1d95,stroke:#8b5cf6,stroke-width:1px');
-  lines.push('  classDef gargalo     fill:#fee2e2,color:#7f1d1d,stroke:#dc2626,stroke-width:1px');
-  lines.push('  classDef melhoria    fill:#dcfce7,color:#14532d,stroke:#16a34a,stroke-width:1px');
+  // Coleta entidades ÚNICAS + as relações (uma aresta por (etapa, entidade)).
+  const resp = new Map<string, string>();
+  const sis = new Map<string, string>();
+  const doc = new Map<string, string>();
+  const gar = new Map<string, string>();
+  const rel: string[] = [];
+  for (const e of vis) {
+    const f = useFicou ? e.ficou : null;
+    const exec = (useFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
+    const sist = (useFicou ? (f?.sistemas ?? e.sistemas) : e.sistemas) || [];
+    const dEnt = (useFicou ? (f?.docsEntrada ?? e.docsEntrada) : e.docsEntrada) || [];
+    const dSai = (useFicou ? (f?.docsSaida ?? e.docsSaida) : e.docsSaida) || [];
 
+    for (const r of exec) { const k = r.responsavelId || r.nome; if (!k?.trim()) continue; resp.set(k, r.nome || k); rel.push(`  ${rid(k)} -.-> ${eid(e)}`); }
+    for (const s of sist) { if (!s?.trim()) continue; sis.set(s, s); rel.push(`  ${eid(e)} -.-> ${sid(s)}`); }
+    for (const d of dEnt) { const k = docKey(d); if (!k) continue; doc.set(k, docNome(d)); rel.push(`  ${did(k)} --> ${eid(e)}`); }
+    for (const d of dSai) { const k = docKey(d); if (!k) continue; doc.set(k, docNome(d)); rel.push(`  ${eid(e)} --> ${did(k)}`); }
+    if (!useFicou) {
+      for (const gId of e.gargalos || []) {
+        const g = gargalos.find(x => x.id === gId);
+        if (g) { gar.set(g.id, g.nome); rel.push(`  ${gid(g.id)} -. impacta .-> ${eid(e)}`); }
+      }
+    }
+  }
+
+  // Cada tipo num grupo (entidades únicas).
+  const grupo = (sgId: string, titulo: string, itens: Map<string, string>, cls: string, idFn: (k: string) => string) => {
+    if (itens.size === 0) return;
+    lines.push(`  subgraph ${sgId}["${titulo}"]`);
+    lines.push('    direction TB');
+    itens.forEach((nome, k) => lines.push(`    ${idFn(k)}["${safeLabel(nome)}"]:::${cls}`));
+    lines.push('  end');
+  };
+  grupo(nid('SGR', 'x'), 'Responsáveis', resp, 'responsavel', rid);
+  grupo(nid('SGS', 'x'), 'Sistemas', sis, 'sistema', sid);
+  grupo(nid('SGD', 'x'), 'Documentos', doc, 'documento', did);
+  gar.forEach((nome, k) => lines.push(`  ${gid(k)}["${safeLabel(nome)}"]:::gargalo`));
+
+  rel.forEach(l => lines.push(l));
+}
+
+/**
+ * Diagrama de UM processo (As-Is/To-Be): o fluxo das suas etapas com docs,
+ * responsáveis, sistemas e gargalos. Rótulos em TEXTO PURO (sem HTML) para o
+ * SVG/PNG exportados não quebrarem.
+ */
+export function buildProcessDiagram(input: BuildDiagramInput): string {
+  const useFicou = input.mode === 'ficou';
+  const lines: string[] = [];
+  lines.push(`%% Diagrama do Processo (${useFicou ? 'To-Be · Como Ficou' : 'As-Is · Como Era'}) — gerado pelo MAPA`);
+  // LR (horizontal): monitor é mais largo que alto — o fluxo lê melhor da
+  // esquerda p/ direita; docs/responsáveis/sistemas se distribuem ao redor.
+  lines.push('flowchart LR');
+  emitProcesso(lines, input, 'P');
+  lines.push('  %% ===== estilos =====');
+  STYLES.forEach(s => lines.push(s));
+  return lines.join('\n');
+}
+
+export interface BuildProjectDiagramInput {
+  projeto: Projeto | null;
+  processos: Processo[];
+  etapasPorProcesso: Map<string, Etapa[]>;
+  documentos: Documento[];
+  sistemas: Sistema[];
+  responsaveis: Responsavel[];
+  gargalos: Gargalo[];
+  melhorias: Melhoria[];
+  mode?: 'era' | 'ficou';
+}
+
+/**
+ * Diagrama CONSOLIDADO do projeto: um subgraph por processo, cada um com o seu
+ * fluxo de etapas. Ids namespaceados por processo (não colidem). Processos sem
+ * etapa entram como nó "sem etapas".
+ */
+export function buildProjectDiagram(input: BuildProjectDiagramInput): string {
+  const { projeto, processos, etapasPorProcesso } = input;
+  const useFicou = input.mode === 'ficou';
+  const lines: string[] = [];
+  lines.push(`%% Diagrama do Projeto${projeto ? ` · ${safeLabel(projeto.name)}` : ''} (${useFicou ? 'To-Be' : 'As-Is'}) — gerado pelo MAPA`);
+  // HORIZONTAL: cada processo é um subgraph (caixa rotulada) com suas etapas
+  // fluindo da esquerda p/ direita (direction LR). As CAIXAS também ficam lado a
+  // lado (esquerda→direita): um link invisível (~~~) entre a última etapa de um
+  // processo e a primeira do próximo força esse alinhamento no flowchart LR
+  // (senão o mermaid empilha subgraphs desconectados em linhas). Só a espinha.
+  lines.push('flowchart LR');
+
+  const ordenados = [...processos].sort(
+    (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name),
+  );
+  let prevLast: string | null = null;
+  ordenados.forEach((p, i) => {
+    const vis = (etapasPorProcesso.get(p.id) || [])
+      .filter(e => !(useFicou && isEtapaEliminada(e)))
+      .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
+    lines.push(`  subgraph SGP_${i}["${i + 1} · ${safeLabel(p.name)}"]`);
+    lines.push('    direction LR');
+    let first: string;
+    let last: string;
+    if (vis.length === 0) {
+      first = last = `PEMPTY_${i}`;
+      lines.push(`    ${first}["sem etapas"]:::vazio`);
+    } else {
+      vis.forEach((e, j) => lines.push(`    PE_${i}_${j}["${j + 1} · ${safeLabel(e.name)}"]:::etapa`));
+      for (let j = 1; j < vis.length; j++) lines.push(`    PE_${i}_${j - 1} --> PE_${i}_${j}`);
+      first = `PE_${i}_0`;
+      last = `PE_${i}_${vis.length - 1}`;
+    }
+    lines.push('  end');
+    if (prevLast) lines.push(`  ${prevLast} ~~~ ${first}`);
+    prevLast = last;
+  });
+
+  lines.push('  %% ===== estilos =====');
+  STYLES.forEach(s => lines.push(s));
   return lines.join('\n');
 }

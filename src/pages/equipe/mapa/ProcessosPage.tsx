@@ -181,6 +181,19 @@ export default function ProcessosPage() {
     return [{ value: '', label: 'Todos os projetos' }, ...opts];
   }, [noEscopo, projetoNomePorId]);
 
+  // Browse padrão (sem busca/filtro de projeto/status) — só aí mostramos os
+  // projetos vazios, pra não poluir buscas/filtros que são sobre processos.
+  const mostrarVazios = !fProjeto && busca.trim() === '' && fMapeado === 'todos';
+  // Projetos do cluster ativo que ainda NÃO têm processo. Sem isto, um projeto
+  // recém-criado "some" (a lista é montada a partir dos processos) — confunde
+  // quem acabou de criá-lo. Aparecem como grupo vazio (contagem 0).
+  const projetosSemProcesso = useMemo(() => {
+    const comProcesso = new Set(noEscopo.map(p => p.project_id).filter(Boolean));
+    return projetos
+      .filter(p => (!fCluster || (p.cluster_id || '') === fCluster) && !comProcesso.has(p.id))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [projetos, noEscopo, fCluster]);
+
   const abrirCriar = () => { setEmEdicao(null); setFormAberto(true); };
   const abrirEditar = (p: Processo) => { setEmEdicao(p); setFormAberto(true); };
 
@@ -327,6 +340,20 @@ export default function ProcessosPage() {
         grupo.forEach(p => out.push(renderItem(p)));
       }
     }
+    // Projetos do cluster SEM processo — grupo vazio (contagem 0), no fim da
+    // lista. Só no browse padrão (mostrarVazios). Mantém o balde "Sem processo"
+    // dos processos órfãos intacto (é outro caso, tratado no while acima).
+    if (mostrarVazios) {
+      for (const proj of projetosSemProcesso) {
+        const abertoVazio = gruposAbertos.has(proj.id);
+        out.push(renderGrupoHeader(proj.id, proj, proj.name, 0, abertoVazio));
+        if (abertoVazio) out.push(
+          <div key={`vazio-${proj.id}`} style={{ padding: '6px 12px 6px 36px', color: 'var(--text-muted, #888)', fontSize: 13 }}>
+            Nenhum processo neste projeto ainda.
+          </div>,
+        );
+      }
+    }
     return out;
   };
 
@@ -391,8 +418,8 @@ export default function ProcessosPage() {
         </div>
       )}
       <CadastroLista
-        vazio={noEscopo.length === 0}
-        semResultadoBusca={visiveis.length === 0}
+        vazio={noEscopo.length === 0 && !(mostrarVazios && projetosSemProcesso.length > 0)}
+        semResultadoBusca={visiveis.length === 0 && !(mostrarVazios && projetosSemProcesso.length > 0)}
         emptyState={
           <EmptyStateCadastro
             icone={<Workflow size={32} strokeWidth={1.8} />}
@@ -433,6 +460,9 @@ export default function ProcessosPage() {
         processoNomeById={processoNomeById}
         gargalos={gargalos}
         responsaveis={responsaveis}
+        documentos={documentos}
+        sistemas={sistemas}
+        melhorias={melhorias}
         onClose={() => setProjetoDetalhe(null)}
         onEditar={() => { const pj = projetoDetalhe; setProjetoDetalhe(null); if (pj) setProjEmEdicao(pj); }}
       />

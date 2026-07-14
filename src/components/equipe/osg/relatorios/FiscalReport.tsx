@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Archive, Download, FileText, HelpCircle, Landmark, Send } from 'lucide-react';
+import { Archive, Download, FileText, Landmark, Send } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useAllMatriculas, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
@@ -7,14 +7,11 @@ import { useRelatorioDP } from '@/hooks/useRelatorioDP';
 import { useDocumentosByCliente, useBaixarDocumento, type DocCategoria, type DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { EstruturaAtual } from './EstruturaAtual';
 
-const brl = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const fmtMoney = (v: number | null): string => (v === null || Number.isNaN(Number(v)) ? '—' : brl.format(Number(v)));
+const areaUnit = (u: string | null): string => (u === 'm2' ? 'm²' : 'ha');
 const fmtArea = (v: number | null, u: string | null): string =>
-  v === null || Number.isNaN(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 4 })} ${u || 'ha'}`;
-const matTxt = (m: MatriculaEnriched): string => {
-  const n = m.numero ? `Mat. ${m.numero}` : '—';
-  return m.matricula_anterior_texto ? `${n} (ant. ${m.matricula_anterior_texto})` : n;
-};
+  v === null || Number.isNaN(Number(v)) ? '—' : `${Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 4 })} ${areaUnit(u)}`;
+// Só o número da matrícula na tabela; a descrição da matrícula anterior fica no cadastro.
+const matTxt = (m: MatriculaEnriched): string => (m.numero ? `Mat. ${m.numero}` : '—');
 const munUf = (m: MatriculaEnriched): string => [m.municipio_imovel ?? '', m.uf_imovel ?? ''].filter(Boolean).join('/') || '—';
 
 const th = 'whitespace-nowrap border-b border-osg-200 bg-slate-50 px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
@@ -43,22 +40,8 @@ const DOCS_FISCAL: ReqDoc[] = [
   { assunto: 'Dívidas da atividade rural', descricao: 'Relatório com valores a pagar nos próximos anos, por vencimento.', cat: null, kw: ['dívida', 'divida', 'emprést', 'emprest', 'financ'] },
   { assunto: 'Investimentos', descricao: 'Projeção de investimentos para os próximos anos.', cat: null, kw: ['investi'] },
   { assunto: 'Contrato social', descricao: 'Contratos sociais das PJs + CNPJs + regimes tributários.', cat: 'societarios', kw: ['contrato social', 'estatuto', 'altera'] },
-  { assunto: 'DRE', descricao: 'Demonstração do Resultado do Exercício das empresas do grupo.', cat: null, kw: ['dre', 'balanç', 'balanc', 'demonstra'] },
+  { assunto: 'Balanço / Balancete / DRE', descricao: 'Balanço, balancete e DRE dos três últimos exercícios das empresas do grupo (ainda que não registrados).', cat: null, kw: ['dre', 'balanç', 'balanc', 'demonstra'] },
   { assunto: 'Resultado projetado', descricao: 'Projeção do resultado (PF e PJ) por atividade — conforme modelo de DRE.', cat: null, kw: [], modelo: true },
-];
-
-const QUESTIONARIO: { grupo: string; perguntas: string[] }[] = [
-  { grupo: 'Modelo de exploração atual', perguntas: [
-    'Quem são as pessoas físicas envolvidas e quais exploram atividade rural?',
-    'A exploração é individual, em condomínio rural (vários CPFs) ou em parceria?',
-    'Arrendam terras de terceiros, ou arrendam parte das suas terras a terceiros? Se sim, quais imóveis?',
-  ] },
-  { grupo: 'Fluxo de comercialização', perguntas: [
-    'Quais produtos são comercializados?',
-    'Qual a % da produção destinada a exportação (ainda que indireta), por produto?',
-    'Na pecuária, qual a % da produção destinada a abate?',
-    'Como é feita a opção pelo Funrural: sobre a folha de pagamento ou sobre a comercialização?',
-  ] },
 ];
 
 const matchDocs = (req: ReqDoc, docs: DocumentoArquivoRow[]): DocumentoArquivoRow[] =>
@@ -86,10 +69,27 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Carregando abertura de demanda…</p>;
   }
 
-  const HEAD = ['Imóvel', 'Município/UF', 'Matrícula', 'Valor Contábil', 'Área explorada', 'Exploração'];
+  const HEAD = [
+    'Tipo', 'Explorador', 'Outorgante', 'Imóvel', 'Matrícula',
+    'Município/UF', 'Área total', 'Área explorada', 'Decl. IRPF',
+    'Assinatura', 'Encerramento', 'Vigência', 'Sacas/ha',
+  ];
+  // Colunas preenchidas a partir das matrículas do cliente; os campos de exploração
+  // ainda não capturados no OSG Work ficam em branco (—).
   const rows = matriculas.map((m) => [
-    m.bem_denominacao || m.bem_referencia || (m.numero ? `Matrícula ${m.numero}` : 'Imóvel'),
-    munUf(m), matTxt(m), fmtMoney(m.vlr_contabil), fmtArea(m.area_explorada, m.area_unidade), m.tipo_exploracao_posse || '—',
+    m.tipo_exploracao_posse || '—', // Tipo
+    '—', // Explorador
+    '—', // Outorgante
+    m.bem_denominacao || m.bem_referencia || (m.numero ? `Matrícula ${m.numero}` : 'Imóvel'), // Imóvel
+    matTxt(m), // Matrícula
+    munUf(m), // Município/UF
+    fmtArea(m.area_documento, m.area_unidade), // Área total
+    fmtArea(m.area_explorada, m.area_unidade), // Área explorada
+    '—', // Decl. IRPF
+    '—', // Assinatura
+    '—', // Encerramento
+    '—', // Vigência
+    '—', // Sacas/ha
   ]);
 
   const faltantes = DOCS_FISCAL.filter((d) => !d.modelo && matchDocs(d, docs).length === 0).length;
@@ -126,13 +126,13 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
               <thead>
-                <tr>{HEAD.map((h, i) => <th key={i} className={cn(th, (i === 3 || i === 4) && 'text-right')}>{h}</th>)}</tr>
+                <tr>{HEAD.map((h, i) => <th key={i} className={cn(th, (i === 6 || i === 7 || i === 12) && 'text-right')}>{h}</th>)}</tr>
               </thead>
               <tbody>
                 {rows.map((r, ri) => (
                   <tr key={ri} className="hover:bg-osg-50/30">
                     {r.map((c, ci) => (
-                      <td key={ci} className={cn(td, (ci === 3 || ci === 4) && 'whitespace-nowrap text-right tabular-nums', ci === 0 && 'font-medium text-slate-800')}>
+                      <td key={ci} className={cn(td, (ci === 6 || ci === 7 || ci === 12) && 'whitespace-nowrap text-right tabular-nums', ci === 3 && 'font-medium text-slate-800')}>
                         {c || '—'}
                       </td>
                     ))}
@@ -209,22 +209,6 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
         <p className="border-t border-osg-100 px-4 py-2 text-[11px] leading-relaxed text-slate-500">
           “Recebido / A solicitar” é estimado pela categoria/nome do arquivo — a OSG confirma. “Baixar todos” abre os arquivos disponíveis (permita pop-ups).
         </p>
-      </Secao>
-
-      {/* Questionário — anexo aplicado pela Fiscal */}
-      <Secao icon={HelpCircle} titulo="Questionário de qualificação" meta="anexo · aplicado pela PSA Fiscal">
-        <div className="grid gap-4 p-4 sm:grid-cols-2">
-          {QUESTIONARIO.map((g) => (
-            <div key={g.grupo}>
-              <h4 className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                <FileText className="h-3.5 w-3.5 text-slate-400" /> {g.grupo}
-              </h4>
-              <ol className="list-decimal space-y-1 pl-4 text-[12.5px] leading-snug text-slate-500 marker:text-slate-400">
-                {g.perguntas.map((p, i) => <li key={i}>{p}</li>)}
-              </ol>
-            </div>
-          ))}
-        </div>
       </Secao>
     </div>
   );

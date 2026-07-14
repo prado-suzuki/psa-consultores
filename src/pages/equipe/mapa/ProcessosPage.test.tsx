@@ -60,6 +60,28 @@ describe('ProcessosPage', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('projeto do cluster SEM processo aparece como grupo (não some ao criar)', async () => {
+    // Cenário do bug: projeto criado, ainda sem nenhum processo. Antes ele
+    // "sumia" (a lista é montada a partir dos processos). Deve aparecer como
+    // grupo vazio, pelo nome do projeto.
+    setupSupabaseMocks({
+      processes: [],
+      projects: [PROJETO_OSG_ROW],
+      process_stages: [],
+      gargalos: [],
+      process_improvements: [],
+      estrutura_clusters: [CLUSTER_ROW],
+    });
+
+    render(
+      <TestProviders>
+        <ProcessosPage />
+      </TestProviders>,
+    );
+
+    expect(await screen.findByText(PROJETO_OSG_ROW.name)).toBeInTheDocument();
+  });
+
   it('smoke: renderiza sem crash com data vazia', async () => {
     setupSupabaseMocks({
       processes: [],

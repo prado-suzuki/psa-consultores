@@ -17,7 +17,8 @@ import { useFocusParam } from '@/utils/useFocusParam';
 import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import { useProjetos, useDeleteProjeto } from '@/hooks/useProjetos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useEtapasLista, useMelhoriasLista, useGargalosLista, useResponsaveisLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useMelhoriasLista, useGargalosLista, useResponsaveisLista, useDocumentosLista, useSistemasLista } from '@/hooks/useDominioListas';
+import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
@@ -40,11 +41,19 @@ export default function ProjetosPage() {
   const { data: items = [], isLoading } = useProjetos();
   const deleteMut = useDeleteProjeto();
   const { data: processos = [] } = useProcessos();
-  const { data: etapas = [] } = useEtapasLista();
+  const { data: rawEtapas = [] } = useEtapasLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
+  const { data: documentos = [] } = useDocumentosLista();
+  const { data: sistemas = [] } = useSistemasLista();
   const { cluster: fCluster } = useClusterGlobal();
+  // Etapas enriquecidas (id→nome de docs/sistemas/responsáveis) — o readout AS-IS
+  // e o diagrama do detalhe do projeto precisam dos nomes resolvidos.
+  const etapas = useMemo(
+    () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
+    [rawEtapas, documentos, sistemas, responsaveis],
+  );
 
   const [busca, setBusca] = useState('');
   const [formAberto, setFormAberto] = useState(false);
@@ -249,6 +258,9 @@ export default function ProjetosPage() {
         processoNomeById={processoNomeById}
         gargalos={gargalos}
         responsaveis={responsaveis}
+        documentos={documentos}
+        sistemas={sistemas}
+        melhorias={melhorias}
         onClose={() => setDetalhe(null)}
         onEditar={() => { const p = detalhe; setDetalhe(null); if (p) abrirEditar(p); }}
       />

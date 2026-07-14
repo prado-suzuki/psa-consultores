@@ -57,11 +57,51 @@ export interface DiagramViewerProps {
   title?: string;
 }
 
+const ZOOM_MIN = 0.1;   // 10%
+const ZOOM_MAX = 3.5;   // 350%
+const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+
+// Tamanho natural do diagrama a partir do viewBox (aceita offsets negativos/
+// decimais — o mermaid às vezes emite `viewBox="-8 -8 W H"`; o regex antigo
+// falhava e caía no default, bugando o zoom inicial).
+function svgNaturalSize(svg: string): { w: number; h: number } {
+  const m = svg.match(/viewBox="\s*[-\d.]+\s+[-\d.]+\s+([-\d.]+)\s+([-\d.]+)"/i);
+  return { w: m ? Math.abs(parseFloat(m[1])) || 1200 : 1200, h: m ? Math.abs(parseFloat(m[2])) || 600 : 600 };
+}
+
+// Prepara o SVG p/ o viewport: no <svg> raiz, remove max-width e width/height
+// antigos e crava o tamanho NATURAL (px). Assim o zoom (transform scale) é
+// previsível — o SVG tem tamanho fixo conhecido e o wrapper escala/move.
+function prepSvg(svg: string, w: number, h: number): string {
+  return svg.replace(/<svg\b[^>]*>/i, (tag) => {
+    const t = tag
+      .replace(/\swidth="[^"]*"/i, '')
+      .replace(/\sheight="[^"]*"/i, '')
+      .replace(/max-width:\s*[\d.]+px;?/gi, '');
+    return t.replace(/<svg\b/i, `<svg width="${Math.round(w)}" height="${Math.round(h)}"`);
+  });
+}
+
 export default function DiagramViewer({ isOpen, onClose, code, filename, title }: DiagramViewerProps) {
   const renderRef = useRef<HTMLDivElement>(null);
   const [svg, setSvg] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [zoom, setZoom] = useState<number>(1);
+  const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Ajusta o diagrama pra caber no container (fit) e centraliza o pan.
+  const fitToContainer = (svgStr: string = svg) => {
+    const cont = renderRef.current;
+    if (!cont || !svgStr) return;
+    const { w, h } = svgNaturalSize(svgStr);
+    const z = clampZoom(Math.min((cont.clientWidth - 24) / w, (cont.clientHeight - 24) / h));
+    setZoom(z);
+    setPan({
+      x: Math.max(8, (cont.clientWidth - w * z) / 2),
+      y: Math.max(8, (cont.clientHeight - h * z) / 2),
+    });
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -74,7 +114,9 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
     mermaid
       .render(id, code)
       .then(({ svg }) => {
-        if (!cancelled) setSvg(svg);
+        if (cancelled) return;
+        setSvg(svg);
+        requestAnimationFrame(() => { if (!cancelled) fitToContainer(svg); });
       })
       .catch((err: unknown) => {
         if (!cancelled) {
@@ -84,7 +126,21 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, code]);
+
+  // Zoom com o rolo do mouse (listener nativo p/ poder chamar preventDefault).
+  useEffect(() => {
+    const el = renderRef.current;
+    if (!el || !isOpen) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+      setZoom(z => clampZoom(z * factor));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [isOpen, svg]);
 
   // ----- Downloads -----
 
@@ -163,45 +219,49 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
       <div className="modal" style={{ maxWidth: '95vw', width: '1100px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
           <h2 style={{ margin: 0, flex: 1 }}>{title || 'Diagrama do Processo'}</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               type="button"
               className="btn-action-sm"
-              onClick={() => setZoom(z => Math.max(0.4, z - 0.2))}
-              title="Diminuir zoom"
+              style={{ fontSize: 20, lineHeight: 1, width: 36, height: 36, padding: 0 }}
+              onClick={() => setZoom(z => clampZoom(z / 1.25))}
+              title="Diminuir (ou role o mouse sobre o diagrama)"
             >−</button>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', minWidth: 42, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#334155', minWidth: 52, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               className="btn-action-sm"
-              onClick={() => setZoom(z => Math.min(2.5, z + 0.2))}
-              title="Aumentar zoom"
+              style={{ fontSize: 20, lineHeight: 1, width: 36, height: 36, padding: 0 }}
+              onClick={() => setZoom(z => clampZoom(z * 1.25))}
+              title="Aumentar (ou role o mouse sobre o diagrama)"
             >+</button>
             <button
               type="button"
               className="btn-action-sm"
-              onClick={() => setZoom(1)}
-              title="Resetar zoom"
+              onClick={() => fitToContainer()}
+              title="Ajustar à tela"
               style={{ marginLeft: 4 }}
-            >100%</button>
+            >Ajustar</button>
           </div>
         </div>
 
         <div
           ref={renderRef}
+          onMouseDown={(e) => { dragRef.current = { x: e.clientX - pan.x, y: e.clientY - pan.y }; }}
+          onMouseMove={(e) => { if (dragRef.current) setPan({ x: e.clientX - dragRef.current.x, y: e.clientY - dragRef.current.y }); }}
+          onMouseUp={() => { dragRef.current = null; }}
+          onMouseLeave={() => { dragRef.current = null; }}
           style={{
             background: '#f8fafc',
             border: '1px solid #e2e8f0',
             borderRadius: 8,
-            padding: 18,
-            overflow: 'auto',
-            maxHeight: '65vh',
+            overflow: 'hidden',
+            height: '65vh',
             minHeight: 320,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'center',
+            position: 'relative',
+            cursor: 'grab',
           }}
         >
           {error ? (
@@ -212,11 +272,13 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
           ) : svg ? (
             <div
               style={{
-                transform: `scale(${zoom})`,
-                transformOrigin: 'top left',
-                transition: 'transform 0.15s ease',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: '0 0',
               }}
-              dangerouslySetInnerHTML={{ __html: svg }}
+              dangerouslySetInnerHTML={{ __html: prepSvg(svg, svgNaturalSize(svg).w, svgNaturalSize(svg).h) }}
             />
           ) : (
             <div style={{ color: '#64748b', fontSize: '0.85rem', padding: 24 }}>
