@@ -1,127 +1,110 @@
 
-# Refino v5 — Ajustes finais sobre o v4 (seções afetadas)
+# Levar `excluido` para o RLS (mantendo `ambiente` client-side)
 
-Substitui pontualmente as seções indicadas do v4. As demais partes do v4 permanecem válidas.
+## Objetivo
 
----
+Impedir que registros com `excluido = true` sejam retornados pela Data API (PostgREST) para usuários autenticados via anon key, mesmo quando o client esquecer o `.eq('excluido', false)`. O filtro de `ambiente` permanece no client como está hoje (custo de mudança desproporcional ao benefício).
 
-## 1. Resumo executivo (ajuste sobre §1 do v4)
+## Escopo
 
-Mantém-se a v4. Reforços:
+**7 tabelas afetadas** (todas que têm coluna `excluido`):
 
-- A view `public.profiles_safe` passa a ter `security_invoker = false` **e** `security_barrier = true`. A segurança vem do **filtro de autorização embutido** (`WHERE has_role_or_higher(auth.uid(), 'team_member'::app_role)`) somado à **projeção exclusiva de colunas não-sensíveis** (`id, first_name, last_name`). Não descrever a proteção como "curto-circuito por linha".
-- Implantação em três passos distintos para evitar janela em que o portal fica sem nome do atendente: **Migration A** (RPCs), **deploy do frontend** (portal passa a consumir as RPCs), **Migration B** (redefinição da view).
+- `cliente`
+- `contribuinte`
+- `representante`
+- `ordem_servico`
+- `documento_arquivo`
+- `correcoes_icms`
+- `distribuicao_receita`
 
-## 4. Decisão D2.2 (ajuste)
+**Não afetadas:** edge functions (todas usam `service_role`, que bypassa RLS — confirmado em análise prévia). Frontend continua funcionando; queries que já filtram `excluido = false` ficam redundantes mas corretas.
 
-- **D2.2 (revisada)** — **preferir manter o owner atual** de `public.profiles_safe`. Só executar `ALTER VIEW ... OWNER TO postgres` se:
-  1. o owner atual **não** tem `BYPASSRLS`, **e**
-  2. o novo owner é permitido pelo ambiente Supabase (executar o `ALTER OWNER` em uma migration de teste antes; se falhar, abortar).
-  
-  Verificação:
-  ```
-  SELECT c.relowner::regrole AS owner, r.rolbypassrls
-  FROM pg_class c
-  JOIN pg_roles r ON r.oid = c.relowner
-  WHERE c.oid = 'public.profiles_safe'::regclass;
-  ```
-  Se `rolbypassrls = true`, **não** trocar owner. Se `false`, avaliar (D2.4) qual role usar sem quebrar o deploy.
+## Estratégia
 
-- **Nova D2.4** — caso a troca de owner seja necessária mas rejeitada pelo ambiente, o fallback é o plano v3 (RPCs + DROP VIEW).
+Para cada tabela, adicionar `AND excluido = false` nas policies de **SELECT / UPDATE / DELETE**. O INSERT não muda (linha nova nasce com `excluido = false` pelo default).
 
-## 6.2 Redefinir `public.profiles_safe` (substitui §6.2 do v4)
+Padrão de reescrita, exemplo em `cliente`:
 
-- **Objetivo**: preservar consumidores internos e bloquear enumeração por `client`, com a barreira posicionada na projeção da view antes que o planner promova predicados do consumidor para dentro dela.
-- **Alteração prevista (desenho)**:
-  ```
-  CREATE OR REPLACE VIEW public.profiles_safe
-  WITH (
-    security_invoker = false,
-    security_barrier = true
-  ) AS
-    SELECT p.id, p.first_name, p.last_name
-    FROM public.profiles p
-    WHERE public.has_role_or_higher(auth.uid(), 'team_member'::app_role);
+```sql
+-- Antes
+CREATE POLICY cliente_select_scoped ON public.cliente FOR SELECT
+USING (
+  has_role(auth.uid(), 'admin'::app_role)
+  OR (has_role_or_higher(auth.uid(), 'team_member'::app_role) AND cliente_visivel_para(id))
+  OR (resolve_user_cliente_id(auth.uid()) = id)
+);
 
-  -- Owner: manter o atual se ele já tiver BYPASSRLS (ver D2.2).
-  -- Só executar ALTER VIEW ... OWNER TO ... se estritamente necessário e permitido.
+-- Depois
+CREATE POLICY cliente_select_scoped ON public.cliente FOR SELECT
+USING (
+  excluido = false
+  AND (
+    has_role(auth.uid(), 'admin'::app_role)
+    OR (has_role_or_higher(auth.uid(), 'team_member'::app_role) AND cliente_visivel_para(id))
+    OR (resolve_user_cliente_id(auth.uid()) = id)
+  )
+);
+```
 
-  REVOKE ALL ON public.profiles_safe FROM PUBLIC;
-  REVOKE ALL ON public.profiles_safe FROM anon;
-  GRANT  SELECT ON public.profiles_safe TO authenticated;
-  GRANT  SELECT ON public.profiles_safe TO service_role;
-  ```
-- **Justificativa dos flags**:
-  - `security_invoker = false`: a view executa com privilégios do owner, que pode ler `public.profiles`.
-  - `security_barrier = true`: impede que predicados fornecidos pelo consumidor sejam empurrados para dentro da view antes do `WHERE` de autorização e antes que a projeção elimine colunas sensíveis. Não é o `WHERE` sozinho que garante a proteção — é a combinação **projeção restrita + filtro de papel + barreira**.
-- **Objetos**: view `public.profiles_safe`.
-- **Dependências**: 6.1 e D2.1..D2.4 resolvidos. **Só entra em Migration B** — nunca antes do deploy do frontend (§13).
-- **Teste positivo**:
-  - `team_member`, `lider`, `admin`: `SELECT count(*) FROM public.profiles_safe` = N.
-  - `anon`: `permission denied`.
-- **Teste negativo**:
-  - `client`: 0 linhas.
-  - `authenticated` sem `auth.uid()` válido: 0 linhas.
-  - Se `pg_class.relforcerowsecurity('profiles') = true`, plano bloqueado (D2.1).
-- **Risco**: baixo se 6.1 e D2.2 confirmados.
+Aplicar o mesmo padrão em UPDATE (tanto em `USING` quanto em `WITH CHECK`) e DELETE.
 
-## 6.3 Endurecer `get_internal_users`
+### Caso especial: o próprio soft-delete
 
-Sem mudanças em relação ao v4. Vai na Migration A junto com as RPCs do portal.
+O soft-delete é implementado como `UPDATE ... SET excluido = true`. Se a policy de UPDATE bloquear linhas com `excluido = true` no `WITH CHECK`, o próprio ato de excluir falharia. Solução: manter `excluido = false` no `USING` do UPDATE (só permite atualizar linhas ativas) e **não** repetir no `WITH CHECK` (permite gravar `excluido = true`). Padrão:
 
-## 6.4 / 6.5 RPCs do portal
+```sql
+CREATE POLICY rls_cliente_update ON public.cliente FOR UPDATE
+USING (excluido = false AND has_role_or_higher(auth.uid(), 'sublider'::app_role))
+WITH CHECK (has_role_or_higher(auth.uid(), 'sublider'::app_role));
+```
 
-Sem mudanças em relação ao v4. Ambas na Migration A.
+Restauração de registro excluído (raro, hoje não existe UI, mas ficaria bloqueada) fica exclusivamente via edge function com service_role.
 
-## 13. Estratégia de aplicação (substitui §13 do v4)
+### Sequência de migrations
 
-Três passos separados e ordenados. Cada passo é aprovado independentemente.
+Uma única migration com todas as ~21 policies (7 tabelas × 3 comandos: SELECT/UPDATE/DELETE), agrupada por tabela e comentada. Cada bloco: `DROP POLICY IF EXISTS ... ; CREATE POLICY ...`.
 
-1. **Migration A — `rls_tarefa1_rpcs.sql`**
-   - `CREATE OR REPLACE FUNCTION public.get_internal_users()` com guarda (§6.3).
-   - `CREATE FUNCTION public.get_ticket_atendentes(uuid[])` (§6.4).
-   - `CREATE FUNCTION public.get_clusters_do_cliente_atual()` (§6.5).
-   - Padrão de segurança (§8 do v3/v4): `SET search_path = public`, `REVOKE ... FROM PUBLIC, anon`, `GRANT EXECUTE TO authenticated`, guarda `auth.uid() IS NOT NULL`.
-   - **Não** toca em `profiles_safe`.
-   - Aprovada + aplicada.
+## Validação
 
-2. **Deploy frontend** (sem migration)
-   - `src/hooks/useTickets.ts` — trocar o embed em `useMyTickets` (linha 86) por chamada em lote a `get_ticket_atendentes`. Mapear o resultado para preservar `assigned_agent: { first_name, last_name } | null`. Nenhuma outra chamada em `useTickets.ts` muda.
-   - `src/hooks/useTicketNotifications.ts` — refatorar apenas se confirmado como portal (§18 do v4 pergunta pendente). Caso interno, permanece em `profiles_safe`.
-   - `src/hooks/useClienteClusters.ts` — consumir `get_clusters_do_cliente_atual`, preservando `{ clusters, clienteId }`.
-   - Publicar em produção. Nesse ponto, os selects atuais em `profiles_safe` do portal (embed) **ainda funcionam** porque a view **ainda não foi redefinida**; não há janela sem atendente.
+**1. Antes de aplicar** — checar se existe alguma UI que dependa de ler registros excluídos com anon key. Busca no código por padrões `excluido: true`, `.eq('excluido', true)`, telas de "lixeira", "restaurar". Se existir, migrar essas leituras para edge function com service_role antes.
 
-3. **Migration B — `rls_tarefa1_profiles_safe.sql`**
-   - `CREATE OR REPLACE VIEW public.profiles_safe ...` (§6.2), grants ajustados. Se necessário e permitido, `ALTER VIEW ... OWNER TO ...` (D2.2).
-   - Aplicar somente depois do deploy do passo 2 estar em produção e verificado (matriz §10.1 do v4).
-   - Se a view for eventualmente removida (não é o caso aqui), a validação é `to_regclass('public.profiles_safe') IS NULL`.
+**2. Após aplicar** — smoke tests manuais:
 
-Depois de B, seguem Migrations 2a (`rls_tarefa2_cliente_isolamento.sql`) e 2b (`rls_tarefa2_centros_custo.sql`) do v3/v4, cada uma isolada.
+- Listar clientes (`/equipe/clientes`) → mesma quantidade que antes.
+- Editar cliente → salva.
+- Excluir cliente → soft-delete funciona e some da lista.
+- Listar OS, contribuintes, representantes, correções ICMS → contagens conferem.
+- Rodar edge functions `sync-cadastros`, `dw-query`, `check-ticket-deadlines` → sem regressão (usam service_role).
 
-Validação por migration: `supabase db lint` no CLI; se indisponível, Database Linter/Advisors — registrar a limitação no documento único.
+**3. Query de auditoria** pós-migration, para confirmar que toda policy relevante tem o filtro:
 
-## 14. Estratégia forward-only (ajuste sobre §14 do v4)
+```sql
+SELECT tablename, policyname, cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+  AND tablename IN (7 tabelas)
+  AND cmd IN ('SELECT','UPDATE','DELETE')
+  AND qual NOT LIKE '%excluido%';
+-- deve retornar 0 linhas
+```
 
-Adição: antes da **Migration B**, capturar a definição atual da view com `pg_get_viewdef('public.profiles_safe'::regclass, true)` e os `reloptions` de `pg_class`, e **incluir esse texto como comentário** dentro da própria Migration B para permitir reconstituição via migration corretiva futura. Reconstrução de policies continua via `pg_get_expr(polqual, polrelid)` / `pg_get_expr(polwithcheck, polrelid)` sobre `pg_policy`.
+## Fora de escopo (decisões conscientes)
 
-## 17. Critérios objetivos de pronto (ajuste sobre §17 do v4)
+- **`ambiente` no RLS** — mantido como está. Custo alto (exige Auth Hook ou `SET LOCAL` via proxy) para benefício menor: os dois ambientes já têm URLs/anon keys diferentes, então o risco de vazamento cross-ambiente via DevTools é limitado ao usuário que tenha login válido nos dois. Aceito e documentado.
+- **Limpeza das ~16 policies `USING(true)` P1** — dívida separada (RLS Eduardo), não é este PR.
+- **Backups `_bkp_psa_unify_*`** — dívida P3 separada.
 
-- Adicionar: `pg_class.reloptions` de `public.profiles_safe` inclui **ambos** `security_invoker=false` e `security_barrier=true`.
-- Adicionar: histórico de deploy demonstra que **Migration A** e **deploy frontend** foram concluídos **antes** de **Migration B** (sem janela em que a view estivesse redefinida sem que o portal já tivesse migrado).
-- Remover qualquer critério que descreva a proteção como "curto-circuito por linha".
+## Entregáveis
 
-## 19. Sequência final de execução (substitui §19 do v4)
+1. Uma migration SQL cobrindo as 7 tabelas.
+2. Atualização do `docs/rls/Divida_Tecnica_RLS_Eduardo.md`: marcar o item "DEC-01: `excluido` no RLS" como resolvido; deixar registrado que `ambiente` permanece client-side por decisão explícita.
+3. Nota opcional em `docs/rls/` explicando o padrão (soft-delete + RLS) para futuras tabelas que nascerem com `excluido`.
 
-1. **Fase 0 — Gate**: D1..D8 + D2.1..D2.4.
-2. **Fase 1a — Migration A** (RPCs) conforme §13.
-3. **Fase 1b — Deploy frontend** (3 hooks do portal) conforme §13.
-4. **Fase 1c — Migration B** (redefinição de `profiles_safe` com `security_invoker=false, security_barrier=true`, grants ajustados, owner só se necessário e permitido).
-5. **Fase 2a — `cliente.SELECT` por cluster** (§7.1 do v3).
-6. **Fase 2b — `centros_custo` → team_member+** (§7.2 do v3).
-7. **Fase 3 — Regressão** portal + internos (§12 do v3). Cobrir explicitamente que `Desempenho*`, `Equipe*`, `Kanban`, `Sprints`, `Reports` continuam populando via `profiles_safe`.
-8. **Fase 4 — `contatos`**: bloqueada por D1.
-9. **Fase 5 (fora deste plano)** — Escrita em `cliente` (§11 do v3).
+## Riscos e mitigação
 
----
-
-**Notas de descrição**: ao comunicar o desenho, dizer que a proteção da view vem de (i) **filtro de autorização** com `has_role_or_higher(auth.uid(), 'team_member')`, (ii) **projeção exclusiva** de `id, first_name, last_name`, e (iii) **`security_barrier = true`** para evitar predicate pushdown do consumidor. Não usar "curto-circuito por linha".
+| Risco | Mitigação |
+|---|---|
+| Alguma tela lê excluídos via anon key e quebra | Grep pré-migration; migrar para edge function se achar |
+| Soft-delete deixa de funcionar por causa do `WITH CHECK` | Padrão de manter `WITH CHECK` sem filtro de `excluido` (documentado acima) |
+| Regressão silenciosa em fluxo raro | Query de auditoria pós-migration + smoke tests manuais dos 7 domínios |
+| Perda de acesso a excluídos por operadores admin | Admins continuam vendo tudo se necessário via edge function com service_role; se surgir demanda de UI, cria-se rota dedicada depois |
