@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { AnimatePresence, motion } from 'framer-motion';
 import { z } from 'zod';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -13,6 +14,7 @@ import {
   History,
   RotateCcw,
   Send,
+  Sparkles,
   UserCheck,
 } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
@@ -72,6 +74,14 @@ import {
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
 import { statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import {
+  ReviewRichTextContent,
+  ReviewRichTextEditor,
+} from '@/components/equipe/fiscal/tasks/ReviewRichText';
+import {
+  isReviewRichTextEmpty,
+  serializeReviewRichText,
+} from '@/components/equipe/fiscal/tasks/reviewRichTextFormat';
 
 const taskSchema = z
   .object({
@@ -121,11 +131,97 @@ type TaskFormValues = z.infer<typeof taskSchema>;
 type ReviewOutcome = 'approved' | 'adjustments' | 'send';
 type ReviewAction = 'send' | 'adjustments';
 
+const reviewFeedbackConfig = {
+  send: {
+    label: 'Enviado para revisão!',
+    icon: Send,
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200',
+    dot: 'bg-purple-400',
+  },
+  approved: {
+    label: 'Revisão aprovada!',
+    icon: CheckCircle2,
+    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
+    dot: 'bg-emerald-400',
+  },
+  adjustments: {
+    label: 'Ajustes solicitados!',
+    icon: RotateCcw,
+    color: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200',
+    dot: 'bg-rose-400',
+  },
+} satisfies Record<ReviewOutcome, { label: string; icon: typeof Send; color: string; dot: string }>;
+
+function ReviewActionFeedback({ action }: { action: ReviewOutcome }) {
+  const config = reviewFeedbackConfig[action];
+  const Icon = config.icon;
+
+  return (
+    <div className="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.88, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: -6 }}
+        transition={{ duration: 0.18, ease: 'easeOut' }}
+        className="flex flex-col items-center rounded-2xl border bg-background px-8 py-6 shadow-2xl"
+        role="status"
+        aria-live="polite"
+      >
+        <div className="relative">
+          {[0, 1, 2, 3].map((index) => (
+            <motion.span
+              key={index}
+              className={cn('absolute h-2 w-2 rounded-full', config.dot)}
+              initial={{ opacity: 0, x: 20, y: 20 }}
+              animate={{
+                opacity: [0, 1, 0],
+                x: Math.cos((index * Math.PI) / 2) * 42 + 20,
+                y: Math.sin((index * Math.PI) / 2) * 42 + 20,
+              }}
+              transition={{ duration: 0.55, delay: 0.08 }}
+            />
+          ))}
+          <motion.div
+            initial={{ scale: 0.4, rotate: -18 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 18, delay: 0.04 }}
+            className={cn(
+              'relative flex h-14 w-14 items-center justify-center rounded-full',
+              config.color,
+            )}
+          >
+            <Icon className="h-7 w-7" />
+            <Sparkles className="absolute -right-2 -top-2 h-4 w-4" />
+          </motion.div>
+        </div>
+        <motion.p
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12, duration: 0.16 }}
+          className="mt-4 whitespace-nowrap text-sm font-semibold"
+        >
+          {config.label}
+        </motion.p>
+      </motion.div>
+    </div>
+  );
+}
+
 const getReviewEventType = (comment: string) => {
   if (comment.startsWith('Enviado para revisão')) return 'submitted';
   if (comment.startsWith('Devolvido para ajustes')) return 'adjustments';
   if (comment === 'Tarefa aprovada') return 'approved';
   return null;
+};
+
+const getReviewEventContent = (comment: string, type: string) => {
+  if (type === 'submitted') {
+    return comment.replace(/^Enviado para revisão(?: de [^:]+)?:\s*/, '');
+  }
+  if (type === 'adjustments') {
+    return comment.replace(/^Devolvido para ajustes:\s*/, '');
+  }
+  return '';
 };
 
 interface TaskModalProps {
@@ -159,6 +255,7 @@ export const TaskModal = ({
 
   const [showDraftNotice, setShowDraftNotice] = useState(false);
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
+  const [reviewFeedback, setReviewFeedback] = useState<ReviewOutcome | null>(null);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -400,6 +497,7 @@ export const TaskModal = ({
       partiallySavedTaskIdRef.current = null;
       setShowDraftNotice(false);
       setReviewAction(null);
+      setReviewFeedback(null);
     }
     onOpenChange(nextOpen);
   };
@@ -423,7 +521,7 @@ export const TaskModal = ({
     const submittingReviewReturn = nextStatus === 'em_ajuste' && task?.status !== 'em_ajuste';
     const requiresTransitionComment = submittingReviewDelegation || submittingReviewReturn;
 
-    if (requiresTransitionComment && !reviewComment) {
+    if (requiresTransitionComment && isReviewRichTextEmpty(reviewComment)) {
       form.setError('review_comment', {
         type: 'manual',
         message: submittingReviewDelegation
@@ -489,8 +587,8 @@ export const TaskModal = ({
           outcome === 'approved'
             ? 'Tarefa aprovada'
             : submittingReviewDelegation
-              ? `Enviado para revisão de ${reviewerName}: ${reviewComment}`
-              : `Devolvido para ajustes: ${reviewComment}`;
+              ? `Enviado para revisão de ${reviewerName}: ${serializeReviewRichText(reviewComment)}`
+              : `Devolvido para ajustes: ${serializeReviewRichText(reviewComment)}`;
         const currentUserProfile = allProfiles.find((profile) => profile.id === user?.id);
         const currentUserName = currentUserProfile
           ? [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ')
@@ -516,6 +614,11 @@ export const TaskModal = ({
 
       partiallySavedTaskIdRef.current = null;
       setReviewAction(null);
+      if (outcome) {
+        setReviewFeedback(outcome);
+        await new Promise((resolve) => window.setTimeout(resolve, 700));
+        setReviewFeedback(null);
+      }
       clearDraft();
       handleOpenChange(false);
       toast.success(isEditing ? 'Tarefa atualizada' : 'Tarefa criada com sucesso');
@@ -545,7 +648,7 @@ export const TaskModal = ({
       form.setError('reviewer_id', { type: 'manual', message: 'Selecione quem fará a revisão' });
       return;
     }
-    if (!reviewComment) {
+    if (isReviewRichTextEmpty(reviewComment)) {
       form.setError('review_comment', {
         type: 'manual',
         message:
@@ -568,6 +671,9 @@ export const TaskModal = ({
 
   return (
     <>
+      <AnimatePresence>
+        {reviewFeedback && <ReviewActionFeedback action={reviewFeedback} />}
+      </AnimatePresence>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           className={cn(
@@ -1140,6 +1246,7 @@ export const TaskModal = ({
                         ? 'Revisão aprovada'
                         : 'Retornado para ajustes';
                     const Icon = isSubmitted ? Send : isApproved ? CheckCircle2 : RotateCcw;
+                    const content = getReviewEventContent(event.comment, event.type);
 
                     return (
                       <li key={event.id} className="relative flex gap-3 pb-6 last:pb-0">
@@ -1162,9 +1269,11 @@ export const TaskModal = ({
                         </span>
                         <div className="min-w-0 flex-1 pt-0.5">
                           <p className="text-sm font-semibold leading-5">{title}</p>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
-                            {event.comment}
-                          </p>
+                          {content && (
+                            <div className="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                              <ReviewRichTextContent value={content} />
+                            </div>
+                          )}
                           <div className="mt-2 text-xs text-muted-foreground/80">
                             <span>{event.user_name || 'Usuário'}</span>
                             <span aria-hidden="true"> · </span>
@@ -1189,7 +1298,7 @@ export const TaskModal = ({
         open={reviewAction !== null}
         onOpenChange={(nextOpen) => !nextOpen && closeReviewAction()}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div
@@ -1267,11 +1376,10 @@ export const TaskModal = ({
                   : 'O que precisa ser ajustado?'}{' '}
                 <RequiredMark />
               </Label>
-              <Textarea
-                id="review-action-comment"
+              <ReviewRichTextEditor
                 value={form.watch('review_comment') || ''}
-                onChange={(event) => {
-                  form.setValue('review_comment', event.target.value);
+                onChange={(value) => {
+                  form.setValue('review_comment', value);
                   form.clearErrors('review_comment');
                 }}
                 placeholder={
@@ -1279,7 +1387,6 @@ export const TaskModal = ({
                     ? 'Descreva os pontos que merecem atenção'
                     : 'Descreva objetivamente as correções necessárias'
                 }
-                rows={4}
                 autoFocus={reviewAction === 'adjustments'}
               />
               {form.formState.errors.review_comment && (
