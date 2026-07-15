@@ -46,6 +46,68 @@ function ensureMermaidInit() {
   mermaidInitialized = true;
 }
 
+// Caixa (centro + meias-dimensões) de cada nó, lida do TEXTO do SVG acumulando os
+// transforms dos <g> aninhados (cada linha da serpentina é um <g class="root"
+// transform=...>). Determinístico — não depende do DOM/getCTM/timing. Chave = eid
+// (id do mermaid sem o prefixo `flowchart-` e o sufixo `-<n>`).
+function parseNodeBoxes(svg: string): Record<string, { cx: number; cy: number; hw: number; hh: number }> {
+  const boxes: Record<string, { cx: number; cy: number; hw: number; hh: number }> = {};
+  const stack: Array<{ x: number; y: number }> = [{ x: 0, y: 0 }];
+  const tagRe = /<g\b([^>]*)>|<\/g>|<rect\b([^>]*?)\/?>/g;
+  const attr = (s: string | null, n: string) => { const m = s?.match(new RegExp(`${n}="([^"]*)"`)); return m ? m[1] : null; };
+  const translate = (s: string | null) => { const m = s?.match(/translate\(\s*([-\d.]+)[ ,]+([-\d.]+)/); return m ? { x: parseFloat(m[1]), y: parseFloat(m[2]) } : null; };
+  let pending: { eid: string; cx: number; cy: number } | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = tagRe.exec(svg))) {
+    if (m[0] === '</g>') { if (stack.length > 1) stack.pop(); continue; }
+    if (m[1] !== undefined) { // <g ...>
+      const at = m[1];
+      const cur = stack[stack.length - 1];
+      const t = translate(attr(at, 'transform'));
+      const next = { x: cur.x + (t?.x ?? 0), y: cur.y + (t?.y ?? 0) };
+      const id = attr(at, 'id');
+      const cls = attr(at, 'class') ?? '';
+      // O mermaid PREFIXA os ids com o id do render (`mermaid-svg-<ts>-flowchart-<eid>-<n>`),
+      // então casamos `flowchart-` em QUALQUER posição, não só no início.
+      if (cls.includes('node') && id?.includes('flowchart-')) {
+        pending = { eid: id.replace(/^.*?flowchart-/, '').replace(/-\d+$/, ''), cx: next.x, cy: next.y };
+      }
+      stack.push(next);
+      continue;
+    }
+    if (m[2] !== undefined && pending) { // primeiro <rect> do nó = container
+      const w = parseFloat(attr(m[2], 'width') ?? '0');
+      const h = parseFloat(attr(m[2], 'height') ?? '0');
+      if (w > 0 && h > 0) { boxes[pending.eid] = { cx: pending.cx, cy: pending.cy, hw: w / 2, hh: h / 2 }; pending = null; }
+    }
+  }
+  return boxes;
+}
+
+// Injeta as setas de "dobra" (etapa→etapa entre linhas da serpentina) no TEXTO do
+// SVG, a partir dos metadados `%% FOLD a b` do código. O dagre não liga esses nós
+// sem colapsar a serpentina, então desenhamos a seta em cotovelo por cima, já na
+// posição real. Fica no state → aparece no viewer E nas exportações SVG/PNG.
+function withFoldEdges(svg: string, code: string): string {
+  const pairs = [...code.matchAll(/%%\s*FOLD\s+(\S+)\s+(\S+)/g)];
+  if (pairs.length === 0) return svg;
+  const boxes = parseNodeBoxes(svg);
+  const paths: string[] = [];
+  for (const [, a, b] of pairs) {
+    const A = boxes[a]; const B = boxes[b];
+    if (!A || !B) continue;
+    const ay = A.cy + A.hh;      // base do card de origem
+    const by = B.cy - B.hh;      // topo do card de destino
+    const midY = (ay + by) / 2;  // cotovelo no meio vertical
+    paths.push(`<path d="M ${A.cx} ${ay} L ${A.cx} ${midY} L ${B.cx} ${midY} L ${B.cx} ${by}" fill="none" stroke="#64748b" stroke-width="1.5" marker-end="url(#fold-arrow)"/>`);
+  }
+  if (paths.length === 0) return svg;
+  const defs = '<defs class="fold-defs"><marker id="fold-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#64748b"/></marker></defs>';
+  const inject = `${defs}<g class="fold-edges">${paths.join('')}</g>`;
+  const idx = svg.lastIndexOf('</svg>');
+  return idx === -1 ? svg : svg.slice(0, idx) + inject + svg.slice(idx);
+}
+
 export interface DiagramViewerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -115,8 +177,10 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
       .render(id, code)
       .then(({ svg }) => {
         if (cancelled) return;
-        setSvg(svg);
-        requestAnimationFrame(() => { if (!cancelled) fitToContainer(svg); });
+        // Desenha as setas de "dobra" (etapa→etapa) da serpentina por cima do SVG.
+        const finalSvg = withFoldEdges(svg, code);
+        setSvg(finalSvg);
+        requestAnimationFrame(() => { if (!cancelled) fitToContainer(finalSvg); });
       })
       .catch((err: unknown) => {
         if (!cancelled) {

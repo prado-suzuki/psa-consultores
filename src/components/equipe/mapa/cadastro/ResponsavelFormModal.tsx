@@ -8,6 +8,7 @@ import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
 import { dica } from '@/utils/tooltips';
 import { parseMoeda } from '@/utils/format';
+import { clusterInicial } from '@/utils/etapaEditor';
 import type { Responsavel } from '@/types';
 import { useCreateResponsavel, useUpdateResponsavel } from '@/hooks/useResponsaveis';
 import { useClusterCadastroOpcoes } from '@/hooks/useClusters';
@@ -17,10 +18,14 @@ import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 interface Props {
   aberto: boolean;
   responsavel: Responsavel | null;
+  /** Cluster sugerido de início ao CRIAR (ex.: o cluster DO PROCESSO em edição). */
+  clusterIdInicial?: string;
+  /** Chamado com o responsável criado (ex.: pra pré-selecionar no cadastro rápido). */
+  onCreated?: (resp: Responsavel) => void;
   onClose: () => void;
 }
 
-export default function ResponsavelFormModal({ aberto, responsavel, onClose }: Props) {
+export default function ResponsavelFormModal({ aberto, responsavel, clusterIdInicial, onCreated, onClose }: Props) {
   const createResp = useCreateResponsavel();
   const updateResp = useUpdateResponsavel();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
@@ -47,10 +52,10 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
       setTipo(responsavel.type === 'Externo' ? 'Externo' : 'Interno');
       setClusterId(responsavel.cluster_id || '');
     } else {
-      setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId('');
+      setNome(''); setCargo(''); setCategoria(''); setCustoHora(''); setTipo('Interno'); setClusterId(clusterInicial(clusterIdInicial));
     }
     setErro('');
-  }, [aberto, responsavel]);
+  }, [aberto, responsavel, clusterIdInicial]);
 
   const touch = () => { tocado.current = true; };
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
@@ -72,8 +77,9 @@ export default function ResponsavelFormModal({ aberto, responsavel, onClose }: P
         await updateResp.mutateAsync({ id: responsavel.id, old: responsavel, patch: payload });
         toast.success('Responsável atualizado');
       } else {
-        await createResp.mutateAsync(payload);
+        const created = await createResp.mutateAsync(payload);
         toast.success('Responsável criado');
+        onCreated?.(created);
       }
       onClose();
     } catch (err) {

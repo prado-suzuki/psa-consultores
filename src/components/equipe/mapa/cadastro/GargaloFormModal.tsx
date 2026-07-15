@@ -33,10 +33,14 @@ interface Props {
   aberto: boolean;
   /** Gargalo em edição, ou null para criação. */
   gargalo: Gargalo | null;
+  /** Cluster sugerido de início ao CRIAR (ex.: o cluster DO PROCESSO em edição). */
+  clusterIdInicial?: string;
+  /** Chamado com o gargalo criado (ex.: pra vincular ao processo no cadastro rápido). */
+  onCreated?: (gargalo: Gargalo) => void;
   onClose: () => void;
 }
 
-export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
+export default function GargaloFormModal({ aberto, gargalo, clusterIdInicial, onCreated, onClose }: Props) {
   const createGargalo = useCreateGargalo();
   const updateGargalo = useUpdateGargalo();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
@@ -62,11 +66,10 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
         clusterId: gargalo.cluster_id || '',
       });
     } else {
-      setForm(FORM_VAZIO);
+      setForm({ ...FORM_VAZIO, clusterId: clusterIdInicial || '' });
     }
     setErro('');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, gargalo]);
+  }, [aberto, gargalo, clusterIdInicial]);
 
   // Fechar com guarda: se o usuário tocou no form, confirma antes de descartar.
   const requestClose = () => { if (tocado.current) setConfirmSair(true); else onClose(); };
@@ -91,8 +94,9 @@ export default function GargaloFormModal({ aberto, gargalo, onClose }: Props) {
         await updateGargalo.mutateAsync({ id: gargalo.id, old: gargalo, patch: payload });
         toast.success('Gargalo atualizado');
       } else {
-        await createGargalo.mutateAsync(payload);
+        const created = await createGargalo.mutateAsync(payload);
         toast.success('Gargalo criado');
+        onCreated?.(created);
       }
       onClose();
     } catch (err) {

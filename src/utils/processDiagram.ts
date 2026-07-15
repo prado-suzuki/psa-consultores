@@ -7,7 +7,6 @@ import type {
   Gargalo,
   Melhoria,
   Projeto,
-  DocRef,
 } from '../types';
 import { isEtapaEliminada } from './pdf/helpers';
 
@@ -44,110 +43,128 @@ export function safeLabel(s: string): string {
     .replace(/\n/g, ' ');
 }
 
-function docKey(d: DocRef | string): string {
-  return typeof d === 'string' ? d : (d.documentoId || d.nome);
-}
-function docNome(d: DocRef | string): string {
-  return typeof d === 'string' ? d : (d.nome || d.documentoId || '');
-}
-
 const STYLES = [
-  '  classDef proc        fill:#0d9488,color:#fff,stroke:#0f766e,stroke-width:2px,font-weight:bold',
-  '  classDef etapa       fill:#0f172a,color:#fff,stroke:#0d9488,stroke-width:2px,font-weight:bold',
-  '  classDef documento   fill:#fef3c7,color:#78350f,stroke:#f59e0b,stroke-width:1px',
-  '  classDef responsavel fill:#dbeafe,color:#1e3a8a,stroke:#3b82f6,stroke-width:1px',
-  '  classDef sistema     fill:#ede9fe,color:#4c1d95,stroke:#8b5cf6,stroke-width:1px',
-  '  classDef gargalo     fill:#fee2e2,color:#7f1d1d,stroke:#dc2626,stroke-width:1px',
-  '  classDef vazio       fill:#f1f5f9,color:#64748b,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray:4 3',
+  // Duas cores + 1 acento (gargalo). Mesma linguagem do consolidado: card claro
+  // com borda teal; etapa com gargalo ganha acento âmbar (warning), não vermelho.
+  '  classDef etapa        fill:#f8fafc,color:#0f172a,stroke:#0d9488,stroke-width:1.5px',
+  '  classDef etapaGargalo fill:#fff7ed,color:#0f172a,stroke:#ea580c,stroke-width:2px',
+  '  classDef vazio        fill:#f1f5f9,color:#64748b,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray:4 3',
 ];
 
+/** Texto seguro DENTRO de uma markdown string do mermaid: sem crases/aspas nem
+ * marcadores de markdown (*, _, #, |, <, >) que bagunçam o parser; 1 linha. */
+function mdText(s: string): string {
+  return (s || '')
+    .replace(/[`"]/g, "'")
+    .replace(/[*_#~|<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Junta nomes com ' · ', cortando em `max` e somando "+N" no excedente. */
+function joinCap(itens: string[], max: number): string {
+  const limpos = itens.map(mdText).filter(Boolean);
+  if (limpos.length === 0) return '';
+  if (limpos.length <= max) return limpos.join(' · ');
+  return `${limpos.slice(0, max).join(' · ')} +${limpos.length - max}`;
+}
+
+/** Monta o rótulo (markdown string) e a classe de UM card de etapa. O card é
+ * enxuto de propósito: só o TÍTULO da etapa (negrito) + os responsáveis em texto
+ * puro. Sem emojis, sem documentos e sem sistemas (vivem na aba AS-IS). `num` é o
+ * número exibido (1-based, na ordem do fluxo). A etapa com gargalo (As-Is) ganha
+ * só o acento de borda — sem linha de texto. */
+function etapaCard(e: Etapa, num: number, useFicou: boolean, gargalos: Gargalo[]): { label: string; cls: string } {
+  const f = useFicou ? e.ficou : null;
+  const exec = (useFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
+
+  const temGargalo = !useFicou && (e.gargalos || []).some(gId => gargalos.some(g => g.id === gId));
+
+  const card: string[] = [`**${num} · ${mdText(e.name)}**`];
+  const resp = joinCap(exec.map(r => r.nome || r.responsavelId || ''), 4);
+  if (resp) card.push(resp);
+
+  return { label: card.join('\n'), cls: temGargalo ? 'etapaGargalo' : 'etapa' };
+}
+
 /**
- * Emite UM processo como um MODELO DE ENTIDADES (sem repetição):
- *  - Etapas = a espinha do processo (encadeadas por stage_order, esquerda→direita).
- *  - Responsáveis / Sistemas / Documentos = entidades ÚNICAS, cada uma aparece
- *    UMA vez, agrupadas por tipo em subgraphs. As etapas se RELACIONAM com elas
- *    por ligações (resp → etapa; etapa → sistema; doc → etapa / etapa → doc).
- *  - Gargalos (só As-Is) apontam para a etapa que impactam.
- * `ns` namespaceia os ids (visão consolidada do projeto).
+ * Emite UM processo como uma SERPENTINA de cards ricos (um esquema 2D, não uma
+ * tira). A sequência de etapas quebra em linhas: linhas pares fluem → e ímpares
+ * ← (boustrophedon), então o fluxo "dobra" e preenche o espaço em 2D, cabendo
+ * deitado mesmo com muitas etapas.
+ *  - Cada etapa é UM card enxuto: título + responsáveis (sem emojis; docs/sistemas
+ *    ficam de fora, na aba AS-IS). Sem nós/arestas de entidade → nada de espaguete.
+ *  - Cada linha é um subgraph com `direction LR|RL`, empilhadas por link INVISÍVEL
+ *    entre subgraphs (`row0 ~~~ row1`) — NUNCA entre nós: aresta nó→nó cruzando a
+ *    borda faz o mermaid IGNORAR a direção interna e colapsar tudo numa coluna.
+ *    A seta EXATA de "dobra" (último card → primeiro da próxima linha) é desenhada
+ *    pelo DiagramViewer por cima do SVG, a partir dos metadados `%% FOLD a b`.
+ *  - Texto multilinha via markdown string (```): sob `htmlLabels:false` rende como
+ *    <tspan> (SVG puro, exporta bem). Listas longas cortam com "+N".
+ *  - Gargalos só no As-Is (no To-Be são considerados resolvidos).
+ * `ns` namespaceia os ids.
  */
 function emitProcesso(lines: string[], input: BuildDiagramInput, ns: string): void {
   const { processo, etapas, gargalos } = input;
   const useFicou = input.mode === 'ficou';
-  const nid = (kind: string, raw: string) => safeId(kind, `${ns}_${raw}`);
-  const eid = (e: Etapa) => nid('E', e.id);
-  const rid = (k: string) => nid('R', k);
-  const sid = (k: string) => nid('S', k);
-  const did = (k: string) => nid('D', k);
-  const gid = (k: string) => nid('G', k);
+  const eid = (e: Etapa) => safeId('E', `${ns}_${e.id}`);
+  const rowId = (r: number) => safeId('ROW', `${ns}_${r}`);
 
   const vis = etapas
     .filter(e => !(useFicou && isEtapaEliminada(e)))
     .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
 
   if (vis.length === 0) {
-    lines.push(`  ${nid('EMPTY', processo.id)}["${safeLabel(processo.name)} · sem etapas"]:::vazio`);
+    lines.push(`  ${safeId('EMPTY', `${ns}_${processo.id}`)}["${safeLabel(processo.name)} · sem etapas"]:::vazio`);
     return;
   }
 
-  // Espinha das etapas (horizontal).
-  vis.forEach((e, i) => {
-    lines.push(`  ${eid(e)}["${i + 1} · ${safeLabel(e.name)}"]:::etapa`);
-    if (i > 0) lines.push(`  ${eid(vis[i - 1])} ==> ${eid(e)}`);
-  });
+  // Colunas por linha ~ raiz do dobro (tende a landscape), entre 3 e 6.
+  const n = vis.length;
+  const cols = Math.min(6, Math.max(3, Math.ceil(Math.sqrt(n * 2))));
+  const nRows = Math.ceil(n / cols);
 
-  // Coleta entidades ÚNICAS + as relações (uma aresta por (etapa, entidade)).
-  const resp = new Map<string, string>();
-  const sis = new Map<string, string>();
-  const doc = new Map<string, string>();
-  const gar = new Map<string, string>();
-  const rel: string[] = [];
-  for (const e of vis) {
-    const f = useFicou ? e.ficou : null;
-    const exec = (useFicou ? (f?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
-    const sist = (useFicou ? (f?.sistemas ?? e.sistemas) : e.sistemas) || [];
-    const dEnt = (useFicou ? (f?.docsEntrada ?? e.docsEntrada) : e.docsEntrada) || [];
-    const dSai = (useFicou ? (f?.docsSaida ?? e.docsSaida) : e.docsSaida) || [];
-
-    for (const r of exec) { const k = r.responsavelId || r.nome; if (!k?.trim()) continue; resp.set(k, r.nome || k); rel.push(`  ${rid(k)} -.-> ${eid(e)}`); }
-    for (const s of sist) { if (!s?.trim()) continue; sis.set(s, s); rel.push(`  ${eid(e)} -.-> ${sid(s)}`); }
-    for (const d of dEnt) { const k = docKey(d); if (!k) continue; doc.set(k, docNome(d)); rel.push(`  ${did(k)} --> ${eid(e)}`); }
-    for (const d of dSai) { const k = docKey(d); if (!k) continue; doc.set(k, docNome(d)); rel.push(`  ${eid(e)} --> ${did(k)}`); }
-    if (!useFicou) {
-      for (const gId of e.gargalos || []) {
-        const g = gargalos.find(x => x.id === gId);
-        if (g) { gar.set(g.id, g.nome); rel.push(`  ${gid(g.id)} -. impacta .-> ${eid(e)}`); }
-      }
-    }
+  for (let r = 0; r < nRows; r++) {
+    const linha = vis.slice(r * cols, r * cols + cols);
+    lines.push(`  subgraph ${rowId(r)}[" "]`);
+    lines.push(`    direction ${r % 2 === 0 ? 'LR' : 'RL'}`);
+    linha.forEach((e, k) => {
+      const { label, cls } = etapaCard(e, r * cols + k + 1, useFicou, gargalos);
+      lines.push(`    ${eid(e)}["\`${label}\`"]:::${cls}`);
+      if (k > 0) lines.push(`    ${eid(linha[k - 1])} --> ${eid(e)}`);
+    });
+    lines.push('  end');
   }
 
-  // Cada tipo num grupo (entidades únicas).
-  const grupo = (sgId: string, titulo: string, itens: Map<string, string>, cls: string, idFn: (k: string) => string) => {
-    if (itens.size === 0) return;
-    lines.push(`  subgraph ${sgId}["${titulo}"]`);
-    lines.push('    direction TB');
-    itens.forEach((nome, k) => lines.push(`    ${idFn(k)}["${safeLabel(nome)}"]:::${cls}`));
-    lines.push('  end');
-  };
-  grupo(nid('SGR', 'x'), 'Responsáveis', resp, 'responsavel', rid);
-  grupo(nid('SGS', 'x'), 'Sistemas', sis, 'sistema', sid);
-  grupo(nid('SGD', 'x'), 'Documentos', doc, 'documento', did);
-  gar.forEach((nome, k) => lines.push(`  ${gid(k)}["${safeLabel(nome)}"]:::gargalo`));
-
-  rel.forEach(l => lines.push(l));
+  // Empilha as linhas com link INVISÍVEL ENTRE OS SUBGRAPHS (não colapsa a
+  // direção interna — aresta nó→nó cruzando a borda colapsaria).
+  for (let r = 1; r < nRows; r++) lines.push(`  ${rowId(r - 1)} ~~~ ${rowId(r)}`);
+  // Caixas das linhas invisíveis — só a serpentina de cards aparece.
+  for (let r = 0; r < nRows; r++) lines.push(`  style ${rowId(r)} fill:none,stroke:none`);
+  // Metadados das "dobras": último card de uma linha → primeiro da próxima. O
+  // mermaid/dagre não liga nó→nó entre linhas sem colapsar a serpentina, então o
+  // DiagramViewer desenha a seta EXATA etapa→etapa por cima do SVG (aparece no
+  // viewer e nas exportações PNG/SVG). No .mmd fica como comentário.
+  for (let r = 1; r < nRows; r++) {
+    const prevLast = vis[r * cols - 1];
+    const curFirst = vis[r * cols];
+    if (prevLast && curFirst) lines.push(`  %% FOLD ${eid(prevLast)} ${eid(curFirst)}`);
+  }
 }
 
 /**
- * Diagrama de UM processo (As-Is/To-Be): o fluxo das suas etapas com docs,
- * responsáveis, sistemas e gargalos. Rótulos em TEXTO PURO (sem HTML) para o
- * SVG/PNG exportados não quebrarem.
+ * Diagrama de UM processo (As-Is/To-Be): uma SERPENTINA de cards enxutos, um por
+ * etapa (título + responsáveis). O fluxo dobra em linhas → preenche o espaço 2D
+ * (esquema), não vira tira. Mesma linguagem visual do consolidado (2 cores +
+ * acento de gargalo). Documentos/sistemas ficam fora do diagrama (aba AS-IS).
  */
 export function buildProcessDiagram(input: BuildDiagramInput): string {
   const useFicou = input.mode === 'ficou';
   const lines: string[] = [];
   lines.push(`%% Diagrama do Processo (${useFicou ? 'To-Be · Como Ficou' : 'As-Is · Como Era'}) — gerado pelo MAPA`);
-  // LR (horizontal): monitor é mais largo que alto — o fluxo lê melhor da
-  // esquerda p/ direita; docs/responsáveis/sistemas se distribuem ao redor.
-  lines.push('flowchart LR');
+  // TB: as LINHAS da serpentina empilham de cima p/ baixo; dentro de cada linha
+  // o fluxo é LR/RL (a direção fica no subgraph de cada linha).
+  lines.push('flowchart TB');
   emitProcesso(lines, input, 'P');
   lines.push('  %% ===== estilos =====');
   STYLES.forEach(s => lines.push(s));
@@ -167,49 +184,39 @@ export interface BuildProjectDiagramInput {
 }
 
 /**
- * Diagrama CONSOLIDADO do projeto: um subgraph por processo, cada um com o seu
- * fluxo de etapas. Ids namespaceados por processo (não colidem). Processos sem
- * etapa entram como nó "sem etapas".
+ * Mapa CONSOLIDADO do projeto: uma LISTA vertical dos PROCESSOS — SEM as etapas.
+ * O projeto é o cabeçalho do topo; cada processo é um card numerado, empilhados de
+ * cima p/ baixo e ligados por setas ↓ (próximo processo). Em `flowchart TB` os nós
+ * empilham naturalmente e as arestas saem verticais — sem precisar de subgraphs.
+ *
+ * Decisão (07/2026): o consolidado mostra só os PROCESSOS; o detalhe das etapas
+ * vive no diagrama POR-processo (`buildProcessDiagram`). Headers em teal, mesma
+ * linguagem visual dos demais diagramas do MAPA.
  */
 export function buildProjectDiagram(input: BuildProjectDiagramInput): string {
-  const { projeto, processos, etapasPorProcesso } = input;
+  const { projeto, processos } = input;
   const useFicou = input.mode === 'ficou';
   const lines: string[] = [];
-  lines.push(`%% Diagrama do Projeto${projeto ? ` · ${safeLabel(projeto.name)}` : ''} (${useFicou ? 'To-Be' : 'As-Is'}) — gerado pelo MAPA`);
-  // HORIZONTAL: cada processo é um subgraph (caixa rotulada) com suas etapas
-  // fluindo da esquerda p/ direita (direction LR). As CAIXAS também ficam lado a
-  // lado (esquerda→direita): um link invisível (~~~) entre a última etapa de um
-  // processo e a primeira do próximo força esse alinhamento no flowchart LR
-  // (senão o mermaid empilha subgraphs desconectados em linhas). Só a espinha.
-  lines.push('flowchart LR');
+  lines.push(`%% Mapa do Projeto${projeto ? ` · ${safeLabel(projeto.name)}` : ''} (${useFicou ? 'To-Be' : 'As-Is'}) — gerado pelo MAPA`);
+  lines.push('flowchart TB');
 
   const ordenados = [...processos].sort(
     (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name),
   );
-  let prevLast: string | null = null;
+
+  // Projeto no topo + um card por processo (só o nome, numerado).
+  const nodeIds: string[] = ['PROJ'];
+  lines.push(`  PROJ["\`**${mdText(projeto?.name || 'Projeto')}**\`"]:::projHead`);
   ordenados.forEach((p, i) => {
-    const vis = (etapasPorProcesso.get(p.id) || [])
-      .filter(e => !(useFicou && isEtapaEliminada(e)))
-      .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
-    lines.push(`  subgraph SGP_${i}["${i + 1} · ${safeLabel(p.name)}"]`);
-    lines.push('    direction LR');
-    let first: string;
-    let last: string;
-    if (vis.length === 0) {
-      first = last = `PEMPTY_${i}`;
-      lines.push(`    ${first}["sem etapas"]:::vazio`);
-    } else {
-      vis.forEach((e, j) => lines.push(`    PE_${i}_${j}["${j + 1} · ${safeLabel(e.name)}"]:::etapa`));
-      for (let j = 1; j < vis.length; j++) lines.push(`    PE_${i}_${j - 1} --> PE_${i}_${j}`);
-      first = `PE_${i}_0`;
-      last = `PE_${i}_${vis.length - 1}`;
-    }
-    lines.push('  end');
-    if (prevLast) lines.push(`  ${prevLast} ~~~ ${first}`);
-    prevLast = last;
+    lines.push(`  PC_${i}["\`**${i + 1} · ${mdText(p.name)}**\`"]:::procHead`);
+    nodeIds.push(`PC_${i}`);
   });
 
+  // Setas ↓: projeto → 1º processo → … → último (fluxo vertical limpo).
+  for (let r = 1; r < nodeIds.length; r++) lines.push(`  ${nodeIds[r - 1]} --> ${nodeIds[r]}`);
+
   lines.push('  %% ===== estilos =====');
-  STYLES.forEach(s => lines.push(s));
+  lines.push('  classDef projHead fill:#0d9488,color:#fff,stroke:#0f766e,stroke-width:3px,font-weight:bold');
+  lines.push('  classDef procHead fill:#0d9488,color:#fff,stroke:#0f766e,stroke-width:2px,font-weight:bold');
   return lines.join('\n');
 }

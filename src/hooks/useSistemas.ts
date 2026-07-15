@@ -73,12 +73,17 @@ export function useCreateSistema(): UseMutationResult<Sistema, Error, SistemaInp
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: SistemaInput) => {
-      const rateios = input.rateios;
+      // Participação explícita: se o cadastro não mandou rateios, o sistema nasce
+      // 100% no seu cluster (assim TODO sistema tem participação — nada de cair no
+      // fallback e "vazar" custo pra outros clusters).
+      const rateios = (input.rateios && input.rateios.length)
+        ? input.rateios
+        : (input.cluster_id ? [{ clusterId: input.cluster_id, rateio: 100 }] : []);
       const payload = stripSyntheticFields(input as unknown as Record<string, unknown>);
       const { data, error } = await supabase.from(TABLE as never).insert(payload as never).select().single();
       if (error) throw new Error(error.message);
       const created = hydrate(data as DbRow);
-      if (rateios && rateios.length) await syncSistemaClusters(created.id, rateios);
+      if (rateios.length) await syncSistemaClusters(created.id, rateios);
       return created;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: [TABLE] }); },

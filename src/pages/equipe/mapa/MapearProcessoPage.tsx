@@ -22,7 +22,9 @@ import EmptyStateCadastro from '@/components/equipe/mapa/cadastro/EmptyStateCada
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import { toast } from 'sonner';
-import type { Etapa, DocRef, ResponsavelEtapa } from '@/types';
+import type { Etapa, DocRef, ResponsavelEtapa, Documento, Sistema, Responsavel } from '@/types';
+import { cleanEtapaName, primeiraEtapaSemNome, inserirVinculoCriado } from '@/utils/etapaEditor';
+import type { CampoVinculo } from '@/utils/etapaEditor';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { etapaMudou } from '@/utils/etapaMudou';
 import { resolveVinculoId, resolveSistemaId } from '@/utils/etapaVinculosResolve';
@@ -34,11 +36,11 @@ import { buildProcessDiagram } from '@/utils/processDiagram';
 import { slugFilename } from '@/utils/slugify';
 import { useMapaExports } from '@/hooks/useMapaExports';
 import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
-import NovoDocumentoModal from '@/components/equipe/mapa/cadastros/NovoDocumentoModal';
-import NovoSistemaModal from '@/components/equipe/mapa/cadastros/NovoSistemaModal';
-import NovoResponsavelModal from '@/components/equipe/mapa/cadastros/NovoResponsavelModal';
-import NovoGargaloModal from '@/components/equipe/mapa/cadastros/NovoGargaloModal';
-import NovoMelhoriaModal from '@/components/equipe/mapa/cadastros/NovoMelhoriaModal';
+import DocumentoFormModal from '@/components/equipe/mapa/cadastro/DocumentoFormModal';
+import SistemaFormModal from '@/components/equipe/mapa/cadastro/SistemaFormModal';
+import ResponsavelFormModal from '@/components/equipe/mapa/cadastro/ResponsavelFormModal';
+import GargaloFormModal from '@/components/equipe/mapa/cadastro/GargaloFormModal';
+import MelhoriaFormModal from '@/components/equipe/mapa/cadastro/MelhoriaFormModal';
 import GargalosMelhoriasPanel from '@/components/equipe/mapa/GargalosMelhoriasPanel';
 import {
   useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
@@ -159,6 +161,30 @@ export default function MapearProcessoPage() {
   // permite criar documento/sistema/responsável sem sair do fluxo. As listas
   // de opções atualizam sozinhas via invalidação do React Query.
   const [cadastroRapido, setCadastroRapido] = useState<'documento' | 'sistema' | 'responsavel' | 'gargalo' | 'melhoria' | null>(null);
+  // Campo do editor que disparou o "+ Cadastrar novo" — p/ inserir o item criado
+  // JÁ na etapa ativa (B1). Só doc/sistema/responsável usam.
+  const [quickAddCampo, setQuickAddCampo] = useState<'docsEntrada' | 'docsSaida' | 'sistemas' | 'executadoPor' | null>(null);
+  const fecharCadastroRapido = () => {
+    // A4: ao fechar, remove chips VAZIOS (órfãos) do campo que abriu o cadastro
+    // — ex.: "Adicionar" clicado e não preenchido. (cleanEtapa já limpa no save;
+    // aqui é só pra não poluir a tela.) Chips preenchidos (inclusive o recém-criado)
+    // são mantidos.
+    const campo = quickAddCampo;
+    if (campo) {
+      setEditEtapasList(prev => {
+        const et = prev[editEtapasActiveIndex];
+        if (!et) return prev;
+        const arr = (et[campo] as (DocRef | ResponsavelEtapa | string)[]) || [];
+        const limpo = arr.filter(it => ((typeof it === 'string' ? it : it.nome) || '').trim());
+        if (limpo.length === arr.length) return prev;
+        const list = [...prev];
+        list[editEtapasActiveIndex] = { ...et, [campo]: limpo } as Etapa;
+        return list;
+      });
+    }
+    setCadastroRapido(null);
+    setQuickAddCampo(null);
+  };
 
   const docNames = useMemo(() => documentos.map(d => d.nome), [documentos]);
   const sisNames = useMemo(() => sistemas.map(s => s.nome), [sistemas]);
@@ -268,11 +294,6 @@ export default function MapearProcessoPage() {
   // ============================================================
   //  Handlers — Editar Etapas (Como era / Como ficou)
   // ============================================================
-  const cleanEtapaName = (nome: string): string => {
-    const match = nome.match(/^Etapa\s*\d+\s*:\s*/i);
-    return match ? nome.slice(match[0].length).trim() : nome;
-  };
-
   // Mantém o vínculo que tem nome OU id resolvido. Só descarta linha realmente
   // vazia (ex.: "+adicionar" clicado sem escolher). Nunca dropar — e portanto
   // deletar do banco — um vínculo real só porque o nome não resolveu na sessão.
@@ -352,6 +373,21 @@ export default function MapearProcessoPage() {
     });
   };
 
+  // B1: item cadastrado inline entra JÁ selecionado na etapa ativa. Preenche a 1ª
+  // entrada vazia do campo (a que o "Adicionar" criou) ou anexa, se não houver.
+  const preencherVinculoCriado = (campo: CampoVinculo, nome: string, itemId: string) => {
+    const idx = editEtapasActiveIndex;
+    setEditEtapasDirty(true);
+    setEditEtapasList(prev => {
+      const et = prev[idx];
+      if (!et) return prev;
+      const atual = (et[campo] as (DocRef | ResponsavelEtapa | string)[]) || [];
+      const list = [...prev];
+      list[idx] = { ...et, [campo]: inserirVinculoCriado(atual, campo, nome, itemId) } as Etapa;
+      return list;
+    });
+  };
+
   // Nova etapa em branco — já atrelada ao processo atual (o modal vive dentro
   // de um processo, então process_id é automático).
   const addNovaEtapa = () => {
@@ -404,6 +440,13 @@ export default function MapearProcessoPage() {
 
   const handleSaveEtapas = async () => {
     if (!processo) return;
+    // B3: nome é obrigatório. Bloqueia o save e leva à etapa (posição) sem nome.
+    const semNomeIdx = primeiraEtapaSemNome(editEtapasList);
+    if (semNomeIdx >= 0) {
+      setEditEtapasActiveIndex(semNomeIdx);
+      toast.error(`A etapa ${semNomeIdx + 1} está sem nome`, { description: 'Toda etapa precisa de um nome antes de salvar.' });
+      return;
+    }
     setEditEtapasSaving(true);
     const cleaned = editEtapasList.map(cleanEtapa).map(resolverVinculos);
     try {
@@ -433,27 +476,32 @@ export default function MapearProcessoPage() {
       );
       for (let i = 0; i < cleaned.length; i++) {
         const e = { ...cleaned[i], stage_order: i + 1 };
-        if (editEtapasMode === 'era') {
-          if (existingIds.has(e.id)) {
-            // 3.3 — só grava (e reconcilia vínculos) se a etapa mudou de fato.
-            // Etapa intocada não é reescrita → não perde horas/vínculos.
-            if (etapaMudou(baselineById.get(e.id), e)) {
-              await updateEtapa.mutateAsync({ id: e.id, patch: e as Partial<Etapa>, old: e });
+        try {
+          if (editEtapasMode === 'era') {
+            if (existingIds.has(e.id)) {
+              // 3.3 — só grava (e reconcilia vínculos) se a etapa mudou de fato.
+              // Etapa intocada não é reescrita → não perde horas/vínculos.
+              if (etapaMudou(baselineById.get(e.id), e)) {
+                await updateEtapa.mutateAsync({ id: e.id, patch: e as Partial<Etapa>, old: e });
+              }
+            } else {
+              // Etapa nova: o id local é provisório — o banco gera o uuid.
+              const { id: _tempId, ...semId } = e;
+              void _tempId;
+              await createEtapa.mutateAsync(semId as Partial<Etapa> as never);
             }
           } else {
-            // Etapa nova: o id local é provisório — o banco gera o uuid.
-            const { id: _tempId, ...semId } = e;
-            void _tempId;
-            await createEtapa.mutateAsync(semId as Partial<Etapa> as never);
+            // mode === 'ficou' — projeção TO-BE. MESMO guard do AS-IS: só faz upsert
+            // (e materializa a projeção) se a etapa mudou vs o baseline "como ficou" —
+            // senão abrir "Como ficou" e salvar reescreveria TO-BE de todas as etapas.
+            if (!existingIds.has(e.id)) continue;
+            if (etapaMudou(baselineById.get(e.id), e)) {
+              await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
+            }
           }
-        } else {
-          // mode === 'ficou' — projeção TO-BE. MESMO guard do AS-IS: só faz upsert
-          // (e materializa a projeção) se a etapa mudou vs o baseline "como ficou" —
-          // senão abrir "Como ficou" e salvar reescreveria TO-BE de todas as etapas.
-          if (!existingIds.has(e.id)) continue;
-          if (etapaMudou(baselineById.get(e.id), e)) {
-            await upsertEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
-          }
+        } catch (err) {
+          // U3: erro atribuído à etapa que falhou (posição + nome).
+          throw new Error(`Etapa ${i + 1}${e.name ? ` ("${e.name}")` : ''}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
       // Etapas removidas no modal: deleta do banco (somente as que já existiam).
@@ -669,7 +717,7 @@ export default function MapearProcessoPage() {
                 etapas={etapas}
                 fmtPct={fmtPct}
                 sumHorasEtapa={sumHorasEtapa}
-                onEditar={() => openEditEtapas('era')}
+                onEditar={(etapaId) => openEditEtapas('era', etapaId)}
               />
             </motion.div>
           )}
@@ -685,7 +733,7 @@ export default function MapearProcessoPage() {
                 etapas={etapas}
                 fmtPct={fmtPct}
                 sumHorasEtapa={sumHorasEtapa}
-                onEditar={() => openEditEtapas('ficou')}
+                onEditar={(etapaId) => openEditEtapas('ficou', etapaId)}
               />
             </motion.div>
           )}
@@ -794,17 +842,10 @@ export default function MapearProcessoPage() {
                 <div className="etapas-form-area">
                 <div className="modal-section">
                   <div className="modal-section-title"><Tooltip text={dica('mapear.secao.identificacao')}>Identificação</Tooltip></div>
-                  <FormField label="Nome" compact tooltip={dica('mapear.etapa.nome')}>
-                    <input type="text" value={active.name} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'name', e.target.value)} />
-                  </FormField>
-                  <FormField label="Descrição" compact tooltip={dica('mapear.etapa.descricao')}>
-                    <textarea value={active.description} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'description', e.target.value)} />
-                  </FormField>
-                </div>
-
-                <div className="modal-section">
-                  <div className="modal-section-title"><Tooltip text={dica('mapear.secao.operacao')}>Operação</Tooltip></div>
                   <div className="form-row">
+                    <FormField label="Nome" required compact tooltip={dica('mapear.etapa.nome')}>
+                      <input type="text" value={active.name} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'name', e.target.value)} />
+                    </FormField>
                     <FormField label="Execução" compact tooltip={dica('mapear.etapa.execution')}>
                       <Select
                         value={active.execution || ''}
@@ -815,6 +856,9 @@ export default function MapearProcessoPage() {
                       />
                     </FormField>
                   </div>
+                  <FormField label="Descrição" compact tooltip={dica('mapear.etapa.descricao')}>
+                    <textarea value={active.description} onChange={(e) => handleUpdateEtapaField(editEtapasActiveIndex, 'description', e.target.value)} />
+                  </FormField>
                 </div>
 
                 <div className="modal-section">
@@ -825,12 +869,12 @@ export default function MapearProcessoPage() {
                   <FormField label="Docs Entrada" compact tooltip={dica('mapear.etapa.docsEntrada')}>
                     <ChipSelector options={docNames} value={active.docsEntrada || []}
                       onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsEntrada', v as DocRef[])} withVolume compact
-                      onAddNew={() => setCadastroRapido('documento')} addNewLabel="Cadastrar novo documento" />
+                      onAddNew={() => { setQuickAddCampo('docsEntrada'); setCadastroRapido('documento'); }} addNewLabel="Cadastrar novo documento" />
                   </FormField>
                   <FormField label="Docs Saída" compact tooltip={dica('mapear.etapa.docsSaida')}>
                     <ChipSelector options={docNames} value={active.docsSaida || []}
                       onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'docsSaida', v as DocRef[])} withVolume compact
-                      onAddNew={() => setCadastroRapido('documento')} addNewLabel="Cadastrar novo documento" />
+                      onAddNew={() => { setQuickAddCampo('docsSaida'); setCadastroRapido('documento'); }} addNewLabel="Cadastrar novo documento" />
                   </FormField>
                 </div>
 
@@ -844,7 +888,7 @@ export default function MapearProcessoPage() {
                       withHours
                       compact
                       addLabel="Adicionar executor"
-                      onAddNew={() => setCadastroRapido('responsavel')}
+                      onAddNew={() => { setQuickAddCampo('executadoPor'); setCadastroRapido('responsavel'); }}
                       addNewLabel="Cadastrar novo responsável"
                     />
                   </FormField>
@@ -885,7 +929,7 @@ export default function MapearProcessoPage() {
                   <FormField label="Sistemas" compact tooltip={dica('mapear.etapa.sistemas')}>
                     <ChipSelector options={sisNames} value={active.sistemas || []}
                       onChange={(v) => handleUpdateEtapaField(editEtapasActiveIndex, 'sistemas', v as string[])} compact
-                      onAddNew={() => setCadastroRapido('sistema')} addNewLabel="Cadastrar novo sistema" />
+                      onAddNew={() => { setQuickAddCampo('sistemas'); setCadastroRapido('sistema'); }} addNewLabel="Cadastrar novo sistema" />
                   </FormField>
                   {(active.sistemas || []).filter(Boolean).length > 0 && (
                     <div style={{ marginTop: 6, fontSize: '0.78rem', color: '#64748b' }}>
@@ -948,11 +992,48 @@ export default function MapearProcessoPage() {
 
       {/* Cadastro rápido a partir do editor de etapas */}
       <ProcessoFormModal aberto={editProcessoOpen} processo={processo} onClose={() => setEditProcessoOpen(false)} />
-      <NovoDocumentoModal isOpen={cadastroRapido === 'documento'} onClose={() => setCadastroRapido(null)} />
-      <NovoSistemaModal isOpen={cadastroRapido === 'sistema'} onClose={() => setCadastroRapido(null)} />
-      <NovoResponsavelModal isOpen={cadastroRapido === 'responsavel'} onClose={() => setCadastroRapido(null)} />
-      <NovoGargaloModal
-        isOpen={cadastroRapido === 'gargalo'}
+      <DocumentoFormModal
+        aberto={cadastroRapido === 'documento'}
+        documento={null}
+        onClose={fecharCadastroRapido}
+        clusterIdInicial={procClusterId ?? undefined}
+        onCreated={(d) => {
+          // B1: entra JÁ selecionado no campo (entrada/saída) que abriu o cadastro.
+          if (quickAddCampo === 'docsEntrada' || quickAddCampo === 'docsSaida') {
+            preencherVinculoCriado(quickAddCampo, d.nome, d.id);
+          }
+          // Escreve o doc novo direto no cache da lista — sem isso ele só aparecia
+          // nos dropdowns após um reload duro (a invalidação padrão não refletia).
+          queryClient.setQueryData<Documento[]>(['documentos_processo'], (old) =>
+            old && !old.some(x => x.id === d.id) ? [...old, d] : old);
+        }}
+      />
+      <SistemaFormModal
+        aberto={cadastroRapido === 'sistema'}
+        sistema={null}
+        onClose={fecharCadastroRapido}
+        clusterIdInicial={procClusterId ?? undefined}
+        onCreated={(s) => {
+          if (quickAddCampo === 'sistemas') preencherVinculoCriado('sistemas', s.nome, s.id);
+          queryClient.setQueryData<Sistema[]>(['sistemas_processo'], (old) =>
+            old && !old.some(x => x.id === s.id) ? [...old, s] : old);
+        }}
+      />
+      <ResponsavelFormModal
+        aberto={cadastroRapido === 'responsavel'}
+        responsavel={null}
+        onClose={fecharCadastroRapido}
+        clusterIdInicial={procClusterId ?? undefined}
+        onCreated={(r) => {
+          if (quickAddCampo === 'executadoPor') preencherVinculoCriado('executadoPor', r.name, r.id);
+          queryClient.setQueryData<Responsavel[]>(['job_roles'], (old) =>
+            old && !old.some(x => x.id === r.id) ? [...old, r] : old);
+        }}
+      />
+      <GargaloFormModal
+        aberto={cadastroRapido === 'gargalo'}
+        gargalo={null}
+        clusterIdInicial={procClusterId ?? undefined}
         onClose={() => setCadastroRapido(null)}
         onCreated={(g) => {
           // grão = processo: vincula o gargalo recém-criado a ESTE processo.
@@ -960,11 +1041,11 @@ export default function MapearProcessoPage() {
             .catch(err => toast.error('Erro ao vincular gargalo', { description: err instanceof Error ? err.message : String(err) }));
         }}
       />
-      <NovoMelhoriaModal
-        isOpen={cadastroRapido === 'melhoria'}
-        onClose={() => setCadastroRapido(null)}
+      <MelhoriaFormModal
+        aberto={cadastroRapido === 'melhoria'}
+        melhoria={null}
         clusterIdInicial={procClusterId ?? undefined}
-        processIdInicial={processo.id}
+        onClose={() => setCadastroRapido(null)}
         onCreated={(m) => {
           // grão = processo: vincula a melhoria recém-criada a ESTE processo.
           updateMelhoria.mutateAsync({ id: m.id, old: m, patch: { processos: [...new Set([...(m.processos || []), processo.id])] } })
@@ -1033,7 +1114,7 @@ function MapearTabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtit
         <h3 className="mapear-tab-titulo">{titulo}</h3>
         <p className="mapear-tab-sub">{subtitulo}</p>
       </div>
-      <button className="cadastro-cta" onClick={onEditar} title="Abrir o editor de etapas">
+      <button className="cadastro-cta" onClick={() => onEditar()} title="Abrir o editor de etapas">
         <Pencil size={15} strokeWidth={2.2} />
         <span>Editar etapas</span>
       </button>
@@ -1045,7 +1126,7 @@ interface ComoEraProps {
   etapas: Etapa[];
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
-  onEditar: () => void;
+  onEditar: (etapaId?: string) => void;
 }
 function ComoEraView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoEraProps) {
   return (
@@ -1058,12 +1139,21 @@ function ComoEraView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoEraProps) 
           titulo="Comece a mapear"
           texto="Este processo ainda não tem etapas. Adicione a primeira e descreva como o trabalho acontece hoje."
           ctaLabel="Mapear primeira etapa"
-          onCta={onEditar}
+          onCta={() => onEditar()}
         />
       ) : (
         <ol className="mapear-fluxo list-stagger">
           {etapas.map((e, i) => (
-            <li key={e.id} className="mapear-etapa">
+            <li
+              key={e.id}
+              className="mapear-etapa mapear-etapa-clicavel"
+              role="button"
+              tabIndex={0}
+              title="Clique para editar esta etapa"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onEditar(e.id)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
+            >
               <div className="mapear-etapa-top">
                 <span className="mapear-etapa-num">{i + 1}</span>
                 <h4 className="mapear-etapa-nome">{e.name}</h4>
@@ -1094,7 +1184,7 @@ interface ComoFicouProps {
   etapas: Etapa[];
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
-  onEditar: () => void;
+  onEditar: (etapaId?: string) => void;
 }
 function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouProps) {
   return (
@@ -1107,7 +1197,7 @@ function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouPro
           titulo="Nada para projetar ainda"
           texto="Mapeie o 'Como era' primeiro. Depois, projete aqui como cada etapa fica após as melhorias."
           ctaLabel="Editar etapas"
-          onCta={onEditar}
+          onCta={() => onEditar()}
         />
       ) : (
         <ol className="mapear-fluxo list-stagger">
@@ -1125,7 +1215,16 @@ function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouPro
               const docsSai    = f?.docsSaida           ?? e.docsSaida;
               const horasFuturas = sumHorasEtapa(e, true);
               return (
-                <li key={e.id} className="mapear-etapa">
+                <li
+              key={e.id}
+              className="mapear-etapa mapear-etapa-clicavel"
+              role="button"
+              tabIndex={0}
+              title="Clique para editar esta etapa"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onEditar(e.id)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
+            >
                   <div className="mapear-etapa-top">
                     <span className="mapear-etapa-num">{i + 1}</span>
                     <h4 className="mapear-etapa-nome">{e.name}</h4>

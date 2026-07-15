@@ -6,8 +6,9 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, FileArchive, FolderKanban, Network, Pencil } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileArchive, FolderKanban, Network, Pencil, Plus } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
+import ProcessoFormModal from '@/components/equipe/mapa/cadastro/ProcessoFormModal';
 import StatusBadge from '@/components/equipe/mapa/StatusBadge';
 import DiagramViewer from '@/components/equipe/mapa/DiagramViewer';
 import ComoEraLista from '@/components/equipe/mapa/ComoEraLista';
@@ -65,6 +66,7 @@ export default function ProjetoDetalheModal({
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [diagramaProc, setDiagramaProc] = useState<Processo | null>(null);
   const [verDiagramaProjeto, setVerDiagramaProjeto] = useState(false);
+  const [addProcOpen, setAddProcOpen] = useState(false);
   const exports = useMapaExports();
   const toggle = (id: string) => setExpandidos(prev => {
     const next = new Set(prev);
@@ -154,7 +156,14 @@ export default function ProjetoDetalheModal({
 
           {aba === 'processos' && (
             processos.length === 0 ? (
-              <p className="processo-det-vazio">Nenhum processo vinculado a este projeto.</p>
+              <div className="processo-det-vazio">
+                Nenhum processo vinculado a este projeto.
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="cadastro-cta" onClick={() => setAddProcOpen(true)}>
+                    <Plus size={15} strokeWidth={2.2} /><span>Adicionar processo</span>
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 {/* Gate de status: projeto em Mapeamento não entra no Dashboard ROI,
@@ -218,7 +227,14 @@ export default function ProjetoDetalheModal({
 
           {aba === 'as-is' && (
             processos.length === 0 ? (
-              <p className="processo-det-vazio">Nenhum processo vinculado a este projeto.</p>
+              <div className="processo-det-vazio">
+                Nenhum processo vinculado a este projeto.
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="cadastro-cta" onClick={() => setAddProcOpen(true)}>
+                    <Plus size={15} strokeWidth={2.2} /><span>Adicionar processo</span>
+                  </button>
+                </div>
+              </div>
             ) : (
               <div className="projeto-asis">
                 <p className="processo-det-descricao" style={{ marginBottom: 12 }}>
@@ -238,7 +254,14 @@ export default function ProjetoDetalheModal({
 
           {aba === 'diagramas' && (
             processos.length === 0 ? (
-              <p className="processo-det-vazio">Nenhum processo vinculado a este projeto.</p>
+              <div className="processo-det-vazio">
+                Nenhum processo vinculado a este projeto.
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="cadastro-cta" onClick={() => setAddProcOpen(true)}>
+                    <Plus size={15} strokeWidth={2.2} /><span>Adicionar processo</span>
+                  </button>
+                </div>
+              </div>
             ) : (
               <>
                 <p className="processo-det-descricao" style={{ marginBottom: 12 }}>
@@ -350,6 +373,13 @@ export default function ProjetoDetalheModal({
           title={`Diagrama AS-IS · Projeto ${projeto.name}`}
         />
       )}
+      {/* Adicionar processo sem sair do painel — já vinculado a este projeto. */}
+      <ProcessoFormModal
+        aberto={addProcOpen}
+        processo={null}
+        projetoIdInicial={projeto.id}
+        onClose={() => setAddProcOpen(false)}
+      />
     </Modal>
   );
 }

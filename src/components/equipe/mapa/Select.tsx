@@ -22,6 +22,8 @@ interface SelectProps {
   id?: string;
   ariaLabel?: string;
   style?: React.CSSProperties;
+  /** Mostra a caixa de busca no painel (independe de `footerAction`). */
+  searchable?: boolean;
   /** Ação fixa no topo do painel (ex.: "+ Cadastrar novo"). Fecha o painel ao clicar. */
   footerAction?: { label: string; onClick: () => void };
 }
@@ -38,6 +40,7 @@ export default function Select({
   id,
   ariaLabel,
   style,
+  searchable: searchableProp,
   footerAction,
 }: SelectProps) {
   const generatedId = useId();
@@ -54,7 +57,7 @@ export default function Select({
 
   const selectedIndex = useMemo(() => options.findIndex(o => o.value === value), [options, value]);
   const selectedLabel = selectedIndex >= 0 ? options[selectedIndex].label : '';
-  const searchable = Boolean(footerAction);
+  const searchable = Boolean(searchableProp) || Boolean(footerAction);
 
   const filteredOptions = useMemo(() => {
     const normalizedSearch = normalizeSearch(searchTerm);

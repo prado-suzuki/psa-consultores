@@ -109,7 +109,7 @@ export default function ChipSelector({
                 options={options.map((o) => ({ value: o, label: o, disabled: otherNames.includes(o) }))}
                 placeholder="Selecione..."
                 compact={compact}
-                footerAction={onAddNew ? { label: addNewLabel, onClick: onAddNew } : undefined}
+                searchable={Boolean(onAddNew)}
               />
               {withVolume && isDocRef(item) && (
                 <DecimalInput
@@ -143,7 +143,7 @@ export default function ChipSelector({
           );
         })}
       </div>
-      <div className="chip-selector-add">
+      <div className="chip-selector-add" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
         <IconTooltip label={addLabel} side="bottom">
           <button
             type="button"
@@ -154,6 +154,16 @@ export default function ChipSelector({
             {addLabel}
           </button>
         </IconTooltip>
+        {/* Atalho visível de cadastro (sem precisar criar a linha e abrir a lista antes). */}
+        {onAddNew && (
+          <button
+            type="button"
+            onClick={onAddNew}
+            style={{ background: 'none', border: 'none', color: '#0d9488', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, padding: 2 }}
+          >
+            + {addNewLabel}
+          </button>
+        )}
       </div>
     </div>
   );

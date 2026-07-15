@@ -1,6 +1,6 @@
-// Opções de domínio do cadastro de Gargalo — compartilhadas entre
-// GargaloFormModal (página de cadastro) e NovoGargaloModal (cadastro rápido
-// no editor de etapas). Vive fora dos componentes por causa do fast refresh.
+// Opções de domínio do cadastro de Gargalo — usadas pelo GargaloFormModal
+// (página de cadastro e cadastro rápido no editor de etapas). Vive fora do
+// componente por causa do fast refresh.
 
 export const GARGALO_ORIGEM_OPCOES = [
   { value: 'Processo', label: 'Processo' },

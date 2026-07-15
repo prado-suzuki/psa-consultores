@@ -15,6 +15,7 @@ import type { Documento, EstruturacaoDoc } from '@/types';
 import { useCreateDocumento, useUpdateDocumento, useDocumentos } from '@/hooks/useDocumentos';
 import { useClusters } from '@/hooks/useClusters';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
+import { clusterInicial } from '@/utils/etapaEditor';
 import {
   TIPO_OPCOES, ORIGEM_OPCOES, ESTRUTURADO_SELECT_OPCOES, FORMATO_SELECT_OPCOES, deriveEstruturado,
 } from '@/components/equipe/mapa/cadastros/documentoOpcoes';
@@ -23,6 +24,10 @@ import ConfirmarDescarte from '@/components/equipe/mapa/ConfirmarDescarte';
 interface Props {
   aberto: boolean;
   documento: Documento | null;
+  /** Cluster sugerido de início ao CRIAR (ex.: o cluster DO PROCESSO em edição). */
+  clusterIdInicial?: string;
+  /** Chamado com o documento criado (ex.: pra pré-selecionar no cadastro rápido). */
+  onCreated?: (doc: Documento) => void;
   onClose: () => void;
 }
 
@@ -38,7 +43,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 const EMPTY: FormValues = { nome: '', clusterId: '', tipo: '', formato: '', origem: 'Interno', estrutura: '', estruturado: '' };
 
-export default function DocumentoFormModal({ aberto, documento, onClose }: Props) {
+export default function DocumentoFormModal({ aberto, documento, clusterIdInicial, onCreated, onClose }: Props) {
   const createDoc = useCreateDocumento();
   const updateDoc = useUpdateDocumento();
   const { data: clustersList = [] } = useClusters();
@@ -64,9 +69,9 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
         estrutura: documento.estrutura_entrada || '', estruturado: documento.estruturado || '',
       });
     } else {
-      reset({ ...EMPTY, clusterId: fCluster || '' });
+      reset({ ...EMPTY, clusterId: clusterInicial(clusterIdInicial, fCluster) });
     }
-  }, [aberto, documento, fCluster, reset]);
+  }, [aberto, documento, clusterIdInicial, fCluster, reset]);
 
   const nome = watch('nome');
   const clusterId = watch('clusterId');
@@ -101,13 +106,14 @@ export default function DocumentoFormModal({ aberto, documento, onClose }: Props
         }
         toast.success('Documento atualizado');
       } else {
-        await createDoc.mutateAsync({
+        const created = await createDoc.mutateAsync({
           nome: v.nome.trim(), tipo: v.tipo.trim(), formato: v.formato, origem: v.origem, tempo_minutos: 0,
           cluster_id: v.clusterId,
           estrutura_entrada: (v.estrutura || undefined) as Documento['estrutura_entrada'],
           estruturado: (v.estruturado || undefined) as EstruturacaoDoc | undefined,
         });
         toast.success('Documento criado');
+        onCreated?.(created);
       }
       onClose();
     } catch (err) {

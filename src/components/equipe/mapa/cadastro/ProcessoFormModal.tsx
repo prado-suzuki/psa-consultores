@@ -28,6 +28,8 @@ interface Props {
   processo: Processo | null;
   /** Código visual do processo (ex.: P5.01) — exibido no cabeçalho, como no detalhe. */
   codigo?: string;
+  /** Projeto pré-selecionado ao CRIAR (ex.: abrir a partir do painel do projeto). */
+  projetoIdInicial?: string;
   onClose: () => void;
 }
 
@@ -42,7 +44,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 const EMPTY: FormValues = { nome: '', projetoId: '', descricao: '', volumeAnual: '', statusAvaliacao: 'Não avaliado', complexidade: '' };
 
-export default function ProcessoFormModal({ aberto, processo, codigo, onClose }: Props) {
+export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdInicial, onClose }: Props) {
   const createProcesso = useCreateProcesso();
   const updateProcesso = useUpdateProcesso();
   const { data: projetos = [] } = useProjetosLista();
@@ -69,9 +71,9 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
         complexidade: normalizarComplexidade(processo.complexity_level),
       });
     } else {
-      reset({ ...EMPTY });
+      reset({ ...EMPTY, projetoId: projetoIdInicial || '' });
     }
-  }, [aberto, processo, reset]);
+  }, [aberto, processo, projetoIdInicial, reset]);
 
   const projetoId = watch('projetoId');
   // Opções de projeto filtradas pelo cluster do ambiente; mantém o projeto já
@@ -88,7 +90,9 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
   const onSubmit = async (v: FormValues) => {
     // O processo herda o cluster do projeto (senão nasce sem cluster e some da lista).
     const clusterDoProjeto = projetos.find(p => p.id === v.projetoId)?.cluster_id ?? null;
-    const volume = v.volumeAnual.trim() !== '' ? Number(v.volumeAnual) : undefined;
+    // null (não undefined) ao limpar: undefined some do JSON do PATCH e a coluna
+    // nunca é zerada no banco (o valor antigo persiste e continua no ROI).
+    const volume = v.volumeAnual.trim() !== '' ? Number(v.volumeAnual) : null;
     try {
       if (processo) {
         // UPDATE por DIFF: só os campos alterados. Se o projeto mudou, o cluster acompanha.
@@ -98,7 +102,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
         if (dirtyFields.projetoId) { patch.project_id = v.projetoId; patch.cluster_id = clusterDoProjeto; }
         if (dirtyFields.volumeAnual) patch.volume_executions = volume;
         if (dirtyFields.statusAvaliacao) patch.evaluation_status = v.statusAvaliacao as StatusAvaliacao;
-        if (dirtyFields.complexidade) patch.complexity_level = normalizarComplexidade(v.complexidade) || undefined;
+        if (dirtyFields.complexidade) patch.complexity_level = normalizarComplexidade(v.complexidade) || null;
         if (Object.keys(patch).length > 0) {
           await updateProcesso.mutateAsync({ id: processo.id, old: processo, patch });
         }
@@ -111,7 +115,7 @@ export default function ProcessoFormModal({ aberto, processo, codigo, onClose }:
           cluster_id: clusterDoProjeto,
           volume_executions: volume,
           evaluation_status: v.statusAvaliacao as StatusAvaliacao,
-          complexity_level: normalizarComplexidade(v.complexidade) || undefined,
+          complexity_level: normalizarComplexidade(v.complexidade) || null,
         } as never);
         toast.success('Processo criado');
       }

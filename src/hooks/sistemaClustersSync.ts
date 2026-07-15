@@ -6,8 +6,9 @@
 // lido (o useSistemas fazia select('*') sem embed).
 //
 // Diff-based (delete removidos + insert novos + update alterados), NÃO
-// delete-all. Só persiste rateio != 100 — 100% é o default e a ausência de
-// linha é lida como 100 pelo roiCalculator, então mantemos a tabela enxuta.
+// delete-all. Grava toda PARTICIPAÇÃO com % > 0 (INCLUSIVE 100%) — a tabela é a
+// fonte de "de quais clusters o sistema faz parte". % 0/ausente = não participa
+// (não vira linha); o roiCalculator então atribui 0 custo a esse cluster.
 
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,7 +21,7 @@ export async function syncSistemaClusters(sistemaId: string, rateios: RateioInpu
   const desejados = new Map<string, number>();
   for (const r of rateios) {
     if (!r.clusterId) continue;
-    if (r.rateio == null || r.rateio === 100) continue; // default → não grava linha
+    if (r.rateio == null || r.rateio <= 0) continue; // 0/ausente = não participa
     desejados.set(r.clusterId, r.rateio);
   }
 

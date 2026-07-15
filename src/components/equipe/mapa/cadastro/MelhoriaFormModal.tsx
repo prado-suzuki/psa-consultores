@@ -89,6 +89,10 @@ function RateioEditor({
 interface Props {
   aberto: boolean;
   melhoria: Melhoria | null;
+  /** Cluster sugerido de início ao CRIAR (ex.: o cluster DO PROCESSO em edição). */
+  clusterIdInicial?: string;
+  /** Chamado com a melhoria criada (ex.: pra vincular ao processo no cadastro rápido). */
+  onCreated?: (melhoria: Melhoria) => void;
   onClose: () => void;
   onEditarGargalo?: (id: string) => void;
 }
@@ -102,7 +106,7 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 const EMPTY: FormValues = { nome: '', clusterId: '', status: 'Não iniciado', custoExterno: '' };
 
-export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) {
+export default function MelhoriaFormModal({ aberto, melhoria, clusterIdInicial, onCreated, onClose }: Props) {
   const createMelhoria = useCreateMelhoria();
   const updateMelhoria = useUpdateMelhoria();
   const CLUSTER_OPCOES = useClusterCadastroOpcoes();
@@ -162,12 +166,12 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
         : ((melhoria.training_hours ?? 0) > 0 ? [{ nome: '', horas: melhoria.training_hours ?? 0 }] : []);
       setTreinamentoPor(treinoSeed);
     } else {
-      reset({ ...EMPTY, clusterId: fCluster || '' });
+      reset({ ...EMPTY, clusterId: clusterIdInicial || fCluster || '' });
       setSistemas([]); setAcoesTd([]); setExecutadoPor([]); setTreinamentoPor([]);
     }
     setVinculosTocados(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aberto, melhoria, sistemaNomeById, respNomeById, fCluster, reset]);
+  }, [aberto, melhoria, sistemaNomeById, respNomeById, clusterIdInicial, fCluster, reset]);
 
   const requestClose = () => { if (isDirty || vinculosTocados) setConfirmSair(true); else onClose(); };
 
@@ -218,7 +222,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
         }
         toast.success('Melhoria atualizada');
       } else {
-        await createMelhoria.mutateAsync({
+        const created = await createMelhoria.mutateAsync({
           improvement_description: v.nome.trim(),
           improvement_status: v.status as MelhoriaStatus,
           cluster_id: v.clusterId,
@@ -230,6 +234,7 @@ export default function MelhoriaFormModal({ aberto, melhoria, onClose }: Props) 
           one_time_external_cost: parseMoeda(v.custoExterno),
         });
         toast.success('Melhoria criada');
+        onCreated?.(created);
       }
       onClose();
     } catch (err) {

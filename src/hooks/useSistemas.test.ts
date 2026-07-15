@@ -39,6 +39,23 @@ describe('useSistemas — camada de escrita', () => {
     expect(cap.called('sistema_clusters', 'insert')).toBe(true);
   });
 
+  it('create SEM rateios: nasce 100% no seu cluster (participação automática)', async () => {
+    const cap = mockSupabaseCapture({
+      sistemas_processo: [{ id: 'S9', nome: 'Novo Sis', cluster_id: 'C-OSG' }],
+      sistema_clusters: [],
+    });
+    const { result } = renderHook(() => useCreateSistema(), { wrapper: makeHookWrapper() });
+    await act(async () => {
+      await result.current.mutateAsync({
+        nome: 'Novo Sis', descricao: '', origem: 'Interno',
+        custo_licenca_mensal: 0, custo_variavel_por_uso: 0, cluster_id: 'C-OSG',
+      } as never);
+    });
+    expect(cap.payloads('sistema_clusters', 'insert')).toEqual([
+      [{ sistema_id: 'S9', cluster_id: 'C-OSG', rateio: 100 }],
+    ]);
+  });
+
   it('update: grava cluster_id, sem campo sintético; rateio vai para sistema_clusters', async () => {
     const cap = mockSupabaseCapture({
       sistemas_processo: [{ id: 'S1', nome: 'PSA PROJECTS', cluster_id: 'C-OSG' }],

@@ -355,12 +355,18 @@ function calcProcesso(
     sistemasRefsDoProcesso(proc, etapas, gargalos, melhorias);
   const sistemasUsados = sistemas.filter(s => sistemasIdsEra.has(s.id) || sistemasIdsEra.has(s.nome));
   const sistemasUsadosFicou = sistemas.filter(s => sistemasIdsFicou.has(s.id) || sistemasIdsFicou.has(s.nome));
-  // Fração (0–1) do custo do sistema atribuída ao cluster do processo.
-  // Default 1 (100%) quando o sistema não tem rateio definido para este cluster.
+  // Fração (0–1) do custo do sistema atribuída ao cluster do processo. O custo
+  // segue ESTRITAMENTE o rateio do CADASTRO do sistema (não o cluster da etapa):
+  //  - sistema SEM rateio definido → 100% (fallback compat p/ dado não migrado);
+  //  - sistema COM rateio → usa o % do cluster deste processo; se ele NÃO
+  //    participa desse cluster (sem entrada), atribui 0 — não "vaza" custo pra
+  //    um cluster onde o sistema não faz parte.
   const fracCluster = (s: Sistema) => {
     if (!clusterDoProcesso) return 1;
-    const m = (s.clustersRateio || []).find(c => c.cluster === clusterDoProcesso);
-    const pct = m && m.rateio != null ? m.rateio : 100;
+    const rateios = s.clustersRateio || [];
+    if (rateios.length === 0) return 1;
+    const m = rateios.find(c => c.cluster === clusterDoProcesso);
+    const pct = m && m.rateio != null ? m.rateio : 0;
     return Math.max(0, Math.min(100, pct)) / 100;
   };
   // O custo recorrente de um sistema é único: a parcela do cluster (clustersRateio)
