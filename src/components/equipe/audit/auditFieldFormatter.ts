@@ -8,6 +8,7 @@
 const FIELD_LABELS: Record<string, string> = {
   assigned_to: 'Responsável',
   assigned_to_name: '__HIDDEN__', // grouped with assigned_to
+  reviewer_id: 'Revisor',
   status: 'Status',
   priority: 'Prioridade',
   due_date: 'Data de Entrega',
@@ -171,6 +172,7 @@ const STATUS_LABELS: Record<string, string> = {
   todo: 'A Fazer',
   in_progress: 'Em Andamento',
   review: 'Revisão',
+  em_ajuste: 'Em Ajuste',
   done: 'Concluído',
   pending: 'Pendente',
   completed: 'Concluída',
@@ -212,6 +214,7 @@ const ISO_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 // Fields whose UUID values should be resolved via lookup maps
 const UUID_FIELDS: Record<string, string> = {
   assigned_to: 'profiles',
+  reviewer_id: 'profiles',
   responsible_id: 'profiles',
   leader_id: 'profiles',
   project_id: 'projects',

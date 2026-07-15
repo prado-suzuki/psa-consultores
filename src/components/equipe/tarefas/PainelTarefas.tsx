@@ -75,8 +75,12 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
     // comportamento atual em vez de esconder tarefas indevidamente.
     if (!visibleProjectIds) return allTasks;
-    return allTasks.filter(t => !t.project_id || visibleProjectIds.has(t.project_id));
-  }, [allTasks, visibleProjectIds, deepLinkTaskId]);
+    return allTasks.filter(t =>
+      !t.project_id ||
+      visibleProjectIds.has(t.project_id) ||
+      (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
+    );
+  }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -219,8 +223,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 area={area}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
-                onReassign={handleReassignTask}
-                onAddSubtask={handleAddSubtask}
+                 onReassign={handleReassignTask}
+                 onAddSubtask={handleAddSubtask}
+                 currentUserId={user?.id}
               />
             </TabsContent>
 
@@ -229,8 +234,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 tasks={tasks}
                 area={area}
                 onEdit={handleEditTask}
-                onDelete={handleDeleteTask}
-                onReassign={handleReassignTask}
+                 onDelete={handleDeleteTask}
+                 onReassign={handleReassignTask}
+                 currentUserId={user?.id}
               />
             </TabsContent>
 
@@ -244,8 +250,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             <TabsContent value="today" className="m-0">
               <TaskTodayView
                 tasks={tasks}
-                area={area}
-                onEdit={handleEditTask}
+                 area={area}
+                 onEdit={handleEditTask}
+                 currentUserId={user?.id}
               />
             </TabsContent>
 

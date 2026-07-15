@@ -10,6 +10,9 @@ import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { statusList } from '@/lib/taskStatusColors';
 import { AreaKey } from '@/config/areaCategories';
+import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { toast } from 'sonner';
+import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
 
 interface TaskKanbanProps {
   tasks: OrgTask[];
@@ -17,6 +20,7 @@ interface TaskKanbanProps {
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
+  currentUserId?: string | null;
 }
 
 interface HierarchicalOrgTask extends OrgTask {
@@ -31,8 +35,12 @@ const columns = statusList.map(s => ({
   color: s.bg,
 }));
 
-export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKanbanProps) => {
+export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign, currentUserId }: TaskKanbanProps) => {
   const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
+  const [pendingTransition, setPendingTransition] = useState<{
+    task: OrgTask;
+    status: 'review' | 'em_ajuste';
+  } | null>(null);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const updateTask = useUpdateOrgTask(area);
 
@@ -70,6 +78,10 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
   const toggleSubtaskComplete = (subtask: OrgTask, e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus: OrgTaskStatus = subtask.status === 'done' ? 'todo' : 'done';
+    if (newStatus === 'done' && isDelegatedOrgTaskReviewer(subtask, currentUserId)) {
+      toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
+      return;
+    }
     updateTask.mutate({ id: subtask.id, status: newStatus });
   };
 
@@ -86,6 +98,16 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
   const handleDrop = (e: React.DragEvent, newStatus: OrgTaskStatus) => {
     e.preventDefault();
     if (draggedTask && draggedTask.status !== newStatus) {
+      if (newStatus === 'review' || newStatus === 'em_ajuste') {
+        setPendingTransition({ task: draggedTask, status: newStatus });
+        setDraggedTask(null);
+        return;
+      }
+      if (newStatus === 'done' && isDelegatedOrgTaskReviewer(draggedTask, currentUserId)) {
+        toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
+        setDraggedTask(null);
+        return;
+      }
       updateTask.mutate({ id: draggedTask.id, status: newStatus });
     }
     setDraggedTask(null);
@@ -99,7 +121,8 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
   };
 
   return (
-    <div className="flex gap-4 h-[calc(100vh-300px)] overflow-x-auto pb-4">
+    <>
+      <div className="flex gap-4 h-[calc(100vh-300px)] overflow-x-auto pb-4">
       {columns.map(column => {
         const columnTasks = getHierarchicalByStatus(column.status);
         return (
@@ -195,8 +218,9 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
                             )}
                             onClick={() => onEdit(subtask)}
                           >
-                            <Checkbox
-                              checked={subtask.status === 'done'}
+                             <Checkbox
+                               checked={subtask.status === 'done'}
+                               disabled={subtask.status !== 'done' && isDelegatedOrgTaskReviewer(subtask, currentUserId)}
                               onCheckedChange={() => {}}
                               onClick={(e) => toggleSubtaskComplete(subtask, e as unknown as React.MouseEvent)}
                               className="flex-shrink-0"
@@ -230,6 +254,16 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign }: TaskKa
           </div>
         );
       })}
-    </div>
+      </div>
+      <TaskStatusTransitionDialog
+        open={!!pendingTransition}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) setPendingTransition(null);
+        }}
+        task={pendingTransition?.task || null}
+        status={pendingTransition?.status || 'review'}
+        area={area}
+      />
+    </>
   );
 };

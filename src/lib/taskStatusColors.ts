@@ -15,6 +15,7 @@ export const statusColors: Record<OrgTaskStatus, StatusColorConfig> = {
   todo:           { key: 'todo',           label: 'A Fazer',           bg: 'bg-blue-100',    text: 'text-blue-700',    bgSolid: 'bg-blue-500',    combined: 'bg-blue-100 text-blue-700' },
   in_progress:    { key: 'in_progress',    label: 'Em Progresso',      bg: 'bg-amber-100',   text: 'text-amber-700',   bgSolid: 'bg-amber-500',   combined: 'bg-amber-100 text-amber-700' },
   review:         { key: 'review',         label: 'Revisão',           bg: 'bg-purple-100',  text: 'text-purple-700',  bgSolid: 'bg-purple-500',  combined: 'bg-purple-100 text-purple-700' },
+  em_ajuste:      { key: 'em_ajuste',      label: 'Em Ajuste',         bg: 'bg-rose-100',    text: 'text-rose-700',    bgSolid: 'bg-rose-500',    combined: 'bg-rose-100 text-rose-700' },
   done:           { key: 'done',           label: 'Concluído',         bg: 'bg-emerald-100', text: 'text-emerald-700', bgSolid: 'bg-emerald-500', combined: 'bg-emerald-100 text-emerald-700' },
 };
 
@@ -25,5 +26,6 @@ export const statusList: StatusColorConfig[] = [
   statusColors.todo,
   statusColors.in_progress,
   statusColors.review,
+  statusColors.em_ajuste,
   statusColors.done,
 ];

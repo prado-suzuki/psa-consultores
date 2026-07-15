@@ -38,6 +38,7 @@ const statusOptions: { value: OrgTaskStatus; label: string }[] = [
   { value: 'todo', label: 'A Fazer' },
   { value: 'in_progress', label: 'Em Progresso' },
   { value: 'review', label: 'Revisão' },
+  { value: 'em_ajuste', label: 'Em Ajuste' },
   { value: 'done', label: 'Concluído' },
 ];
 

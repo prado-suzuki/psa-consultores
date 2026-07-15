@@ -14,7 +14,7 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid grid-cols-6 gap-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
       {statusList.map(status => (
         <Card key={status.key} className="border-0 shadow-sm">
           <CardContent className="p-4">

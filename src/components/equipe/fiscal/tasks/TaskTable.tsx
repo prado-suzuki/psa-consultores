@@ -31,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
 import { AreaKey } from '@/config/areaCategories';
+import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { toast } from 'sonner';
 
 interface TaskTableProps {
   tasks: OrgTask[];
@@ -39,6 +41,7 @@ interface TaskTableProps {
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
   onAddSubtask?: (parentTask: OrgTask) => void;
+  currentUserId?: string | null;
 }
  
  const priorityColors = {
@@ -60,7 +63,7 @@ const statusLabels = Object.fromEntries(
 ) as Record<OrgTaskStatus, string>;
  
  
- export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onAddSubtask }: TaskTableProps) => {
+ export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onAddSubtask, currentUserId }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateOrgTask(area);
  
@@ -79,8 +82,12 @@ const statusLabels = Object.fromEntries(
      });
    };
  
-   const handleStatusChange = (taskId: string, status: OrgTaskStatus) => {
-     updateTask.mutate({ id: taskId, status });
+   const handleStatusChange = (task: OrgTask, status: OrgTaskStatus) => {
+     if (status === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)) {
+       toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
+       return;
+     }
+     updateTask.mutate({ id: task.id, status });
    };
  
    const handlePriorityChange = (taskId: string, priority: OrgTaskPriority) => {
@@ -138,7 +145,7 @@ const statusLabels = Object.fromEntries(
             <TableCell>
               <Select
                 value={task.status}
-                onValueChange={(value) => handleStatusChange(task.id, value as OrgTaskStatus)}
+                 onValueChange={(value) => handleStatusChange(task, value as OrgTaskStatus)}
               >
                 <SelectTrigger className="h-8 w-36">
                   <span className={cn(
@@ -149,13 +156,15 @@ const statusLabels = Object.fromEntries(
                   </span>
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(statusLabels).map(([value, label]) => (
-                    <SelectItem key={value} value={value}>
-                      <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", statusColors[value as OrgTaskStatus].combined)}>
-                        {label}
-                      </span>
-                    </SelectItem>
-                  ))}
+                   {Object.entries(statusLabels)
+                     .filter(([value]) => !(value === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)))
+                     .map(([value, label]) => (
+                     <SelectItem key={value} value={value}>
+                       <span className={cn("px-1.5 py-0.5 rounded text-xs font-medium", statusColors[value as OrgTaskStatus].combined)}>
+                         {label}
+                       </span>
+                     </SelectItem>
+                   ))}
                 </SelectContent>
               </Select>
             </TableCell>
