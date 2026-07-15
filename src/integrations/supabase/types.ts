@@ -8604,6 +8604,10 @@ export type Database = {
         Args: { timeout_minutes?: number }
         Returns: number
       }
+      melhoria_cluster_visivel: {
+        Args: { _melhoria_id: string }
+        Returns: boolean
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
