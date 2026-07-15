@@ -8591,6 +8591,14 @@ export type Database = {
         Args: { p_ticket_id: string; p_user_id: string }
         Returns: boolean
       }
+      is_valid_org_task_reviewer: {
+        Args: {
+          _assigned_to: string
+          _project_id: string
+          _reviewer_id: string
+        }
+        Returns: boolean
+      }
       mapa_uuid: { Args: { slug: string }; Returns: string }
       mark_stuck_procedimentos: {
         Args: { timeout_minutes?: number }
