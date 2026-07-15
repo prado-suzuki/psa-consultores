@@ -114,7 +114,7 @@ describe('buildProcessDiagram — serpentina de cards ricos', () => {
   });
 });
 
-describe('buildProjectDiagram — lista vertical de processos (consolidado)', () => {
+describe('buildProjectDiagram — serpentina de processos (consolidado)', () => {
   const projeto = { id: 'PRJ', name: 'Gestão' } as unknown as Projeto;
   const p1 = { id: 'P1', name: 'Proc A', order_index: 0 } as unknown as Processo;
   const p2 = { id: 'P2', name: 'Proc B', order_index: 1 } as unknown as Processo;
@@ -131,11 +131,10 @@ describe('buildProjectDiagram — lista vertical de processos (consolidado)', ()
     documentos: [], sistemas: [], responsaveis: [], gargalos, melhorias: [],
   } as Parameters<typeof buildProjectDiagram>[0];
 
-  it('lista vertical: projeto no topo + só os processos (numerados por order_index)', () => {
+  it('MESMA estrutura do processo: flowchart TB + cards de PROCESSO numerados por order_index', () => {
     const code = buildProjectDiagram(projInput);
     expect(code).toContain('flowchart TB');
-    expect(code).toContain(':::projHead');
-    expect(code).toContain('**Gestão**');
+    expect(code).toContain(':::procHead');
     expect(code).toContain('**1 · Proc A**'); // ordenado por order_index
     expect(code).toContain('**2 · Proc B**');
   });
@@ -146,12 +145,19 @@ describe('buildProjectDiagram — lista vertical de processos (consolidado)', ()
     expect(code).not.toContain('Triagem');
     expect(code).not.toContain('Revisão');
     expect(code).not.toContain(':::etapaGargalo'); // sem etapas ⇒ sem acento de gargalo
-    expect(code).not.toContain('PC_0_E_0');        // sem nós de etapa
   });
 
-  it('setas ↓ ligando o projeto e os processos, um embaixo do outro', () => {
-    const code = buildProjectDiagram(projInput);
-    expect(code).toContain('PROJ --> PC_0'); // projeto → 1º processo
-    expect(code).toContain('PC_0 --> PC_1'); // processo → próximo processo
+  it('serpentina: muitos processos dobram em linhas (subgraph LR/RL) com FOLD entre elas', () => {
+    // 5 processos ⇒ cols=4 ⇒ 2 linhas (4 + 1) ⇒ dobra.
+    const cinco = [1, 2, 3, 4, 5].map(
+      (i) => ({ id: `PP${i}`, name: `Proc ${i}`, order_index: i }) as unknown as Processo,
+    );
+    const code = buildProjectDiagram({ ...projInput, processos: cinco });
+    expect(code).toContain('subgraph');
+    expect(code).toContain('direction LR');            // linha par
+    expect(code).toContain('direction RL');            // linha ímpar (dobra)
+    expect(code).toContain('ROW_PROC_0 ~~~ ROW_PROC_1'); // empilha (invisível, entre subgraphs)
+    expect(code).toContain('fill:none,stroke:none');   // caixas de linha invisíveis
+    expect(code).toContain('%% FOLD');                 // metadado da dobra (viewer desenha a seta)
   });
 });
