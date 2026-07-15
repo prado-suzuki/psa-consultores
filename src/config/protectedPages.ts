@@ -607,6 +607,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/board/dashboard-clientes-os',
+    page_name: 'Board - Clientes e OS (nativo)',
+    page_description: 'Reconstrução nativa (não iframe) do dashboard de Clientes e OS',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/board/performance',
     page_name: 'Performance',
     page_description: 'Painel executivo consolidado de performance',
