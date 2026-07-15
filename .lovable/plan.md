@@ -1,30 +1,26 @@
-## RLS-P1-04 — Isolamento por cluster no módulo Sistemas
+## RLS-P1-05 — `projeto_justificativas`: UPDATE/DELETE por cluster
 
-Aplicar migration aditiva no padrão RLS-P1-01/02/03, adaptada ao M:N do módulo Sistemas.
+SQL recebido íntegro (sem truncamento). Criar `supabase/migrations/<timestamp>_rls_p1_05_projeto_justificativas.sql` com exatamente o conteúdo enviado. Nenhuma outra alteração no repo.
 
 ### O que a migration faz
 
-1. **`public.sistema_cluster_visivel(uuid)`** — SECURITY DEFINER, STABLE: admin OR sistema tem `cluster_id` primário do usuário OR existe linha em `sistema_clusters` para um cluster do usuário.
-2. **Bloco defensivo** — remove qualquer policy remanescente com `USING(true)`/`WITH CHECK(true)` nas 3 tabelas.
-3. **`sistemas_processo`** — DROP das `team_member_*` antigas + novas `rls_*`:
-   - SELECT `team_member+`: primário OU compartilhado via `sistema_clusters` (M:N).
-   - INSERT/UPDATE `team_member+`: apenas no cluster primário.
-   - DELETE `lider+` no cluster primário. Admin bypassa.
-4. **`sistema_clusters`** (M:N) — isola pelo próprio `cluster_id`: SELECT/INSERT/UPDATE `team_member+`; DELETE `lider+`.
-5. **`sistema_responsaveis`** — deriva via `sistema_id → sistema_cluster_visivel(sistema_id)`: SELECT/INSERT/UPDATE `team_member+`; DELETE `lider+`.
-6. **Sistemas com `cluster_id` primário NULL** (PSA PROJECTS, Google Chat) permanecem visíveis via `sistema_clusters` — não viram admin-only.
+1. **Limpeza defensiva** — DO block dropa qualquer policy remanescente com `qual='true'` ou `with_check='true'` em `projeto_justificativas`.
+2. **Drops explícitos** de `team_member_update_projeto_justificativas`, `team_member_delete_projeto_justificativas`, `projeto_justificativas_update`, `projeto_justificativas_delete` (todos com `ON public.projeto_justificativas`).
+3. **`projeto_justificativas_update`** — `FOR UPDATE TO authenticated`, `USING` = `WITH CHECK`: `admin` OU (`team_member+` E existe `projects p` com `p.id = projeto_id` e `p.cluster_id IS NULL OR p.cluster_id = ANY(resolve_user_cluster_ids(auth.uid()))`).
+4. **`projeto_justificativas_delete`** — `FOR DELETE TO authenticated`, mesma checagem com piso `lider+`.
+5. **SELECT preservado** (`projeto_justificativas_select`, 09/07) — não é tocado.
+6. **INSERT preservado** — bloco opcional permanece **comentado**, conforme instrução.
 
 ### Pós-migration
 
-- Rodar validação `pg_policies` (deve retornar **0 linhas**).
-- Listar policies das 3 tabelas e confirmar que só existem as `rls_*` (nenhuma `team_member_*` sobrando).
-- `src/integrations/supabase/types.ts` é regenerado automaticamente (entra `sistema_cluster_visivel`).
+- Rodar `SELECT policyname, cmd FROM pg_policies WHERE schemaname='public' AND tablename='projeto_justificativas' AND (qual='true' OR with_check='true')` → deve retornar **0 linhas**.
+- Listar policies da tabela e confirmar: SELECT/INSERT intactas, UPDATE/DELETE novas com checagem real (sem `USING(true)`).
+- `types.ts` não muda (nenhuma função nova).
 
 ### Fora de escopo
-Nada além da migration. `useSistemas.ts` continua funcionando — o embed de `sistema_clusters` no SELECT já é lido pelas policies novas.
+
+Nenhuma outra tabela, coluna, seed, hook, componente ou doc. Front (`useProjetos.ts → syncJustificativas`) continua funcionando para projetos do próprio cluster; escrita em projetos de outro cluster (que o usuário nem enxerga) fica bloqueada.
 
 ### Reversibilidade
-Aditivo. Rollback = restaurar as `team_member_*` antigas + `DROP FUNCTION sistema_cluster_visivel`.
 
-### Arquivo
-`supabase/migrations/<timestamp>_rls_p1_04_sistemas_cluster.sql` com exatamente o SQL enviado.
+Aditivo. Rollback = dropar as 2 policies novas e recriar as `team_member_*` antigas com `USING(true)`.
