@@ -104,6 +104,27 @@ function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela
   // Normaliza cada linha ao nº de colunas (células faltantes viram vazias).
   const completar = (cels: string[]) => Array.from({ length: colunas }, (_, c) => cels[c] ?? '');
 
+  // Super-cabeçalho opcional: faixas mescladas (columnSpan) centralizadas em negrito.
+  const linhaGrupos =
+    seg.grupos && seg.grupos.length > 0
+      ? new TableRow({
+          tableHeader: true,
+          children: seg.grupos.map(
+            (g) =>
+              new TableCell({
+                columnSpan: g.span,
+                margins: { top: 40, bottom: 40, left: 80, right: 80 },
+                children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    children: runsInline(docx, g.texto, { bold: true }),
+                  }),
+                ],
+              }),
+          ),
+        })
+      : null;
+
   const linhaCabecalho = new TableRow({
     tableHeader: true,
     children: completar(seg.cabecalho).map((c, i) => celula(c, i, true)),
@@ -115,7 +136,7 @@ function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: { top: borda, bottom: borda, left: borda, right: borda, insideHorizontal: borda, insideVertical: borda },
-    rows: [linhaCabecalho, ...linhasCorpo],
+    rows: [...(linhaGrupos ? [linhaGrupos] : []), linhaCabecalho, ...linhasCorpo],
   });
 }
 
