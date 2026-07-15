@@ -63,6 +63,7 @@ const buildNavItems = (
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
+  { icon: Users2, label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' },
   ...(canPerformance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
@@ -89,6 +90,8 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
   } else if (pathname.includes('/relatorios')) {
     segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
+  } else if (pathname.includes('/dashboard-clientes-os')) {
+    segments.push({ label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' });
   } else if (pathname.includes('/dashboard')) {
     segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
   }
