@@ -4,9 +4,10 @@
  import { toast } from 'sonner';
  import { useAuditLog } from '@/hooks/useAuditLog';
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
- import { AreaKey } from '@/config/areaCategories';
+import { AreaKey } from '@/config/areaCategories';
+import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
  
-export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'done';
+export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'em_ajuste' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 export type OrgTaskCategory = 'task' | 'fixed_event';
 export type OrgRecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -19,6 +20,7 @@ export interface OrgTask {
    priority: OrgTaskPriority;
    assigned_to: string | null;
    assigned_to_name: string | null;
+   reviewer_id: string | null;
    created_by: string | null;
    due_date: string | null;
    due_time: string | null;
@@ -71,6 +73,7 @@ export interface TaskFilters {
    priority?: OrgTaskPriority;
    assigned_to?: string;
    assigned_to_name?: string;
+   reviewer_id?: string | null;
     due_date?: string;
     due_time?: string;
     start_date?: string;
@@ -142,6 +145,7 @@ export interface TaskFilters {
         // Guard against self-referencing parent_task_id
         let allTasks = (data || []).map(t => ({
           ...t,
+          reviewer_id: t.reviewer_id ?? null,
           parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
         })) as OrgTask[];
 
@@ -149,13 +153,16 @@ export interface TaskFilters {
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
           const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
           if (targetId) {
+            const belongsToTarget = (task: OrgTask) =>
+              task.assigned_to === targetId ||
+              (task.reviewer_id === targetId && task.status === 'review');
             const matchingSubtaskParentIds = new Set(
               allTasks
-                .filter(t => t.parent_task_id && t.assigned_to === targetId)
+                .filter(t => t.parent_task_id && belongsToTarget(t))
                 .map(t => t.parent_task_id)
             );
             allTasks = allTasks.filter(t =>
-              t.assigned_to === targetId ||
+              belongsToTarget(t) ||
               matchingSubtaskParentIds.has(t.id) ||
               (t.parent_task_id && matchingSubtaskParentIds.has(t.parent_task_id))
             );
@@ -167,7 +174,14 @@ export interface TaskFilters {
    });
  };
  
- export const useCreateOrgTask = (area: AreaKey = 'tax') => {
+interface OrgTaskMutationOptions {
+  showToasts?: boolean;
+}
+
+export const useCreateOrgTask = (
+  area: AreaKey = 'tax',
+  { showToasts = true }: OrgTaskMutationOptions = {},
+) => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
    const { logAction } = useAuditLog();
@@ -192,25 +206,35 @@ export interface TaskFilters {
        });
 
        return data;
-     },
-     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
-       toast.success('Tarefa criada com sucesso');
-     },
-     onError: (error) => {
-       toast.error('Erro ao criar tarefa: ' + error.message);
-     },
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
+        if (showToasts) toast.success('Tarefa criada com sucesso');
+      },
+      onError: (error) => {
+        if (showToasts) toast.error('Erro ao criar tarefa: ' + error.message);
+      },
    });
  };
  
- export const useUpdateOrgTask = (area: AreaKey = 'tax') => {
+export const useUpdateOrgTask = (
+  area: AreaKey = 'tax',
+  { showToasts = true }: OrgTaskMutationOptions = {},
+) => {
    const queryClient = useQueryClient();
+   const { user } = useAuth();
    const { logAction } = useAuditLog();
 
    return useMutation({
-     mutationFn: async ({ id, ...updates }: Partial<OrgTask> & { id: string }) => {
-       // Fetch current state for diff
-       const { data: current } = await supabase.from('org_tasks').select('*').eq('id', id).single();
+     mutationFn: async ({ id, reviewTransitionValidated = false, ...updates }:
+       Partial<OrgTask> & { id: string; reviewTransitionValidated?: boolean }) => {
+        // Fetch current state for diff
+        const { data: current, error: currentError } = await supabase
+          .from('org_tasks')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (currentError) throw currentError;
 
         // Envia só campos que efetivamente mudaram, para não disparar
         // triggers de RLS (ex.: org_tasks_team_member_status_only) por
@@ -233,24 +257,39 @@ export interface TaskFilters {
           Object.assign(changedOnly, updates);
         }
 
-        if (Object.keys(changedOnly).length === 0) {
-          return current;
-        }
-
-        await assertCanPerform('org_tasks', 'update', id);
-        const { data, error } = await supabase
-          .from('org_tasks')
-          .update(changedOnly)
-          .eq('id', id)
-          .select()
-          .maybeSingle();
-
-         if (error) throw error;
-
-         // RLS blocked the update — no row was returned
-         if (!data) {
-           throw new Error('Sem permissão para atualizar esta tarefa. Verifique se você é membro do projeto.');
+         if (Object.keys(changedOnly).length === 0) {
+           return current;
          }
+
+         const currentUserIsReviewer = current && isDelegatedOrgTaskReviewer(current, user?.id);
+         if (currentUserIsReviewer) {
+           if (changedOnly.status === 'done') {
+             throw new Error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
+           }
+           const changedKeys = Object.keys(changedOnly);
+           const isValidReturn = reviewTransitionValidated &&
+             changedOnly.status === 'em_ajuste' &&
+             changedKeys.every(key => key === 'status');
+           if (!isValidReturn) {
+             throw new Error('Abra a tarefa e informe o ajuste necessário para devolvê-la.');
+           }
+         }
+
+         await assertCanPerform('org_tasks', 'update', id);
+         const reviewerReturn = currentUserIsReviewer && changedOnly.status === 'em_ajuste';
+         const updateQuery = supabase.from('org_tasks').update(changedOnly).eq('id', id);
+         const { data, error } = reviewerReturn
+           ? await updateQuery
+           : await updateQuery.select().maybeSingle();
+
+          if (error) throw error;
+
+          // Ao sair de review, o revisor perde SELECT e não pode receber RETURNING.
+          if (!reviewerReturn && !data) {
+            throw new Error('Sem permissão para atualizar esta tarefa. Verifique se você é membro do projeto.');
+          }
+
+          const updatedTask = reviewerReturn ? { ...current, ...changedOnly } : data;
 
           // Build changed_fields (convert undefined→null to avoid missing "new" in JSON)
          const changedFields: Record<string, { old: unknown; new: unknown }> = {};
@@ -265,8 +304,8 @@ export interface TaskFilters {
            }
          }
 
-         const entityName = data?.title || current?.title || 'Tarefa';
-         const isSubtask = !!(data?.parent_task_id || current?.parent_task_id);
+          const entityName = updatedTask?.title || current?.title || 'Tarefa';
+          const isSubtask = !!(updatedTask?.parent_task_id || current?.parent_task_id);
 
          // Only log if something actually changed
          if (Object.keys(changedFields).length > 0) {
@@ -277,15 +316,15 @@ export interface TaskFilters {
            });
          }
 
-         return data || current;
-     },
-     onSuccess: () => {
-       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
-       toast.success('Tarefa atualizada');
-     },
-     onError: (error) => {
-       toast.error('Erro ao atualizar tarefa: ' + error.message);
-     },
+          return updatedTask || current;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
+        if (showToasts) toast.success('Tarefa atualizada');
+      },
+      onError: (error) => {
+        if (showToasts) toast.error('Erro ao atualizar tarefa: ' + error.message);
+      },
    });
  };
  
@@ -416,50 +455,60 @@ export interface TaskFilters {
    });
  };
  
- export const useCreateOrgTaskComment = () => {
+export const useCreateOrgTaskComment = (
+  { showToasts = true }: OrgTaskMutationOptions = {},
+) => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
  
    return useMutation({
-     mutationFn: async ({ taskId, comment, userName }: { taskId: string; comment: string; userName: string }) => {
-       const { data, error } = await supabase
-         .from('org_task_comments')
-         .insert({
-           task_id: taskId,
-           user_id: user?.id,
-           user_name: userName,
-           comment,
-           is_system: false,
-         })
-         .select()
-         .single();
- 
-       if (error) throw error;
-       return data;
-     },
-     onSuccess: (_, variables) => {
-       queryClient.invalidateQueries({ queryKey: ['org-task-comments', variables.taskId] });
-       toast.success('Comentário adicionado');
-     },
-     onError: (error) => {
-       toast.error('Erro ao adicionar comentário: ' + error.message);
-     },
+      mutationFn: async ({ taskId, comment, userName, isSystem = false }: {
+        taskId: string;
+        comment: string;
+        userName: string;
+        isSystem?: boolean;
+      }) => {
+        const newComment = {
+          task_id: taskId,
+          user_id: user?.id,
+          user_name: userName,
+          comment,
+          is_system: isSystem,
+        };
+        const { error } = await supabase
+          .from('org_task_comments')
+          .insert(newComment);
+
+        if (error) throw error;
+        return newComment;
+      },
+      onSuccess: (_, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['org-task-comments', variables.taskId] });
+        if (showToasts) toast.success('Comentário adicionado');
+      },
+      onError: (error) => {
+        if (showToasts) toast.error('Erro ao adicionar comentário: ' + error.message);
+      },
    });
  };
  
  export const useTaskStatusCounts = () => {
    const { data: tasks } = useOrgTasks();
  
-   const counts = {
+   const counts: Record<OrgTaskStatus, number> = {
      backlog: 0,
+     waiting_client: 0,
      todo: 0,
      in_progress: 0,
      review: 0,
+     em_ajuste: 0,
      done: 0,
    };
- 
+
    tasks?.forEach(task => {
-     counts[task.status]++;
+     if (Object.prototype.hasOwnProperty.call(counts, task.status)) {
+       counts[task.status] = (counts[task.status] ?? 0) + 1;
+     }
    });
  
    return counts;

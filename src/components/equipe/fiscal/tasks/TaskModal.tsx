@@ -3,8 +3,9 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 import { parseDate } from '@/lib/dateUtils';
-import { CalendarIcon, AlertCircle } from 'lucide-react';
+import { AlertCircle, CalendarIcon, CheckCircle2, RotateCcw, Send, UserCheck } from 'lucide-react';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,22 +44,28 @@ import { cn } from '@/lib/utils';
 import { 
   OrgTask, 
   CreateOrgTaskInput,
- useCreateOrgTask,
- useUpdateOrgTask
+  useCreateOrgTask,
+  useUpdateOrgTask,
+  useCreateOrgTaskComment,
 } from '@/hooks/useOrgTasks';
 import { useExternalClients, useContribuintes, useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import { AreaKey } from '@/config/areaCategories';
 
 import { RequiredMark } from '@/components/ui/required-mark';
-import { useOrgProjectsList, useProjectMembers } from '@/hooks/useOrgProjects';
+import { useOrgProjectClusterIds, useOrgProjectsList, useProjectMembers } from '@/hooks/useOrgProjects';
+import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
+import { statusList } from '@/lib/taskStatusColors';
+import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 
 const taskSchema = z.object({
   title: z.string().min(1, 'Título é obrigatório'),
   description: z.string().min(1, 'Descrição é obrigatória'),
-  status: z.enum(['backlog', 'waiting_client', 'todo', 'in_progress', 'review', 'done']),
+  status: z.enum(['backlog', 'waiting_client', 'todo', 'in_progress', 'review', 'em_ajuste', 'done']),
   priority: z.enum(['low', 'medium', 'high', 'urgent']),
   assigned_to: z.string().min(1, 'Responsável é obrigatório'),
   assigned_to_name: z.string().optional(),
+  reviewer_id: z.string().optional().nullable(),
+  review_comment: z.string().optional(),
   start_date: z.date({ required_error: 'Data de Início é obrigatória' }),
   due_date: z.date({ required_error: 'Data de Vencimento é obrigatória' }),
   parent_task_id: z.string().optional(),
@@ -81,6 +88,7 @@ const taskSchema = z.object({
 });
 
 type TaskFormValues = z.infer<typeof taskSchema>;
+type ReviewOutcome = 'approved' | 'adjustments';
 
 interface TaskModalProps {
   open: boolean;
@@ -102,13 +110,16 @@ export const TaskModal = ({
   defaultParentId
 }: TaskModalProps) => {
   const { user } = useAuth();
-  const createTask = useCreateOrgTask(area);
-  const updateTask = useUpdateOrgTask(area);
+  const createTask = useCreateOrgTask(area, { showToasts: false });
+  const updateTask = useUpdateOrgTask(area, { showToasts: false });
+  const createComment = useCreateOrgTaskComment({ showToasts: false });
   const isEditing = !!task;
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
+  const partiallySavedTaskIdRef = useRef<string | null>(null);
 
   const [showDraftNotice, setShowDraftNotice] = useState(false);
+  const [reviewOutcome, setReviewOutcome] = useState<ReviewOutcome | null>(null);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -117,6 +128,8 @@ export const TaskModal = ({
       description: '',
       status: 'todo',
       priority: 'medium',
+      reviewer_id: null,
+      review_comment: '',
     },
   });
 
@@ -125,6 +138,9 @@ export const TaskModal = ({
 
   const watchedProjectId = form.watch('project_id') as string | undefined;
   const watchedClientId = form.watch('client_id') as string | undefined;
+  const watchedStatus = form.watch('status');
+  const watchedAssignedTo = form.watch('assigned_to');
+  const watchedReviewerId = form.watch('reviewer_id');
 
   // Membros vinculados ao projeto selecionado (executor + líderes + membros
   // escolhidos no cadastro do projeto). É a fonte do dropdown "Responsável".
@@ -138,6 +154,22 @@ export const TaskModal = ({
   // projeto que não pertencem ao cluster Tax (ex.: projetos multidisciplinares),
   // pois esses não vêm em `teamMembers`.
   const { data: allProfiles = [] } = useTeamProfilesSafe();
+  const { data: projectClusterIds = [] } = useOrgProjectClusterIds(watchedProjectId);
+  const {
+    data: reviewerCandidates = [],
+    isLoading: reviewerCandidatesLoading,
+  } = useReviewerCandidates(projectClusterIds);
+  const reviewerOptions = useMemo(
+    () => reviewerCandidates.filter(candidate => candidate.id !== watchedAssignedTo),
+    [reviewerCandidates, watchedAssignedTo],
+  );
+
+  const currentUserIsReviewer = !!task && isDelegatedOrgTaskReviewer(task, user?.id);
+  const isReviewDelegation = watchedStatus === 'review' &&
+    !!watchedReviewerId &&
+    (task?.status !== 'review' || watchedReviewerId !== (task?.reviewer_id ?? null));
+  const isReturnForAdjustment = watchedStatus === 'em_ajuste' && task?.status !== 'em_ajuste';
+  const needsReviewComment = isReviewDelegation || isReturnForAdjustment;
 
   // ── Queries ────────────────────────────────────────────────────────
 
@@ -231,6 +263,9 @@ export const TaskModal = ({
     if (!defaultParentId && form.getValues('parent_task_id') !== undefined) {
       form.setValue('parent_task_id', undefined);
     }
+    if (form.getValues('reviewer_id')) {
+      form.setValue('reviewer_id', null);
+    }
     // Clear assignee if not among the project's members
     const currentAssignee = form.getValues('assigned_to');
     if (currentAssignee && projectMemberIds.length > 0 && !projectMemberIds.includes(currentAssignee)) {
@@ -262,6 +297,8 @@ export const TaskModal = ({
         priority: task.priority,
         assigned_to: task.assigned_to || undefined,
         assigned_to_name: task.assigned_to_name || undefined,
+        reviewer_id: task.reviewer_id,
+        review_comment: '',
         start_date: (task as any).start_date ? parseDate((task as any).start_date) : undefined,
         due_date: task.due_date ? parseDate(task.due_date) : undefined,
         parent_task_id: task.parent_task_id || undefined,
@@ -285,6 +322,8 @@ export const TaskModal = ({
           description: '',
           status: 'todo',
           priority: 'medium',
+          reviewer_id: null,
+          review_comment: '',
           parent_task_id: defaultParentId || undefined,
           project_id: parentTask?.project_id || '',
           client_id: parentTask?.client_id || undefined,
@@ -303,16 +342,59 @@ export const TaskModal = ({
     const member = filteredTeamMembers.find(m => m.id === userId);
     form.setValue('assigned_to', userId);
     form.setValue('assigned_to_name', member?.name || '');
+    if (form.getValues('reviewer_id') === userId) {
+      form.setValue('reviewer_id', null);
+    }
   };
 
-  const onSubmit = async (values: TaskFormValues) => {
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      clearDraft();
+      prevProjectIdRef.current = undefined;
+      partiallySavedTaskIdRef.current = null;
+      setShowDraftNotice(false);
+      setReviewOutcome(null);
+    }
+    onOpenChange(nextOpen);
+  };
+
+  const onSubmit = async (values: TaskFormValues, outcome?: ReviewOutcome) => {
+    const nextStatus = outcome ? 'em_ajuste' : values.status;
+    if (currentUserIsReviewer && nextStatus === 'done') {
+      form.setError('status', {
+        type: 'manual',
+        message: 'O revisor não pode concluir a tarefa. Devolva-a para ajustes.',
+      });
+      return;
+    }
+
+    const reviewComment = outcome === 'approved'
+      ? 'Tarefa aprovada'
+      : values.review_comment?.trim() ?? '';
+    const submittingReviewDelegation = nextStatus === 'review' &&
+      !!values.reviewer_id &&
+      (task?.status !== 'review' || values.reviewer_id !== (task?.reviewer_id ?? null));
+    const submittingReviewReturn = nextStatus === 'em_ajuste' && task?.status !== 'em_ajuste';
+    const requiresTransitionComment = submittingReviewDelegation || submittingReviewReturn;
+
+    if (requiresTransitionComment && !reviewComment) {
+      form.setError('review_comment', {
+        type: 'manual',
+        message: submittingReviewDelegation
+          ? 'Informe o que precisa ser revisado'
+          : 'Informe o que precisa ser ajustado',
+      });
+      return;
+    }
+
     const input: CreateOrgTaskInput = {
       title: values.title,
       description: values.description,
-      status: values.status,
+      status: nextStatus,
       priority: values.priority,
       assigned_to: values.assigned_to,
       assigned_to_name: values.assigned_to_name,
+      reviewer_id: values.reviewer_id || null,
       due_date: values.due_date ? format(values.due_date, 'yyyy-MM-dd') : undefined,
       start_date: values.start_date ? format(values.start_date, 'yyyy-MM-dd') : undefined,
       parent_task_id: values.parent_task_id,
@@ -331,27 +413,67 @@ export const TaskModal = ({
     };
 
     try {
-      if (isEditing && task) {
-        await updateTask.mutateAsync({ id: task.id, ...input });
-      } else {
-        await createTask.mutateAsync(input);
+      let taskId = partiallySavedTaskIdRef.current;
+      if (!taskId) {
+        if (isEditing && task) {
+          await updateTask.mutateAsync({
+            id: task.id,
+            ...input,
+            reviewTransitionValidated: requiresTransitionComment,
+          });
+          taskId = task.id;
+        } else {
+          const createdTask = await createTask.mutateAsync(input);
+          taskId = createdTask.id;
+        }
+        if (requiresTransitionComment) partiallySavedTaskIdRef.current = taskId;
       }
+
+      if (requiresTransitionComment && taskId) {
+        const reviewerName = reviewerCandidates.find(candidate => candidate.id === values.reviewer_id)?.name ||
+          allProfiles
+            .filter(profile => profile.id === values.reviewer_id)
+            .map(profile => [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim())[0] ||
+          'revisor';
+        const systemComment = outcome === 'approved'
+          ? 'Tarefa aprovada'
+          : submittingReviewDelegation
+          ? `Enviado para revisão de ${reviewerName}: ${reviewComment}`
+          : `Devolvido para ajustes: ${reviewComment}`;
+        const currentUserProfile = allProfiles.find(profile => profile.id === user?.id);
+        const currentUserName = currentUserProfile
+          ? [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ')
+          : user?.user_metadata?.first_name
+            ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim()
+            : user?.email || 'Usuário';
+
+        try {
+          await createComment.mutateAsync({
+            taskId,
+            comment: systemComment,
+            userName: currentUserName,
+            isSystem: true,
+          });
+        } catch (commentError) {
+          toast.error('A tarefa foi salva, mas o comentário obrigatório não foi registrado. Tente salvar novamente.');
+          console.error('Error saving review comment:', commentError);
+          return;
+        }
+      }
+
+      partiallySavedTaskIdRef.current = null;
+      setReviewOutcome(null);
       clearDraft();
-      onOpenChange(false);
+      handleOpenChange(false);
+      toast.success(isEditing ? 'Tarefa atualizada' : 'Tarefa criada com sucesso');
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao salvar tarefa');
       console.error('Error saving task:', error);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => {
-      if (!v) {
-        clearDraft();
-        prevProjectIdRef.current = undefined;
-        setShowDraftNotice(false);
-      }
-      onOpenChange(v);
-    }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -366,7 +488,25 @@ export const TaskModal = ({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(values => onSubmit(values))} className="space-y-6">
+
+            {currentUserIsReviewer && (
+              <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/30">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                    <UserCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-purple-950 dark:text-purple-100">Revisão delegada a você</p>
+                    <p className="mt-1 text-sm text-purple-800/80 dark:text-purple-200/80">
+                      Revise a tarefa de {task?.assigned_to_name || 'responsável'} e escolha uma ação ao final.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <fieldset disabled={currentUserIsReviewer} className="space-y-6">
 
             {/* ── SEÇÃO 1: CONTEXTO ─────────────────────────────────── */}
             <div className="space-y-4">
@@ -542,12 +682,13 @@ export const TaskModal = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="backlog">Backlog</SelectItem>
-                          <SelectItem value="waiting_client">Pendente Cliente</SelectItem>
-                          <SelectItem value="todo">A Fazer</SelectItem>
-                          <SelectItem value="in_progress">Em Progresso</SelectItem>
-                          <SelectItem value="review">Revisão</SelectItem>
-                          <SelectItem value="done">Concluído</SelectItem>
+                          {statusList
+                            .filter(status => !(currentUserIsReviewer && status.key === 'done'))
+                            .map(status => (
+                              <SelectItem key={status.key} value={status.key}>
+                                {status.label}
+                              </SelectItem>
+                            ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -608,6 +749,117 @@ export const TaskModal = ({
                   </FormItem>
                 )}
               />
+
+              {!currentUserIsReviewer && watchedStatus !== 'review' && watchedAssignedTo && (
+                <button
+                  type="button"
+                  onClick={() => form.setValue('status', 'review', { shouldDirty: true })}
+                  className="flex w-full items-center gap-3 rounded-xl border border-dashed border-purple-300 bg-purple-50/60 p-4 text-left transition-colors hover:border-purple-500 hover:bg-purple-50 dark:border-purple-800 dark:bg-purple-950/20 dark:hover:bg-purple-950/40"
+                >
+                  <span className="rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+                    <Send className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block font-semibold text-purple-950 dark:text-purple-100">Enviar para revisão</span>
+                    <span className="block text-sm text-purple-800/70 dark:text-purple-200/70">
+                      Escolha quem revisará e descreva os pontos de atenção.
+                    </span>
+                  </span>
+                </button>
+              )}
+
+              {!currentUserIsReviewer && watchedStatus === 'review' && (
+                <div className="space-y-4 rounded-xl border border-purple-200 bg-purple-50/60 p-4 dark:border-purple-900 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2 text-purple-950 dark:text-purple-100">
+                    <Send className="h-4 w-4" />
+                    <p className="font-semibold">Preparar envio para revisão</p>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="reviewer_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Revisor</FormLabel>
+                        <Select
+                          onValueChange={(value) => field.onChange(value === '_none' ? null : value)}
+                          value={field.value || '_none'}
+                          disabled={reviewerCandidatesLoading}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-background">
+                              <SelectValue placeholder={reviewerCandidatesLoading ? 'Carregando...' : 'Selecione'} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="_none">Sem revisor delegado</SelectItem>
+                            {reviewerOptions.map(candidate => (
+                              <SelectItem key={candidate.id} value={candidate.id}>
+                                {candidate.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {needsReviewComment && (
+                    <FormField
+                      control={form.control}
+                      name="review_comment"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>O que precisa ser revisado? <RequiredMark /></FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              value={field.value || ''}
+                              placeholder="Descreva de forma objetiva"
+                              rows={3}
+                              className="bg-background"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+              )}
+
+              {!currentUserIsReviewer && watchedStatus === 'em_ajuste' && isReturnForAdjustment && (
+                <div className="space-y-4 rounded-xl border border-rose-200 bg-rose-50/60 p-4 dark:border-rose-900 dark:bg-rose-950/20">
+                  <div className="flex items-center gap-2 text-rose-950 dark:text-rose-100">
+                    <RotateCcw className="h-4 w-4" />
+                    <div>
+                      <p className="font-semibold">Devolver para ajustes</p>
+                      <p className="text-sm font-normal text-rose-800/70 dark:text-rose-200/70">
+                        Responsável: {form.getValues('assigned_to_name') || 'Não definido'}
+                      </p>
+                    </div>
+                  </div>
+                  <FormField
+                    control={form.control}
+                    name="review_comment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>O que precisa ser ajustado? <RequiredMark /></FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            value={field.value || ''}
+                            placeholder="Descreva as correções necessárias"
+                            rows={3}
+                            className="bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
 
               {(() => {
                 const isDone = form.watch('status') === 'done';
@@ -763,18 +1015,88 @@ export const TaskModal = ({
                 />
               </div>
             </div>
+            </fieldset>
+
+            {currentUserIsReviewer && (
+              <div className="space-y-4 rounded-xl border bg-muted/30 p-4">
+                <div>
+                  <p className="font-semibold">Resultado da revisão</p>
+                  <p className="text-sm text-muted-foreground">A tarefa será devolvida ao responsável.</p>
+                </div>
+
+                {reviewOutcome === 'adjustments' && (
+                  <FormField
+                    control={form.control}
+                    name="review_comment"
+                    render={({ field }) => (
+                      <FormItem className="rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/20">
+                        <FormLabel>O que precisa ser ajustado? <RequiredMark /></FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            value={field.value || ''}
+                            placeholder="Descreva as correções necessárias"
+                            rows={3}
+                            autoFocus
+                            className="bg-background"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Button
+                    type="button"
+                    className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+                    disabled={createTask.isPending || updateTask.isPending || createComment.isPending}
+                    onClick={form.handleSubmit(values => onSubmit(values, 'approved'))}
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    Aprovar revisão
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={reviewOutcome === 'adjustments' ? 'default' : 'outline'}
+                    className={cn('gap-2', reviewOutcome === 'adjustments' && 'bg-rose-600 hover:bg-rose-700')}
+                    onClick={() => setReviewOutcome('adjustments')}
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                    Solicitar ajustes
+                  </Button>
+                </div>
+
+                {reviewOutcome === 'adjustments' && (
+                  <Button
+                    type="button"
+                    className="w-full bg-rose-600 hover:bg-rose-700"
+                    disabled={createTask.isPending || updateTask.isPending || createComment.isPending}
+                    onClick={form.handleSubmit(values => onSubmit(values, 'adjustments'))}
+                  >
+                    Confirmar devolução para ajustes
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleOpenChange(false)}
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={createTask.isPending || updateTask.isPending}>
-                {isEditing ? 'Salvar' : 'Criar'}
-              </Button>
+              {!currentUserIsReviewer && (
+                <Button
+                  type="submit"
+                  disabled={createTask.isPending || updateTask.isPending || createComment.isPending}
+                >
+                  {isEditing ? 'Salvar' : 'Criar'}
+                </Button>
+              )}
             </div>
           </form>
         </Form>

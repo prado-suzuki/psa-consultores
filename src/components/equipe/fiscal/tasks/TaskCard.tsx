@@ -15,7 +15,9 @@ import {
   Plus,
   ListTree,
   ArrowUp,
-  Building2
+  Building2,
+  Wrench,
+  type LucideIcon,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -56,12 +58,13 @@ const priorityLabels = {
   low: 'Baixa',
 };
 
-const statusIcons = {
+const statusIcons: Record<OrgTask['status'], LucideIcon> = {
   backlog: Circle,
   waiting_client: Clock,
   todo: Circle,
   in_progress: AlertCircle,
   review: Clock,
+  em_ajuste: Wrench,
   done: CheckCircle2,
 };
 

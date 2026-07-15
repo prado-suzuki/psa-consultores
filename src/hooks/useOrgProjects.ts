@@ -210,6 +210,21 @@ export const useProjectMembers = (projectId: string | undefined) => {
   });
 };
 
+export const useOrgProjectClusterIds = (projectId: string | undefined) => {
+  return useQuery({
+    queryKey: ['org-project-cluster-ids', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
+      const { data, error } = await supabase.rpc('org_project_cluster_ids', {
+        _project_id: projectId,
+      });
+      if (error) throw error;
+      return [...new Set(data || [])].sort();
+    },
+    enabled: !!projectId,
+  });
+};
+
 export const useProjectServicos = (projectId: string | undefined) => {
   return useQuery({
     queryKey: ['project-servicos', projectId],
