@@ -1,61 +1,42 @@
-## Auditoria RLS-P1-06 — resultados (somente leitura, nada foi alterado)
+## RLS-P1-06 (correção) — fechar SELECT/INSERT em `projeto_justificativas`
 
-### Query 1 — matriz de policies (19 tabelas)
+### O que faz
+Remove as duas policies legadas permissivas (`team_member_select_projeto_justificativas` e `team_member_insert_projeto_justificativas`) que conviviam em OR com as isoladas e neutralizavam o isolamento por cluster. Recria SELECT e INSERT com checagem real via `projects.cluster_id` + `resolve_user_cluster_ids(auth.uid())`. UPDATE/DELETE (P1-05) intocados.
 
-Todas as tabelas da leva têm CRUD completo com checagem real. Padrão por tabela:
+### Passos
+1. Criar `supabase/migrations/rls_p1_06_fix_projeto_justificativas_select_insert.sql` com o SQL exato enviado (para trilha versionada).
+2. Aplicar via tool de migration (mesmo SQL, sem o bloco opcional de `gargalo_melhorias`).
+3. Rodar validações (a) e (b) via `psql` e devolver o resultado.
 
-**Pais (cluster_id direto):** `processes`, `process_stages` (via `processes.cluster_id`), `documentos_processo`, `gargalos`, `process_improvements`, `sistemas_processo`, `sistema_clusters`
-- SELECT/INSERT/UPDATE: `admin OR (team_member+ AND cluster_id = ANY(resolve_user_cluster_ids))`
-- DELETE: `admin OR (lider+ AND cluster_id = ANY(...))`
-- Nomes: `rls_<tabela>_<cmd>`
-- Exceção `sistemas_processo.SELECT`: inclui OR via `sistema_clusters` (compartilhamento M:N — correto, RLS-P1-04).
+### SQL da migration (idêntico ao enviado)
+```sql
+-- SELECT
+DROP POLICY IF EXISTS team_member_select_projeto_justificativas ON public.projeto_justificativas;
+DROP POLICY IF EXISTS projeto_justificativas_select ON public.projeto_justificativas;
+CREATE POLICY projeto_justificativas_select ON public.projeto_justificativas FOR SELECT TO authenticated
+USING (
+  public.has_role(auth.uid(),'admin'::app_role)
+  OR EXISTS (SELECT 1 FROM public.projects p WHERE p.id = projeto_id
+             AND (p.cluster_id IS NULL OR p.cluster_id = ANY(public.resolve_user_cluster_ids(auth.uid()))))
+);
 
-**Filhas (via helper de visibilidade):**
-- `etapa_documentos`, `etapa_responsaveis`, `etapa_sistemas` → `process_stage_cluster_visivel(etapa_id)`
-- `gargalo_processos`, `gargalo_responsaveis` → `gargalo_cluster_visivel(gargalo_id)`
-- `melhoria_processos`, `melhoria_sistemas`, `melhoria_responsaveis`, `melhoria_acoes_td` → `melhoria_cluster_visivel(melhoria_id)`
-- `sistema_responsaveis` → `sistema_cluster_visivel(sistema_id)`
-- Todas com o mesmo padrão team_member+ (SELECT/INSERT/UPDATE) e lider+ (DELETE).
+-- INSERT
+DROP POLICY IF EXISTS team_member_insert_projeto_justificativas ON public.projeto_justificativas;
+DROP POLICY IF EXISTS projeto_justificativas_insert ON public.projeto_justificativas;
+CREATE POLICY projeto_justificativas_insert ON public.projeto_justificativas FOR INSERT TO authenticated
+WITH CHECK (
+  public.has_role(auth.uid(),'admin'::app_role)
+  OR (public.has_role_or_higher(auth.uid(),'team_member'::app_role)
+      AND EXISTS (SELECT 1 FROM public.projects p WHERE p.id = projeto_id
+                  AND (p.cluster_id IS NULL OR p.cluster_id = ANY(public.resolve_user_cluster_ids(auth.uid())))))
+);
+```
 
-**`projeto_justificativas`:**
-- SELECT `projeto_justificativas_select`: `admin OR EXISTS(projects p WHERE p.id=projeto_id AND (p.cluster_id IS NULL OR ANY(resolve_user_cluster_ids)))` (09/07, mantido)
-- SELECT `team_member_select_projeto_justificativas`: `has_role_or_higher(team_member)` ⚠️ **policy permissiva legada convivendo com a de cluster — PostgREST usa OR entre policies do mesmo cmd, então isso anula o isolamento do SELECT**
-- INSERT `team_member_insert_projeto_justificativas`: `WITH CHECK has_role_or_higher(team_member)` (sem checagem de cluster)
-- UPDATE `projeto_justificativas_update`: cluster real (team_member+, RLS-P1-05, OK)
-- DELETE `projeto_justificativas_delete`: cluster real (lider+, RLS-P1-05, OK)
+### Fora de escopo
+- Bloco `gargalo_melhorias` DELETE (fica comentado, não aplica).
+- UPDATE/DELETE de `projeto_justificativas` (já corretos, P1-05).
+- Qualquer outra tabela ou código do app.
 
-**`documento_horas_historico`:**
-- SELECT `dhh_select`: `alterado_por = auth.uid() OR lider+`
-- INSERT `dhh_insert`: `alterado_por = auth.uid() AND team_member+`
-- UPDATE `dhh_update`: admin-only
-- DELETE `dhh_delete`: admin-only ✅ (RLS-04 preservada)
-
-### Query 2 — policies permissivas escondidas (`qual='true' OR with_check='true'`)
-
-**0 linhas.** ✅
-
-### Query 3 — tabelas da leva sem policy de DELETE
-
-**1 linha: `gargalo_melhorias`** ⚠️
-- É uma junction table (4 colunas, 2 policies existentes).
-- Sem DELETE explícito → hoje nenhum usuário consegue deletar vínculo (RLS restritivo por default), o que na prática **fecha** o DELETE. Não é vazamento, mas fica implícito. Vale confirmar se front precisa desvincular melhoria de gargalo.
-
-### Query 4 — `documento_horas_historico`
-
-| policyname | cmd | qual | with_check |
-|---|---|---|---|
-| dhh_delete | DELETE | `has_role(auth.uid(),'admin')` | — |
-| dhh_insert | INSERT | — | `alterado_por = auth.uid() AND has_role_or_higher(team_member)` |
-| dhh_select | SELECT | `alterado_por = auth.uid() OR has_role_or_higher(lider)` | — |
-| dhh_update | UPDATE | `has_role(auth.uid(),'admin')` | `has_role(auth.uid(),'admin')` |
-
-DELETE fechado a admin, herança da RLS-04 intacta. ✅
-
----
-
-## Achados que merecem sua decisão
-
-1. **`projeto_justificativas` — SELECT permissivo remanescente** (`team_member_select_projeto_justificativas`, USING `has_role_or_higher(team_member)` sem cluster). Como PostgREST faz OR entre múltiplas policies SELECT do mesmo comando, essa policy **neutraliza** o isolamento por cluster do `projeto_justificativas_select`. Além disso o INSERT legado (`team_member_insert_projeto_justificativas`) também não checa cluster. A RLS-P1-05 só endureceu UPDATE/DELETE — SELECT e INSERT ficaram nas policies antigas.
-2. **`gargalo_melhorias` sem DELETE policy** — RLS bloqueia por default, então não vaza; mas se o front precisa desvincular, hoje falha silenciosamente para não-admin (na verdade falha para todos, já que não há policy).
-
-Nenhuma migration foi criada nesta auditoria. Se quiser, o próximo passo é uma migration pontual RLS-P1-06 fechando o SELECT/INSERT de `projeto_justificativas` (drop das duas `team_member_*` legadas + recriação com checagem de cluster no mesmo padrão do UPDATE/DELETE) e, opcionalmente, DELETE explícito em `gargalo_melhorias`. Me avise se quer que eu monte o plano dessa migration.
+### Validação pós-migration
+- (a) `SELECT policyname, cmd FROM pg_policies WHERE schemaname='public' AND tablename='projeto_justificativas' AND (qual='true' OR with_check='true');` → esperado 0 linhas.
+- (b) `SELECT cmd, count(*) FROM pg_policies WHERE ... GROUP BY cmd ORDER BY cmd;` → esperado SELECT=1, INSERT=1, UPDATE=1, DELETE=1.
