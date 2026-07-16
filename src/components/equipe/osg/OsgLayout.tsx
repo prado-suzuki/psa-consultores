@@ -6,6 +6,7 @@ import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
   LogOut,
@@ -520,6 +521,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           </div>
           <div className="flex items-center gap-3">
             {headerActions}
+            <NotificationPopover
+              navigateTo="/equipe/chamados"
+              tasksNavigateTo="/equipe/osg/projetos/tarefas"
+            />
           </div>
         </header>
 

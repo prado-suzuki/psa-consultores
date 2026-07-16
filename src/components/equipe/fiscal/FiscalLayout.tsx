@@ -3,6 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { User, Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
+import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 
 interface FiscalLayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,12 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
           
           <div className="flex items-center gap-3">
             {headerActions}
-            
+
+            <NotificationPopover
+              navigateTo="/equipe/chamados"
+              tasksNavigateTo="/equipe/tax/projetos/tarefas"
+            />
+
             {/* User Info */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border/60">
               <div className="h-6 w-6 rounded-full bg-success/10 flex items-center justify-center">
