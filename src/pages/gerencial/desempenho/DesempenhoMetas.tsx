@@ -4,6 +4,7 @@ import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
 import { useCreateKpi, useDeleteKpi } from '@/hooks/useKpisMeta';
 import { usePprRegras } from '@/hooks/usePprRegras';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,8 +20,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, Building2, Users, User, TrendingUp, MoreHorizontal, Pencil, Archive, Award, ChevronDown, Trash2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const dimensaoColors: Record<string, { bg: string; text: string; label: string }> = {
@@ -71,14 +70,8 @@ const DesempenhoMetas = () => {
   const [form, setForm] = useState({ nivel: 'individual', dimensao: 'entrega', titulo: '', descricao: '', criterio_evidencia: '', prazo: '', peso: '1.0', meta_pai_id: '', responsavel_id: '' });
   const [kpis, setKpis] = useState<{ nome: string; valor_alvo: string; unidade: string; valor_atual: string }[]>([]);
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
+  const { data: profileMap = {} } = useProfilesNomeMap('profiles');
+  const profiles = Object.entries(profileMap);
 
   const empresaMetas = metas?.filter(m => m.nivel === 'empresa') ?? [];
   const equipeMetas = metas?.filter(m => m.nivel === 'equipe') ?? [];
@@ -141,7 +134,7 @@ const DesempenhoMetas = () => {
   const renderMeta = (m: Meta, indent: number) => {
     const dc = dimensaoColors[m.dimensao] ?? dimensaoColors.entrega;
     const Icon = nivelIcons[m.nivel] ?? User;
-    const profile = m.responsavel_id ? profileMap.get(m.responsavel_id) : null;
+    const profile = m.responsavel_id ? profileMap[m.responsavel_id] : null;
     const barColor = m.progresso_atual >= 85 ? '#10B981' : m.progresso_atual >= 70 ? '#D97706' : '#EF4444';
 
     return (
@@ -149,7 +142,7 @@ const DesempenhoMetas = () => {
         <Icon className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--board-t4)' }} />
         <Badge variant="outline" className={`${dc.bg} ${dc.text} border-0 text-[11px] font-semibold rounded-full px-2.5 flex-shrink-0`}>{dc.label}</Badge>
         <span className="flex-1 text-sm font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.titulo}</span>
-        {profile && <span className="text-xs flex-shrink-0" style={{ color: 'var(--board-t4)' }}>{profile.first_name} {profile.last_name}</span>}
+        {profile && <span className="text-xs flex-shrink-0" style={{ color: 'var(--board-t4)' }}>{profile}</span>}
         <span className="text-xs w-20 text-right flex-shrink-0" style={{ color: 'var(--board-t4)' }}>{m.prazo ?? '--'}</span>
         <div className="w-28 flex items-center gap-1 flex-shrink-0">
           <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
@@ -244,7 +237,7 @@ const DesempenhoMetas = () => {
         </Select>
         <Select value={responsavelFilter || '__all__'} onValueChange={v => setResponsavelFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Responsavel" /></SelectTrigger>
-          <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+          <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
           <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
@@ -295,7 +288,7 @@ const DesempenhoMetas = () => {
               <div><Label>Prazo</Label><Input type="date" value={form.prazo} onChange={e => setForm({ ...form, prazo: e.target.value })} /></div>
               <div><Label>Peso</Label><Input type="number" step="0.1" value={form.peso} onChange={e => setForm({ ...form, peso: e.target.value })} /></div>
             </div>
-            {form.nivel === 'individual' && <div><Label>Responsavel</Label><Select value={form.responsavel_id} onValueChange={v => setForm({ ...form, responsavel_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger><SelectContent>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent></Select></div>}
+            {form.nivel === 'individual' && <div><Label>Responsavel</Label><Select value={form.responsavel_id} onValueChange={v => setForm({ ...form, responsavel_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger><SelectContent>{profiles.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent></Select></div>}
             {/* KPIs section - only on create */}
             {!editingMeta && (
               <Collapsible>
@@ -346,7 +339,7 @@ const DesempenhoMetas = () => {
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{showClassif?.titulo}</p>
-              {showClassif?.responsavel_id && <p className="text-xs" style={{ color: 'var(--board-t3)' }}>{(() => { const p = profileMap.get(showClassif.responsavel_id); return p ? `${p.first_name} ${p.last_name}` : ''; })()}</p>}
+              {showClassif?.responsavel_id && <p className="text-xs" style={{ color: 'var(--board-t3)' }}>{profileMap[showClassif.responsavel_id] ?? ''}</p>}
             </div>
             <div>
               <p className="text-xs mb-1" style={{ color: 'var(--board-t3)' }}>Classificacao calculada automaticamente:</p>

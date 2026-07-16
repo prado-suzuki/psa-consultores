@@ -16,10 +16,10 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, TrendingUp as TrendingUpIcon } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar, CartesianGrid, Legend } from 'recharts';
 import { toast } from '@/hooks/use-toast';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import { useItensAcaoMembroEvolucao, useMetasMembroEvolucao } from '@/hooks/useDomainDesempenhoEvolucao';
 
 const classifConfig: Record<string, { label: string; bg: string; text: string }> = {
   supera: { label: 'Supera expectativas', bg: 'bg-emerald-50', text: 'text-emerald-700' },
@@ -40,42 +40,17 @@ const DesempenhoEvolucao = () => {
   const [selectedMembro, setSelectedMembro] = useState(searchParams.get('membro') || '');
   const { data: ciclos } = useCiclosAvaliacao();
   const updateMeta = useUpdateMeta();
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
+  const { data: profilesNomeMap } = useProfilesNomeMap('profiles');
 
   const { data: feedbacks } = useFeedbacks({ para_usuario_id: selectedMembro || undefined });
   const { data: reunioes } = useReunioes(selectedMembro || undefined);
   const { data: analises } = useAnalisesSemestrais();
   const { data: openItems } = useAllOpenItensAcao();
 
-  const { data: memberMetasAll } = useQuery({
-    queryKey: ['metas_member_all', selectedMembro],
-    queryFn: async () => {
-      if (!selectedMembro) return [];
-      const { data, error } = await supabase.from('metas' as any).select('*').eq('responsavel_id', selectedMembro).eq('nivel', 'individual');
-      if (error) throw error;
-      return (data ?? []) as unknown as { id: string; ciclo_id: string; progresso_atual: number; peso: number; dimensao: string; classificacao_final: string | null; ajuste_qualitativo: string | null }[];
-    },
-    enabled: !!selectedMembro,
-  });
+  const { data: memberMetasAll } = useMetasMembroEvolucao(selectedMembro);
 
   // All action items for this member
-  const { data: allItens } = useQuery({
-    queryKey: ['itens_acao_member', selectedMembro],
-    queryFn: async () => {
-      if (!selectedMembro || !reunioes) return [];
-      const reuniaoIds = reunioes.map(r => r.id);
-      if (reuniaoIds.length === 0) return [];
-      const { data } = await supabase.from('itens_acao_1a1' as any).select('*').in('reuniao_id', reuniaoIds);
-      return (data ?? []) as unknown as { id: string; reuniao_id: string; descricao: string; status: string }[];
-    },
-    enabled: !!selectedMembro && !!reunioes,
-  });
+  const { data: allItens } = useItensAcaoMembroEvolucao(selectedMembro, reunioes);
 
   const chartData = ciclos?.map(ciclo => {
     const ciclometas = memberMetasAll?.filter(m => m.ciclo_id === ciclo.id) ?? [];
@@ -137,7 +112,7 @@ const DesempenhoEvolucao = () => {
       <div className="mb-6">
         <Select value={selectedMembro} onValueChange={(v) => { setSelectedMembro(v); setAjusteQualitativo(''); }}>
           <SelectTrigger className="w-72 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
-          <SelectContent>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+          <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
       </div>
 

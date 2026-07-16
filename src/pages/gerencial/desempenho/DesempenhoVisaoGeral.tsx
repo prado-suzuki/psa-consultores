@@ -6,9 +6,9 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useMetas } from '@/hooks/useMetasDesempenho';
 import { useFeedbacks } from '@/hooks/useFeedbacksDesempenho';
 import { useReunioes, useAllOpenItensAcao } from '@/hooks/useReunioes1a1';
+import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
@@ -18,6 +18,20 @@ import { BoardChip } from '@/components/board/BoardChip';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 
 const DEFAULTS = { ciclo: '', area: 'todas', alertas: 'todos' };
+
+type PprClassificacao = 'supera' | 'atende' | 'parcial' | 'abaixo';
+
+interface PprMembro {
+  id: string;
+  name: string;
+  initials: string;
+  metas: number;
+  metasAtivas: number;
+  ppr: number;
+  classificacao: PprClassificacao;
+  fbCount: number;
+  rnCount: number;
+}
 
 const DesempenhoVisaoGeral = () => {
   const { data: ciclos } = useCiclosAvaliacao();
@@ -36,40 +50,37 @@ const DesempenhoVisaoGeral = () => {
   const { data: reunioes } = useReunioes();
   const { data: openItems } = useAllOpenItensAcao();
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles_safe' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
+  const { data: profiles } = useProfilesNomeMap('profiles_safe');
+  const { data: profileRows } = useProfilesNomeRows('profiles_safe');
 
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
+  const profileMap = useMemo(() => new Map(Object.entries(profiles ?? {})), [profiles]);
+  const profileRowsMap = useMemo(() => new Map(profileRows?.map(profile => [profile.id, profile]) ?? []), [profileRows]);
 
-  const pprPorMembro = useMemo(() => {
+  const pprPorMembro = useMemo<PprMembro[]>(() => {
     if (!metasIndividuais || !profiles) return [];
-    const membrosComMetas = new Set(metasIndividuais.map(m => m.responsavel_id).filter(Boolean));
+    const membrosComMetas = new Set(metasIndividuais.map(m => m.responsavel_id).filter((id): id is string => Boolean(id)));
     return Array.from(membrosComMetas).map(userId => {
-      const profile = profileMap.get(userId!);
-      if (!profile) return null;
+      const profile = profileMap.get(userId);
+      const profileRow = profileRowsMap.get(userId);
+      if (profile === undefined || profileRow === undefined) return null;
       const metasMembro = metasIndividuais.filter(m => m.responsavel_id === userId);
       const somaPesos = metasMembro.reduce((a, m) => a + (m.peso ?? 1), 0);
       const somaProg = metasMembro.reduce((a, m) => a + ((m.progresso_atual ?? 0) * (m.peso ?? 1)), 0);
       const ppr = somaPesos > 0 ? Math.round(somaProg / somaPesos) : 0;
-      const classificacao = ppr >= 100 ? 'supera' : ppr >= 85 ? 'atende' : ppr >= 70 ? 'parcial' : 'abaixo';
+      const classificacao: PprClassificacao = ppr >= 100 ? 'supera' : ppr >= 85 ? 'atende' : ppr >= 70 ? 'parcial' : 'abaixo';
       const fbCount = feedbacks?.filter(f => f.para_usuario_id === userId).length ?? 0;
       const cicloReunioes = reunioes?.filter(r => r.membro_id === userId && (!cicloId || r.ciclo_id === cicloId)) ?? [];
       return {
-        id: userId!,
-        name: `${profile.first_name ?? ''} ${profile.last_name ?? ''}`.trim(),
-        initials: `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase(),
+        id: userId,
+        name: profile,
+        initials: `${profileRow.first_name?.[0] ?? ''}${profileRow.last_name?.[0] ?? ''}`.toUpperCase(),
         metas: metasMembro.length,
         metasAtivas: metasMembro.filter(m => m.status === 'ativa').length,
         ppr, classificacao, fbCount,
         rnCount: cicloReunioes.length,
       };
-    }).filter(Boolean).sort((a, b) => (b?.ppr ?? 0) - (a?.ppr ?? 0)) as any[];
-  }, [metasIndividuais, profiles, feedbacks, reunioes, cicloId, profileMap]);
+    }).filter((membro): membro is PprMembro => membro !== null).sort((a, b) => b.ppr - a.ppr);
+  }, [metasIndividuais, profiles, feedbacks, reunioes, cicloId, profileMap, profileRowsMap]);
 
   const pctDecorrido = useMemo(() => {
     if (!selectedCiclo) return 0;
@@ -88,17 +99,17 @@ const DesempenhoVisaoGeral = () => {
       const daysLeft = Math.ceil((new Date(m.prazo).getTime() - Date.now()) / 86400000);
       if (daysLeft <= 15 && daysLeft >= 0 && m.progresso_atual < 70) {
         const p = m.responsavel_id ? profileMap.get(m.responsavel_id) : null;
-        list.push({ type: 'red', title: `${m.titulo} abaixo de 70% com prazo em ${daysLeft}d`, desc: `${p ? `${p.first_name} ${p.last_name}` : ''} · ${m.progresso_atual}%`, link: '/equipe/board/desempenho/metas' });
+        list.push({ type: 'red', title: `${m.titulo} abaixo de 70% com prazo em ${daysLeft}d`, desc: `${p ?? ''} · ${m.progresso_atual}%`, link: '/equipe/board/desempenho/metas' });
       }
     });
-    const membrosComMetas = new Set(metasIndividuais?.map(m => m.responsavel_id).filter(Boolean));
+    const membrosComMetas = new Set((metasIndividuais ?? []).map(m => m.responsavel_id).filter((id): id is string => Boolean(id)));
     membrosComMetas.forEach(mId => {
       const memberReunioes = reunioes?.filter(r => r.membro_id === mId) ?? [];
       const last = memberReunioes.sort((a, b) => new Date(b.data_reuniao).getTime() - new Date(a.data_reuniao).getTime())[0];
       if (!last || differenceInDays(new Date(), new Date(last.data_reuniao)) > 30) {
-        const p = profileMap.get(mId!);
+        const p = profileMap.get(mId);
         const days = last ? differenceInDays(new Date(), new Date(last.data_reuniao)) : 60;
-        list.push({ type: 'amber', title: `${p ? `${p.first_name} ${p.last_name}` : 'Membro'} sem 1:1 há ${days} dias`, desc: 'Progresso pode estar em risco', link: '/equipe/board/desempenho/1a1' });
+        list.push({ type: 'amber', title: `${p ?? 'Membro'} sem 1:1 há ${days} dias`, desc: 'Progresso pode estar em risco', link: '/equipe/board/desempenho/1a1' });
       }
     });
     if (selectedCiclo?.data_analise_semestral) {
@@ -123,11 +134,11 @@ const DesempenhoVisaoGeral = () => {
       if (error) throw error;
       setAiData(data);
     } catch {
-      const membrosRisco = pprPorMembro.filter((m: any) => m.ppr < 70);
+      const membrosRisco = pprPorMembro.filter(m => m.ppr < 70);
       setAiData({
         sintese: `Com ${pctDecorrido}% do ciclo decorrido e média em ${overview?.mediaProgresso ?? 0}%, a projeção aponta para ${(overview?.mediaProgresso ?? 0) >= 85 ? 'Atende Expectativas' : 'atenção necessária'} — ${membrosRisco.length > 0 ? `${membrosRisco.length} membros podem cair para Atende Parcialmente` : 'sem membros em risco crítico'}.`,
         bullets: [
-          pprPorMembro.filter((m: any) => m.ppr >= 85).length > 0 ? `${pprPorMembro.filter((m: any) => m.ppr >= 85).map((m: any) => m.name.split(' ')[0]).join(' e ')} estão acima da linha — sem intervenção necessária` : 'Nenhum membro acima de 85%',
+          pprPorMembro.filter(m => m.ppr >= 85).length > 0 ? `${pprPorMembro.filter(m => m.ppr >= 85).map(m => m.name.split(' ')[0]).join(' e ')} estão acima da linha — sem intervenção necessária` : 'Nenhum membro acima de 85%',
           membrosRisco.length > 0 ? `${membrosRisco[0]?.name}: queda sugere bloqueador — agendar 1:1` : 'Todos os membros dentro do esperado',
           `${overview?.totalFeedbacks ?? 0} feedbacks registrados no ciclo`,
         ],
@@ -142,7 +153,7 @@ const DesempenhoVisaoGeral = () => {
   const getTextColor = (pct: number) => pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
 
   const reunioesNoCiclo = reunioes?.filter(r => !cicloId || r.ciclo_id === cicloId) ?? [];
-  const membrosSem1a1 = pprPorMembro.filter((m: any) => {
+  const membrosSem1a1 = pprPorMembro.filter(m => {
     const last = reunioes?.filter(r => r.membro_id === m.id).sort((a, b) => new Date(b.data_reuniao).getTime() - new Date(a.data_reuniao).getTime())[0];
     return !last || differenceInDays(new Date(), new Date(last.data_reuniao)) > 30;
   });
@@ -256,7 +267,7 @@ const DesempenhoVisaoGeral = () => {
             {/* Member Cards */}
             <div className="v4-slabel" data-reveal>Progresso Individual — Ciclo Atual</div>
             <div className="v4-g3">
-              {pprPorMembro.map((m: any) => (
+              {pprPorMembro.map(m => (
                 <div
                   key={m.id}
                   className={`v4-mc${m.classificacao === 'parcial' || m.classificacao === 'abaixo' ? ' v4-mc-warn' : ''}`}

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useReunioes, useCreateReuniao, useAllOpenItensAcao, useUpdateItemAcao, useItensAcao, type Reuniao1a1 } from '@/hooks/useReunioes1a1';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
+import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
+import { useDesempenhoReunioesItensAcao } from '@/hooks/useDomainDesempenhoReunioes';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,8 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, Trash2, AlertCircle } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
 const sentimentLabels = ['Muito ruim', 'Ruim', 'Neutro', 'Bom', 'Muito bom'];
@@ -40,25 +40,13 @@ const DesempenhoReunioes1a1 = () => {
   const [form, setForm] = useState({ membro_id: '', data_reuniao: new Date().toISOString().slice(0, 10), temas_discutidos: '', sentimento: 3, observacoes_lider: '', ciclo_id: '' });
   const [itensForm, setItensForm] = useState<{ descricao: string; responsavel_id: string; prazo: string }[]>([]);
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
-  const getName = (id: string | null) => { const p = id ? profileMap.get(id) : null; return p ? `${p.first_name} ${p.last_name}` : '--'; };
+  const { data: profileMap } = useProfilesNomeMap('profiles');
+  const { data: profileRows } = useProfilesNomeRows('profiles');
+  const profiles = Object.entries(profileMap ?? {}).map(([id, nome]) => ({ id, nome }));
+  const getName = (id: string | null) => id ? profileMap?.[id] ?? '--' : '--';
 
   // Fetch all action items for display in history
-  const { data: allItens } = useQuery({
-    queryKey: ['itens_acao_1a1_all'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('itens_acao_1a1' as any).select('*').order('created_at');
-      if (error) throw error;
-      return (data ?? []) as unknown as { id: string; reuniao_id: string; descricao: string; responsavel_id: string | null; prazo: string | null; status: string }[];
-    },
-  });
+  const { data: allItens } = useDesempenhoReunioesItensAcao();
 
   const membroMap = new Map<string, Reuniao1a1[]>();
   allReunioes?.forEach(r => { if (r.membro_id) { const arr = membroMap.get(r.membro_id) || []; arr.push(r); membroMap.set(r.membro_id, arr); } });
@@ -130,7 +118,7 @@ const DesempenhoReunioes1a1 = () => {
           {!selectedMembro ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from(membroMap.entries()).map(([membroId, reunioes]) => {
-                const profile = profileMap.get(membroId);
+                const profile = profileRows?.find(p => p.id === membroId);
                 const initials = profile ? `${profile.first_name?.[0] ?? ''}${profile.last_name?.[0] ?? ''}`.toUpperCase() : '??';
                 const lastDate = reunioes[0]?.data_reuniao ?? '--';
                 const openCount = openCountByMembro.get(membroId) || 0;
@@ -212,7 +200,7 @@ const DesempenhoReunioes1a1 = () => {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Registrar 1:1</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label>Membro</Label><Select value={form.membro_id} onValueChange={v => setForm({ ...form, membro_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Membro</Label><Select value={form.membro_id} onValueChange={v => setForm({ ...form, membro_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger><SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Data da reuniao</Label><Input type="date" value={form.data_reuniao} onChange={e => setForm({ ...form, data_reuniao: e.target.value })} /></div>
             <div><Label>Temas discutidos</Label><Textarea value={form.temas_discutidos} onChange={e => setForm({ ...form, temas_discutidos: e.target.value })} /></div>
             <div><Label>Sentimento geral</Label>

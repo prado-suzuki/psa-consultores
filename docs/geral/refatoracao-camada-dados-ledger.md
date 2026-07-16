@@ -58,17 +58,17 @@
 
 | Status | Arquivo | Ocorr. | Tabelas / nota |
 |---|---|---:|---|
-| pendente | `pages/gerencial/desempenho/DesempenhoCiclos.tsx` | 1 | `profiles` (lookup nomes) |
-| pendente | `pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | 1 | `profiles` |
-| pendente | `pages/gerencial/desempenho/DesempenhoMetas.tsx` | 1 | `profiles` |
-| pendente | `pages/gerencial/desempenho/DesempenhoRelatorios.tsx` | 1 | `profiles` |
-| pendente | `pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | 1 | `profiles_safe` |
-| pendente | `pages/gerencial/desempenho/MinhaEvolucao.tsx` | 1 | `profiles` |
-| pendente | `pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | 2 | `profiles`, `itens_acao_1a1` |
-| pendente | `pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | 3 | `profiles`, `metas`, `itens_acao_1a1` |
-| pendente | `components/equipe/audit/AuditLogTable.tsx` | 2 | `estrutura_areas`, `audit_logs` |
-| pendente | `components/equipe/client-form/HistoricoTab.tsx` | 2 | `profiles`, `audit_logs` |
-| pendente | `components/equipe/osg/HistoricoFlutuante.tsx` | 1 | `profiles_safe` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoCiclos.tsx` | 1 | `profiles` (lookup nomes) |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoFeedbacks.tsx` | 1 | `profiles` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoMetas.tsx` | 1 | `profiles` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoRelatorios.tsx` | 1 | `profiles` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` | 1 | `profiles_safe` |
+| feito (Onda 1) | `pages/gerencial/desempenho/MinhaEvolucao.tsx` | 1 | `profiles` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoReunioes1a1.tsx` | 2 | `profiles`, `itens_acao_1a1` |
+| feito (Onda 1) | `pages/gerencial/desempenho/DesempenhoEvolucao.tsx` | 3 | `profiles`, `metas`, `itens_acao_1a1` |
+| feito (Onda 1) | `components/equipe/audit/AuditLogTable.tsx` | 2 | `estrutura_areas`, `audit_logs` |
+| feito (Onda 1) | `components/equipe/client-form/HistoricoTab.tsx` | 2 | `profiles`, `audit_logs` |
+| feito (Onda 1) | `components/equipe/osg/HistoricoFlutuante.tsx` | 1 | `profiles_safe` |
 | pendente | `pages/equipe/EquipeBacklog.tsx` | 3 | `projects`, `processes`, `project_processes` |
 | pendente | `pages/equipe/EquipeTarefas.tsx` | 1 | `tasks` (query dinâmica c/ filtro) |
 | pendente | `pages/equipe/board/BoardDashboard.tsx` | 2 | `process_improvements`, `org_tasks` (já em `useQuery`) |

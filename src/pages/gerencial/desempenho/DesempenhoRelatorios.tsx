@@ -1,18 +1,16 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
+import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useRelatorios } from '@/hooks/useRelatoriosGerados';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { FileText, Sparkles, Download, RefreshCw, Clock } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { FileText, Sparkles, Download, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 const tipoLabels: Record<string, string> = {
   avaliacao_completa: 'Avaliacao Completa',
@@ -39,13 +37,8 @@ const DesempenhoRelatorios = () => {
 
   const cicloId = selectedCiclo || cicloAtivo?.id || '';
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_for_reports'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as any[];
-    },
-  });
+  const { data: profilesNomeMap } = useProfilesNomeMap('profiles');
+  const { data: profileRows } = useProfilesNomeRows('profiles');
 
   const { data: historico } = useRelatorios({ membro_id: selectedMembro || undefined, ciclo_id: cicloId || undefined });
 
@@ -72,7 +65,7 @@ const DesempenhoRelatorios = () => {
     } catch { toast({ title: 'Erro ao carregar relatorio', variant: 'destructive' }); }
   };
 
-  const selectedProfile = profiles?.find((p: any) => p.id === selectedMembro);
+  const selectedProfile = profileRows?.find(profile => profile.id === selectedMembro);
 
   return (
     <BoardLayout title="Relatorios" subtitle="Geracao de relatorios com IA">
@@ -82,7 +75,7 @@ const DesempenhoRelatorios = () => {
           <div className="w-52">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
               <SelectTrigger className="bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
-              <SelectContent>{profiles?.map((p: any) => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+              <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-48">

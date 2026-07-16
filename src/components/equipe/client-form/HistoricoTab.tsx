@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useClienteHistorico } from '@/hooks/useDomainClienteHistorico';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -19,17 +19,6 @@ interface HistoricoTabProps {
   entities: DraftEntity[];
   participants: DraftParticipant[];
   contracts: DraftContract[];
-}
-
-interface AuditLog {
-  id: string;
-  entity_type: string;
-  entity_name: string;
-  action: string;
-  changed_fields: Record<string, { old: unknown; new: unknown }> | null;
-  performed_by: string;
-  performed_at: string;
-  details: string | null;
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -51,38 +40,17 @@ export default function HistoricoTab({ clienteId, entities, participants, contra
   // Collect all related IDs
   const allIds = [
     clienteId,
-    ...entities.map(e => (e as any)._dbId).filter(Boolean),
-    ...participants.map(p => (p as any)._dbId).filter(Boolean),
-    ...contracts.map(c => (c as any)._dbId).filter(Boolean),
+    ...entities.map(e => e._dbId).filter((id): id is string => Boolean(id)),
+    ...participants.map(p => p._dbId).filter((id): id is string => Boolean(id)),
+    ...contracts.map(c => c._dbId).filter((id): id is string => Boolean(id)),
   ];
 
   // Profiles lookup
-  const { data: profiles = {} } = useQuery({
-    queryKey: ['client-history-profiles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      const map: Record<string, string> = {};
-      (data as any[])?.forEach(p => { map[p.id] = `${p.first_name} ${p.last_name}`.trim(); });
-      return map;
-    },
-  });
+  const { data: profiles = {} } = useProfilesNomeMap('profiles');
 
   const lookups: LookupMaps = { profiles, projects: {}, areas: {}, clients: {}, contribuintes: {}, servicos: {}, tasks: {} };
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['client-history-logs', clienteId, allIds.length],
-    queryFn: async () => {
-      const { data, error } = await (supabase.from('audit_logs' as any) as any)
-        .select('*')
-        .eq('area', 'dev')
-        .in('entity_id', allIds)
-        .order('performed_at', { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      return data as AuditLog[];
-    },
-    enabled: allIds.length > 0,
-  });
+  const { data: logs = [], isLoading } = useClienteHistorico(clienteId, allIds);
 
   const toggleRow = (id: string) => {
     setExpandedRows(prev => {
