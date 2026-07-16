@@ -717,7 +717,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           console.error("[rollback] Falha ao remover cliente:", rollbackErr);
         }
       }
-      toast.error(`Erro ao ${isEditing ? "atualizar" : "cadastrar"} cliente: ` + error.message);
+      console.error("[cadastro cliente] erro:", error);
+      const rlsMsg = (error?.message || "").toLowerCase();
+      const isRls =
+        error?.code === "42501" ||
+        rlsMsg.includes("row-level security") ||
+        rlsMsg.includes("violates row") ||
+        rlsMsg.includes("permission denied");
+      const acao = isEditing ? "atualizar" : "cadastrar";
+      toast.error(
+        isRls
+          ? `Sem permissão para ${acao} cliente com o seu perfil/cluster. Fale com a liderança.`
+          : `Erro ao ${acao} cliente: ` + error.message
+      );
     } finally {
       setSaving(false);
     }
