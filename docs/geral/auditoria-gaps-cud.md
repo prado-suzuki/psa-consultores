@@ -36,3 +36,25 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/dev/ProcessoDifal.tsx` | — | `difal_decisao` | delete | god-component |
 | `pages/gestao/GestaoNovidades.tsx` | — | `novidades` | insert, update, delete | |
 | `pages/gerencial/desempenho/DesempenhoDecisoes.tsx` | — | `metas` | update | |
+| `components/equipe/dev/correcoes-sped/CorrecoesActionButtons.tsx` | `useLimparCorrecoesSped` | `efd_correcoes` | delete | limpeza global; filtro `created_at >= 1970-01-01` preservado |
+| `components/equipe/dev/correcoes-sped/TabD100.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID; snapshot e campos alterados preservados |
+| `components/equipe/dev/correcoes-sped/TabD100.tsx` | `useDesativarCorrecaoSped` | `efd_correcoes` | update | filtros por tipo, registro original e `ativo = true` preservados |
+| `components/equipe/dev/correcoes-sped/TabD100.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/correcoes-sped/TabF100.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID; snapshot e campos alterados preservados |
+| `components/equipe/dev/correcoes-sped/TabF100.tsx` | `useDesativarCorrecaoSped` | `efd_correcoes` | update | filtros por tipo, registro original e `ativo = true` preservados |
+| `components/equipe/dev/correcoes-sped/TabF100.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/correcoes-sped/TabF120.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID |
+| `components/equipe/dev/correcoes-sped/TabF120.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | substituição in-place preservando UUID |
+| `components/equipe/dev/correcoes-sped/TabF120.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/correcoes-sped/TabF130.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID |
+| `components/equipe/dev/correcoes-sped/TabF130.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | substituição in-place preservando UUID |
+| `components/equipe/dev/correcoes-sped/TabF130.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | `useUpsertPersEmLote` | `per` | upsert | carga em lote; conflito por `nr_per` preservado |
+| `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | `useInserirSituacoesPerEmLote` | `per_situacao` | insert | carga em lote; erro parcial continua tratado pelo consumidor |
+| `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | `useInserirDcomps` | `dcomp` | insert | carga em lote |
+| `components/equipe/dev/perdcomp/PerFormModal.tsx` | `useInserirPer` | `per` | insert | payload permanece em array |
+| `components/equipe/dev/perdcomp/PerFormModal.tsx` | `useInserirSituacaoPerComRetorno` | `per_situacao` | insert | situação inicial com retorno `.select().single()` |
+| `components/equipe/dev/perdcomp/PerFormModal.tsx` | `useInserirSituacaoPer` | `per_situacao` | insert | marca o PER original como retificado; erro best-effort preservado |
+| `components/equipe/dev/perdcomp/PerFormModal.tsx` | `useAtualizarPerPorNumero` | `per` | update | filtro por `nr_per` preservado |
+| `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | `useInserirSituacaoPerComRetorno` | `per_situacao` | insert | retorna `.select().single()` |
+| `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | `useAtualizarSituacaoPerPorId` | `per_situacao` | update | precheck no consumidor e retorno `.select().single()` preservados |

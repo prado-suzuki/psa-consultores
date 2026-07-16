@@ -92,19 +92,19 @@
 
 | Status | Arquivo | Ocorr. | Ops (tabela `efd_correcoes`) |
 |---|---|---:|---|
-| pendente | `components/equipe/dev/correcoes-sped/CorrecoesActionButtons.tsx` | 1 | delete (limpar) |
-| pendente | `components/equipe/dev/correcoes-sped/TabD100.tsx` | 3 | update + insert |
-| pendente | `components/equipe/dev/correcoes-sped/TabF100.tsx` | 3 | update + insert |
-| pendente | `components/equipe/dev/correcoes-sped/TabF120.tsx` | 2 | update + insert |
-| pendente | `components/equipe/dev/correcoes-sped/TabF130.tsx` | 2 | update + insert |
+| feito (Onda 2) | `components/equipe/dev/correcoes-sped/CorrecoesActionButtons.tsx` | 1 | delete (limpar) |
+| feito (Onda 2) | `components/equipe/dev/correcoes-sped/TabD100.tsx` | 3 | update + insert |
+| feito (Onda 2) | `components/equipe/dev/correcoes-sped/TabF100.tsx` | 3 | update + insert |
+| feito (Onda 2) | `components/equipe/dev/correcoes-sped/TabF120.tsx` | 2 | update + insert |
+| feito (Onda 2) | `components/equipe/dev/correcoes-sped/TabF130.tsx` | 2 | update + insert |
 
 ### 1d. Cluster perdcomp (não-god) — **1 hook de domínio** (`per`, `per_situacao`, `dcomp`)
 
 | Status | Arquivo | Ocorr. | Ops |
 |---|---|---:|---|
-| pendente | `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | 3 | upsert `per` + insert `per_situacao`/`dcomp` |
-| pendente | `components/equipe/dev/perdcomp/PerFormModal.tsx` | 3 | insert `per` + `per_situacao` (x2) |
-| pendente | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | 1 | insert `per_situacao` |
+| feito (Onda 2) | `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | 3 | upsert `per` + insert `per_situacao`/`dcomp` |
+| feito (Onda 2) | `components/equipe/dev/perdcomp/PerFormModal.tsx` | 3 | insert `per` + `per_situacao` (x2) |
+| feito (Onda 2) | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | 1 | insert `per_situacao` |
 
 ---
 
