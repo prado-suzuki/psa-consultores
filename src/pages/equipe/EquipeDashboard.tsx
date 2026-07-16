@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,7 +9,7 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
 import { DashboardMetrics } from '@/components/equipe/DashboardMetrics';
-import { useToast } from '@/hooks/use-toast';
+import { useDomainEquipeDashboard } from '@/hooks/useDomainEquipeDashboard';
 import {
   BarChart,
   Bar,
@@ -24,115 +23,31 @@ import {
   Cell,
 } from 'recharts';
 
-interface Sprint {
-  id: string;
-  name: string;
-  goal: string | null;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
-
-interface DeliverableStats {
-  total: number;
-  pending: number;
-  in_progress: number;
-  completed: number;
-}
-
-interface AreaData {
-  name: string;
-  count: number;
-}
-
 import { parseDate } from '@/lib/dateUtils';
 import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
-  const [stats, setStats] = useState<DeliverableStats>({ total: 0, pending: 0, in_progress: 0, completed: 0 });
-  const [myDeliverables, setMyDeliverables] = useState<any[]>([]);
-  const [areaData, setAreaData] = useState<AreaData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    activeSprint,
+    stats,
+    myDeliverables,
+    areaData,
+    isLoading: loading,
+  } = useDomainEquipeDashboard(user?.id);
   const [activeTab, setActiveTab] = useState<string>('sprint');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
-
-  const fetchDashboardData = async () => {
-    try {
-      const { data: sprintData } = await supabase
-        .from('sprints')
-        .select('*')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      setActiveSprint(sprintData);
-
-      if (sprintData) {
-        const { data: deliverables } = await supabase
-          .from('sprint_deliverables')
-          .select('status')
-          .eq('sprint_id', sprintData.id);
-
-        if (deliverables) {
-          const deliverableStats: DeliverableStats = {
-            total: deliverables.length,
-            pending: deliverables.filter(d => d.status === 'pending').length,
-            in_progress: deliverables.filter(d => d.status === 'in_progress').length,
-            completed: deliverables.filter(d => d.status === 'completed').length,
-          };
-          setStats(deliverableStats);
-        }
-      }
-
-      const { data: processes } = await supabase
-        .from('processes')
-        .select('area');
-
-      if (processes) {
-        const areaCounts: Record<string, number> = {};
-        processes.forEach(p => {
-          const area = p.area || 'Sem área';
-          areaCounts[area] = (areaCounts[area] || 0) + 1;
-        });
-        setAreaData(Object.entries(areaCounts).map(([name, count]) => ({ name, count })));
-      }
-
-      if (user) {
-        const { data: myDeliverablesData } = await supabase
-          .from('sprint_deliverables')
-          .select('*')
-          .eq('assigned_to', user.id)
-          .neq('status', 'completed')
-          .order('due_date', { ascending: true })
-          .limit(5);
-
-        setMyDeliverables(myDeliverablesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | null) => {
     const labels: Record<string, string> = {
       pending: 'A Fazer',
       in_progress: 'Em Progresso',
       completed: 'Concluído'
     };
-    return labels[status] || status;
+    return labels[status ?? ''] || status;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'completed': return 'bg-emerald-100 text-emerald-700 border-0';
       case 'in_progress': return 'bg-amber-100 text-amber-700 border-0';

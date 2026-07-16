@@ -1,107 +1,18 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { AdminLayout } from '@/components/administracao/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useDomainAdminPerformance } from '@/hooks/useDomainAdminPerformance';
 import { Users, FolderKanban, ClipboardList, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 
 const AdminPerformance = () => {
-  // Fetch users count
-  const { data: usersData } = useQuery({
-    queryKey: ['admin-users-count'],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('profiles_safe')
-        .select('*', { count: 'exact', head: true });
-      
-      if (error) throw error;
-      return count || 0;
-    },
-  });
-
-  // Fetch projects count
-  const { data: projectsData } = useQuery({
-    queryKey: ['admin-projects-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, status');
-      
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        active: data?.filter(p => p.status === 'active').length || 0,
-      };
-    },
-  });
-
-  // Fetch sprints data
-  const { data: sprintsData } = useQuery({
-    queryKey: ['admin-sprints-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sprints')
-        .select('id, status');
-      
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        active: data?.filter(s => s.status === 'active').length || 0,
-      };
-    },
-  });
-
-  // Fetch tasks data
-  const { data: tasksData } = useQuery({
-    queryKey: ['admin-tasks-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, status');
-      
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        done: data?.filter(t => t.status === 'done').length || 0,
-        inProgress: data?.filter(t => t.status === 'in_progress').length || 0,
-        backlog: data?.filter(t => t.status === 'backlog').length || 0,
-      };
-    },
-  });
-
-  // Fetch deliverables data
-  const { data: deliverablesData } = useQuery({
-    queryKey: ['admin-deliverables-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sprint_deliverables')
-        .select('id, status');
-      
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        completed: data?.filter(d => d.status === 'completed').length || 0,
-        pending: data?.filter(d => d.status === 'pending').length || 0,
-      };
-    },
-  });
-
-  // Fetch tickets data
-  const { data: ticketsData } = useQuery({
-    queryKey: ['admin-tickets-count'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tickets')
-        .select('id, status');
-      
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        open: data?.filter(t => t.status === 'aberto').length || 0,
-        closed: data?.filter(t => t.status === 'fechado').length || 0,
-      };
-    },
-  });
+  const {
+    usersQuery: { data: usersData },
+    projectsQuery: { data: projectsData },
+    sprintsQuery: { data: sprintsData },
+    tasksQuery: { data: tasksData },
+    deliverablesQuery: { data: deliverablesData },
+    ticketsQuery: { data: ticketsData },
+  } = useDomainAdminPerformance();
 
   const taskCompletionRate = tasksData 
     ? Math.round((tasksData.done / tasksData.total) * 100) || 0

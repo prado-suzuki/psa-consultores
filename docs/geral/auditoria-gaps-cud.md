@@ -2,7 +2,7 @@
 
 **Origem:** achado durante a refatoração da camada de dados (ver `refatoracao-camada-dados-ledger.md`, Fase 0).
 **Fato:** a auditoria só é gravada quando o frontend chama `src/hooks/useAuditLog.ts`. **Não há trigger no banco.**
-As mutations abaixo (encontradas nos 42 arquivos com `supabase.from/rpc` direto) **não gravam em `audit_logs` hoje**.
+As mutations abaixo (encontradas nos arquivos com `supabase.from/rpc` direto) **não gravam em `audit_logs` hoje**.
 
 **Escopo deste arquivo:** apenas *inventariar* o gap. A refatoração da camada de dados **preserva o
 comportamento atual** (não adiciona auditoria). Fechar estes gaps é uma **tarefa futura, revisada à parte**,
@@ -81,3 +81,51 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/EquipeBacklog.tsx` | `useMoveDomainBacklogItem` | `sprint_backlog_items` | update | segunda etapa sequencial da movimentação preservada |
 | `pages/equipe/EquipeTarefas.tsx` | `useDomainEquipeTarefas.updateTask` | `tasks` | update | precheck, payload e filtro por ID preservados |
 | `pages/equipe/EquipeTarefas.tsx` | `useDomainEquipeTarefas.deleteTask` | `tasks` | delete | precheck e filtro por ID preservados |
+| `pages/gestao/GestaoContatos.tsx` | `useDomainGestaoContatos.updateContato` | `contatos` | update | payload, precheck e refetch preservados |
+| `components/equipe/NewStageForm.tsx` | `useCreateProcessStage` | `process_stages` | insert | payload e callbacks preservados |
+| `components/equipe/ProcessImprovementModal.tsx` | `createImprovementMutation` | `process_improvements` | insert | primeira etapa do fluxo de melhoria |
+| `components/equipe/ProcessImprovementModal.tsx` | `createSavingsDetailsMutation` | `improvement_savings_details` | insert | segunda etapa; detalhes financeiros preservados |
+| `components/equipe/ProcessImprovementModal.tsx` | `createTeamMembersMutation` | `improvement_team_members` | insert | terceira etapa; membros preservados |
+| `components/equipe/ProcessImprovementModal.tsx` | `updateProcessMutation` | `processes` | update | precheck e atualização final preservados |
+| `components/equipe/StageEditCard.tsx` | `useUpdateProcessStage` | `process_stages` | update | payload, precheck e filtro por ID preservados |
+| `components/equipe/StageEditCard.tsx` | `useDeleteProcessStage` | `process_stages` | delete | precheck e filtro por ID preservados |
+| `components/equipe/SOPConfigModal.tsx` | `useDomainSOPConfig` | `processes` | update | configuração SOP e precheck preservados |
+| `pages/equipe/EquipeBiblioteca.tsx` | `useDomainEquipeBiblioteca.uploadMutation` | `project_documents` | insert | upload em storage antes do registro preservado |
+| `pages/equipe/EquipeBiblioteca.tsx` | `useDomainEquipeBiblioteca.deleteMutation` | `project_documents` | delete | precheck, remoção no storage e delete preservados |
+| `pages/equipe/dev/GerenciarDados.tsx` | `importarClientesMutation` | `cliente` | insert | importação em lote e ambiente preservados |
+| `pages/equipe/dev/GerenciarDados.tsx` | `importarContribuintesMutation` | `contribuinte` | insert | importação em lote e ambiente preservados |
+| `pages/equipe/dev/GerenciarDados.tsx` | `limparTabelaMutation` | `contribuinte` | delete | limpeza dinâmica após amostra/precheck |
+| `pages/equipe/dev/GerenciarDados.tsx` | `limparTabelaMutation` | `cliente` | delete | limpeza dinâmica após amostra/precheck |
+| `pages/equipe/dev/DetalheFerramenta.tsx` | `updateTool` | `tools` | update | payload e filtro por ID preservados |
+| `pages/equipe/dev/DetalheFerramenta.tsx` | `updateTool` | `tool_area_access` | delete | substituição sequencial dos acessos |
+| `pages/equipe/dev/DetalheFerramenta.tsx` | `updateTool` | `tool_area_access` | insert | substituição sequencial dos acessos |
+| `pages/equipe/dev/DetalheFerramenta.tsx` | `deleteTool` | `tools` | delete | precheck e navegação preservados |
+| `pages/equipe/dev/NovaFerramenta.tsx` | `useDomainNovaFerramenta` | `tools` | insert | retorna ID para a etapa seguinte |
+| `pages/equipe/dev/NovaFerramenta.tsx` | `useDomainNovaFerramenta` | `tool_area_access` | insert | segunda etapa; falha parcial preservada |
+| `components/equipe/dev/DifalAuditModal.tsx` | `useDomainDifalAudit.saveDecisionMutation` | `difal_decisao` | upsert | pode criar ou atualizar; precheck de update preservado |
+| `components/equipe/dev/balancete/UploadBalanceteModal.tsx` | `useDomainUploadBalancete.salvarDetalhamento` | `contribuinte_bal_config` | upsert | pode criar ou atualizar; precheck de update preservado |
+| `components/equipe/dev/correcoes-sped/TabA170.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID preservada |
+| `components/equipe/dev/correcoes-sped/TabA170.tsx` | `useDesativarCorrecaoSped` | `efd_correcoes` | update | desativação por tipo/registro preservada |
+| `components/equipe/dev/correcoes-sped/TabA170.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/correcoes-sped/TabC170.tsx` | `useAtualizarCorrecaoSpedPorId` | `efd_correcoes` | update | reversão por ID preservada |
+| `components/equipe/dev/correcoes-sped/TabC170.tsx` | `useDesativarCorrecaoSped` | `efd_correcoes` | update | desativação por tipo/registro preservada |
+| `components/equipe/dev/correcoes-sped/TabC170.tsx` | `useInserirCorrecaoSped` | `efd_correcoes` | insert | payload integral preservado |
+| `components/equipe/dev/perdcomp/SoftDeleteModal.tsx` | `useExcluirPerDcompDefinitivamente` | `distribuicao_dcomp` | delete | filhos ou documento informado; ordem preservada |
+| `components/equipe/dev/perdcomp/SoftDeleteModal.tsx` | `useExcluirPerDcompDefinitivamente` | `dcomp` | delete | por `nr_per_orig` ou `nr_documento` |
+| `components/equipe/dev/perdcomp/SoftDeleteModal.tsx` | `useExcluirPerDcompDefinitivamente` | `per_situacao` | delete | filtro por `nr_proc_per` preservado |
+| `components/equipe/dev/perdcomp/SoftDeleteModal.tsx` | `useExcluirPerDcompDefinitivamente` | `per` | delete | filtro por `nr_per` preservado |
+| `pages/equipe/EquipeDaily.tsx` | `useDomainEquipeDaily.insertDailyStandup` | `daily_standups` | insert | payload e refetch preservados |
+| `pages/equipe/EquipeDaily.tsx` | `useDomainEquipeDaily.updateDailyStandup` | `daily_standups` | update | payload e filtro por ID preservados |
+| `pages/equipe/EquipeDaily.tsx` | `useDomainEquipeDaily.deleteDailyStandup` | `daily_standups` | delete | filtro por ID e refetch preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `updateDeliverableStatus` | `sprint_deliverables` | update | status e `completed_at` preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `reorderDeliverables` | `sprint_deliverables` | update | updates paralelos de `task_code` preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `updateDeliverable` | `sprint_deliverables` | update | payload e filtro por ID preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `deleteDeliverable` | `deliverable_attachments` | delete | precheck e remoção no storage antes do delete preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `deleteDeliverable` | `sprint_deliverables` | delete | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `updateMetric` | `sprint_metrics` | update | precheck e atualização de `current_value` preservados |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `createDeliverable` | `sprint_deliverables` | insert | retorno `.select().single()` preservado |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `importDeliverables` | `sprint_deliverables` | insert | inserção sequencial dos pais preservada |
+| `pages/equipe/EquipeSprintDetalhes.tsx` | `importDeliverables` | `sprint_deliverables` | insert | inserção em lote das subtarefas preservada |
+| `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.createUser` | `auth.users`, `profiles`, `user_roles` | insert | criação via edge function preservada |
+| `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.addRole` | `user_roles` | insert | payload e invalidação preservados |
+| `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.removeRole` | `user_roles` | delete | amostra, precheck e filtro preservados |

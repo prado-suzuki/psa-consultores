@@ -12,13 +12,14 @@ import {
 import { Plus, X, Pencil, Trash2, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked, generateNextOsNumber } from "./constants";
+import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
 import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
 import DateFieldWithInput from "./DateFieldWithInput";
 import CurrencyField from "./CurrencyField";
 import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
+import { useGenerateNextOsNumber } from "@/hooks/useDomainOrdemServicoNumero";
 
 type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
 
@@ -248,9 +249,9 @@ export default function ContratosTab({
   const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
   const [editingContractData, setEditingContractData] = useState<Partial<DraftOrdemServico> | null>(null);
-  const [isAddingContract, setIsAddingContract] = useState(false);
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
+  const { mutateAsync: generateNextOsNumber, isPending: isAddingContract } = useGenerateNextOsNumber();
 
   const handleOsClusterFilterChange = (v: string) => {
     setOsClusterFilter(v);
@@ -331,14 +332,11 @@ export default function ContratosTab({
       return;
     }
     if (!validateDistribuicao(draftContract.distribuicao_receita, "Nova OS")) return;
-    setIsAddingContract(true);
-    try {
-      const osNumber = await generateNextOsNumber(contracts as any);
-      const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
-      setContracts([...contracts, newContract]);
-      setDraftContract(createDefaultDraftContract());
-      setOsClusterFilter("__all__");
-    } finally { setIsAddingContract(false); }
+    const osNumber = await generateNextOsNumber(contracts);
+    const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
+    setContracts([...contracts, newContract]);
+    setDraftContract(createDefaultDraftContract());
+    setOsClusterFilter("__all__");
   };
 
   return (

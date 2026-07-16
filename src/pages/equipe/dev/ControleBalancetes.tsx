@@ -1,8 +1,7 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { getApiUrl, currentAmbiente } from '@/config/api';
+import { getApiUrl } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useDomainControleBalancetes } from '@/hooks/useDomainControleBalancetes';
 import { toast } from '@/hooks/use-toast';
 import DevLayout from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
@@ -57,6 +56,29 @@ interface Balancete {
   [key: string]: unknown;
 }
 
+interface BalancetesResponse {
+  balancetes?: Balancete[];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => (
+  typeof value === 'object' && value !== null
+);
+
+const getApiErrorMessage = (payload: unknown, status: number) => {
+  const detail = isRecord(payload) ? payload.detail : undefined;
+
+  if (isRecord(detail) && typeof detail.error_message === 'string') {
+    return detail.error_message;
+  }
+
+  return typeof detail === 'string' ? detail : `Erro ${status}`;
+};
+
+const getThrownErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  return isRecord(error) && typeof error.message === 'string' ? error.message : undefined;
+};
+
 const COL_COUNT = 6;
 
 const ControleBalancetes = () => {
@@ -64,6 +86,7 @@ const ControleBalancetes = () => {
 
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
+  const { clientes, contribuintes } = useDomainControleBalancetes(clienteId);
   const [periodo, setPeriodo] = useState<MonthRange | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -108,12 +131,8 @@ const ControleBalancetes = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
-        throw new Error(message);
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, response.status));
       }
 
       const filesFound = response.headers.get('X-Files-Found');
@@ -142,45 +161,12 @@ const ControleBalancetes = () => {
           description: `Arquivos encontrados: ${filesFound ?? '?'} | Faltantes: ${filesMissing ?? '0'}`,
         });
       }
-    } catch (err: any) {
-      toast({ title: type === 'download' ? 'Erro ao baixar arquivos' : 'Erro ao exportar Excel', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: type === 'download' ? 'Erro ao baixar arquivos' : 'Erro ao exportar Excel', description: getThrownErrorMessage(err), variant: 'destructive' });
     } finally {
       setDownloading((prev) => ({ ...prev, [bulkKey]: null }));
     }
   };
-
-  // Fetch clientes
-  const { data: clientes } = useQuery({
-    queryKey: ['clientes-balancetes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch contribuintes filtered by client
-  const { data: contribuintes } = useQuery({
-    queryKey: ['contribuintes-balancetes', clienteId],
-    queryFn: async () => {
-      let query = supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social, cliente_id')
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome_razao_social');
-      if (clienteId) query = query.eq('cliente_id', clienteId);
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
-  });
 
   useEffect(() => {
     if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
@@ -230,19 +216,22 @@ const ControleBalancetes = () => {
 
       const response = await fetchWithAuth(url);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
-        throw new Error(message);
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, response.status));
       }
 
-      const data = await response.json();
-      const list = Array.isArray(data) ? data : Array.isArray(data?.balancetes) ? data.balancetes : [];
-      setBalancetes(list.map((b: any) => ({ ...b, id: b.id_balancete || b.id })));
-    } catch (err: any) {
-      toast({ title: 'Erro ao buscar balancetes', description: err.message, variant: 'destructive' });
+      const data: unknown = await response.json();
+      const list = Array.isArray(data)
+        ? data as Balancete[]
+        : isRecord(data) && Array.isArray(data.balancetes)
+          ? (data as BalancetesResponse).balancetes ?? []
+          : [];
+      setBalancetes(list.map((b) => ({
+        ...b,
+        id: (typeof b.id_balancete === 'string' && b.id_balancete) || b.id,
+      })));
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao buscar balancetes', description: getThrownErrorMessage(err), variant: 'destructive' });
       setBalancetes([]);
     } finally {
       setLoading(false);
@@ -254,12 +243,8 @@ const ControleBalancetes = () => {
     try {
       const response = await fetchWithAuth(getApiUrl(`/api/v1/contabil/balancetes/${id}/${endpoint}`));
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
-        throw new Error(message);
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, response.status));
       }
 
       const blob = await response.blob();
@@ -278,8 +263,8 @@ const ControleBalancetes = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(downloadUrl);
-    } catch (err: any) {
-      toast({ title: type === 'download' ? 'Erro ao baixar arquivo' : 'Erro ao exportar Excel', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: type === 'download' ? 'Erro ao baixar arquivo' : 'Erro ao exportar Excel', description: getThrownErrorMessage(err), variant: 'destructive' });
     } finally {
       setDownloading((prev) => ({ ...prev, [id]: null }));
     }
@@ -293,12 +278,8 @@ const ControleBalancetes = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        const detail = errorData?.detail;
-        const message = typeof detail === 'object' && detail?.error_message
-          ? detail.error_message
-          : typeof detail === 'string' ? detail : `Erro ${response.status}`;
-        throw new Error(message);
+        const errorData: unknown = await response.json().catch(() => null);
+        throw new Error(getApiErrorMessage(errorData, response.status));
       }
 
       const data = await response.json().catch(() => ({})) as { file_deleted?: boolean };
@@ -317,8 +298,8 @@ const ControleBalancetes = () => {
           ? 'Registros removidos, mas o arquivo original pode ter ficado órfão no storage.'
           : 'Registros e arquivo original removidos com sucesso.',
       });
-    } catch (err: any) {
-      toast({ title: 'Erro ao deletar balancete', description: err.message, variant: 'destructive' });
+    } catch (err: unknown) {
+      toast({ title: 'Erro ao deletar balancete', description: getThrownErrorMessage(err), variant: 'destructive' });
     } finally {
       setDownloading((prev) => ({ ...prev, [id]: null }));
     }

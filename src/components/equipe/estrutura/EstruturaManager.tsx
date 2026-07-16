@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,33 +22,12 @@ import {
   useEstruturaCentrosCusto, useEstruturaMutations,
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
-
-// ─── Types ──────────────────────────────────────────────────────────────
-interface Profile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-}
+import { useProfilesMinRole, type Profile } from '@/hooks/useDomainEstruturaManager';
 
 const colorPresets = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
 ];
-
-// ─── Data hooks ─────────────────────────────────────────────────────────
-// Lista todos os perfis com papel >= minimumRole (hierarquia oficial: team_member < sublider < lider < admin)
-function useProfilesMinRole(minimumRole: 'team_member' | 'sublider' | 'lider' | 'admin') {
-  return useQuery({
-    queryKey: ['profiles-min-role', minimumRole],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .rpc('get_profiles_with_min_role', { _minimum_role: minimumRole });
-      if (error) throw error;
-      return (data || []) as Profile[];
-    },
-  });
-}
 
 function profileLabel(p: Profile) {
   const name = [p.first_name, p.last_name].filter(Boolean).join(' ');

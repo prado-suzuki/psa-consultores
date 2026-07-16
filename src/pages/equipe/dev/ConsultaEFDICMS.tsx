@@ -2,9 +2,10 @@ import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { useEFDOverview } from '@/hooks/useEFDData';
+import { useDomainConsultaEFDICMS } from '@/hooks/useDomainConsultaEFDICMS';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getApiUrl, currentAmbiente } from '@/config/api';
+import { getApiUrl } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,8 +30,6 @@ import {
   Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import type { EFDArquivo } from '@/types/efd';
@@ -125,37 +124,12 @@ const ConsultaEFDICMS = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd-icms"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('cliente')
-        .select("id, nome")
-        .eq("ativo", true)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome");
-      return (data || []) as unknown as { id: string; nome: string }[];
-    },
-  });
-
-  // Query de contribuintes (filtrado por cliente selecionado)
-  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd-icms", selectedCliente],
-    queryFn: async () => {
-      let query = supabase
-        .from('contribuinte')
-        .select("id, nome_razao_social, cpf_cnpj, cliente_id")
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-      
-      if (selectedCliente) {
-        query = query.eq("cliente_id", selectedCliente);
-      }
-      const { data } = await query;
-      return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null; cliente_id: string }[];
-    },
-  });
+  const {
+    clientes,
+    loadingClientes,
+    contribuintes,
+    loadingContribuintes,
+  } = useDomainConsultaEFDICMS(selectedCliente);
 
   // Auto-selecionar contribuinte quando cliente tem apenas um
   useEffect(() => {

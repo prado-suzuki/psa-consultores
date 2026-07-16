@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  useDomainEquipeDaily,
+  type DailyStandup,
+  type Process,
+  type Project,
+  type Sprint,
+  type TeamMember,
+} from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,41 +42,6 @@ import {
   Copy
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
-
-interface DailyStandup {
-  id: string;
-  user_id: string;
-  date: string;
-  did_yesterday: string | null;
-  will_do_today: string | null;
-  blockers: string | null;
-  created_at: string;
-  sprint_id: string | null;
-  project_id: string | null;
-  process_id: string | null;
-}
-
-interface TeamMember {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  project_id: string | null;
-}
 
 const EquipeDaily = () => {
   const { user } = useAuth();
@@ -109,107 +81,96 @@ const EquipeDaily = () => {
   const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
   const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
+  const {
+    teamMembersResult,
+    sprintsResult,
+    projectsResult,
+    processesResult,
+    standupsResult,
+    refetchStandups,
+    updateDailyStandup,
+    insertDailyStandup,
+    deleteDailyStandup,
+    copyFromYesterday,
+  } = useDomainEquipeDaily({
+    userId: user?.id,
+    today,
+    membersLoaded,
+    filters: {
+      startDate: filterStartDate,
+      endDate: filterEndDate,
+      person: filterPerson,
+      sprint: filterSprint,
+    },
+  });
 
   useEffect(() => {
     if (user) {
       setSelectedUserId(user.id);
-      fetchTeamMembers();
-      fetchSprints();
-      fetchProjects();
-      fetchProcesses();
     }
   }, [user]);
 
   useEffect(() => {
-    if (user && membersLoaded) {
-      fetchStandups();
+    if (!teamMembersResult) return;
+
+    if (teamMembersResult.roleProfiles) {
+      setTeamMembers(teamMembersResult.roleProfiles);
     }
-  }, [user, membersLoaded, filterStartDate, filterEndDate, filterPerson, filterSprint]);
 
-  const fetchTeamMembers = async () => {
-    try {
-      // Buscar membros da equipe via user_roles
-      const { data: rolesData } = await supabase
-        .from('user_roles')
-        .select('user_id')
-        .in('role', ['team_member', 'admin']);
-
-      if (rolesData && rolesData.length > 0) {
-        const userIds = rolesData.map(r => r.user_id);
-        
-        const { data: profilesData } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', userIds);
-
-        if (profilesData) {
-          setTeamMembers(profilesData);
-        }
-      }
-
-      // Também buscar todos os perfis de quem tem daily (para garantir que apareçam os nomes)
-      const { data: standupUsers } = await supabase
-        .from('daily_standups')
-        .select('user_id');
-      
-      if (standupUsers && standupUsers.length > 0) {
-        const uniqueUserIds = [...new Set(standupUsers.map(s => s.user_id))];
-        
-        const { data: additionalProfiles } = await supabase
-          .from('profiles_safe')
-          .select('id, first_name, last_name')
-          .in('id', uniqueUserIds);
-
-        if (additionalProfiles) {
-          setTeamMembers(prev => {
-            const existingIds = new Set(prev.map(m => m.id));
-            const newMembers = additionalProfiles.filter(p => !existingIds.has(p.id));
-            return [...prev, ...newMembers];
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-    } finally {
-      setMembersLoaded(true);
+    if (teamMembersResult.additionalProfiles) {
+      const additionalProfiles = teamMembersResult.additionalProfiles;
+      setTeamMembers(prev => {
+        const existingIds = new Set(prev.map(member => member.id));
+        const newMembers = additionalProfiles.filter(
+          profile => !existingIds.has(profile.id),
+        );
+        return [...prev, ...newMembers];
+      });
     }
-  };
 
-  const fetchSprints = async () => {
-    try {
-      const { data } = await supabase
-        .from('sprints')
-        .select('id, name')
-        .order('start_date', { ascending: false });
-      setSprints(data || []);
-    } catch (error) {
-      console.error('Error fetching sprints:', error);
-    }
-  };
+    setMembersLoaded(true);
+  }, [teamMembersResult]);
 
-  const fetchProjects = async () => {
-    try {
-      const { data } = await supabase
-        .from('projects')
-        .select('id, name')
-        .order('name', { ascending: true });
-      setProjects(data || []);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
+  useEffect(() => {
+    if (sprintsResult?.data) {
+      setSprints(sprintsResult.data);
     }
-  };
+  }, [sprintsResult]);
 
-  const fetchProcesses = async () => {
-    try {
-      const { data } = await supabase
-        .from('processes')
-        .select('id, name, project_id')
-        .order('name', { ascending: true });
-      setProcesses(data || []);
-    } catch (error) {
-      console.error('Error fetching processes:', error);
+  useEffect(() => {
+    if (projectsResult?.data) {
+      setProjects(projectsResult.data);
     }
-  };
+  }, [projectsResult]);
+
+  useEffect(() => {
+    if (processesResult?.data) {
+      setProcesses(processesResult.data);
+    }
+  }, [processesResult]);
+
+  useEffect(() => {
+    if (!standupsResult) return;
+
+    if (standupsResult.myStandup) {
+      const standup = standupsResult.myStandup;
+      setMyStandup(standup);
+      setForm({
+        did_yesterday: standup.did_yesterday || '',
+        will_do_today: standup.will_do_today || '',
+        blockers: standup.blockers || '',
+        sprint_id: standup.sprint_id || '',
+        project_id: standup.project_id || '',
+        process_id: standup.process_id || ''
+      });
+    }
+
+    if (standupsResult.standups) {
+      setStandups(standupsResult.standups);
+    }
+
+    setLoading(false);
+  }, [standupsResult]);
 
   // Filtrar processos pelo projeto selecionado
   const filteredProcesses = form.project_id
@@ -218,60 +179,7 @@ const EquipeDaily = () => {
 
   const fetchStandups = async () => {
     if (!user) return;
-    
-    try {
-      // Buscar o standup do usuário atual para hoje
-      const { data: myData } = await supabase
-        .from('daily_standups')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (myData) {
-        setMyStandup(myData);
-        setForm({
-          did_yesterday: myData.did_yesterday || '',
-          will_do_today: myData.will_do_today || '',
-          blockers: myData.blockers || '',
-          sprint_id: myData.sprint_id || '',
-          project_id: myData.project_id || '',
-          process_id: myData.process_id || ''
-        });
-      }
-
-      // Buscar standups com filtros
-      let query = supabase
-        .from('daily_standups')
-        .select('*')
-        .order('date', { ascending: false })
-        .order('created_at', { ascending: false });
-
-      // Aplicar filtro de período
-      if (filterStartDate) {
-        query = query.gte('date', filterStartDate);
-      }
-      if (filterEndDate) {
-        query = query.lte('date', filterEndDate);
-      }
-
-      // Filtro de sprint
-      if (filterSprint !== 'all') {
-        query = query.eq('sprint_id', filterSprint);
-      }
-
-      // Filtro de pessoa
-      if (filterPerson !== 'all') {
-        query = query.eq('user_id', filterPerson);
-      }
-
-      const { data: allStandups } = await query;
-      setStandups(allStandups || []);
-    } catch (error) {
-      console.error('Error fetching standups:', error);
-    } finally {
-      setLoading(false);
-    }
+    await refetchStandups();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -282,35 +190,31 @@ const EquipeDaily = () => {
     
     try {
       if (myStandup && selectedUserId === user.id) {
-        const { error } = await supabase
-          .from('daily_standups')
-          .update({
+        await updateDailyStandup.mutateAsync({
+          standupId: myStandup.id,
+          payload: {
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
             blockers: form.blockers || null,
             sprint_id: form.sprint_id || null,
             project_id: form.project_id || null,
             process_id: form.process_id || null
-          })
-          .eq('id', myStandup.id);
+          },
+        });
 
-        if (error) throw error;
         toast({ title: "Daily atualizado", description: "Seu registro foi atualizado." });
       } else {
-        const { error } = await supabase
-          .from('daily_standups')
-          .insert({
-            user_id: selectedUserId,
-            date: today,
-            did_yesterday: form.did_yesterday,
-            will_do_today: form.will_do_today,
-            blockers: form.blockers || null,
-            sprint_id: form.sprint_id || null,
-            project_id: form.project_id || null,
-            process_id: form.process_id || null
-          });
+        await insertDailyStandup.mutateAsync({
+          user_id: selectedUserId,
+          date: today,
+          did_yesterday: form.did_yesterday,
+          will_do_today: form.will_do_today,
+          blockers: form.blockers || null,
+          sprint_id: form.sprint_id || null,
+          project_id: form.project_id || null,
+          process_id: form.process_id || null
+        });
 
-        if (error) throw error;
         toast({ title: "Daily registrado", description: "O registro foi salvo com sucesso." });
       }
 
@@ -331,16 +235,7 @@ const EquipeDaily = () => {
     if (!user || copyingYesterday) return;
     setCopyingYesterday(true);
     try {
-      const { data, error } = await supabase
-        .from('daily_standups')
-        .select('will_do_today, date')
-        .eq('user_id', user.id)
-        .lt('date', today)
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await copyFromYesterday.mutateAsync({ copyUserId: user.id, copyDate: today });
 
       if (!data || !data.will_do_today?.trim()) {
         toast({
@@ -380,17 +275,15 @@ const EquipeDaily = () => {
     setEditSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('daily_standups')
-        .update({
+      await updateDailyStandup.mutateAsync({
+        standupId: editingStandup.id,
+        payload: {
           did_yesterday: editForm.did_yesterday,
           will_do_today: editForm.will_do_today,
           blockers: editForm.blockers || null
-        })
-        .eq('id', editingStandup.id);
+        },
+      });
 
-      if (error) throw error;
-      
       toast({ title: "Daily atualizado", description: "O registro foi atualizado com sucesso." });
       setEditingStandup(null);
       fetchStandups();
@@ -408,12 +301,7 @@ const EquipeDaily = () => {
 
   const handleDelete = async (standupId: string) => {
     try {
-      const { error } = await supabase
-        .from('daily_standups')
-        .delete()
-        .eq('id', standupId);
-
-      if (error) throw error;
+      await deleteDailyStandup.mutateAsync(standupId);
       
       toast({ title: "Daily excluído", description: "O registro foi removido." });
       fetchStandups();

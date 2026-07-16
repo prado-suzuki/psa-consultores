@@ -4,6 +4,7 @@ import { usePisCofinsApuracao } from "@/hooks/usePisCofinsApuracao";
 import { usePisCofinsCalculator } from "@/hooks/usePisCofinsCalculator";
 import { usePisCofinsImportStatus } from "@/hooks/usePisCofinsImportStatus";
 import { useTableHeaders } from "@/hooks/useTableHeaders";
+import { useDomainApuracaoPisCofins } from "@/hooks/useDomainApuracaoPisCofins";
 import { ApuracaoDataTable } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import { BalanceteTreeTable } from "@/components/equipe/dev/pis-cofins/BalanceteTreeTable";
 import { DynamicTableHeader } from "@/components/equipe/dev/pis-cofins/DynamicTableHeader";
@@ -23,9 +24,6 @@ import { Search, Loader2, Eraser, AlertCircle, Info, Filter } from "lucide-react
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { currentAmbiente } from "@/config/api";
-import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import type { StickyColumnConfig } from "@/components/equipe/dev/pis-cofins/ApuracaoDataTable";
 import type { ResultadoPeriodo, RateioResultado } from "@/types/pisCofins";
@@ -271,34 +269,9 @@ const ApuracaoPisCofins = () => {
   const [extraContas, setExtraContas] = useState<Map<string, { tipo: "D" | "C"; desc: string }>>(new Map());
 
   // ── Queries de clientes e contribuintes ──
-  const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-piscofins"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("cliente")
-        .select("id, nome")
-        .eq("ativo", true)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome");
-      return (data || []) as { id: string; nome: string }[];
-    },
-  });
-
-  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-piscofins", selectedCliente],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("contribuinte")
-        .select("id, nome_razao_social, cpf_cnpj")
-        .eq("cliente_id", selectedCliente)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-      return (data || []) as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
-    },
-    enabled: !!selectedCliente,
-  });
+  const { clientesQuery, contribuintesQuery } = useDomainApuracaoPisCofins(selectedCliente);
+  const { data: clientes, isLoading: loadingClientes } = clientesQuery;
+  const { data: contribuintes, isLoading: loadingContribuintes } = contribuintesQuery;
 
   useEffect(() => {
     if (selectedCliente && contribuintes?.length === 1 && !selectedContribuinte) {

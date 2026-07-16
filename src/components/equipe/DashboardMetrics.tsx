@@ -1,39 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { SprintHoursDashboard } from '@/components/sprint/SprintHoursDashboard';
+import {
+  useDomainDashboardMetrics,
+  type DashboardMetricDeliverable,
+} from '@/hooks/useDomainDashboardMetrics';
 import { X } from 'lucide-react';
-
-interface Deliverable {
-  id: string;
-  title: string;
-  assigned_to: string | null;
-  due_date: string;
-  estimated_hours: number | null;
-  status: string;
-  parent_id: string | null;
-  sprint_id: string;
-}
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface SprintOption {
-  id: string;
-  name: string;
-}
 
 const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export function DashboardMetrics() {
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [sprints, setSprints] = useState<SprintOption[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useDomainDashboardMetrics();
+  const deliverables = data?.deliverables ?? [];
+  const profiles = data?.profiles ?? [];
+  const sprints = data?.sprints ?? [];
 
   const [sprintFilter, setSprintFilter] = useState<string>('all');
   const [filterResponsible, setFilterResponsible] = useState<string>('all');
@@ -42,45 +23,6 @@ export function DashboardMetrics() {
   const [filterMonth, setFilterMonth] = useState<string>('__none__');
   const [filterMetricsPerson, setFilterMetricsPerson] = useState<string>('__none__');
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      // Apenas sprints ativas
-      const { data: sprintsData } = await supabase
-        .from('sprints')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name', { ascending: true });
-
-      const activeSprints = sprintsData || [];
-      setSprints(activeSprints);
-
-      if (activeSprints.length > 0) {
-        const sprintIds = activeSprints.map((s) => s.id);
-        const { data: deliverablesData } = await supabase
-          .from('sprint_deliverables')
-          .select('*')
-          .in('sprint_id', sprintIds)
-          .order('due_date', { ascending: true });
-        setDeliverables(deliverablesData || []);
-      } else {
-        setDeliverables([]);
-      }
-
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name');
-      setProfiles(profilesData || []);
-    } catch (error) {
-      console.error('Error fetching metrics data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Deliverables da(s) sprint(s) selecionada(s)
   const sprintScopedDeliverables = useMemo(() => {
     if (sprintFilter === 'all') return deliverables;
@@ -88,7 +30,7 @@ export function DashboardMetrics() {
   }, [deliverables, sprintFilter]);
 
   // Mesma lógica de filtros do detalhe da sprint
-  const matchesFilter = (d: Deliverable): boolean => {
+  const matchesFilter = (d: DashboardMetricDeliverable): boolean => {
     if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
     if (filterStatus !== 'all' && d.status !== filterStatus) return false;
     return true;

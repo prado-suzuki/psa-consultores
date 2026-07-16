@@ -1,4 +1,9 @@
-import { useMutation, useQuery, type UseMutationResult } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  type UseMutationOptions,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
@@ -32,6 +37,11 @@ export type PerSituacaoUpdate = PerSituacaoTable['Update'];
 export type DcompInsert = DcompTable['Insert'];
 export type DistribuicaoDcompInsert = DistribuicaoDcompTable['Insert'];
 export type DistribuicaoDcompAmostra = Pick<DistribuicaoDcompTable['Row'], 'id'>;
+
+type DomainMutationOptions<TData, TVariables> = Omit<
+  UseMutationOptions<TData, Error, TVariables>,
+  'mutationFn' | 'mutationKey'
+>;
 
 export interface AtualizarPerPorNumeroInput {
   nrPer: string | undefined;
@@ -329,5 +339,64 @@ export function useInserirDistribuicoesDcompEmLote(): UseMutationResult<
       const { error } = await supabase.from('distribuicao_dcomp').insert(payload);
       if (error) throw error;
     },
+  });
+}
+
+export function useExcluirPerDcompDefinitivamente(
+  type: 'per' | 'dcomp',
+  identifier: string,
+  options?: DomainMutationOptions<void, void>,
+): UseMutationResult<void, Error, void> {
+  return useMutation({
+    mutationFn: async () => {
+      if (type === 'per') {
+        // Buscar DCOMPs filhos para apagar as distribuições primeiro
+        const { data: dcompsFilhos, error: dcompsErr } = await supabase
+          .from('dcomp')
+          .select('nr_documento')
+          .eq('nr_per_orig', identifier);
+        if (dcompsErr) throw dcompsErr;
+
+        const nrDocs = (dcompsFilhos || []).map((d) => d.nr_documento);
+        if (nrDocs.length > 0) {
+          const { error: distErr } = await supabase
+            .from('distribuicao_dcomp')
+            .delete()
+            .in('nr_documento', nrDocs);
+          if (distErr) throw distErr;
+        }
+
+        const { error: dcompErr } = await supabase
+          .from('dcomp')
+          .delete()
+          .eq('nr_per_orig', identifier);
+        if (dcompErr) throw dcompErr;
+
+        const { error: sitErr } = await supabase
+          .from('per_situacao')
+          .delete()
+          .eq('nr_proc_per', identifier);
+        if (sitErr) throw sitErr;
+
+        const { error: perErr } = await supabase
+          .from('per')
+          .delete()
+          .eq('nr_per', identifier);
+        if (perErr) throw perErr;
+      } else {
+        const { error: distErr } = await supabase
+          .from('distribuicao_dcomp')
+          .delete()
+          .eq('nr_documento', identifier);
+        if (distErr) throw distErr;
+
+        const { error } = await supabase
+          .from('dcomp')
+          .delete()
+          .eq('nr_documento', identifier);
+        if (error) throw error;
+      }
+    },
+    ...options,
   });
 }

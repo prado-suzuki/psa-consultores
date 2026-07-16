@@ -1,9 +1,7 @@
 // Constants, formatters, and factory functions for client form — extracted from NewClientModal
 
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { parseDate } from "@/lib/dateUtils";
-import type { DraftOrdemServico } from "@/types/clientForm";
 
 // --- Dropdown options ---
 
@@ -111,44 +109,6 @@ export const isoToMasked = (iso: string): string => {
 
 export const formatCurrencyDisplay = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
-
-// --- Auto-generate OS number (XXX/AAAA) ---
-
-export const generateNextOsNumber = async (localContracts: DraftOrdemServico[]): Promise<string> => {
-  const year = new Date().getFullYear();
-  const suffix = `/${year}`;
-
-  const { data } = await (supabase.from("ordem_servico" as any) as any)
-    .select("numero_os")
-    .like("numero_os", `%${suffix}`)
-    .order("numero_os", { ascending: false })
-    .limit(1000);
-
-  let maxSeq = 0;
-
-  if (data && data.length > 0) {
-    for (const row of data) {
-      const match = (row.numero_os as string)?.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  for (const c of localContracts) {
-    if (c.ordem_servico?.endsWith(suffix)) {
-      const match = c.ordem_servico.match(/^(\d+)\//);
-      if (match) {
-        const seq = parseInt(match[1], 10);
-        if (seq > maxSeq) maxSeq = seq;
-      }
-    }
-  }
-
-  const next = (maxSeq + 1).toString().padStart(3, "0");
-  return `${next}${suffix}`;
-};
 
 // --- Default / factory functions ---
 

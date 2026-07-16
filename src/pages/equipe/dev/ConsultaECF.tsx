@@ -4,8 +4,9 @@ import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { useEFDOverview } from '@/hooks/useEFDData';
 import { EFDExportDialog } from '@/components/equipe/dev/EFDExportDialog';
 import { EFDAnalysisModal } from '@/components/equipe/dev/EFDAnalysisModal';
-import { getApiUrl, currentAmbiente } from '@/config/api';
+import { getApiUrl } from '@/config/api';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useDomainConsultaECF } from '@/hooks/useDomainConsultaECF';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -29,8 +30,6 @@ import {
   Info,
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import type { EFDArquivo } from '@/types/efd';
 import { RequiredMark } from '@/components/ui/required-mark';
@@ -128,36 +127,10 @@ const ConsultaECF = () => {
   const [mesFim, setMesFim] = useState<{ month: number; year: number } | null>(defaultDates.fim);
   const [searchTriggered, setSearchTriggered] = useState(false);
 
-  const { data: clientes, isLoading: loadingClientes } = useQuery({
-    queryKey: ["clientes-efd-ecf"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('cliente')
-        .select("id, nome")
-        .eq("ativo", true)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome");
-      return (data || []) as unknown as { id: string; nome: string }[];
-    },
-  });
-
-  const { data: contribuintes, isLoading: loadingContribuintes } = useQuery({
-    queryKey: ["contribuintes-efd-ecf", selectedCliente],
-    queryFn: async () => {
-      let query = supabase
-        .from('contribuinte')
-        .select("id, nome_razao_social, cpf_cnpj, cliente_id")
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-      if (selectedCliente) {
-        query = query.eq("cliente_id", selectedCliente);
-      }
-      const { data } = await query;
-      return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null; cliente_id: string }[];
-    },
-  });
+  const {
+    clientesQuery: { data: clientes, isLoading: loadingClientes },
+    contribuintesQuery: { data: contribuintes, isLoading: loadingContribuintes },
+  } = useDomainConsultaECF(selectedCliente);
 
   useEffect(() => {
     if (selectedCliente && contribuintes && contribuintes.length === 1 && !selectedContribuinte) {

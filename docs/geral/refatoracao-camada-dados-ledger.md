@@ -2,8 +2,8 @@
 
 **Fonte:** `docs/geral/reducao-custo-ia-tarefas.md` (T4/T5/T6)
 **Regra base:** `AGENTS.md` §"REGRAS INEGOCIÁVEIS" nº1 — nenhuma chamada `supabase.from/rpc` em `src/pages`/`src/components`.
-**Gerado (Fase 0):** inventário das 42 ocorrências, classificado por risco e ordenado.
-**Aceite T4:** `git grep 'supabase\.from\|supabase\.rpc' -- src/pages src/components` = 0 (ou exceção com comentário).
+**Gerado (Fase 0):** inventário inicial de linha única, complementado na Onda 4 por busca multiline.
+**Aceite T4:** busca multiline por `supabase\s*\.\s*(from|rpc)\s*\(` em `src/pages`/`src/components` = 0 fora dos testes e da Fase 2.
 
 ## Como ler
 
@@ -18,14 +18,14 @@
 - [x] **Mecanismo de auditoria — CONFIRMADO (gap pré-existente).** A auditoria **não** é feita por trigger no
   banco: os 95 triggers do schema `public` fazem `updated_at`/RLS/validações, **nenhum** escreve em `audit_logs`.
   O único produtor de `audit_logs` é `src/hooks/useAuditLog.ts` (insert com `performed_by = auth.uid()`, exigido
-  pela policy `rls_audit_logs_insert`). Como **nenhum** dos 42 arquivos importa `useAuditLog`, as mutations deles
+  pela policy `rls_audit_logs_insert`). Como **nenhum** dos arquivos do inventário inicial importa `useAuditLog`, as mutations deles
   **não são auditadas hoje**. → Ver decisão de escopo abaixo. Mover a mutation para hook é seguro em si (não há
   trigger a preservar); a questão é se aproveitamos para **fechar o gap** ou apenas movemos como está.
   **DECISÃO (usuário):** *preservar comportamento* — mover a mutation como está, **sem** adicionar `useAuditLog`, e
   registrar cada CUD sem auditoria em `docs/geral/auditoria-gaps-cud.md` para virar tarefa separada depois.
-- [ ] **Filtros de tenancy/soft-delete.** Preservar `.eq('ambiente', …)`, `.eq('excluido', false)`, `.eq('ativo', …)`
+- [x] **Filtros de tenancy/soft-delete.** Preservar `.eq('ambiente', …)`, `.eq('excluido', false)`, `.eq('ativo', …)`
   ao mover queries (ex.: `ControlePerdcomp.tsx:142`). Perder um filtro desses = vazamento entre ambientes.
-- [ ] **Reuso de hooks existentes.** Já existem `useCorrecoesSped.ts`, `useCorrecoesIcms.ts`, `useAuditLog.ts`,
+- [x] **Reuso de hooks existentes.** Já existem `useCorrecoesSped.ts`, `useCorrecoesIcms.ts`, `useAuditLog.ts`,
   `useClientesList.ts`. Rotear para o hook existente em vez de criar duplicado.
 
 ---
@@ -34,9 +34,10 @@
 
 | Bucket | Arquivos | Ocorrências |
 |---|---:|---:|
-| Total (T4) | 42 | 92 |
-| Exceções (tests + util) | 4 | 8 |
-| **Fase 1** — cauda longa (não-god) | 29 | ~48 |
+| Inventário inicial (linha única) | 42 | 92 |
+| Exceções atuais (tests) | 3 | mocks |
+| **Fase 1** — ledger original | 29 | ~48 |
+| **Fase 1** — fechamento multiline (Onda 4) | 41 | 147 |
 | **Fase 2** — god-components (T4+T5+T6) | 9 | ~36 |
 
 ---
@@ -48,7 +49,6 @@
 | `src/pages/equipe/mapa/MelhoriasPage.test.tsx` | mock `vi.mocked(supabase.from)` — teste |
 | `src/pages/equipe/mapa/ProcessosPage.test.tsx` | idem |
 | `src/pages/equipe/mapa/ProjetosPage.test.tsx` | idem |
-| `src/components/equipe/client-form/constants.ts` | **não é componente** (util). Avaliar mover p/ `useOrdemServicoNumero` ou `src/lib`. Se ficar, comentar exceção. |
 
 ---
 
@@ -105,6 +105,52 @@
 | feito (Onda 2) | `components/equipe/dev/perdcomp/CargaPerdcompCSV.tsx` | 3 | upsert `per` + insert `per_situacao`/`dcomp` |
 | feito (Onda 2) | `components/equipe/dev/perdcomp/PerFormModal.tsx` | 3 | insert `per` + `per_situacao` (x2) |
 | feito (Onda 2) | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | 1 | insert `per_situacao` |
+
+### 1e. Fechamento multiline — ocorrências omitidas pelo inventário de linha única
+
+| Status | Arquivo | Ocorr. | Hook destino |
+|---|---|---:|---|
+| feito (Onda 4) | `pages/administracao/AdminPerformance.tsx` | 6 | `useDomainAdminPerformance.ts` |
+| feito (Onda 4) | `pages/gestao/GestaoContatos.tsx` | 2 | `useDomainGestaoContatos.ts` |
+| feito (Onda 4) | `pages/Novidades.tsx` | 1 | `useDomainNovidades.ts` |
+| feito (Onda 4) | `pages/cliente/ClienteDashboard.tsx` | 3 | `useDomainClienteDashboard.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeDashboard.tsx` | 4 | `useDomainEquipeDashboard.ts` |
+| feito (Onda 4) | `components/equipe/HorasAcumuladas.tsx` | 3 | `useDomainHorasAcumuladas.ts` |
+| feito (Onda 4) | `components/equipe/NewStageForm.tsx` | 1 | `useDomainNewStageForm.ts` |
+| feito (Onda 4) | `components/equipe/ImprovementHistoryModal.tsx` | 2 | `useDomainImprovementHistory.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeBiblioteca.tsx` | 5 | `useDomainEquipeBiblioteca.ts` |
+| feito (Onda 4) | `components/equipe/DashboardMetrics.tsx` | 3 | `useDomainDashboardMetrics.ts` |
+| feito (Onda 4) | `components/equipe/mapeamento/ScenarioCreateModal.tsx` | 1 | `useDomainScenarioCreate.ts` |
+| feito (Onda 4) | `components/equipe/ImpactDashboard.tsx` | 5 | `useDomainImpactDashboard.ts` |
+| feito (Onda 4) | `components/equipe/ProcessImprovementModal.tsx` | 5 | `useDomainProcessImprovement.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeAuth.tsx` | 1 | `useDomainEquipeAuth.ts` |
+| feito (Onda 4) | `components/equipe/CreateProcessModal.tsx` | 3 | `useDomainCreateProcess.ts` |
+| feito (Onda 4) | `components/equipe/StageEditCard.tsx` | 2 | `useDomainStageEdit.ts` |
+| feito (Onda 4) | `components/equipe/SOPConfigModal.tsx` | 1 | `useDomainSOPConfig.ts` |
+| feito (Onda 4) | `pages/equipe/dev/IcmsSaidas.tsx` | 2 | `useDomainIcmsSaidas.ts` |
+| feito (Onda 4) | `pages/equipe/dev/GerenciarDados.tsx` | 6 | `useDomainGerenciarDados.ts` |
+| feito (Onda 4) | `components/equipe/estrutura/EstruturaManager.tsx` | 1 | `useDomainEstruturaManager.ts` |
+| feito (Onda 4) | `pages/equipe/dev/DetalheFerramenta.tsx` | 7 | `useDomainDetalheFerramenta.ts` |
+| feito (Onda 4) | `pages/equipe/dev/NovaFerramenta.tsx` | 2 | `useDomainNovaFerramenta.ts` |
+| feito (Onda 4) | `pages/equipe/fiscal/FiscalProjetosCadastro.tsx` | 2 | `useDomainFiscalProjetosCadastro.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeRelatorios.tsx` | 1 | `useDomainEquipeRelatorios.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ApuracaoPisCofins.tsx` | 2 | `useDomainApuracaoPisCofins.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ControleBalancetes.tsx` | 2 | `useDomainControleBalancetes.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ConsultaECF.tsx` | 2 | `useDomainConsultaECF.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ConsultaEFDICMS.tsx` | 2 | `useDomainConsultaEFDICMS.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ConsultaECD.tsx` | 2 | `useDomainConsultaECD.ts` |
+| feito (Onda 4) | `components/equipe/dev/DifalAuditModal.tsx` | 2 | `useDomainDifalAudit.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ConsultaEFD.tsx` | 2 | `useDomainConsultaEFD.ts` |
+| feito (Onda 4) | `pages/equipe/dev/ConsultaXMLs.tsx` | 2 | `useDomainConsultaXMLs.ts` |
+| feito (Onda 4) | `components/equipe/dev/perdcomp/SoftDeleteModal.tsx` | 7 | `useDomainPerdcomp.ts` |
+| feito (Onda 4) | `components/equipe/client-form/constants.ts` + `ContratosTab.tsx` | 1 | `useDomainOrdemServicoNumero.ts` |
+| feito (Onda 4) | `components/equipe/dev/balancete/UploadBalanceteModal.tsx` | 5 | `useDomainUploadBalancete.ts` |
+| feito (Onda 4) | `components/equipe/dev/correcoes-sped/TabA170.tsx` | 4 | `useCorrecoesSped.ts` |
+| feito (Onda 4) | `components/equipe/dev/correcoes-sped/TabC170.tsx` | 4 | `useCorrecoesSped.ts` |
+| feito (Onda 4) | `components/equipe/board/BoardLayout.tsx` | 3 | `useDomainBoardLayout.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeDaily.tsx` | 14 | `useDomainEquipeDaily.ts` |
+| feito (Onda 4) | `pages/equipe/EquipeSprintDetalhes.tsx` | 21 | `useDomainEquipeSprintDetalhes.ts` |
+| feito (Onda 4) | `pages/administracao/AdminUsuarios.tsx` | 5 | `useDomainAdminUsuarios.ts` |
 
 ---
 

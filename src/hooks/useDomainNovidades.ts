@@ -57,6 +57,7 @@ interface UseDomainNovidadesOptions {
 }
 
 export const novidadesQueryKey = ['gestao-novidades'] as const;
+export const novidadesPublicasQueryKey = ['novidades-publicas'] as const;
 
 function buildNovidadePayload(data: NovidadeFormData) {
   return {
@@ -73,6 +74,24 @@ function buildNovidadePayload(data: NovidadeFormData) {
     imagem_lateral_posicao: data.imagem_lateral_posicao || 'direita',
     texto_original: data.texto_original || null,
   };
+}
+
+export function usePublicNovidades() {
+  return useQuery({
+    queryKey: novidadesPublicasQueryKey,
+    staleTime: 0,
+    gcTime: 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('novidades')
+        .select('*')
+        .eq('ativo', true)
+        .order('data_publicacao', { ascending: false });
+
+      if (error) throw error;
+      return data as Novidade[];
+    },
+  });
 }
 
 export function useDomainNovidades({ onFormSaved }: UseDomainNovidadesOptions) {

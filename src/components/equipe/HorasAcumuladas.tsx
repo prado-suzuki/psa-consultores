@@ -1,22 +1,7 @@
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { useDomainHorasAcumuladas } from '@/hooks/useDomainHorasAcumuladas';
 import { Clock, User } from 'lucide-react';
-
-interface TeamMember {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface HoursData {
-  userId: string;
-  name: string;
-  sprintHours: number;
-  routineHours: number;
-  total: number;
-}
 
 interface HorasAcumuladasProps {
   sprintId?: string;
@@ -31,93 +16,10 @@ export const HorasAcumuladas = ({
   title = "Horas Alocadas por Pessoa",
   maxHoursPerWeek = 40
 }: HorasAcumuladasProps) => {
-  const [hoursData, setHoursData] = useState<HoursData[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchHoursData();
-  }, [sprintId]);
-
-  const fetchHoursData = async () => {
-    try {
-      // Fetch team members
-      const { data: members } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .order('first_name');
-
-      if (!members) return;
-
-      const hoursMap: Record<string, HoursData> = {};
-      
-      // Initialize all members
-      members.forEach(member => {
-        hoursMap[member.id] = {
-          userId: member.id,
-          name: `${member.first_name} ${member.last_name}`.trim() || 'Sem nome',
-          sprintHours: 0,
-          routineHours: 0,
-          total: 0
-        };
-      });
-
-      // Fetch sprint hours from deliverables
-      let deliverablesQuery = supabase
-        .from('sprint_deliverables')
-        .select('assigned_to, estimated_hours');
-      
-      if (sprintId) {
-        deliverablesQuery = deliverablesQuery.eq('sprint_id', sprintId);
-      }
-
-      const { data: deliverables } = await deliverablesQuery;
-
-      if (deliverables) {
-        deliverables.forEach(deliverable => {
-          if (deliverable.assigned_to && deliverable.estimated_hours && hoursMap[deliverable.assigned_to]) {
-            hoursMap[deliverable.assigned_to].sprintHours += Number(deliverable.estimated_hours);
-          }
-        });
-      }
-
-      // Fetch routine hours if enabled
-      if (showRoutines) {
-        const { data: routines } = await supabase
-          .from('routines')
-          .select('assigned_to, estimated_hours, frequency');
-
-        if (routines) {
-          routines.forEach(routine => {
-            if (routine.assigned_to && routine.estimated_hours && hoursMap[routine.assigned_to]) {
-              // Convert to weekly hours based on frequency
-              let weeklyHours = Number(routine.estimated_hours);
-              if (routine.frequency === 'daily') {
-                weeklyHours *= 5; // 5 work days
-              } else if (routine.frequency === 'monthly') {
-                weeklyHours /= 4; // 4 weeks per month
-              }
-              hoursMap[routine.assigned_to].routineHours += weeklyHours;
-            }
-          });
-        }
-      }
-
-      // Calculate totals and filter out members with no hours
-      const result = Object.values(hoursMap)
-        .map(data => ({
-          ...data,
-          total: data.sprintHours + data.routineHours
-        }))
-        .filter(data => data.total > 0)
-        .sort((a, b) => b.total - a.total);
-
-      setHoursData(result);
-    } catch (error) {
-      console.error('Error fetching hours data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: hoursData = [], isLoading: loading } = useDomainHorasAcumuladas({
+    sprintId,
+    showRoutines,
+  });
 
   const getProgressColor = (total: number) => {
     const percentage = (total / maxHoursPerWeek) * 100;

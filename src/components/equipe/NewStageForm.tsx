@@ -1,5 +1,4 @@
  import { useState } from 'react';
- import { supabase } from '@/integrations/supabase/client';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@
  import { toast } from '@/hooks/use-toast';
  import { Plus, Save, X, Loader2 } from 'lucide-react';
  import { RequiredMark } from '@/components/ui/required-mark';
+ import { useCreateProcessStage } from '@/hooks/useDomainNewStageForm';
  
  interface NewStageFormProps {
    processId: string;
@@ -27,6 +27,7 @@
  
  export function NewStageForm({ processId, nextOrder, onCreated, onCancel }: NewStageFormProps) {
    const [saving, setSaving] = useState(false);
+   const createProcessStage = useCreateProcessStage();
    const [form, setForm] = useState({
      name: '',
      description: '',
@@ -50,36 +51,18 @@
  
      setSaving(true);
      try {
-       const { error } = await supabase
-         .from('process_stages')
-         .insert({
-           process_id: processId,
-           stage_order: nextOrder,
-           name: form.name.trim(),
-           description: form.description.trim() || null,
-           responsible: form.responsible.trim() || null,
-           time_current: form.time_current.trim() || null,
-           time_target: form.time_target.trim() || null,
-           frequency: form.frequency.trim() || null,
-           volume: form.volume.trim() || null,
-           automation_level: form.automation_level === 'none' ? null : form.automation_level,
-           inputs: [],
-           outputs: [],
-           systems: []
-         });
- 
-       if (error) throw error;
+       await createProcessStage.mutateAsync({ processId, nextOrder, form });
  
        toast({
          title: "Etapa criada",
          description: "A nova etapa foi adicionada com sucesso."
        });
        onCreated();
-     } catch (error: any) {
+     } catch (error) {
        console.error('Error creating stage:', error);
        toast({
          title: "Erro ao criar",
-         description: error.message,
+         description: (error as Error).message,
          variant: "destructive"
        });
      } finally {

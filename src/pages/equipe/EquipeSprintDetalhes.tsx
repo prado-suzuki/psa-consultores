@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { EquipeLayout } from "@/components/equipe/EquipeLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,104 +14,107 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  useDomainEquipeSprintDetalhes,
+  type SprintDetalhesDeliverable as Deliverable,
+  type SprintDetalhesEvent as SprintEvent,
+  type SprintDetalhesMetric as Metric,
+} from "@/hooks/useDomainEquipeSprintDetalhes";
 import { ArrowLeft, X, ChevronDown, ChevronRight, Users, Package, Edit2, Trash2, AlertTriangle, Clock, CalendarClock, Plus, Upload, FileSpreadsheet, FolderOpen, Settings, Download } from "lucide-react";
 import * as XLSX from 'xlsx';
 import { format, differenceInDays, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { parseDate, isTodayBrazil, isTomorrowBrazil, isPastBrazil, getTodayBrazil } from "@/lib/dateUtils";
-import { parseExcelFile, processExcelData, findProfileByName, ImportPreview, TaskGroup } from "@/lib/excelImporter";
+import { parseExcelFile, processExcelData, ImportPreview } from "@/lib/excelImporter";
 import { SprintCalendar } from "@/components/sprint/SprintCalendar";
 import { SprintHoursDashboard } from "@/components/sprint/SprintHoursDashboard";
-import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 
-interface Sprint {
-  id: string;
-  name: string;
-  goal: string | null;
-  start_date: string;
-  end_date: string;
-  status: string;
-  project_id: string | null;
-}
-
-interface Deliverable {
-  id: string;
-  title: string;
-  description: string | null;
-  assigned_to: string | null;
-  start_date: string | null;
-  due_date: string;
-  status: string;
-  estimated_hours: number | null;
-  parent_id: string | null;
-  task_code: string | null;
-  project_id: string | null;
-  process_id: string | null;
-  profile?: { first_name: string; last_name: string };
-}
-
-interface SprintEvent {
-  id: string;
-  title: string;
-  description: string | null;
-  event_date: string;
-  start_time: string | null;
-  end_time: string | null;
-  event_type: string;
-  participants: string[];
-}
-
-interface Metric {
-  id: string;
-  name: string;
-  target_value: number | null;
-  current_value: number | null;
-  unit: string | null;
-  category: string | null;
-}
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  project_id: string | null;
-}
-
-interface ProjectProcess {
-  process_id: string;
-  project_id: string;
-}
-
-
-
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return String(error);
+};
 
 export default function EquipeSprintDetalhes() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  const [sprint, setSprint] = useState<Sprint | null>(null);
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [events, setEvents] = useState<SprintEvent[]>([]);
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
-  
-  const [loading, setLoading] = useState(true);
+  const {
+    sprint,
+    deliverables,
+    events,
+    metrics,
+    profiles,
+    projects,
+    processes,
+    projectProcesses,
+    isLoading: loading,
+    isNotFound,
+    error: sprintDataError,
+    dataUpdatedAt,
+    refetch: refetchSprintData,
+    updateDeliverableStatus: updateDeliverableStatusMutation,
+    reorderDeliverables: reorderDeliverablesMutation,
+    updateDeliverable: updateDeliverableMutation,
+    deleteDeliverable: deleteDeliverableMutation,
+    updateMetric: updateMetricMutation,
+    createDeliverable: createDeliverableMutation,
+    importDeliverables: importDeliverablesMutation,
+  } = useDomainEquipeSprintDetalhes(id);
+  const handledQueryErrorRef = useRef<unknown>(null);
+  const handledNotFoundAtRef = useRef(0);
+
+  const showSprintDataError = useCallback((error: unknown) => {
+    console.error("Error fetching sprint data:", error);
+    toast({ title: "Erro ao carregar dados", description: getErrorMessage(error), variant: "destructive" });
+  }, [toast]);
+
+  const showSprintNotFound = useCallback(() => {
+    toast({ title: "Sprint não encontrada", variant: "destructive" });
+    navigate("/equipe/sprints");
+  }, [navigate, toast]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    if (sprintDataError && handledQueryErrorRef.current !== sprintDataError) {
+      handledQueryErrorRef.current = sprintDataError;
+      showSprintDataError(sprintDataError);
+      return;
+    }
+
+    if (isNotFound && handledNotFoundAtRef.current !== dataUpdatedAt) {
+      handledNotFoundAtRef.current = dataUpdatedAt;
+      showSprintNotFound();
+    }
+  }, [
+    dataUpdatedAt,
+    isNotFound,
+    loading,
+    showSprintDataError,
+    showSprintNotFound,
+    sprintDataError,
+  ]);
+
+  const fetchSprintData = async () => {
+    const result = await refetchSprintData();
+
+    if (result.error) {
+      handledQueryErrorRef.current = result.error;
+      showSprintDataError(result.error);
+    } else if (result.data === null) {
+      handledNotFoundAtRef.current = result.dataUpdatedAt;
+      showSprintNotFound();
+    }
+  };
 
   // Filtros
   const [filterResponsible, setFilterResponsible] = useState<string>('all');
@@ -174,169 +177,12 @@ export default function EquipeSprintDetalhes() {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
 
-  useEffect(() => {
-    if (!id) return;
-    
-    fetchSprintData();
-
-    // Realtime: sync deliverables across users
-    const channel = supabase
-      .channel(`sprint-deliverables-${id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'sprint_deliverables',
-        filter: `sprint_id=eq.${id}`,
-      }, (payload) => {
-        if (payload.eventType === 'DELETE') {
-          setDeliverables(prev => prev.filter(d => d.id !== (payload.old as any).id));
-        } else if (payload.eventType === 'INSERT') {
-          setDeliverables(prev => {
-            if (prev.some(d => d.id === (payload.new as any).id)) return prev;
-            return [...prev, payload.new as unknown as Deliverable];
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          setDeliverables(prev =>
-            prev.map(d => d.id === (payload.new as any).id ? { ...d, ...payload.new } as Deliverable : d)
-          );
-        }
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [id]);
-
-  const fetchSprintData = async () => {
-    try {
-      setLoading(true);
-      
-      const { data: sprintData, error: sprintError } = await supabase
-        .from("sprints")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-      
-      if (sprintError) throw sprintError;
-      if (!sprintData) {
-        toast({ title: "Sprint não encontrada", variant: "destructive" });
-        navigate("/equipe/sprints");
-        return;
-      }
-      setSprint(sprintData);
-
-      // Apenas membros e gestores (líderes) das equipes do cluster "Digital" (PSA Digital)
-      const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
-      const { data: digitalAreas } = await supabase
-        .from('estrutura_areas')
-        .select('id')
-        .eq('cluster_id', DIGITAL_CLUSTER_ID);
-      const areaIds = (digitalAreas || []).map((a: any) => a.id);
-      let digitalUserIds: string[] = [];
-      if (areaIds.length > 0) {
-        const { data: digitalEquipes } = await supabase
-          .from('estrutura_equipes')
-          .select('id, gestor_id')
-          .in('area_id', areaIds);
-        const equipeIds = (digitalEquipes || []).map((e: any) => e.id);
-        const gestorIds = (digitalEquipes || []).map((e: any) => e.gestor_id).filter(Boolean);
-        const { data: digitalMembros } = equipeIds.length > 0
-          ? await supabase
-              .from('estrutura_equipe_membros')
-              .select('user_id')
-              .in('equipe_id', equipeIds)
-          : { data: [] as any[] };
-        digitalUserIds = Array.from(
-          new Set([
-            ...gestorIds,
-            ...((digitalMembros || []).map((m: any) => m.user_id).filter(Boolean)),
-          ])
-        );
-      }
-      if (digitalUserIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles_safe")
-          .select("id, first_name, last_name")
-          .in('id', digitalUserIds);
-        setProfiles(profilesData || []);
-      } else {
-        setProfiles([]);
-      }
-
-      const { data: deliverablesData } = await supabase
-        .from("sprint_deliverables")
-        .select("*")
-        .eq("sprint_id", id)
-        .order("due_date", { ascending: true });
-      setDeliverables(deliverablesData || []);
-
-      const { data: eventsData } = await supabase
-        .from("sprint_events")
-        .select("*")
-        .eq("sprint_id", id)
-        .order("event_date", { ascending: true })
-        .order("start_time", { ascending: true });
-      setEvents(eventsData || []);
-
-      const { data: metricsData } = await supabase
-        .from("sprint_metrics")
-        .select("*")
-        .eq("sprint_id", id);
-      setMetrics(metricsData || []);
-
-      // Carregar projetos e processos
-      const { data: projectsData } = await supabase
-        .from("projects")
-        .select("id, name")
-        .order("name");
-      setProjects(projectsData || []);
-
-
-      const { data: processesData } = await supabase
-        .from("processes")
-        .select("id, name, project_id")
-        .order("name");
-      setProcesses(processesData || []);
-
-      // Carregar associações projeto-processo
-      const { data: ppData } = await supabase
-        .from("project_processes")
-        .select("process_id, project_id");
-      setProjectProcesses(ppData || []);
-
-      
-    } catch (error: any) {
-      console.error("Error fetching sprint data:", error);
-      toast({ title: "Erro ao carregar dados", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const updateDeliverableStatus = async (deliverableId: string, newStatus: string) => {
     try {
-      const updates: any = { status: newStatus };
-      if (newStatus === 'completed') {
-        updates.completed_at = new Date().toISOString();
-      } else {
-        updates.completed_at = null;
-      }
-
-      const { error } = await supabase
-        .from("sprint_deliverables")
-        .update(updates)
-        .eq("id", deliverableId);
-
-      if (error) throw error;
-      
-      setDeliverables(prev => 
-        prev.map(d => d.id === deliverableId ? { ...d, ...updates } : d)
-      );
-
+      await updateDeliverableStatusMutation.mutateAsync({ deliverableId, newStatus });
       toast({ title: "Status atualizado" });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro", description: getErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -382,26 +228,15 @@ export default function EquipeSprintDetalhes() {
 
     if (toShift.length === 0) return;
 
-    const updates = toShift.map(s => {
+    const shifts = toShift.map(s => {
       const oldSuffix = parseSuffix(s.task_code!);
-      const newTaskCode = `${prefix}${oldSuffix + 1}`;
-      return supabase
-        .from("sprint_deliverables")
-        .update({ task_code: newTaskCode })
-        .eq("id", s.id);
+      return {
+        deliverableId: s.id,
+        taskCode: `${prefix}${oldSuffix + 1}`,
+      };
     });
 
-    await Promise.all(updates);
-
-    // Update local state
-    setDeliverables(prev => prev.map(d => {
-      const match = toShift.find(s => s.id === d.id);
-      if (match) {
-        const oldSuffix = parseSuffix(match.task_code!);
-        return { ...d, task_code: `${prefix}${oldSuffix + 1}` };
-      }
-      return d;
-    }));
+    await reorderDeliverablesMutation.mutateAsync({ shifts });
   };
 
   // Helper: suggest next task_code for a parent
@@ -451,22 +286,16 @@ export default function EquipeSprintDetalhes() {
         task_code: editForm.task_code || null
       };
 
-      const { error } = await supabase
-        .from("sprint_deliverables")
-        .update(updates)
-        .eq("id", editingDeliverable.id);
-
-      if (error) throw error;
-      
-      setDeliverables(prev => 
-        prev.map(d => d.id === editingDeliverable.id ? { ...d, ...updates } : d)
-      );
+      await updateDeliverableMutation.mutateAsync({
+        deliverableId: editingDeliverable.id,
+        updates,
+      });
 
       setEditModalOpen(false);
       setEditingDeliverable(null);
       toast({ title: "Entregável atualizado" });
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao salvar", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -478,46 +307,13 @@ export default function EquipeSprintDetalhes() {
     try {
       setDeleting(true);
 
-      // Pré-checagem de permissão (RLS) — evita erro silencioso quando o
-      // usuário não tem permissão para excluir o entregável.
-      await assertCanPerform('sprint_deliverables', 'delete', editingDeliverable.id);
-
-
-      // Primeiro, excluir anexos do storage e da tabela
-      const { data: attachmentsToDelete } = await supabase
-        .from('deliverable_attachments')
-        .select('id, file_path')
-        .eq('deliverable_id', editingDeliverable.id);
-
-      if (attachmentsToDelete && attachmentsToDelete.length > 0) {
-        // Precheck antes de mexer no storage — delete é em lote, amostra um id
-        await assertCanPerform('deliverable_attachments', 'delete', attachmentsToDelete[0].id);
-
-        await supabase.storage
-          .from('deliverable-attachments')
-          .remove(attachmentsToDelete.map(a => a.file_path));
-
-        await supabase
-          .from('deliverable_attachments')
-          .delete()
-          .eq('deliverable_id', editingDeliverable.id);
-      }
-
-      // Excluir o entregável
-      const { error } = await supabase
-        .from('sprint_deliverables')
-        .delete()
-        .eq('id', editingDeliverable.id);
-
-      if (error) throw error;
-
-      setDeliverables(prev => prev.filter(d => d.id !== editingDeliverable.id));
+      await deleteDeliverableMutation.mutateAsync(editingDeliverable.id);
       setEditModalOpen(false);
       setEditingDeliverable(null);
       setDeleteDialogOpen(false);
       toast({ title: "Entregável excluído" });
-    } catch (error: any) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao excluir", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setDeleting(false);
     }
@@ -525,20 +321,10 @@ export default function EquipeSprintDetalhes() {
 
   const updateMetric = async (metricId: string, newValue: number) => {
     try {
-      await assertCanPerform('sprint_metrics', 'update', metricId);
-      const { error } = await supabase
-        .from("sprint_metrics")
-        .update({ current_value: newValue })
-        .eq("id", metricId);
-
-      if (error) throw error;
-      
-      setMetrics(prev => 
-        prev.map(m => m.id === metricId ? { ...m, current_value: newValue } : m)
-      );
+      await updateMetricMutation.mutateAsync({ metricId, newValue });
       toast({ title: "Métrica atualizada" });
-    } catch (error: any) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro", description: getErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -569,15 +355,7 @@ export default function EquipeSprintDetalhes() {
         task_code: createForm.task_code || null
       };
 
-      const { data, error } = await supabase
-        .from("sprint_deliverables")
-        .insert(newDeliverable)
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setDeliverables(prev => [...prev, data]);
+      await createDeliverableMutation.mutateAsync(newDeliverable);
       setCreateModalOpen(false);
       setCreateForm({
         title: '',
@@ -592,8 +370,8 @@ export default function EquipeSprintDetalhes() {
         task_code: ''
       });
       toast({ title: "Tarefa criada com sucesso" });
-    } catch (error: any) {
-      toast({ title: "Erro ao criar tarefa", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao criar tarefa", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setCreating(false);
     }
@@ -617,8 +395,8 @@ export default function EquipeSprintDetalhes() {
         initialMapping[name] = '';
       });
       setResponsibleMapping(initialMapping);
-    } catch (error: any) {
-      toast({ title: "Erro ao ler arquivo", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao ler arquivo", description: getErrorMessage(error), variant: "destructive" });
       setImportFile(null);
       setImportPreview(null);
     }
@@ -631,77 +409,12 @@ export default function EquipeSprintDetalhes() {
     try {
       setImporting(true);
 
-      // For each task group, create parent and subtasks
-      for (const group of importPreview.taskGroups) {
-        // Find responsible profile
-        const responsibleName = group.responsible;
-        let responsibleId: string | null = null;
-
-        if (responsibleName) {
-          if (responsibleMapping[responsibleName]) {
-            responsibleId = responsibleMapping[responsibleName];
-          } else {
-            const profile = findProfileByName(responsibleName, profiles);
-            responsibleId = profile?.id || null;
-          }
-        }
-
-        // Create parent task
-        const { data: parentData, error: parentError } = await supabase
-          .from("sprint_deliverables")
-          .insert({
-            sprint_id: sprint.id,
-            title: group.title,
-            description: `${group.subtasks.length} subtarefas • ${group.totalHours}h total`,
-            assigned_to: responsibleId,
-            start_date: group.minDate || sprint.start_date,
-            due_date: group.maxDate || sprint.end_date,
-            estimated_hours: group.totalHours,
-            status: 'pending',
-            parent_id: null,
-            task_code: null
-          })
-          .select()
-          .single();
-
-        if (parentError) throw parentError;
-
-        // Create subtasks with parent_id
-        const subtasks = group.subtasks.map(subtask => {
-          let subtaskResponsibleId: string | null = null;
-          if (subtask.responsible) {
-            if (responsibleMapping[subtask.responsible]) {
-              subtaskResponsibleId = responsibleMapping[subtask.responsible];
-            } else {
-              const profile = findProfileByName(subtask.responsible, profiles);
-              subtaskResponsibleId = profile?.id || null;
-            }
-          }
-
-          return {
-            sprint_id: sprint.id,
-            title: subtask.subtaskTitle || subtask.title,
-            description: subtask.description || null,
-            assigned_to: subtaskResponsibleId,
-            start_date: subtask.dueDate || sprint.start_date,
-            due_date: subtask.dueDate || sprint.end_date,
-            estimated_hours: subtask.estimatedHours || null,
-            status: 'pending',
-            parent_id: parentData.id,
-            task_code: subtask.taskCode || null,
-            project_id: parentData.project_id || null,
-            process_id: parentData.process_id || null
-          };
-        });
-
-        if (subtasks.length > 0) {
-          const { error: subtasksError } = await supabase
-            .from("sprint_deliverables")
-            .insert(subtasks);
-
-          if (subtasksError) throw subtasksError;
-        }
-      }
+      await importDeliverablesMutation.mutateAsync({
+        sprint,
+        taskGroups: importPreview.taskGroups,
+        responsibleMapping,
+        profiles,
+      });
 
       // Refresh deliverables
       await fetchSprintData();
@@ -714,8 +427,8 @@ export default function EquipeSprintDetalhes() {
         title: "Importação concluída", 
         description: `${importPreview.totalTasks} tarefas e ${importPreview.totalSubtasks} subtarefas importadas` 
       });
-    } catch (error: any) {
-      toast({ title: "Erro na importação", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro na importação", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setImporting(false);
     }

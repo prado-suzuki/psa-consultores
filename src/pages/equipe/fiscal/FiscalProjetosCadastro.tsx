@@ -53,8 +53,7 @@ import {
 } from '@/hooks/useTaxReferenceData';
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
 import { useOsProdutosContratados, groupByOs } from '@/hooks/useOsProdutosContratados';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useDomainFiscalProjetosCadastro } from '@/hooks/useDomainFiscalProjetosCadastro';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
@@ -339,41 +338,22 @@ const ProjetosCadastroContent = ({ area = 'tax' as AreaKey }: { area?: AreaKey }
   }, [selectedOsProdutos]);
 
   // Fetch serviços vinculados ao produto selecionado
-  interface ProdutoServicoRow { servico_prestado_id: string; servico: { id: string; nome: string } | null }
-  const { data: servicosByProduto = [] } = useQuery({
-    queryKey: ['project-servicos-by-produto', selectedProdutoId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('produto_servico')
-        .select('servico_prestado_id, servico:servicos_prestados(id, nome)')
-        .eq('produto_segmento_id', selectedProdutoId!) as {
-          data: ProdutoServicoRow[] | null; error: unknown;
-        };
-      if (error) throw error;
-      return (data || [])
-        .map(r => r.servico)
-        .filter((s): s is { id: string; nome: string } => !!s);
-    },
-    enabled: !!selectedProdutoId,
-  });
+  const { servicosByProdutoQuery, resolveProdutoIdByServico } =
+    useDomainFiscalProjetosCadastro(selectedProdutoId);
+  const { data: servicosByProduto = [] } = servicosByProdutoQuery;
 
   // Resolve produto from servico_id when editing (async lookup)
   useEffect(() => {
     if (!editingProject || !formData.servico_id || selectedProdutoId) return;
     if (selectedOsProdutos.length === 0) return;
     const produtoIds = selectedOsProdutos.map(p => p.produto_segmento_id);
-    supabase
-      .from('produto_servico')
-      .select('produto_segmento_id')
-      .eq('servico_prestado_id', formData.servico_id)
-      .in('produto_segmento_id', produtoIds)
-      .limit(1)
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setSelectedProdutoId(data[0].produto_segmento_id);
+    resolveProdutoIdByServico(formData.servico_id, produtoIds)
+      .then((produtoId) => {
+        if (produtoId) {
+          setSelectedProdutoId(produtoId);
         }
       });
-  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId]);
+  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId, resolveProdutoIdByServico]);
 
   useEffect(() => {
     if (!formData.external_client_id) {

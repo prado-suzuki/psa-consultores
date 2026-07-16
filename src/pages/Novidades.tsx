@@ -1,26 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { NovidadeEntry, CategoriaType } from "@/components/novidades/NovidadeEntry";
+import { usePublicNovidades } from '@/hooks/useDomainNovidades';
 import { motion } from "framer-motion";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Novidades = () => {
-  const { data: novidades, isLoading } = useQuery({
-    queryKey: ['novidades-publicas'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('novidades')
-        .select('*')
-        .eq('ativo', true)
-        .order('data_publicacao', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: novidades, isLoading } = usePublicNovidades();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -65,9 +52,9 @@ const Novidades = () => {
                   descricao={novidade.descricao}
                   itens={novidade.itens}
                   imagem={novidade.imagem_url || undefined}
-                  imagemLateral={(novidade as any).imagem_lateral_url || undefined}
-                  imagemLateralPosicao={((novidade as any).imagem_lateral_posicao as "esquerda" | "direita") || "direita"}
-                  conteudoCompleto={(novidade as any).conteudo_completo || undefined}
+                  imagemLateral={novidade.imagem_lateral_url || undefined}
+                  imagemLateralPosicao={(novidade.imagem_lateral_posicao as "esquerda" | "direita") || "direita"}
+                  conteudoCompleto={novidade.conteudo_completo || undefined}
                 />
               ))}
             </div>

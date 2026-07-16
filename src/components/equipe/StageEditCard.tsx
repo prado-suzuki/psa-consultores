@@ -1,6 +1,6 @@
  import { useState } from 'react';
- import { supabase } from '@/integrations/supabase/client';
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+ import { useDeleteProcessStage, useUpdateProcessStage } from '@/hooks/useDomainStageEdit';
  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
  import { Button } from '@/components/ui/button';
  import { Input } from '@/components/ui/input';
@@ -61,6 +61,8 @@
      volume: stage.volume || '',
      automation_level: stage.automation_level || 'none'
    });
+   const updateProcessStage = useUpdateProcessStage();
+   const deleteProcessStage = useDeleteProcessStage();
  
    const getAutomationInfo = (level: string | null) => {
      return AUTOMATION_LEVELS.find(a => a.value === level) || AUTOMATION_LEVELS[0];
@@ -79,9 +81,9 @@
      setSaving(true);
      try {
        await assertCanPerform('process_stages', 'update', stage.id);
-       const { error } = await supabase
-         .from('process_stages')
-         .update({
+       await updateProcessStage.mutateAsync({
+         stageId: stage.id,
+         payload: {
            name: form.name.trim(),
            description: form.description.trim() || null,
            responsible: form.responsible.trim() || null,
@@ -90,10 +92,8 @@
            frequency: form.frequency.trim() || null,
            volume: form.volume.trim() || null,
            automation_level: form.automation_level === 'none' ? null : form.automation_level
-         })
-         .eq('id', stage.id);
- 
-       if (error) throw error;
+         }
+       });
  
        toast({
          title: "Etapa atualizada",
@@ -101,11 +101,11 @@
        });
        setIsEditing(false);
        onUpdate();
-     } catch (error: any) {
+     } catch (error: unknown) {
        console.error('Error saving stage:', error);
        toast({
          title: "Erro ao salvar",
-         description: error.message,
+         description: (error as Error).message,
          variant: "destructive"
        });
      } finally {
@@ -117,23 +117,18 @@
      setDeleting(true);
      try {
        await assertCanPerform('process_stages', 'delete', stage.id);
-       const { error } = await supabase
-         .from('process_stages')
-         .delete()
-         .eq('id', stage.id);
- 
-       if (error) throw error;
+       await deleteProcessStage.mutateAsync(stage.id);
  
        toast({
          title: "Etapa excluída",
          description: "A etapa foi removida com sucesso."
        });
        onDelete();
-     } catch (error: any) {
+     } catch (error: unknown) {
        console.error('Error deleting stage:', error);
        toast({
          title: "Erro ao excluir",
-         description: error.message,
+         description: (error as Error).message,
          variant: "destructive"
        });
      } finally {

@@ -1,6 +1,9 @@
  import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import {
+  useDomainProcessImprovement,
+  type DomainProcessImprovementJobRole,
+  type DomainProcessRoiResults,
+} from '@/hooks/useDomainProcessImprovement';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,20 +18,12 @@ import { toast } from '@/hooks/use-toast';
  import { Loader2, Plus, Trash2, TrendingUp, Clock, DollarSign, Users, CheckCircle2, Monitor, ShoppingCart, Sparkles, ChevronRight } from 'lucide-react';
  import { cn } from '@/lib/utils';
 
-interface JobRole {
-  id: string;
-  name: string;
-  level: string;
-  category: string;
-  hourly_rate: number;
-}
-
 interface TeamMember {
   id?: string;
   job_role_id: string;
   hours_allocated: number;
   is_baseline: boolean;
-  job_role?: JobRole;
+  job_role?: DomainProcessImprovementJobRole;
 }
 
  interface SavingsItem {
@@ -90,12 +85,20 @@ export function ProcessImprovementModal({
   onSaved
 }: ProcessImprovementModalProps) {
   const { user } = useAuth();
+  const {
+    jobRolesQuery,
+    createImprovementMutation,
+    createSavingsDetailsMutation,
+    createTeamMembersMutation,
+    calculateRoiMutation,
+    updateProcessMutation,
+  } = useDomainProcessImprovement(open);
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
+  const [jobRoles, setJobRoles] = useState<DomainProcessImprovementJobRole[]>([]);
   const [baselineMembers, setBaselineMembers] = useState<TeamMember[]>([]);
   const [improvedMembers, setImprovedMembers] = useState<TeamMember[]>([]);
-  const [results, setResults] = useState<any>(null);
+  const [results, setResults] = useState<DomainProcessRoiResults | null>(null);
   
    // Estados para economias detalhadas
    const [systemSavings, setSystemSavings] = useState<SavingsItem[]>([]);
@@ -141,23 +144,11 @@ export function ProcessImprovementModal({
   });
 
   useEffect(() => {
-    if (open) {
-      fetchJobRoles();
+    const response = jobRolesQuery.data;
+    if (response && !response.error && response.data) {
+      setJobRoles(response.data);
     }
-  }, [open]);
-
-  const fetchJobRoles = async () => {
-    const { data, error } = await supabase
-      .from('job_roles')
-      .select('*')
-      .eq('is_active', true)
-      .order('category', { ascending: true })
-      .order('hourly_rate', { ascending: true });
-    
-    if (!error && data) {
-      setJobRoles(data);
-    }
-  };
+  }, [jobRolesQuery.data]);
 
    const addSavingsItem = (type: 'system' | 'build_vs_buy' | 'other') => {
      const newItem: SavingsItem = {
@@ -280,9 +271,7 @@ export function ProcessImprovementModal({
       const improvedHours = calculateTotalHours(improvedMembers);
 
       // Criar registro de melhoria
-      const { data: improvement, error: insertError } = await supabase
-        .from('process_improvements')
-        .insert({
+      const { data: improvement, error: insertError } = await createImprovementMutation.mutateAsync({
           process_id: processId,
           sprint_deliverable_id: deliverableId || null,
           project_id: projectId || null,
@@ -303,10 +292,8 @@ export function ProcessImprovementModal({
           evaluated_by: user?.id,
            system_savings_monthly: totalSystemSavings,
            build_vs_buy_savings: totalBuildVsBuy,
-           other_savings_monthly: totalOtherSavings
-        })
-        .select()
-        .single();
+          other_savings_monthly: totalOtherSavings
+        });
 
       if (insertError) throw insertError;
 
@@ -342,9 +329,9 @@ export function ProcessImprovementModal({
        ].filter(s => s.description.trim());
  
        if (allSavingsDetails.length > 0) {
-         const { error: savingsError } = await supabase
-           .from('improvement_savings_details')
-           .insert(allSavingsDetails);
+         const { error: savingsError } = await createSavingsDetailsMutation.mutateAsync(
+           allSavingsDetails
+         );
          
          if (savingsError) console.error('Error saving savings details:', savingsError);
        }
@@ -356,23 +343,23 @@ export function ProcessImprovementModal({
       ].filter(m => m.job_role_id);
 
       if (allMembers.length > 0) {
-        const { error: membersError } = await supabase
-          .from('improvement_team_members')
-          .insert(allMembers.map(m => ({
+        const { error: membersError } = await createTeamMembersMutation.mutateAsync(
+          allMembers.map(m => ({
             improvement_id: improvement.id,
             job_role_id: m.job_role_id,
             hours_allocated: m.hours_allocated,
             is_baseline: m.is_baseline
-          })));
+          }))
+        );
         
         if (membersError) console.error('Error saving team members:', membersError);
       }
 
       // Calcular ROI
       setCalculating(true);
-      const { data: roiData, error: roiError } = await supabase.functions.invoke('calculate-process-roi', {
-        body: { improvement_id: improvement.id }
-      });
+      const { data: roiData, error: roiError } = await calculateRoiMutation.mutateAsync(
+        improvement.id
+      );
 
       if (roiError) {
         console.error('Error calculating ROI:', roiError);
@@ -381,10 +368,9 @@ export function ProcessImprovementModal({
       }
 
       // Atualizar tabela processes com os dados "DEPOIS" como novo baseline
-      await assertCanPerform('processes', 'update', processId);
-      const { error: updateProcessError } = await supabase
-        .from('processes')
-        .update({
+      const { error: updateProcessError } = await updateProcessMutation.mutateAsync({
+        processId,
+        payload: {
           time_spent_hours: improvedHours || form.improved_time_hours,
           cost_monthly: improvedCost || form.improved_cost_monthly,
           volume_executions: form.improved_volume,
@@ -393,8 +379,8 @@ export function ProcessImprovementModal({
           last_cost_saved_monthly: roiData?.results?.cost_saved_monthly || null,
           last_time_saved_hours: roiData?.results?.time_saved_hours || null,
           last_improvement_date: new Date().toISOString()
-        })
-        .eq('id', processId);
+        },
+      });
 
       if (updateProcessError) {
         console.error('Error updating process baseline:', updateProcessError);
