@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
-import { useDecisoesData } from '@/hooks/useDecisoesData';
-import { useUpdateMeta } from '@/hooks/useMetasDesempenho';
+import { useDecisoesData, type MembroDecisao } from '@/hooks/useDecisoesData';
+import { useRegistrarDecisaoMetas } from '@/hooks/useDomainDesempenhoDecisoes';
 import { useCreateComentario } from '@/hooks/useComentariosAvaliacao';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -13,11 +13,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Sparkles, Star, DollarSign, AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
+import { Sparkles, Star, DollarSign, AlertTriangle, CheckCircle, RefreshCw, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-const recStyles: Record<string, { bg: string; border: string; icon: any; label: string }> = {
+interface AiRecommendation {
+  membro_id: string;
+  tipo_recomendacao?: string;
+  justificativa?: string;
+  percentual_reajuste_sugerido?: number;
+}
+
+interface AiResult {
+  recomendacoes?: AiRecommendation[];
+  sintese?: string;
+}
+
+const recStyles: Record<string, { bg: string; border: string; icon: LucideIcon; label: string }> = {
   promocao: { bg: '#ECFDF5', border: '#6EE7B7', icon: Star, label: 'Promocao' },
   reajuste: { bg: '#FFFBEB', border: '#FCD34D', icon: DollarSign, label: 'Reajuste' },
   acompanhamento: { bg: '#FFF5F5', border: '#FCA5A5', icon: AlertTriangle, label: 'Acompanhamento' },
@@ -31,12 +43,12 @@ const DesempenhoDecisoes = () => {
   const { user } = useAuth();
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: membros, isLoading } = useDecisoesData(cicloAtivo?.id);
-  const updateMeta = useUpdateMeta();
+  const registrarDecisaoMetas = useRegistrarDecisaoMetas();
   const createComentario = useCreateComentario();
 
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<any>(null);
-  const [confirmModal, setConfirmModal] = useState<any>(null);
+  const [aiResult, setAiResult] = useState<AiResult | null>(null);
+  const [confirmModal, setConfirmModal] = useState<MembroDecisao | null>(null);
   const [confirmForm, setConfirmForm] = useState({ tipo: 'manter', cargo: '', percentual: '', dataVigencia: '', observacoes: '' });
 
   const handleGenerateAI = async () => {
@@ -46,8 +58,8 @@ const DesempenhoDecisoes = () => {
       const { data, error } = await supabase.functions.invoke('gerar-recomendacoes-pessoas', { body: { ciclo_id: cicloAtivo.id } });
       if (error) throw error;
       setAiResult(data);
-    } catch (e: any) {
-      toast({ title: 'Erro ao gerar recomendacoes', description: e.message, variant: 'destructive' });
+    } catch (error: unknown) {
+      toast({ title: 'Erro ao gerar recomendacoes', description: (error as { message?: string }).message, variant: 'destructive' });
     }
     setAiLoading(false);
   };
@@ -55,12 +67,11 @@ const DesempenhoDecisoes = () => {
   const handleConfirm = async () => {
     if (!confirmModal || !cicloAtivo?.id) return;
     const decisao = confirmForm.tipo === 'promocao' ? 'promover' : confirmForm.tipo === 'reajuste' ? 'reajustar' : 'manter';
-    // Update all metas for this member - using 'as any' for untyped table
-    const { data: metasData } = await supabase.from('metas' as any).select('id').eq('ciclo_id', cicloAtivo.id).eq('responsavel_id', confirmModal.membro_id).eq('nivel', 'individual');
-    const metasList = (metasData ?? []) as unknown as { id: string }[];
-    for (const m of metasList) {
-      await supabase.from('metas' as any).update({ recomendacao_decisao: decisao }).eq('id', m.id);
-    }
+    await registrarDecisaoMetas.mutateAsync({
+      cicloId: cicloAtivo.id,
+      responsavelId: confirmModal.membro_id,
+      decisao,
+    });
     // Create comment
     if (confirmForm.observacoes) {
       createComentario.mutate({
@@ -77,7 +88,7 @@ const DesempenhoDecisoes = () => {
     setConfirmForm({ tipo: 'manter', cargo: '', percentual: '', dataVigencia: '', observacoes: '' });
   };
 
-  const getAiRec = (membroId: string) => aiResult?.recomendacoes?.find((r: any) => r.membro_id === membroId);
+  const getAiRec = (membroId: string) => aiResult?.recomendacoes?.find((r) => r.membro_id === membroId);
 
   return (
     <BoardLayout title="Decisoes" subtitle="Recomendacoes de IA para promocao, reajuste e acompanhamento">

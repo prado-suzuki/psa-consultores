@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,28 +13,22 @@ import { toast } from '@/hooks/use-toast';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { ArrowLeft, Save } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
-
-interface Sprint {
-  id: string;
-  name: string;
-}
-
-interface Task {
-  id: string;
-  title: string;
-  cluster: string;
-  priority: string;
-  status: string;
-  created_at: string;
-  due_date: string | null;
-}
+import {
+  type NovaTarefaCluster,
+  type NovaTarefaPriority,
+  type NovaTarefaStatus,
+  useCriarNovaTarefa,
+  useNovaTarefaSprints,
+  useNovaTarefasRecentes,
+} from '@/hooks/useDomainNovaTarefa';
 
 const EquipeNovaTarefa = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [recentTasks, setRecentTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: sprints = [] } = useNovaTarefaSprints();
+  const { data: recentTasks = [] } = useNovaTarefasRecentes();
+  const createTask = useCriarNovaTarefa();
+  const loading = createTask.isPending;
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -47,49 +40,23 @@ const EquipeNovaTarefa = () => {
     status: 'backlog'
   });
 
-  useEffect(() => {
-    fetchSprints();
-    fetchRecentTasks();
-  }, []);
-
-  const fetchSprints = async () => {
-    const { data } = await supabase
-      .from('sprints')
-      .select('id, name')
-      .order('start_date', { ascending: false });
-    setSprints(data || []);
-  };
-
-  const fetchRecentTasks = async () => {
-    const { data } = await supabase
-      .from('tasks')
-      .select('id, title, cluster, priority, status, created_at, due_date')
-      .order('created_at', { ascending: false })
-      .limit(10);
-    setRecentTasks(data || []);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || loading) return;
-    
-    setLoading(true);
-    
+
     try {
-      const { error } = await supabase.from('tasks').insert({
+      await createTask.mutateAsync({
         title: form.title,
         description: form.description || null,
         sprint_id: form.sprint_id || null,
-        cluster: form.cluster as any,
-        priority: form.priority as any,
+        cluster: form.cluster as NovaTarefaCluster,
+        priority: form.priority as NovaTarefaPriority,
         estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
         due_date: form.due_date || null,
         created_by: user.id,
         assigned_to: user.id,
-        status: form.status as any
+        status: form.status as NovaTarefaStatus
       });
-
-      if (error) throw error;
 
       toast({
         title: "Tarefa criada!",
@@ -106,8 +73,6 @@ const EquipeNovaTarefa = () => {
         due_date: '',
         status: 'backlog'
       });
-      
-      fetchRecentTasks();
     } catch (error) {
       console.error('Error creating task:', error);
       toast({
@@ -115,8 +80,6 @@ const EquipeNovaTarefa = () => {
         description: "Não foi possível criar a tarefa.",
         variant: "destructive"
       });
-    } finally {
-      setLoading(false);
     }
   };
 

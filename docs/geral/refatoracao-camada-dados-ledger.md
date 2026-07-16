@@ -69,9 +69,9 @@
 | feito (Onda 1) | `components/equipe/audit/AuditLogTable.tsx` | 2 | `estrutura_areas`, `audit_logs` |
 | feito (Onda 1) | `components/equipe/client-form/HistoricoTab.tsx` | 2 | `profiles`, `audit_logs` |
 | feito (Onda 1) | `components/equipe/osg/HistoricoFlutuante.tsx` | 1 | `profiles_safe` |
-| pendente | `pages/equipe/EquipeBacklog.tsx` | 3 | `projects`, `processes`, `project_processes` |
-| pendente | `pages/equipe/EquipeTarefas.tsx` | 1 | `tasks` (query dinâmica c/ filtro) |
-| pendente | `pages/equipe/board/BoardDashboard.tsx` | 2 | `process_improvements`, `org_tasks` (já em `useQuery`) |
+| feito (Onda 3) | `pages/equipe/EquipeBacklog.tsx` | 3 | `projects`, `processes`, `project_processes` |
+| feito (Onda 3) | `pages/equipe/EquipeTarefas.tsx` | 1 | `tasks` (query dinâmica c/ filtro) |
+| feito (Onda 3) | `pages/equipe/board/BoardDashboard.tsx` | 2 | `process_improvements`, `org_tasks` (já em `useQuery`) |
 
 > **Oportunidade:** o lookup `profiles/profiles_safe → mapa {id: nome}` se repete em ~9 arquivos.
 > Criar **um** `useProfilesNomeMap()` e substituir todos. Reduz muito o total.
@@ -80,13 +80,13 @@
 
 | Status | Arquivo | Ocorr. | Ops |
 |---|---|---:|---|
-| pendente | `components/ContactSection.tsx` | 1 | insert `contatos` (form público) |
-| pendente | `pages/equipe/EquipeNovaTarefa.tsx` | 1 | insert `tasks` |
-| pendente | `pages/equipe/EquipeRotinas.tsx` | 2 | select `profiles_safe` + insert `routines` |
-| pendente | `pages/equipe/EquipeSprints.tsx` | 3 | 2 select + insert `sprints` |
-| pendente | `pages/equipe/EquipeControleAcessos.tsx` | 6 | 2 select + insert/update/delete `catalog_clients` |
-| pendente | `pages/gestao/GestaoNovidades.tsx` | 4 | insert/update/delete/update `novidades` |
-| pendente | `pages/gerencial/desempenho/DesempenhoDecisoes.tsx` | 2 | select + update `metas` |
+| feito (Onda 3) | `components/ContactSection.tsx` | 1 | insert `contatos` (form público) |
+| feito (Onda 3) | `pages/equipe/EquipeNovaTarefa.tsx` | 1 | insert `tasks` |
+| feito (Onda 3) | `pages/equipe/EquipeRotinas.tsx` | 2 | select `profiles_safe` + insert `routines` |
+| feito (Onda 3) | `pages/equipe/EquipeSprints.tsx` | 3 | 2 select + insert `sprints` |
+| feito (Onda 3) | `pages/equipe/EquipeControleAcessos.tsx` | 6 | 2 select + insert/update/delete `catalog_clients` |
+| feito (Onda 3) | `pages/gestao/GestaoNovidades.tsx` | 4 | insert/update/delete/update `novidades` |
+| feito (Onda 3) | `pages/gerencial/desempenho/DesempenhoDecisoes.tsx` | 2 | select + update `metas` |
 
 ### 1c. Cluster correcoes-sped — **1 hook** (`useCorrecoesSped.ts` já existe → estender)
 

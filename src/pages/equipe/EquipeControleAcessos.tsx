@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
 import { useNavigate } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -41,38 +39,46 @@ import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
-
-interface AreaInterna {
-  id: string;
-  name: string;
-  responsible: string | null;
-  description: string | null;
-  color: string;
-  is_active: boolean;
-  created_at: string;
-  estrutura_area_id: string | null;
-}
-
-interface CadastroStats {
-  clients: number;
-  projects: number;
-  processes: number;
-}
+import {
+  type ControleAcessosAreaInterna,
+  type ControleAcessosCadastroStats,
+  useControleAcessosCadastros,
+  useControleAcessosCatalogMutations,
+  useControleAcessosEstruturaAreas,
+} from '@/hooks/useDomainControleAcessos';
 
 // Area -> categories mapping agora vem de @/config/areaCategories (fonte única).
+
+const getErrorCode = (error: unknown) => {
+  if (typeof error !== 'object' || error === null) return undefined;
+  const { code } = error as { code?: unknown };
+  return typeof code === 'string' ? code : undefined;
+};
+
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error !== 'object' || error === null) return undefined;
+  const { message } = error as { message?: unknown };
+  return typeof message === 'string' ? message : undefined;
+};
 
 const EquipeControleAcessos = () => {
   const { signOut } = useAuth();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const { refetch: refetchCadastros } = useControleAcessosCadastros();
+  const {
+    createCatalogClient,
+    updateCatalogClient,
+    toggleCatalogClient,
+    deleteCatalogClient,
+  } = useControleAcessosCatalogMutations();
 
   // Cadastros states
-  const [cadastroAreas, setCadastroAreas] = useState<AreaInterna[]>([]);
-  const [cadastroStats, setCadastroStats] = useState<CadastroStats>({ clients: 0, projects: 0, processes: 0 });
+  const [cadastroAreas, setCadastroAreas] = useState<ControleAcessosAreaInterna[]>([]);
+  const [cadastroStats, setCadastroStats] = useState<ControleAcessosCadastroStats>({ clients: 0, projects: 0, processes: 0 });
   const [cadastroLoading, setCadastroLoading] = useState(false);
   const [cadastroDialogOpen, setCadastroDialogOpen] = useState(false);
-  const [editingArea, setEditingArea] = useState<AreaInterna | null>(null);
+  const [editingArea, setEditingArea] = useState<ControleAcessosAreaInterna | null>(null);
   const [cadastroForm, setCadastroForm] = useState({
     name: '',
     responsible: '',
@@ -87,18 +93,7 @@ const EquipeControleAcessos = () => {
   ];
 
   // Fetch estrutura_areas for mapping select (usado pelo dialog de cadastros)
-  const { data: estruturaAreas = [] } = useQuery({
-    queryKey: ['estrutura-areas-for-mapping'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('estrutura_areas')
-        .select('id, name, color')
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return data as { id: string; name: string; color: string | null }[];
-    },
-  });
+  const { data: estruturaAreas = [] } = useControleAcessosEstruturaAreas();
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -114,22 +109,9 @@ const EquipeControleAcessos = () => {
   const fetchCadastros = async () => {
     try {
       setCadastroLoading(true);
-      const { data: clientsData, error: clientsError } = await supabase
-        .from('catalog_clients')
-        .select('*')
-        .order('name');
-      if (clientsError) throw clientsError;
-      setCadastroAreas(clientsData || []);
-
-      const [projectsRes, processesRes] = await Promise.all([
-        supabase.from('projects').select('id', { count: 'exact', head: true }),
-        supabase.from('processes').select('id', { count: 'exact', head: true }),
-      ]);
-      setCadastroStats({
-        clients: clientsData?.length || 0,
-        projects: projectsRes.count || 0,
-        processes: processesRes.count || 0,
-      });
+      const { data } = await refetchCadastros({ throwOnError: true });
+      setCadastroAreas(data?.areas ?? []);
+      setCadastroStats(data?.stats ?? { clients: 0, projects: 0, processes: 0 });
     } catch (error) {
       console.error('Error fetching cadastros:', error);
       toast.error('Erro ao carregar cadastros');
@@ -144,7 +126,7 @@ const EquipeControleAcessos = () => {
     setCadastroDialogOpen(true);
   };
 
-  const openCadastroEdit = (area: AreaInterna) => {
+  const openCadastroEdit = (area: ControleAcessosAreaInterna) => {
     setEditingArea(area);
     setCadastroForm({
       name: area.name,
@@ -170,46 +152,39 @@ const EquipeControleAcessos = () => {
         estrutura_area_id: cadastroForm.estrutura_area_id || null,
       };
       if (editingArea) {
-        await assertCanPerform('catalog_clients', 'update', editingArea.id);
-        const { error } = await supabase.from('catalog_clients').update(payload).eq('id', editingArea.id);
-        if (error) throw error;
+        await updateCatalogClient({ id: editingArea.id, payload });
         toast.success('Área atualizada');
       } else {
-        const { error } = await supabase.from('catalog_clients').insert(payload);
-        if (error) throw error;
+        await createCatalogClient(payload);
         toast.success('Área criada');
       }
       setCadastroDialogOpen(false);
       fetchCadastros();
-    } catch (error: any) {
-      if (error.code === '23505') toast.error('Já existe uma área com esse nome');
-      else toast.error(error?.message || 'Erro ao salvar');
+    } catch (error: unknown) {
+      if (getErrorCode(error) === '23505') toast.error('Já existe uma área com esse nome');
+      else toast.error(getErrorMessage(error) || 'Erro ao salvar');
     }
   };
 
-  const handleToggleCadastroActive = async (area: AreaInterna) => {
+  const handleToggleCadastroActive = async (area: ControleAcessosAreaInterna) => {
     try {
-      await assertCanPerform('catalog_clients', 'update', area.id);
-      const { error } = await supabase.from('catalog_clients').update({ is_active: !area.is_active }).eq('id', area.id);
-      if (error) throw error;
+      await toggleCatalogClient({ id: area.id, isActive: area.is_active });
       toast.success(area.is_active ? 'Área desativada' : 'Área ativada');
       fetchCadastros();
-    } catch (error: any) {
-      toast.error(error?.message || 'Erro ao alterar status');
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error) || 'Erro ao alterar status');
     }
   };
 
-  const handleDeleteCadastro = async (area: AreaInterna) => {
+  const handleDeleteCadastro = async (area: ControleAcessosAreaInterna) => {
     if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
     try {
-      await assertCanPerform('catalog_clients', 'delete', area.id);
-      const { error } = await supabase.from('catalog_clients').delete().eq('id', area.id);
-      if (error) throw error;
+      await deleteCatalogClient(area.id);
       toast.success('Área excluída');
       fetchCadastros();
-    } catch (error: any) {
-      if (error.code === '23503') toast.error('Não é possível excluir: existem projetos ou processos vinculados');
-      else toast.error(error?.message || 'Erro ao excluir');
+    } catch (error: unknown) {
+      if (getErrorCode(error) === '23503') toast.error('Não é possível excluir: existem projetos ou processos vinculados');
+      else toast.error(getErrorMessage(error) || 'Erro ao excluir');
     }
   };
 

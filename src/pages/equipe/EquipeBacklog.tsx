@@ -9,62 +9,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { useToast } from "@/hooks/use-toast";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import {
+  useCreateDomainBacklogDeliverable,
+  useCreateDomainBacklogItem,
+  useDeleteDomainBacklogItem,
+  useDomainBacklog,
+  useMoveDomainBacklogItem,
+  useUpdateDomainBacklogItem,
+  type BacklogItem,
+  type Process,
+  type Profile,
+  type Project,
+  type ProjectProcess,
+  type Sprint,
+} from "@/hooks/useDomainBacklog";
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
-
-interface BacklogItem {
-  id: string;
-  sprint_id: string | null;
-  title: string;
-  description: string | null;
-  priority: string;
-  estimated_hours: number | null;
-  suggested_by: string | null;
-  status: string;
-  moved_to_deliverable_id: string | null;
-  project_id: string | null;
-  created_at: string;
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  project_id: string | null;
-}
-
-interface ProjectProcess {
-  process_id: string;
-  project_id: string;
-}
 
 const UNASSIGNED = '__unassigned__';
 const NONE = '__none__';
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String(error.message);
+  }
+  return String(error);
+};
+
 export default function EquipeBacklog() {
   const { toast } = useToast();
+  const backlogQuery = useDomainBacklog();
+  const createBacklogItem = useCreateDomainBacklogItem();
+  const updateBacklogItem = useUpdateDomainBacklogItem();
+  const removeBacklogItem = useDeleteDomainBacklogItem();
+  const createBacklogDeliverable = useCreateDomainBacklogDeliverable();
+  const moveBacklogItem = useMoveDomainBacklogItem();
 
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -104,56 +86,28 @@ export default function EquipeBacklog() {
   const [filterPriority, setFilterPriority] = usePersistedState<string>('rotina.backlog.prioridade', 'all');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!backlogQuery.data) return;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch backlog items (apenas os que não foram movidos e não têm sprint)
-      const { data: backlogData, error: backlogError } = await supabase
-        .from("sprint_backlog_items")
-        .select("*")
-        .is("sprint_id", null)
-        .neq("status", "moved_to_sprint")
-        .order("priority", { ascending: true })
-        .order("created_at", { ascending: false });
-      
-      if (backlogError) throw backlogError;
-      setBacklogItems((backlogData || []) as unknown as BacklogItem[]);
+    setBacklogItems(backlogQuery.data.backlogItems);
+    setSprints(backlogQuery.data.sprints);
+    setProfiles(backlogQuery.data.profiles);
+    setProjects(backlogQuery.data.projects);
+    setProcesses(backlogQuery.data.processes);
+    setProjectProcesses(backlogQuery.data.projectProcesses);
+    setLoading(false);
+  }, [backlogQuery.data]);
 
-      // Fetch active sprints
-      const { data: sprintsData } = await supabase
-        .from("sprints")
-        .select("*")
-        .in("status", ["active", "planning"])
-        .order("start_date", { ascending: true });
-      setSprints(sprintsData || []);
+  useEffect(() => {
+    if (!backlogQuery.error || backlogQuery.data) return;
 
-      // Fetch profiles
-      const { data: profilesData } = await supabase
-        .from("profiles_safe")
-        .select("id, first_name, last_name");
-      setProfiles(profilesData || []);
-
-      // Fetch projects, processes e associações (para alinhar com o form de Nova Tarefa)
-      const [{ data: projectsData }, { data: processesData }, { data: ppData }] = await Promise.all([
-        supabase.from("projects").select("id, name").order("name"),
-        supabase.from("processes").select("id, name, project_id").order("name"),
-        supabase.from("project_processes").select("process_id, project_id"),
-      ]);
-      setProjects(projectsData || []);
-      setProcesses(processesData || []);
-      setProjectProcesses(ppData || []);
-
-    } catch (error: any) {
-      console.error("Error fetching data:", error);
-      toast({ title: "Erro ao carregar dados", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.error("Error fetching data:", backlogQuery.error);
+    toast({
+      title: "Erro ao carregar dados",
+      description: backlogQuery.error.message,
+      variant: "destructive",
+    });
+    setLoading(false);
+  }, [backlogQuery.data, backlogQuery.error, toast]);
 
   const openFormModal = (item?: BacklogItem) => {
     if (item) {
@@ -196,37 +150,24 @@ export default function EquipeBacklog() {
         project_id: formData.project_id || null,
       };
 
-      // project_id é coluna nova: types.ts (autogerado) ainda não a conhece até Lovable regerar.
-      const itemPayload = itemData as typeof itemData & Record<string, unknown>;
-
       if (editingItem) {
-        await assertCanPerform('sprint_backlog_items', 'update', editingItem.id);
-        const { error } = await supabase
-          .from("sprint_backlog_items")
-          .update(itemPayload)
-          .eq("id", editingItem.id);
-        if (error) throw error;
+        await updateBacklogItem.mutateAsync({ itemId: editingItem.id, payload: itemData });
 
         setBacklogItems(prev =>
           prev.map(item => item.id === editingItem.id ? { ...item, ...itemData } : item)
         );
         toast({ title: "Item atualizado" });
       } else {
-        const { data, error } = await supabase
-          .from("sprint_backlog_items")
-          .insert(itemPayload)
-          .select()
-          .single();
-        if (error) throw error;
+        const data = await createBacklogItem.mutateAsync(itemData);
 
-        setBacklogItems(prev => [data as BacklogItem, ...prev]);
+        setBacklogItems(prev => [data, ...prev]);
         toast({ title: "Item adicionado ao backlog" });
       }
       
       setFormModalOpen(false);
       setEditingItem(null);
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao salvar", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -234,17 +175,12 @@ export default function EquipeBacklog() {
 
   const deleteItem = async (itemId: string) => {
     try {
-      await assertCanPerform('sprint_backlog_items', 'delete', itemId);
-      const { error } = await supabase
-        .from("sprint_backlog_items")
-        .delete()
-        .eq("id", itemId);
-      if (error) throw error;
+      await removeBacklogItem.mutateAsync(itemId);
       
       setBacklogItems(prev => prev.filter(item => item.id !== itemId));
       toast({ title: "Item removido do backlog" });
-    } catch (error: any) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao excluir", description: getErrorMessage(error), variant: "destructive" });
     }
   };
 
@@ -294,26 +230,17 @@ export default function EquipeBacklog() {
         task_code: moveData.task_code || null,
       };
 
-      const { data: newDeliverable, error: deliverableError } = await supabase
-        .from("sprint_deliverables")
-        .insert(deliverableData)
-        .select()
-        .single();
-
-      if (deliverableError) throw deliverableError;
+      const newDeliverable = await createBacklogDeliverable.mutateAsync(deliverableData);
 
       // Atualizar status do item do backlog
-      await assertCanPerform('sprint_backlog_items', 'update', movingItem.id);
-      const { error: backlogError } = await supabase
-        .from("sprint_backlog_items")
-        .update({
+      await moveBacklogItem.mutateAsync({
+        itemId: movingItem.id,
+        payload: {
           status: 'moved_to_sprint',
           moved_to_deliverable_id: newDeliverable.id,
           sprint_id: moveData.sprint_id
-        })
-        .eq("id", movingItem.id);
-
-      if (backlogError) throw backlogError;
+        },
+      });
 
       // Remover da lista local
       setBacklogItems(prev => prev.filter(item => item.id !== movingItem.id));
@@ -322,8 +249,8 @@ export default function EquipeBacklog() {
       
       const sprintName = sprints.find(s => s.id === moveData.sprint_id)?.name || 'Sprint';
       toast({ title: `Item movido para ${sprintName}` });
-    } catch (error: any) {
-      toast({ title: "Erro ao mover item", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao mover item", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setMoving(false);
     }

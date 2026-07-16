@@ -58,3 +58,26 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `components/equipe/dev/perdcomp/PerFormModal.tsx` | `useAtualizarPerPorNumero` | `per` | update | filtro por `nr_per` preservado |
 | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | `useInserirSituacaoPerComRetorno` | `per_situacao` | insert | retorna `.select().single()` |
 | `components/equipe/dev/perdcomp/SituacaoFormModal.tsx` | `useAtualizarSituacaoPerPorId` | `per_situacao` | update | precheck no consumidor e retorno `.select().single()` preservados |
+| `components/ContactSection.tsx` | `useInserirContato` | `contatos` | insert | formulário público sem auditoria, conforme decisão explícita |
+| `pages/equipe/EquipeNovaTarefa.tsx` | `useCriarNovaTarefa` | `tasks` | insert | payload e IDs preservados |
+| `pages/equipe/EquipeRotinas.tsx` | `useCreateRoutine` | `routines` | insert | payload integral preservado |
+| `pages/equipe/EquipeSprints.tsx` | `useDomainSprintMutations.createSprint` | `sprints` | insert | payload integral preservado |
+| `pages/equipe/EquipeSprints.tsx` | `useDomainSprintMutations.updateSprint` | `sprints` | update | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeSprints.tsx` | `useDomainSprintMutations.deleteSprint` | `sprints` | delete | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeSprints.tsx` | `useDomainSprintMutations.updateSprintStatus` | `sprints` | update | alteração de status; tratamento best-effort preservado |
+| `pages/equipe/EquipeControleAcessos.tsx` | `useControleAcessosCatalogMutations.createCatalogClient` | `catalog_clients` | insert | payload integral preservado |
+| `pages/equipe/EquipeControleAcessos.tsx` | `useControleAcessosCatalogMutations.updateCatalogClient` | `catalog_clients` | update | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeControleAcessos.tsx` | `useControleAcessosCatalogMutations.toggleCatalogClient` | `catalog_clients` | update | alternância de `is_active`; precheck e filtro por ID preservados |
+| `pages/equipe/EquipeControleAcessos.tsx` | `useControleAcessosCatalogMutations.deleteCatalogClient` | `catalog_clients` | delete | precheck, filtro por ID e erro `23503` preservados |
+| `pages/gestao/GestaoNovidades.tsx` | `useDomainNovidades.createMutation` | `novidades` | insert | payload e normalizações preservados |
+| `pages/gestao/GestaoNovidades.tsx` | `useDomainNovidades.updateMutation` | `novidades` | update | precheck e filtro por ID preservados |
+| `pages/gestao/GestaoNovidades.tsx` | `useDomainNovidades.deleteMutation` | `novidades` | delete | precheck e filtro por ID preservados |
+| `pages/gestao/GestaoNovidades.tsx` | `useDomainNovidades.toggleAtivoMutation` | `novidades` | update | atualização de `ativo` por ID preservada |
+| `pages/gerencial/desempenho/DesempenhoDecisoes.tsx` | `useRegistrarDecisaoMetas` | `metas` | update | updates sequenciais de `recomendacao_decisao` por meta preservados |
+| `pages/equipe/EquipeBacklog.tsx` | `useCreateDomainBacklogItem` | `sprint_backlog_items` | insert | retorno `.select().single()` preservado |
+| `pages/equipe/EquipeBacklog.tsx` | `useUpdateDomainBacklogItem` | `sprint_backlog_items` | update | precheck, payload e filtro por ID preservados |
+| `pages/equipe/EquipeBacklog.tsx` | `useDeleteDomainBacklogItem` | `sprint_backlog_items` | delete | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeBacklog.tsx` | `useCreateDomainBacklogDeliverable` | `sprint_deliverables` | insert | primeira etapa da movimentação; retorno preservado |
+| `pages/equipe/EquipeBacklog.tsx` | `useMoveDomainBacklogItem` | `sprint_backlog_items` | update | segunda etapa sequencial da movimentação preservada |
+| `pages/equipe/EquipeTarefas.tsx` | `useDomainEquipeTarefas.updateTask` | `tasks` | update | precheck, payload e filtro por ID preservados |
+| `pages/equipe/EquipeTarefas.tsx` | `useDomainEquipeTarefas.deleteTask` | `tasks` | delete | precheck e filtro por ID preservados |

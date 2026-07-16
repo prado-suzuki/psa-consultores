@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +13,7 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, ChevronDown, ListChecks, AlarmClock, AlertTriangle, CalendarDays } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { useCreateRoutine, useDomainRotinas } from '@/hooks/useDomainRotinas';
 
 const FREQUENCY_ORDER = ['daily', 'weekly', 'monthly'] as const;
 const FREQUENCY_LABELS: Record<string, string> = {
@@ -40,20 +40,13 @@ const getDueStatus = (dueDate: string | null) => {
   return { label: 'No prazo', className: 'bg-emerald-100 text-emerald-700 border-0' };
 };
 
-interface TeamMember {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
 const EquipeRotinas = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [myRoutines, setMyRoutines] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { teamMembers, myRoutines, isLoading: loading, error: routinesDataError } =
+    useDomainRotinas(user?.id);
+  const createRoutine = useCreateRoutine();
   const [isRoutineDialogOpen, setIsRoutineDialogOpen] = useState(false);
-  const [submittingRoutine, setSubmittingRoutine] = useState(false);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [newRoutine, setNewRoutine] = useState({
     title: '',
     description: '',
@@ -63,42 +56,20 @@ const EquipeRotinas = () => {
   });
 
   useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const fetchData = async () => {
-    try {
-      const [membersRes, routinesRes] = await Promise.all([
-        supabase.from('profiles_safe').select('id, first_name, last_name').order('first_name'),
-        user
-          ? supabase
-              .from('routines')
-              .select('*')
-              .eq('assigned_to', user.id)
-              .neq('status', 'completed')
-              .order('created_at', { ascending: false })
-          : Promise.resolve({ data: [] })
-      ]);
-
-      setTeamMembers(membersRes.data || []);
-      setMyRoutines(routinesRes.data || []);
-    } catch (error) {
-      console.error('Error fetching routines data:', error);
-    } finally {
-      setLoading(false);
+    if (routinesDataError) {
+      console.error('Error fetching routines data:', routinesDataError);
     }
-  };
+  }, [routinesDataError]);
 
   const handleCreateRoutine = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (submittingRoutine || !newRoutine.title.trim()) {
+    if (createRoutine.isPending || !newRoutine.title.trim()) {
       toast({ title: "Erro", description: "Preencha o título da rotina.", variant: "destructive" });
       return;
     }
 
-    setSubmittingRoutine(true);
     try {
-      const { error } = await supabase.from('routines').insert({
+      await createRoutine.mutateAsync({
         title: newRoutine.title.trim(),
         description: newRoutine.description.trim() || null,
         is_recurring: true,
@@ -109,17 +80,12 @@ const EquipeRotinas = () => {
         created_by: user?.id
       });
 
-      if (error) throw error;
-
       toast({ title: "Rotina criada!", description: "A nova rotina foi adicionada com sucesso." });
       setIsRoutineDialogOpen(false);
       setNewRoutine({ title: '', description: '', frequency: 'daily', assigned_to: '', estimated_hours: '' });
-      fetchData();
     } catch (error) {
       console.error('Error creating routine:', error);
       toast({ title: "Erro", description: "Não foi possível criar a rotina.", variant: "destructive" });
-    } finally {
-      setSubmittingRoutine(false);
     }
   };
 
@@ -239,8 +205,8 @@ const EquipeRotinas = () => {
                 <Button type="button" variant="outline" onClick={() => setIsRoutineDialogOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={submittingRoutine}>
-                  {submittingRoutine ? 'Criando...' : 'Criar Rotina'}
+                <Button type="submit" disabled={createRoutine.isPending}>
+                  {createRoutine.isPending ? 'Criando...' : 'Criar Rotina'}
                 </Button>
               </div>
             </form>
