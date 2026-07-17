@@ -19,7 +19,7 @@ const ticketSchema = z.object({
   department: z.enum(['contabilidade', 'icms_ipi', 'irpj_csll', 'pis_cofins', 'produtor_rural', 'outros'], {
     errorMap: () => ({ message: 'Selecione um departamento' })
   }),
-  description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(1000, 'Descrição deve ter no máximo 1000 caracteres'),
+  descriptionPlain: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(5000, 'Descrição deve ter no máximo 5000 caracteres'),
   priority: z.enum(['baixa', 'normal', 'alta', 'urgente']),
 });
 
