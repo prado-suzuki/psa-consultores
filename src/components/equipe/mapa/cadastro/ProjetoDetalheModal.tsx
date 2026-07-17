@@ -39,7 +39,7 @@ function DoctorBadge({ ok, n }: { ok: boolean; n: number }) {
   );
 }
 
-type Aba = 'info' | 'processos' | 'as-is' | 'diagramas' | 'backlog';
+type Aba = 'info' | 'processos' | 'as-is' | 'to-be' | 'diagramas' | 'backlog';
 
 interface Props {
   aberto: boolean;
@@ -69,6 +69,10 @@ export default function ProjetoDetalheModal({
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [diagramaProc, setDiagramaProc] = useState<Processo | null>(null);
   const [verConsolidadoGM, setVerConsolidadoGM] = useState(false);
+  // Diagrama de coluna única (mesmo comparativo, sem os chips): 'as' na aba AS-IS,
+  // 'to' na aba TO-BE. `proc: null` = consolidado (todos os processos lado a lado);
+  // `proc` preenchido = só aquele processo.
+  const [diagramaCol, setDiagramaCol] = useState<{ modo: 'as' | 'to'; proc: Processo | null } | null>(null);
   const [addProcOpen, setAddProcOpen] = useState(false);
   const exports = useMapaExports();
   const toggle = (id: string) => setExpandidos(prev => {
@@ -81,8 +85,9 @@ export default function ProjetoDetalheModal({
 
   const ABAS: { id: Aba; label: string }[] = [
     { id: 'info', label: 'Informações' },
-    { id: 'processos', label: `Processos · ${processos.length}` },
+    { id: 'processos', label: `Processos mapeados · ${processos.length}` },
     { id: 'as-is', label: 'AS-IS' },
+    { id: 'to-be', label: 'TO-BE' },
     { id: 'diagramas', label: 'Diagramas comparativos' },
     { id: 'backlog', label: `Backlog · ${backlog.length}` },
   ];
@@ -243,14 +248,128 @@ export default function ProjetoDetalheModal({
                 <p className="processo-det-descricao" style={{ marginBottom: 12 }}>
                   Retrato do estado atual — cada processo do projeto, etapa por etapa.
                 </p>
-                {processos.map((p, i) => (
-                  <section key={p.id} style={{ marginBottom: 20 }}>
-                    <div className="cadastro-form-secao" style={{ marginTop: i === 0 ? 0 : 12 }}>
-                      {String(i + 1).padStart(2, '0')} · {p.name}
-                    </div>
-                    <ComoEraLista etapas={etapasPorProcesso.get(p.id) || []} />
-                  </section>
-                ))}
+                {processos.some(p => (etapasPorProcesso.get(p.id) || []).length > 0) && (
+                  <button
+                    type="button"
+                    className="cadastro-cta"
+                    style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => setDiagramaCol({ modo: 'as', proc: null })}
+                  >
+                    <Network size={15} strokeWidth={2.2} />
+                    Ver diagrama Como Era (consolidado)
+                  </button>
+                )}
+                <div className="projeto-detail-row-list">
+                  {processos.map((p, i) => {
+                    const ets = etapasPorProcesso.get(p.id) || [];
+                    const temEtapas = ets.length > 0;
+                    const chave = `as:${p.id}`;
+                    const expanded = expandidos.has(chave);
+                    return (
+                      <div key={p.id} className={`projeto-process-row${expanded ? ' expanded' : ''}`}>
+                        <div className="projeto-process-row-head">
+                          <button
+                            type="button"
+                            className="projeto-process-summary"
+                            style={{ gridTemplateColumns: '42px minmax(180px, 1fr) auto 26px' }}
+                            onClick={() => toggle(chave)}
+                            aria-expanded={expanded}
+                          >
+                            <span className="projeto-process-index">{String(i + 1).padStart(2, '0')}</span>
+                            <span className="projeto-process-name">{p.name}</span>
+                            <span className="projeto-process-count">{ets.length} etapa{ets.length === 1 ? '' : 's'}</span>
+                            <span className="projeto-process-chevron" aria-hidden="true">⌄</span>
+                          </button>
+                          {temEtapas && (
+                            <button
+                              type="button"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              onClick={() => setDiagramaCol({ modo: 'as', proc: p })}
+                            >
+                              <Network size={14} strokeWidth={2.2} /> Ver diagrama
+                            </button>
+                          )}
+                        </div>
+                        {expanded && (
+                          <div className="projeto-process-details" style={{ padding: '4px 12px 14px' }}>
+                            <ComoEraLista etapas={ets} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )
+          )}
+
+          {aba === 'to-be' && (
+            processos.length === 0 ? (
+              <div className="processo-det-vazio">
+                Nenhum processo vinculado a este projeto.
+                <div style={{ marginTop: 10 }}>
+                  <button type="button" className="cadastro-cta" onClick={() => setAddProcOpen(true)}>
+                    <Plus size={15} strokeWidth={2.2} /><span>Adicionar processo</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="projeto-asis">
+                <p className="processo-det-descricao" style={{ marginBottom: 12 }}>
+                  Retrato do estado futuro — cada processo do projeto, etapa por etapa, após as melhorias.
+                </p>
+                {processos.some(p => (tobeEtapasPorProcesso.get(p.id) || []).length > 0) && (
+                  <button
+                    type="button"
+                    className="cadastro-cta"
+                    style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    onClick={() => setDiagramaCol({ modo: 'to', proc: null })}
+                  >
+                    <Network size={15} strokeWidth={2.2} />
+                    Ver diagrama Como Ficou (consolidado)
+                  </button>
+                )}
+                <div className="projeto-detail-row-list">
+                  {processos.map((p, i) => {
+                    const ets = tobeEtapasPorProcesso.get(p.id) || [];
+                    const temEtapas = ets.length > 0;
+                    const chave = `to:${p.id}`;
+                    const expanded = expandidos.has(chave);
+                    return (
+                      <div key={p.id} className={`projeto-process-row${expanded ? ' expanded' : ''}`}>
+                        <div className="projeto-process-row-head">
+                          <button
+                            type="button"
+                            className="projeto-process-summary"
+                            style={{ gridTemplateColumns: '42px minmax(180px, 1fr) auto 26px' }}
+                            onClick={() => toggle(chave)}
+                            aria-expanded={expanded}
+                          >
+                            <span className="projeto-process-index">{String(i + 1).padStart(2, '0')}</span>
+                            <span className="projeto-process-name">{p.name}</span>
+                            <span className="projeto-process-count">{ets.length} etapa{ets.length === 1 ? '' : 's'}</span>
+                            <span className="projeto-process-chevron" aria-hidden="true">⌄</span>
+                          </button>
+                          {temEtapas && (
+                            <button
+                              type="button"
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              onClick={() => setDiagramaCol({ modo: 'to', proc: p })}
+                            >
+                              <Network size={14} strokeWidth={2.2} /> Ver diagrama
+                            </button>
+                          )}
+                        </div>
+                        {expanded && (
+                          // ComoEraLista é um renderizador puro de Etapa[] — reusado p/ o TO-BE.
+                          <div className="projeto-process-details" style={{ padding: '4px 12px 14px' }}>
+                            <ComoEraLista etapas={ets} />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )
           )}
@@ -350,7 +469,7 @@ export default function ProjetoDetalheModal({
             tobePorProcesso: tobeEtapasPorProcesso,
           })}
           filename={`Comparativo_Etapas_${slugFilename(diagramaProc.name, diagramaProc.id)}`}
-          title={`Comparativo Como Era × Como Ficou · ${diagramaProc.name}`}
+          title={`${diagramaProc.name} · Como Era × Como Ficou`}
         />
       )}
       {verConsolidadoGM && (
@@ -362,9 +481,43 @@ export default function ProjetoDetalheModal({
             processos,
             gargalos,
             melhorias,
+            asisPorProcesso: etapasPorProcesso,
+            tobePorProcesso: tobeEtapasPorProcesso,
           })}
           filename={`Comparativo_GargaloMelhoria_${slugFilename(projeto.name, projeto.id)}`}
-          title={`Consolidado · Gargalo × Melhoria · Projeto ${projeto.name}`}
+          title={`${projeto.name} · Gargalos e Melhorias`}
+        />
+      )}
+      {diagramaCol && (
+        <DiagramViewer
+          isOpen={!!diagramaCol}
+          onClose={() => setDiagramaCol(null)}
+          code={diagramaCol.proc
+            // Por processo: diagrama de ETAPAS (coluna única, sem os chips).
+            ? buildProcessComparison({
+                processos: [diagramaCol.proc],
+                asisPorProcesso: etapasPorProcesso,
+                tobePorProcesso: tobeEtapasPorProcesso,
+                coluna: diagramaCol.modo,
+              })
+            // Consolidado: o MESMO diagrama do projeto, só com a coluna do cenário.
+            : buildProjectComparison({
+                projetoNome: projeto.name,
+                processos,
+                gargalos,
+                melhorias,
+                asisPorProcesso: etapasPorProcesso,
+                tobePorProcesso: tobeEtapasPorProcesso,
+                coluna: diagramaCol.modo,
+              })}
+          filename={`Diagrama_${diagramaCol.modo === 'as' ? 'ComoEra' : 'ComoFicou'}_${slugFilename((diagramaCol.proc ?? projeto).name, (diagramaCol.proc ?? projeto).id)}`}
+          title={
+            diagramaCol.proc
+              // Por processo (etapas): nome do processo + o cenário.
+              ? `${diagramaCol.proc.name} · ${diagramaCol.modo === 'as' ? 'Como Era' : 'Como Ficou'}`
+              // Consolidado: nome do projeto + o que está sendo usado.
+              : `${projeto.name} · ${diagramaCol.modo === 'as' ? 'Gargalos' : 'Melhorias'}`
+          }
         />
       )}
       {/* Adicionar processo sem sair do painel — já vinculado a este projeto. */}

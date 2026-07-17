@@ -47,6 +47,7 @@ import {
   useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
+import { useCreateEtapaToBe, useUpdateEtapaToBe, useDeleteEtapaToBe } from '@/hooks/useEtapaToBePorCenario';
 import { useUpdateMelhoria } from '@/hooks/useMelhorias';
 import { useUpdateGargalo } from '@/hooks/useGargalos';
 import { gargalosDoProcesso, melhoriasDoProcesso } from '@/utils/gargaloMelhorias';
@@ -127,6 +128,10 @@ export default function MapearProcessoPage() {
   const updateEtapa = useUpdateEtapa();
   const deleteEtapa = useDeleteEtapa();
   const upsertEtapaToBe = useUpsertEtapaToBe();
+  // Escrita das etapas TO-BE por-cenário (linhas próprias) — "Como ficou" editável.
+  const createEtapaToBe = useCreateEtapaToBe();
+  const updateEtapaToBe = useUpdateEtapaToBe();
+  const deleteEtapaToBe = useDeleteEtapaToBe();
   const updateMelhoria = useUpdateMelhoria();
   const updateGargalo = useUpdateGargalo();
   const mapaExports = useMapaExports();
@@ -319,9 +324,12 @@ export default function MapearProcessoPage() {
     let prepared: Etapa[];
     if (mode === 'era') {
       prepared = snapshotsEtapas;
+    } else if (usarListaFicou) {
+      // Modelo por-cenário: edita as LINHAS TO-BE próprias (não clona do AS-IS).
+      prepared = etapasFuturo.map(e => cleanEtapa({ ...e, name: cleanEtapaName(e.name) }));
     } else {
-      // Ficou: se já há projeção salva → carrega ela; senão → clona da era
-      // em memória (não persiste até "Salvar todas").
+      // Ficou legado (pareado): se já há projeção salva → carrega ela; senão →
+      // clona da era em memória (não persiste até "Salvar todas").
       prepared = snapshotsEtapas.map(eraEtapa => {
         const f = eraEtapa.ficou;
         return {
@@ -427,7 +435,10 @@ export default function MapearProcessoPage() {
     if (!etapa || editEtapasList.length <= 1) return;
     const tamanhoAntes = editEtapasList.length;
     setEditEtapasList(prev => prev.filter((_, i) => i !== index));
-    if (etapas.some(e => e.id === etapa.id)) {
+    // No ficou por-cenário, os "existentes" são as linhas TO-BE (etapasFuturo);
+    // no era (e no ficou legado, que não exclui), são as etapas AS-IS.
+    const existentesAtuais = editEtapasMode === 'ficou' && usarListaFicou ? etapasFuturo : etapas;
+    if (existentesAtuais.some(e => e.id === etapa.id)) {
       setRemovedEtapaIds(prev => {
         const next = new Set(prev);
         next.add(etapa.id);
@@ -459,6 +470,34 @@ export default function MapearProcessoPage() {
     setEditEtapasSaving(true);
     const cleaned = editEtapasList.map(cleanEtapa).map(resolverVinculos);
     try {
+      const perCenarioFicou = editEtapasMode === 'ficou' && usarListaFicou;
+      if (perCenarioFicou) {
+        // ── Ficou por-cenário: as etapas são LINHAS TO-BE próprias (id independente).
+        //    Cria as novas, atualiza as que mudaram (por id próprio) e apaga as removidas.
+        //    stage_order = posição na lista (reorder já é detectado por etapaMudou). ──
+        const existingToBeIds = new Set(etapasFuturo.map(e => e.id));
+        const baselineById = new Map(
+          etapasFuturo.map(e => [e.id, resolverVinculos(cleanEtapa({ ...e, name: cleanEtapaName(e.name) }))]),
+        );
+        for (let i = 0; i < cleaned.length; i++) {
+          const e = { ...cleaned[i], stage_order: i + 1 };
+          try {
+            if (existingToBeIds.has(e.id)) {
+              if (etapaMudou(baselineById.get(e.id), e)) {
+                await updateEtapaToBe.mutateAsync({ etapa: e });
+              }
+            } else {
+              // Etapa TO-BE nova — o id local é provisório; o banco gera o uuid.
+              await createEtapaToBe.mutateAsync({ etapa: e, process_id: processo.id });
+            }
+          } catch (err) {
+            throw new Error(`Etapa ${i + 1}${e.name ? ` ("${e.name}")` : ''}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+        for (const rid of removedEtapaIds) {
+          await deleteEtapaToBe.mutateAsync({ id: rid });
+        }
+      } else {
       const existingIds = new Set(etapas.map(e => e.id));
       // Baseline original com o MESMO tratamento do editor (era OU ficou), p/
       // detectar o que mudou e não re-gravar/reconciliar etapa intocada.
@@ -518,6 +557,7 @@ export default function MapearProcessoPage() {
         for (const rid of removedEtapaIds) {
           await deleteEtapa.mutateAsync({ id: rid, old: { id: rid } as Etapa });
         }
+      }
       }
       // process_stages pode ter mudado nos onSuccess acima — invalida pra UI refrescar.
       queryClient.invalidateQueries({ queryKey: ['process_stages'] });
@@ -740,7 +780,6 @@ export default function MapearProcessoPage() {
             >
               <ComoFicouView
                 etapas={usarListaFicou ? etapasFuturo : etapas}
-                readonly={usarListaFicou}
                 fmtPct={fmtPct}
                 sumHorasEtapa={sumHorasEtapa}
                 onEditar={(etapaId) => openEditEtapas('ficou', etapaId)}
@@ -755,6 +794,9 @@ export default function MapearProcessoPage() {
         {(() => {
           const active = editEtapasList[editEtapasActiveIndex];
           const isFicou = editEtapasMode === 'ficou';
+          // Adicionar/excluir etapa: sempre no AS-IS; no ficou só no modelo
+          // por-cenário (linhas TO-BE próprias). No ficou legado (pareado) fica off.
+          const podeMexerEstrutura = !isFicou || usarListaFicou;
           // Processo sem etapas (ex.: recém-criado) — em vez de abrir o modal
           // vazio (bug do `return null`), oferece adicionar a primeira etapa
           // (ou orienta a mapear o "Como era" antes, no cenário "Como ficou").
@@ -835,7 +877,7 @@ export default function MapearProcessoPage() {
                       );
                     })}
                   </ol>
-                  {editEtapasMode === 'era' && (
+                  {podeMexerEstrutura && (
                     <button
                       className="etapas-sidebar-add"
                       onClick={addNovaEtapa}
@@ -952,7 +994,7 @@ export default function MapearProcessoPage() {
                 </div>
               </div>
               <div className="modal-footer">
-                {editEtapasMode === 'era' ? (
+                {podeMexerEstrutura ? (
                   <button
                     className="btn-delete-etapa"
                     onClick={() => handleExcluirEtapa(editEtapasActiveIndex)}
@@ -1197,19 +1239,14 @@ interface ComoFicouProps {
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
   onEditar: (etapaId?: string) => void;
-  /** Modelo por-cenário: as `etapas` são as linhas TO-BE (importadas), exibidas
-   *  em somente-leitura — a edição do TO-BE pela UI é do modelo pareado legado. */
-  readonly?: boolean;
 }
-function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar, readonly = false }: ComoFicouProps) {
+function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouProps) {
   return (
     <div className="mapear-tab-content">
       <MapearTabHead
         titulo="Como ficou"
-        subtitulo={readonly
-          ? 'Cenário TO-BE (linhas próprias, importadas) — somente leitura aqui.'
-          : 'O cenário projetado depois das melhorias.'}
-        onEditar={readonly ? undefined : onEditar}
+        subtitulo="O cenário projetado depois das melhorias."
+        onEditar={onEditar}
       />
 
       {etapas.length === 0 ? (
@@ -1238,13 +1275,13 @@ function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar, readonly = fal
               return (
                 <li
               key={e.id}
-              className={`mapear-etapa${readonly ? '' : ' mapear-etapa-clicavel'}`}
-              role={readonly ? undefined : 'button'}
-              tabIndex={readonly ? undefined : 0}
-              title={readonly ? undefined : 'Clique para editar esta etapa'}
-              style={readonly ? undefined : { cursor: 'pointer' }}
-              onClick={readonly ? undefined : () => onEditar(e.id)}
-              onKeyDown={readonly ? undefined : (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
+              className="mapear-etapa mapear-etapa-clicavel"
+              role="button"
+              tabIndex={0}
+              title="Clique para editar esta etapa"
+              style={{ cursor: 'pointer' }}
+              onClick={() => onEditar(e.id)}
+              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
             >
                   <div className="mapear-etapa-top">
                     <span className="mapear-etapa-num">{i + 1}</span>

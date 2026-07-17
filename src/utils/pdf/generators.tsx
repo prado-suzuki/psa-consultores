@@ -214,10 +214,13 @@ export async function generateProjetoZip(input: GenerateProjetoZipInput): Promis
   const entries: ZipEntry[] = [];
   const projSlug = slugFilename(projeto.name, projeto.id);
 
-  // Diagrama consolidado do projeto (Gargalo × Melhoria) — na raiz do zip.
+  // Diagrama consolidado do projeto (por processo: AS-IS × TO-BE) — na raiz do zip.
   entries.push({
     name: `Diagrama_consolidado_${projSlug}.mmd`,
-    data: buildProjectComparison({ projetoNome: projeto.name, processos, gargalos, melhorias }),
+    data: buildProjectComparison({
+      projetoNome: projeto.name, processos, gargalos, melhorias,
+      asisPorProcesso: etapasByProcesso, tobePorProcesso: tobeByProcesso,
+    }),
   });
 
   for (const processo of processos) {

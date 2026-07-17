@@ -253,6 +253,8 @@ const CMP_STYLES = [
   '  classDef gargalo  fill:#f9fafb,color:#374151,stroke:#9ca3af,stroke-width:1.5px,stroke-dasharray:3 3',
   '  classDef melhoria fill:#f0fff4,color:#111827,stroke:#84cc16,stroke-width:1.5px',
   '  classDef vazio    fill:#f1f5f9,color:#64748b,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray:4 3',
+  // Nó de padding invisível (só reserva altura p/ alinhar colunas pelo topo).
+  '  classDef padVazio fill:none,stroke:none,color:#ffffff',
 ];
 
 /** Rótulo humano da execução (enum do banco → texto). */
@@ -276,25 +278,25 @@ function comparativoEtapaCard(e: Etapa, num: number): string {
   return linhas.join('\n');
 }
 
-/** Emite 1 processo como bloco vertical: cabeçalho → colunas Como Era | Como Ficou. */
-function emitProcessoComparativo(lines: string[], processo: Processo, idx: number, asis: Etapa[], tobe: Etapa[]): void {
+/** Emite 1 processo como bloco vertical. Padrão: cabeçalho → colunas Como Era |
+ *  Como Ficou. Com `coluna` ('as'|'to'): uma coluna ÚNICA, SEM os chips de tag
+ *  (Como Era/Como Ficou) — o cabeçalho liga direto nas etapas daquele cenário
+ *  (mesmos cards: nome · execução · sistemas). "De resto igual" ao comparativo. */
+function emitProcessoComparativo(
+  lines: string[], processo: Processo, idx: number,
+  asis: Etapa[], tobe: Etapa[], coluna?: 'as' | 'to', padTo = 0,
+): void {
   const pid = processo.id;
   const H = safeId('H', pid);
-  const aT = safeId('AT', pid);
-  const tT = safeId('TT', pid);
   lines.push(`  subgraph ${safeId('PR', pid)}[" "]`);
   lines.push('    direction TB');
-  lines.push(`    ${H}["\`**${idx + 1} · ${mdText(processo.name)}** · ${asis.length} → ${tobe.length}\`"]:::procHead`);
-  lines.push(`    ${aT}["\`Como Era\`"]:::tagAS`);
-  lines.push(`    ${tT}["\`Como Ficou\`"]:::tagTO`);
-  lines.push(`    ${H} --> ${aT}`);
-  lines.push(`    ${H} --> ${tT}`);
-  const coluna = (tag: string, etapas: Etapa[], prefixo: string, cls: string) => {
+
+  const emitColuna = (tag: string, etapas: Etapa[], prefixo: string, cls: string): string => {
     if (etapas.length === 0) {
       const id = safeId(prefixo, `${pid}_vazio`);
       lines.push(`    ${id}["\`sem etapas\`"]:::vazio`);
       lines.push(`    ${tag} --> ${id}`);
-      return;
+      return id;
     }
     let prev = tag;
     etapas.forEach((e, i) => {
@@ -303,9 +305,35 @@ function emitProcessoComparativo(lines: string[], processo: Processo, idx: numbe
       lines.push(`    ${prev} --> ${id}`);
       prev = id;
     });
+    return prev;
   };
-  coluna(aT, asis, 'A', 'etapaAS');
-  coluna(tT, tobe, 'T', 'etapaTO');
+
+  if (coluna === 'as' || coluna === 'to') {
+    // Coluna única: cabeçalho com a contagem do cenário e SEM chip de tag; o
+    // cabeçalho do processo liga direto na primeira etapa daquele cenário.
+    const etapas = coluna === 'as' ? asis : tobe;
+    lines.push(`    ${H}["\`**${idx + 1} · ${mdText(processo.name)}** · ${etapas.length} etapa${etapas.length === 1 ? '' : 's'}\`"]:::procHead`);
+    let prev = emitColuna(H, etapas, coluna === 'as' ? 'A' : 'T', coluna === 'as' ? 'etapaAS' : 'etapaTO');
+    // Padding INVISÍVEL até a altura da coluna mais alta (link ~~~ + nó sem
+    // borda/fill): iguala a altura dos blocos p/ o dagre alinhar os processos
+    // pelo TOPO (senão a centralização de blocos de alturas diferentes zig-zaga).
+    for (let k = Math.max(etapas.length, 1); k < padTo; k++) {
+      const id = safeId('PAD', `${pid}_${k}`);
+      lines.push(`    ${id}["\` \`"]:::padVazio`);
+      lines.push(`    ${prev} ~~~ ${id}`);
+      prev = id;
+    }
+  } else {
+    const aT = safeId('AT', pid);
+    const tT = safeId('TT', pid);
+    lines.push(`    ${H}["\`**${idx + 1} · ${mdText(processo.name)}** · ${asis.length} → ${tobe.length}\`"]:::procHead`);
+    lines.push(`    ${aT}["\`Como Era\`"]:::tagAS`);
+    lines.push(`    ${tT}["\`Como Ficou\`"]:::tagTO`);
+    lines.push(`    ${H} --> ${aT}`);
+    lines.push(`    ${H} --> ${tT}`);
+    emitColuna(aT, asis, 'A', 'etapaAS');
+    emitColuna(tT, tobe, 'T', 'etapaTO');
+  }
   lines.push('  end');
 }
 
@@ -316,16 +344,24 @@ export interface BuildProcessComparisonInput {
   asisPorProcesso: Map<string, Etapa[]>;
   /** Etapas TO-BE por processo — já enriquecidas (sistemas = nomes). */
   tobePorProcesso: Map<string, Etapa[]>;
+  /**
+   * Coluna ÚNICA, sem os chips Como Era/Como Ficou:
+   * - `'as'` → só a coluna Como Era (AS-IS);
+   * - `'to'` → só a coluna Como Ficou (TO-BE).
+   * Omitido = comparativo de duas colunas (padrão).
+   */
+  coluna?: 'as' | 'to';
 }
 
 /**
  * Comparativo de ETAPAS (Como Era × Como Ficou). Cada processo é um bloco
  * vertical com duas colunas; os processos ficam lado a lado (fileira). Passe
  * `[processo]` para a visão por-processo ou todos para o consolidado.
- * Reproduz `Diagrama_P1_Etapas_AS-IS_x_TO-BE.mmd`.
+ * Reproduz `Diagrama_P1_Etapas_AS-IS_x_TO-BE.mmd`. Com `coluna` renderiza só um
+ * cenário (mesmos cards, sem os chips de tag) — usado nas abas AS-IS e TO-BE.
  */
 export function buildProcessComparison(input: BuildProcessComparisonInput): string {
-  const { processos, asisPorProcesso, tobePorProcesso } = input;
+  const { processos, asisPorProcesso, tobePorProcesso, coluna } = input;
   const lines: string[] = [];
   lines.push('%% Comparativo de Etapas (Como Era × Como Ficou) — gerado pelo MAPA');
   lines.push('flowchart LR');
@@ -335,9 +371,13 @@ export function buildProcessComparison(input: BuildProcessComparisonInput): stri
   if (ordenados.length === 0) {
     lines.push(`  ${safeId('EMPTY', 'cmp')}["sem processos"]:::vazio`);
   }
+  // Coluna única: altura da coluna mais alta (nº de etapas), p/ o padding invisível
+  // igualar os blocos e alinhar os processos pelo topo (sem zig-zag).
+  const mapaCol = coluna === 'to' ? tobePorProcesso : asisPorProcesso;
+  const padTo = coluna ? Math.max(0, ...ordenados.map(p => (mapaCol.get(p.id) || []).length)) : 0;
   const boxes: string[] = [];
   ordenados.forEach((p, i) => {
-    emitProcessoComparativo(lines, p, i, asisPorProcesso.get(p.id) || [], tobePorProcesso.get(p.id) || []);
+    emitProcessoComparativo(lines, p, i, asisPorProcesso.get(p.id) || [], tobePorProcesso.get(p.id) || [], coluna, padTo);
     boxes.push(safeId('PR', p.id));
   });
   // Alinha os processos lado a lado (link invisível entre os subgraphs).
@@ -348,71 +388,120 @@ export function buildProcessComparison(input: BuildProcessComparisonInput): stri
   return lines.join('\n');
 }
 
-/** Card de gargalo/melhoria do consolidado. Teto de tamanho (defensivo) p/ o card
- *  não estourar caso o texto venha longo (ex.: melhoria ainda sem nome curto). */
-function gmCard(prefixo: string, texto: string): string {
-  const t = mdText(texto);
-  const curto = t.length > 120 ? `${t.slice(0, 118).trimEnd()}…` : t;
-  return `**${prefixo}** — ${curto}`;
-}
-
 export interface BuildProjectComparisonInput {
   projetoNome: string;
-  /** Processos do projeto — só para filtrar os gargalos/melhorias vinculados. */
+  /** Processos do projeto — uma LINHA por processo, alinhada entre as colunas. */
   processos: Processo[];
   gargalos: Gargalo[];
   melhorias: Melhoria[];
+  /** Etapas AS-IS por processo (enriquecidas: sistemas = nomes). */
+  asisPorProcesso: Map<string, Etapa[]>;
+  /** Etapas TO-BE por processo (linhas próprias, enriquecidas). */
+  tobePorProcesso: Map<string, Etapa[]>;
+  /**
+   * Cenário único:
+   * - `'as'` → só Processo | Como Era (gargalos + sistemas);
+   * - `'to'` → só Processo | Como Ficou (melhorias + sistemas).
+   * Omitido = as duas colunas (Processo | Como Era | Como Ficou).
+   */
+  coluna?: 'as' | 'to';
 }
 
 /**
- * Consolidado do PROJETO: um único card do projeto ramificando direto em
- * Gargalos (Como Era) | Melhorias (Como Ficou). Sem cards intermediários de
- * processo — visão executiva do projeto inteiro.
+ * Consolidado do PROJETO: colunas-cadeia — Processo | Como Era · AS-IS |
+ * Como Ficou · TO-BE (com `coluna`, só o cenário pedido + a coluna Processo).
+ * Cada coluna é uma cadeia vertical (setas VERTICAIS ligam os processos em
+ * sequência, 1 → 2 → …); as cadeias têm o mesmo tamanho → mesma rank → linhas
+ * alinhadas. As setinhas LATERAIS (Processo → AS-IS → TO-BE) NÃO são arestas do
+ * dagre (brigariam com a rank) — vão como metadado `%% LATERAL a b` e o
+ * DiagramViewer as desenha por cima do SVG (mesmo esquema das dobras FOLD).
+ *
+ * Célula de cenário: SEM rótulos — o gargalo (AS-IS) / melhoria (TO-BE) vira o
+ * TÍTULO em negrito e os sistemas vêm abaixo (linha em branco de respiro). O nome
+ * do processo vive só no card da esquerda (não se repete nas células).
  */
 export function buildProjectComparison(input: BuildProjectComparisonInput): string {
-  const { projetoNome, processos, gargalos, melhorias } = input;
-  const procIds = new Set(processos.map(p => p.id));
-  // Ordena as duas colunas pela ordem do processo vinculado — assim gargalo e
-  // melhoria do mesmo processo ficam na mesma linha (1:1 por processo no P1).
-  const ordem = new Map(processos.map((p, i) => [p.id, p.order_index ?? i]));
-  const ordenarPorProcesso = (vinc: string[]) =>
-    Math.min(Infinity, ...(vinc || []).filter(id => procIds.has(id)).map(id => ordem.get(id) ?? Infinity));
-  const gs = gargalos
-    .filter(g => (g.processos || []).some(id => procIds.has(id)))
-    .sort((a, b) => ordenarPorProcesso(a.processos) - ordenarPorProcesso(b.processos));
-  const ms = melhorias
-    .filter(m => (m.processos || []).some(id => procIds.has(id)))
-    .sort((a, b) => ordenarPorProcesso(a.processos) - ordenarPorProcesso(b.processos));
+  const { projetoNome, processos, gargalos, melhorias, asisPorProcesso, tobePorProcesso, coluna } = input;
+  const mostrarAS = coluna !== 'to';  // ambas ou só 'as'
+  const mostrarTO = coluna !== 'as';  // ambas ou só 'to'
+
+  const sistemasDoProc = (etapas: Etapa[]): string[] => {
+    const s = new Set<string>();
+    for (const e of etapas) for (const x of e.sistemas || []) if (x) s.add(x);
+    return [...s];
+  };
+  // Célula: título (gargalo/melhoria) em negrito + linha em branco + sistemas.
+  const cell = (titulo: string[], sistemas: string[]): string => {
+    const t = joinCap(titulo, 4) || '—';
+    const s = joinCap(sistemas, 4);
+    return s ? `**${t}**\n\n${s}` : `**${t}**`;
+  };
+
+  const ordenados = [...processos].sort(
+    (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name),
+  );
 
   const lines: string[] = [];
-  lines.push('%% Comparativo Consolidado do Projeto · Gargalo (Como Era) × Melhoria (Como Ficou) — gerado pelo MAPA');
+  lines.push('%% Comparativo Consolidado do Projeto · Processo | Como Era | Como Ficou — gerado pelo MAPA');
   lines.push('flowchart TB');
   const ROOT = safeId('ROOT', projetoNome || 'projeto');
+  const PH = safeId('PH', 'root');   // header da coluna de PROCESSO (esquerda)
   const GA = safeId('GA', 'root');
   const ME = safeId('ME', 'root');
   lines.push(`  ${ROOT}["\`**${mdText(projetoNome)}**\`"]:::rootHead`);
-  lines.push(`  ${GA}["\`Como Era\`"]:::tagAS`);
-  lines.push(`  ${ME}["\`Como Ficou\`"]:::tagTO`);
-  lines.push(`  ${ROOT} --> ${GA}`);
-  lines.push(`  ${ROOT} --> ${ME}`);
+  lines.push(`  ${PH}["\`Processo\`"]:::procHead`);
+  if (mostrarAS) lines.push(`  ${GA}["\`Como Era · AS-IS\`"]:::tagAS`);
+  if (mostrarTO) lines.push(`  ${ME}["\`Como Ficou · TO-BE\`"]:::tagTO`);
+  // Ordem dos ramos define a ordem das colunas (esquerda → direita).
+  lines.push(`  ${ROOT} --> ${PH}`);
+  if (mostrarAS) lines.push(`  ${ROOT} --> ${GA}`);
+  if (mostrarTO) lines.push(`  ${ROOT} --> ${ME}`);
 
-  const coluna = <T,>(tag: string, itens: T[], prefixo: string, cls: string, card: (x: T) => string, vazio: string) => {
-    if (itens.length === 0) {
-      const id = safeId(prefixo, 'vazio');
-      lines.push(`  ${id}["\`${vazio}\`"]:::vazio`);
-      lines.push(`  ${tag} --> ${id}`);
-      return;
-    }
-    let prev = tag;
-    itens.forEach((x, i) => {
-      const id = safeId(prefixo, `${i}`);
-      lines.push(`  ${id}["\`${card(x)}\`"]:::${cls}`);
-      lines.push(`  ${prev} --> ${id}`);
-      prev = id;
+  if (ordenados.length === 0) {
+    const pv = safeId('P', 'vazio');
+    lines.push(`  ${pv}["\`sem processo mapeado\`"]:::vazio`);
+    lines.push(`  ${PH} --> ${pv}`);
+  } else {
+    let prevP = PH;
+    let prevA = GA;
+    let prevT = ME;
+    ordenados.forEach((p, i) => {
+      const asis = asisPorProcesso.get(p.id) || [];
+      const tobe = tobePorProcesso.get(p.id) || [];
+      const gs = gargalos.filter(g => (g.processos || []).includes(p.id)).map(g => g.nome || g.descricao);
+      const ms = melhorias.filter(m => (m.processos || []).includes(p.id)).map(m => m.improvement_description);
+      const pId = safeId('P', p.id);
+      const aId = safeId('A', p.id);
+      const tId = safeId('T', p.id);
+
+      // Coluna esquerda: card do PROCESSO (rótulo da linha) — seta VERTICAL do anterior.
+      lines.push(`  ${pId}["\`**${i + 1} · ${mdText(p.name)}**\`"]:::procHead`);
+      lines.push(`  ${prevP} --> ${pId}`);
+      prevP = pId;
+      if (mostrarAS) {
+        // AS-IS: gargalo(s) como título + sistemas.
+        lines.push(`  ${aId}["\`${cell(gs, sistemasDoProc(asis))}\`"]:::gargalo`);
+        lines.push(`  ${prevA} --> ${aId}`);
+        prevA = aId;
+      }
+      if (mostrarTO) {
+        // TO-BE: melhoria(s) como título + sistemas.
+        lines.push(`  ${tId}["\`${cell(ms, sistemasDoProc(tobe))}\`"]:::melhoria`);
+        lines.push(`  ${prevT} --> ${tId}`);
+        prevT = tId;
+      }
+
+      // Setinhas LATERAIS (desenhadas pelo DiagramViewer).
+      if (mostrarAS && mostrarTO) {
+        lines.push(`  %% LATERAL ${pId} ${aId}`);  // Processo → AS-IS
+        lines.push(`  %% LATERAL ${aId} ${tId}`);  // AS-IS → TO-BE
+      } else if (mostrarAS) {
+        lines.push(`  %% LATERAL ${pId} ${aId}`);  // Processo → AS-IS
+      } else {
+        lines.push(`  %% LATERAL ${pId} ${tId}`);  // Processo → TO-BE
+      }
     });
-  };
-  coluna(GA, gs, 'G', 'gargalo', (g) => gmCard('Gargalo', g.nome || g.descricao), 'sem gargalo mapeado');
-  coluna(ME, ms, 'M', 'melhoria', (m) => gmCard('Melhoria', m.improvement_description), 'sem melhoria mapeada');
+  }
 
   lines.push('  %% ===== estilos =====');
   CMP_STYLES.forEach(s => lines.push(s));

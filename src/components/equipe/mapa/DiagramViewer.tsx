@@ -145,6 +145,31 @@ function withFoldEdges(svg: string, code: string): string {
   return idx === -1 ? svg : svg.slice(0, idx) + inject + svg.slice(idx);
 }
 
+// Setas LATERAIS (ex.: Processo → AS-IS → TO-BE do consolidado) desenhadas por
+// cima do SVG a partir de `%% LATERAL a b`. O dagre não liga esses nós (estão na
+// MESMA rank — uma aresta real empurraria o destino uma rank abaixo e quebraria o
+// alinhamento das colunas), então desenhamos a seta horizontal na posição real,
+// como as dobras FOLD. Fica no state → aparece no viewer E nas exportações.
+function withLateralEdges(svg: string, code: string): string {
+  const pairs = [...code.matchAll(/%%\s*LATERAL\s+(\S+)\s+(\S+)/g)];
+  if (pairs.length === 0) return svg;
+  const boxes = parseNodeBoxes(svg);
+  const paths: string[] = [];
+  for (const [, a, b] of pairs) {
+    const A = boxes[a]; const B = boxes[b];
+    if (!A || !B) continue;
+    const ax = A.cx + A.hw;   // borda direita da origem
+    const bx = B.cx - B.hw;   // borda esquerda do destino
+    if (bx <= ax) continue;   // defensivo: destino precisa estar à direita
+    paths.push(`<path d="M ${ax} ${A.cy} L ${bx} ${B.cy}" fill="none" stroke="#0d9488" stroke-width="1.5" marker-end="url(#lat-arrow)"/>`);
+  }
+  if (paths.length === 0) return svg;
+  const defs = '<defs class="lat-defs"><marker id="lat-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0d9488"/></marker></defs>';
+  const inject = `${defs}<g class="lateral-edges">${paths.join('')}</g>`;
+  const idx = svg.lastIndexOf('</svg>');
+  return idx === -1 ? svg : svg.slice(0, idx) + inject + svg.slice(idx);
+}
+
 export interface DiagramViewerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -214,8 +239,8 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
       .render(id, code)
       .then(({ svg }) => {
         if (cancelled) return;
-        // Desenha as setas de "dobra" (etapa→etapa) da serpentina por cima do SVG.
-        const finalSvg = withFoldEdges(svg, code);
+        // Desenha as setas de "dobra" (serpentina) e as laterais (consolidado) por cima do SVG.
+        const finalSvg = withLateralEdges(withFoldEdges(svg, code), code);
         setSvg(finalSvg);
         requestAnimationFrame(() => { if (!cancelled) fitToContainer(finalSvg); });
       })
