@@ -163,7 +163,7 @@ Ordem = maior→menor peso de contexto. Fazer o **primeiro como padrão de refer
 | 1 | feito (Fase 2) | `pages/equipe/EquipeProjetos.tsx` | 2.296 | 3 | insert `projects`(x2)/`processes` |
 | 2 | feito (Fase 2) | `pages/equipe/EquipeProcessos.tsx` | 1.586 | 1 | insert `processes` |
 | 3 | feito (Fase 2) | `pages/equipe/dev/ProcessoDifal.tsx` | 1.263 | 1 | delete `difal_decisao` |
-| 4 | pendente | `pages/equipe/EquipeKanban.tsx` | 1.259 | 5 | select (load inicial) |
+| 4 | feito (Fase 2) | `pages/equipe/EquipeKanban.tsx` | 1.259 | 5 | select (load inicial) |
 | 5 | pendente | `pages/equipe/dev/ControlePerdcomp.tsx` | 1.172 | 2 | select `cliente`/`per_situacao` (tenancy!) |
 | 6 | pendente | `components/equipe/dev/perdcomp/PerDetailModal.tsx` | 1.154 | 2 | insert `per_situacao` + update `per` |
 | 7 | pendente | `components/equipe/dev/perdcomp/DcompFormModal.tsx` | 981 | 4 | select + delete + insert `distribuicao_dcomp`/`dcomp` |
