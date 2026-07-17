@@ -442,23 +442,23 @@ export default function GestaoDetalhesChamado() {
                       {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground">{message.message}</p>
+                  <TicketRichTextView value={message.message} className="text-sm text-foreground" />
                 </div>
               ))
             )}
           </div>
 
           <div className="space-y-4">
-            <Textarea
-              placeholder="Digite sua resposta..."
+            <TicketRichTextEditor
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              rows={4}
-              className="bg-card border-border"
+              onChange={setNewMessage}
+              placeholder="Digite sua resposta..."
+              minHeight="min-h-28"
+              ariaLabel="Nova resposta"
             />
             <Button 
               onClick={handleSendMessage} 
-              disabled={sending || !newMessage.trim()}
+              disabled={sending || isTicketRichTextEmpty(newMessage)}
               className="bg-primary hover:bg-primary text-white"
             >
               {sending ? (
