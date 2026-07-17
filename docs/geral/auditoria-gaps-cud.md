@@ -129,3 +129,12 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.createUser` | `auth.users`, `profiles`, `user_roles` | insert | criação via edge function preservada |
 | `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.addRole` | `user_roles` | insert | payload e invalidação preservados |
 | `pages/administracao/AdminUsuarios.tsx` | `useDomainAdminUsuarios.removeRole` | `user_roles` | delete | amostra, precheck e filtro preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoMutations.importProjectsMutation` | `projects` | insert | importação em lote e deduplicação preservadas; sem precheck |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoMutations.createProjectMutation` | `projects` | insert | payload integral preservado; sem precheck |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoMutations.updateProjectMutation` | `projects` | update | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoMutations.deleteProjectMutation` | `projects` | delete | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoMutations.updateProjectStatusMutation` | `projects` | update | alteração de status; precheck e tratamento de erro preexistente preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.createProcessMutation` | `processes` | insert | cluster herdado do projeto; sem precheck |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.updateProcessMutation` | `processes` | update | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.deleteProcessMutation` | `processes` | delete | precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.updateProcessStageMutation` | `processes` | update | avanço de estágio; precheck e tratamento de erro preexistente preservados |

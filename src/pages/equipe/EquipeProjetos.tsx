@@ -1,599 +1,157 @@
-import { useEffect, useState, useRef } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { EquipeLayout } from '@/components/equipe/EquipeLayout';
+import {
+  ProcessCreateDialog,
+  ProcessEditDialog,
+} from '@/components/equipe/projetos/ProcessDialogs';
+import { ProjectDetailsDialog } from '@/components/equipe/projetos/ProjectDetailsDialog';
+import { ProjectFilters } from '@/components/equipe/projetos/ProjectFilters';
+import { ProjectList } from '@/components/equipe/projetos/ProjectList';
+import { ProjectsToolbar } from '@/components/equipe/projetos/ProjectsToolbar';
+import { PROCESS_STAGES } from '@/components/equipe/projetos/constants';
+import type {
+  Process,
+  ProcessDraft,
+  Project,
+  ProjectDraft,
+  ProjectEditDraft,
+  SpreadsheetRow,
+} from '@/components/equipe/projetos/types';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
-import { currentAmbiente } from '@/config/api';
+import { useClusters } from '@/hooks/useClusters';
+import {
+  useEquipeProjetoMutations,
+  useEquipeProjetoProcessMutations,
+} from '@/hooks/useDomainEquipeProjetosMutations';
+import {
+  useEquipeProjetoBacklogQuery,
+  useEquipeProjetoProcessesQuery,
+  useEquipeProjetosCatalogClientsQuery,
+  useEquipeProjetosExternalClientsQuery,
+  useEquipeProjetosQuery,
+  useEquipeProjetosTeamMembersQuery,
+} from '@/hooks/useDomainEquipeProjetosQueries';
 import { useEstruturaEquipesAll } from '@/hooks/useEstruturaEquipesAll';
 import { usePersistedState } from '@/hooks/usePersistedState';
-import { useClusters } from '@/hooks/useClusters';
-import { matchCluster, SEM_CLUSTER } from '@/lib/clusterFilter';
-
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { EquipeLayout } from '@/components/equipe/EquipeLayout';
-import * as XLSX from 'xlsx';
-import { 
-  Plus,
-  FolderKanban,
-  Calendar,
-  Building2,
-  CheckCircle2,
-  Clock,
-  Archive,
-  LayoutGrid,
-  List,
-  Eye,
-  Filter,
-  AlertCircle,
-  Pencil,
-  Trash2,
-  ListTodo,
-  Workflow,
-  ArrowRight,
-  Upload,
-  FileSpreadsheet
-} from 'lucide-react';
-
-interface Project {
-  id: string;
-  name: string;
-  description: string | null;
-  status: string;
-  client_name: string | null;
-  client_id: string | null;
-  external_client_id: string | null;
-  leader_id: string | null;
-  area: string | null;
-  cluster_id: string | null;
-  equipe_id: string | null;
-  product_service: string | null;
-  project_front: string | null;
-  justification_type: string | null;
-  justification_detail: string | null;
-  start_date: string | null;
-  end_date: string | null;
-  created_at: string;
-}
-
-interface BacklogTask {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  estimated_hours: number | null;
-  created_at: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  code?: string | null;
-  description: string | null;
-  area: string | null;
-  equipe_id: string | null;
-  stage: string;
-  priority: string | null;
-  frequency: string | null;
-  volume_month: number | null;
-  financial_impact: string | null;
-  client_id: string | null;
-  impact_type?: string | null;
-}
-
-interface CatalogClient {
-  id: string;
-  name: string;
-  responsible: string | null;
-  color: string;
-  is_active: boolean;
-}
-
-interface ExternalClient {
-  id: string;
-  nome: string;
-}
-
-interface TeamMember {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-// Project fronts/categories
-const PROJECT_FRONTS = [
-  { value: 'processo', label: 'Melhoria de Processo' },
-  { value: 'automacao', label: 'Automação' },
-  { value: 'sistema', label: 'Sistema/Ferramenta' },
-  { value: 'integracao', label: 'Integração' },
-  { value: 'relatorio', label: 'Relatório/Dashboard' },
-  { value: 'compliance', label: 'Compliance' },
-  { value: 'capacitacao', label: 'Capacitação' },
-  { value: 'outro', label: 'Outro' }
-];
-
-// Justification types
-const JUSTIFICATION_TYPES = [
-  { value: 'financeiro', label: 'Economia Financeira', description: 'Redução de custos ou aumento de receita' },
-  { value: 'tempo', label: 'Economia de Tempo', description: 'Redução de horas de trabalho' },
-  { value: 'automacao', label: 'Automação', description: 'Eliminação de tarefas manuais' },
-  { value: 'qualidade', label: 'Qualidade', description: 'Redução de erros e retrabalho' },
-  { value: 'comunicacao', label: 'Comunicação', description: 'Melhoria na comunicação interna/externa' },
-  { value: 'compliance', label: 'Compliance', description: 'Atendimento a requisitos legais/regulatórios' },
-  { value: 'estrategico', label: 'Estratégico', description: 'Alinhamento com objetivos estratégicos' }
-];
-
-// Process stages configuration
-const PROCESS_STAGES = [
-  { value: 'discovery', label: 'Descoberta', color: 'bg-gray-100 text-gray-700' },
-  { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
-  { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
-  { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },
-  { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
-  { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' }
-];
-
-// Helper to extract priority from description
-const extractPriority = (description: string | null): string => {
-  if (!description) return '-';
-  const match = description.match(/Prioridade:\s*([^|]+)/);
-  return match ? match[1].trim() : '-';
-};
-
-// Helper to extract phase from description
-const extractPhase = (description: string | null): string => {
-  if (!description) return '-';
-  const match = description.match(/Fase:\s*([^|]+)/);
-  return match ? match[1].trim() : '-';
-};
+import { matchCluster } from '@/lib/clusterFilter';
+import { prepareProjectImportPayloads } from '@/lib/equipeProjetos';
 
 const EquipeProjetos = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
-  const [externalClients, setExternalClients] = useState<ExternalClient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
   const [areaFilter, setAreaFilter] = usePersistedState<string>('rotina.projetos.area', 'all');
-  const [statusFilter, setStatusFilter] = usePersistedState<string>('rotina.projetos.status', 'all');
-  // Chave compartilhada: o cluster selecionado é o mesmo entre Projetos e Processos.
+  const [statusFilter, setStatusFilter] = usePersistedState<string>(
+    'rotina.projetos.status',
+    'all',
+  );
   const [clusterFilter, setClusterFilter] = usePersistedState<string>('rotina.cluster', '');
-  const { data: clusters = [] } = useClusters();
   const [activeTab, setActiveTab] = useState('info');
-  const [backlogTasks, setBacklogTasks] = useState<BacklogTask[]>([]);
-  const [processes, setProcesses] = useState<Process[]>([]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [loadingBacklog, setLoadingBacklog] = useState(false);
-  const [loadingProcesses, setLoadingProcesses] = useState(false);
   const [isProcessDialogOpen, setIsProcessDialogOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<Process | null>(null);
 
-  // Estrutura organizacional (fonte única de áreas/equipes — mesma de /equipe/acessos)
+  const { data: clusters = [] } = useClusters();
+  const projectsQuery = useEquipeProjetosQuery(user?.id);
+  const teamMembersQuery = useEquipeProjetosTeamMembersQuery(user?.id);
+  const catalogClientsQuery = useEquipeProjetosCatalogClientsQuery(user?.id);
+  const externalClientsQuery = useEquipeProjetosExternalClientsQuery(user?.id);
+  const processesQuery = useEquipeProjetoProcessesQuery(user?.id, selectedProject?.id);
+  const backlogQuery = useEquipeProjetoBacklogQuery(user?.id, selectedProject?.id);
+  const {
+    importProjectsMutation,
+    createProjectMutation,
+    updateProjectMutation,
+    deleteProjectMutation,
+    updateProjectStatusMutation,
+  } = useEquipeProjetoMutations(user?.id);
+  const {
+    createProcessMutation,
+    updateProcessMutation,
+    deleteProcessMutation,
+    updateProcessStageMutation,
+  } = useEquipeProjetoProcessMutations(user?.id);
+
+  const { data: projects = [], isLoading: loading, refetch: refetchProjects } = projectsQuery;
+  const { data: catalogClients = [] } = catalogClientsQuery;
+  const { data: externalClients = [] } = externalClientsQuery;
+  const { data: teamMembers = [] } = teamMembersQuery;
+  const { data: backlogTasks = [], isFetching: loadingBacklog } = backlogQuery;
+  const {
+    data: processes = [],
+    isFetching: loadingProcesses,
+    refetch: refetchProcesses,
+  } = processesQuery;
+
   const { data: estrutura } = useEstruturaEquipesAll();
   const equipesList = estrutura?.equipes ?? [];
   const areasList = estrutura?.areas ?? [];
   const groupedEquipes = estrutura?.grouped ?? [];
   const equipeById = (id: string | null | undefined) =>
-    id ? equipesList.find((e) => e.id === id) ?? null : null;
+    id ? (equipesList.find((equipe) => equipe.id === id) ?? null) : null;
 
-  // Import state
-  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [importData, setImportData] = useState<any[]>([]);
-  const [importing, setImporting] = useState(false);
-
-  const [newProject, setNewProject] = useState({
-    name: '',
-    description: '',
-    client_name: '',
-    external_client_id: '',
-    leader_id: '',
-    equipe_id: '',
-    cluster_id: '',
-    product_service: '',
-    project_front: '',
-    justification_type: '',
-    justification_detail: '',
-    start_date: '',
-    end_date: ''
-  });
-  const [editProject, setEditProject] = useState({
-    name: '',
-    description: '',
-    client_name: '',
-    external_client_id: '',
-    leader_id: '',
-    equipe_id: '',
-    cluster_id: '',
-    product_service: '',
-    project_front: '',
-    justification_type: '',
-    justification_detail: '',
-    start_date: '',
-    end_date: '',
-    status: ''
-  });
-  const [newProcess, setNewProcess] = useState({
-    name: '',
-    description: '',
-    equipe_id: '',
-    stage: 'discovery',
-    priority: 'medium',
-    frequency: '',
-    volume_month: '',
-    financial_impact: ''
-  });
-  const [editProcess, setEditProcess] = useState({
-    name: '',
-    description: '',
-    equipe_id: '',
-    stage: '',
-    priority: '',
-    frequency: '',
-    volume_month: '',
-    financial_impact: ''
-  });
-
-  // Helper function to normalize column names
-  const normalizeColumnName = (name: string): string => {
-    return name
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[_\s]+/g, " ")
-      .trim();
-  };
-
-  // Find column index by possible names
-  const findColumnIndex = (headers: string[], possibleNames: string[]): number => {
-    const normalizedHeaders = headers.map(h => h ? normalizeColumnName(String(h)) : "");
-    const normalizedNames = possibleNames.map(normalizeColumnName);
-    for (const name of normalizedNames) {
-      const idx = normalizedHeaders.indexOf(name);
-      if (idx !== -1) return idx;
-    }
-    for (const name of normalizedNames) {
-      const idx = normalizedHeaders.findIndex((h) => h.startsWith(name));
-      if (idx !== -1) return idx;
-    }
-    return -1;
-  };
-
-  // Handle file select for import
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    
-    try {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const workbook = XLSX.read(evt.target?.result, { type: 'binary' });
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const data = XLSX.utils.sheet_to_json(sheet);
-        setImportData(data);
-        setIsImportDialogOpen(true);
-      };
-      reader.readAsBinaryString(file);
-    } catch (error) {
-      console.error('Error reading file:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível ler o arquivo.",
-        variant: "destructive"
-      });
-    }
-    
-    // Reset input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  // Extract area from Cliente column
-  const extractAreaFromCliente = (cliente: string | undefined): string => {
-    if (!cliente) return 'Geral';
-    const c = String(cliente).toLowerCase();
-    if (c.includes('fiscal') || c.includes('ricardo')) return 'Fiscal';
-    if (c.includes('consultoria') || c.includes('felipe')) return 'Consultoria';
-    if (c.includes('fixos') || c.includes('washington')) return 'Fixos';
-    return 'Transversal';
-  };
-
-  // Handle import projects - extracts unique projects from spreadsheet
-  const handleImportProjects = async () => {
-    if (importData.length === 0) return;
-    
-    setImporting(true);
-    try {
-      // Map all possible column names to extract project name
-      const allProjects = importData.map(row => {
-        // Try multiple column names for project
-        const projectName = row.Projeto || row.projeto || row.Project || row.name || row.Nome || row.nome || '';
-        const cliente = row.Cliente || row.cliente || row.Client || row.Empresa || row.empresa || '';
-        const area = extractAreaFromCliente(cliente);
-        
-        return {
-          name: String(projectName).trim(),
-          description: `Área: ${area} | Prioridade: Média`,
-          status: 'active',
-          client_name: row.Empresa || row.empresa || 'PSA CONSULTORES',
-          created_by: user?.id
-        };
-      }).filter(p => p.name && p.name.length > 0);
-
-      // Remove duplicates by project name (case-insensitive)
-      const uniqueProjects = [...new Map(
-        allProjects.map(p => [p.name.toLowerCase(), p])
-      ).values()];
-
-      if (uniqueProjects.length === 0) {
-        toast({
-          title: "Erro",
-          description: "Nenhum projeto válido encontrado. Verifique se a planilha tem uma coluna 'Projeto' ou 'Nome'.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      const { error } = await supabase.from('projects').insert(uniqueProjects);
-      
-      if (error) throw error;
-
-      toast({
-        title: "Projetos importados!",
-        description: `${uniqueProjects.length} projetos únicos criados com sucesso.`,
-      });
-
-      setIsImportDialogOpen(false);
-      setImportData([]);
-      fetchProjects();
-    } catch (error) {
-      console.error('Error importing projects:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível importar os projetos.",
-        variant: "destructive"
-      });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchProjects();
-    fetchTeamMembers();
-    fetchCatalogClients();
-    fetchExternalClients();
-  }, []);
-  
-  const fetchCatalogClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('catalog_clients')
-        .select('id, name, responsible, color, is_active')
-        .eq('is_active', true)
-        .order('name');
-      
-      if (error) throw error;
-      setCatalogClients(data || []);
-    } catch (error) {
-      console.error('Error fetching catalog clients:', error);
-    }
-  };
-
-  const fetchExternalClients = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      
-      if (error) throw error;
-      setExternalClients(data || []);
-    } catch (error) {
-      console.error('Error fetching external clients:', error);
-    }
-  };
-
-  useEffect(() => {
-    if (selectedProject && isEditMode) {
-      setEditProject({
-        name: selectedProject.name,
-        description: selectedProject.description || '',
-        client_name: selectedProject.client_name || '',
-        external_client_id: selectedProject.external_client_id || '',
-        leader_id: selectedProject.leader_id || '',
-        equipe_id: selectedProject.equipe_id || '',
-        cluster_id: selectedProject.cluster_id || '',
-        product_service: selectedProject.product_service || '',
-        project_front: selectedProject.project_front || '',
-        justification_type: selectedProject.justification_type || '',
-        justification_detail: selectedProject.justification_detail || '',
-        start_date: selectedProject.start_date || '',
-        end_date: selectedProject.end_date || '',
-        status: selectedProject.status
-      });
-    }
-  }, [selectedProject, isEditMode]);
-
-  useEffect(() => {
-    // Pré-carrega processos e backlog ao abrir o modal do projeto, para as
-    // contagens das abas já aparecerem corretas (não 0) antes de clicá-las.
-    if (selectedProject) {
-      fetchProcesses();
-      fetchBacklogTasks();
-    }
-  }, [selectedProject]);
-
-  useEffect(() => {
-    if (selectedProcess) {
-      setEditProcess({
-        name: selectedProcess.name,
-        description: selectedProcess.description || '',
-        equipe_id: selectedProcess.equipe_id || '',
-        stage: selectedProcess.stage,
-        priority: selectedProcess.priority || 'medium',
-        frequency: selectedProcess.frequency || '',
-        volume_month: selectedProcess.volume_month?.toString() || '',
-        financial_impact: selectedProcess.financial_impact || ''
-      });
-    }
-  }, [selectedProcess]);
-
-  const fetchProjects = async () => {
-    try {
-      // Buscar TODOS os projetos - tabela projects é exclusiva de Digital Rotina
-      const { data, error } = await supabase
-        .from('projects')
-        .select('*')
-        .order('name', { ascending: true });
-      
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTeamMembers = async () => {
-    try {
-      const { data } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      setTeamMembers(data || []);
-    } catch (error) {
-      console.error('Error fetching team members:', error);
-    }
-  };
-
-  const fetchBacklogTasks = async () => {
-    if (!selectedProject) return;
-    setLoadingBacklog(true);
-    try {
-      // project_id é coluna nova em sprint_backlog_items; types.ts (autogerado) só verá após Lovable regerar.
-      const { data, error } = await supabase
-        .from('sprint_backlog_items')
-        .select('id, title, description, status, priority, estimated_hours, created_at')
-        .filter('project_id', 'eq', selectedProject.id)
-        .is('sprint_id', null)
-        .neq('status', 'moved_to_sprint')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setBacklogTasks((data || []) as BacklogTask[]);
-    } catch (error) {
-      console.error('Error fetching backlog tasks:', error);
-    } finally {
-      setLoadingBacklog(false);
-    }
-  };
-
-  const fetchProcesses = async () => {
-    if (!selectedProject) return;
-    setLoadingProcesses(true);
-    try {
-      const PROCESS_FIELDS = 'id, name, code, description, area, equipe_id, stage, priority, frequency, volume_month, financial_impact, client_id';
-
-      // Processos do projeto vêm por DOIS vínculos:
-      //  1) junção N:N project_processes (fluxo Digital Rotina)
-      //  2) coluna direta processes.project_id (fluxo MAPA/OSG e migrações)
-      // Sem o (2), os processos da OSG (ligados só por project_id) apareciam como 0.
-      const [linksRes, directRes] = await Promise.all([
-        supabase
-          .from('project_processes')
-          .select(`id, impact_type, process:processes(${PROCESS_FIELDS})`)
-          .eq('project_id', selectedProject.id),
-        supabase
-          .from('processes')
-          .select(PROCESS_FIELDS)
-          .eq('project_id', selectedProject.id),
-      ]);
-
-      if (linksRes.error) throw linksRes.error;
-      if (directRes.error) throw directRes.error;
-
-      // Mescla por id; a junção (com impact_type) tem prioridade quando houver os dois.
-      const byId = new Map<string, Process>();
-      for (const p of (directRes.data || [])) {
-        if (p) byId.set((p as Process).id, { ...(p as Process) });
-      }
-      for (const pp of (linksRes.data || [])) {
-        const proc = (pp as { process: Process | null; impact_type: string | null }).process;
-        if (proc) byId.set(proc.id, { ...proc, impact_type: (pp as { impact_type: string | null }).impact_type });
-      }
-
-      setProcesses(Array.from(byId.values()));
-    } catch (error) {
-      console.error('Error fetching processes:', error);
-    } finally {
-      setLoadingProcesses(false);
-    }
-  };
-
-  const getMemberName = (memberId: string | null) => {
-    if (!memberId) return null;
-    const member = teamMembers.find(m => m.id === memberId);
-    return member ? `${member.first_name} ${member.last_name}`.trim() : null;
-  };
-
-  // Get unique areas from catalog_clients
-  const areas = catalogClients.map(c => c.name).sort();
-
-  // Helper to get client info by ID
-  const getClientInfo = (clientId: string | null) => {
-    if (!clientId) return null;
-    return catalogClients.find(c => c.id === clientId);
-  };
-
-  // Filter projects pela área da equipe selecionada (ou fallback ao cache projects.area)
-  const filteredProjects = projects.filter(project => {
-    const eq = equipeById(project.equipe_id);
+  const areas = catalogClients.map((client) => client.name).sort();
+  const filteredProjects = projects.filter((project) => {
+    const equipe = equipeById(project.equipe_id);
     const matchesArea =
       areaFilter === 'all' ||
-      eq?.area_id === areaFilter ||
-      // fallback: projetos sem equipe mas com cache de área pelo nome
-      (!eq && (project.area ?? '').toLowerCase() ===
-        (areasList.find(a => a.id === areaFilter)?.name ?? '').toLowerCase());
+      equipe?.area_id === areaFilter ||
+      (!equipe &&
+        (project.area ?? '').toLowerCase() ===
+          (areasList.find((area) => area.id === areaFilter)?.name ?? '').toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesArea && matchesStatus && matchCluster(clusterFilter, project.cluster_id);
   });
 
-  const handleCreateProject = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleImportProjects = async (importData: SpreadsheetRow[], onImported: () => void) => {
+    try {
+      const uniqueProjects = prepareProjectImportPayloads(importData, user?.id);
 
-    // Cluster obrigatório: sem ele o projeto nasce invisível no MAPA.
+      if (uniqueProjects.length === 0) {
+        toast({
+          title: 'Erro',
+          description:
+            "Nenhum projeto válido encontrado. Verifique se a planilha tem uma coluna 'Projeto' ou 'Nome'.",
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      await importProjectsMutation.mutateAsync(uniqueProjects);
+
+      toast({
+        title: 'Projetos importados!',
+        description: `${uniqueProjects.length} projetos únicos criados com sucesso.`,
+      });
+
+      onImported();
+      void refetchProjects();
+    } catch (error) {
+      console.error('Error importing projects:', error);
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível importar os projetos.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCreateProject = async (newProject: ProjectDraft, onCreated: () => void) => {
     if (!newProject.cluster_id) {
       toast({
-        title: "Cluster obrigatório",
-        description: "Selecione o cluster do projeto para que ele apareça no MAPA.",
-        variant: "destructive"
+        title: 'Cluster obrigatório',
+        description: 'Selecione o cluster do projeto para que ele apareça no MAPA.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
-      const { error } = await supabase.from('projects').insert({
+      await createProjectMutation.mutateAsync({
         name: newProject.name,
         description: newProject.description || null,
         client_name: newProject.client_name || null,
@@ -608,61 +166,42 @@ const EquipeProjetos = () => {
         start_date: newProject.start_date || null,
         end_date: newProject.end_date || null,
         status: 'active',
-        created_by: user?.id
+        created_by: user?.id,
       });
-
-      if (error) throw error;
 
       toast({
-        title: "Projeto criado!",
-        description: "O novo projeto foi criado com sucesso.",
+        title: 'Projeto criado!',
+        description: 'O novo projeto foi criado com sucesso.',
       });
 
-      setIsDialogOpen(false);
-      setNewProject({
-        name: '',
-        description: '',
-        client_name: '',
-        external_client_id: '',
-        leader_id: '',
-        equipe_id: '',
-        cluster_id: '',
-        product_service: '',
-        project_front: '',
-        justification_type: '',
-        justification_detail: '',
-        start_date: '',
-        end_date: ''
-      });
-      fetchProjects();
+      onCreated();
+      void refetchProjects();
     } catch (error) {
       console.error('Error creating project:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar o projeto.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível criar o projeto.',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleUpdateProject = async () => {
+  const handleUpdateProject = async (editProject: ProjectEditDraft) => {
     if (!selectedProject) return;
 
-    // Cluster obrigatório (é também por aqui que se corrige projeto legado sem cluster).
     if (!editProject.cluster_id) {
       toast({
-        title: "Cluster obrigatório",
-        description: "Selecione o cluster do projeto para que ele apareça no MAPA.",
-        variant: "destructive"
+        title: 'Cluster obrigatório',
+        description: 'Selecione o cluster do projeto para que ele apareça no MAPA.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
-      await assertCanPerform('projects', 'update', selectedProject.id);
-      const { error } = await supabase
-        .from('projects')
-        .update({
+      await updateProjectMutation.mutateAsync({
+        projectId: selectedProject.id,
+        payload: {
           name: editProject.name,
           description: editProject.description || null,
           client_name: editProject.client_name || null,
@@ -676,26 +215,24 @@ const EquipeProjetos = () => {
           justification_detail: editProject.justification_detail || null,
           start_date: editProject.start_date || null,
           end_date: editProject.end_date || null,
-          status: editProject.status
-        })
-        .eq('id', selectedProject.id);
-
-      if (error) throw error;
+          status: editProject.status,
+        },
+      });
 
       toast({
-        title: "Projeto atualizado!",
-        description: "As alterações foram salvas com sucesso.",
+        title: 'Projeto atualizado!',
+        description: 'As alterações foram salvas com sucesso.',
       });
 
       setSelectedProject(null);
       setIsEditMode(false);
-      fetchProjects();
+      void refetchProjects();
     } catch (error) {
       console.error('Error updating project:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o projeto.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível atualizar o projeto.',
+        variant: 'destructive',
       });
     }
   };
@@ -704,45 +241,35 @@ const EquipeProjetos = () => {
     if (!selectedProject) return;
 
     try {
-      await assertCanPerform('projects', 'delete', selectedProject.id);
-      const { error } = await supabase
-        .from('projects')
-        .delete()
-        .eq('id', selectedProject.id);
-
-      if (error) throw error;
-
+      await deleteProjectMutation.mutateAsync(selectedProject.id);
       toast({
-        title: "Projeto excluído!",
-        description: "O projeto foi removido com sucesso.",
+        title: 'Projeto excluído!',
+        description: 'O projeto foi removido com sucesso.',
       });
-
       setSelectedProject(null);
-      fetchProjects();
+      void refetchProjects();
     } catch (error) {
       console.error('Error deleting project:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir o projeto.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível excluir o projeto.',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleCreateProcess = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Processo exige projeto (não há processo avulso) — herda o cluster do projeto.
+  const handleCreateProcess = async (newProcess: ProcessDraft, onCreated: () => void) => {
     if (!selectedProject) {
       toast({
-        title: "Projeto obrigatório",
-        description: "Selecione um projeto antes de criar o processo.",
-        variant: "destructive"
+        title: 'Projeto obrigatório',
+        description: 'Selecione um projeto antes de criar o processo.',
+        variant: 'destructive',
       });
       return;
     }
 
     try {
-      const { error } = await supabase.from('processes').insert({
+      await createProcessMutation.mutateAsync({
         name: newProcess.name,
         description: newProcess.description || null,
         equipe_id: newProcess.equipe_id || null,
@@ -752,41 +279,37 @@ const EquipeProjetos = () => {
         volume_month: newProcess.volume_month ? Number(newProcess.volume_month) : null,
         financial_impact: newProcess.financial_impact || null,
         project_id: selectedProject.id,
-        cluster_id: selectedProject.cluster_id, // herda do projeto → aparece no MAPA junto dele
-        created_by: user?.id
+        cluster_id: selectedProject.cluster_id,
+        created_by: user?.id,
       });
-
-      if (error) throw error;
 
       toast({
-        title: "Processo criado!",
+        title: 'Processo criado!',
         description: selectedProject.cluster_id
-          ? "O novo processo foi adicionado ao projeto."
-          : "Processo criado, mas o projeto não tem cluster — ele não aparecerá no MAPA até o projeto receber um cluster.",
-        variant: selectedProject.cluster_id ? undefined : "destructive"
+          ? 'O novo processo foi adicionado ao projeto.'
+          : 'Processo criado, mas o projeto não tem cluster — ele não aparecerá no MAPA até o projeto receber um cluster.',
+        variant: selectedProject.cluster_id ? undefined : 'destructive',
       });
 
-      setIsProcessDialogOpen(false);
-      setNewProcess({ name: '', description: '', equipe_id: '', stage: 'discovery', priority: 'medium', frequency: '', volume_month: '', financial_impact: '' });
-      fetchProcesses();
+      onCreated();
+      void refetchProcesses();
     } catch (error) {
       console.error('Error creating process:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível criar o processo.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível criar o processo.',
+        variant: 'destructive',
       });
     }
   };
 
-  const handleUpdateProcess = async () => {
+  const handleUpdateProcess = async (editProcess: ProcessDraft) => {
     if (!selectedProcess) return;
 
     try {
-      await assertCanPerform('processes', 'update', selectedProcess.id);
-      const { error } = await supabase
-        .from('processes')
-        .update({
+      await updateProcessMutation.mutateAsync({
+        processId: selectedProcess.id,
+        payload: {
           name: editProcess.name,
           description: editProcess.description || null,
           equipe_id: editProcess.equipe_id || null,
@@ -794,25 +317,22 @@ const EquipeProjetos = () => {
           priority: editProcess.priority || null,
           frequency: editProcess.frequency || null,
           volume_month: editProcess.volume_month ? Number(editProcess.volume_month) : null,
-          financial_impact: editProcess.financial_impact || null
-        })
-        .eq('id', selectedProcess.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Processo atualizado!",
-        description: "As alterações foram salvas.",
+          financial_impact: editProcess.financial_impact || null,
+        },
       });
 
+      toast({
+        title: 'Processo atualizado!',
+        description: 'As alterações foram salvas.',
+      });
       setSelectedProcess(null);
-      fetchProcesses();
+      void refetchProcesses();
     } catch (error) {
       console.error('Error updating process:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o processo.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível atualizar o processo.',
+        variant: 'destructive',
       });
     }
   };
@@ -821,45 +341,35 @@ const EquipeProjetos = () => {
     if (!selectedProcess) return;
 
     try {
-      await assertCanPerform('processes', 'delete', selectedProcess.id);
-      const { error } = await supabase
-        .from('processes')
-        .delete()
-        .eq('id', selectedProcess.id);
-
-      if (error) throw error;
-
+      await deleteProcessMutation.mutateAsync(selectedProcess.id);
       toast({
-        title: "Processo excluído!",
-        description: "O processo foi removido.",
+        title: 'Processo excluído!',
+        description: 'O processo foi removido.',
       });
-
       setSelectedProcess(null);
-      fetchProcesses();
+      void refetchProcesses();
     } catch (error) {
       console.error('Error deleting process:', error);
       toast({
-        title: "Erro",
-        description: "Não foi possível excluir o processo.",
-        variant: "destructive"
+        title: 'Erro',
+        description: 'Não foi possível excluir o processo.',
+        variant: 'destructive',
       });
     }
   };
 
   const advanceProcessStage = async (process: Process) => {
-    const currentIndex = PROCESS_STAGES.findIndex(s => s.value === process.stage);
+    const currentIndex = PROCESS_STAGES.findIndex((stage) => stage.value === process.stage);
     if (currentIndex < PROCESS_STAGES.length - 1) {
       const nextStage = PROCESS_STAGES[currentIndex + 1].value;
       try {
-        await assertCanPerform('processes', 'update', process.id);
-        await supabase
-          .from('processes')
-          .update({ stage: nextStage })
-          .eq('id', process.id);
-        
-        fetchProcesses();
+        await updateProcessStageMutation.mutateAsync({
+          processId: process.id,
+          stage: nextStage,
+        });
+        void refetchProcesses();
         toast({
-          title: "Estágio avançado!",
+          title: 'Estágio avançado!',
           description: `Processo movido para ${PROCESS_STAGES[currentIndex + 1].label}.`,
         });
       } catch (error) {
@@ -870,15 +380,10 @@ const EquipeProjetos = () => {
 
   const updateProjectStatus = async (projectId: string, status: string) => {
     try {
-      await assertCanPerform('projects', 'update', projectId);
-      await supabase
-        .from('projects')
-        .update({ status })
-        .eq('id', projectId);
-      
-      fetchProjects();
+      await updateProjectStatusMutation.mutateAsync({ projectId, status });
+      void refetchProjects();
       toast({
-        title: "Projeto atualizado!",
+        title: 'Projeto atualizado!',
         description: `Status alterado para ${status === 'active' ? 'ativo' : status === 'completed' ? 'concluído' : status === 'blocked' ? 'bloqueado' : 'arquivado'}.`,
       });
     } catch (error) {
@@ -886,1410 +391,107 @@ const EquipeProjetos = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Ativo</Badge>;
-      case 'completed':
-        return <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">Concluído</Badge>;
-      case 'blocked':
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Bloqueado</Badge>;
-      case 'archived':
-        return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Arquivado</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
+  const handleSelectProject = (project: Project, editMode: boolean) => {
+    setSelectedProject(project);
+    setIsEditMode(editMode);
+    setActiveTab('info');
   };
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority?.toLowerCase()) {
-      case 'crítica':
-      case 'urgent':
-      case 'high':
-        return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Alta</Badge>;
-      case 'alta':
-        return <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">Alta</Badge>;
-      case 'média':
-      case 'medium':
-        return <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">Média</Badge>;
-      case 'baixa':
-      case 'low':
-        return <Badge className="bg-green-100 text-green-700 hover:bg-green-100">Baixa</Badge>;
-      default:
-        return <Badge variant="outline">{priority}</Badge>;
-    }
-  };
-
-  // Get area badge from client_id or fallback to area string
-  const getAreaBadgeFromClient = (clientId: string | null, fallbackArea?: string) => {
-    const client = getClientInfo(clientId);
-    if (client) {
-      return (
-        <Badge 
-          style={{ backgroundColor: `${client.color}20`, color: client.color, borderColor: client.color }}
-          className="border"
-        >
-          {client.name}
-        </Badge>
-      );
-    }
-    if (fallbackArea) {
-      return getAreaBadge(fallbackArea);
-    }
-    return null;
-  };
-
-  const getAreaBadge = (area: string) => {
-    const colors: Record<string, string> = {
-      'Consultoria': 'bg-purple-100 text-purple-700',
-      'Fiscal': 'bg-blue-100 text-blue-700',
-      'Fixos': 'bg-teal-100 text-teal-700',
-      'Fixos/Previdenciário': 'bg-indigo-100 text-indigo-700',
-    };
-    const colorClass = colors[area] || 'bg-gray-100 text-gray-700';
-    return <Badge className={`${colorClass} hover:${colorClass}`}>{area}</Badge>;
-  };
-
-  const getClusterBadge = (cluster: string) => {
-    const config: Record<string, { label: string; className: string }> = {
-      database: { label: 'Database', className: 'bg-purple-100 text-purple-700' },
-      frontend: { label: 'Frontend', className: 'bg-blue-100 text-blue-700' },
-      management: { label: 'Gestão', className: 'bg-teal-100 text-teal-700' }
-    };
-    const { label, className } = config[cluster] || { label: cluster, className: 'bg-gray-100 text-gray-700' };
-    return <Badge className={className}>{label}</Badge>;
-  };
-
-  const getStageBadge = (stage: string) => {
-    const stageConfig = PROCESS_STAGES.find(s => s.value === stage);
-    if (!stageConfig) return <Badge variant="outline">{stage}</Badge>;
-    return <Badge className={stageConfig.color}>{stageConfig.label}</Badge>;
+  const handleCloseProject = () => {
+    setSelectedProject(null);
+    setIsEditMode(false);
+    setActiveTab('info');
   };
 
   return (
-    <EquipeLayout 
-      title="Projetos" 
+    <EquipeLayout
+      title="Projetos"
       subtitle={`${filteredProjects.length} projetos encontrados`}
       headerActions={
-        <div className="flex items-center gap-2">
-          {/* Hidden file input */}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
-          
-          {/* Import Button */}
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
-
-          {/* View Toggle */}
-          <div className="flex items-center border border-border rounded-md">
-            <Button
-              variant={viewMode === 'cards' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="rounded-r-none"
-              onClick={() => setViewMode('cards')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="rounded-l-none"
-              onClick={() => setViewMode('table')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            // Pré-seleciona o cluster do filtro ativo (se houver um específico) ao abrir.
-            if (open && clusterFilter && clusterFilter !== SEM_CLUSTER) {
-              setNewProject((p) => ({ ...p, cluster_id: p.cluster_id || clusterFilter }));
-            }
-          }}>
-            <DialogTrigger asChild>
-              <Button className="bg-primary hover:bg-primary/90">
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Projeto
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background border-border max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Criar Novo Projeto</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreateProject} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome do Projeto *</Label>
-                  <Input
-                    id="name"
-                    value={newProject.name}
-                    onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-                    placeholder="Ex: Sistema de Gestão"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="cluster">Cluster *</Label>
-                  <Select
-                    value={newProject.cluster_id}
-                    onValueChange={(v) => setNewProject({ ...newProject, cluster_id: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cluster" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clusters.filter(c => c.ativo).map((c) => (
-                        <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">
-                    Obrigatório — define em qual cluster o projeto aparece no MAPA.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="external_client">Cliente PSA</Label>
-                    <Select 
-                      value={newProject.external_client_id} 
-                      onValueChange={(v) => setNewProject({ ...newProject, external_client_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {externalClients.map((client) => (
-                          <SelectItem key={client.id} value={client.id}>
-                            {client.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="leader">Líder Interno</Label>
-                    <Select 
-                      value={newProject.leader_id} 
-                      onValueChange={(v) => setNewProject({ ...newProject, leader_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione o líder" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.first_name} {member.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="equipe">Equipe responsável</Label>
-                    <Select 
-                      value={newProject.equipe_id} 
-                      onValueChange={(v) => setNewProject({ ...newProject, equipe_id: v })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a equipe" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {groupedEquipes.map((g) => (
-                          <div key={g.area.id}>
-                            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
-                            {g.equipes.map((eq) => (
-                              <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                            ))}
-                          </div>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="product_service">Produto/Serviço</Label>
-                    <Input
-                      id="product_service"
-                      value={newProject.product_service}
-                      onChange={(e) => setNewProject({ ...newProject, product_service: e.target.value })}
-                      placeholder="Ex: Auditoria Fiscal, BI"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="project_front">Frente do Projeto</Label>
-                  <Select 
-                    value={newProject.project_front} 
-                    onValueChange={(v) => setNewProject({ ...newProject, project_front: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a frente" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROJECT_FRONTS.map((front) => (
-                        <SelectItem key={front.value} value={front.value}>
-                          {front.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Justificativa do Projeto</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {JUSTIFICATION_TYPES.map((jt) => (
-                      <div
-                        key={jt.value}
-                        className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                          newProject.justification_type === jt.value 
-                            ? 'border-primary bg-primary/10' 
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                        onClick={() => setNewProject({ ...newProject, justification_type: jt.value })}
-                      >
-                        <div className="font-medium text-sm">{jt.label}</div>
-                        <div className="text-xs text-muted-foreground">{jt.description}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {newProject.justification_type && (
-                  <div className="space-y-2">
-                    <Label htmlFor="justification_detail">Detalhamento da Justificativa</Label>
-                    <Textarea
-                      id="justification_detail"
-                      value={newProject.justification_detail}
-                      onChange={(e) => setNewProject({ ...newProject, justification_detail: e.target.value })}
-                      placeholder="Descreva o impacto esperado, métricas, economia estimada..."
-                      rows={3}
-                    />
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="description">Descrição</Label>
-                  <Textarea
-                    id="description"
-                    value={newProject.description}
-                    onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
-                    placeholder="Descreva o projeto..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="start_date">Data Início</Label>
-                    <Input
-                      id="start_date"
-                      type="date"
-                      value={newProject.start_date}
-                      onChange={(e) => setNewProject({ ...newProject, start_date: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end_date">Data Fim</Label>
-                    <Input
-                      id="end_date"
-                      type="date"
-                      value={newProject.end_date}
-                      onChange={(e) => setNewProject({ ...newProject, end_date: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <Button type="submit" className="w-full">
-                  Criar Projeto
-                </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <ProjectsToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          createDialogOpen={isDialogOpen}
+          onCreateDialogOpenChange={setIsDialogOpen}
+          clusterFilter={clusterFilter}
+          clusters={clusters}
+          externalClients={externalClients}
+          teamMembers={teamMembers}
+          groupedEquipes={groupedEquipes}
+          onCreate={handleCreateProject}
+          onImport={handleImportProjects}
+        />
       }
     >
-      {/* Import Dialog */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileSpreadsheet className="h-5 w-5" />
-              Importar Projetos
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                <strong>{importData.length}</strong> projetos encontrados no arquivo.
-                Verifique os dados abaixo antes de confirmar a importação.
-              </p>
-            </div>
-            
-            {importData.length > 0 && (
-              <div className="border rounded-lg overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {importData.slice(0, 10).map((row, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {row.name || row.Nome || row.nome || '-'}
-                        </TableCell>
-                        <TableCell className="max-w-[200px] truncate">
-                          {row.description || row.Descricao || row.Descrição || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {row.client_name || row.Cliente || row.cliente || '-'}
-                        </TableCell>
-                        <TableCell>
-                          {row.status || row.Status || 'active'}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                {importData.length > 10 && (
-                  <div className="p-2 text-center text-sm text-muted-foreground border-t">
-                    ... e mais {importData.length - 10} projetos
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsImportDialogOpen(false);
-                  setImportData([]);
-                }}
-              >
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleImportProjects}
-                disabled={importing || importData.length === 0}
-              >
-                {importing ? 'Importando...' : `Importar ${importData.length} Projetos`}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      {/* Filters */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-500" />
-          <span className="text-sm text-gray-600">Filtros:</span>
-        </div>
-        <Select value={clusterFilter === '' ? '__todos__' : clusterFilter} onValueChange={(v) => setClusterFilter(v === '__todos__' ? '' : v)}>
-          <SelectTrigger className="w-48 bg-white border-gray-300">
-            <SelectValue placeholder="Todos os clusters" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
-            <SelectItem value="__todos__">Todos os clusters</SelectItem>
-            <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
-            {clusters.filter(c => c.ativo).map(c => (
-              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={areaFilter} onValueChange={setAreaFilter}>
-          <SelectTrigger className="w-48 bg-white border-gray-300">
-            <SelectValue placeholder="Todas as áreas" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
-            <SelectItem value="all">Todas as áreas</SelectItem>
-            {areas.map(area => (
-              <SelectItem key={area} value={area}>{area}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40 bg-white border-gray-300">
-            <SelectValue placeholder="Todos status" />
-          </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
-            <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="active">Ativo</SelectItem>
-            <SelectItem value="completed">Concluído</SelectItem>
-            <SelectItem value="blocked">Bloqueado</SelectItem>
-            <SelectItem value="archived">Arquivado</SelectItem>
-          </SelectContent>
-        </Select>
-        {(areaFilter !== 'all' || statusFilter !== 'all' || clusterFilter !== '') && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setAreaFilter('all'); setStatusFilter('all'); setClusterFilter(''); }}
-            className="text-gray-500"
-          >
-            Limpar filtros
-          </Button>
-        )}
-      </div>
+      <ProjectFilters
+        areaFilter={areaFilter}
+        statusFilter={statusFilter}
+        clusterFilter={clusterFilter}
+        areas={areas}
+        clusters={clusters}
+        onAreaFilterChange={setAreaFilter}
+        onStatusFilterChange={setStatusFilter}
+        onClusterFilterChange={setClusterFilter}
+      />
 
-      {loading ? (
-        <div className="flex justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      ) : filteredProjects.length > 0 ? (
-        <>
-          {/* Table View */}
-          {viewMode === 'table' && (
-            <Card className="bg-white border-gray-200">
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-gray-200">
-                    <TableHead className="text-gray-600">Nome</TableHead>
-                    <TableHead className="text-gray-600">Área</TableHead>
-                    <TableHead className="text-gray-600">Status</TableHead>
-                    <TableHead className="text-gray-600">Prioridade</TableHead>
-                    <TableHead className="text-gray-600">Fase</TableHead>
-                    <TableHead className="text-gray-600">Cliente</TableHead>
-                    <TableHead className="text-gray-600 text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredProjects.map((project) => (
-                    <TableRow 
-                      key={project.id} 
-                      className="border-gray-200 hover:bg-gray-50 cursor-pointer"
-                      onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
-                    >
-                      <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
-                      <TableCell>{getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}</TableCell>
-                      <TableCell>{getStatusBadge(project.status)}</TableCell>
-                      <TableCell>{getPriorityBadge(extractPriority(project.description))}</TableCell>
-                      <TableCell className="text-gray-600 text-sm">{extractPhase(project.description)}</TableCell>
-                      <TableCell className="text-gray-600">{project.client_name || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); setActiveTab('info'); }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          )}
+      <ProjectList
+        projects={projects}
+        filteredProjects={filteredProjects}
+        equipes={equipesList}
+        loading={loading}
+        viewMode={viewMode}
+        onSelectProject={handleSelectProject}
+        onCreateProject={() => setIsDialogOpen(true)}
+      />
 
-          {/* Cards View */}
-          {viewMode === 'cards' && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProjects.map((project) => (
-                <Card 
-                  key={project.id} 
-                  className="bg-white border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => { setSelectedProject(project); setIsEditMode(false); setActiveTab('info'); }}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <FolderKanban className="h-5 w-5 text-primary" />
-                        <CardTitle className="text-gray-900 text-lg line-clamp-1">{project.name}</CardTitle>
-                      </div>
-                      {getStatusBadge(project.status)}
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {getAreaBadge(equipeById(project.equipe_id)?.area_name || project.area || 'Sem área')}
-                      {getPriorityBadge(extractPriority(project.description))}
-                    </div>
-                    
-                    {project.client_name && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-                        <Building2 className="h-4 w-4" />
-                        <span>{project.client_name}</span>
-                      </div>
-                    )}
-                    
-                    {(project.start_date || project.end_date) && (
-                      <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <Calendar className="h-4 w-4" />
-                        <span>
-                          {project.start_date && new Date(project.start_date).toLocaleDateString('pt-BR')}
-                          {project.start_date && project.end_date && ' - '}
-                          {project.end_date && new Date(project.end_date).toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
+      <ProjectDetailsDialog
+        project={selectedProject}
+        editMode={isEditMode}
+        activeTab={activeTab}
+        clusters={clusters}
+        externalClients={externalClients}
+        teamMembers={teamMembers}
+        groupedEquipes={groupedEquipes}
+        equipes={equipesList}
+        processes={processes}
+        backlogTasks={backlogTasks}
+        loadingProcesses={loadingProcesses}
+        loadingBacklog={loadingBacklog}
+        onClose={handleCloseProject}
+        onClearProject={() => setSelectedProject(null)}
+        onEditModeChange={setIsEditMode}
+        onActiveTabChange={setActiveTab}
+        onUpdateProject={handleUpdateProject}
+        onDeleteProject={handleDeleteProject}
+        onUpdateProjectStatus={updateProjectStatus}
+        onNavigateSprints={(projectId) => {
+          setSelectedProject(null);
+          navigate(`/equipe/sprints?project=${projectId}`);
+        }}
+        onCreateProcess={() => setIsProcessDialogOpen(true)}
+        onAdvanceProcess={advanceProcessStage}
+        onEditProcess={setSelectedProcess}
+        onCreateBacklogItem={() => {
+          setSelectedProject(null);
+          navigate('/equipe/backlog');
+        }}
+      />
 
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-gray-500"
-                        onClick={(e) => { e.stopPropagation(); setSelectedProject(project); setIsEditMode(true); setActiveTab('info'); }}
-                      >
-                        <Pencil className="h-4 w-4 mr-1" />
-                        Editar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </>
-      ) : (
-        <Card className="bg-white border-gray-200">
-          <CardContent className="py-16 text-center">
-            <FolderKanban className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {projects.length === 0 ? 'Nenhum projeto criado' : 'Nenhum projeto encontrado'}
-            </h3>
-            <p className="text-gray-500 mb-4">
-              {projects.length === 0 
-                ? 'Crie seu primeiro projeto para começar a organizar o trabalho'
-                : 'Tente ajustar os filtros para ver mais resultados'
-              }
-            </p>
-            {projects.length === 0 && (
-              <Button 
-                className="bg-primary hover:bg-primary/90"
-                onClick={() => setIsDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Criar Projeto
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <ProcessCreateDialog
+        open={isProcessDialogOpen}
+        project={selectedProject}
+        groupedEquipes={groupedEquipes}
+        onOpenChange={setIsProcessDialogOpen}
+        onCreate={handleCreateProcess}
+      />
 
-      {/* Project Details/Edit Dialog */}
-      <Dialog open={!!selectedProject} onOpenChange={() => { setSelectedProject(null); setIsEditMode(false); setActiveTab('info'); }}>
-        <DialogContent className="bg-white border-gray-200 max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedProject && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-gray-900 flex items-center gap-2">
-                  <FolderKanban className="h-5 w-5 text-primary" />
-                  {isEditMode ? 'Editar Projeto' : selectedProject.name}
-                </DialogTitle>
-              </DialogHeader>
-
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 mb-4">
-                  <TabsTrigger value="info" className="flex items-center gap-2">
-                    <FolderKanban className="h-4 w-4" />
-                    Informações
-                  </TabsTrigger>
-                  <TabsTrigger value="processes" className="flex items-center gap-2">
-                    <Workflow className="h-4 w-4" />
-                    Processos ({processes.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="backlog" className="flex items-center gap-2">
-                    <ListTodo className="h-4 w-4" />
-                    Backlog ({backlogTasks.length})
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="info">
-                  {isEditMode ? (
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Nome do Projeto *</Label>
-                        <Input
-                          value={editProject.name}
-                          onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
-                          className="bg-white border-gray-300 text-gray-900"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Cluster *</Label>
-                        <Select
-                          value={editProject.cluster_id || ''}
-                          onValueChange={(v) => setEditProject({ ...editProject, cluster_id: v })}
-                        >
-                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                            <SelectValue placeholder="Selecione o cluster" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            {clusters.filter(c => c.ativo).map((c) => (
-                              <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {!editProject.cluster_id && (
-                          <p className="text-xs text-amber-600">
-                            Este projeto está sem cluster — ele não aparece no MAPA. Selecione um para corrigir.
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Cliente PSA</Label>
-                          <Select
-                            value={editProject.external_client_id || ''}
-                            onValueChange={(v) => {
-                              const client = externalClients.find(c => c.id === v);
-                              setEditProject({
-                                ...editProject,
-                                external_client_id: v,
-                                client_name: client?.nome || editProject.client_name,
-                              });
-                            }}
-                          >
-                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                              <SelectValue placeholder="Selecione o cliente" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              {externalClients.map((client) => (
-                                <SelectItem key={client.id} value={client.id}>
-                                  {client.nome}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Líder Interno</Label>
-                          <Select
-                            value={editProject.leader_id || ''}
-                            onValueChange={(v) => setEditProject({ ...editProject, leader_id: v })}
-                          >
-                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                              <SelectValue placeholder="Selecione o líder" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              {teamMembers.map((member) => (
-                                <SelectItem key={member.id} value={member.id}>
-                                  {member.first_name} {member.last_name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Equipe responsável</Label>
-                          <Select
-                            value={editProject.equipe_id || ''}
-                            onValueChange={(v) => setEditProject({ ...editProject, equipe_id: v })}
-                          >
-                            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                              <SelectValue placeholder="Selecione a equipe" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white border-gray-200">
-                              {groupedEquipes.map((g) => (
-                                <div key={g.area.id}>
-                                  <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
-                                  {g.equipes.map((eq) => (
-                                    <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                                  ))}
-                                </div>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Produto/Serviço</Label>
-                          <Input
-                            value={editProject.product_service || ''}
-                            onChange={(e) => setEditProject({ ...editProject, product_service: e.target.value })}
-                            placeholder="Ex: Auditoria Fiscal, BI"
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Frente do Projeto</Label>
-                        <Select
-                          value={editProject.project_front || ''}
-                          onValueChange={(v) => setEditProject({ ...editProject, project_front: v })}
-                        >
-                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                            <SelectValue placeholder="Selecione a frente" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            {PROJECT_FRONTS.map((front) => (
-                              <SelectItem key={front.value} value={front.value}>
-                                {front.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Justificativa do Projeto</Label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {JUSTIFICATION_TYPES.map((jt) => (
-                            <div
-                              key={jt.value}
-                              className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                                editProject.justification_type === jt.value
-                                  ? 'border-primary bg-primary/10'
-                                  : 'border-border hover:border-primary/50'
-                              }`}
-                              onClick={() => setEditProject({ ...editProject, justification_type: jt.value })}
-                            >
-                              <div className="font-medium text-sm">{jt.label}</div>
-                              <div className="text-xs text-muted-foreground">{jt.description}</div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {editProject.justification_type && (
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Detalhamento da Justificativa</Label>
-                          <Textarea
-                            value={editProject.justification_detail || ''}
-                            onChange={(e) => setEditProject({ ...editProject, justification_detail: e.target.value })}
-                            placeholder="Descreva o impacto esperado, métricas, economia estimada..."
-                            rows={3}
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                      )}
-
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Descrição</Label>
-                        <Textarea
-                          value={editProject.description}
-                          onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
-                          className="bg-white border-gray-300 text-gray-900"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Data Início</Label>
-                          <Input
-                            type="date"
-                            value={editProject.start_date}
-                            onChange={(e) => setEditProject({ ...editProject, start_date: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-gray-700">Data Fim</Label>
-                          <Input
-                            type="date"
-                            value={editProject.end_date}
-                            onChange={(e) => setEditProject({ ...editProject, end_date: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-gray-700">Status</Label>
-                        <Select value={editProject.status} onValueChange={(value) => setEditProject({ ...editProject, status: value })}>
-                          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border-gray-200">
-                            <SelectItem value="active">Ativo</SelectItem>
-                            <SelectItem value="completed">Concluído</SelectItem>
-                            <SelectItem value="blocked">Bloqueado</SelectItem>
-                            <SelectItem value="archived">Arquivado</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button variant="destructive" size="sm">
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              Excluir
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent className="bg-white">
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. O projeto "{selectedProject.name}" será permanentemente removido.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction onClick={handleDeleteProject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-
-                        <div className="flex gap-2">
-                          <Button variant="outline" onClick={() => setIsEditMode(false)}>
-                            Cancelar
-                          </Button>
-                          <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProject}>
-                            Salvar Alterações
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex flex-wrap gap-2">
-                        {getStatusBadge(selectedProject.status)}
-                        {getAreaBadge(equipeById(selectedProject.equipe_id)?.area_name ?? selectedProject.area ?? '')}
-                        {getPriorityBadge(extractPriority(selectedProject.description))}
-                      </div>
-
-                      {selectedProject.description && (
-                        <div className="space-y-2">
-                          <Label className="text-gray-600 text-sm">Informações</Label>
-                          <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-700">
-                            {selectedProject.description.split('|').map((part, i) => (
-                              <div key={i} className="py-1">{part.trim()}</div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {selectedProject.client_name && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Building2 className="h-4 w-4" />
-                          <span>Cliente: {selectedProject.client_name}</span>
-                        </div>
-                      )}
-
-                      {(selectedProject.start_date || selectedProject.end_date) && (
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <Calendar className="h-4 w-4" />
-                          <span>
-                            {selectedProject.start_date && `Início: ${new Date(selectedProject.start_date).toLocaleDateString('pt-BR')}`}
-                            {selectedProject.start_date && selectedProject.end_date && ' | '}
-                            {selectedProject.end_date && `Fim: ${new Date(selectedProject.end_date).toLocaleDateString('pt-BR')}`}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="border-primary text-primary hover:bg-primary/10"
-                          onClick={() => setIsEditMode(true)}
-                        >
-                          <Pencil className="h-4 w-4 mr-1" />
-                          Editar
-                        </Button>
-                        {selectedProject.status === 'active' && (
-                          <>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                              onClick={() => { updateProjectStatus(selectedProject.id, 'completed'); setSelectedProject(null); }}
-                            >
-                              <CheckCircle2 className="h-4 w-4 mr-1" />
-                              Concluir
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                              onClick={() => { updateProjectStatus(selectedProject.id, 'blocked'); setSelectedProject(null); }}
-                            >
-                              <AlertCircle className="h-4 w-4 mr-1" />
-                              Bloquear
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                              onClick={() => { updateProjectStatus(selectedProject.id, 'archived'); setSelectedProject(null); }}
-                            >
-                              <Archive className="h-4 w-4 mr-1" />
-                              Arquivar
-                            </Button>
-                          </>
-                        )}
-                        {(selectedProject.status === 'completed' || selectedProject.status === 'blocked' || selectedProject.status === 'archived') && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="border-gray-300 text-gray-600 hover:bg-gray-50"
-                            onClick={() => { updateProjectStatus(selectedProject.id, 'active'); setSelectedProject(null); }}
-                          >
-                            <Clock className="h-4 w-4 mr-1" />
-                            Reativar
-                          </Button>
-                        )}
-                        <Button 
-                          size="sm"
-                          className="bg-primary hover:bg-primary/90 ml-auto"
-                          onClick={() => { setSelectedProject(null); navigate(`/equipe/sprints?project=${selectedProject.id}`); }}
-                        >
-                          Ver Sprints
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="processes">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500">
-                        Processos da empresa vinculados a este projeto
-                      </p>
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90"
-                        onClick={() => setIsProcessDialogOpen(true)}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Novo Processo
-                      </Button>
-                    </div>
-
-                    {/* Stages legend */}
-                    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
-                      {PROCESS_STAGES.map((stage, index) => (
-                        <div key={stage.value} className="flex items-center gap-1">
-                          <Badge className={stage.color}>{stage.label}</Badge>
-                          {index < PROCESS_STAGES.length - 1 && (
-                            <ArrowRight className="h-3 w-3 text-gray-400" />
-                          )}
-                        </div>
-                      ))}
-                    </div>
-
-                    {loadingProcesses ? (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
-                    ) : processes.length > 0 ? (
-                      <div className="space-y-2">
-                        {processes.map((process) => (
-                          <Card key={process.id} className="bg-gray-50 border-gray-200">
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-medium text-gray-900">{process.name}</h4>
-                                    {getStageBadge(process.stage)}
-                                  </div>
-                                  {process.description && (
-                                    <p className="text-sm text-gray-500 truncate mt-1">{process.description}</p>
-                                  )}
-                                  <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
-                                    {process.area && <span>Área: {process.area}</span>}
-                                    {process.frequency && <span>Freq: {process.frequency}</span>}
-                                    {process.volume_month && <span>Vol: {process.volume_month}/mês</span>}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2 ml-4">
-                                  {process.priority && getPriorityBadge(process.priority)}
-                                  {process.stage !== 'completed' && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-primary hover:text-primary"
-                                      onClick={() => advanceProcessStage(process)}
-                                      title="Avançar estágio"
-                                    >
-                                      <ArrowRight className="h-4 w-4" />
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-500"
-                                    onClick={() => setSelectedProcess(process)}
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <Workflow className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                        <h4 className="text-gray-900 font-medium mb-1">Nenhum processo</h4>
-                        <p className="text-sm text-gray-500">
-                          Adicione processos da empresa para acompanhar os estágios
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="backlog">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-gray-500">
-                        Itens do backlog vinculados a este projeto
-                      </p>
-                      <Button
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90"
-                        onClick={() => { setSelectedProject(null); navigate('/equipe/backlog'); }}
-                      >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Novo Item
-                      </Button>
-                    </div>
-
-                    {loadingBacklog ? (
-                      <div className="flex justify-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                      </div>
-                    ) : backlogTasks.length > 0 ? (
-                      <div className="space-y-2">
-                        {backlogTasks.map((task) => (
-                          <Card key={task.id} className="bg-gray-50 border-gray-200">
-                            <CardContent className="p-3">
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="font-medium text-gray-900 truncate">{task.title}</h4>
-                                  {task.description && (
-                                    <p className="text-sm text-gray-500 truncate">{task.description}</p>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-2 ml-4">
-                                  {getPriorityBadge(task.priority)}
-                                  {task.estimated_hours && (
-                                    <Badge variant="outline" className="text-xs">
-                                      <Clock className="h-3 w-3 mr-1" />
-                                      {task.estimated_hours}h
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-8">
-                        <ListTodo className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                        <h4 className="text-gray-900 font-medium mb-1">Backlog vazio</h4>
-                        <p className="text-sm text-gray-500">
-                          Nenhum item de backlog vinculado a este projeto
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Process Dialog */}
-      <Dialog open={isProcessDialogOpen} onOpenChange={setIsProcessDialogOpen}>
-        <DialogContent className="bg-white border-gray-200">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateProcess} className="space-y-4">
-            {selectedProject && (
-              <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
-                Projeto: <strong className="text-gray-900">{selectedProject.name}</strong>
-                {' · '}herda o cluster do projeto.
-                {!selectedProject.cluster_id && (
-                  <span className="mt-1 block text-amber-600">
-                    ⚠ Este projeto não tem cluster selecionado — o processo não aparecerá no MAPA até o projeto receber um cluster.
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label className="text-gray-700">Nome do Processo *</Label>
-              <Input
-                value={newProcess.name}
-                onChange={(e) => setNewProcess({ ...newProcess, name: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
-                placeholder="Ex: Emissão de Notas Fiscais"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-gray-700">Descrição</Label>
-              <Textarea
-                value={newProcess.description}
-                onChange={(e) => setNewProcess({ ...newProcess, description: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
-                placeholder="Descreva o processo..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-gray-700">Equipe responsável</Label>
-                <Select
-                  value={newProcess.equipe_id || ''}
-                  onValueChange={(v) => setNewProcess({ ...newProcess, equipe_id: v })}
-                >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue placeholder="Selecione a equipe" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {groupedEquipes.map((g) => (
-                      <div key={g.area.id}>
-                        <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
-                        {g.equipes.map((eq) => (
-                          <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                        ))}
-                      </div>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700">Estágio</Label>
-                <Select value={newProcess.stage} onValueChange={(value) => setNewProcess({ ...newProcess, stage: value })}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {PROCESS_STAGES.map(stage => (
-                      <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-gray-700">Prioridade</Label>
-                <Select value={newProcess.priority} onValueChange={(value) => setNewProcess({ ...newProcess, priority: value })}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="low">Baixa</SelectItem>
-                    <SelectItem value="medium">Média</SelectItem>
-                    <SelectItem value="high">Alta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700">Frequência</Label>
-                <Input
-                  value={newProcess.frequency}
-                  onChange={(e) => setNewProcess({ ...newProcess, frequency: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
-                  placeholder="Ex: Diária"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-gray-700">Volume/Mês</Label>
-                <Input
-                  type="number"
-                  value={newProcess.volume_month}
-                  onChange={(e) => setNewProcess({ ...newProcess, volume_month: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
-                  placeholder="Ex: 500"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700">Impacto Financeiro</Label>
-                <Input
-                  value={newProcess.financial_impact}
-                  onChange={(e) => setNewProcess({ ...newProcess, financial_impact: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
-                  placeholder="Ex: Alto"
-                />
-              </div>
-            </div>
-            <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-              Criar Processo
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Process Dialog */}
-      <Dialog open={!!selectedProcess} onOpenChange={() => setSelectedProcess(null)}>
-        <DialogContent className="bg-white border-gray-200">
-          {selectedProcess && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-gray-900">Editar Processo</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Nome do Processo *</Label>
-                  <Input
-                    value={editProcess.name}
-                    onChange={(e) => setEditProcess({ ...editProcess, name: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Descrição</Label>
-                  <Textarea
-                    value={editProcess.description}
-                    onChange={(e) => setEditProcess({ ...editProcess, description: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Equipe responsável</Label>
-                    <Select
-                      value={editProcess.equipe_id || ''}
-                      onValueChange={(v) => setEditProcess({ ...editProcess, equipe_id: v })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue placeholder="Selecione a equipe" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        {groupedEquipes.map((g) => (
-                          <div key={g.area.id}>
-                            <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">{g.area.name}</div>
-                            {g.equipes.map((eq) => (
-                              <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                            ))}
-                          </div>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Estágio</Label>
-                    <Select value={editProcess.stage} onValueChange={(value) => setEditProcess({ ...editProcess, stage: value })}>
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        {PROCESS_STAGES.map(stage => (
-                          <SelectItem key={stage.value} value={stage.value}>{stage.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Prioridade</Label>
-                    <Select value={editProcess.priority} onValueChange={(value) => setEditProcess({ ...editProcess, priority: value })}>
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200">
-                        <SelectItem value="low">Baixa</SelectItem>
-                        <SelectItem value="medium">Média</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Frequência</Label>
-                    <Input
-                      value={editProcess.frequency}
-                      onChange={(e) => setEditProcess({ ...editProcess, frequency: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Volume/Mês</Label>
-                    <Input
-                      type="number"
-                      value={editProcess.volume_month}
-                      onChange={(e) => setEditProcess({ ...editProcess, volume_month: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Impacto Financeiro</Label>
-                    <Input
-                      value={editProcess.financial_impact}
-                      onChange={(e) => setEditProcess({ ...editProcess, financial_impact: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="h-4 w-4 mr-1" />
-                        Excluir
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-white">
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Excluir processo?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação não pode ser desfeita. O processo "{selectedProcess.name}" será permanentemente removido.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDeleteProcess} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                          Excluir
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setSelectedProcess(null)}>
-                      Cancelar
-                    </Button>
-                    <Button className="bg-primary hover:bg-primary/90" onClick={handleUpdateProcess}>
-                      Salvar Alterações
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ProcessEditDialog
+        process={selectedProcess}
+        groupedEquipes={groupedEquipes}
+        onClose={() => setSelectedProcess(null)}
+        onUpdate={handleUpdateProcess}
+        onDelete={handleDeleteProcess}
+      />
     </EquipeLayout>
   );
 };

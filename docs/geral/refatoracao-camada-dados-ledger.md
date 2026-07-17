@@ -160,7 +160,7 @@ Ordem = maior→menor peso de contexto. Fazer o **primeiro como padrão de refer
 
 | Ordem | Status | Arquivo | Linhas | Ocorr. | Ops |
 |---:|---|---|---:|---:|---|
-| 1 | pendente | `pages/equipe/EquipeProjetos.tsx` | 2.296 | 3 | insert `projects`(x2)/`processes` |
+| 1 | feito (Fase 2) | `pages/equipe/EquipeProjetos.tsx` | 2.296 | 3 | insert `projects`(x2)/`processes` |
 | 2 | pendente | `pages/equipe/EquipeProcessos.tsx` | 1.586 | 1 | insert `processes` |
 | 3 | pendente | `pages/equipe/dev/ProcessoDifal.tsx` | 1.263 | 1 | delete `difal_decisao` |
 | 4 | pendente | `pages/equipe/EquipeKanban.tsx` | 1.259 | 5 | select (load inicial) |
