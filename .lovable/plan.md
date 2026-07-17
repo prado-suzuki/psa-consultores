@@ -1,51 +1,63 @@
-## OSG-BE-01 — enum `osg_doc_area` + 2 colunas aditivas
+## Objetivo
 
-Migration só de schema (DDL aditivo). Sem backfill, sem RLS, sem policies, sem defaults, sem NOT NULL.
+Substituir os `<Textarea>` de texto livre da plataforma de chamados por um editor rico baseado em **TipTap**, oferecendo negrito, itálico, sublinhado, listas e separação por parágrafos. Manter compatibilidade total com os chamados/mensagens antigos (texto plano) sem migração de dados.
 
-### Pré-voo (executado)
-- `public.bem` e `public.documento_arquivo` existem ✅
-- `bem.vlr_itr_iptu` e `documento_arquivo.area` não existem ✅
-- Enum `osg_doc_area` não existe ✅
+## Escopo (5 pontos de entrada)
 
-Pré-voo bate com o esperado — seguro prosseguir.
+1. `src/pages/cliente/NovoChamado.tsx` — campo **Descrição**
+2. `src/components/gestao/CreateTicketDialog.tsx` — campo **Descrição**
+3. `src/pages/cliente/DetalhesChamado.tsx` — campo **Nova mensagem** + render das mensagens
+4. `src/pages/equipe/EquipeDetalhesChamado.tsx` — idem
+5. `src/pages/gestao/GestaoDetalhesChamado.tsx` — idem
 
-### Passo 1 — Migration `osg_be_01_bem_itr_documento_area.sql`
+## Arquitetura
 
-```sql
-DO $$ BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname='osg_doc_area') THEN
-    CREATE TYPE public.osg_doc_area AS ENUM ('osg','fiscal');
-  END IF;
-END $$;
+Reaproveita o padrão já usado na revisão de tarefas (`src/components/equipe/fiscal/tasks/ReviewRichText.tsx` + `reviewRichTextFormat.ts`), que é seguro por design:
 
-ALTER TABLE public.bem               ADD COLUMN IF NOT EXISTS vlr_itr_iptu numeric;
-ALTER TABLE public.documento_arquivo ADD COLUMN IF NOT EXISTS area public.osg_doc_area;
-```
+- Conteúdo é **JSON do TipTap serializado como string**, prefixado por um marcador `[[ticket-rich-text:v1]]`.
+- Renderização percorre a árvore JSON e emite elementos React (`<strong>`, `<em>`, `<u>`, `<p>`, `<ul>`, `<ol>`, `<li>`) — **nunca `dangerouslySetInnerHTML`**, imune a XSS.
+- Mensagens/descrições antigas (sem marcador) caem no fallback existente: são exibidas como texto plano com `white-space: pre-wrap` (parágrafos por quebra de linha).
 
-`ADD COLUMN` nullable sem default → sem rewrite/lock. Nenhuma tela lê ainda, sem impacto de UI.
+Nenhuma migration é necessária: as colunas `tickets.description` e `ticket_messages.message` continuam sendo `text`, apenas passam a armazenar um payload marcado quando o conteúdo vem do editor.
 
-### Passo 2 — Regenerar tipos
-`src/integrations/supabase/types.ts` é regerado automaticamente após a aprovação da migration. Nenhum código de app é tocado neste PR.
+## Entregáveis
 
-### Passo 3 — Pós-verificação (rodar após aplicar)
+### 1. Componentes compartilhados novos
+- `src/components/chamados/TicketRichTextEditor.tsx` — editor TipTap com toolbar (Negrito, Itálico, Sublinhado, Lista, Lista numerada). Baseado no `ReviewRichTextEditor`, adaptado para receber `placeholder`, `minHeight` e `disabled`.
+- `src/components/chamados/TicketRichTextView.tsx` — renderer read-only. Detecta o marcador; se ausente, renderiza texto plano preservando quebras de linha (`whitespace-pre-wrap`) para não regredir chamados antigos.
+- `src/components/chamados/ticketRichTextFormat.ts` — helpers `parseTicketRichText`, `serializeTicketRichText`, `isTicketRichTextEmpty`, constante `TICKET_RICH_TEXT_MARKER`.
 
-```sql
--- 3a: 2 colunas nullable
-SELECT table_name, column_name, data_type, udt_name, is_nullable
-FROM information_schema.columns
-WHERE (table_name='bem' AND column_name='vlr_itr_iptu')
-   OR (table_name='documento_arquivo' AND column_name='area');
+### 2. Integrações
+- **NovoChamado** e **CreateTicketDialog**: trocar o `<Textarea>` da descrição por `<TicketRichTextEditor>`. A validação "descrição obrigatória" passa a usar `isTicketRichTextEmpty`.
+- **3× DetalhesChamado (cliente / equipe / gestao)**:
+  - Campo de nova mensagem: `<TicketRichTextEditor>` no lugar do `<Textarea>`. Botão "Enviar" desabilitado quando `isTicketRichTextEmpty`.
+  - Lista de mensagens: substituir `<p className="text-sm">{message.message}</p>` por `<TicketRichTextView value={message.message} />`.
+  - Descrição do chamado (quando exibida no topo): idem, via `TicketRichTextView`.
 
--- 3b: enum com exatamente osg,fiscal
-SELECT e.enumlabel FROM pg_type t JOIN pg_enum e ON e.enumtypid=t.oid
-WHERE t.typname='osg_doc_area' ORDER BY e.enumsortorder;
-```
+### 3. Efeitos colaterais checados
+- **Webhooks de notificação** (`supabase/functions/notify-ticket`, e-mails): se o payload de mensagem for enviado bruto, o marcador+JSON apareceriam na notificação. Auditar as edge functions e, se necessário, aplicar `stripTicketRichText(value)` (novo helper server-side simples: se começa com o marcador, extrai só o texto do JSON; senão, retorna como está). Fica como sub-tarefa do passo 2.
+- **Busca/filtros por texto de chamado**: hoje é `ilike` sobre `description`/`message`. Como o marcador é constante e o restante é JSON, buscas por palavra continuam funcionando (o texto está lá dentro). Aceitável nesta fase; se virar problema, adiciona-se coluna `search_text` derivada.
+- **Auditoria (`useAuditLog`)**: continua gravando o campo como string — sem mudança.
+- **Sem alteração de schema, RLS, policies ou hooks de dados.**
 
-Esperado: 3a → 2 linhas com `is_nullable=YES`; 3b → `osg`, `fiscal`.
+## Passos de execução
 
-### Fora de escopo
-- Sem backfill dos `documento_arquivo.area` existentes (ficam NULL).
-- Sem `NOT NULL` / `DEFAULT`.
-- Sem alteração de RLS/policies.
-- Nenhuma outra tabela.
-- Nenhuma alteração de código de app / hooks / telas.
+1. Criar os 3 arquivos compartilhados em `src/components/chamados/`.
+2. Trocar os inputs de descrição em `NovoChamado.tsx` e `CreateTicketDialog.tsx`.
+3. Trocar os inputs e a renderização de mensagens nos 3 `DetalhesChamado`.
+4. Auditar `notify-ticket` (e demais funções que empacotam `message.message` em e-mail/webhook) e aplicar `stripTicketRichText` se preciso.
+5. Verificação manual: criar chamado com formatação → visualizar como cliente, equipe e gestão → responder mensagem formatada → conferir chamado antigo (texto plano) sem regressão.
+
+## Detalhes técnicos
+
+- Toolbar mínima (mesma do editor de revisão): **B**, **I**, **U**, • lista, 1. lista. Enter cria parágrafo novo (comportamento default do TipTap com `Document`+`Paragraph`).
+- `min-h-24 max-h-64` no editor de mensagem; `min-h-40` na descrição de novo chamado.
+- Atalhos padrão do TipTap (Ctrl/Cmd+B, I, U) já vêm ativos.
+- Render em modo leitura reaproveita a estratégia de `ReviewRichTextContent` (percorre `JSONContent` e emite React).
+- **Não** adiciona `dompurify` — o pipeline nunca gera HTML string.
+
+## Fora de escopo
+
+- Suporte a links, imagens, menções ou anexos inline.
+- Migração de mensagens antigas para o novo formato.
+- Editor rico em outras telas (tarefas, projetos, novidades) — cada uma já tem o próprio.
