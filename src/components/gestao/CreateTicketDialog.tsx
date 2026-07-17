@@ -109,7 +109,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.description || !formData.user_id || !formData.cliente_id || !formData.estrutura_area_id) {
+    if (!formData.title || isTicketRichTextEmpty(formData.description) || !formData.user_id || !formData.cliente_id || !formData.estrutura_area_id) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos obrigatórios.',
