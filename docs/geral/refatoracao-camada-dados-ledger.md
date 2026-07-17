@@ -167,7 +167,7 @@ Ordem = maior→menor peso de contexto. Fazer o **primeiro como padrão de refer
 | 5 | feito (Fase 2) | `pages/equipe/dev/ControlePerdcomp.tsx` | 1.172 | 2 | select `cliente`/`per_situacao` (tenancy!) |
 | 6 | feito (Fase 2) | `components/equipe/dev/perdcomp/PerDetailModal.tsx` | 1.154 | 2 | insert `per_situacao` + update `per` |
 | 7 | feito (Fase 2) | `components/equipe/dev/perdcomp/DcompFormModal.tsx` | 981 | 4 | select + delete + insert `distribuicao_dcomp`/`dcomp` |
-| 8 | pendente | `pages/equipe/EquipeDemandas.tsx` | 916 | 3 | insert `routines`/`demand_items` + delete |
+| 8 | feito (Fase 2) | `pages/equipe/EquipeDemandas.tsx` | 916 | 3 | insert `routines`/`demand_items` + delete |
 | 9 | pendente | `pages/equipe/dashboards/AnaliseInteligente.tsx` | 812 | 6 | select (dashboard) |
 
 > Itens 5/6/7 (perdcomp) compartilham o hook de domínio criado na Fase 1d — coordenar.
