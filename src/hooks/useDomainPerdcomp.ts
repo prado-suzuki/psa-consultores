@@ -7,6 +7,14 @@ import {
 import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import {
+  buildLatestSituacoesMap,
+  type ControleDcomp,
+  type ControleDistribuicao,
+  type ControlePer,
+  type ControlePerSituacao,
+  type ControlePerSituacaoMap,
+} from '@/lib/controlePerdcomp';
 
 type ClienteTable = Database['public']['Tables']['cliente'];
 type ContribuinteTable = Database['public']['Tables']['contribuinte'];
@@ -37,6 +45,17 @@ export type PerSituacaoUpdate = PerSituacaoTable['Update'];
 export type DcompInsert = DcompTable['Insert'];
 export type DistribuicaoDcompInsert = DistribuicaoDcompTable['Insert'];
 export type DistribuicaoDcompAmostra = Pick<DistribuicaoDcompTable['Row'], 'id'>;
+export type ClienteControlePerdcomp = Pick<ClienteTable['Row'], 'id' | 'nome'>;
+export type ContribuinteControlePerdcomp = Pick<
+  ContribuinteTable['Row'],
+  'id' | 'nome_razao_social'
+>;
+
+export type GlobalProcessLookupResult =
+  | { status: 'invalid' }
+  | { status: 'not-found' }
+  | { status: 'unlinked' }
+  | { status: 'found'; contribuinteId: string; clienteId: string };
 
 type DomainMutationOptions<TData, TVariables> = Omit<
   UseMutationOptions<TData, Error, TVariables>,
@@ -76,7 +95,185 @@ const PERDCOMP_MUTATION_KEYS = {
   buscarAmostraDistribuicao: ['perdcomp', 'distribuicao-dcomp', 'buscar-amostra'],
   excluirDistribuicoesPorDocumento: ['perdcomp', 'distribuicao-dcomp', 'excluir-por-documento'],
   inserirDistribuicoesEmLote: ['perdcomp', 'distribuicao-dcomp', 'inserir-em-lote'],
+  buscarProcessoGlobal: ['perdcomp', 'processo', 'buscar-global'],
 } as const;
+
+export function useClientesControlePerdcomp() {
+  return useQuery<ClienteControlePerdcomp[]>({
+    queryKey: ['clientes-ativos'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('cliente')
+        .select('id, nome')
+        .eq('ativo', true)
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
+        .order('nome');
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useContribuintesControlePerdcomp(clienteId: string) {
+  return useQuery<ContribuinteControlePerdcomp[]>({
+    queryKey: ['contribuintes', clienteId],
+    queryFn: async () => {
+      if (!clienteId) return [];
+      const { data, error } = await supabase
+        .from('contribuinte')
+        .select('id, nome_razao_social')
+        .eq('cliente_id', clienteId)
+        .eq('excluido', false)
+        .eq('ambiente', currentAmbiente)
+        .order('nome_razao_social');
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!clienteId,
+  });
+}
+
+export function usePersControlePerdcomp(contribuinteId: string, searched: boolean) {
+  return useQuery<ControlePer[]>({
+    queryKey: ['perdcomp-per', contribuinteId, searched],
+    queryFn: async () => {
+      if (!contribuinteId || !searched) return [];
+      const { data, error } = await supabase
+        .from('per_with_contribuinte')
+        .select('*')
+        .eq('id_contribuinte', contribuinteId)
+        .order('exercicio', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as ControlePer[];
+    },
+    enabled: searched && !!contribuinteId,
+  });
+}
+
+export function useSituacoesControlePerdcomp(contribuinteId: string, searched: boolean) {
+  return useQuery<ControlePerSituacaoMap>({
+    queryKey: ['per-situacoes', contribuinteId, searched],
+    queryFn: async () => {
+      if (!contribuinteId || !searched) return {};
+      const { data: pers, error: perError } = await supabase
+        .from('per')
+        .select('nr_per')
+        .eq('id_contribuinte', contribuinteId);
+      if (perError) throw perError;
+      const perNumbers = (pers ?? []).map((per) => per.nr_per);
+      if (perNumbers.length === 0) return {};
+      const { data, error } = await supabase
+        .from('per_situacao')
+        .select('nr_proc_per, situacao, criado_em, dt_pagamento')
+        .in('nr_proc_per', perNumbers)
+        .order('criado_em', { ascending: false });
+      if (error) throw error;
+      return buildLatestSituacoesMap((data ?? []) as ControlePerSituacao[]);
+    },
+    enabled: searched && !!contribuinteId,
+  });
+}
+
+export function useDcompsControlePerdcomp(contribuinteId: string, searched: boolean) {
+  return useQuery<ControleDcomp[]>({
+    queryKey: ['perdcomp-dcomp', contribuinteId, searched],
+    queryFn: async () => {
+      if (!contribuinteId || !searched) return [];
+      const { data: pers, error: perError } = await supabase
+        .from('per')
+        .select('nr_per')
+        .eq('id_contribuinte', contribuinteId);
+      if (perError) throw perError;
+      const perNumbers = (pers ?? []).map((per) => per.nr_per);
+      if (perNumbers.length === 0) return [];
+      const { data, error } = await supabase
+        .from('dcomp')
+        .select('*')
+        .in('nr_per_orig', perNumbers)
+        .order('dt_envio', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: searched && !!contribuinteId,
+  });
+}
+
+export function useDistribuicoesControlePerdcomp(
+  contribuinteId: string,
+  documentNumbers: string[],
+  searched: boolean,
+) {
+  return useQuery<ControleDistribuicao[]>({
+    queryKey: ['perdcomp-distribuicoes', contribuinteId, documentNumbers.join(',')],
+    queryFn: async () => {
+      if (documentNumbers.length === 0) return [];
+      const { data, error } = await supabase
+        .from('distribuicao_dcomp')
+        .select('nr_documento, valor_tributo, valor_original')
+        .in('nr_documento', documentNumbers);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: searched && documentNumbers.length > 0,
+  });
+}
+
+export function useSituacoesDistintasControlePerdcomp() {
+  return useQuery<string[]>({
+    queryKey: ['per-situacoes-distintas'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('per_situacao')
+        .select('situacao')
+        .not('situacao', 'is', null);
+      return Array.from(new Set((data ?? []).map((row) => row.situacao)));
+    },
+  });
+}
+
+export function useBuscarProcessoGlobalPerdcomp(): UseMutationResult<
+  GlobalProcessLookupResult,
+  Error,
+  string
+> {
+  return useMutation<GlobalProcessLookupResult, Error, string>({
+    mutationKey: PERDCOMP_MUTATION_KEYS.buscarProcessoGlobal,
+    mutationFn: async (processNumber) => {
+      const digits = processNumber.replace(/\D/g, '');
+      if (!digits) return { status: 'invalid' };
+      const { data: matchedPers } = await supabase
+        .from('per')
+        .select('id_contribuinte')
+        .like('nr_per', `%${digits}%`)
+        .limit(1);
+      let contribuinteId = matchedPers?.[0]?.id_contribuinte ?? null;
+      if (!contribuinteId) {
+        const { data: matchedDcomps } = await supabase
+          .from('dcomp')
+          .select('nr_per_orig')
+          .like('nr_documento', `%${digits}%`)
+          .limit(1);
+        if (matchedDcomps?.[0]?.nr_per_orig) {
+          const { data: per } = await supabase
+            .from('per')
+            .select('id_contribuinte')
+            .eq('nr_per', matchedDcomps[0].nr_per_orig)
+            .maybeSingle();
+          contribuinteId = per?.id_contribuinte ?? null;
+        }
+      }
+      if (!contribuinteId) return { status: 'not-found' };
+      const { data: contribuinte } = await supabase
+        .from('contribuinte')
+        .select('cliente_id')
+        .eq('id', contribuinteId)
+        .maybeSingle();
+      if (!contribuinte?.cliente_id) return { status: 'unlinked' };
+      return { status: 'found', contribuinteId, clienteId: contribuinte.cliente_id };
+    },
+  });
+}
 
 export function useContribuintesCargaPerdcomp() {
   return useQuery<ContribuintePerdcomp[]>({
@@ -378,10 +575,7 @@ export function useExcluirPerDcompDefinitivamente(
           .eq('nr_proc_per', identifier);
         if (sitErr) throw sitErr;
 
-        const { error: perErr } = await supabase
-          .from('per')
-          .delete()
-          .eq('nr_per', identifier);
+        const { error: perErr } = await supabase.from('per').delete().eq('nr_per', identifier);
         if (perErr) throw perErr;
       } else {
         const { error: distErr } = await supabase
@@ -390,10 +584,7 @@ export function useExcluirPerDcompDefinitivamente(
           .eq('nr_documento', identifier);
         if (distErr) throw distErr;
 
-        const { error } = await supabase
-          .from('dcomp')
-          .delete()
-          .eq('nr_documento', identifier);
+        const { error } = await supabase.from('dcomp').delete().eq('nr_documento', identifier);
         if (error) throw error;
       }
     },
