@@ -226,13 +226,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="space-y-2">
             <Label htmlFor="description" className="text-foreground">Descrição <RequiredMark /></Label>
-            <Textarea
-              id="description"
+            <TicketRichTextEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(v) => setFormData({ ...formData, description: v })}
               placeholder="Descreva o chamado..."
-              rows={4}
-              className="bg-card border-border"
+              minHeight="min-h-28"
+              ariaLabel="Descrição do chamado"
             />
           </div>
 
