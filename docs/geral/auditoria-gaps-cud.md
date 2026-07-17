@@ -145,3 +145,7 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.deleteProcessMutation` | `processes` | delete | etapa final da exclusão; precheck e filtro por ID preservados |
 | `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.addProjectLinkMutation` | `project_processes` | insert | vínculo com projeto; payload e ausência de precheck preservados |
 | `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.removeProjectLinkMutation` | `project_processes` | delete | remoção de vínculo; precheck e filtro por ID preservados |
+| `pages/equipe/dev/ProcessoDifal.tsx` | `useDomainProcessoDifalSession.searchSessionMutation` | `difal_sessao` | update | sessão `EM_ANDAMENTO` existente; precheck e filtro por ID preservados |
+| `pages/equipe/dev/ProcessoDifal.tsx` | `useDomainProcessoDifalSession.searchSessionMutation` | `difal_sessao` | insert | criação de nova sessão com retorno do ID preservada; sem precheck |
+| `pages/equipe/dev/ProcessoDifal.tsx` | `useDomainProcessoDifalSession.syncSessionMutation` | `difal_sessao` | update | finalização após sincronização externa; precheck, filtro por ID e tratamento best-effort preservados |
+| `pages/equipe/dev/ProcessoDifal.tsx` | `useDomainProcessoDifalSession.syncSessionMutation` | `difal_decisao` | delete | limpeza por `sessao_id` após finalização; precheck por amostra antes da sincronização externa e tratamento best-effort preservados |
