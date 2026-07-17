@@ -77,7 +77,12 @@ export default function NovoChamado() {
     setErrors({});
 
     try {
-      ticketSchema.parse(form);
+      ticketSchema.parse({
+        title: form.title,
+        department: form.department,
+        priority: form.priority,
+        descriptionPlain: ticketRichTextToPlain(form.description),
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: any = {};
