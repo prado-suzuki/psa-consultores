@@ -540,24 +540,29 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // --- Persist cliente_clusters (incremental upsert) ---
-      // cliente_clusters não está no schema tipado — cast justificado
-      const { data: existingClusters } = await (supabase.from('cliente_clusters' as any) as any)
-        .select('id, cluster_id')
-        .eq('cliente_id', clienteId);
-      const existingClusterIds = new Set((existingClusters || []).map((r: any) => r.cluster_id as string));
-      const desiredClusterIds = new Set(clusterIds);
-      // INSERT new
-      const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
-      if (toInsertClusters.length > 0) {
-        const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
-        const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
-        if (insErr) throw insErr;
-      }
-      // DELETE removed
-      const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
-      if (toDeleteClusterRows.length > 0) {
-        const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
-        await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+      // Só no ramo de edição: na criação, a RPC criar_cliente_com_clusters já
+      // gravou os vínculos na mesma transação. Rodar aqui violaria o
+      // UNIQUE (cliente_id, cluster_id).
+      if (isEditing) {
+        // cliente_clusters não está no schema tipado — cast justificado
+        const { data: existingClusters } = await (supabase.from('cliente_clusters' as any) as any)
+          .select('id, cluster_id')
+          .eq('cliente_id', clienteId);
+        const existingClusterIds = new Set((existingClusters || []).map((r: any) => r.cluster_id as string));
+        const desiredClusterIds = new Set(clusterIds);
+        // INSERT new
+        const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
+        if (toInsertClusters.length > 0) {
+          const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
+          const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
+          if (insErr) throw insErr;
+        }
+        // DELETE removed
+        const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
+        if (toDeleteClusterRows.length > 0) {
+          const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
+          await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+        }
       }
 
       syncCadastrosToDW({
