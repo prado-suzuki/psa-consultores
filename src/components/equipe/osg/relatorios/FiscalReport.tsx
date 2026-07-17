@@ -91,6 +91,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   const { data: bens = [], isLoading: loadingDP } = useRelatorioDP(clienteId);
   const { data: todasMat = [], isLoading: loadingMat } = useAllMatriculas();
   const { data: docs = [] } = useDocumentosByCliente(clienteId);
+  const { data: exploracoes = [] } = useExploracaoRural(clienteId);
   const baixar = useBaixarDocumento();
   const clienteNome = clientes.find((c) => c.id === clienteId)?.nome ?? '';
 
@@ -98,7 +99,6 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
     () => todasMat.filter((m) => m.bem_cliente_id === clienteId || m.titular_cliente_ids.includes(clienteId)),
     [todasMat, clienteId],
   );
-  const totalArea = useMemo(() => matriculas.reduce((s, m) => s + (Number(m.area_explorada) || 0), 0), [matriculas]);
 
   if (loadingDP || loadingMat) {
     return <p className="py-16 text-center text-sm text-muted-foreground">Carregando abertura de demanda…</p>;
@@ -109,23 +109,33 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
     'Município/UF', 'Área total', 'Área explorada', 'Decl. IRPF',
     'Assinatura', 'Encerramento', 'Vigência', 'Sacas/ha',
   ];
-  // Colunas preenchidas a partir das matrículas do cliente; os campos de exploração
-  // ainda não capturados no OSG Work ficam em branco (—).
-  const rows = matriculas.map((m) => [
-    m.tipo_exploracao_posse || '—', // Tipo
-    '—', // Explorador
-    '—', // Outorgante
-    m.bem_denominacao || m.bem_referencia || (m.numero ? `Matrícula ${m.numero}` : 'Imóvel'), // Imóvel
-    matTxt(m), // Matrícula
-    munUf(m), // Município/UF
-    fmtArea(m.area_documento, m.area_unidade), // Área total
-    fmtArea(m.area_explorada, m.area_unidade), // Área explorada
-    '—', // Decl. IRPF
-    '—', // Assinatura
-    '—', // Encerramento
-    '—', // Vigência
-    '—', // Sacas/ha
-  ]);
+  // Se houver registros estruturados em exploracao_rural, usa-os; senão, fallback para matrículas
+  // (mesmas colunas de exploração vazias, comportamento atual).
+  const usaExploracoes = exploracoes.length > 0;
+  const rows = usaExploracoes
+    ? exploracoes.map(exprRow)
+    : matriculas.map((m) => [
+        m.tipo_exploracao_posse || '—',
+        '—',
+        '—',
+        m.bem_denominacao || m.bem_referencia || (m.numero ? `Matrícula ${m.numero}` : 'Imóvel'),
+        matTxt(m),
+        munUf(m),
+        fmtArea(m.area_documento, m.area_unidade),
+        fmtArea(m.area_explorada, m.area_unidade),
+        '—', '—', '—', '—', '—',
+      ]);
+
+  const totalAreaExplorada = usaExploracoes
+    ? exploracoes.reduce((s, r) => s + (Number(r.area_explorada) || 0), 0)
+    : matriculas.reduce((s, m) => s + (Number(m.area_explorada) || 0), 0);
+  const secaoMeta = usaExploracoes
+    ? `${exploracoes.length} registro${exploracoes.length === 1 ? '' : 's'} · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`
+    : `${matriculas.length} matrículas · ${totalAreaExplorada.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`;
+  const semLinhas = rows.length === 0;
+  const emptyMsg = usaExploracoes
+    ? 'Nenhuma exploração rural cadastrada para este cliente.'
+    : 'Nenhuma matrícula cadastrada para este cliente.';
 
   const faltantes = DOCS_FISCAL.filter((d) => !d.modelo && matchDocs(d, docs).length === 0).length;
   const matchedIds = new Set(DOCS_FISCAL.flatMap((d) => matchDocs(d, docs).map((f) => f.id)));
