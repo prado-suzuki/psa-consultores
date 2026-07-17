@@ -6,12 +6,13 @@ import { useClienteClusters } from '@/hooks/useClienteClusters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, X } from 'lucide-react';
 import { z } from 'zod';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
 
 const ticketSchema = z.object({
   title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres').max(100, 'Título deve ter no máximo 100 caracteres'),
