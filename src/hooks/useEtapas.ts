@@ -64,6 +64,25 @@ export function useEtapas(): UseQueryResult<Etapa[]> {
   });
 }
 
+// Lista SÓ as etapas do cenário TO-BE (linhas cruas, sem cruzar por id).
+// O modelo atual pareia por id em `.ficou` (useEtapas), o que descarta o TO-BE
+// despareado (paridade no processo, etapas independentes por cenário). O
+// comparativo precisa das etapas TO-BE como lista própria.
+export function useEtapasToBeLista(): UseQueryResult<Etapa[]> {
+  return useQuery<Etapa[]>({
+    queryKey: [TABLE, 'to-be'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from(TABLE as never)
+        .select(SELECT_HYDRATED)
+        .eq('scenario', 'TO-BE')
+        .order('stage_order');
+      if (error) throw new Error(error.message);
+      return ((data ?? []) as unknown as DbRow[]).map(hydrate);
+    },
+  });
+}
+
 export function useEtapa(id: string | undefined): UseQueryResult<Etapa | null> {
   return useQuery<Etapa | null>({
     queryKey: [TABLE, id],

@@ -19,6 +19,8 @@ import { gargalosDoProcesso } from '../gargaloMelhorias';
 export interface SopComparativoMarkdownInput {
   processo: Processo;
   etapas: Etapa[];
+  /** Etapas TO-BE (modelo por-cenário) — detalhamento Como Ficou quando despareado. */
+  etapasFuturo?: Etapa[];
   sistemas: Sistema[];
   responsaveis: Responsavel[];
   gargalos: Gargalo[];
@@ -35,7 +37,7 @@ const num1 = (n: number) => n.toLocaleString('pt-BR', { maximumFractionDigits: 1
 
 export function buildSopComparativoMarkdown(input: SopComparativoMarkdownInput): string {
   const {
-    processo, etapas, sistemas, responsaveis, gargalos,
+    processo, etapas, etapasFuturo, sistemas, responsaveis, gargalos,
     projeto, roi, diagnostico, horizonteMeses: m = 24,
   } = input;
   const S = PDF_STRINGS.exec;
@@ -134,9 +136,30 @@ export function buildSopComparativoMarkdown(input: SopComparativoMarkdownInput):
   out.push(recomendacao);
   out.push('');
 
-  // ── Comparativo etapa a etapa ──
+  // ── Detalhamento ──
   out.push('## Detalhamento — Como era × Como ficou');
   out.push('');
+
+  // Modelo por-cenário (despareado): duas listas independentes (AS-IS | TO-BE).
+  const usarLista = !etapas.some(e => e.ficou != null) && (etapasFuturo?.length ?? 0) > 0;
+  if (usarLista) {
+    const bloco = (titulo: string, lista: Etapa[]) => {
+      out.push(`### ${titulo}`);
+      out.push('');
+      out.push('| # | Etapa | Execução | Executado por | Sistemas | Métricas |');
+      out.push('| --- | --- | --- | --- | --- | --- |');
+      lista.forEach((e, i) => {
+        const met = calcEtapa(e, false, respById, custoMedio);
+        out.push(`| ${pad2(i + 1)} | ${cell(e.name)} | ${cell(e.execution || '')} | ${cell(joinPeople(e.executadoPor ?? []))} | ${cell((e.sistemas ?? []).map(sisNome).join(' · '))} | ${num1(met.horas)}h · ${fmtMoney(met.custo)} · retrab ${fmtPercent(met.taxaRetrab)} |`);
+      });
+      out.push('');
+    };
+    bloco('Como era (As-Is)', etapas);
+    bloco('Como ficou (To-Be)', etapasFuturo as Etapa[]);
+    return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd() + '\n';
+  }
+
+  // Modelo legado (pareado): comparativo etapa a etapa via `.ficou`.
   etapas.forEach((e, i) => {
     const era = calcEtapa(e, false, respById, custoMedio);
     const fic = calcEtapa(e, true, respById, custoMedio);

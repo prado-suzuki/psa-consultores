@@ -16,6 +16,10 @@ export type SOPMode = 'era' | 'ficou';
 export interface SopModelInput {
   processo: Processo;
   etapas: Etapa[];
+  /** Etapas do cenário TO-BE (linhas próprias). No modo 'ficou', quando o processo
+   *  NÃO tem `.ficou` (pareado) e há etapas TO-BE, o modelo é montado a partir
+   *  desta lista (modelo por-cenário). Ausente ⇒ comportamento legado (`.ficou`). */
+  etapasFuturo?: Etapa[];
   documentos: Documento[];
   sistemas: Sistema[];
   responsaveis: Responsavel[];
@@ -84,6 +88,12 @@ export function buildSopModel(input: SopModelInput): SopModel {
   const isFicou = mode === 'ficou';
   const scenarioLabel = isFicou ? 'Cenário Otimizado · To-Be' : 'Cenário Atual · As-Is';
 
+  // Modelo por-cenário: no 'ficou', sem `.ficou` (pareado) e com etapas TO-BE,
+  // o SOP é montado a partir da lista TO-BE (cujos dados vêm no nível-topo — o
+  // `?? e.X` dos leitores abaixo já resolve, pois a etapa TO-BE não tem `.ficou`).
+  const usarLista = isFicou && !etapas.some(e => e.ficou != null) && (input.etapasFuturo?.length ?? 0) > 0;
+  const etapasBase = usarLista ? (input.etapasFuturo as Etapa[]) : etapas;
+
   const gargaloById = new Map(gargalos.map(g => [g.id, g]));
   const melhoriaIdsProc = melhoriaIdsDoProcesso(melhorias, processo.id);
   const procMelhorias = isFicou ? melhorias.filter(m => melhoriaIdsProc.has(m.id)) : [];
@@ -96,19 +106,19 @@ export function buildSopModel(input: SopModelInput): SopModel {
 
   // Tabelas agregadas (Documentos / Sistemas / Responsáveis) — mesmo cenário.
   const docEntradaNames = new Set<string>();
-  etapas.forEach(e => docsEntOf(e).forEach(d => docEntradaNames.add(typeof d === 'string' ? d : d.nome)));
+  etapasBase.forEach(e => docsEntOf(e).forEach(d => docEntradaNames.add(typeof d === 'string' ? d : d.nome)));
   const docsEntrada = documentos
     .filter(d => docEntradaNames.has(d.nome))
     .map(d => ({ nome: d.nome, tipo: dash(d.tipo), origem: dash(d.origem) }));
 
   const docSaidaNames = new Set<string>();
-  etapas.forEach(e => docsSaiOf(e).forEach(d => docSaidaNames.add(typeof d === 'string' ? d : d.nome)));
+  etapasBase.forEach(e => docsSaiOf(e).forEach(d => docSaidaNames.add(typeof d === 'string' ? d : d.nome)));
   const docsSaida = documentos
     .filter(d => docSaidaNames.has(d.nome))
     .map(d => ({ nome: d.nome, tipo: dash(d.tipo), origem: dash(d.origem) }));
 
   const sisKeys = new Set<string>();
-  etapas.forEach(e => sisOf(e).forEach(s => sisKeys.add(s)));
+  etapasBase.forEach(e => sisOf(e).forEach(s => sisKeys.add(s)));
   // Dedup por nome (evita "WhatsApp" duplicado quando há 2 registros homônimos).
   const seenSisNome = new Set<string>();
   const sistemasList = sistemas
@@ -121,7 +131,7 @@ export function buildSopModel(input: SopModelInput): SopModel {
     .map(s => ({ nome: s.nome, descricao: dash(s.descricao) }));
 
   const respNames = new Set<string>();
-  etapas.forEach(e => {
+  etapasBase.forEach(e => {
     const exec = (isFicou ? (e.ficou?.executadoPor ?? e.executadoPor) : e.executadoPor) || [];
     exec.forEach(r => r.nome && respNames.add(r.nome));
   });
@@ -132,7 +142,7 @@ export function buildSopModel(input: SopModelInput): SopModel {
   // Nome do sistema resolvido por id OU nome (mesma regra do PDF).
   const sisNome = (s: string) => sistemas.find(x => x.id === s || x.nome === s)?.nome ?? s;
 
-  const etapasModel: SopModelEtapa[] = etapas.map((e, i) => {
+  const etapasModel: SopModelEtapa[] = etapasBase.map((e, i) => {
     const f = isFicou ? e.ficou : null;
     const descricao = (isFicou ? (f?.description ?? e.description) : e.description) || '';
     const execution = (isFicou ? (f?.execution ?? e.execution) : e.execution) || '';

@@ -43,7 +43,7 @@ import GargaloFormModal from '@/components/equipe/mapa/cadastro/GargaloFormModal
 import MelhoriaFormModal from '@/components/equipe/mapa/cadastro/MelhoriaFormModal';
 import GargalosMelhoriasPanel from '@/components/equipe/mapa/GargalosMelhoriasPanel';
 import {
-  useProcessoUnico, useEtapasLista, useDocumentosLista, useSistemasLista,
+  useProcessoUnico, useEtapasLista, useEtapasToBeLista, useDocumentosLista, useSistemasLista,
   useResponsaveisLista, useGargalosLista, useMelhoriasLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { useCreateEtapa, useUpdateEtapa, useDeleteEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
@@ -98,6 +98,7 @@ export default function MapearProcessoPage() {
   // ── Dados base via hooks (Hook-First) ──────────────────────────────────
   const processoQuery = useProcessoUnico(id);
   const { data: rawEtapas = [] } = useEtapasLista();
+  const { data: rawEtapasToBe = [] } = useEtapasToBeLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
@@ -112,6 +113,14 @@ export default function MapearProcessoPage() {
     const filtered = rawEtapas.filter(e => e.process_id === id).sort(ordenarPorOrdem);
     return enrichEtapas(filtered, documentos, sistemas, responsaveis);
   }, [id, rawEtapas, documentos, sistemas, responsaveis]);
+  // Etapas TO-BE (linhas próprias por cenário). Quando presentes e sem `.ficou`
+  // (despareado), o "Como ficou" exibe essa lista em somente-leitura.
+  const etapasFuturo = useMemo(() => {
+    if (!id) return [] as Etapa[];
+    const filtered = rawEtapasToBe.filter(e => e.process_id === id).sort(ordenarPorOrdem);
+    return enrichEtapas(filtered, documentos, sistemas, responsaveis);
+  }, [id, rawEtapasToBe, documentos, sistemas, responsaveis]);
+  const usarListaFicou = etapasFuturo.length > 0 && !etapas.some(e => e.ficou != null);
 
   // ── Mutations (Hook-First) ─────────────────────────────────────────────
   const createEtapa = useCreateEtapa();
@@ -730,7 +739,8 @@ export default function MapearProcessoPage() {
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             >
               <ComoFicouView
-                etapas={etapas}
+                etapas={usarListaFicou ? etapasFuturo : etapas}
+                readonly={usarListaFicou}
                 fmtPct={fmtPct}
                 sumHorasEtapa={sumHorasEtapa}
                 onEditar={(etapaId) => openEditEtapas('ficou', etapaId)}
@@ -1107,17 +1117,19 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function MapearTabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtitulo: string; onEditar: () => void }) {
+function MapearTabHead({ titulo, subtitulo, onEditar }: { titulo: string; subtitulo: string; onEditar?: () => void }) {
   return (
     <div className="mapear-tab-head">
       <div className="mapear-tab-head-txt">
         <h3 className="mapear-tab-titulo">{titulo}</h3>
         <p className="mapear-tab-sub">{subtitulo}</p>
       </div>
-      <button className="cadastro-cta" onClick={() => onEditar()} title="Abrir o editor de etapas">
-        <Pencil size={15} strokeWidth={2.2} />
-        <span>Editar etapas</span>
-      </button>
+      {onEditar && (
+        <button className="cadastro-cta" onClick={() => onEditar()} title="Abrir o editor de etapas">
+          <Pencil size={15} strokeWidth={2.2} />
+          <span>Editar etapas</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -1185,11 +1197,20 @@ interface ComoFicouProps {
   fmtPct: (v: number) => string;
   sumHorasEtapa: (e: Etapa, ficou?: boolean) => number;
   onEditar: (etapaId?: string) => void;
+  /** Modelo por-cenário: as `etapas` são as linhas TO-BE (importadas), exibidas
+   *  em somente-leitura — a edição do TO-BE pela UI é do modelo pareado legado. */
+  readonly?: boolean;
 }
-function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouProps) {
+function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar, readonly = false }: ComoFicouProps) {
   return (
     <div className="mapear-tab-content">
-      <MapearTabHead titulo="Como ficou" subtitulo="O cenário projetado depois das melhorias." onEditar={onEditar} />
+      <MapearTabHead
+        titulo="Como ficou"
+        subtitulo={readonly
+          ? 'Cenário TO-BE (linhas próprias, importadas) — somente leitura aqui.'
+          : 'O cenário projetado depois das melhorias.'}
+        onEditar={readonly ? undefined : onEditar}
+      />
 
       {etapas.length === 0 ? (
         <EmptyStateCadastro
@@ -1217,13 +1238,13 @@ function ComoFicouView({ etapas, fmtPct, sumHorasEtapa, onEditar }: ComoFicouPro
               return (
                 <li
               key={e.id}
-              className="mapear-etapa mapear-etapa-clicavel"
-              role="button"
-              tabIndex={0}
-              title="Clique para editar esta etapa"
-              style={{ cursor: 'pointer' }}
-              onClick={() => onEditar(e.id)}
-              onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
+              className={`mapear-etapa${readonly ? '' : ' mapear-etapa-clicavel'}`}
+              role={readonly ? undefined : 'button'}
+              tabIndex={readonly ? undefined : 0}
+              title={readonly ? undefined : 'Clique para editar esta etapa'}
+              style={readonly ? undefined : { cursor: 'pointer' }}
+              onClick={readonly ? undefined : () => onEditar(e.id)}
+              onKeyDown={readonly ? undefined : (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); onEditar(e.id); } }}
             >
                   <div className="mapear-etapa-top">
                     <span className="mapear-etapa-num">{i + 1}</span>

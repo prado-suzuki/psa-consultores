@@ -26,7 +26,7 @@ import { canon } from '@/utils/cascataEngine';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Documento, DocRef } from '@/types';
-import { useEtapasLista, useSistemasLista, useResponsaveisLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useEtapasToBeLista, useSistemasLista, useResponsaveisLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
 import { useDocumentos, useDeleteDocumento } from '@/hooks/useDocumentos';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 
@@ -53,11 +53,14 @@ export default function DocumentosPage() {
 
   // --- Dados de apoio (vínculos doc↔processo↔projeto via etapas) ---
   const { data: rawEtapas = [] } = useEtapasLista();
+  const { data: rawEtapasToBe = [] } = useEtapasToBeLista();
   const { data: sis = [] } = useSistemasLista();
   const { data: resps = [] } = useResponsaveisLista();
   const { data: processos = [] } = useProcessosLista();
   const { data: projetos = [] } = useProjetosLista();
   const etapas = useMemo(() => enrichEtapas(rawEtapas, items, sis, resps), [rawEtapas, items, sis, resps]);
+  // Etapas TO-BE (linhas próprias por cenário) — seus docs também vinculam/contam no escopo.
+  const etapasToBe = useMemo(() => enrichEtapas(rawEtapasToBe, items, sis, resps), [rawEtapasToBe, items, sis, resps]);
 
   const projetoNomePorId = useMemo(() => new Map(projetos.map(p => [p.id, p.name])), [projetos]);
   const processoById = useMemo(() => new Map(processos.map(p => [p.id, p])), [processos]);
@@ -98,11 +101,17 @@ export default function DocumentosPage() {
       const projectId = proc?.project_id || null;
       registrar(e.docsEntrada, e.process_id, projectId);
       registrar(e.docsSaida, e.process_id, projectId);
-      registrar(e.ficou?.docsEntrada, e.process_id, projectId);
+      registrar(e.ficou?.docsEntrada, e.process_id, projectId); // pareado legado
       registrar(e.ficou?.docsSaida, e.process_id, projectId);
     }
+    for (const e of etapasToBe) { // linhas TO-BE (despareado)
+      const proc = processoById.get(e.process_id);
+      const projectId = proc?.project_id || null;
+      registrar(e.docsEntrada, e.process_id, projectId);
+      registrar(e.docsSaida, e.process_id, projectId);
+    }
     return { processosPorDoc: porProcesso, projetosPorDoc: porProjeto };
-  }, [etapas, processoById, docIdPorNome]);
+  }, [etapas, etapasToBe, processoById, docIdPorNome]);
 
   // Projetos de um documento como array, com sentinela "Sem projeto" quando
   // o documento não está vinculado a nenhum projeto.
@@ -124,6 +133,10 @@ export default function DocumentosPage() {
     () => etapas.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
     [etapas, fCluster, processoIdsDoEscopo],
   );
+  const etapasToBeDoEscopo = useMemo(
+    () => etapasToBe.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
+    [etapasToBe, fCluster, processoIdsDoEscopo],
+  );
   const nomesDocumentosDoEscopo = useMemo(() => {
     if (!fCluster) return null;
     const nomes = new Set<string>();
@@ -136,11 +149,15 @@ export default function DocumentosPage() {
     for (const etapa of etapasDoEscopo) {
       addRefs(etapa.docsEntrada);
       addRefs(etapa.docsSaida);
-      addRefs(etapa.ficou?.docsEntrada);
+      addRefs(etapa.ficou?.docsEntrada); // pareado legado
       addRefs(etapa.ficou?.docsSaida);
     }
+    for (const etapa of etapasToBeDoEscopo) { // linhas TO-BE (despareado)
+      addRefs(etapa.docsEntrada);
+      addRefs(etapa.docsSaida);
+    }
     return nomes;
-  }, [fCluster, etapasDoEscopo]);
+  }, [fCluster, etapasDoEscopo, etapasToBeDoEscopo]);
 
   const noEscopo = useMemo(
     // uso-por-nome só puxa documento SEM cluster próprio (global) — senão um doc de

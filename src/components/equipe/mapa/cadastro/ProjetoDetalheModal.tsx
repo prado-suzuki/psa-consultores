@@ -15,7 +15,7 @@ import ComoEraLista from '@/components/equipe/mapa/ComoEraLista';
 import type { Documento, Etapa, Gargalo, Melhoria, Processo, Projeto, Responsavel, Sistema } from '@/types';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 import { processoCalculavel } from '@/utils/processoCalculavel';
-import { buildProcessDiagram, buildProjectDiagram } from '@/utils/processDiagram';
+import { buildProcessComparison, buildProjectComparison } from '@/utils/processDiagram';
 import { slugFilename } from '@/utils/slugify';
 import { useMapaExports } from '@/hooks/useMapaExports';
 
@@ -45,13 +45,16 @@ interface Props {
   aberto: boolean;
   projeto: Projeto | null;
   processos: Processo[];
+  /** Etapas AS-IS por processo (já enriquecidas: sistemas = nomes). */
   etapasPorProcesso: Map<string, Etapa[]>;
+  /** Etapas TO-BE por processo — linhas próprias por cenário (comparativo). */
+  tobeEtapasPorProcesso: Map<string, Etapa[]>;
   backlog: Melhoria[];
   processoNomeById: Map<string, string>;
   gargalos: Gargalo[];
   /** Catálogo de responsáveis — necessário para o veredito do doutor por processo. */
   responsaveis: Responsavel[];
-  /** Catálogos p/ o diagrama AS-IS por processo (buildProcessDiagram). */
+  /** Catálogos ainda recebidos do pai (documentos/sistemas) — mantidos na interface. */
   documentos: Documento[];
   sistemas: Sistema[];
   melhorias: Melhoria[];
@@ -60,12 +63,12 @@ interface Props {
 }
 
 export default function ProjetoDetalheModal({
-  aberto, projeto, processos, etapasPorProcesso, backlog, processoNomeById, gargalos, responsaveis, documentos, sistemas, melhorias, onClose, onEditar,
+  aberto, projeto, processos, etapasPorProcesso, tobeEtapasPorProcesso, backlog, processoNomeById, gargalos, responsaveis, melhorias, onClose, onEditar,
 }: Props) {
   const [aba, setAba] = useState<Aba>('info');
   const [expandidos, setExpandidos] = useState<Set<string>>(new Set());
   const [diagramaProc, setDiagramaProc] = useState<Processo | null>(null);
-  const [verDiagramaProjeto, setVerDiagramaProjeto] = useState(false);
+  const [verConsolidadoGM, setVerConsolidadoGM] = useState(false);
   const [addProcOpen, setAddProcOpen] = useState(false);
   const exports = useMapaExports();
   const toggle = (id: string) => setExpandidos(prev => {
@@ -80,7 +83,7 @@ export default function ProjetoDetalheModal({
     { id: 'info', label: 'Informações' },
     { id: 'processos', label: `Processos · ${processos.length}` },
     { id: 'as-is', label: 'AS-IS' },
-    { id: 'diagramas', label: 'Diagramas' },
+    { id: 'diagramas', label: 'Diagramas comparativos' },
     { id: 'backlog', label: `Backlog · ${backlog.length}` },
   ];
 
@@ -265,35 +268,37 @@ export default function ProjetoDetalheModal({
             ) : (
               <>
                 <p className="processo-det-descricao" style={{ marginBottom: 12 }}>
-                  Fluxo AS-IS por processo (etapas encadeadas + documentos, responsáveis e sistemas). Abra para dar zoom e exportar.
+                  Comparativo Como Era × Como Ficou. Abra cada processo para ver as etapas (etapa · execução · sistemas) em duas colunas; ou o diagrama consolidado do projeto (Gargalo × Melhoria).
                 </p>
                 <button
                   type="button"
                   className="cadastro-cta"
                   style={{ marginBottom: 14, display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                  onClick={() => setVerDiagramaProjeto(true)}
+                  onClick={() => setVerConsolidadoGM(true)}
                 >
                   <Network size={15} strokeWidth={2.2} />
-                  Diagrama consolidado do projeto (AS-IS)
+                  Diagrama consolidado do projeto
                 </button>
                 <div className="projeto-detail-row-list">
                   {processos.map((p, i) => {
-                    const ets = etapasPorProcesso.get(p.id) || [];
+                    const nAs = (etapasPorProcesso.get(p.id) || []).length;
+                    const nTo = (tobeEtapasPorProcesso.get(p.id) || []).length;
+                    const temEtapas = nAs + nTo > 0;
                     return (
                       <div key={p.id} className="projeto-process-row">
                         <button
                           type="button"
                           className="projeto-process-summary"
-                          onClick={() => ets.length && setDiagramaProc(p)}
-                          disabled={ets.length === 0}
-                          aria-disabled={ets.length === 0}
+                          onClick={() => temEtapas && setDiagramaProc(p)}
+                          disabled={!temEtapas}
+                          aria-disabled={!temEtapas}
                         >
                           <span className="projeto-process-index">{String(i + 1).padStart(2, '0')}</span>
                           <span className="projeto-process-name">{p.name}</span>
-                          <span className="projeto-process-count">{ets.length} etapa{ets.length === 1 ? '' : 's'}</span>
+                          <span className="projeto-process-count">{nAs} → {nTo} etapa{nTo === 1 ? '' : 's'}</span>
                           <span className="projeto-process-status">
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: ets.length ? '#4f46e5' : '#94a3b8' }}>
-                              <Network size={13} /> {ets.length ? 'Ver diagrama AS-IS' : 'Sem etapas'}
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: temEtapas ? '#4f46e5' : '#94a3b8' }}>
+                              <Network size={13} /> {temEtapas ? 'Ver comparativo' : 'Sem etapas'}
                             </span>
                           </span>
                         </button>
@@ -339,38 +344,27 @@ export default function ProjetoDetalheModal({
         <DiagramViewer
           isOpen={!!diagramaProc}
           onClose={() => setDiagramaProc(null)}
-          code={buildProcessDiagram({
-            processo: diagramaProc,
-            etapas: etapasPorProcesso.get(diagramaProc.id) || [],
-            documentos,
-            sistemas,
-            responsaveis,
-            gargalos,
-            melhorias,
-            projeto,
-            mode: 'era',
+          code={buildProcessComparison({
+            processos: [diagramaProc],
+            asisPorProcesso: etapasPorProcesso,
+            tobePorProcesso: tobeEtapasPorProcesso,
           })}
-          filename={`Diagrama_AS-IS_${slugFilename(diagramaProc.name, diagramaProc.id)}`}
-          title={`Diagrama AS-IS · ${diagramaProc.name}`}
+          filename={`Comparativo_Etapas_${slugFilename(diagramaProc.name, diagramaProc.id)}`}
+          title={`Comparativo Como Era × Como Ficou · ${diagramaProc.name}`}
         />
       )}
-      {verDiagramaProjeto && (
+      {verConsolidadoGM && (
         <DiagramViewer
-          isOpen={verDiagramaProjeto}
-          onClose={() => setVerDiagramaProjeto(false)}
-          code={buildProjectDiagram({
-            projeto,
+          isOpen={verConsolidadoGM}
+          onClose={() => setVerConsolidadoGM(false)}
+          code={buildProjectComparison({
+            projetoNome: projeto.name,
             processos,
-            etapasPorProcesso,
-            documentos,
-            sistemas,
-            responsaveis,
             gargalos,
             melhorias,
-            mode: 'era',
           })}
-          filename={`Diagrama_AS-IS_Projeto_${slugFilename(projeto.name, projeto.id)}`}
-          title={`Diagrama AS-IS · Projeto ${projeto.name}`}
+          filename={`Comparativo_GargaloMelhoria_${slugFilename(projeto.name, projeto.id)}`}
+          title={`Consolidado · Gargalo × Melhoria · Projeto ${projeto.name}`}
         />
       )}
       {/* Adicionar processo sem sair do painel — já vinculado a este projeto. */}

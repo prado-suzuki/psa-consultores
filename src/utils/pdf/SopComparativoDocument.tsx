@@ -24,6 +24,8 @@ import { gargalosDoProcesso as filtraGargalosDoProcesso, melhoriaIdsDoProcesso }
 export interface SopComparativoDocumentProps {
   processo: Processo;
   etapas: Etapa[];
+  /** Etapas TO-BE (modelo por-cenário) — detalhamento Como Ficou quando despareado. */
+  etapasFuturo?: Etapa[];
   sistemas: Sistema[];
   responsaveis: Responsavel[];
   gargalos: Gargalo[];
@@ -73,10 +75,13 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub: string 
 
 export function SopComparativoDocument(props: SopComparativoDocumentProps) {
   const {
-    processo, etapas, sistemas, responsaveis, gargalos, melhorias,
+    processo, etapas, etapasFuturo, sistemas, responsaveis, gargalos, melhorias,
     projeto, roi, diagnostico, horizonteMeses: m = 24,
   } = props;
   const S = PDF_STRINGS.exec;
+  // Modelo por-cenário (despareado): detalhamento em duas listas (AS-IS | TO-BE)
+  // em vez do comparativo pareado por etapa (que depende de `.ficou`).
+  const usarLista = !etapas.some(e => e.ficou != null) && ((etapasFuturo?.length ?? 0) > 0);
 
   const sisByKey = new Map<string, Sistema>();
   for (const s of sistemas) {
@@ -301,7 +306,37 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
       )}
 
       {/* ============ PÁGINAS POR ETAPA — COMPARATIVO (PAISAGEM) ============ */}
-      {etapas.map((e, i) => {
+      {usarLista ? (
+        ([['Como era · As-Is', etapas], ['Como ficou · To-Be', (etapasFuturo ?? [])]] as [string, Etapa[]][]).map(([titulo, lista]) => (
+          <Page key={titulo} size="A4" orientation="landscape" style={styles.page}>
+            <PageHeader processo={processo} scenarioLabel={titulo} />
+            {lista.length === 0 ? (
+              <Text style={styles.small}>Sem etapas neste cenário.</Text>
+            ) : lista.map((e, i) => {
+              const met = calcEtapa(e, false, respById, custoMedio);
+              const gEtapa = (e.gargalos || []).map(id => gargaloById.get(id)).filter((g): g is Gargalo => Boolean(g));
+              return (
+                <View key={e.id} style={[styles.card, { marginBottom: 6 }]} wrap={false}>
+                  <Text style={styles.cardTitle}>{pad2(i + 1)} · {e.name}</Text>
+                  <Text style={[styles.small, styles.muted]}>Execução</Text>
+                  <Text style={[styles.small, { marginBottom: 2 }]}>{e.execution || '—'}</Text>
+                  <Text style={[styles.small, styles.muted]}>Executado por</Text>
+                  <Text style={[styles.small, { marginBottom: 2 }]}>{joinPeople(e.executadoPor ?? [])}</Text>
+                  <Text style={[styles.small, styles.muted]}>Sistemas</Text>
+                  <Text style={[styles.small, { marginBottom: 2 }]}>{(e.sistemas ?? []).map(sisNome).join(' · ') || '—'}</Text>
+                  <Text style={[styles.small, styles.muted]}>Métricas</Text>
+                  <Text style={styles.small}>{met.horas.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}h · {fmtMoney(met.custo)} · retrab {fmtPercent(met.taxaRetrab)}</Text>
+                  {gEtapa.length > 0 && (
+                    <Text style={[styles.small, styles.muted, { marginTop: 2 }]}>Gargalos: {gEtapa.map(g => g.nome).join(' · ')}</Text>
+                  )}
+                </View>
+              );
+            })}
+            <PageFooter />
+          </Page>
+        ))
+      ) : (
+      etapas.map((e, i) => {
         const era = calcEtapa(e, false, respById, custoMedio);
         const fic = calcEtapa(e, true, respById, custoMedio);
         const eliminada = isEtapaEliminada(e);
@@ -430,7 +465,8 @@ export function SopComparativoDocument(props: SopComparativoDocumentProps) {
             <PageFooter />
           </Page>
         );
-      })}
+      })
+      )}
     </Document>
   );
 }

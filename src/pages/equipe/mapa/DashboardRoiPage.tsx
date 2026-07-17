@@ -8,7 +8,7 @@ import {
 } from '@/utils/roiCalculator';
 import { fmtRoi, roiDisponivel } from '@/utils/roiGuards';
 import { melhoriasRelacionadasAoGargalo, processoIdsDoGargalo, melhoriaIdsDoProcesso, gargalosDoProcesso } from '@/utils/gargaloMelhorias';
-import { enrichEtapas } from '@/utils/enrichEtapas';
+import { useEtapasPorCenario } from '@/hooks/useEtapasPorCenario';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { useClusters } from '@/hooks/useClusters';
 import { NotasMetodologicasModal, NotasInfoButton } from '@/components/equipe/mapa/NotasMetodologicasModal';
@@ -16,7 +16,7 @@ import HistoricoMedicoes from '@/components/equipe/mapa/HistoricoMedicoes';
 import { Tooltip } from '@/components/equipe/mapa/Tooltip';
 import { dica } from '@/utils/tooltips';
 import {
-  useProjetosLista, useProcessosLista, useEtapasLista, useResponsaveisLista,
+  useProjetosLista, useProcessosLista, useResponsaveisLista,
   useSistemasLista, useGargalosLista, useMelhoriasLista, useDocumentosLista,
 } from '@/hooks/useDominioListas';
 import { useSnapshotsLatest, fetchSnapshotsLatest, SNAPSHOTS_LATEST_QUERY_KEY } from '@/hooks/useSnapshots';
@@ -469,7 +469,6 @@ export default function DashboardRoiPage() {
   // ── Listas via hooks (Hook-First) ──────────────────────────────────────
   const { data: projetos = [] } = useProjetosLista();
   const { data: processos = [] } = useProcessosLista();
-  const { data: rawEtapas = [] } = useEtapasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: gargalos = [] } = useGargalosLista();
@@ -477,10 +476,8 @@ export default function DashboardRoiPage() {
   const { data: documentos = [] } = useDocumentosLista();
   const { data: snapshotsLatest = [] } = useSnapshotsLatest();
   const queryClient = useQueryClient();
-  const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
-    [rawEtapas, documentos, sistemas, responsaveis],
-  );
+  // Etapas por cenário (modelo por-cenário). `etapas` = AS-IS (era); `etapasFuturoTodas` = TO-BE.
+  const { asis: etapas, tobe: etapasFuturoTodas } = useEtapasPorCenario();
 
   // Cluster vem do seletor global no header.
   const { cluster: filtroCluster } = useClusterGlobal();
@@ -533,19 +530,24 @@ export default function DashboardRoiPage() {
         switch (filtroMaturidade) {
           case 'mapeado': return ets.length > 0 && execucoesAnuais(p) > 0;
           case 'diagnosticado': return gargalosDoProcesso(gargalos, p.id).length > 0 || ets.some(e => (e.error_rate ?? 0) > 0 || (e.rework_rate ?? 0) > 0);
-          case 'futuro': return ets.some(e => e.ficou != null);
+          case 'futuro': return ets.some(e => e.ficou != null) || etapasFuturoTodas.some(e => e.process_id === p.id);
           case 'implementado': return statusEconomiaProcesso(p, melhorias) === 'realizado';
           default: return true;
         }
       });
     }
     return arr;
-  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, filtroMaturidade, clusterIdPorProjetoId, etapas, gargalos, melhorias]);
+  }, [processos, filtroCluster, filtroProjeto, filtroProcesso, filtroMaturidade, clusterIdPorProjetoId, etapas, etapasFuturoTodas, gargalos, melhorias]);
 
   const etapasFiltradas = useMemo(() => {
     const idsProc = new Set(processosFiltrados.map(p => p.id));
     return etapas.filter(e => idsProc.has(e.process_id));
   }, [etapas, processosFiltrados]);
+
+  const etapasFuturoFiltradas = useMemo(() => {
+    const idsProc = new Set(processosFiltrados.map(p => p.id));
+    return etapasFuturoTodas.filter(e => idsProc.has(e.process_id));
+  }, [etapasFuturoTodas, processosFiltrados]);
 
   const gargalosFiltrados = useMemo(() => {
     const idsProc = new Set(processosFiltrados.map(p => p.id));
@@ -582,6 +584,7 @@ export default function DashboardRoiPage() {
     const calculo = calcularRoi({
       processos: processosFiltrados,
       etapas: etapasFiltradas,
+      etapasFuturo: etapasFuturoFiltradas,
       responsaveis,
       sistemas: sistemasDoEscopo,
       gargalos: gargalosFiltrados,
@@ -607,7 +610,7 @@ export default function DashboardRoiPage() {
       qtdDocumentos: documentosDoEscopo.length,
       qtdResponsaveis: responsaveis.length,
     };
-  }, [filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
+  }, [filtroProjeto, projetosDoCluster.length, processosFiltrados, etapasFiltradas, etapasFuturoFiltradas, gargalosFiltrados, melhoriasDoEscopo, sistemasDoEscopo, documentosDoEscopo.length, responsaveis, projetos]);
 
   // Métricas dependentes do horizonte de análise selecionado (12/24/36 meses).
   // Os campos *Ano em `v` são sempre anuais; multiplicamos por `horizonteFator`
@@ -1425,9 +1428,9 @@ export default function DashboardRoiPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {etapasFiltradas.length === 0 ? <EmptyRow cols={5} /> : etapasFiltradas.map(e => {
-                    // Cenário futuro: lê de etapa.ficou.* (espelho lateral), com fallback para era.
-                    const execFut = e.ficou?.executadoPor ?? e.executadoPor;
+                  {etapasFuturoFiltradas.length === 0 ? <EmptyRow cols={5} /> : etapasFuturoFiltradas.map(e => {
+                    // Cenário futuro: etapas TO-BE (linhas próprias por cenário).
+                    const execFut = e.executadoPor;
                     const horasFut = (execFut || []).reduce((s, r) => s + (r.horas ?? 0), 0);
                     const custoHM = responsaveis.length ? responsaveis.reduce((s, r) => s + (r.hourly_rate || 0), 0) / responsaveis.length : 0;
                     // Melhorias do processo da etapa — derivadas via gargalo.

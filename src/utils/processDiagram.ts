@@ -231,3 +231,190 @@ export function buildProjectDiagram(input: BuildProjectDiagramInput): string {
   STYLES.forEach(s => lines.push(s)); // classe 'vazio' p/ projeto sem processos
   return lines.join('\n');
 }
+
+// ═════════════════════════════════════════════════════════════════════════
+//  COMPARATIVOS (Como Era × Como Ficou) — modelo por-cenário
+//
+//  Paridade no grão de PROCESSO; etapas independentes por cenário (colunas
+//  despareadas, o TO-BE costuma ser mais enxuto). Reproduz, dentro do app, os
+//  .mmd já validados (Etapas AS-IS×TO-BE e Consolidado Gargalo×Melhoria).
+//  Não usa `.ficou` (que parearia por id) — recebe listas AS-IS e TO-BE cruas.
+// ═════════════════════════════════════════════════════════════════════════
+
+// Paleta validada (mesma linguagem visual dos .mmd): cinza tracejado = "Como Era",
+// lime = "Como Ficou", teal = cabeçalho do processo.
+const CMP_STYLES = [
+  '  classDef rootHead fill:#f9fafb,color:#0d9488,stroke:#0d9488,stroke-width:2px,font-weight:bold',
+  '  classDef procHead fill:#0f766e,color:#ffffff,stroke:#0d9488,stroke-width:2px,font-weight:bold',
+  '  classDef tagAS    fill:#4b5563,color:#ffffff,stroke:#374151,stroke-width:1px,font-weight:bold',
+  '  classDef tagTO    fill:#84cc16,color:#ffffff,stroke:#65a30d,stroke-width:1px,font-weight:bold',
+  '  classDef etapaAS  fill:#f9fafb,color:#374151,stroke:#9ca3af,stroke-width:1.5px,stroke-dasharray:3 3',
+  '  classDef etapaTO  fill:#f0fff4,color:#111827,stroke:#84cc16,stroke-width:1.5px',
+  '  classDef gargalo  fill:#f9fafb,color:#374151,stroke:#9ca3af,stroke-width:1.5px,stroke-dasharray:3 3',
+  '  classDef melhoria fill:#f0fff4,color:#111827,stroke:#84cc16,stroke-width:1.5px',
+  '  classDef vazio    fill:#f1f5f9,color:#64748b,stroke:#cbd5e1,stroke-width:1px,stroke-dasharray:4 3',
+];
+
+/** Rótulo humano da execução (enum do banco → texto). */
+function execLabel(execution?: string | null): string {
+  switch ((execution || '').toLowerCase()) {
+    case 'manual': return 'Manual';
+    case 'semi_automatica': return 'Semi-automática';
+    case 'automatica': return 'Automática';
+    default: return execution ? mdText(execution) : '';
+  }
+}
+
+/** Card de etapa do comparativo — a "pegada": só nome + execução + sistemas.
+ *  `e.sistemas` já vem com NOMES resolvidos (enrichEtapas). */
+function comparativoEtapaCard(e: Etapa, num: number): string {
+  const linhas = [`**${num} · ${mdText(e.name)}**`];
+  const exec = execLabel(e.execution);
+  if (exec) linhas.push(exec);
+  const sis = joinCap(e.sistemas || [], 3);
+  if (sis) linhas.push(sis);
+  return linhas.join('\n');
+}
+
+/** Emite 1 processo como bloco vertical: cabeçalho → colunas Como Era | Como Ficou. */
+function emitProcessoComparativo(lines: string[], processo: Processo, idx: number, asis: Etapa[], tobe: Etapa[]): void {
+  const pid = processo.id;
+  const H = safeId('H', pid);
+  const aT = safeId('AT', pid);
+  const tT = safeId('TT', pid);
+  lines.push(`  subgraph ${safeId('PR', pid)}[" "]`);
+  lines.push('    direction TB');
+  lines.push(`    ${H}["\`**${idx + 1} · ${mdText(processo.name)}** · ${asis.length} → ${tobe.length}\`"]:::procHead`);
+  lines.push(`    ${aT}["\`Como Era\`"]:::tagAS`);
+  lines.push(`    ${tT}["\`Como Ficou\`"]:::tagTO`);
+  lines.push(`    ${H} --> ${aT}`);
+  lines.push(`    ${H} --> ${tT}`);
+  const coluna = (tag: string, etapas: Etapa[], prefixo: string, cls: string) => {
+    if (etapas.length === 0) {
+      const id = safeId(prefixo, `${pid}_vazio`);
+      lines.push(`    ${id}["\`sem etapas\`"]:::vazio`);
+      lines.push(`    ${tag} --> ${id}`);
+      return;
+    }
+    let prev = tag;
+    etapas.forEach((e, i) => {
+      const id = safeId(prefixo, `${pid}_${e.id}`);
+      lines.push(`    ${id}["\`${comparativoEtapaCard(e, i + 1)}\`"]:::${cls}`);
+      lines.push(`    ${prev} --> ${id}`);
+      prev = id;
+    });
+  };
+  coluna(aT, asis, 'A', 'etapaAS');
+  coluna(tT, tobe, 'T', 'etapaTO');
+  lines.push('  end');
+}
+
+export interface BuildProcessComparisonInput {
+  /** 1 processo (visão por-processo) ou vários (todos lado a lado). */
+  processos: Processo[];
+  /** Etapas AS-IS por processo — já enriquecidas (sistemas = nomes). */
+  asisPorProcesso: Map<string, Etapa[]>;
+  /** Etapas TO-BE por processo — já enriquecidas (sistemas = nomes). */
+  tobePorProcesso: Map<string, Etapa[]>;
+}
+
+/**
+ * Comparativo de ETAPAS (Como Era × Como Ficou). Cada processo é um bloco
+ * vertical com duas colunas; os processos ficam lado a lado (fileira). Passe
+ * `[processo]` para a visão por-processo ou todos para o consolidado.
+ * Reproduz `Diagrama_P1_Etapas_AS-IS_x_TO-BE.mmd`.
+ */
+export function buildProcessComparison(input: BuildProcessComparisonInput): string {
+  const { processos, asisPorProcesso, tobePorProcesso } = input;
+  const lines: string[] = [];
+  lines.push('%% Comparativo de Etapas (Como Era × Como Ficou) — gerado pelo MAPA');
+  lines.push('flowchart LR');
+  const ordenados = [...processos].sort(
+    (a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || a.name.localeCompare(b.name),
+  );
+  if (ordenados.length === 0) {
+    lines.push(`  ${safeId('EMPTY', 'cmp')}["sem processos"]:::vazio`);
+  }
+  const boxes: string[] = [];
+  ordenados.forEach((p, i) => {
+    emitProcessoComparativo(lines, p, i, asisPorProcesso.get(p.id) || [], tobePorProcesso.get(p.id) || []);
+    boxes.push(safeId('PR', p.id));
+  });
+  // Alinha os processos lado a lado (link invisível entre os subgraphs).
+  for (let i = 1; i < boxes.length; i++) lines.push(`  ${boxes[i - 1]} ~~~ ${boxes[i]}`);
+  lines.push('  %% ===== estilos =====');
+  CMP_STYLES.forEach(s => lines.push(s));
+  boxes.forEach(id => lines.push(`  style ${id} fill:none,stroke:none`));
+  return lines.join('\n');
+}
+
+/** Card de gargalo/melhoria do consolidado. Teto de tamanho (defensivo) p/ o card
+ *  não estourar caso o texto venha longo (ex.: melhoria ainda sem nome curto). */
+function gmCard(prefixo: string, texto: string): string {
+  const t = mdText(texto);
+  const curto = t.length > 120 ? `${t.slice(0, 118).trimEnd()}…` : t;
+  return `**${prefixo}** — ${curto}`;
+}
+
+export interface BuildProjectComparisonInput {
+  projetoNome: string;
+  /** Processos do projeto — só para filtrar os gargalos/melhorias vinculados. */
+  processos: Processo[];
+  gargalos: Gargalo[];
+  melhorias: Melhoria[];
+}
+
+/**
+ * Consolidado do PROJETO: um único card do projeto ramificando direto em
+ * Gargalos (Como Era) | Melhorias (Como Ficou). Sem cards intermediários de
+ * processo — visão executiva do projeto inteiro.
+ */
+export function buildProjectComparison(input: BuildProjectComparisonInput): string {
+  const { projetoNome, processos, gargalos, melhorias } = input;
+  const procIds = new Set(processos.map(p => p.id));
+  // Ordena as duas colunas pela ordem do processo vinculado — assim gargalo e
+  // melhoria do mesmo processo ficam na mesma linha (1:1 por processo no P1).
+  const ordem = new Map(processos.map((p, i) => [p.id, p.order_index ?? i]));
+  const ordenarPorProcesso = (vinc: string[]) =>
+    Math.min(Infinity, ...(vinc || []).filter(id => procIds.has(id)).map(id => ordem.get(id) ?? Infinity));
+  const gs = gargalos
+    .filter(g => (g.processos || []).some(id => procIds.has(id)))
+    .sort((a, b) => ordenarPorProcesso(a.processos) - ordenarPorProcesso(b.processos));
+  const ms = melhorias
+    .filter(m => (m.processos || []).some(id => procIds.has(id)))
+    .sort((a, b) => ordenarPorProcesso(a.processos) - ordenarPorProcesso(b.processos));
+
+  const lines: string[] = [];
+  lines.push('%% Comparativo Consolidado do Projeto · Gargalo (Como Era) × Melhoria (Como Ficou) — gerado pelo MAPA');
+  lines.push('flowchart TB');
+  const ROOT = safeId('ROOT', projetoNome || 'projeto');
+  const GA = safeId('GA', 'root');
+  const ME = safeId('ME', 'root');
+  lines.push(`  ${ROOT}["\`**${mdText(projetoNome)}**\`"]:::rootHead`);
+  lines.push(`  ${GA}["\`Como Era\`"]:::tagAS`);
+  lines.push(`  ${ME}["\`Como Ficou\`"]:::tagTO`);
+  lines.push(`  ${ROOT} --> ${GA}`);
+  lines.push(`  ${ROOT} --> ${ME}`);
+
+  const coluna = <T,>(tag: string, itens: T[], prefixo: string, cls: string, card: (x: T) => string, vazio: string) => {
+    if (itens.length === 0) {
+      const id = safeId(prefixo, 'vazio');
+      lines.push(`  ${id}["\`${vazio}\`"]:::vazio`);
+      lines.push(`  ${tag} --> ${id}`);
+      return;
+    }
+    let prev = tag;
+    itens.forEach((x, i) => {
+      const id = safeId(prefixo, `${i}`);
+      lines.push(`  ${id}["\`${card(x)}\`"]:::${cls}`);
+      lines.push(`  ${prev} --> ${id}`);
+      prev = id;
+    });
+  };
+  coluna(GA, gs, 'G', 'gargalo', (g) => gmCard('Gargalo', g.nome || g.descricao), 'sem gargalo mapeado');
+  coluna(ME, ms, 'M', 'melhoria', (m) => gmCard('Melhoria', m.improvement_description), 'sem melhoria mapeada');
+
+  lines.push('  %% ===== estilos =====');
+  CMP_STYLES.forEach(s => lines.push(s));
+  return lines.join('\n');
+}

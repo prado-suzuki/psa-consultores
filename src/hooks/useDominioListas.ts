@@ -4,7 +4,7 @@
 
 export { useProjetos as useProjetosLista } from './useProjetos';
 export { useProcessos as useProcessosLista } from './useProcessos';
-export { useEtapas as useEtapasLista } from './useEtapas';
+export { useEtapas as useEtapasLista, useEtapasToBeLista } from './useEtapas';
 export { useResponsaveis as useResponsaveisLista } from './useResponsaveis';
 export { useMelhorias as useMelhoriasLista } from './useMelhorias';
 export { useGargalos as useGargalosLista } from './useGargalos';

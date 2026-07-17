@@ -17,8 +17,8 @@ import { useFocusParam } from '@/utils/useFocusParam';
 import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
 import { useProjetos, useDeleteProjeto } from '@/hooks/useProjetos';
 import { useProcessos } from '@/hooks/useProcessos';
-import { useEtapasLista, useMelhoriasLista, useGargalosLista, useResponsaveisLista, useDocumentosLista, useSistemasLista } from '@/hooks/useDominioListas';
-import { enrichEtapas } from '@/utils/enrichEtapas';
+import { useMelhoriasLista, useGargalosLista, useResponsaveisLista, useDocumentosLista, useSistemasLista } from '@/hooks/useDominioListas';
+import { useEtapasPorCenario } from '@/hooks/useEtapasPorCenario';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { processoIdsDaMelhoria } from '@/utils/gargaloMelhorias';
 
@@ -41,19 +41,15 @@ export default function ProjetosPage() {
   const { data: items = [], isLoading } = useProjetos();
   const deleteMut = useDeleteProjeto();
   const { data: processos = [] } = useProcessos();
-  const { data: rawEtapas = [] } = useEtapasLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: gargalos = [] } = useGargalosLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { cluster: fCluster } = useClusterGlobal();
-  // Etapas enriquecidas (id→nome de docs/sistemas/responsáveis) — o readout AS-IS
-  // e o diagrama do detalhe do projeto precisam dos nomes resolvidos.
-  const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
-    [rawEtapas, documentos, sistemas, responsaveis],
-  );
+  // Etapas por cenário (enriquecidas + agrupadas por processo) — fonte única do
+  // modelo por-cenário (sem `.ficou`). AS-IS p/ readout/status; TO-BE p/ comparativo.
+  const { asis: etapas, asisPorProcesso: etapasPorProcesso, tobePorProcesso: tobeEtapasPorProcesso } = useEtapasPorCenario();
 
   const [busca, setBusca] = useState('');
   const [formAberto, setFormAberto] = useState(false);
@@ -107,19 +103,6 @@ export default function ProjetosPage() {
     }
     return map;
   }, [processos]);
-
-  const etapasPorProcesso = useMemo(() => {
-    const map = new Map<string, Etapa[]>();
-    for (const e of etapas) {
-      const arr = map.get(e.process_id) || [];
-      arr.push(e);
-      map.set(e.process_id, arr);
-    }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0) || a.name.localeCompare(b.name));
-    }
-    return map;
-  }, [etapas]);
 
   const processoNomeById = useMemo(() => new Map(processos.map(p => [p.id, p.name])), [processos]);
 
@@ -254,6 +237,7 @@ export default function ProjetosPage() {
         projeto={detalhe}
         processos={detalheProcessos}
         etapasPorProcesso={etapasPorProcesso}
+        tobeEtapasPorProcesso={tobeEtapasPorProcesso}
         backlog={detalheBacklog}
         processoNomeById={processoNomeById}
         gargalos={gargalos}

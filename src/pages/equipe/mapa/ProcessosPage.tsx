@@ -21,11 +21,11 @@ import ProjetoDetalheModal from '@/components/equipe/mapa/cadastro/ProjetoDetalh
 import ProjetoFormModal from '@/components/equipe/mapa/cadastro/ProjetoFormModal';
 import MelhoriaFormModal from '@/components/equipe/mapa/cadastro/MelhoriaFormModal';
 import { canon } from '@/utils/cascataEngine';
-import { enrichEtapas } from '@/utils/enrichEtapas';
+import { useEtapasPorCenario } from '@/hooks/useEtapasPorCenario';
 import { normalizarComplexidade } from '@/components/equipe/mapa/cadastros/processoOpcoes';
-import type { Etapa, Melhoria, Processo, Projeto } from '@/types';
+import type { Melhoria, Processo, Projeto } from '@/types';
 import {
-  useEtapasLista, useMelhoriasLista, useProjetosLista,
+  useMelhoriasLista, useProjetosLista,
   useDocumentosLista, useSistemasLista, useResponsaveisLista, useGargalosLista,
 } from '@/hooks/useDominioListas';
 import { useProcessos, useDeleteProcesso, useReorderProcessos } from '@/hooks/useProcessos';
@@ -46,17 +46,14 @@ export default function ProcessosPage() {
   const { cluster: fCluster } = useClusterGlobal();
 
   // Dados de apoio (etapas enriquecidas + backlog do detalhe do projeto).
-  const { data: rawEtapas = [] } = useEtapasLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
   const { data: melhorias = [] } = useMelhoriasLista();
   const { data: gargalos = [] } = useGargalosLista();
 
-  const etapas = useMemo(
-    () => enrichEtapas(rawEtapas, documentos, sistemas, responsaveis),
-    [rawEtapas, documentos, sistemas, responsaveis],
-  );
+  // Etapas por cenário (enriquecidas + agrupadas por processo) — fonte única (modelo por-cenário).
+  const { asis: etapas, asisPorProcesso: etapasPorProcesso, tobePorProcesso: tobeEtapasPorProcesso } = useEtapasPorCenario();
 
   const clusterIdPorProjeto = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
@@ -66,19 +63,6 @@ export default function ProcessosPage() {
     () => new Map(projetos.map(p => [p.id, p.name])),
     [projetos],
   );
-  // Sub-etapas (process_stages) por etapa (process_id) — usado no detalhe do projeto.
-  const etapasPorProcesso = useMemo(() => {
-    const map = new Map<string, Etapa[]>();
-    for (const e of etapas) {
-      const arr = map.get(e.process_id) || [];
-      arr.push(e);
-      map.set(e.process_id, arr);
-    }
-    for (const arr of map.values()) {
-      arr.sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0) || a.name.localeCompare(b.name));
-    }
-    return map;
-  }, [etapas]);
   const processoNomeById = useMemo(() => new Map(items.map(p => [p.id, p.name])), [items]);
 
   const [busca, setBusca] = useState('');
@@ -456,6 +440,7 @@ export default function ProcessosPage() {
         projeto={projetoDetalhe}
         processos={detalheProjProcessos}
         etapasPorProcesso={etapasPorProcesso}
+        tobeEtapasPorProcesso={tobeEtapasPorProcesso}
         backlog={detalheProjBacklog}
         processoNomeById={processoNomeById}
         gargalos={gargalos}

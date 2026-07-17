@@ -109,9 +109,9 @@ export function buildSopMarkdown(input: SopModelInput): string {
   if (m.responsaveis.length) {
     out.push(sec('Responsáveis'));
     out.push('');
-    out.push('| Nome | Cargo | Custo/hora |');
-    out.push('| --- | --- | --- |');
-    for (const r of m.responsaveis) out.push(`| ${cell(r.nome)} | ${cell(r.cargo)} | ${cell(r.custoHora)} |`);
+    out.push('| Nome | Cargo |');
+    out.push('| --- | --- |');
+    for (const r of m.responsaveis) out.push(`| ${cell(r.nome)} | ${cell(r.cargo)} |`);
     out.push('');
   }
 

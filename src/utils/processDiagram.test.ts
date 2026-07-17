@@ -5,8 +5,8 @@
 // subgraphs (~~~), nunca por aresta nó→nó (que colapsaria a serpentina).
 
 import { describe, it, expect } from 'vitest';
-import { buildProcessDiagram, buildProjectDiagram } from './processDiagram';
-import type { Processo, Etapa, Gargalo, Projeto } from '../types';
+import { buildProcessDiagram, buildProjectDiagram, buildProcessComparison, buildProjectComparison } from './processDiagram';
+import type { Processo, Etapa, Gargalo, Melhoria, Projeto } from '../types';
 
 const processo = { id: 'P1', name: 'DP Inicial' } as unknown as Processo;
 
@@ -159,5 +159,110 @@ describe('buildProjectDiagram — serpentina de processos (consolidado)', () => 
     expect(code).toContain('ROW_PROC_0 ~~~ ROW_PROC_1'); // empilha (invisível, entre subgraphs)
     expect(code).toContain('fill:none,stroke:none');   // caixas de linha invisíveis
     expect(code).toContain('%% FOLD');                 // metadado da dobra (viewer desenha a seta)
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+//  Comparativos (Como Era × Como Ficou) — modelo por-cenário
+// ═════════════════════════════════════════════════════════════════════════
+
+function etapaCmp(id: string, ordem: number, name: string, execution: string, sistemas: string[]) {
+  return {
+    id, process_id: 'PX', name, stage_order: ordem, execution, sistemas,
+    docsEntrada: [], docsSaida: [], executadoPor: [], gargalos: [],
+  } as unknown as Etapa;
+}
+
+describe('buildProcessComparison — etapas em duas colunas (Como Era | Como Ficou)', () => {
+  const pA = { id: 'P1', name: 'Contratação', order_index: 0 } as unknown as Processo;
+  const pB = { id: 'P2', name: 'Solicitações', order_index: 1 } as unknown as Processo;
+  const asis = new Map<string, Etapa[]>([
+    ['P1', [
+      etapaCmp('A1', 1, 'Cadastrar o cliente', 'semi_automatica', ['PSA Projects']),
+      etapaCmp('A2', 2, 'Preencher a OS', 'manual', ['Excel', 'OpenProject', 'Word', 'Drive']),
+      etapaCmp('A3', 3, 'Registrar controle', 'manual', ['Planilha']),
+    ]],
+  ]);
+  const tobe = new Map<string, Etapa[]>([
+    ['P1', [
+      etapaCmp('T1', 1, 'Cadastrar o cliente', 'automatica', ['PSA Projects']),
+      etapaCmp('T2', 2, 'Preencher a OS', 'semi_automatica', ['PSA Projects']),
+    ]],
+  ]);
+
+  it('flowchart LR, bloco do processo com contagem AS→TO e duas colunas', () => {
+    const code = buildProcessComparison({ processos: [pA], asisPorProcesso: asis, tobePorProcesso: tobe });
+    expect(code).toContain('flowchart LR');
+    expect(code).toContain(':::procHead');
+    expect(code).toContain('**1 · Contratação** · 3 → 2');
+    expect(code).toContain('`Como Era`');
+    expect(code).toContain('`Como Ficou`');
+    expect(code).toContain(':::tagAS');
+    expect(code).toContain(':::tagTO');
+    expect(code).toContain(':::etapaAS');
+    expect(code).toContain(':::etapaTO');
+  });
+
+  it('card = nome + execução (texto) + sistemas; corta sistemas longos com +N', () => {
+    const code = buildProcessComparison({ processos: [pA], asisPorProcesso: asis, tobePorProcesso: tobe });
+    expect(code).toContain('**1 · Cadastrar o cliente**');
+    expect(code).toContain('Semi-automática');
+    expect(code).toContain('Manual');
+    expect(code).toContain('Automática');
+    expect(code).toContain('PSA Projects');
+    // 4 sistemas ⇒ mostra 3 + "+1"
+    expect(code).toContain('Excel · OpenProject · Word +1');
+    // sem responsáveis/docs no card
+    expect(code).not.toContain(':::etapaGargalo');
+  });
+
+  it('vários processos ficam lado a lado (link invisível ~~~ entre subgraphs)', () => {
+    const code = buildProcessComparison({ processos: [pB, pA], asisPorProcesso: asis, tobePorProcesso: tobe });
+    // ordenado por order_index ⇒ P1 antes de P2
+    expect(code.indexOf('Contratação')).toBeLessThan(code.indexOf('Solicitações'));
+    expect(code).toContain('~~~');
+    expect(code).toContain('fill:none,stroke:none');
+  });
+
+  it('coluna sem etapas → placeholder "sem etapas"', () => {
+    const code = buildProcessComparison({ processos: [pB], asisPorProcesso: asis, tobePorProcesso: tobe });
+    expect(code).toContain(':::vazio');
+    expect(code).toContain('sem etapas');
+  });
+});
+
+describe('buildProjectComparison — consolidado do PROJETO (1 card, sem cards de processo)', () => {
+  const p1 = { id: 'P1', name: 'Contratação', order_index: 0 } as unknown as Processo;
+  const p2 = { id: 'P2', name: 'Entrevista', order_index: 1 } as unknown as Processo;
+  const gars = [
+    { id: 'G1', nome: 'Retrabalho', descricao: 'Cadastro espalhado em planilha', processos: ['P1'] },
+    { id: 'G2', nome: 'Fora', descricao: 'Gargalo de outro projeto', processos: ['PX'] },
+  ] as unknown as Gargalo[];
+  const melhs = [
+    { id: 'M1', improvement_description: 'Cadastro único no PSA Projects', processos: ['P1'] },
+  ] as unknown as Melhoria[];
+
+  it('flowchart TB: um card do PROJETO com dois ramos, sem subgraphs/cards de processo', () => {
+    const code = buildProjectComparison({ projetoNome: 'Gestão', processos: [p1, p2], gargalos: gars, melhorias: melhs });
+    expect(code).toContain('flowchart TB');
+    expect(code).toContain(':::rootHead');
+    expect(code).toContain('**Gestão**');
+    expect(code).toContain('`Como Era`');
+    expect(code).toContain('`Como Ficou`');
+    expect(code).toContain('**Gargalo** — Retrabalho'); // gargalo usa o nome curto, não a descrição
+    expect(code).toContain('**Melhoria** — Cadastro único no PSA Projects');
+    expect(code).toContain(':::gargalo');
+    expect(code).toContain(':::melhoria');
+    // sem cards intermediários de processo
+    expect(code).not.toContain('subgraph');
+    expect(code).not.toContain('Contratação');
+    // filtra gargalos/melhorias que não são do projeto
+    expect(code).not.toContain('Gargalo de outro projeto');
+  });
+
+  it('projeto sem gargalo/melhoria → placeholders', () => {
+    const code = buildProjectComparison({ projetoNome: 'Vazio', processos: [p2], gargalos: gars, melhorias: melhs });
+    expect(code).toContain('sem gargalo mapeado');
+    expect(code).toContain('sem melhoria mapeada');
   });
 });
