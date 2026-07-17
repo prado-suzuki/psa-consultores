@@ -185,14 +185,22 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   };
 
   const totais = useMemo(() => {
-    let pendentes = 0, recebidos = 0, obrigPend = 0;
+    let pendentes = 0, recebidos = 0, solicitados = 0, naoSolicitados = 0, obrigPend = 0;
     for (const r of itens) {
       const e = efetivo(r);
       if (e === 'recebido') recebidos++;
       else if (e === 'pendente') { pendentes++; if (r.obrigatorio) obrigPend++; }
+      else if (e === 'solicitado') { solicitados++; if (r.obrigatorio) obrigPend++; }
+      else if (e === 'nao_solicitado') naoSolicitados++;
     }
-    const base = recebidos + pendentes; // dispensados não entram no %
-    return { total: itens.length, pendentes, recebidos, obrigPend, pct: base ? Math.round((recebidos / base) * 100) : 0 };
+    // Base do progresso: recebidos + pendentes + solicitados (solicitado é "aberto").
+    // Excluídos: dispensado, nao_aplicavel, nao_solicitado.
+    const base = recebidos + pendentes + solicitados;
+    return {
+      total: itens.length,
+      pendentes, recebidos, solicitados, naoSolicitados, obrigPend,
+      pct: base ? Math.round((recebidos / base) * 100) : 0,
+    };
   }, [itens]);
 
   // Agrupamento por dimensão escolhida (Entidade | Tipo de documento | Módulo).
