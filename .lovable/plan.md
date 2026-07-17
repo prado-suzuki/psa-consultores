@@ -1,98 +1,51 @@
-## Objetivo
-Consertar cadastro de cliente quebrado desde 14/07 (trigger deferido `trg_cliente_tem_cluster` explode no commit porque front grava `cliente` e `cliente_clusters` em transações PostgREST separadas). Solução: RPC atômica SECURITY DEFINER que insere cliente + vínculos de cluster na mesma transação e devolve a linha completa do cliente. Não alterar policies nem o trigger. **CSV fora de escopo neste PR.**
+## OSG-BE-01 — enum `osg_doc_area` + 2 colunas aditivas
 
-## Passo A — Migration: RPC atômica
+Migration só de schema (DDL aditivo). Sem backfill, sem RLS, sem policies, sem defaults, sem NOT NULL.
 
-Novo `supabase/migrations/<timestamp>_criar_cliente_com_clusters.sql`:
+### Pré-voo (executado)
+- `public.bem` e `public.documento_arquivo` existem ✅
+- `bem.vlr_itr_iptu` e `documento_arquivo.area` não existem ✅
+- Enum `osg_doc_area` não existe ✅
+
+Pré-voo bate com o esperado — seguro prosseguir.
+
+### Passo 1 — Migration `osg_be_01_bem_itr_documento_area.sql`
 
 ```sql
-CREATE OR REPLACE FUNCTION public.criar_cliente_com_clusters(
-  p_cliente     jsonb,
-  p_cluster_ids uuid[]
-) RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_row public.cliente%ROWTYPE;
-  v_cid uuid;
-BEGIN
-  -- Autorização (espelha rls_cliente_insert)
-  IF NOT public.has_role_or_higher(auth.uid(), 'sublider'::public.app_role) THEN
-    RAISE EXCEPTION 'Sem permissão para cadastrar cliente' USING ERRCODE = '42501';
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname='osg_doc_area') THEN
+    CREATE TYPE public.osg_doc_area AS ENUM ('osg','fiscal');
   END IF;
+END $$;
 
-  -- Validação: pelo menos 1 cluster
-  IF p_cluster_ids IS NULL OR array_length(p_cluster_ids, 1) IS NULL THEN
-    RAISE EXCEPTION 'Selecione ao menos 1 cluster' USING ERRCODE = '23514';
-  END IF;
-
-  INSERT INTO public.cliente (
-    nome, categoria, ativo, fixo, telefone, municipio, uf, observacoes, ambiente
-  ) VALUES (
-    btrim(p_cliente->>'nome'),
-    NULLIF(p_cliente->>'categoria',''),
-    COALESCE((p_cliente->>'ativo')::boolean, true),
-    NULLIF(p_cliente->>'fixo',''),
-    NULLIF(p_cliente->>'telefone',''),
-    NULLIF(p_cliente->>'municipio',''),
-    NULLIF(p_cliente->>'uf',''),
-    NULLIF(p_cliente->>'observacoes',''),
-    COALESCE(NULLIF(p_cliente->>'ambiente',''), 'prod')
-  )
-  RETURNING * INTO v_row;
-
-  FOREACH v_cid IN ARRAY p_cluster_ids LOOP
-    INSERT INTO public.cliente_clusters (cliente_id, cluster_id)
-    VALUES (v_row.id, v_cid);
-  END LOOP;
-
-  -- Mesma transação → trg_cliente_tem_cluster (DEFERRED) valida no commit e passa.
-  RETURN to_jsonb(v_row);
-END;
-$$;
-
-REVOKE ALL ON FUNCTION public.criar_cliente_com_clusters(jsonb, uuid[]) FROM public, anon;
-GRANT EXECUTE ON FUNCTION public.criar_cliente_com_clusters(jsonb, uuid[]) TO authenticated;
+ALTER TABLE public.bem               ADD COLUMN IF NOT EXISTS vlr_itr_iptu numeric;
+ALTER TABLE public.documento_arquivo ADD COLUMN IF NOT EXISTS area public.osg_doc_area;
 ```
 
-Não altera policies, trigger nem tabelas.
+`ADD COLUMN` nullable sem default → sem rewrite/lock. Nenhuma tela lê ainda, sem impacto de UI.
 
-## Passo B1 — Front, ramo de CRIAÇÃO em `src/hooks/useSaveClientTransaction.ts`
+### Passo 2 — Regenerar tipos
+`src/integrations/supabase/types.ts` é regerado automaticamente após a aprovação da migration. Nenhum código de app é tocado neste PR.
 
-No bloco `else` de `isEditing` (~L166+), substituir o `supabase.from('cliente').insert(...).select().single()` por:
+### Passo 3 — Pós-verificação (rodar após aplicar)
 
-```ts
-const { data: novo, error } = await (supabase.rpc as any)(
-  'criar_cliente_com_clusters',
-  { p_cliente: clientPayload, p_cluster_ids: clusterIds }
-);
-if (error) throw error;
-clienteId = (novo as any).id;
-createdClienteId = clienteId;
-clienteResult = novo; // linha real: id, created_at, updated_at, nome normalizado
+```sql
+-- 3a: 2 colunas nullable
+SELECT table_name, column_name, data_type, udt_name, is_nullable
+FROM information_schema.columns
+WHERE (table_name='bem' AND column_name='vlr_itr_iptu')
+   OR (table_name='documento_arquivo' AND column_name='area');
+
+-- 3b: enum com exatamente osg,fiscal
+SELECT e.enumlabel FROM pg_type t JOIN pg_enum e ON e.enumtypid=t.oid
+WHERE t.typname='osg_doc_area' ORDER BY e.enumsortorder;
 ```
 
-Motivo do `RETURNS jsonb` com a linha inteira: a RPC executa SECURITY DEFINER e devolve `created_at`/`updated_at` gerados pelo banco e `nome` já normalizado pelo trigger `normalize_name_title_case`. Um `SELECT` pós-insert bateria em `cliente_select_scoped` (cluster-scoped) e voltaria vazio para criadores fora dos clusters atribuídos.
+Esperado: 3a → 2 linhas com `is_nullable=YES`; 3b → `osg`, `fiscal`.
 
-Manter intacto no mesmo bloco: pré-validação, check de nome duplicado (L135), inserts-filhos (contribuinte/representante/OS) usando `clienteId`, `logAction`, `syncCadastrosToDW`, rollback no `catch`.
-
-## Passo B2 — Guard no bloco de reconciliação de clusters (L541–L560)
-
-Envolver todo o bloco `--- Persist cliente_clusters (incremental upsert) ---` em `if (isEditing) { ... }`. Justificativa: `cliente_clusters` tem `UNIQUE (cliente_id, cluster_id)` (índice `unique_cliente_cluster` confirmado no pré-voo — o pré-voo original do prompt estava desatualizado), então rodar a reconciliação após a criação daria erro de conflict. Ramo de edição segue idêntico.
-
-## Passo D — Validação
-
-1. Regenerar `src/integrations/supabase/types.ts` (aparece a nova RPC).
-2. GATE manual no preview:
-   - Sublíder cadastra cliente com 2 clusters → sucesso; `cliente_clusters` com **exatamente 2 linhas**; `clienteResult.created_at`/`updated_at` **preenchidos** (não `undefined`).
-   - Sublíder envia `p_cluster_ids = []` → erro claro "Selecione ao menos 1 cluster".
-   - Edição de cliente existente com troca de clusters → funciona (bloco B2 continua ativo no ramo `isEditing`).
-   - `team_member` puro chamando a RPC → 42501 "Sem permissão para cadastrar cliente".
-
-## Fora de escopo (explícito)
-- **CSV / `src/pages/equipe/dev/GerenciarDados.tsx` não é tocado** — será tratado em PR separado via abordagem C1.
-- Não alterar `rls_cliente_insert` nem `cliente_select_scoped`.
-- Não afrouxar/remover `trg_cliente_tem_cluster`.
-- Não tocar no ramo de EDIÇÃO além do guard B2.
+### Fora de escopo
+- Sem backfill dos `documento_arquivo.area` existentes (ficam NULL).
+- Sem `NOT NULL` / `DEFAULT`.
+- Sem alteração de RLS/policies.
+- Nenhuma outra tabela.
+- Nenhuma alteração de código de app / hooks / telas.
