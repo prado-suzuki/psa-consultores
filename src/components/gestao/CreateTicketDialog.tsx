@@ -5,7 +5,8 @@ import { useCreateTicketGestao, useTicketEmpresas, useTicketAreasForCliente, use
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
@@ -108,7 +109,7 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.description || !formData.user_id || !formData.cliente_id || !formData.estrutura_area_id) {
+    if (!formData.title || isTicketRichTextEmpty(formData.description) || !formData.user_id || !formData.cliente_id || !formData.estrutura_area_id) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Preencha todos os campos obrigatórios.',
@@ -225,13 +226,12 @@ export function CreateTicketDialog({ open, onOpenChange, onSuccess }: CreateTick
 
           <div className="space-y-2">
             <Label htmlFor="description" className="text-foreground">Descrição <RequiredMark /></Label>
-            <Textarea
-              id="description"
+            <TicketRichTextEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(v) => setFormData({ ...formData, description: v })}
               placeholder="Descreva o chamado..."
-              rows={4}
-              className="bg-card border-border"
+              minHeight="min-h-28"
+              ariaLabel="Descrição do chamado"
             />
           </div>
 
