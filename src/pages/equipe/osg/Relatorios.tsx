@@ -73,10 +73,12 @@ const TIPO_CLUSTER_ORDER = [
   'Matrícula (Imóvel Rural)', 'Matrícula (Imóvel Urbano)', 'Bem',
 ];
 
-type StatusEfetivo = 'pendente' | 'recebido' | 'dispensado' | 'nao_aplicavel';
+type StatusEfetivo = 'pendente' | 'solicitado' | 'recebido' | 'dispensado' | 'nao_aplicavel' | 'nao_solicitado';
 const efetivo = (r: ChecklistClienteRow): StatusEfetivo => {
   if (r.status === 'dispensado') return 'dispensado';
   if (r.status === 'nao_aplicavel') return 'nao_aplicavel';
+  if (r.status === 'solicitado') return 'solicitado';
+  if (r.status === 'nao_solicitado') return 'nao_solicitado';
   return itemRecebido(r) ? 'recebido' : 'pendente';
 };
 
