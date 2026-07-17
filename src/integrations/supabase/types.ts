@@ -2869,6 +2869,119 @@ export type Database = {
           },
         ]
       }
+      exploracao_rural: {
+        Row: {
+          area_explorada: number | null
+          area_total: number | null
+          area_unidade: string
+          bem_id: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_assinatura: string | null
+          data_encerramento: string | null
+          declarado_irpf: boolean
+          explorador_nome: string | null
+          explorador_pessoa_id: string | null
+          id: string
+          imovel_descricao: string | null
+          matricula_texto: string | null
+          municipio: string | null
+          outorgante_nome: string | null
+          outorgante_pessoa_id: string | null
+          referencia: string | null
+          sacas_por_hectare: number | null
+          tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
+          uf: string | null
+          updated_at: string
+          updated_by: string | null
+          vigencia: string | null
+        }
+        Insert: {
+          area_explorada?: number | null
+          area_total?: number | null
+          area_unidade?: string
+          bem_id?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_assinatura?: string | null
+          data_encerramento?: string | null
+          declarado_irpf?: boolean
+          explorador_nome?: string | null
+          explorador_pessoa_id?: string | null
+          id?: string
+          imovel_descricao?: string | null
+          matricula_texto?: string | null
+          municipio?: string | null
+          outorgante_nome?: string | null
+          outorgante_pessoa_id?: string | null
+          referencia?: string | null
+          sacas_por_hectare?: number | null
+          tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vigencia?: string | null
+        }
+        Update: {
+          area_explorada?: number | null
+          area_total?: number | null
+          area_unidade?: string
+          bem_id?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_assinatura?: string | null
+          data_encerramento?: string | null
+          declarado_irpf?: boolean
+          explorador_nome?: string | null
+          explorador_pessoa_id?: string | null
+          id?: string
+          imovel_descricao?: string | null
+          matricula_texto?: string | null
+          municipio?: string | null
+          outorgante_nome?: string | null
+          outorgante_pessoa_id?: string | null
+          referencia?: string | null
+          sacas_por_hectare?: number | null
+          tipo_exploracao?: Database["public"]["Enums"]["osg_tipo_exploracao"]
+          uf?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          vigencia?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exploracao_rural_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_explorador_pessoa_id_fkey"
+            columns: ["explorador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exploracao_rural_outorgante_pessoa_id_fkey"
+            columns: ["outorgante_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       export_profiles: {
         Row: {
           columns: string[]
@@ -8619,6 +8732,13 @@ export type Database = {
         | "georreferenciamento"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_status: "pendente" | "ativo"
+      osg_tipo_exploracao:
+        | "arrendamento"
+        | "parceria"
+        | "composse"
+        | "comodato"
+        | "condominio"
+        | "propria"
       scenario_kind: "scale" | "efficiency" | "investment"
       scenario_status:
         | "draft"
@@ -8840,6 +8960,14 @@ export const Constants = {
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_status: ["pendente", "ativo"],
+      osg_tipo_exploracao: [
+        "arrendamento",
+        "parceria",
+        "composse",
+        "comodato",
+        "condominio",
+        "propria",
+      ],
       scenario_kind: ["scale", "efficiency", "investment"],
       scenario_status: [
         "draft",
