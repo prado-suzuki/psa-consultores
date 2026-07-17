@@ -5,7 +5,8 @@ import { useCreateTicketGestao, useTicketEmpresas, useTicketAreasForCliente, use
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
