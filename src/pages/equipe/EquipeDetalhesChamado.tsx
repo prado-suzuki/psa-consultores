@@ -156,7 +156,7 @@ export default function EquipeDetalhesChamado() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !id) return;
+    if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
       await sendMessage.mutateAsync({
