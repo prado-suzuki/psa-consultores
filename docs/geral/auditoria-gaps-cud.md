@@ -138,3 +138,10 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.updateProcessMutation` | `processes` | update | precheck e filtro por ID preservados |
 | `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.deleteProcessMutation` | `processes` | delete | precheck e filtro por ID preservados |
 | `pages/equipe/EquipeProjetos.tsx` | `useEquipeProjetoProcessMutations.updateProcessStageMutation` | `processes` | update | avanço de estágio; precheck e tratamento de erro preexistente preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.importProcessesMutation` | `processes` | insert | importação em lote; payload e ausência de precheck preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.updateProcessMutation` | `processes` | update | payload, precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.deleteProcessMutation` | `process_stages` | delete | primeira etapa da exclusão; amostra, precheck e filtro por `process_id` preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.deleteProcessMutation` | `project_processes` | delete | segunda etapa da exclusão; amostra, precheck e filtro por `process_id` preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.deleteProcessMutation` | `processes` | delete | etapa final da exclusão; precheck e filtro por ID preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.addProjectLinkMutation` | `project_processes` | insert | vínculo com projeto; payload e ausência de precheck preservados |
+| `pages/equipe/EquipeProcessos.tsx` | `useEquipeProcessosMutations.removeProjectLinkMutation` | `project_processes` | delete | remoção de vínculo; precheck e filtro por ID preservados |
