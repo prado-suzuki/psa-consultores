@@ -6,6 +6,41 @@ import { useAllMatriculas, type MatriculaEnriched } from '@/hooks/useDiagnostico
 import { useRelatorioDP } from '@/hooks/useRelatorioDP';
 import { useDocumentosByCliente, useBaixarDocumento, type DocCategoria, type DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 import { EstruturaAtual } from './EstruturaAtual';
+import { useExploracaoRural, type ExploracaoRuralRow, type OsgTipoExploracao } from '@/hooks/useExploracaoRural';
+
+const TIPO_EXPLORACAO_LABEL: Record<OsgTipoExploracao, string> = {
+  arrendamento: 'Arrendamento',
+  parceria: 'Parceria',
+  composse: 'Composse',
+  comodato: 'Comodato',
+  condominio: 'Condomínio',
+  propria: 'Própria',
+};
+
+const fmtDate = (v: string | null): string => {
+  if (!v) return '—';
+  const [y, m, d] = v.split('-');
+  return y && m && d ? `${d}/${m}/${y}` : v;
+};
+
+const fmtNum = (v: number | null): string =>
+  v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+
+const exprRow = (r: ExploracaoRuralRow): string[] => [
+  TIPO_EXPLORACAO_LABEL[r.tipo_exploracao] ?? '—',
+  r.explorador_nome ?? r.explorador?.denominacao ?? '—',
+  r.outorgante_nome ?? r.outorgante?.denominacao ?? '—',
+  r.bem?.denominacao ?? r.imovel_descricao ?? '—',
+  r.matricula_texto ?? '—',
+  [r.municipio ?? '', r.uf ?? ''].filter(Boolean).join('/') || '—',
+  fmtArea(r.area_total, r.area_unidade),
+  fmtArea(r.area_explorada, r.area_unidade),
+  r.declarado_irpf ? 'Sim' : 'Não',
+  fmtDate(r.data_assinatura),
+  fmtDate(r.data_encerramento),
+  r.vigencia ?? '—',
+  fmtNum(r.sacas_por_hectare),
+];
 
 const areaUnit = (u: string | null): string => (u === 'm2' ? 'm²' : 'ha');
 const fmtArea = (v: number | null, u: string | null): string =>
