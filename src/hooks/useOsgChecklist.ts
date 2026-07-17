@@ -9,7 +9,13 @@ import { toast } from '@/hooks/use-toast';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
-export type ChecklistStatus = 'pendente' | 'recebido' | 'dispensado' | 'nao_aplicavel';
+export type ChecklistStatus =
+  | 'pendente'
+  | 'solicitado'
+  | 'recebido'
+  | 'dispensado'
+  | 'nao_aplicavel'
+  | 'nao_solicitado';
 export type ChecklistOrigem = 'padrao' | 'manual';
 export type Granularidade =
   | 'pessoa_pf' | 'pessoa_pj' | 'matricula_rural' | 'matricula_urbana' | 'bem' | 'cliente';
@@ -99,7 +105,7 @@ export function useChecklistClienteItens(clienteId: string | null) {
 
 /** True se o item conta como recebido (tem arquivo ativo vinculado, e não foi dispensado). */
 export function itemRecebido(r: ChecklistClienteRow): boolean {
-  if (r.status === 'dispensado' || r.status === 'nao_aplicavel') return false;
+  if (r.status === 'dispensado' || r.status === 'nao_aplicavel' || r.status === 'nao_solicitado') return false;
   return (r.arquivos?.length ?? 0) > 0 || r.status === 'recebido';
 }
 

@@ -8601,9 +8601,11 @@ export type Database = {
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
+        | "solicitado"
         | "recebido"
         | "dispensado"
         | "nao_aplicavel"
+        | "nao_solicitado"
       osg_doc_area: "osg" | "fiscal"
       osg_doc_categoria:
         | "bens_direitos"
@@ -8818,9 +8820,11 @@ export const Constants = {
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
         "pendente",
+        "solicitado",
         "recebido",
         "dispensado",
         "nao_aplicavel",
+        "nao_solicitado",
       ],
       osg_doc_area: ["osg", "fiscal"],
       osg_doc_categoria: [
