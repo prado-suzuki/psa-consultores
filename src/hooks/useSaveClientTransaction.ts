@@ -203,16 +203,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
         }
       } else {
-        const { data: newCliente, error: clienteError } = await supabase
-          .from(clienteTable)
-          // cast: idem — `observacoes` ainda não tipada (migração pendente no Lovable)
-          .insert(clientPayload as any)
-          .select()
-          .single();
-        if (clienteError) throw clienteError;
-        clienteId = newCliente.id;
-        createdClienteId = newCliente.id;
-        clienteResult = newCliente;
+        // RPC atômica: insere cliente + cliente_clusters na mesma transação
+        // (contorna trigger DEFERRED trg_cliente_tem_cluster). Retorna a linha completa
+        // (created_at/updated_at do banco + nome já normalizado pelo trigger).
+        const { data: novo, error } = await (supabase.rpc as any)(
+          'criar_cliente_com_clusters',
+          { p_cliente: clientPayload, p_cluster_ids: clusterIds }
+        );
+        if (error) throw error;
+        clienteId = (novo as any).id;
+        createdClienteId = clienteId;
+        clienteResult = novo;
       }
 
       // --- Persistir contribuintes (update ou insert) ---
