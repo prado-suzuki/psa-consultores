@@ -628,44 +628,53 @@ function AddCondicionalDialog({
 }
 
 // Tira de resumo sóbria (substitui os cards KPI): Pendentes + Recebidos com barra de progresso.
-function ResumoStrip({ pendentes, recebidos, total, pct, obrigPend }: {
+function ResumoStrip({ pendentes, recebidos, total, pct, obrigPend, solicitados, naoSolicitados }: {
   pendentes: number; recebidos: number; total: number; pct: number; obrigPend: number;
+  solicitados: number; naoSolicitados: number;
 }) {
   return (
-    <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
-      <div className="flex-1 px-5 py-3.5 max-sm:border-b max-sm:border-osg-100 sm:border-r sm:border-osg-100">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <span className="h-2 w-2 rounded-sm bg-amber-500" /> Pendentes
+    <div className="space-y-2">
+      <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
+        <div className="flex-1 px-5 py-3.5 max-sm:border-b max-sm:border-osg-100 sm:border-r sm:border-osg-100">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="h-2 w-2 rounded-sm bg-amber-500" /> Em aberto
+          </div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+            {pendentes + solicitados} <span className="text-[13px] font-normal text-slate-500">de {total} documentos</span>
+          </div>
+          <div className="mt-0.5 text-xs text-slate-500">
+            {pendentes} pendente{pendentes === 1 ? '' : 's'} · {solicitados} solicitado{solicitados === 1 ? '' : 's'}
+            {obrigPend > 0 ? ` · ${obrigPend} obrigatório${obrigPend > 1 ? 's' : ''}` : ''}
+          </div>
         </div>
-        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
-          {pendentes} <span className="text-[13px] font-normal text-slate-500">de {total} documentos</span>
-        </div>
-        <div className="mt-0.5 text-xs text-slate-500">
-          {obrigPend > 0
-            ? `${obrigPend} obrigatório${obrigPend > 1 ? 's' : ''} · aguardando envio do cliente`
-            : 'aguardando envio do cliente'}
+        <div className="flex-1 px-5 py-3.5">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="h-2 w-2 rounded-sm bg-osg-moss" /> Recebidos
+          </div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+            {recebidos} <span className="text-[13px] font-normal text-slate-500">· {pct}%</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <span className="block h-full rounded-full bg-osg-moss" style={{ width: `${pct}%` }} />
+          </div>
         </div>
       </div>
-      <div className="flex-1 px-5 py-3.5">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <span className="h-2 w-2 rounded-sm bg-osg-moss" /> Recebidos
+      {naoSolicitados > 0 && (
+        <div className="flex items-center gap-2 px-1 text-[11px] text-slate-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+          {naoSolicitados} não solicitado{naoSolicitados > 1 ? 's' : ''} — fora da base do progresso.
         </div>
-        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
-          {recebidos} <span className="text-[13px] font-normal text-slate-500">· {pct}%</span>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-          <span className="block h-full rounded-full bg-osg-moss" style={{ width: `${pct}%` }} />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function Pill({ tone, children }: { tone: 'ok' | 'pend' | 'neutral'; children: ReactNode }) {
+function Pill({ tone, children }: { tone: 'ok' | 'pend' | 'neutral' | 'info'; children: ReactNode }) {
   const cls = {
     ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     pend: 'border-amber-200 bg-amber-50 text-amber-700',
     neutral: 'border-slate-200 bg-slate-50 text-slate-600',
+    info: 'border-blue-200 bg-blue-50 text-blue-700',
   }[tone];
   return (
     <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>
