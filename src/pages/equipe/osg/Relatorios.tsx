@@ -217,7 +217,7 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       g.items.push(it);
     }
     const arr = [...map.values()];
-    const hasPend = (g: Grupo) => g.items.some((x) => efetivo(x) === 'pendente');
+    const hasPend = (g: Grupo) => g.items.some((x) => { const e = efetivo(x); return e === 'pendente' || e === 'solicitado'; });
     arr.sort((a, b) => {
       if (agruparPor === 'entidade') {
         const ia = TIPO_CLUSTER_ORDER.indexOf(a.tipo ?? ''), ib = TIPO_CLUSTER_ORDER.indexOf(b.tipo ?? '');
