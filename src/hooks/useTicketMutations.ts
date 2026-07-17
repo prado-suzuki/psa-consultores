@@ -284,7 +284,7 @@ export function useSendTicketMessage() {
           event_type: 'ticket_replied',
           ticket_id: ticketId,
           actor_name: actorName || (isAdmin ? 'Equipe PSA' : 'Cliente'),
-          message_preview: message.trim().substring(0, 200),
+          message_preview: ticketRichTextToPlain(message).substring(0, 200),
         }
       }).catch(console.error);
 
