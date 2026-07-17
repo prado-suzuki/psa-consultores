@@ -231,13 +231,14 @@ export default function NovoChamado() {
 
             <div className="space-y-2">
               <Label htmlFor="description">Descrição Detalhada <RequiredMark /></Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva seu problema ou solicitação com o máximo de detalhes possível"
+              <TicketRichTextEditor
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={8}
-                className={errors.description ? 'border-destructive' : ''}
+                onChange={(v) => setForm({ ...form, description: v })}
+                placeholder="Descreva seu problema ou solicitação com o máximo de detalhes possível"
+                minHeight="min-h-40"
+                maxHeight="max-h-96"
+                invalid={!!errors.description}
+                ariaLabel="Descrição detalhada"
               />
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description}</p>
