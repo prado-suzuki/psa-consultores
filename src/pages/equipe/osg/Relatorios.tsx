@@ -27,7 +27,7 @@ import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import {
   useChecklistPadrao, useChecklistClienteItens, useGerarChecklistCliente,
   useAdicionarCondicional, useDefinirStatusItem, useVincularDocumento, useRemoverChecklistItem,
-  itemRecebido, type ChecklistClienteRow, type ChecklistPadraoRow,
+  itemRecebido, type ChecklistClienteRow, type ChecklistPadraoRow, type ChecklistStatus,
 } from '@/hooks/useOsgChecklist';
 import { DiagnosticoPatrimonialReport } from '@/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport';
 import { SocietarioReport } from '@/components/equipe/osg/relatorios/SocietarioReport';
