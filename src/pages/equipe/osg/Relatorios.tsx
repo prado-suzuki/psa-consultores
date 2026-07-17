@@ -277,9 +277,13 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
   const renderPanel = (g: Grupo) => {
     const Icon = iconForGroup(g);
-    const pendN = g.items.filter((x) => efetivo(x) === 'pendente').length;
+    const isAberto = (r: ChecklistClienteRow) => {
+      const e = efetivo(r);
+      return e === 'pendente' || e === 'solicitado';
+    };
+    const pendN = g.items.filter(isAberto).length;
     const opened = openState[g.key] ?? false; // recolhido por padrão
-    const items = g.items.slice().sort((a, b) => (efetivo(a) === 'pendente' ? 0 : 1) - (efetivo(b) === 'pendente' ? 0 : 1));
+    const items = g.items.slice().sort((a, b) => (isAberto(a) ? 0 : 1) - (isAberto(b) ? 0 : 1));
     return (
       <div key={g.key} className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
         <button
@@ -305,8 +309,7 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                   primary={rt.primary}
                   context={rt.context}
                   onVincular={() => setVincId(it.id)}
-                  onDispensar={() => setStatus.mutate({ id: it.id, status: 'dispensado' })}
-                  onReativar={() => setStatus.mutate({ id: it.id, status: 'pendente' })}
+                  onSetStatus={(s) => setStatus.mutate({ id: it.id, status: s })}
                   onRemover={() => remover.mutate(it.id)}
                 />
               );
