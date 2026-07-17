@@ -105,7 +105,7 @@ export function useChecklistClienteItens(clienteId: string | null) {
 
 /** True se o item conta como recebido (tem arquivo ativo vinculado, e não foi dispensado). */
 export function itemRecebido(r: ChecklistClienteRow): boolean {
-  if (r.status === 'dispensado' || r.status === 'nao_aplicavel') return false;
+  if (r.status === 'dispensado' || r.status === 'nao_aplicavel' || r.status === 'nao_solicitado') return false;
   return (r.arquivos?.length ?? 0) > 0 || r.status === 'recebido';
 }
 
