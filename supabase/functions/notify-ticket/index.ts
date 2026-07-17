@@ -5,6 +5,28 @@ import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 const MANAGEMENT_URL = "https://psaconsultores.com.br";
 
+// Rich text dos chamados é persistido como `[[ticket-rich-text:v1]]{...JSON...}`.
+// Notificações externas (e-mail/N8N) precisam do texto plano; senão o payload
+// aparece cru para o destinatário.
+const TICKET_RICH_TEXT_MARKER = "[[ticket-rich-text:v1]]";
+function ticketRichTextToPlain(value: string | null | undefined): string {
+  if (!value) return "";
+  if (!value.startsWith(TICKET_RICH_TEXT_MARKER)) return value;
+  try {
+    const doc = JSON.parse(value.slice(TICKET_RICH_TEXT_MARKER.length));
+    const walk = (n: any): string => {
+      if (!n) return "";
+      if (n.type === "text") return n.text || "";
+      const inner = Array.isArray(n.content) ? n.content.map(walk).join("") : "";
+      if (n.type === "paragraph" || n.type === "listItem") return inner + "\n";
+      return inner;
+    };
+    return walk(doc).replace(/\n+$/g, "").trim();
+  } catch {
+    return "";
+  }
+}
+
 const departmentLabels: Record<string, string> = {
   contabilidade: "Contabilidade/Societário",
   icms_ipi: "ICMS/IPI",
