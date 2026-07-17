@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
 
 // ── useUpdateTicketRouting ────────────────────────────────────
 // Updates cliente_id / cluster_id / estrutura_area_id with cascade validation.
