@@ -87,8 +87,9 @@ export default function NovoChamado() {
       if (error instanceof z.ZodError) {
         const fieldErrors: any = {};
         error.errors.forEach((err) => {
-          if (err.path[0]) {
-            fieldErrors[err.path[0]] = err.message;
+          const key = err.path[0] === 'descriptionPlain' ? 'description' : err.path[0];
+          if (key) {
+            fieldErrors[key] = err.message;
           }
         });
         setErrors(fieldErrors);
