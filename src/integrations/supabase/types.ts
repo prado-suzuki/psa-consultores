@@ -316,6 +316,7 @@ export type Database = {
           vlr_contabil: number | null
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
+          vlr_itr_iptu: number | null
           vlr_mercado: number | null
         }
         Insert: {
@@ -341,6 +342,7 @@ export type Database = {
           vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
+          vlr_itr_iptu?: number | null
           vlr_mercado?: number | null
         }
         Update: {
@@ -366,6 +368,7 @@ export type Database = {
           vlr_contabil?: number | null
           vlr_contabil_ajustado?: number | null
           vlr_imposto_anual?: number | null
+          vlr_itr_iptu?: number | null
           vlr_mercado?: number | null
         }
         Relationships: [
@@ -1931,6 +1934,7 @@ export type Database = {
       documento_arquivo: {
         Row: {
           ambiente: string
+          area: Database["public"]["Enums"]["osg_doc_area"] | null
           bem_id: string | null
           categoria: Database["public"]["Enums"]["osg_doc_categoria"]
           checklist_item_id: string | null
@@ -1956,6 +1960,7 @@ export type Database = {
         }
         Insert: {
           ambiente?: string
+          area?: Database["public"]["Enums"]["osg_doc_area"] | null
           bem_id?: string | null
           categoria: Database["public"]["Enums"]["osg_doc_categoria"]
           checklist_item_id?: string | null
@@ -1981,6 +1986,7 @@ export type Database = {
         }
         Update: {
           ambiente?: string
+          area?: Database["public"]["Enums"]["osg_doc_area"] | null
           bem_id?: string | null
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"]
           checklist_item_id?: string | null
@@ -8331,6 +8337,7 @@ export type Database = {
           vlr_contabil: number | null
           vlr_contabil_ajustado: number | null
           vlr_imposto_anual: number | null
+          vlr_itr_iptu: number | null
           vlr_mercado: number | null
         }
         SetofOptions: {
@@ -8597,6 +8604,7 @@ export type Database = {
         | "recebido"
         | "dispensado"
         | "nao_aplicavel"
+      osg_doc_area: "osg" | "fiscal"
       osg_doc_categoria:
         | "bens_direitos"
         | "cadastros_fiscais"
@@ -8814,6 +8822,7 @@ export const Constants = {
         "dispensado",
         "nao_aplicavel",
       ],
+      osg_doc_area: ["osg", "fiscal"],
       osg_doc_categoria: [
         "bens_direitos",
         "cadastros_fiscais",
