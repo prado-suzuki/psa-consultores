@@ -186,7 +186,7 @@ serve(async (req) => {
           snapshot_dados: { tipo, contagens, versao_gerador: GENERATOR_VERSION, template: TEMPLATE_PATHS[tipo] },
           snapshot_flags: {},
           snapshot_versoes_blocos: {},
-          status: "gerado",
+          status: "rascunho",
           gerado_por_id: userId,
           gerado_em: new Date().toISOString(),
           documento_anterior_id: anterior?.id ?? null,
