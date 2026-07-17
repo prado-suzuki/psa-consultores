@@ -268,7 +268,7 @@ export default function EquipeDetalhesChamado() {
                 )}
               </div>
               
-              <p className="text-muted-foreground">{ticket.description}</p>
+              <TicketRichTextView value={ticket.description} className="text-muted-foreground" />
               <div className="text-sm text-muted-foreground">
                 Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
               </div>
