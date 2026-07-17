@@ -1,55 +1,47 @@
-## OSG-BE-02 — adicionar `solicitado` e `nao_solicitado` ao checklist
+## OSG-BE-03 (Parte 2) — Separar itens agrupados do checklist
 
-### Passo 1 — Pré-voo
-Rodar via `supabase--read_query`:
-```sql
-SELECT e.enumlabel FROM pg_type t JOIN pg_enum e ON e.enumtypid=t.oid
-WHERE t.typname='osg_checklist_status' ORDER BY e.enumsortorder;
-```
-Esperado: 4 valores (`pendente`, `recebido`, `dispensado`, `nao_aplicavel`).
+Uma única migração forward idempotente, sem tocar em front, RLS, triggers ou outras tabelas.
 
-### Passo 2 — Migration (schema-only, aditivo)
-Arquivo: `supabase/migrations/<ts>_osg_be_02_checklist_status_add_values.sql`
-```sql
-ALTER TYPE public.osg_checklist_status ADD VALUE IF NOT EXISTS 'solicitado' AFTER 'pendente';
-ALTER TYPE public.osg_checklist_status ADD VALUE IF NOT EXISTS 'nao_solicitado' AFTER 'nao_aplicavel';
-```
-Ordem final esperada: `pendente, solicitado, recebido, dispensado, nao_aplicavel, nao_solicitado`.
-Sem tocar em RLS, políticas, dados ou outras tabelas. `types.ts` é regenerado após aplicar.
+### Passo 1 — Pré-voo (read-only, dentro do DO block)
+- Verificar que `pessoa-fisica--rg-cnh` e `pessoa-juridica--balanco-balancete-dre` existem e estão `ativo=true`.
+- Guard de idempotência: se `pessoa-fisica--rg` já existe, `RAISE NOTICE` e `RETURN` (migração vira no-op).
 
-### Passo 3 — Frontend
+### Passo 2 — Migração (forward, idempotente)
 
-**`src/hooks/useOsgChecklist.ts`**
-- L12: estender `ChecklistStatus` para `'pendente' | 'solicitado' | 'recebido' | 'dispensado' | 'nao_aplicavel' | 'nao_solicitado'` (tipo escrito à mão, mantido).
-- L101-104 (`itemRecebido`): incluir `'nao_solicitado'` no ramo que retorna `false`, junto de `dispensado`/`nao_aplicavel`. `solicitado` cai no `return itemRecebido…` → como não tem arquivo, resulta em "aberto" (tratado pelo `efetivo`).
+Estrutura do `DO $$ ... END $$` (tudo em uma transação):
 
-**`src/pages/equipe/osg/Relatorios.tsx`**
-- L72: `StatusEfetivo` passa a incluir `'solicitado' | 'nao_solicitado'`.
-- L73-77 (`efetivo`): antes do fallback, retornar diretamente `'solicitado'` e `'nao_solicitado'` quando `r.status` for esses valores.
-- L181-190 (`totais`):
-  - Contar `solicitados` (efetivo === 'solicitado') e `naoSolicitados` (efetivo === 'nao_solicitado') separados.
-  - `pendentes` continua contando efetivo === 'pendente'.
-  - **Base do progresso** = `recebidos + pendentes + solicitados` (solicitado conta como aberto). Excluir `dispensado`, `nao_aplicavel`, `nao_solicitado`.
-  - `pct = base ? round(recebidos/base*100) : 0`.
-  - Retornar também `solicitados` e `naoSolicitados` para o `ResumoStrip`.
-- L266 (`pendN` do painel): contar itens com efetivo em `{'pendente','solicitado'}` (ambos são "aberto").
-- L453-457 (Pill do `ItemRow`): render por efetivo:
-  - `recebido` → `ok` "Recebido"
-  - `pendente` → `pend` "Pendente"
-  - `solicitado` → `info` "Solicitado"
-  - `dispensado` → `neutral` "Dispensado"
-  - `nao_aplicavel` → `neutral` "Não aplicável"
-  - `nao_solicitado` → `neutral` "Não solicitado"
-- L622-633 (`Pill`): adicionar tom `info: 'border-blue-200 bg-blue-50 text-blue-700'` no union `tone`.
-- L589-620 (`ResumoStrip`): manter Pendentes + Recebidos e acrescentar uma linha compacta "N solicitados · M não solicitados" (não entra em "Pendentes"). "Solicitados" aparece como sub-info dentro do bloco Pendentes ou linha separada abaixo; **`nao_solicitado` sempre fora da base**.
-- L458-476 (área de ações no `ItemRow`): substituir os botões `Dispensar/Reativar` por um `DropdownMenu` (shadcn) com opções manuais: `Pendente`, `Solicitado`, `Dispensado`, `Não aplicável`, `Não solicitado`. Cada item chama `setStatus.mutate({id, status})`. Manter botões `Vincular documento` (Link2) e `Remover item` (Trash2, só para `origem === 'manual'`).
-  - Assinatura do `ItemRow` passa a receber `onSetStatus: (s: ChecklistStatus)=>void` no lugar de `onDispensar/onReativar`.
-  - `renderPanel` (L293-297) passa `onSetStatus={(s)=>setStatus.mutate({id:it.id,status:s})}`.
+1. **Guard**: se `pessoa-fisica--rg` já existe → NOTICE + RETURN.
+2. **Desativar combinados**: `UPDATE checklist_item_padrao SET ativo=false, updated_at=now() WHERE codigo IN ('pessoa-fisica--rg-cnh','pessoa-juridica--balanco-balancete-dre')`.
+3. **Abrir espaço na ordem (apenas ativos)**:
+   - `ordem += 3` para itens ativos com `ordem >= 15`.
+   - `ordem += 1` para itens ativos com `ordem BETWEEN 5 AND 13`.
+   - RG/CNH-combo (ordem 4) e Balanço-combo (agora deslocado) já estão `ativo=false`, não são afetados.
+4. **Inserir 5 novos itens padrão** (`ativo=true`, `obrigatorio_default=true`), herdando entidade/categoria/docbox/granularidade dos originais:
+   - `pessoa-fisica--rg` (ordem 4, granularidade `pessoa_pf`, categoria `pessoais`, docbox `Documentos Pessoais`).
+   - `pessoa-fisica--cnh` (ordem 5, mesma config).
+   - `pessoa-juridica--balanco` (ordem 15, granularidade `pessoa_pj`, categoria `societarios`, docbox `Documentos Societários`).
+   - `pessoa-juridica--balancete` (ordem 16).
+   - `pessoa-juridica--dre` (ordem 17).
+5. **Migrar 16 cópias em `checklist_cliente_item`**:
+   - Para cada linha vinculada ao combo RG/CNH, inserir 2 novas linhas (uma apontando para `--rg`, outra para `--cnh`) preservando `cliente_id`, `pessoa_id`, `bem_id`, `matricula_id`, `origem`, `status`, `observacao`.
+   - Para cada linha vinculada ao combo Balanço/Balancete/DRE, inserir 3 novas linhas (`--balanco`, `--balancete`, `--dre`) idem.
+   - `DELETE` as linhas antigas dos combos (usando JOIN com `checklist_item_padrao` pelos códigos combinados).
+   - Como nenhuma linha antiga tem `documento_arquivo.checklist_item_id` apontando pra ela, o DELETE não fere FKs.
 
-### Passo 4 — GATE de validação
-1. `SELECT enumlabel …` retorna 6 valores na ordem `pendente, solicitado, recebido, dispensado, nao_aplicavel, nao_solicitado`.
-2. Em `/equipe/osg/work/relatorios`: dropdown por item permite marcar `Solicitado` e `Não solicitado`; Pills azul/cinza aparecem corretamente.
-3. Ao marcar `solicitado`, item continua contando em "aberto" (pendN do painel sobe/mantém) e base do `pct` inclui ele; ao marcar `nao_solicitado`, o item sai da base do `pct` e do painel "pendentes", aparecendo somente na contagem própria do `ResumoStrip`.
+### Passo 3 — GATE de validação (queries read-only pós-migração)
+1. `SELECT codigo, ordem, ativo, obrigatorio_default FROM checklist_item_padrao WHERE codigo IN (5 novos)` → todos `ativo=true`, `obrigatorio_default=true`, ordens 4,5,15,16,17.
+2. Combos com `ativo=false`.
+3. `SELECT count(*), count(DISTINCT ordem) FROM checklist_item_padrao WHERE ativo=true` → 66/66; e `min=1, max=66` sem gaps/duplicatas.
+4. Contagens em `checklist_cliente_item` por `item_padrao_id`: RG=13, CNH=13, Balanço=3, Balancete=3, DRE=3; nenhuma linha para os combos; total geral consistente (100 nas 5 novas).
+5. `SELECT count(*) FROM documento_arquivo WHERE checklist_item_id IS NOT NULL` → inalterado (0).
+6. Abrir `/equipe/osg/work/relatorios` num cliente com PF/PJ para conferir visualmente.
 
 ### Fora de escopo
-`FiscalReport.tsx`, tornar `ChecklistStatus` derivado do enum, RLS/policies, qualquer outra tabela.
+- Não apagar combinados (só `ativo=false`).
+- Não tocar em `docTipos.ts`, `checklistPadrao.ts`, `FiscalReport.tsx` nem front.
+- Não mexer em `documento_arquivo`, enum `osg_checklist_status`, RLS, triggers, outras tabelas.
+- Não renumerar itens inativos.
+- Não criar itens de "Planejamento Tributário/Fiscal".
+
+### Dívida técnica registrada (não-ação)
+- `checklistPadrao.ts` e o seed são gerados por `build_checklist.py` (fora do repo). O gerador precisa ser atualizado depois para não ressuscitar os combinados. Anotar em `docs/osg/` como follow-up.
