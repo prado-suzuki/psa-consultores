@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, Check, ChevronRight, ClipboardCheck, FileText, FolderArchive, FolderKanban,
-  Info, Landmark, Link2, MinusCircle, PieChart, Plus, Printer, RefreshCw, ScrollText,
+  Info, Landmark, Link2, MoreHorizontal, PieChart, Plus, Printer, RefreshCw, ScrollText,
   ShieldAlert, Trash2, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
