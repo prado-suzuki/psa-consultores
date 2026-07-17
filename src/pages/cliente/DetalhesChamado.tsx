@@ -330,20 +330,21 @@ export default function DetalhesChamado() {
                         {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
                       </span>
                     </div>
-                    <p className="text-sm">{message.message}</p>
+                    <TicketRichTextView value={message.message} className="text-sm" />
                   </div>
                 ))
               )}
             </div>
 
             <div className="space-y-4">
-              <Textarea
-                placeholder="Digite sua mensagem..."
+              <TicketRichTextEditor
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                rows={4}
+                onChange={setNewMessage}
+                placeholder="Digite sua mensagem..."
+                minHeight="min-h-28"
+                ariaLabel="Nova mensagem"
               />
-              <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
+              <Button onClick={handleSendMessage} disabled={sending || isTicketRichTextEmpty(newMessage)}>
                 {sending ? (
                   <span className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
