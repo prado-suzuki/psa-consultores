@@ -297,7 +297,7 @@ Deno.serve(async (req) => {
       user_id: ticket.user_id,
       actor_name: actor_name || "Sistema",
       replier_role: actor_name === "Cliente" ? "cliente" : "responsavel",
-      message_preview: message_preview || "",
+      message_preview: ticketRichTextToPlain(message_preview),
       assigned_to_name: assignedName,
       dias_atraso: dias_atraso || 0,
     };
