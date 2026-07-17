@@ -164,9 +164,9 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
       <EstruturaAtual bens={bens} />
 
       {/* Imóveis e áreas exploradas */}
-      <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={`${matriculas.length} matrículas · ${totalArea.toLocaleString('pt-BR', { maximumFractionDigits: 0 })} ha`}>
-        {matriculas.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhuma matrícula cadastrada para este cliente.</p>
+      <Secao icon={Landmark} titulo="Imóveis e áreas exploradas" meta={secaoMeta}>
+        {semLinhas ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">{emptyMsg}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-[12.5px]">
