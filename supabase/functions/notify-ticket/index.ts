@@ -291,7 +291,7 @@ Deno.serve(async (req) => {
       priority: ticket.priority
         ? ticket.priority.charAt(0).toUpperCase() + ticket.priority.slice(1)
         : "Normal",
-      description: ticket.description || "",
+      description: ticketRichTextToPlain(ticket.description),
       cliente_nome: clientName,
       cliente_email: clientEmail || "",
       user_id: ticket.user_id,
