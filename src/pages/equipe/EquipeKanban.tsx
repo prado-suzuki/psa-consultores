@@ -174,37 +174,58 @@ const EquipeKanban = () => {
     });
   };
 
-  // Aplica todos os filtros
-  const filteredDeliverables = useMemo(() => {
-    return deliverables.filter(d => {
-      if (filterSprint !== 'all' && d.sprint_id !== filterSprint) return false;
-      if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
+  // Verifica se um único entregável (pai OU subtarefa) atende aos filtros
+  const matchesFilters = (d: Deliverable): boolean => {
+    if (filterSprint !== 'all' && d.sprint_id !== filterSprint) return false;
+    if (filterResponsible !== 'all' && d.assigned_to !== filterResponsible) return false;
 
-      if (filterProject !== 'all') {
-        const sprint = sprints.find(s => s.id === d.sprint_id);
-        if (!sprint || sprint.project_id !== filterProject) return false;
-      }
+    if (filterProject !== 'all') {
+      const sprint = sprints.find(s => s.id === d.sprint_id);
+      if (!sprint || sprint.project_id !== filterProject) return false;
+    }
 
-      if (filterProcess !== 'all') {
-        const process = processes.find(p => p.id === filterProcess);
-        if (!process) return false;
-        const sprint = sprints.find(s => s.id === d.sprint_id);
-        if (!sprint || sprint.project_id !== process.project_id) return false;
-      }
+    if (filterProcess !== 'all') {
+      const process = processes.find(p => p.id === filterProcess);
+      if (!process) return false;
+      const sprint = sprints.find(s => s.id === d.sprint_id);
+      if (!sprint || sprint.project_id !== process.project_id) return false;
+    }
 
-      if (filterStartDate && d.start_date) {
-        const startDate = new Date(d.start_date + 'T00:00:00');
-        if (startDate < filterStartDate) return false;
-      }
+    if (filterStartDate && d.start_date) {
+      const startDate = new Date(d.start_date + 'T00:00:00');
+      if (startDate < filterStartDate) return false;
+    }
 
-      if (filterEndDate && d.due_date) {
-        const dueDate = new Date(d.due_date + 'T00:00:00');
-        if (dueDate > filterEndDate) return false;
-      }
+    if (filterEndDate && d.due_date) {
+      const dueDate = new Date(d.due_date + 'T00:00:00');
+      if (dueDate > filterEndDate) return false;
+    }
 
-      return true;
-    });
+    return true;
+  };
+
+  // IDs dos entregáveis que atendem diretamente aos filtros (pais e subtarefas)
+  const directMatchIds = useMemo(() => {
+    return new Set(deliverables.filter(matchesFilters).map(d => d.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deliverables, sprints, processes, filterSprint, filterResponsible, filterProject, filterProcess, filterStartDate, filterEndDate]);
+
+  // Aplica todos os filtros — inclui a tarefa pai quando QUALQUER subtarefa dela
+  // atende ao filtro, mesmo que o pai esteja atribuído a outra pessoa. Assim o
+  // usuário enxerga suas subtarefas dentro de tarefas pai delegadas a terceiros.
+  const filteredDeliverables = useMemo(() => {
+    // Pais de subtarefas que deram match (para trazê-los como contexto)
+    const parentIdsOfMatchingSubtasks = new Set<string>();
+    deliverables.forEach(d => {
+      if (d.parent_id && directMatchIds.has(d.id)) {
+        parentIdsOfMatchingSubtasks.add(d.parent_id);
+      }
+    });
+
+    return deliverables.filter(d =>
+      directMatchIds.has(d.id) || parentIdsOfMatchingSubtasks.has(d.id)
+    );
+  }, [deliverables, directMatchIds]);
 
   // Agrupa tarefas com suas subtarefas
   const hierarchicalDeliverables = useMemo(() => {
@@ -239,6 +260,25 @@ const EquipeKanban = () => {
       completedSubtasks: subtasksByParent[parent.id]?.filter(s => s.status === 'completed').length || 0
     })) as HierarchicalDeliverable[];
   }, [filteredDeliverables]);
+
+  // Auto-expande tarefas pai que aparecem apenas como contexto (o pai não bate
+  // no filtro, mas tem subtarefas que batem). Sem isso, as subtarefas do usuário
+  // ficariam escondidas atrás do chevron dentro de uma tarefa delegada a outra
+  // pessoa. Só age quando há filtro por responsável ou datas (que variam entre
+  // pai e subtarefa); roda ao mudar o filtro e mescla com o que já está aberto.
+  useEffect(() => {
+    if (filterResponsible === 'all' && !filterStartDate && !filterEndDate) return;
+    setExpandedTasks(prev => {
+      const next = new Set(prev);
+      hierarchicalDeliverables.forEach(parent => {
+        if (parent.subtaskCount > 0 && !directMatchIds.has(parent.id)) {
+          next.add(parent.id);
+        }
+      });
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterResponsible, filterStartDate, filterEndDate]);
 
   // Função para obter deliverables ordenados por coluna (apenas tarefas principais)
   const getColumnDeliverables = (columnId: string) => {
