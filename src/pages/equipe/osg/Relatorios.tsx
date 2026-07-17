@@ -426,23 +426,39 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   );
 }
 
+const STATUS_MANUAIS: { value: ChecklistStatus; label: string }[] = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'solicitado', label: 'Solicitado' },
+  { value: 'dispensado', label: 'Dispensado' },
+  { value: 'nao_aplicavel', label: 'Não aplicável' },
+  { value: 'nao_solicitado', label: 'Não solicitado' },
+];
+
 function ItemRow({
-  it, primary, context, onVincular, onDispensar, onReativar, onRemover,
+  it, primary, context, onVincular, onSetStatus, onRemover,
 }: {
   it: ChecklistClienteRow;
   primary: string;
   context: string | null;
   onVincular: () => void;
-  onDispensar: () => void;
-  onReativar: () => void;
+  onSetStatus: (s: ChecklistStatus) => void;
   onRemover: () => void;
 }) {
   const e = efetivo(it);
+  const dimmed = e === 'recebido' || e === 'dispensado' || e === 'nao_aplicavel' || e === 'nao_solicitado';
+  const renderPill = () => {
+    if (e === 'recebido') return <Pill tone="ok">Recebido</Pill>;
+    if (e === 'pendente') return <Pill tone="pend">Pendente</Pill>;
+    if (e === 'solicitado') return <Pill tone="info">Solicitado</Pill>;
+    if (e === 'dispensado') return <Pill tone="neutral">Dispensado</Pill>;
+    if (e === 'nao_aplicavel') return <Pill tone="neutral">Não aplicável</Pill>;
+    return <Pill tone="neutral">Não solicitado</Pill>;
+  };
   return (
     <li className="flex items-start gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={cn('font-medium', e === 'recebido' || e === 'dispensado' ? 'text-slate-500' : 'text-slate-800')}>
+          <span className={cn('font-medium', dimmed ? 'text-slate-500' : 'text-slate-800')}>
             {primary}
           </span>
           {context && <span className="text-xs text-slate-400">· {context}</span>}
@@ -466,25 +482,34 @@ function ItemRow({
           </p>
         )}
         {e === 'dispensado' && <p className="mt-1 text-[11px] text-slate-500">Dispensado para este cliente.</p>}
+        {e === 'nao_solicitado' && <p className="mt-1 text-[11px] text-slate-500">Não solicitado — fora da base do progresso.</p>}
       </div>
-      {e === 'recebido'
-        ? <Pill tone="ok">Recebido</Pill>
-        : e === 'pendente'
-          ? <Pill tone="pend">Pendente</Pill>
-          : <Pill tone="neutral">Dispensado</Pill>}
+      {renderPill()}
       <div className="flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="sm" onClick={onVincular} title="Vincular documento">
           <Link2 className="h-4 w-4" />
         </Button>
-        {e === 'dispensado' ? (
-          <Button variant="ghost" size="sm" onClick={onReativar} title="Reativar">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="sm" onClick={onDispensar} title="Dispensar (não se aplica)">
-            <MinusCircle className="h-4 w-4" />
-          </Button>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" title="Alterar status">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {STATUS_MANUAIS.map((s) => (
+              <DropdownMenuItem
+                key={s.value}
+                disabled={it.status === s.value}
+                onSelect={() => onSetStatus(s.value)}
+              >
+                {s.label}
+                {it.status === s.value && <Check className="ml-auto h-3.5 w-3.5 text-slate-400" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {it.origem === 'manual' && (
           <Button variant="ghost" size="sm" className="text-rose-600" onClick={onRemover} title="Remover item">
             <Trash2 className="h-4 w-4" />
