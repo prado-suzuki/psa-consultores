@@ -8340,6 +8340,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      criar_cliente_com_clusters: {
+        Args: { p_cliente: Json; p_cluster_ids: string[] }
+        Returns: Json
+      }
       criar_matricula_com_titular: {
         Args: { matricula_data: Json; titular_data: Json }
         Returns: {
