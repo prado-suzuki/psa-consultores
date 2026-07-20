@@ -1,15 +1,18 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { resolveLoginPath } from '@/lib/loginRedirect';
 
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isAdmin, mustChangePassword, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return null;
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Rotas da equipe voltam para o login da equipe; as demais, para o do cliente.
+    return <Navigate to={resolveLoginPath(location.pathname)} replace />;
   }
 
   if (mustChangePassword) {
