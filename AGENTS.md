@@ -58,6 +58,7 @@ logAction({
 - Ao criar um novo plano/análise, salve direto na subpasta do módulo correspondente (crie `docs/<modulo>/` se ainda não existir). Não deixe soltos na raiz.
 
 ## 📂 REVELAÇÃO PROGRESSIVA (Leia estes arquivos se precisar de contexto específico)
+- **Schema do banco:** consulte `docs/rls/mapa-do-banco.md` (tabelas/colunas/FKs/flags/RLS) — nunca leia `src/integrations/supabase/types.ts` inteiro (autogerado, ~8.9k linhas).
 - **Permissões e Rotas:** Leia `@src/contexts/AuthContext.tsx` e `@src/config/protectedPages.ts`.
 - **Trilha de Auditoria Exata:** Leia `@src/hooks/useAuditLog.ts` e `@src/lib/diffUtils.ts`.
 - **Criação de Chamados (Roteamento):** Investigue `@src/components/.../CreateTicketDialog.tsx` e analise a relação `cliente_clusters`.
