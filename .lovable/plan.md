@@ -1,48 +1,55 @@
-# IA-T3 — Registrar a regra de consulta ao schema
+# Permitir team_member editar tarefas que ele criou (org_tasks)
 
-## Pré-voo (confirmado)
-- `CLAUDE.md` NÃO existe na raiz. ✔
-- `AGENTS.md` existe, tem a seção "📂 REVELAÇÃO PROGRESSIVA" (linha 60) e não menciona `mapa-do-banco`. ✔
-- `docs/rls/mapa-do-banco.md` e `docs/AI_CONTEXT.md` existem. ✔
+## Objetivo
+Ajustar o trigger `trg_org_tasks_team_member_status_only` para que um `team_member` possa editar por inteiro as tarefas em que `created_by = auth.uid()`, mantendo a restrição atual (só status/horas/revisor) para tarefas apenas delegadas.
+
+## Escopo
+- Uma única migration SQL.
+- Alteração exclusiva na função `public.org_tasks_team_member_status_only()` via `CREATE OR REPLACE FUNCTION`.
+- Sem tocar em: policies (`rls_org_tasks_*`), trigger `trg_org_tasks_validate_reviewer`, funções de revisão delegada, frontend, hooks, ou tabelas vizinhas.
+
+## Passos
+
+### 1. Pré-voo (somente leitura)
+Executar as 4 consultas do briefing para confirmar:
+- Baseline atual da função (guardar `pg_get_functiondef`).
+- Os 2 triggers existentes em `org_tasks` (`trg_org_tasks_team_member_status_only`, `trg_org_tasks_validate_reviewer`).
+- Policy `rls_org_tasks_update` contém `created_by = auth.uid()`.
+- Colunas `created_by`, `assigned_to`, `reviewer_id`, `status`, `estimated_hours`, `actual_hours` existem.
+
+Se qualquer divergência: parar e reportar antes de aplicar.
+
+### 2. Migration
+Aplicar `CREATE OR REPLACE FUNCTION public.org_tasks_team_member_status_only()` conforme SQL do briefing, preservando:
+- Ramo revisor delegado (não concluir; em `review` só devolve para ajuste).
+- Ramo sublíder+ (edita tudo).
+- Ramo delegado (só status/horas/revisor).
+
+Adicionar entre "sublíder+" e "delegado":
+
+```sql
+IF OLD.created_by = v_user_id THEN
+  IF NEW.created_by IS DISTINCT FROM OLD.created_by THEN
+    RAISE EXCEPTION 'Nao e permitido alterar o criador da tarefa (created_by)'
+      USING ERRCODE = '42501';
+  END IF;
+  RETURN NEW;
+END IF;
+```
+
+Finalizar com `REVOKE ALL ON FUNCTION ... FROM PUBLIC;`.
+
+### 3. GATE
+
+**SQL:**
+- `pg_get_functiondef` da função contém o ramo `IF OLD.created_by = v_user_id THEN`.
+- `count(*)` de triggers não-internos em `org_tasks` continua = 2.
+
+**App:**
+1. team_member criador edita título/descrição/data/prioridade da própria tarefa → salva sem erro.
+2. team_member em tarefa delegada (criada por outro): edição de conteúdo continua bloqueada (42501 "Tarefa delegada..."); status/horas continua funcionando.
+3. Fluxo de revisão delegada inalterado (revisor em `review` só devolve para ajuste; não conclui).
+4. sublíder/líder/admin seguem editando tudo.
 
 ## Fora de escopo
-Nenhuma alteração em código, migrations, schema, RLS, `docs/AI_CONTEXT.md` ou outros `.md`.
-
-## Alterações
-
-### 1) Criar `CLAUDE.md` na raiz
-
-Observação: o conteúdo colado na tarefa tem dois trechos corrompidos ("`docs/rls/mapa-do-bancoelas, colunas, FKs...`" e "As regras completas vs/AI_CONTEXT.md`"). Vou gravar a versão limpa abaixo, mantendo intenção e estrutura de ponteiro enxuto:
-
-```md
-# CLAUDE.md — PSA Consultores
-
-Guia rápido para assistentes de IA neste repositório.
-
-## Schema do banco (regra)
-
-Para conhecer o schema, consulte **`docs/rls/mapa-do-banco.md`** (tabelas, colunas, FKs, flags e RLS) — **nunca** leia `src/integrations/supabase/types.ts` inteiro (~8.9k linhas, autogerado).
-
-## Fontes de verdade (leia estes)
-
-- **Regras e arquitetura:** `AGENTS.md` (regras inegociáveis, padrões de código, organização de docs).
-- **Contexto-mestre do projeto:** `docs/AI_CONTEXT.md`.
-- **Schema do banco:** `docs/rls/mapa-do-banco.md`.
-
-> Este arquivo é um ponteiro enxuto. As regras completas vivem em `AGENTS.md` e `docs/AI_CONTEXT.md`.
-```
-
-Se preferir preservar literalmente o texto quebrado, me avise antes de aplicar.
-
-### 2) Atualizar `AGENTS.md`
-
-Inserir como **primeiro item** da lista da seção "📂 REVELAÇÃO PROGRESSIVA" (imediatamente após a linha 60), antes de "Permissões e Rotas":
-
-```
-- **Schema do banco:** consulte `docs/rls/mapa-do-banco.md` (tabelas/colunas/FKs/flags/RLS) — nunca leia `src/integrations/supabase/types.ts` inteiro (autogerado, ~8.9k linhas).
-```
-
-## Validação (GATE)
-1. `CLAUDE.md` existe na raiz e referencia `docs/rls/mapa-do-banco.md` + proibição de ler `types.ts` inteiro.
-2. `git grep 'mapa-do-banco' AGENTS.md` retorna ≥ 1 ocorrência na seção Revelação Progressiva.
-3. `docs/AI_CONTEXT.md` inalterado; nenhum arquivo de código tocado.
+Frontend, hooks (`useOrgTasks`, `useUpdateOrgTask`), UI do modal, mensagens, outras policies/triggers/tabelas.
