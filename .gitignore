@@ -84,3 +84,9 @@ docs/planos/2026-07-03-mapeamento-vinculos-por-modulo.md
 
 # Pasta temporária de descoberta/mapeamento (gerada localmente) — não versionar
 .discovery_tmp/
+
+# Playwright e2e (smoke refatoração)
+e2e/.auth/
+e2e/.report/
+test-results/
+playwright-report/
