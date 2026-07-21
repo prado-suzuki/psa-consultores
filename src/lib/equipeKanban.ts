@@ -63,6 +63,8 @@ export interface HierarchicalEquipeKanbanDeliverable extends EquipeKanbanDeliver
   subtasks: EquipeKanbanDeliverable[];
   subtaskCount: number;
   completedSubtasks: number;
+  /** Soma das horas estimadas das subtarefas — mostrada no card da tarefa-pai. */
+  subtaskHoursTotal: number;
 }
 
 export interface EquipeKanbanFilters {
@@ -142,13 +144,18 @@ export function buildEquipeKanbanHierarchy(deliverables: EquipeKanbanDeliverable
   Object.values(subtasksByParent).forEach((subtasks) => subtasks.sort(sortByTaskCode));
   return deliverables
     .filter((item) => !item.parent_id)
-    .map((parent) => ({
-      ...parent,
-      subtasks: subtasksByParent[parent.id] || [],
-      subtaskCount: subtasksByParent[parent.id]?.length || 0,
-      completedSubtasks:
-        subtasksByParent[parent.id]?.filter((item) => item.status === 'completed').length || 0,
-    }));
+    .map((parent) => {
+      const subtasks = subtasksByParent[parent.id] || [];
+      return {
+        ...parent,
+        subtasks,
+        subtaskCount: subtasks.length,
+        completedSubtasks: subtasks.filter((item) => item.status === 'completed').length,
+        // Calculado só para exibição — não é gravado, então a pai pode ficar com horas em
+        // branco no banco (evita duplicar nas métricas, que já excluem as tarefas-pai da soma).
+        subtaskHoursTotal: subtasks.reduce((sum, item) => sum + (item.estimated_hours || 0), 0),
+      };
+    });
 }
 
 export function getEquipeKanbanColumnDeliverables(

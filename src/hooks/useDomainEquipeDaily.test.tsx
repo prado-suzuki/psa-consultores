@@ -148,8 +148,9 @@ describe('useDomainEquipeDaily — queries', () => {
     await (queryRegistrations()[2].queryFn as () => Promise<unknown>)();
     await (queryRegistrations()[3].queryFn as () => Promise<unknown>)();
 
-    expect(callsFor('sprints', 'select')[0].args).toEqual(['id, name']);
+    expect(callsFor('sprints', 'select')[0].args).toEqual(['id, name, project_id']);
     expect(callsFor('sprints', 'order')[0].args).toEqual(['start_date', { ascending: false }]);
+    expect(callsFor('projects', 'select')[0].args).toEqual(['id, name, cluster_id']);
     expect(callsFor('projects', 'order')[0].args).toEqual(['name', { ascending: true }]);
     expect(callsFor('processes', 'select')[0].args).toEqual(['id, name, project_id']);
     expect(callsFor('processes', 'order')[0].args).toEqual(['name', { ascending: true }]);

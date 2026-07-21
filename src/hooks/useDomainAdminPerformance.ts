@@ -50,25 +50,6 @@ export function useDomainAdminPerformance() {
     },
   });
 
-  const tasksQuery = useQuery({
-    queryKey: ['admin-tasks-count'],
-    staleTime: 0,
-    gcTime: 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, status');
-
-      if (error) throw error;
-      return {
-        total: data?.length || 0,
-        done: data?.filter(t => t.status === 'done').length || 0,
-        inProgress: data?.filter(t => t.status === 'in_progress').length || 0,
-        backlog: data?.filter(t => t.status === 'backlog').length || 0,
-      };
-    },
-  });
-
   const deliverablesQuery = useQuery({
     queryKey: ['admin-deliverables-count'],
     staleTime: 0,
@@ -82,6 +63,7 @@ export function useDomainAdminPerformance() {
       return {
         total: data?.length || 0,
         completed: data?.filter(d => d.status === 'completed').length || 0,
+        inProgress: data?.filter(d => d.status === 'in_progress').length || 0,
         pending: data?.filter(d => d.status === 'pending').length || 0,
       };
     },
@@ -109,7 +91,6 @@ export function useDomainAdminPerformance() {
     usersQuery,
     projectsQuery,
     sprintsQuery,
-    tasksQuery,
     deliverablesQuery,
     ticketsQuery,
   };

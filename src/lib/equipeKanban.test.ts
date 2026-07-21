@@ -92,15 +92,26 @@ describe('equipeKanban', () => {
 
   it('monta somente raízes, mantém órfãs fora do resultado e ordena subtarefas por código numérico', () => {
     const items = [
-      deliverable('child-10', { parent_id: 'parent', task_code: 'T-10', status: 'completed' }),
+      deliverable('child-10', {
+        parent_id: 'parent',
+        task_code: 'T-10',
+        status: 'completed',
+        estimated_hours: 4,
+      }),
       deliverable('orphan', { parent_id: 'absent', task_code: 'T-1' }),
-      deliverable('parent', { task_code: 'T-0' }),
-      deliverable('child-2', { parent_id: 'parent', task_code: 'T-2' }),
+      deliverable('parent', { task_code: 'T-0', estimated_hours: 99 }),
+      deliverable('child-2', { parent_id: 'parent', task_code: 'T-2', estimated_hours: 2.5 }),
     ];
 
     const hierarchy = buildEquipeKanbanHierarchy(items);
     expect(hierarchy).toHaveLength(1);
-    expect(hierarchy[0]).toMatchObject({ id: 'parent', subtaskCount: 2, completedSubtasks: 1 });
+    // subtaskHoursTotal soma só os filhos (6.5), ignorando as horas próprias da pai (99).
+    expect(hierarchy[0]).toMatchObject({
+      id: 'parent',
+      subtaskCount: 2,
+      completedSubtasks: 1,
+      subtaskHoursTotal: 6.5,
+    });
     expect(hierarchy[0].subtasks.map(({ id }) => id)).toEqual(['child-2', 'child-10']);
     expect(getEquipeKanbanSubtasks(items, 'parent').map(({ id }) => id)).toEqual([
       'child-2',

@@ -29,6 +29,9 @@ vi.mock('@/hooks/useDomainEquipeDaily', () => ({
   useDomainEquipeDaily: mocks.useDomainEquipeDaily,
 }));
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
+vi.mock('@/hooks/useClusters', () => ({
+  useClusters: () => ({ data: [{ id: 'cluster-1', nome: 'OSG', ativo: true }] }),
+}));
 vi.mock('xlsx', () => ({
   utils: {
     json_to_sheet: mocks.jsonToSheet,
@@ -257,7 +260,8 @@ describe('EquipeDaily — caracterização', () => {
   it('aplica filtros no hook, persiste somente pessoa e sprint e limpa todos os filtros', async () => {
     const user = userEvent.setup();
     render(<EquipeDaily />);
-    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(6));
+    // 6 combobox originais + 1 novo (filtro de Cluster no histórico).
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(7));
 
     const dates = screen.getAllByDisplayValue('')
       .filter((element) => element.getAttribute('type') === 'date');
@@ -272,9 +276,11 @@ describe('EquipeDaily — caracterização', () => {
       person: 'other-user',
       sprint: 'sprint-1',
     });
-    expect(localStorage.length).toBe(2);
+    // pessoa + sprint (daily) + cluster (chave compartilhada 'rotina.cluster', default '').
+    expect(localStorage.length).toBe(3);
     expect(localStorage.getItem('rotina.daily.pessoa')).toBe('"other-user"');
     expect(localStorage.getItem('rotina.daily.sprint')).toBe('"sprint-1"');
+    expect(localStorage.getItem('rotina.cluster')).toBe('""');
 
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
     expect(mocks.refetchStandups).toHaveBeenCalledTimes(1);

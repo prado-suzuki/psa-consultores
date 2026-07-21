@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import type { DailyStandup, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
+import type { Cluster } from '@/hooks/useClusters';
 import type { DailyFilters, DailyLookups } from '@/lib/equipeDaily';
+import { SEM_CLUSTER } from '@/lib/clusterFilter';
 import { renderMarkdown } from '@/lib/markdownRenderer';
 
 interface DailyHistoryCardProps {
@@ -13,10 +15,13 @@ interface DailyHistoryCardProps {
   standups: DailyStandup[];
   teamMembers: TeamMember[];
   sprints: Sprint[];
+  clusters: Cluster[];
+  clusterFilter: string;
   filters: DailyFilters;
   lookups: DailyLookups;
   loading: boolean;
   onFiltersChange: (filters: DailyFilters) => void;
+  onClusterChange: (value: string) => void;
   onSearch: () => void;
   onClearFilters: () => void;
   onExport: () => void;
@@ -29,10 +34,13 @@ export function DailyHistoryCard({
   standups,
   teamMembers,
   sprints,
+  clusters,
+  clusterFilter,
   filters,
   lookups,
   loading,
   onFiltersChange,
+  onClusterChange,
   onSearch,
   onClearFilters,
   onExport,
@@ -66,6 +74,14 @@ export function DailyHistoryCard({
               <SelectContent className="bg-white border-gray-200">
                 <SelectItem value="all">Todas as sprints</SelectItem>
                 {sprints.map((sprint) => <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={clusterFilter === '' ? '__todos__' : clusterFilter} onValueChange={(value) => onClusterChange(value === '__todos__' ? '' : value)}>
+              <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44"><SelectValue placeholder="Cluster" /></SelectTrigger>
+              <SelectContent className="bg-white border-gray-200">
+                <SelectItem value="__todos__">Todos os clusters</SelectItem>
+                <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+                {clusters.filter((cluster) => cluster.ativo).map((cluster) => <SelectItem key={cluster.id} value={cluster.id}>{cluster.nome}</SelectItem>)}
               </SelectContent>
             </Select>
             <Button onClick={onSearch} className="bg-primary hover:bg-primary/90"><Search className="h-4 w-4 mr-2" />Buscar</Button>

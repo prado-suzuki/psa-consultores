@@ -37,10 +37,13 @@ const EquipeDaily = () => {
           standups={daily.standups}
           teamMembers={daily.teamMembers}
           sprints={daily.sprints}
+          clusters={daily.clusters}
+          clusterFilter={daily.filterCluster}
           filters={daily.filters}
           lookups={daily.lookups}
           loading={daily.loading}
           onFiltersChange={daily.handleFiltersChange}
+          onClusterChange={daily.setFilterCluster}
           onSearch={daily.fetchStandups}
           onClearFilters={daily.handleClearFilters}
           onExport={daily.handleExportExcel}

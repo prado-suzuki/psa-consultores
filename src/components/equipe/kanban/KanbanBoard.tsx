@@ -112,11 +112,15 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           <span>{formatEquipeKanbanDueDate(deliverable.due_date)}</span>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          {deliverable.estimated_hours && (
-                            <span className="text-xs text-gray-400">
-                              {deliverable.estimated_hours}h estimadas
-                            </span>
-                          )}
+                          <span className="text-xs text-gray-400">
+                            {deliverable.subtaskCount > 0
+                              ? deliverable.subtaskHoursTotal > 0
+                                ? `${deliverable.subtaskHoursTotal}h estimadas`
+                                : ''
+                              : deliverable.estimated_hours
+                                ? `${deliverable.estimated_hours}h estimadas`
+                                : ''}
+                          </span>
                           {deliverable.subtaskCount > 0 && (
                             <Badge variant="secondary" className="text-xs">
                               {deliverable.completedSubtasks}/{deliverable.subtaskCount} subtarefas

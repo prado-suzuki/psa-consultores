@@ -24,11 +24,13 @@ export interface TeamMember {
 export interface Sprint {
   id: string;
   name: string;
+  project_id: string | null;
 }
 
 export interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
 }
 
 export interface Process {
@@ -162,7 +164,7 @@ export function useDomainEquipeDaily({
       try {
         const { data } = await supabase
           .from('sprints')
-          .select('id, name')
+          .select('id, name, project_id')
           .order('start_date', { ascending: false });
 
         return { data: data || [] };
@@ -181,7 +183,7 @@ export function useDomainEquipeDaily({
       try {
         const { data } = await supabase
           .from('projects')
-          .select('id, name')
+          .select('id, name, cluster_id')
           .order('name', { ascending: true });
 
         return { data: data || [] };

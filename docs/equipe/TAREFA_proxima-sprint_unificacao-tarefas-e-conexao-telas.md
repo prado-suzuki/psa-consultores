@@ -30,16 +30,18 @@ Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e 
 - Criados os hooks-fonte: `src/hooks/useSprints.ts` (`useSprints`/`useActiveSprints`), `src/hooks/useSprintDeliverables.ts` (list + create/update/delete), `src/hooks/useProcessAreas.ts`.
 - `sprint_deliverables` fica oficializada como fonte única de tarefa da equipe.
 
-**FALTA (é o que exige banco / delegável):**
-1. Conferir se `tasks` tem linhas em produção (na auditoria de jul/2026 estava **vazia**): `select count(*) from public.tasks;`
-   - Se houver linhas: migrar para `sprint_deliverables` (status: `backlog→pending`, `to_do→pending`, `in_progress→in_progress`, `review→in_progress`, `done→completed`; `cluster`/`priority` não têm equivalente — decidir se viram tag/descrição).
-   - Se vazia: seguir direto para o DROP.
-2. **Repontar `src/pages/administracao/AdminPerformance.tsx`** (`useQuery(['admin-tasks-count'])`, ~linha 55) — hoje ainda lê `from('tasks')`. Apontar para `sprint_deliverables` (ou remover o card, que já é redundante com o card de entregáveis). **Bloqueia o DROP.**
-3. Deletar os arquivos órfãos `src/pages/equipe/EquipeTarefas.tsx` e `src/pages/equipe/EquipeNovaTarefa.tsx` (não são mais importados) e limpar entradas de `/equipe/tarefas*` em `src/config/protectedPages.ts`, se houver.
-4. **Migração:** `DROP TABLE public.tasks;` + `DROP TYPE task_status;` (só depois de 1-3).
-5. Atualizar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`).
+**✅ PRÉ-REQUISITOS DE CÓDIGO CONCLUÍDOS (2026-07-21, 2ª leva):**
+- `useDomainAdminPerformance.ts`: removido o `tasksQuery` (`from('tasks')`); o `deliverablesQuery` agora traz também `inProgress`. `AdminPerformance.tsx`: os dois cards ("Tarefas" + "Entregáveis") viraram **um único card "Entregáveis da equipe"** com os 3 status (Pendentes/Em Progresso/Concluídos) — fonte única `sprint_deliverables`.
+- Deletados os órfãos: `src/pages/equipe/EquipeTarefas.tsx`, `src/pages/equipe/EquipeNovaTarefa.tsx`, `src/hooks/useDomainEquipeTarefas.ts`, `src/hooks/useDomainNovaTarefa.ts` e os 2 testes correspondentes. Removidas as entradas `/equipe/tarefas` e `/equipe/tarefas/nova` de `src/config/protectedPages.ts`.
+- Verificado: **nenhuma referência a `tasks` / `useDomainEquipeTarefas` / `useDomainNovaTarefa` no `src/`**. Typecheck 0 erros; suíte 1168 testes passando.
 
-**Aceite:** nada no app referencia `tasks`; `tasks`/`task_status` não existem mais; typecheck e build limpos.
+**✅ BANCO CONCLUÍDO (2026-07-21):** `tasks` estava vazia (count 0) e tinha dependente órfão `public.task_comments` (FK `task_comments_task_id_fkey`, também count 0 — comentários das tarefas antigas; **não confundir** com `org_task_comments`, que é de `org_tasks` e segue viva). A Patrícia rodou no Lovable: `DROP TABLE IF EXISTS public.task_comments; DROP TABLE IF EXISTS public.tasks; DROP TYPE IF EXISTS task_status;`. Sem migração de dados (tabelas vazias).
+
+**Resta só:** regenerar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`) e commitar/publicar o lote de código pelo GitHub Desktop.
+
+**T1 = fonte única `sprint_deliverables` — CONCLUÍDO (código + banco).**
+
+**Aceite:** nada no app referencia `tasks` (✅ já); `tasks`/`task_status` não existem mais no banco.
 
 ### T2 — Conectar Daily ↔ entregável ⚠️ MIGRAÇÃO
 **Objetivo:** o update/bloqueio da daily se ligar a uma tarefa específica (destrava "bloqueio vira tarefa").

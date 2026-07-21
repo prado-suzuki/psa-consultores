@@ -10,6 +10,8 @@ import {
   type TeamMember,
 } from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useClusters } from '@/hooks/useClusters';
+import { matchCluster } from '@/lib/clusterFilter';
 import { toast } from '@/hooks/use-toast';
 import {
   buildDailyExportRows,
@@ -45,6 +47,10 @@ export function useEquipeDailyController() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
   const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
+  // Cluster é filtrado client-side (os dailys são filtrados no servidor por pessoa/sprint/data,
+  // mas não têm cluster_id direto). Chave compartilhada com as outras telas de /equipe.
+  const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
+  const { data: clusters = [] } = useClusters();
   const today = new Date().toISOString().split('T')[0];
   const filters: DailyFilters = {
     startDate: filterStartDate,
@@ -103,6 +109,25 @@ export function useEquipeDailyController() {
     processes,
     authenticatedUserId: user?.id,
   }), [teamMembers, sprints, projects, processes, user?.id]);
+
+  // Cluster de um daily: pelo projeto direto ou, na falta, pelo projeto da sprint.
+  const clusterOfStandup = useMemo(() => {
+    const projectCluster = new Map(projects.map((p) => [p.id, p.cluster_id ?? null]));
+    const sprintProject = new Map(sprints.map((s) => [s.id, s.project_id ?? null]));
+    return (standup: DailyStandup): string | null => {
+      if (standup.project_id) return projectCluster.get(standup.project_id) ?? null;
+      if (standup.sprint_id) {
+        const projectId = sprintProject.get(standup.sprint_id);
+        if (projectId) return projectCluster.get(projectId) ?? null;
+      }
+      return null;
+    };
+  }, [projects, sprints]);
+
+  const visibleStandups = useMemo(
+    () => standups.filter((standup) => matchCluster(filterCluster, clusterOfStandup(standup))),
+    [standups, filterCluster, clusterOfStandup],
+  );
 
   const fetchStandups = async () => {
     if (!user) return;
@@ -217,28 +242,32 @@ export function useEquipeDailyController() {
 
   const handleClearFilters = () => {
     handleFiltersChange({ startDate: '', endDate: '', person: 'all', sprint: 'all' });
+    setFilterCluster('');
     toast({ title: 'Filtros limpos', description: 'Todos os filtros foram removidos.' });
   };
 
   const handleExportExcel = () => {
-    if (standups.length === 0) {
+    if (visibleStandups.length === 0) {
       toast({ title: 'Sem dados', description: 'Não há dailys para exportar.', variant: 'destructive' });
       return;
     }
-    const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(standups, lookups));
+    const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(visibleStandups, lookups));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Dailys');
     const dateLabel = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
     XLSX.writeFile(workbook, `dailys_${dateLabel}.xlsx`);
-    toast({ title: 'Excel exportado', description: `${standups.length} daily(s) exportado(s) com sucesso.` });
+    toast({ title: 'Excel exportado', description: `${visibleStandups.length} daily(s) exportado(s) com sucesso.` });
   };
 
   return {
     userId: user?.id,
-    standups,
+    standups: visibleStandups,
     teamMembers,
     sprints,
     projects,
+    clusters,
+    filterCluster,
+    setFilterCluster,
     filteredProcesses: filterProcesses(processes, form.project_id),
     selectedUserId,
     setSelectedUserId,

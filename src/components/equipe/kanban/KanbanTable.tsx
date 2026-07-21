@@ -96,7 +96,11 @@ export function KanbanTable(props: KanbanTableProps) {
                     {formatEquipeKanbanDueDate(deliverable.due_date)}
                   </TableCell>
                   <TableCell className="text-gray-600 text-right">
-                    {deliverable.estimated_hours || '-'}
+                    {deliverable.subtaskCount > 0
+                      ? deliverable.subtaskHoursTotal > 0
+                        ? deliverable.subtaskHoursTotal
+                        : '-'
+                      : deliverable.estimated_hours || '-'}
                   </TableCell>
                 </TableRow>
 

@@ -68,22 +68,6 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/tarefas',
-    page_name: 'Tarefas',
-    page_description: 'Listagem e gestão de tarefas',
-    category: 'rotina',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/equipe/tarefas/nova',
-    page_name: 'Nova Tarefa',
-    page_description: 'Criação de nova tarefa',
-    category: 'rotina',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
     page_path: '/equipe/mapeamento',
     page_name: 'Mapeamento de Processos',
     page_description: 'Visão consolidada de processos, áreas e cenários de ROI',
