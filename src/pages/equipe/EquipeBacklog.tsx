@@ -19,6 +19,7 @@ import {
   useMoveDomainBacklogItem,
   useUpdateDomainBacklogItem,
   type BacklogItem,
+  type BacklogCluster,
   type Process,
   type Profile,
   type Project,
@@ -54,6 +55,7 @@ export default function EquipeBacklog() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  const [clusters, setClusters] = useState<BacklogCluster[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal de criação/edição
@@ -64,7 +66,8 @@ export default function EquipeBacklog() {
     description: '',
     priority: 'medium',
     estimated_hours: '',
-    project_id: ''
+    project_id: '',
+    cluster_id: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -94,6 +97,7 @@ export default function EquipeBacklog() {
     setProjects(backlogQuery.data.projects);
     setProcesses(backlogQuery.data.processes);
     setProjectProcesses(backlogQuery.data.projectProcesses);
+    setClusters(backlogQuery.data.clusters);
     setLoading(false);
   }, [backlogQuery.data]);
 
@@ -117,7 +121,8 @@ export default function EquipeBacklog() {
         description: item.description || '',
         priority: item.priority,
         estimated_hours: item.estimated_hours?.toString() || '',
-        project_id: item.project_id || ''
+        project_id: item.project_id || '',
+        cluster_id: item.cluster_id || '',
       });
     } else {
       setEditingItem(null);
@@ -126,7 +131,8 @@ export default function EquipeBacklog() {
         description: '',
         priority: 'medium',
         estimated_hours: '',
-        project_id: ''
+        project_id: '',
+        cluster_id: '',
       });
     }
     setFormModalOpen(true);
@@ -148,6 +154,7 @@ export default function EquipeBacklog() {
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
         sprint_id: null, // Backlog global, sem sprint
         project_id: formData.project_id || null,
+        cluster_id: formData.cluster_id || null,
       };
 
       if (editingItem) {
@@ -352,6 +359,11 @@ export default function EquipeBacklog() {
                               {item.estimated_hours}h estimadas
                             </span>
                           )}
+                          {item.cluster_id && (
+                            <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
+                              {clusters.find(c => c.id === item.cluster_id)?.name || 'Cluster'}
+                            </span>
+                          )}
                           {item.project_id && (
                             <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
                               {projects.find(p => p.id === item.project_id)?.name || 'Projeto'}
@@ -470,6 +482,35 @@ export default function EquipeBacklog() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="cluster">Cluster</Label>
+              <Select
+                value={formData.cluster_id || NONE}
+                onValueChange={(v) => setFormData({
+                  ...formData,
+                  cluster_id: v === NONE ? '' : v,
+                  // Limpa projeto se o cluster do projeto atual não bate mais.
+                  project_id: (() => {
+                    if (!formData.project_id) return '';
+                    const proj = projects.find(p => p.id === formData.project_id);
+                    if (v === NONE) return formData.project_id;
+                    return proj && proj.cluster_id === v ? formData.project_id : '';
+                  })(),
+                })}
+              >
+                <SelectTrigger id="cluster">
+                  <SelectValue placeholder="Selecionar cluster (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="project">Projeto</Label>
               <Select
                 value={formData.project_id || NONE}
@@ -480,11 +521,13 @@ export default function EquipeBacklog() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {projects
+                    .filter(p => !formData.cluster_id || p.cluster_id === formData.cluster_id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

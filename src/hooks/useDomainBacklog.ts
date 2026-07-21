@@ -13,6 +13,7 @@ export interface BacklogItem {
   status: string;
   moved_to_deliverable_id: string | null;
   project_id: string | null;
+  cluster_id: string | null;
   created_at: string;
 }
 
@@ -33,6 +34,7 @@ export interface Profile {
 export interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
 }
 
 export interface Process {
@@ -46,6 +48,11 @@ export interface ProjectProcess {
   project_id: string;
 }
 
+export interface BacklogCluster {
+  id: string;
+  name: string;
+}
+
 export interface DomainBacklogData {
   backlogItems: BacklogItem[];
   sprints: Sprint[];
@@ -53,6 +60,7 @@ export interface DomainBacklogData {
   projects: Project[];
   processes: Process[];
   projectProcesses: ProjectProcess[];
+  clusters: BacklogCluster[];
 }
 
 export interface BacklogItemPayload {
@@ -62,6 +70,7 @@ export interface BacklogItemPayload {
   estimated_hours: number | null;
   sprint_id: null;
   project_id: string | null;
+  cluster_id: string | null;
 }
 
 export interface SprintDeliverablePayload {
@@ -136,11 +145,12 @@ export function useDomainBacklog() {
         .select('id, first_name, last_name');
 
       // Fetch projects, processes e associações (para alinhar com o form de Nova Tarefa)
-      const [{ data: projectsData }, { data: processesData }, { data: ppData }] = await Promise.all(
+      const [{ data: projectsData }, { data: processesData }, { data: ppData }, { data: clustersData }] = await Promise.all(
         [
-          supabase.from('projects').select('id, name').order('name'),
+          supabase.from('projects').select('id, name, cluster_id').order('name'),
           supabase.from('processes').select('id, name, project_id').order('name'),
           supabase.from('project_processes').select('process_id, project_id'),
+          supabase.from('estrutura_clusters').select('id, name').eq('is_active', true).order('name'),
         ],
       );
 
@@ -148,9 +158,10 @@ export function useDomainBacklog() {
         backlogItems: (backlogData || []) as unknown as BacklogItem[],
         sprints: sprintsData || [],
         profiles: profilesData || [],
-        projects: projectsData || [],
+        projects: (projectsData || []) as unknown as Project[],
         processes: processesData || [],
         projectProcesses: ppData || [],
+        clusters: (clustersData || []) as unknown as BacklogCluster[],
       };
     },
     retry: false,

@@ -6670,6 +6670,7 @@ export type Database = {
       }
       sprint_backlog_items: {
         Row: {
+          cluster_id: string | null
           created_at: string | null
           description: string | null
           estimated_hours: number | null
@@ -6684,6 +6685,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cluster_id?: string | null
           created_at?: string | null
           description?: string | null
           estimated_hours?: number | null
@@ -6698,6 +6700,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cluster_id?: string | null
           created_at?: string | null
           description?: string | null
           estimated_hours?: number | null
@@ -6712,6 +6715,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sprint_backlog_items_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sprint_backlog_items_moved_to_deliverable_id_fkey"
             columns: ["moved_to_deliverable_id"]
