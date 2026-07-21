@@ -145,11 +145,12 @@ export function useDomainBacklog() {
         .select('id, first_name, last_name');
 
       // Fetch projects, processes e associações (para alinhar com o form de Nova Tarefa)
-      const [{ data: projectsData }, { data: processesData }, { data: ppData }] = await Promise.all(
+      const [{ data: projectsData }, { data: processesData }, { data: ppData }, { data: clustersData }] = await Promise.all(
         [
-          supabase.from('projects').select('id, name').order('name'),
+          supabase.from('projects').select('id, name, cluster_id').order('name'),
           supabase.from('processes').select('id, name, project_id').order('name'),
           supabase.from('project_processes').select('process_id, project_id'),
+          supabase.from('estrutura_clusters').select('id, name').eq('is_active', true).order('name'),
         ],
       );
 
@@ -157,9 +158,10 @@ export function useDomainBacklog() {
         backlogItems: (backlogData || []) as unknown as BacklogItem[],
         sprints: sprintsData || [],
         profiles: profilesData || [],
-        projects: projectsData || [],
+        projects: (projectsData || []) as unknown as Project[],
         processes: processesData || [],
         projectProcesses: ppData || [],
+        clusters: (clustersData || []) as unknown as BacklogCluster[],
       };
     },
     retry: false,
