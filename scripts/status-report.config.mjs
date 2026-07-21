@@ -62,6 +62,11 @@ export const DETECT = {
   "P1-ALERTA-PARADO": { keywords: ["projeto parado", "estagnação", "sem movimentação há"] },
   "P1-HUB-DOCUMENTAL": { keywords: ["hub documental", "repositório único"] },
   "P1-DEVOLUTIVA": { keywords: ["notificação ao cliente", "devolutiva ao cliente"] },
+  // Incluídos a partir dos extras (features já existentes na OSG Projects)
+  "P1-DASHBOARD-OSG": { routes: ["osg/dashboard"], files: ["src/pages/equipe/osg/OsgDashboard.tsx"] },
+  "P1-CLIENTES-OSG": { routes: ["osg/projetos/clientes"], files: ["src/pages/equipe/osg/OsgClientes.tsx"] },
+  "P1-TAREFAS-OSG": { routes: ["osg/projetos/tarefas"], files: ["src/pages/equipe/osg/OsgTarefas.tsx"] },
+  "P1-AUDITORIA": { routes: ["osg/auditoria"], files: ["src/pages/equipe/osg/OsgAuditoria.tsx"] },
 
   // Recebimento / GED (projeto P1 no roadmap.json)
   "GED-UPLOAD": {
@@ -100,6 +105,10 @@ export const DETECT = {
       "src/pages/equipe/osg/QuadroSocietario.tsx",
       "src/hooks/useQuadroSocietario.ts",
     ],
+  },
+  "P2-CONTROLE-MATRICULAS": {
+    routes: ["osg/work/controle-matriculas"],
+    files: ["src/pages/equipe/osg/ControleMatriculas.tsx"],
   },
   "P2-DP-INTELIGENTE": {
     routes: ["osg/work/diagnostico-patrimonial"],
