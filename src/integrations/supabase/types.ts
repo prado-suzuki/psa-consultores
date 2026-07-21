@@ -103,13 +103,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "administracao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "administracao_pj_pessoa_id_fkey"
             columns: ["pj_pessoa_id"]
             isOneToOne: false
@@ -121,13 +114,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "administracao_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -387,13 +373,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "bem_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "bem_empresa_destino_pessoa_id_fkey"
             columns: ["empresa_destino_pessoa_id"]
             isOneToOne: false
@@ -405,13 +384,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bem_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -494,13 +466,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "capital_integralizacao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
             columns: ["empresa_destino_pessoa_id"]
             isOneToOne: false
@@ -519,13 +484,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -570,24 +528,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "cartorio_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "cartorio_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "cartorio_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -1448,13 +1392,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboard_cliente_access_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "dashboard_cliente_access_dashboard_id_fkey"
             columns: ["dashboard_id"]
             isOneToOne: false
@@ -1498,13 +1435,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dashboard_cluster_access_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -1577,24 +1507,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "dashboards_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "dashboards_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "dashboards_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2135,13 +2051,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "documento_gerado_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "documento_gerado_documento_anterior_id_fkey"
             columns: ["documento_anterior_id"]
             isOneToOne: false
@@ -2170,13 +2079,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "documento_gerado_gerado_por_id_fkey"
-            columns: ["gerado_por_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "documento_gerado_pj_pessoa_id_fkey"
             columns: ["pj_pessoa_id"]
             isOneToOne: false
@@ -2188,13 +2090,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documento_gerado_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2265,13 +2160,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "documento_notificacao_visto_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       documento_override: {
@@ -2337,13 +2225,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "documento_override_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "documento_override_documento_gerado_id_fkey"
             columns: ["documento_gerado_id"]
             isOneToOne: false
@@ -2355,13 +2236,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "documento_override_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -2595,13 +2469,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "estrutura_areas_gestor_chamados_id_fkey"
-            columns: ["gestor_chamados_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       estrutura_clusters: {
@@ -2679,13 +2546,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "estrutura_equipe_membros_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       estrutura_equipes: {
@@ -2726,13 +2586,6 @@ export type Database = {
             columns: ["gestor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "estrutura_equipes_gestor_id_fkey"
-            columns: ["gestor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -3369,13 +3222,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "impedimento_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "impedimento_credor_pessoa_id_fkey"
             columns: ["credor_pessoa_id"]
             isOneToOne: false
@@ -3394,13 +3240,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "impedimento_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -3497,13 +3336,6 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "improvement_team_members_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -3804,13 +3636,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "matricula_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "matricula_matricula_anterior_id_fkey"
             columns: ["matricula_anterior_id"]
             isOneToOne: false
@@ -3822,13 +3647,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "matricula_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4335,13 +4153,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_projects_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "org_projects_equipe_id_fkey"
             columns: ["equipe_id"]
             isOneToOne: false
@@ -4363,13 +4174,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_projects_leader_id_fkey"
-            columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "org_projects_ordem_servico_id_fkey"
             columns: ["ordem_servico_id"]
             isOneToOne: false
@@ -4381,13 +4185,6 @@ export type Database = {
             columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_projects_responsible_id_fkey"
-            columns: ["responsible_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -4440,13 +4237,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_task_comments_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4557,13 +4347,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_tasks_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "org_tasks_categoria_id_fkey"
             columns: ["servico_id"]
             isOneToOne: false
@@ -4592,13 +4375,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "org_tasks_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "org_tasks_parent_task_id_fkey"
             columns: ["parent_task_id"]
             isOneToOne: false
@@ -4617,13 +4393,6 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "org_tasks_reviewer_id_fkey"
-            columns: ["reviewer_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4749,13 +4518,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "parentesco_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "parentesco_parente_pessoa_id_fkey"
             columns: ["parente_pessoa_id"]
             isOneToOne: false
@@ -4774,13 +4536,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "parentesco_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -5086,13 +4841,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "pessoa_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "pessoa_filiacao_mae_pessoa_id_fkey"
             columns: ["filiacao_mae_pessoa_id"]
             isOneToOne: false
@@ -5111,13 +4859,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pessoa_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -5159,13 +4900,6 @@ export type Database = {
             columns: ["classificado_por"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pis_cofins_class_classificado_por_fkey"
-            columns: ["classificado_por"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -5476,13 +5210,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "process_improvements_evaluated_by_fkey"
-            columns: ["evaluated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "process_improvements_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
@@ -5602,13 +5329,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "process_scenarios_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -6088,13 +5808,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "project_documents_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       project_processes: {
@@ -6278,13 +5991,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "projects_leader_id_fkey"
-            columns: ["leader_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       projeto_flag_valor: {
@@ -6340,13 +6046,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projeto_flag_valor_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "projeto_flag_valor_flag_id_fkey"
             columns: ["flag_id"]
             isOneToOne: false
@@ -6368,24 +6067,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
-            columns: ["setado_por_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "projeto_flag_valor_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projeto_flag_valor_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6471,13 +6156,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "quadro_societario_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
             columns: ["empresa_pessoa_id"]
             isOneToOne: false
@@ -6496,13 +6174,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -6733,13 +6404,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "roi_snapshots_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "roi_snapshots_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
@@ -6803,24 +6467,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "routines_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "routines_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "routines_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7090,13 +6740,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "sprint_backlog_items_suggested_by_fkey"
-            columns: ["suggested_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       sprint_deliverables: {
@@ -7160,13 +6803,6 @@ export type Database = {
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sprint_deliverables_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
           {
@@ -7477,13 +7113,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ticket_attachments_uploaded_by_fkey"
-            columns: ["uploaded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
         ]
       }
       ticket_messages: {
@@ -7588,13 +7217,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tickets_assigned_to_fkey"
-            columns: ["assigned_to"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tickets_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
@@ -7673,13 +7295,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "titularidade_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "titularidade_matricula_id_fkey"
             columns: ["matricula_id"]
             isOneToOne: false
@@ -7698,13 +7313,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "titularidade_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7773,13 +7381,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_bloco_autor_id_fkey"
-            columns: ["autor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_bloco_bloco_origem_id_fkey"
             columns: ["bloco_origem_id"]
             isOneToOne: false
@@ -7794,13 +7395,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_bloco_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_bloco_escopo_documento_raiz_fk"
             columns: ["escopo_documento_raiz_id"]
             isOneToOne: false
@@ -7812,13 +7406,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_bloco_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7864,13 +7451,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_bloco_flag_flag_id_fkey"
             columns: ["flag_id"]
             isOneToOne: false
@@ -7882,13 +7462,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -7948,13 +7521,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
-            columns: ["autor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_bloco_versao_bloco_id_fkey"
             columns: ["bloco_id"]
             isOneToOne: false
@@ -7969,24 +7535,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8034,24 +7586,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_documento_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_documento_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_documento_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8109,13 +7647,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_documento_bloco_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
@@ -8127,13 +7658,6 @@ export type Database = {
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_documento_bloco_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8196,24 +7720,10 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tmpl_flag_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tmpl_flag_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "tmpl_flag_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -8390,16 +7900,6 @@ export type Database = {
           first_name: string | null
           id: string | null
           last_name: string | null
-        }
-        Insert: {
-          first_name?: string | null
-          id?: string | null
-          last_name?: string | null
-        }
-        Update: {
-          first_name?: string | null
-          id?: string | null
-          last_name?: string | null
         }
         Relationships: []
       }
@@ -8644,6 +8144,14 @@ export type Database = {
           _reviewer_id: string
         }
         Returns: boolean
+      }
+      list_profiles_safe: {
+        Args: never
+        Returns: {
+          first_name: string
+          id: string
+          last_name: string
+        }[]
       }
       mapa_uuid: { Args: { slug: string }; Returns: string }
       mark_stuck_procedimentos: {
