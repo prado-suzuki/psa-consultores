@@ -163,7 +163,7 @@ describe('useDomainSprints — query agregada', () => {
     // Horas: perfis + entregáveis filtrados por sprint_id (IN).
     expect(callsFor('profiles_safe', 'select')[0].args).toEqual(['id, first_name, last_name']);
     const deliverableSelects = callsFor('sprint_deliverables', 'select').map((c) => c.args[0]);
-    expect(deliverableSelects).toContain('sprint_id, assigned_to, estimated_hours');
+    expect(deliverableSelects).toContain('id, sprint_id, assigned_to, estimated_hours, parent_id');
     expect(deliverableSelects).toContain('id, sprint_id');
     expect(
       callsFor('sprint_deliverables', 'in').every((c) => c.args[0] === 'sprint_id'),

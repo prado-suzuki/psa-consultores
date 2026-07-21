@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
@@ -51,6 +51,7 @@ const EquipeSprints = () => {
     goal: '',
     start_date: '',
     end_date: '',
+    cluster_id: '',
     project_id: '',
     status: ''
   });
@@ -62,6 +63,7 @@ const EquipeSprints = () => {
         goal: selectedSprint.goal || '',
         start_date: selectedSprint.start_date,
         end_date: selectedSprint.end_date,
+        cluster_id: projects.find((p) => p.id === selectedSprint.project_id)?.cluster_id || '',
         project_id: selectedSprint.project_id || '',
         status: selectedSprint.status
       });
@@ -213,6 +215,30 @@ const EquipeSprints = () => {
     return cluster?.name || 'Geral / sem cluster';
   };
 
+  // Opções de projeto agrupadas por cluster no dropdown (cabeçalho = nome do cluster),
+  // pra saber de cara qual projeto é de qual cluster.
+  const renderProjectOptions = (list: typeof projects) => {
+    const groups: Record<string, typeof projects> = {};
+    list.forEach((p) => {
+      const key =
+        (p.cluster_id && clusters.find((c) => c.id === p.cluster_id)?.name) || 'Sem cluster';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    });
+    return Object.entries(groups)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([clusterName, projs]) => (
+        <SelectGroup key={clusterName}>
+          <SelectLabel>{clusterName}</SelectLabel>
+          {projs.map((project) => (
+            <SelectItem key={project.id} value={project.id}>
+              {project.name}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ));
+  };
+
   // Agrupa as sprints por cluster (via projeto), ativas/planejadas antes das concluídas —
   // assim as sprints de Tax, OSG etc. ficam separadas.
   const statusRank: Record<string, number> = { active: 0, planned: 1, completed: 2 };
@@ -280,11 +306,11 @@ const EquipeSprints = () => {
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
-                    {projects
-                      .filter((p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id)
-                      .map((project) => (
-                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
+                    {renderProjectOptions(
+                      projects.filter(
+                        (p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id,
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -424,18 +450,43 @@ const EquipeSprints = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label className="text-gray-700">Cluster</Label>
+                  <Select
+                    value={editSprint.cluster_id || 'none'}
+                    onValueChange={(value) =>
+                      setEditSprint({
+                        ...editSprint,
+                        cluster_id: value === 'none' ? '' : value,
+                        project_id: '',
+                      })
+                    }
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Selecione um cluster" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="none">Todos</SelectItem>
+                      {clusters.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label className="text-gray-700">Projeto</Label>
-                  <Select 
-                    value={editSprint.project_id} 
+                  <Select
+                    value={editSprint.project_id}
                     onValueChange={(value) => setEditSprint({ ...editSprint, project_id: value })}
                   >
                     <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200">
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
+                      {renderProjectOptions(
+                        projects.filter(
+                          (p) => !editSprint.cluster_id || p.cluster_id === editSprint.cluster_id,
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

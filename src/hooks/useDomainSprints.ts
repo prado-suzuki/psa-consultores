@@ -107,22 +107,32 @@ const fetchSprintHours = async (
     const sprintIds = sprintsList.map((sprint) => sprint.id);
     const sprintChunks = chunkArray(sprintIds, 50);
     const deliverables: {
+      id: string;
       sprint_id: string;
       assigned_to: string | null;
       estimated_hours: number | null;
+      parent_id: string | null;
     }[] = [];
     for (const chunk of sprintChunks) {
       const { data } = await supabase
         .from('sprint_deliverables')
-        .select('sprint_id, assigned_to, estimated_hours')
+        .select('id, sprint_id, assigned_to, estimated_hours, parent_id')
         .in('sprint_id', chunk);
       if (data) deliverables.push(...data);
     }
 
+    // Tarefas-pai (têm subtarefas) não entram na soma, pra não duplicar horas.
+    const parentIds = new Set(deliverables.map((d) => d.parent_id).filter(Boolean) as string[]);
+
     const hoursMap: Record<string, Record<string, number>> = {};
 
     deliverables.forEach((deliverable) => {
-      if (deliverable.sprint_id && deliverable.assigned_to && deliverable.estimated_hours) {
+      if (
+        deliverable.sprint_id &&
+        deliverable.assigned_to &&
+        deliverable.estimated_hours &&
+        !parentIds.has(deliverable.id)
+      ) {
         if (!hoursMap[deliverable.sprint_id]) {
           hoursMap[deliverable.sprint_id] = {};
         }

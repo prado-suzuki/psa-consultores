@@ -85,6 +85,9 @@ export function useEquipeSprintDetalhesController() {
   const [editForm, setEditForm] = useState<DeliverableForm>(blankForm());
   const [createForm, setCreateForm] = useState<DeliverableForm>(blankForm());
   const [saving, setSaving] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalDraft, setGoalDraft] = useState('');
+  const [savingGoal, setSavingGoal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -500,10 +503,35 @@ export function useEquipeSprintDetalhesController() {
     );
   };
 
+  const startEditGoal = () => {
+    setGoalDraft(data.sprint?.goal ?? '');
+    setEditingGoal(true);
+  };
+  const cancelEditGoal = () => setEditingGoal(false);
+  const saveGoal = async () => {
+    try {
+      setSavingGoal(true);
+      await data.updateSprintGoal.mutateAsync(goalDraft);
+      setEditingGoal(false);
+      toast({ title: 'Descrição atualizada' });
+    } catch (error) {
+      toast({ title: 'Erro', description: errorMessage(error), variant: 'destructive' });
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
   return {
     ...data,
     navigate,
     sprintRisks,
+    editingGoal,
+    goalDraft,
+    setGoalDraft,
+    savingGoal,
+    startEditGoal,
+    cancelEditGoal,
+    saveGoal,
     filteredDeliverables,
     hierarchicalTasks,
     ganttChartData,

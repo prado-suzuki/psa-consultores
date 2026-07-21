@@ -179,7 +179,7 @@ describe('useDomainAnaliseInteligenteData', () => {
     expect(callsFor('processes', 'order')).toEqual([['name']]);
     expect(callsFor('sprint_deliverables', 'select')).toEqual([
       [
-        'id, sprint_id, project_id, process_id, status, due_date, estimated_hours, completed_at, created_at, assigned_to',
+        'id, sprint_id, project_id, process_id, status, due_date, estimated_hours, parent_id, completed_at, created_at, assigned_to',
       ],
     ]);
     expect(callsFor('daily_standups', 'select')).toEqual([

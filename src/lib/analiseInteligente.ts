@@ -33,6 +33,7 @@ export interface AnaliseInteligenteDeliverable {
   status: string | null;
   due_date: string;
   estimated_hours: number | null;
+  parent_id?: string | null;
   completed_at: string | null;
   created_at: string | null;
   assigned_to: string | null;
@@ -217,7 +218,12 @@ export function buildAnaliseInteligenteKpis(
     (item) => item.due_date && item.due_date < today && item.status !== 'completed',
   ).length;
   const rate = totalDel > 0 ? Math.round((completed / totalDel) * 100) : 0;
-  const hours = deliverablesF.reduce((sum, item) => sum + (Number(item.estimated_hours) || 0), 0);
+  // Tarefas-pai (têm subtarefas) não entram na soma de horas, pra não duplicar.
+  const kpiParentIds = new Set(deliverablesF.map((d) => d.parent_id).filter(Boolean) as string[]);
+  const hours = deliverablesF.reduce(
+    (sum, item) => (kpiParentIds.has(item.id) ? sum : sum + (Number(item.estimated_hours) || 0)),
+    0,
+  );
   const blockers = dailysF.filter(
     (item) => item.blockers && item.blockers.trim().length > 0,
   ).length;

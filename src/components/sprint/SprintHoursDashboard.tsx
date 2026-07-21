@@ -16,6 +16,7 @@ interface Deliverable {
   due_date: string;
   estimated_hours: number | null;
   actual_hours?: number | null;
+  parent_id?: string | null;
   status: string;
   sprint_id?: string | null;
 }
@@ -66,9 +67,18 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
     return map;
   }, [profiles]);
 
-  const withHours = useMemo(
-    () => deliverables.filter((d) => d.estimated_hours && d.estimated_hours > 0 && d.due_date),
+  // IDs de tarefas-pai (têm subtarefas). Elas são excluídas da soma de horas para
+  // não duplicar: o total de uma tarefa-pai = a soma das filhas, não pai + filhas.
+  const parentIds = useMemo(
+    () => new Set(deliverables.map((d) => d.parent_id).filter(Boolean) as string[]),
     [deliverables]
+  );
+  const withHours = useMemo(
+    () =>
+      deliverables.filter(
+        (d) => d.estimated_hours && d.estimated_hours > 0 && d.due_date && !parentIds.has(d.id),
+      ),
+    [deliverables, parentIds]
   );
 
   const uniquePeople = useMemo(() => {

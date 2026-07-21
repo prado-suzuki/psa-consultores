@@ -532,6 +532,26 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     onError: () => undefined,
   });
 
+  const updateSprintGoal = useMutation({
+    mutationFn: async (goal: string) => {
+      if (!sprintId) throw new Error('Sprint inválida');
+      await assertCanPerform('sprints', 'update', sprintId);
+      const { error } = await supabase
+        .from('sprints')
+        .update({ goal: goal || null })
+        .eq('id', sprintId);
+      if (error) throw error;
+      return goal;
+    },
+    onSuccess: (goal) => {
+      updateCachedData((current) => ({
+        ...current,
+        sprint: { ...current.sprint, goal: goal || null },
+      }));
+    },
+    onError: () => undefined,
+  });
+
   const createDeliverable = useMutation({
     mutationFn: async (payload: CreateDeliverableInput) => {
       const { data, error } = await supabase
@@ -649,6 +669,7 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     updateDeliverable,
     deleteDeliverable,
     updateMetric,
+    updateSprintGoal,
     createDeliverable,
     importDeliverables,
   };
