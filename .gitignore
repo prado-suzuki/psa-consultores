@@ -26,8 +26,7 @@ dist-ssr
 *.sln
 *.sw?
 
-# Claude Code instructions (local only, não commitar)
-CLAUDE.md
+# Claude Code local state (não commitar)
 .claude/
 
 # Lovale attachments
