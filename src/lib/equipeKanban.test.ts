@@ -135,6 +135,7 @@ describe('equipeKanban', () => {
       start_date: '',
       due_date: '2026-07-31',
       estimated_hours: '2.5',
+      actual_hours: '',
     };
 
     expect(buildDeliverableStatusPayload('completed')).toEqual({
@@ -153,6 +154,7 @@ describe('equipeKanban', () => {
       start_date: null,
       due_date: '2026-07-31',
       estimated_hours: 2.5,
+      actual_hours: null,
       completed_at: '2026-07-17T12:00:00.000Z',
     });
     expect(

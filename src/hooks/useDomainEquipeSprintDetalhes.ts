@@ -23,6 +23,9 @@ export interface SprintDetalhesDeliverable {
   due_date: string;
   status: string;
   estimated_hours: number | null;
+  // opcional: coluna nova; enquanto o types.ts gerado não a reflete, o dado
+  // ainda vem do select('*') em runtime.
+  actual_hours?: number | null;
   parent_id: string | null;
   task_code: string | null;
   project_id: string | null;
@@ -102,6 +105,7 @@ interface DeliverableUpdatePayload {
   start_date: string | null;
   due_date: string;
   estimated_hours: number | null;
+  actual_hours?: number | null;
   status: string;
   completed_at: string | null;
   project_id: string | null;
@@ -454,6 +458,15 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
 
   const deleteDeliverable = useMutation({
     mutationFn: async (deliverableId: string) => {
+      // Se este entregável veio de um item do backlog, o item guarda uma referência
+      // (moved_to_deliverable_id) que TRAVA o DELETE (FK sem ON DELETE). Devolvemos o
+      // item ao backlog ANTES da checagem/exclusão — senão o banco recusa e o precheck
+      // traduz o erro de FK como "operação não permitida para o seu perfil".
+      await supabase
+        .from('sprint_backlog_items')
+        .update({ moved_to_deliverable_id: null, status: 'pending', sprint_id: null })
+        .eq('moved_to_deliverable_id', deliverableId);
+
       await assertCanPerform('sprint_deliverables', 'delete', deliverableId);
 
       const { data: attachmentsToDelete } = await supabase

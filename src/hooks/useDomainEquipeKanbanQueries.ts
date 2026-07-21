@@ -29,11 +29,9 @@ export function useEquipeKanbanInitialQuery() {
           supabase.from('profiles_safe').select('id, first_name, last_name'),
           supabase.from('projects').select('id, name').order('name'),
           supabase.from('processes').select('id, name, project_id').order('name'),
-          supabase
-            .from('sprint_deliverables')
-            .select(
-              'id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code',
-            ),
+          // select('*') traz actual_hours mesmo enquanto o types.ts gerado não a reflete
+          // (a lista explícita de colunas dá erro de tipo por causa do types.ts defasado).
+          supabase.from('sprint_deliverables').select('*'),
         ]);
       return {
         sprints: (sprintsRes.data || []) as EquipeKanbanSprint[],

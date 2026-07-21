@@ -51,6 +51,7 @@ const EquipeKanban = () => {
     start_date: '',
     due_date: '',
     estimated_hours: '',
+    actual_hours: '',
   });
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
@@ -239,6 +240,7 @@ const EquipeKanban = () => {
       start_date: deliverable.start_date || '',
       due_date: deliverable.due_date || '',
       estimated_hours: deliverable.estimated_hours?.toString() || '',
+      actual_hours: deliverable.actual_hours?.toString() || '',
     });
     const attachmentsData = await attachmentMutations.load.mutateAsync(deliverable.id);
     setAttachments(attachmentsData);

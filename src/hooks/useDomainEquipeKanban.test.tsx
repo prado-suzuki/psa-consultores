@@ -137,10 +137,7 @@ describe('useEquipeKanbanInitialQuery', () => {
       ['profiles_safe', 'id, first_name, last_name'],
       ['projects', 'id, name'],
       ['processes', 'id, name, project_id'],
-      [
-        'sprint_deliverables',
-        'id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code',
-      ],
+      ['sprint_deliverables', '*'],
     ]);
     expect(
       calls.filter(({ method }) => method === 'order').map(({ scope, args }) => [scope, ...args]),
@@ -248,6 +245,8 @@ describe('mutations de entregáveis', () => {
       supabaseMocks.storageFrom.mock.invocationCallOrder[0],
     );
     expect(calls.map(({ scope, method }) => `${scope}.${method}`)).toEqual([
+      'sprint_backlog_items.update',
+      'sprint_backlog_items.eq',
       'deliverable_attachments.select',
       'deliverable_attachments.eq',
       'storage.from',

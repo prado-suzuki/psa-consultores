@@ -7,6 +7,7 @@ export interface DashboardMetricDeliverable {
   assigned_to: string | null;
   due_date: string;
   estimated_hours: number | null;
+  actual_hours?: number | null;
   status: string;
   parent_id: string | null;
   sprint_id: string;

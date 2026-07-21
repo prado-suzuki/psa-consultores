@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
@@ -13,8 +15,16 @@ interface Deliverable {
   assigned_to: string | null;
   due_date: string;
   estimated_hours: number | null;
+  actual_hours?: number | null;
   status: string;
+  sprint_id?: string | null;
 }
+
+const STATUS_LABELS: Record<string, string> = {
+  pending: "A Fazer",
+  in_progress: "Em Progresso",
+  completed: "Concluído",
+};
 
 interface Profile {
   id: string;
@@ -43,7 +53,10 @@ interface SprintHoursDashboardProps {
 }
 
 export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDashboardProps) {
+  const navigate = useNavigate();
   const [granularity, setGranularity] = useState<Granularity>("week");
+  // Drill-down: barra clicada (período + pessoa) → lista de tarefas daquele dia/pessoa.
+  const [drill, setDrill] = useState<{ period: string; personId: string } | null>(null);
 
   const profileMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -99,12 +112,29 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
     return Object.values(grouped).sort((a, b) => (a.sortKey as string).localeCompare(b.sortKey as string));
   }, [withHours, granularity]);
 
+  const drillPerson = useMemo(
+    () => (drill ? uniquePeople.find((p) => p.id === drill.personId) : null),
+    [drill, uniquePeople]
+  );
+  const drillItems = useMemo(() => {
+    if (!drill) return [];
+    return withHours
+      .filter(
+        (d) =>
+          (d.assigned_to || "unassigned") === drill.personId &&
+          getPeriodKey(d.due_date, granularity) === drill.period
+      )
+      .sort((a, b) => (b.estimated_hours || 0) - (a.estimated_hours || 0));
+  }, [drill, withHours, granularity]);
+  const drillTotal = drillItems.reduce((s, d) => s + (d.estimated_hours || 0), 0);
+
   const personSummary = useMemo(() => {
-    const summary: Record<string, { name: string; hours: number; tasks: number }> = {};
+    const summary: Record<string, { name: string; hours: number; actual: number; tasks: number }> = {};
     withHours.forEach((d) => {
       const pid = d.assigned_to || "unassigned";
-      if (!summary[pid]) summary[pid] = { name: profileMap[pid] || "Não atribuído", hours: 0, tasks: 0 };
+      if (!summary[pid]) summary[pid] = { name: profileMap[pid] || "Não atribuído", hours: 0, actual: 0, tasks: 0 };
       summary[pid].hours += d.estimated_hours || 0;
+      summary[pid].actual += d.actual_hours || 0;
       summary[pid].tasks += 1;
     });
     return Object.values(summary).sort((a, b) => b.hours - a.hours);
@@ -158,7 +188,10 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
       <Card className="border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle className="text-sm font-medium">Distribuição de Horas por Pessoa</CardTitle>
+            <div>
+              <CardTitle className="text-sm font-medium">Distribuição de Horas por Pessoa</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Clique numa barra para ver as tarefas</p>
+            </div>
             <ToggleGroup type="single" value={granularity} onValueChange={(v) => v && setGranularity(v as Granularity)} size="sm" variant="outline">
               <ToggleGroupItem value="day">Dia</ToggleGroupItem>
               <ToggleGroupItem value="week">Semana</ToggleGroupItem>
@@ -199,7 +232,18 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
                     wrapperStyle={{ fontSize: "11px" }}
                   />
                   {uniquePeople.map((person) => (
-                    <Bar key={person.id} dataKey={person.id} stackId="hours" fill={person.color} radius={[2, 2, 0, 0]} />
+                    <Bar
+                      key={person.id}
+                      dataKey={person.id}
+                      stackId="hours"
+                      fill={person.color}
+                      radius={[2, 2, 0, 0]}
+                      className="cursor-pointer"
+                      onClick={(entry: { period?: string; payload?: { period?: string } }) => {
+                        const period = entry?.period ?? entry?.payload?.period;
+                        if (period) setDrill({ period, personId: person.id });
+                      }}
+                    />
                   ))}
                 </BarChart>
               </ResponsiveContainer>
@@ -219,25 +263,84 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
               <TableHeader>
                 <TableRow>
                   <TableHead>Pessoa</TableHead>
-                  <TableHead className="text-right">Horas</TableHead>
+                  <TableHead className="text-right">Estimadas</TableHead>
+                  <TableHead className="text-right">Realizadas</TableHead>
+                  <TableHead className="text-right">Desvio</TableHead>
                   <TableHead className="text-right">Tarefas</TableHead>
-                  <TableHead className="text-right">Média h/tarefa</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {personSummary.map((p) => (
-                  <TableRow key={p.name}>
-                    <TableCell className="font-medium">{p.name}</TableCell>
-                    <TableCell className="text-right">{p.hours.toFixed(1)}</TableCell>
-                    <TableCell className="text-right">{p.tasks}</TableCell>
-                    <TableCell className="text-right">{(p.hours / p.tasks).toFixed(1)}</TableCell>
-                  </TableRow>
-                ))}
+                {personSummary.map((p) => {
+                  const diff = p.actual - p.hours;
+                  return (
+                    <TableRow key={p.name}>
+                      <TableCell className="font-medium">{p.name}</TableCell>
+                      <TableCell className="text-right">{p.hours.toFixed(1)}</TableCell>
+                      <TableCell className="text-right">
+                        {p.actual > 0 ? p.actual.toFixed(1) : "—"}
+                      </TableCell>
+                      <TableCell
+                        className={`text-right ${
+                          p.actual > 0
+                            ? diff > 0
+                              ? "text-red-600"
+                              : "text-emerald-600"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {p.actual > 0 ? `${diff > 0 ? "+" : ""}${diff.toFixed(1)}h` : "—"}
+                      </TableCell>
+                      <TableCell className="text-right">{p.tasks}</TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={!!drill} onOpenChange={(open) => !open && setDrill(null)}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {drillPerson?.name ?? "Tarefas"} · {drill?.period} — {drillTotal.toFixed(1)}h
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {drillItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhuma tarefa.</p>
+            ) : (
+              drillItems.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  disabled={!d.sprint_id}
+                  onClick={() => {
+                    if (d.sprint_id) {
+                      setDrill(null);
+                      navigate(`/equipe/sprints/${d.sprint_id}`);
+                    }
+                  }}
+                  className="w-full text-left flex items-center justify-between gap-3 p-2 rounded-md border border-border enabled:hover:bg-muted enabled:cursor-pointer disabled:opacity-70"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{d.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {STATUS_LABELS[d.status] ?? d.status}
+                      {d.due_date ? ` · ${format(parseISO(d.due_date), "dd/MM")}` : ""}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold whitespace-nowrap">{d.estimated_hours || 0}h</span>
+                </button>
+              ))
+            )}
+          </div>
+          {drillItems.some((d) => d.sprint_id) && (
+            <p className="text-xs text-muted-foreground">Clique numa tarefa para abrir a sprint dela.</p>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

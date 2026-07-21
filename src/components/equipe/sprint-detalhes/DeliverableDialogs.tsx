@@ -181,16 +181,31 @@ function DeliverableFields({ prefix, form, setForm, controller: c, editingId }: 
         </div>
       </div>
       {prefix === 'edit' && (
-        <div>
-          <Label htmlFor="edit-hours">Horas Estimadas</Label>
-          <Input
-            id="edit-hours"
-            type="number"
-            step="0.5"
-            min="0"
-            value={form.estimated_hours}
-            onChange={(event) => update('estimated_hours', event.target.value)}
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="edit-hours">Horas Estimadas</Label>
+            <Input
+              id="edit-hours"
+              type="number"
+              step="0.5"
+              min="0"
+              value={form.estimated_hours}
+              onChange={(event) => update('estimated_hours', event.target.value)}
+            />
+          </div>
+          {form.status === 'completed' && (
+            <div>
+              <Label htmlFor="edit-actual-hours">Horas Realizadas</Label>
+              <Input
+                id="edit-actual-hours"
+                type="number"
+                step="0.5"
+                min="0"
+                value={form.actual_hours}
+                onChange={(event) => update('actual_hours', event.target.value)}
+              />
+            </div>
+          )}
         </div>
       )}
       <div className="grid grid-cols-2 gap-4">

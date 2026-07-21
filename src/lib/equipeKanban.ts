@@ -9,6 +9,7 @@ export interface EquipeKanbanDeliverable {
   assigned_to: string | null;
   sprint_id: string | null;
   estimated_hours: number | null;
+  actual_hours?: number | null;
   due_date: string | null;
   start_date: string | null;
   parent_id: string | null;
@@ -55,6 +56,7 @@ export interface EquipeKanbanEditForm {
   start_date: string;
   due_date: string;
   estimated_hours: string;
+  actual_hours: string;
 }
 
 export interface HierarchicalEquipeKanbanDeliverable extends EquipeKanbanDeliverable {
@@ -80,6 +82,7 @@ export type EquipeKanbanDeliverableUpdate = {
   start_date: string | null;
   due_date: string | null;
   estimated_hours: number | null;
+  actual_hours: number | null;
   completed_at?: string | null;
 };
 
@@ -182,6 +185,7 @@ export function buildDeliverableUpdatePayload(
     start_date: form.start_date || null,
     due_date: form.due_date || null,
     estimated_hours: form.estimated_hours ? parseFloat(form.estimated_hours) : null,
+    actual_hours: form.actual_hours ? parseFloat(form.actual_hours) : null,
   };
   if (form.status === 'completed' && previousStatus !== 'completed') {
     payload.completed_at = new Date().toISOString();

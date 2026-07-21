@@ -173,6 +173,23 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             </div>
           </div>
 
+          {editForm.status === 'completed' && (
+            <div className="space-y-2">
+              <Label className="text-gray-700">Horas Realizadas</Label>
+              <Input
+                type="number"
+                step="0.5"
+                value={editForm.actual_hours}
+                onChange={(event) => setEditForm({ ...editForm, actual_hours: event.target.value })}
+                className="bg-white border-gray-300 text-gray-900"
+                placeholder="0"
+              />
+              <p className="text-xs text-gray-500">
+                Usado nas análises (estimadas × realizadas).
+              </p>
+            </div>
+          )}
+
           {selectedDeliverable && !selectedDeliverable.parent_id && props.subtasks.length > 0 && (
             <div className="space-y-3 border-t border-gray-200 pt-4">
               <Label className="text-gray-700 flex items-center gap-2">

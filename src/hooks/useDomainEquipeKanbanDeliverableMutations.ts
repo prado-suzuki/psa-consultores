@@ -45,6 +45,13 @@ export function useEquipeKanbanDeliverableMutations() {
   const deleteDeliverable = useMutation({
     mutationKey: ['domain-equipe-kanban', 'delete-deliverable'],
     mutationFn: async (deliverableId: string) => {
+      // Se veio de um item do backlog, o item guarda uma referência (moved_to_deliverable_id)
+      // que TRAVA o DELETE (FK sem ON DELETE). Devolve o item ao backlog antes de excluir.
+      await supabase
+        .from('sprint_backlog_items')
+        .update({ moved_to_deliverable_id: null, status: 'pending', sprint_id: null })
+        .eq('moved_to_deliverable_id', deliverableId);
+
       const { data: attachments } = await supabase
         .from('deliverable_attachments')
         .select('id, file_path')

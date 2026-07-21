@@ -26,6 +26,7 @@ export interface DeliverableForm {
   start_date: string;
   due_date: string;
   estimated_hours: string;
+  actual_hours: string;
   status: string;
   parent_id: string;
   project_id: string;
@@ -40,6 +41,7 @@ const blankForm = (start = '', due = ''): DeliverableForm => ({
   start_date: start,
   due_date: due,
   estimated_hours: '',
+  actual_hours: '',
   status: 'pending',
   parent_id: '',
   project_id: '',
@@ -292,6 +294,7 @@ export function useEquipeSprintDetalhesController() {
       start_date: item.start_date ?? sprint?.start_date ?? '',
       due_date: item.due_date,
       estimated_hours: item.estimated_hours?.toString() ?? '',
+      actual_hours: item.actual_hours?.toString() ?? '',
       status: item.status || 'pending',
       parent_id: item.parent_id ?? '',
       project_id: item.project_id ?? '',
@@ -342,6 +345,9 @@ export function useEquipeSprintDetalhesController() {
           due_date: editForm.due_date,
           estimated_hours: editForm.estimated_hours
             ? Number.parseFloat(editForm.estimated_hours)
+            : null,
+          actual_hours: editForm.actual_hours
+            ? Number.parseFloat(editForm.actual_hours)
             : null,
           status: editForm.status,
           completed_at: editForm.status === 'completed' ? new Date().toISOString() : null,
