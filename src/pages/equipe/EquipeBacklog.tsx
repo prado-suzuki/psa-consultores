@@ -19,6 +19,7 @@ import {
   useMoveDomainBacklogItem,
   useUpdateDomainBacklogItem,
   type BacklogItem,
+  type BacklogCluster,
   type Process,
   type Profile,
   type Project,
