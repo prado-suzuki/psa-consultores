@@ -25,16 +25,21 @@ Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e 
 ### T1 — Eleger `sprint_deliverables` como fonte única e aposentar `tasks` ⚠️ MIGRAÇÃO + DROP
 **Objetivo:** acabar com a ilha `tasks` para ninguém criar tarefa que evapora.
 
-1. Conferir se `tasks` tem linhas em produção (na auditoria de jul/2026 estava **vazia**). Rodar no SQL Editor: `select count(*) from public.tasks;`
-   - Se houver linhas: migrar para `sprint_deliverables` (mapear status: `backlog→pending`, `to_do→pending`, `in_progress→in_progress`, `review→in_progress`, `done→completed`; `cluster`/`priority` não têm equivalente — decidir se viram tag/descrição).
-   - Se vazia: seguir direto para o DROP.
-2. Reescrever `src/pages/equipe/EquipeNovaTarefa.tsx` para **criar em `sprint_deliverables`** (campos: `title`, `description`, `sprint_id`, `assigned_to`, `estimated_hours`, `due_date`, `status:'pending'`) **OU** remover as telas.
-3. Reescrever/absorver `src/pages/equipe/EquipeTarefas.tsx` (hoje lê `tasks`) — apontar para `sprint_deliverables` ou remover, já que o Kanban/tabela já cobrem isso.
-4. Remover (ou repontar) as rotas `/equipe/tarefas` e `/equipe/tarefas/nova` em `src/App.tsx` (linhas ~180-181). Conferir `administracao/AdminPerformance.tsx`, que também lê `tasks`.
-5. **Migração:** `DROP TABLE public.tasks;` + `DROP TYPE task_status;` (só depois de 1-4).
-6. Auditar RLS da tabela removida e atualizar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`).
+**✅ JÁ FEITO EM CÓDIGO (2026-07-21):**
+- Rotas `/equipe/tarefas` e `/equipe/tarefas/nova` **redirecionadas para `/equipe/kanban`** (`src/App.tsx`) — não há mais entrada de UI que grave em `tasks`.
+- Criados os hooks-fonte: `src/hooks/useSprints.ts` (`useSprints`/`useActiveSprints`), `src/hooks/useSprintDeliverables.ts` (list + create/update/delete), `src/hooks/useProcessAreas.ts`.
+- `sprint_deliverables` fica oficializada como fonte única de tarefa da equipe.
 
-**Aceite:** criar tarefa por qualquer tela faz ela aparecer no Kanban da sprint; `tasks` não existe mais; typecheck e build limpos.
+**FALTA (é o que exige banco / delegável):**
+1. Conferir se `tasks` tem linhas em produção (na auditoria de jul/2026 estava **vazia**): `select count(*) from public.tasks;`
+   - Se houver linhas: migrar para `sprint_deliverables` (status: `backlog→pending`, `to_do→pending`, `in_progress→in_progress`, `review→in_progress`, `done→completed`; `cluster`/`priority` não têm equivalente — decidir se viram tag/descrição).
+   - Se vazia: seguir direto para o DROP.
+2. **Repontar `src/pages/administracao/AdminPerformance.tsx`** (`useQuery(['admin-tasks-count'])`, ~linha 55) — hoje ainda lê `from('tasks')`. Apontar para `sprint_deliverables` (ou remover o card, que já é redundante com o card de entregáveis). **Bloqueia o DROP.**
+3. Deletar os arquivos órfãos `src/pages/equipe/EquipeTarefas.tsx` e `src/pages/equipe/EquipeNovaTarefa.tsx` (não são mais importados) e limpar entradas de `/equipe/tarefas*` em `src/config/protectedPages.ts`, se houver.
+4. **Migração:** `DROP TABLE public.tasks;` + `DROP TYPE task_status;` (só depois de 1-3).
+5. Atualizar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`).
+
+**Aceite:** nada no app referencia `tasks`; `tasks`/`task_status` não existem mais; typecheck e build limpos.
 
 ### T2 — Conectar Daily ↔ entregável ⚠️ MIGRAÇÃO
 **Objetivo:** o update/bloqueio da daily se ligar a uma tarefa específica (destrava "bloqueio vira tarefa").
@@ -49,10 +54,14 @@ Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e 
 ### T3 — Estruturar bloqueios ⚠️ MIGRAÇÃO (avaliar com T2)
 Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transformar em estrutura (motivo + responsável + `deliverable_id`), seja como colunas ou tabela `daily_blockers`. Depende da decisão da Patrícia; pode ser mesclado com T2.
 
-### T4 — Camada de hooks compartilhada (refactor, sem banco)
+### T4 — Camada de hooks compartilhada (refactor, sem banco) — 🚧 EM ANDAMENTO
 **Objetivo:** fazer as telas "conversarem" de verdade — mesma query, mesmo formato, em todo lugar (regra do `CLAUDE.md`: nada de `supabase.from()` em componente).
 
-Criar em `src/hooks/`: `useActiveSprints`, `useSprintDeliverables(filtros)`, `useDailyStandups(filtros)`. Migrar Dashboard, Kanban, Análise Inteligente, Sprints e Backlog para consumir esses hooks (React Query). Elimina divergência de contagem entre telas.
+**✅ JÁ FEITO (2026-07-21):**
+- Hooks criados: `useSprints`/`useActiveSprints`, `useSprintDeliverables` (list + create/update/delete, delete em **cascata** com anexos), `useProcessAreas`, `useTeamProfiles`, `useProjects`, `useProcesses`, `useDeliverableAttachments` (list/upload/delete + `downloadDeliverableAttachment`; encapsula tabela **e** storage).
+- Telas migradas p/ hooks (0 `supabase.from()` direto): **`EquipeDashboard`** e **`EquipeKanban`**.
+
+**FALTA migrar:** `EquipeSprints`, `EquipeSprintDetalhes` (criação/import/edição de entregáveis — usar `useCreateSprintDeliverable`), `EquipeBacklog` (o `moveToSprint`), `EquipeDaily`, `AnaliseInteligente`. Depois, opcional: extrair as mutações restantes que ainda usam supabase direto nessas telas. Convenção: React Query, `queryKey:[tabela]`, mutation invalida o prefixo. **Não** reusar `useProjetos`/`useProcessos` (filtram `cluster_id`, escondem Digital Rotina).
 
 ### T5 — Cockpit por projeto / visão de portfólio (código)
 A tela `Análise Inteligente` já é quase o cockpit da referência (score de saúde, taxa de entrega, atrasados, scope creep, bloqueios, evolução). Falta: (a) ser a **mesma verdade** do dashboard operacional; (b) uma **visão por projeto** (saúde de cada projeto lado a lado: saudável / atenção / problema / sem monitoramento). Reaproveitar a lógica de KPIs agrupando por `project_id`.

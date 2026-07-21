@@ -1,6 +1,22 @@
 import { useEffect, useState, useMemo, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import {
+  useSprintDeliverables,
+  useUpdateSprintDeliverable,
+  useDeleteSprintDeliverable,
+  type SprintDeliverableInput,
+  type DeliverableStatus,
+} from '@/hooks/useSprintDeliverables';
+import { useSprints } from '@/hooks/useSprints';
+import { useTeamProfiles } from '@/hooks/useTeamProfiles';
+import { useProjects } from '@/hooks/useProjects';
+import { useProcesses } from '@/hooks/useProcesses';
+import {
+  useDeliverableAttachments,
+  useUploadDeliverableAttachment,
+  useDeleteDeliverableAttachment,
+  downloadDeliverableAttachment,
+} from '@/hooks/useDeliverableAttachments';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,7 +37,6 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 interface Deliverable {
   id: string;
@@ -96,13 +111,7 @@ const ALLOWED_FILE_TYPES = [
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const EquipeKanban = () => {
-  const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [processes, setProcesses] = useState<Process[]>([]);
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
-  const [loading, setLoading] = useState(true);
 
   // Estado para tarefas expandidas
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
@@ -120,7 +129,6 @@ const EquipeKanban = () => {
     due_date: '',
     estimated_hours: ''
   });
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -133,31 +141,18 @@ const EquipeKanban = () => {
   const [filterEndDate, setFilterEndDate] = useState<Date | undefined>();
   const [sortByDueDate, setSortByDueDate] = usePersistedState<'asc' | 'desc' | null>('rotina.kanban.ordenacao', null);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  // Dados e mutações via hooks — nenhuma chamada direta ao supabase nesta tela.
+  const { data: deliverables = [], isLoading: loading } = useSprintDeliverables();
+  const { data: sprints = [] } = useSprints();
+  const { data: profiles = [] } = useTeamProfiles();
+  const { data: projects = [] } = useProjects();
+  const { data: processes = [] } = useProcesses();
+  const { data: attachments = [] } = useDeliverableAttachments(selectedDeliverable?.id);
 
-  const fetchData = async () => {
-    try {
-      const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] = await Promise.all([
-        supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
-        supabase.from('profiles_safe').select('id, first_name, last_name'),
-        supabase.from('projects').select('id, name').order('name'),
-        supabase.from('processes').select('id, name, project_id').order('name'),
-        supabase.from('sprint_deliverables').select('id, title, description, status, assigned_to, sprint_id, estimated_hours, due_date, start_date, parent_id, task_code')
-      ]);
-      
-      setSprints(sprintsRes.data || []);
-      setProfiles(profilesRes.data || []);
-      setProjects(projectsRes.data || []);
-      setProcesses(processesRes.data || []);
-      setDeliverables(deliverablesRes.data || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const updateMutation = useUpdateSprintDeliverable();
+  const deleteMutation = useDeleteSprintDeliverable();
+  const uploadAttachment = useUploadDeliverableAttachment();
+  const deleteAttachment = useDeleteDeliverableAttachment();
 
   const toggleTaskExpanded = (taskId: string, e?: React.MouseEvent) => {
     if (e) {
@@ -318,27 +313,9 @@ const EquipeKanban = () => {
     setFilterEndDate(undefined);
   };
 
-  const updateDeliverableStatus = async (id: string, newStatus: 'pending' | 'in_progress' | 'completed') => {
-    try {
-      const updateData: { status: string; completed_at?: string | null } = { status: newStatus };
-      
-      if (newStatus === 'completed') {
-        updateData.completed_at = new Date().toISOString();
-      } else {
-        updateData.completed_at = null;
-      }
-
-      await supabase
-        .from('sprint_deliverables')
-        .update(updateData)
-        .eq('id', id);
-      
-      setDeliverables(deliverables.map(d => 
-        d.id === id ? { ...d, status: newStatus } : d
-      ));
-    } catch (error) {
-      console.error('Error updating deliverable:', error);
-    }
+  const updateDeliverableStatus = (id: string, newStatus: DeliverableStatus) => {
+    const completed_at = newStatus === 'completed' ? new Date().toISOString() : null;
+    return updateMutation.mutateAsync({ id, patch: { status: newStatus, completed_at } });
   };
 
   const toggleSubtaskComplete = async (subtask: Deliverable, e: React.MouseEvent) => {
@@ -381,7 +358,7 @@ const EquipeKanban = () => {
   };
 
   // Abrir modal de detalhes
-  const openDeliverableDetail = async (deliverable: Deliverable) => {
+  const openDeliverableDetail = (deliverable: Deliverable) => {
     setSelectedDeliverable(deliverable);
     setEditForm({
       title: deliverable.title,
@@ -392,51 +369,31 @@ const EquipeKanban = () => {
       due_date: deliverable.due_date || '',
       estimated_hours: deliverable.estimated_hours?.toString() || ''
     });
-
-    // Buscar anexos
-    const { data: attachmentsData } = await supabase
-      .from('deliverable_attachments')
-      .select('*')
-      .eq('deliverable_id', deliverable.id)
-      .order('uploaded_at', { ascending: false });
-    
-    setAttachments(attachmentsData || []);
+    // Anexos carregam via useDeliverableAttachments(selectedDeliverable?.id).
   };
 
   // Salvar alterações
   const saveDeliverable = async () => {
     if (!selectedDeliverable) return;
 
+    const patch: SprintDeliverableInput = {
+      title: editForm.title,
+      description: editForm.description || null,
+      assigned_to: editForm.assigned_to || null,
+      status: editForm.status as DeliverableStatus,
+      start_date: editForm.start_date || null,
+      due_date: editForm.due_date || null,
+      estimated_hours: editForm.estimated_hours ? parseFloat(editForm.estimated_hours) : null,
+    };
+
+    if (editForm.status === 'completed' && selectedDeliverable.status !== 'completed') {
+      patch.completed_at = new Date().toISOString();
+    } else if (editForm.status !== 'completed') {
+      patch.completed_at = null;
+    }
+
     try {
-      const updateData: Record<string, unknown> = {
-        title: editForm.title,
-        description: editForm.description || null,
-        assigned_to: editForm.assigned_to || null,
-        status: editForm.status,
-        start_date: editForm.start_date || null,
-        due_date: editForm.due_date || null,
-        estimated_hours: editForm.estimated_hours ? parseFloat(editForm.estimated_hours) : null
-      };
-
-      if (editForm.status === 'completed' && selectedDeliverable.status !== 'completed') {
-        updateData.completed_at = new Date().toISOString();
-      } else if (editForm.status !== 'completed') {
-        updateData.completed_at = null;
-      }
-
-      const { error } = await supabase
-        .from('sprint_deliverables')
-        .update(updateData)
-        .eq('id', selectedDeliverable.id);
-
-      if (error) throw error;
-
-      setDeliverables(deliverables.map(d => 
-        d.id === selectedDeliverable.id 
-          ? { ...d, ...updateData } as Deliverable
-          : d
-      ));
-
+      await updateMutation.mutateAsync({ id: selectedDeliverable.id, patch });
       toast.success('Entregável atualizado');
       setSelectedDeliverable(null);
     } catch (error) {
@@ -463,41 +420,8 @@ const EquipeKanban = () => {
     }
 
     setUploadingFile(true);
-
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) throw new Error('Usuário não autenticado');
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${selectedDeliverable.id}/${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('deliverable-attachments')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase
-        .from('deliverable_attachments')
-        .insert({
-          deliverable_id: selectedDeliverable.id,
-          file_name: file.name,
-          file_path: fileName,
-          file_size: file.size,
-          file_type: file.type,
-          uploaded_by: userData.user.id
-        });
-
-      if (dbError) throw dbError;
-
-      // Recarregar anexos
-      const { data: attachmentsData } = await supabase
-        .from('deliverable_attachments')
-        .select('*')
-        .eq('deliverable_id', selectedDeliverable.id)
-        .order('uploaded_at', { ascending: false });
-
-      setAttachments(attachmentsData || []);
+      await uploadAttachment.mutateAsync({ deliverableId: selectedDeliverable.id, file });
       toast.success('Arquivo anexado');
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -513,20 +437,7 @@ const EquipeKanban = () => {
   // Download de arquivo
   const downloadFile = async (attachment: Attachment) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('deliverable-attachments')
-        .download(attachment.file_path);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = attachment.file_name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      await downloadDeliverableAttachment(attachment);
     } catch (error) {
       console.error('Error downloading file:', error);
       toast.error('Erro ao baixar arquivo');
@@ -535,20 +446,13 @@ const EquipeKanban = () => {
 
   // Deletar arquivo
   const deleteFile = async (attachment: Attachment) => {
+    if (!selectedDeliverable) return;
     try {
-      // Precheck antes do storage — evita perder o arquivo se RLS bloquear o delete na tabela
-      await assertCanPerform('deliverable_attachments', 'delete', attachment.id);
-
-      await supabase.storage
-        .from('deliverable-attachments')
-        .remove([attachment.file_path]);
-
-      await supabase
-        .from('deliverable_attachments')
-        .delete()
-        .eq('id', attachment.id);
-
-      setAttachments(attachments.filter(a => a.id !== attachment.id));
+      await deleteAttachment.mutateAsync({
+        id: attachment.id,
+        filePath: attachment.file_path,
+        deliverableId: selectedDeliverable.id,
+      });
       toast.success('Arquivo removido');
     } catch (error: any) {
       console.error('Error deleting file:', error);
@@ -562,36 +466,8 @@ const EquipeKanban = () => {
 
     try {
       setDeleting(true);
-
-      // Primeiro, excluir anexos do storage e da tabela
-      const { data: attachmentsToDelete } = await supabase
-        .from('deliverable_attachments')
-        .select('id, file_path')
-        .eq('deliverable_id', selectedDeliverable.id);
-
-      if (attachmentsToDelete && attachmentsToDelete.length > 0) {
-        // Precheck antes de mexer no storage — delete em lote, amostra um id
-        await assertCanPerform('deliverable_attachments', 'delete', attachmentsToDelete[0].id);
-
-        await supabase.storage
-          .from('deliverable-attachments')
-          .remove(attachmentsToDelete.map(a => a.file_path));
-
-        await supabase
-          .from('deliverable_attachments')
-          .delete()
-          .eq('deliverable_id', selectedDeliverable.id);
-      }
-
-      // Excluir o entregável
-      const { error } = await supabase
-        .from('sprint_deliverables')
-        .delete()
-        .eq('id', selectedDeliverable.id);
-
-      if (error) throw error;
-
-      setDeliverables(deliverables.filter(d => d.id !== selectedDeliverable.id));
+      // O hook faz a cascata: limpa anexos (tabela + storage) antes de excluir o entregável.
+      await deleteMutation.mutateAsync(selectedDeliverable.id);
       setSelectedDeliverable(null);
       setDeleteDialogOpen(false);
       toast.success('Entregável excluído');
