@@ -2,601 +2,149 @@
 /**
  * status-report.config.mjs
  * -------------------------------------------------------------------------
- * MANIFESTO dos marcos do roadmap OSG + regras de detecção no repo.
- * FONTE ÚNICA do vínculo marco↔detecção (SPEC de 16/07/2026).
+ * REGRAS DE DETECÇÃO (código-side), casadas por `id` de marco.
  *
- * Quando o roadmap mudar (novo marco, marco vira 🟢/🟡/⚪), atualize aqui.
- * O casamento roadmap × código é pelo `id` ESTÁVEL (não pelo título).
+ * A FONTE ÚNICA dos marcos (id, projeto, sprint, dono, tipo, status, depende_de)
+ * é o `roadmap.json` no Drive (03_Roadmap_e_Backlog/roadmap.json). O gerador de
+ * status LÊ o roadmap.json e junta, por `id`, as regras abaixo.
  *
- * Campos de cada marco:
- *   - id         : ID estável `P{n}-SLUG` / `GED-SLUG` (SPEC §4). NUNCA mudar.
- *   - plataforma : "OSG Work" | "OSG Projects"  (agrupa no .md)
- *   - projeto    : rótulo do projeto (para o .md)
- *   - sprint     : sprint alvo no roadmap (S09, S13-S15, "—")
- *   - marco      : título (o "o quê") — pode mudar sem quebrar o vínculo
- *   - dono       : responsável
- *   - statusRoadmap : status DECLARADO no roadmap → "mvp"|"pronto"|"parcial"|"novo"
- *                     (no .json vira roadmap: no_ar|parcial|novo)
- *   - tipo       : "obra" (constrói) | "ajuste" (evolui o existente) | "estudo" (SPEC/pesquisa — não vira código)
- *   - detectavel : bool — false p/ estudos (não conta como atraso)
- *   - pendencias : (opcional) número OU lista de strings de pendências/bugs abertos.
- *                  Se há evidência de código E pendencias>0 → codigo="ajuste" (🔧).
- *   - detect     : sinais no repo (qualquer um positivo já conta):
- *        routes   : trechos procurados em App.tsx + protectedPages.ts
- *        files    : globs sobre caminhos de src/ (suporta * e **)
- *        keywords : termos procurados no conteúdo de src/ (.ts/.tsx)
+ * ⚠️ NUNCA regenere este arquivo a partir do roadmap.json: o roadmap NÃO tem as
+ * regras de detecção (routes/files/keywords) — elas vivem aqui, no repo. Perder
+ * este arquivo = o status tool para de detectar qualquer coisa.
  *
- * Detecção HEURÍSTICA. Estados de código derivados (SPEC §2):
- *   no_ar (✅ rota/arquivo) · ajuste (🔧 código + pendência) · parcial (🟨 só keyword) · sem_evidencia (⬜).
+ * Cada entrada `id → { detect }`:
+ *   routes   : trechos procurados em App.tsx + protectedPages.ts
+ *   files    : globs sobre caminhos de src/ (suporta * e **)
+ *   keywords : termos procurados no conteúdo de src/ (.ts/.tsx)
+ *   docTerms : (opcional) termos extras p/ casar docs/planos em prosa
+ *   pendencias : (opcional) número OU lista de pendências/bugs abertos →
+ *                se há código E pendencias>0, o estado de código vira "ajuste" (🔧)
+ *
+ * IDs sem entrada aqui (ROI/adoção/etc.) ficam sem detecção — corretos, pois
+ * são `medicao`/`adocao` (detectavel:false, derivado do tipo no roadmap.json).
  * -------------------------------------------------------------------------
  */
 
 export const META = {
   tool: "OSG (Work + Projects)",
-  roadmapVersion: "v6 (16/07/2026)",
+  fonte: "roadmap.json (03_Roadmap_e_Backlog) — fonte única dos marcos",
 };
 
-/** @typedef {{id:string,plataforma:string,projeto:string,sprint:string,marco:string,dono:string,statusRoadmap:"mvp"|"pronto"|"parcial"|"novo",tipo:"obra"|"ajuste"|"estudo",detectavel:boolean,pendencias?:number|string[],detect:{routes?:string[],files?:string[],keywords?:string[]}}} Marco */
+/** @typedef {{routes?:string[],files?:string[],keywords?:string[],docTerms?:string[],pendencias?:number|string[]}} Detect */
 
-/** @type {Marco[]} */
-export const MARCOS = [
-  // ============================ P1 · Gestão (OSG Projects) ============================
-  {
-    id: "P1-CATALOGO-DEMANDAS",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S09",
-    marco: "Catálogo de produtos + tela de Demandas",
-    dono: "Alexandre",
-    statusRoadmap: "parcial",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/projetos/cadastro"],
-      files: ["src/hooks/useOsProdutosContratados.ts", "src/hooks/useOrgProjects.ts"],
-      keywords: ["os_produtos_contratados", "produto_segmento"],
-    },
+/** @type {Record<string, Detect>} */
+export const DETECT = {
+  // ---------------- P1 · Gestão (OSG Projects) ----------------
+  "P1-CATALOGO-DEMANDAS": {
+    routes: ["osg/projetos/cadastro"],
+    files: ["src/hooks/useOsProdutosContratados.ts", "src/hooks/useOrgProjects.ts"],
+    keywords: ["os_produtos_contratados", "produto_segmento"],
   },
-  {
-    id: "P1-CADASTRO-UNICO",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S10",
-    marco: "Cadastro único de cliente (CNPJ→Receita)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { files: ["src/hooks/useExternalConsults.ts"], keywords: ["brasilapi", "cnpj/v1"] },
+  "P1-PAGINA-PROJETO": {
+    files: ["src/pages/equipe/osg/PaginaProjeto*.tsx", "src/pages/equipe/osg/ProjetoDetalhe*.tsx"],
+    keywords: ["Página do Projeto"],
   },
-  {
-    id: "P1-KANBAN-GANTT",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S10",
-    marco: "Visualizações Kanban e Gantt",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { files: ["src/**/*anban*.tsx", "src/**/*antt*.tsx"], keywords: ["KanbanBoard", "GanttChart"] },
+  "P1-GERACAO-TAREFAS": {
+    keywords: ["geração automática de tarefas", "gerar tarefas do produto", "tarefas pré-ordenadas"],
   },
-  {
-    id: "P1-GERACAO-TAREFAS",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S09-S10",
-    marco: "Geração automática de tarefas ao abrir a demanda",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["geração automática de tarefas", "gerar tarefas do produto", "tarefas pré-ordenadas"] },
+  "P1-CADASTRO-UNICO": { files: ["src/hooks/useExternalConsults.ts"], keywords: ["brasilapi", "cnpj/v1"] },
+  "P1-PROPOSTA-ANEXA": { keywords: ["proposta comercial"] },
+  "P1-KANBAN-GANTT": { files: ["src/**/*anban*.tsx", "src/**/*antt*.tsx"], keywords: ["KanbanBoard", "GanttChart"] },
+  "P1-HORAS-TAREFA": { keywords: ["actual_hours", "horas realizadas", "apontamento de horas"] },
+  "P1-RELATORIO-PENDENTES": {
+    routes: ["osg/work/relatorios"],
+    files: ["src/pages/equipe/osg/Relatorios.tsx", "src/hooks/useOsgChecklist.ts"],
+    keywords: ["checklist_cliente_item"],
   },
-  {
-    id: "P1-PAGINA-PROJETO",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S10",
-    marco: "Página do Projeto — resumo + andamento",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: {
-      files: ["src/pages/equipe/osg/PaginaProjeto*.tsx", "src/pages/equipe/osg/ProjetoDetalhe*.tsx"],
-      keywords: ["Página do Projeto"],
-    },
+  "P1-LOG-ANOTACOES": { keywords: ["@menção", "anotações do projeto", "mencionar responsável"] },
+  "P1-NOTIF-REVISAO": { keywords: ["notificação ao gestor", "entrou em revisão", "notificar revisão"] },
+  "P1-DASHBOARDS-KPI": { keywords: ["faturamento da área", "7 KPIs", "dashboard do gestor", "DashboardGerencial"] },
+  "P1-ALERTA-PARADO": { keywords: ["projeto parado", "estagnação", "sem movimentação há"] },
+  "P1-HUB-DOCUMENTAL": { keywords: ["hub documental", "repositório único"] },
+  "P1-DEVOLUTIVA": { keywords: ["notificação ao cliente", "devolutiva ao cliente"] },
+
+  // Recebimento / GED (projeto P1 no roadmap.json)
+  "GED-UPLOAD": {
+    routes: ["osg/work/documentos"],
+    files: [
+      "src/pages/equipe/osg/DocumentosCliente.tsx",
+      "src/hooks/useDocumentoArquivo.ts",
+      "src/components/equipe/osg/documentos/DocUploadDialog.tsx",
+    ],
+    keywords: ["documento_arquivo"],
   },
-  {
-    id: "P1-LOG-ANOTACOES",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S11",
-    marco: "Anotações do projeto com @menção",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["@menção", "anotações do projeto", "mencionar responsável"] },
+  "GED-PROTOCOLO": { keywords: ["protocolo de recebimento", "quem enviou", "protocolo de entrada"] },
+  "GED-CLASSIFICACAO": {
+    files: ["src/components/equipe/osg/documentos/docMeta.ts", "src/components/equipe/osg/documentos/checklistPadrao.ts"],
+    keywords: ["osg_doc_categoria", "checklist_item_id"],
   },
-  {
-    id: "P1-NOTIF-REVISAO",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S11",
-    marco: "Notificação ao gestor quando a tarefa entra em revisão",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: { keywords: ["notificação ao gestor", "entrou em revisão", "notificar revisão"] },
+  "GED-RASTREABILIDADE": { keywords: ["rastreabilidade", "quem baixou", "log de download"] },
+  "GED-V1-INTEGRADA": { keywords: ["recebimento v1", "integrado ao cadastro"] },
+
+  // ---------------- P2 · Contratos (OSG Work) ----------------
+  "P2-TEMPLATE-BUILDER": {
+    routes: ["osg/work/gerar-documento"],
+    files: [
+      "src/pages/equipe/osg/GerarDocumento.tsx",
+      "src/components/equipe/osg/gerar/EscolhaModelo.tsx",
+      "src/components/equipe/osg/gerar/EscolhaEmpresa.tsx",
+    ],
+    keywords: ["documento_gerado", "useGeracaoDocumento"],
   },
-  {
-    id: "P1-PROPOSTA-ANEXA",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S10",
-    marco: "Proposta comercial anexada ao cliente",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["proposta comercial"] },
+  // Combinado no roadmap.json: Qualificação das Partes + Quadro Societário
+  "P2-CADASTROS-APOIO": {
+    routes: ["osg/work/qualificacao-das-partes", "osg/work/quadro-societario"],
+    files: [
+      "src/pages/equipe/osg/QualificacaoDasPartes.tsx",
+      "src/hooks/useQualificacaoDasPartes.ts",
+      "src/pages/equipe/osg/QuadroSocietario.tsx",
+      "src/hooks/useQuadroSocietario.ts",
+    ],
   },
-  {
-    id: "P1-HORAS-TAREFA",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S11",
-    marco: "Lançamento de horas realizadas na própria tarefa (substitui Kairós)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: { keywords: ["actual_hours", "horas realizadas", "apontamento de horas"] },
+  "P2-DP-INTELIGENTE": {
+    routes: ["osg/work/diagnostico-patrimonial"],
+    files: ["src/pages/equipe/osg/DiagnosticoPatrimonial.tsx", "src/hooks/useDiagnosticoPatrimonial.ts"],
+    keywords: ["useOsgChecklist"],
   },
-  {
-    id: "P1-RELATORIO-PENDENTES",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S11",
-    marco: "Relatório / checklist de documentos pendentes",
-    dono: "Alexandre",
-    statusRoadmap: "mvp",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/relatorios"],
-      files: ["src/pages/equipe/osg/Relatorios.tsx", "src/hooks/useOsgChecklist.ts"],
-      keywords: ["checklist_cliente_item"],
-    },
+  "P2-ONDA1": {
+    keywords: ["integralização de capital", "constituição da agro", "constituição de sociedade"],
   },
-  {
-    id: "P1-DASHBOARDS-KPI",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S13",
-    marco: "Dashboards de gestão — 7 KPIs do sócio (faturamento, horas, atrasos)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["faturamento da área", "7 KPIs", "dashboard do gestor", "DashboardGerencial"] },
+  "P2-BIBLIOTECA-CLAUSULAS": {
+    routes: ["osg/work/biblioteca-modelos", "osg/work/montagem-documentos"],
+    files: ["src/pages/equipe/osg/BibliotecaModelos.tsx", "src/pages/equipe/osg/MontagemDocumentos.tsx"],
+    keywords: ["tmpl_bloco"],
+    docTerms: ["override de blocos"],
   },
-  {
-    id: "P1-HUB-DOCUMENTAL",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S16",
-    marco: "Hub documental v1 (repositório único por cliente)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["hub documental", "repositório único"] },
+  "P2-CASCATA": {
+    files: ["src/components/equipe/osg/OverrideBlocoDialog.tsx"],
+    keywords: ["documento_override", "cascata"],
   },
-  {
-    id: "P1-DEVOLUTIVA",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão de projetos e tarefas",
-    sprint: "S17",
-    marco: "Devolutiva e notificações ao cliente",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["notificação ao cliente", "devolutiva ao cliente"] },
+  "P2-PLANEJ-TRIB-RURAL": {
+    keywords: ["contexto-para-o-fiscal", "Planejamento Tributário", "Abertura de Demanda"],
+  },
+  "P2-ONDA2": { keywords: ["alteração contratual", "doação de quotas", "parceria rural", "composse"] },
+  "P2-ONDA3": { keywords: ["Acordo de Quotistas", "matriz de alçadas", "regimento interno"] },
+
+  // ---------------- P3 · Sucessão + Tributário (OSG Work) ----------------
+  "P3-DIAG-TRIBUTARIO": { keywords: ["Planejamento Tributário", "contexto-para-o-fiscal"] },
+  "P3-CALC-ITCMD": { keywords: ["ITCMD", "ITCD", "calculadora de itcmd"], files: ["src/**/*tcmd*.tsx", "src/**/*Itcd*.tsx"] },
+  // roadmap.json: P3-ITCMD-DOACAO (era P3-DOACAO-AC no config antigo)
+  "P3-ITCMD-DOACAO": { keywords: ["doação de quotas", "AC reflexo"] },
+  "P3-TESTAMENTO-USUFRUTO": { keywords: ["testamento", "usufruto"] },
+
+  // ---------------- P4 · Governança (OSG Work) ----------------
+  "P4-DIAGNOSTICO": { keywords: ["diagnóstico de governança"] },
+  "P4-ACORDO-QUOTISTAS": { keywords: ["Acordo de Quotistas"] },
+  "P4-PROTOCOLO-REMUNERACAO": { keywords: ["Protocolo de Remuneração"] },
+  // Combinado no roadmap.json: Matriz de Alçadas + Regimento Interno do Conselho
+  "P4-MATRIZ-REGIMENTO": { keywords: ["Matriz de Alçadas", "Regimento Interno"] },
+  // Combinado no roadmap.json: AC Reflexo da Governança + Instalação do Conselho
+  "P4-AC-REFLEXO-CONSELHO": {
+    keywords: ["reflexo da governança", "AC reflexo da governança", "Instalação do Conselho", "conselho de administração"],
   },
 
-  // ---- Recebimento / GED (dentro do P1) ----
-  {
-    id: "GED-UPLOAD",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão (Recebimento/GED)",
-    sprint: "S09",
-    marco: "Recebimento — upload na área do cliente (v0)",
-    dono: "Eduardo",
-    statusRoadmap: "mvp",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/documentos"],
-      files: [
-        "src/pages/equipe/osg/DocumentosCliente.tsx",
-        "src/hooks/useDocumentoArquivo.ts",
-        "src/components/equipe/osg/documentos/DocUploadDialog.tsx",
-      ],
-      keywords: ["documento_arquivo"],
-    },
-  },
-  {
-    id: "GED-PROTOCOLO",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão (Recebimento/GED)",
-    sprint: "S10",
-    marco: "Protocolo de recebimento (quem enviou / quando)",
-    dono: "Eduardo",
-    statusRoadmap: "parcial",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["protocolo de recebimento", "quem enviou", "protocolo de entrada"] },
-  },
-  {
-    id: "GED-CLASSIFICACAO",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão (Recebimento/GED)",
-    sprint: "S11",
-    marco: "Classificação dos documentos recebidos (categoria + vínculo ao checklist)",
-    dono: "Eduardo",
-    statusRoadmap: "pronto",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      files: ["src/components/equipe/osg/documentos/docMeta.ts", "src/components/equipe/osg/documentos/checklistPadrao.ts"],
-      keywords: ["osg_doc_categoria", "checklist_item_id"],
-    },
-  },
-  {
-    id: "GED-RASTREABILIDADE",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão (Recebimento/GED)",
-    sprint: "S13",
-    marco: "Rastreabilidade de download (quem baixou / quando)",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["rastreabilidade", "quem baixou", "log de download"] },
-  },
-  {
-    id: "GED-V1-INTEGRADA",
-    plataforma: "OSG Projects",
-    projeto: "P1 · Gestão (Recebimento/GED)",
-    sprint: "S13",
-    marco: "Recebimento v1 integrado ao cadastro/DP",
-    dono: "Eduardo",
-    statusRoadmap: "parcial",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["recebimento v1", "integrado ao cadastro"] },
-  },
-
-  // ============================ P2 · Contratos (OSG Work) ============================
-  {
-    id: "P2-TEMPLATE-BUILDER",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S09",
-    marco: "Contratos-base via Template Builder (motor gera .docx)",
-    dono: "Bernardo",
-    statusRoadmap: "parcial",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/gerar-documento"],
-      files: [
-        "src/pages/equipe/osg/GerarDocumento.tsx",
-        "src/components/equipe/osg/gerar/EscolhaModelo.tsx",
-        "src/components/equipe/osg/gerar/EscolhaEmpresa.tsx",
-      ],
-      keywords: ["documento_gerado", "useGeracaoDocumento"],
-    },
-  },
-  {
-    id: "P2-DP-INTELIGENTE",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S11",
-    marco: "DP Inteligente + relatório de itens faltantes",
-    dono: "Alexandre",
-    statusRoadmap: "mvp",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/diagnostico-patrimonial"],
-      files: ["src/pages/equipe/osg/DiagnosticoPatrimonial.tsx", "src/hooks/useDiagnosticoPatrimonial.ts"],
-      keywords: ["useOsgChecklist"],
-    },
-  },
-  {
-    id: "P2-QUALIFICACAO-PARTES",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "—",
-    marco: "Qualificação das Partes (cadastro de apoio: PF/PJ + parentescos)",
-    dono: "Alexandre",
-    statusRoadmap: "mvp",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/qualificacao-das-partes"],
-      files: ["src/pages/equipe/osg/QualificacaoDasPartes.tsx", "src/hooks/useQualificacaoDasPartes.ts"],
-    },
-  },
-  {
-    id: "P2-QUADRO-SOCIETARIO",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "—",
-    marco: "Quadro Societário (cadastro de apoio: quotas/participação)",
-    dono: "Alexandre",
-    statusRoadmap: "mvp",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/quadro-societario"],
-      files: ["src/pages/equipe/osg/QuadroSocietario.tsx", "src/hooks/useQuadroSocietario.ts"],
-    },
-  },
-  {
-    id: "P2-BIBLIOTECA-CLAUSULAS",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S12",
-    marco: "Biblioteca de Cláusulas versionada",
-    dono: "Bernardo",
-    statusRoadmap: "novo",
-    tipo: "ajuste",
-    detectavel: true,
-    detect: {
-      routes: ["osg/work/biblioteca-modelos", "osg/work/montagem-documentos"],
-      files: ["src/pages/equipe/osg/BibliotecaModelos.tsx", "src/pages/equipe/osg/MontagemDocumentos.tsx"],
-      keywords: ["tmpl_bloco"],
-    },
-  },
-  {
-    id: "P2-CASCATA",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S12",
-    marco: "Cascata v1 (dado-fonte muda → sinaliza derivados)",
-    dono: "Bernardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { files: ["src/components/equipe/osg/OverrideBlocoDialog.tsx"], keywords: ["documento_override", "cascata"] },
-  },
-  {
-    id: "P2-ONDA1",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S12",
-    marco: "Onda 1 (constituições, integralização, matrícula)",
-    dono: "Bernardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["integralização de capital", "constituição da agro", "constituição de sociedade"] },
-  },
-  {
-    id: "P2-ONDA2",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S13-S16",
-    marco: "Onda 2 (alterações, rural, doação de quotas)",
-    dono: "Bernardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["alteração contratual", "doação de quotas", "parceria rural", "composse"] },
-  },
-  {
-    id: "P2-ONDA3",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S17-S20",
-    marco: "Onda 3 (documentos de governança)",
-    dono: "Bernardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Acordo de Quotistas", "matriz de alçadas", "regimento interno"] },
-  },
-  {
-    id: "P2-PLANEJ-TRIB-RURAL",
-    plataforma: "OSG Work",
-    projeto: "P2 · Contratos",
-    sprint: "S13-S15",
-    marco: "Planejamento tributário rural + interface com o Fiscal",
-    dono: "Alexandre",
-    statusRoadmap: "parcial",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["contexto-para-o-fiscal", "Planejamento Tributário", "Abertura de Demanda"] },
-  },
-
-  // ============================ P3 · Sucessão + Tributário (OSG Work) ============================
-  {
-    id: "P3-DIAG-TRIBUTARIO",
-    plataforma: "OSG Work",
-    projeto: "P3 · Sucessão + Tributário",
-    sprint: "S13",
-    marco: "Diagnóstico + planejamento tributário (interface OSG↔Fiscal)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "estudo",
-    detectavel: false,
-    detect: { keywords: ["Planejamento Tributário", "contexto-para-o-fiscal"] },
-  },
-  {
-    id: "P3-CALC-ITCMD",
-    plataforma: "OSG Work",
-    projeto: "P3 · Sucessão + Tributário",
-    sprint: "S14",
-    marco: "Calculadora de ITCMD (3 cenários, por UF)",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["ITCMD", "ITCD", "calculadora de itcmd"], files: ["src/**/*tcmd*.tsx", "src/**/*Itcd*.tsx"] },
-  },
-  {
-    id: "P3-DOACAO-AC",
-    plataforma: "OSG Work",
-    projeto: "P3 · Sucessão + Tributário",
-    sprint: "S15",
-    marco: "Doação + AC reflexo",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["doação de quotas", "AC reflexo"] },
-  },
-  {
-    id: "P3-TESTAMENTO-USUFRUTO",
-    plataforma: "OSG Work",
-    projeto: "P3 · Sucessão + Tributário",
-    sprint: "S16",
-    marco: "Testamento / usufruto (instrumento alternativo)",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["testamento", "usufruto"] },
-  },
-
-  // ============================ P4 · Governança (OSG Work) ============================
-  {
-    id: "P4-DIAGNOSTICO",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S15",
-    marco: "Diagnóstico de governança",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "estudo",
-    detectavel: false,
-    detect: { keywords: ["diagnóstico de governança"] },
-  },
-  {
-    id: "P4-ACORDO-QUOTISTAS",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S16",
-    marco: "Acordo de Quotistas",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Acordo de Quotistas"] },
-  },
-  {
-    id: "P4-PROTOCOLO-REMUNERACAO",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S16",
-    marco: "Protocolo de Remuneração",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Protocolo de Remuneração"] },
-  },
-  {
-    id: "P4-MATRIZ-ALCADAS",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S17",
-    marco: "Matriz de Alçadas",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Matriz de Alçadas"] },
-  },
-  {
-    id: "P4-REGIMENTO-CONSELHO",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S17",
-    marco: "Regimento Interno do Conselho",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Regimento Interno"] },
-  },
-  {
-    id: "P4-AC-REFLEXO-GOV",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S18",
-    marco: "AC Reflexo da Governança",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["AC reflexo da governança", "reflexo da governança"] },
-  },
-  {
-    id: "P4-INSTALACAO-CONSELHO",
-    plataforma: "OSG Work",
-    projeto: "P4 · Governança",
-    sprint: "S18",
-    marco: "Instalação do Conselho",
-    dono: "Eduardo",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["Instalação do Conselho", "conselho de administração"] },
-  },
-
-  // ============================ P5 · Apresentações (OSG Work) ============================
-  {
-    id: "P5-GERADOR-APRESENTACAO",
-    plataforma: "OSG Work",
-    projeto: "P5 · Apresentações e relatórios",
-    sprint: "S16",
-    marco: "[SPEC] Gerador de apresentação (organograma + tabelas do DP)",
-    dono: "Alexandre",
-    statusRoadmap: "parcial",
-    tipo: "estudo",
-    detectavel: false,
-    detect: { keywords: ["organograma", "organograma-societario"], files: ["src/**/*rganograma*.tsx"] },
-  },
-  {
-    id: "P5-APRESENTACAO-INICIAL",
-    plataforma: "OSG Work",
-    projeto: "P5 · Apresentações e relatórios",
-    sprint: "S17",
-    marco: "Apresentação Inicial (tributário e societário) automática",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["gerador de apresentação", "apresentação inicial"] },
-  },
-  {
-    id: "P5-APRESENTACAO-FINAL",
-    plataforma: "OSG Work",
-    projeto: "P5 · Apresentações e relatórios",
-    sprint: "S18",
-    marco: "Apresentação Final de Sucessão + devolutiva",
-    dono: "Alexandre",
-    statusRoadmap: "novo",
-    tipo: "obra",
-    detectavel: true,
-    detect: { keywords: ["apresentação final", "devolutiva ao cliente"] },
-  },
-];
+  // ---------------- P5 · Apresentações (OSG Work) ----------------
+  "P5-GERADOR-APRESENTACAO": { keywords: ["organograma", "organograma-societario"], files: ["src/**/*rganograma*.tsx"] },
+  "P5-APRESENTACAO-INICIAL": { keywords: ["gerador de apresentação", "apresentação inicial"] },
+  "P5-APRESENTACAO-FINAL": { keywords: ["apresentação final", "devolutiva ao cliente"] },
+};
