@@ -359,6 +359,11 @@ export default function EquipeBacklog() {
                               {item.estimated_hours}h estimadas
                             </span>
                           )}
+                          {item.cluster_id && (
+                            <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
+                              {clusters.find(c => c.id === item.cluster_id)?.name || 'Cluster'}
+                            </span>
+                          )}
                           {item.project_id && (
                             <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
                               {projects.find(p => p.id === item.project_id)?.name || 'Projeto'}
