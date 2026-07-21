@@ -68,8 +68,14 @@ Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transform
 ### T5 — Cockpit por projeto / visão de portfólio (código)
 A tela `Análise Inteligente` já é quase o cockpit da referência (score de saúde, taxa de entrega, atrasados, scope creep, bloqueios, evolução). Falta: (a) ser a **mesma verdade** do dashboard operacional; (b) uma **visão por projeto** (saúde de cada projeto lado a lado: saudável / atenção / problema / sem monitoramento). Reaproveitar a lógica de KPIs agrupando por `project_id`.
 
-### T6 — Kanban: subtarefa multi-nível / coluna própria (código)
-Hoje a subtarefa só aparece aninhada na coluna da **mãe** (não na coluna do próprio status), e aninhamento de 2+ níveis (neta) não renderiza. Decidir com a Patrícia: (a) subtarefa aparece como card na sua própria coluna, ou (b) achatar a hierarquia. O contador de "subtarefas ocultas" já adicionado ao Kanban ajuda a medir o tamanho do problema.
+### T6 — Kanban: subtarefa multi-nível / coluna própria (código) — ✅ CONCLUÍDO (2026-07-21)
+**Decisão da Patrícia:** manter a subtarefa **aninhada na mãe** (não card solto em coluna própria) — quando abre a subtarefa pra ler a descrição, precisa achar a mãe. Ver memória `feedback-kanban-subtarefa-aninhada-na-mae`.
+**Feito (código):**
+- `buildEquipeKanbanHierarchy` (`src/lib/equipeKanban.ts`) reescrito: agora é recursivo/achatado — cada raiz traz TODOS os descendentes (filhas, netas, ...) em DFS por código, cada linha anotada com `depth` (indentação), `hasChildren` e `hoursDisplay`. `subtaskCount`/`completedSubtasks` contam todos os níveis; `subtaskHoursTotal` soma só as FOLHAS do ramo (não duplica). Novo tipo `EquipeKanbanSubtaskRow`.
+- **Órfã (mãe fora da lista) agora vira raiz** em vez de sumir (corrige o "tarefa some no Kanban").
+- `EquipeKanban.tsx`: `filteredDeliverables` passou a puxar **toda a cadeia de mães** (mãe, avó, ...) de cada item que bate no filtro — subtarefa/neta filtrada continua aninhada sob a raiz.
+- Render recursivo por `depth` (indentação) no `KanbanBoard.tsx` e `KanbanTable.tsx`; linha mostra `hoursDisplay`.
+- Testes: `equipeKanban.test.ts` cobre netas (profundidade, DFS, soma só folhas) e órfã-vira-raiz.
 
 ---
 

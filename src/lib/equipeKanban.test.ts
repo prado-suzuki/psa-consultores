@@ -90,7 +90,7 @@ describe('equipeKanban', () => {
     ).toEqual([]);
   });
 
-  it('monta somente raízes, mantém órfãs fora do resultado e ordena subtarefas por código numérico', () => {
+  it('monta raízes, faz órfã (mãe ausente) aparecer como raiz para não sumir, e ordena subtarefas por código', () => {
     const items = [
       deliverable('child-10', {
         parent_id: 'parent',
@@ -104,19 +104,54 @@ describe('equipeKanban', () => {
     ];
 
     const hierarchy = buildEquipeKanbanHierarchy(items);
-    expect(hierarchy).toHaveLength(1);
-    // subtaskHoursTotal soma só os filhos (6.5), ignorando as horas próprias da pai (99).
-    expect(hierarchy[0]).toMatchObject({
-      id: 'parent',
-      subtaskCount: 2,
-      completedSubtasks: 1,
-      subtaskHoursTotal: 6.5,
-    });
-    expect(hierarchy[0].subtasks.map(({ id }) => id)).toEqual(['child-2', 'child-10']);
+    // parent (T-0) + orphan (mãe 'absent' não está na lista → vira raiz p/ não sumir), por código.
+    expect(hierarchy.map((root) => root.id)).toEqual(['parent', 'orphan']);
+
+    const parent = hierarchy.find((root) => root.id === 'parent')!;
+    // subtaskHoursTotal soma só as folhas (6.5), ignorando as horas próprias da mãe (99).
+    expect(parent).toMatchObject({ subtaskCount: 2, completedSubtasks: 1, subtaskHoursTotal: 6.5 });
+    expect(parent.subtasks.map(({ id }) => id)).toEqual(['child-2', 'child-10']);
+    expect(parent.subtasks.every((subtask) => subtask.depth === 0)).toBe(true);
+
+    expect(hierarchy.find((root) => root.id === 'orphan')!.subtaskCount).toBe(0);
     expect(getEquipeKanbanSubtasks(items, 'parent').map(({ id }) => id)).toEqual([
       'child-2',
       'child-10',
     ]);
+  });
+
+  it('achata netas (2+ níveis) sob a raiz com profundidade e soma só as horas das folhas', () => {
+    const items = [
+      deliverable('root', { task_code: 'T-1', estimated_hours: 100 }),
+      deliverable('child', { parent_id: 'root', task_code: 'T-1.1', estimated_hours: 50 }),
+      deliverable('grand-a', {
+        parent_id: 'child',
+        task_code: 'T-1.1.1',
+        estimated_hours: 3,
+        status: 'completed',
+      }),
+      deliverable('grand-b', { parent_id: 'child', task_code: 'T-1.1.2', estimated_hours: 2 }),
+      deliverable('leaf', { parent_id: 'root', task_code: 'T-1.2', estimated_hours: 4 }),
+    ];
+
+    const hierarchy = buildEquipeKanbanHierarchy(items);
+    expect(hierarchy).toHaveLength(1);
+    const root = hierarchy[0];
+
+    // Descendentes achatados em DFS por código, com profundidade (neta = 1).
+    expect(root.subtasks.map(({ id }) => id)).toEqual(['child', 'grand-a', 'grand-b', 'leaf']);
+    expect(root.subtasks.map(({ depth }) => depth)).toEqual([0, 1, 1, 0]);
+    expect(root.subtaskCount).toBe(4);
+    expect(root.completedSubtasks).toBe(1);
+    // Horas do ramo = só folhas: 3 + 2 + 4 = 9 (ignora root 100 e a sub-mãe child 50).
+    expect(root.subtaskHoursTotal).toBe(9);
+
+    const child = root.subtasks.find((subtask) => subtask.id === 'child')!;
+    expect(child.hasChildren).toBe(true);
+    expect(child.hoursDisplay).toBe(5); // soma das folhas do ramo do child (3 + 2)
+    const leaf = root.subtasks.find((subtask) => subtask.id === 'leaf')!;
+    expect(leaf.hasChildren).toBe(false);
+    expect(leaf.hoursDisplay).toBe(4); // horas próprias (é folha)
   });
 
   it('ordena vencimentos e mantém data nula no fim em asc e no início em desc', () => {

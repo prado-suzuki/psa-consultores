@@ -127,16 +127,21 @@ const EquipeKanban = () => {
   );
 
   const filteredDeliverables = useMemo(() => {
-    const parentIdsOfMatchingSubtasks = new Set<string>();
-    deliverables.forEach((deliverable) => {
-      if (deliverable.parent_id && directMatchIds.has(deliverable.id)) {
-        parentIdsOfMatchingSubtasks.add(deliverable.parent_id);
+    const byId = new Map(deliverables.map((deliverable) => [deliverable.id, deliverable]));
+    const keep = new Set<string>();
+    // Mantém cada item que bate no filtro E toda a cadeia de mães acima dele (mãe, avó, ...),
+    // pra subtarefa/neta continuar aninhada sob a raiz em vez de sumir.
+    directMatchIds.forEach((id) => {
+      keep.add(id);
+      const visited = new Set<string>();
+      let parentId = byId.get(id)?.parent_id ?? null;
+      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
+        keep.add(parentId);
+        visited.add(parentId);
+        parentId = byId.get(parentId)?.parent_id ?? null;
       }
     });
-    return deliverables.filter(
-      (deliverable) =>
-        directMatchIds.has(deliverable.id) || parentIdsOfMatchingSubtasks.has(deliverable.id),
-    );
+    return deliverables.filter((deliverable) => keep.has(deliverable.id));
   }, [deliverables, directMatchIds]);
 
   const hierarchicalDeliverables = useMemo(

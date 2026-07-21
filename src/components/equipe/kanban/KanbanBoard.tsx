@@ -137,6 +137,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                     {deliverable.subtasks.map((subtask) => (
                       <div
                         key={subtask.id}
+                        style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
                           'flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50',
                           subtask.status === 'completed' && 'opacity-60',
@@ -162,11 +163,11 @@ export function KanbanBoard(props: KanbanBoardProps) {
                             {subtask.title}
                           </span>
                         </div>
-                        {subtask.estimated_hours && (
+                        {subtask.hoursDisplay ? (
                           <span className="text-xs text-gray-400 flex-shrink-0">
-                            {subtask.estimated_hours}h
+                            {subtask.hoursDisplay}h
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>

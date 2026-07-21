@@ -122,8 +122,9 @@ export function KanbanTable(props: KanbanTableProps) {
                         />
                       </TableCell>
                       <TableCell
+                        style={{ paddingLeft: 32 + subtask.depth * 18 }}
                         className={cn(
-                          'text-gray-700 pl-8',
+                          'text-gray-700',
                           subtask.status === 'completed' && 'line-through',
                         )}
                       >
@@ -146,7 +147,7 @@ export function KanbanTable(props: KanbanTableProps) {
                         {formatEquipeKanbanDueDate(subtask.due_date)}
                       </TableCell>
                       <TableCell className="text-gray-500 text-sm text-right">
-                        {subtask.estimated_hours || '-'}
+                        {subtask.hoursDisplay || '-'}
                       </TableCell>
                     </TableRow>
                   ))}
