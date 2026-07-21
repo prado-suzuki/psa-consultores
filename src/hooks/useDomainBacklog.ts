@@ -13,6 +13,7 @@ export interface BacklogItem {
   status: string;
   moved_to_deliverable_id: string | null;
   project_id: string | null;
+  cluster_id: string | null;
   created_at: string;
 }
 
