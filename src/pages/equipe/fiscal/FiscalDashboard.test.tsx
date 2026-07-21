@@ -224,7 +224,7 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByText('Visão geral da área fiscal — atualizado em tempo real')).toBeInTheDocument();
     expect(screen.getByTestId('hero')).toHaveAttribute('data-area', 'tax');
-    expect(screen.getByText('PSA Tax')).toBeInTheDocument();
+    expect(screen.getByText('Tax')).toBeInTheDocument();
     expect(mocks.areas).toHaveBeenCalledWith('tax');
     expect(mocks.equipes).toHaveBeenCalledWith('tax');
   });
@@ -242,7 +242,7 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
     expect(screen.getByTestId('osg-layout')).toBeInTheDocument();
     expect(screen.getByText('Visão geral da área OSG')).toBeInTheDocument();
     expect(screen.getByTestId('hero')).toHaveAttribute('data-area', 'osg');
-    expect(screen.getByText('PSA OSG')).toBeInTheDocument();
+    expect(screen.getByText('OSG')).toBeInTheDocument();
     expect(kpi('Total Projetos')).toHaveTextContent('1');
     expect(kpi('Total Tarefas')).toHaveTextContent('1');
     expect(screen.getByText('Pendência OSG')).toBeInTheDocument();

@@ -18,7 +18,7 @@ export function AreaDashboardOverview({ dashboard }: { dashboard: AreaDashboardC
         variation={{ label: totalTasks > 0 ? `${Math.round(totalEstHours / totalTasks)}h em média por tarefa` : 'sem tarefas planejadas' }} variant="solid" loading={isLoading} />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <HeroBanner area={area} className="lg:col-span-2" eyebrow={area === 'osg' ? 'PSA OSG' : 'PSA Tax'}
+      <HeroBanner area={area} className="lg:col-span-2" eyebrow={area === 'osg' ? 'OSG' : 'Tax'}
         title={overdueCount === 0 ? 'Operação sem atrasos — momentum alto' : `${overdueCount} tarefas precisam de atenção`}
         description={activeFiltersCount > 0
           ? `Visão com ${activeFiltersCount} filtro(s) aplicado(s). ${totalTasks} tarefas no recorte atual.`
