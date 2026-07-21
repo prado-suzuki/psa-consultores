@@ -344,8 +344,16 @@ export const useUpdateOrgProject = () => {
         ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
         ['servico_id', (oldProject as any).servico_id || null, data.servico_id || null],
       ];
+      // Patch isolado: monta o payload só com as colunas que realmente mudaram,
+      // reaproveitando o mesmo diff da auditoria. Assim uma edição nunca reescreve
+      // (nem zera) colunas que o formulário não gerencia — ex.: contribuinte_id,
+      // que o modal não expõe e antes era forçado a null a cada save.
+      const updatePayload: Record<string, unknown> = {};
       for (const [field, oldVal, newVal] of comparisons) {
-        if (oldVal !== newVal) changedFields[field] = { old: oldVal, new: newVal };
+        if (oldVal !== newVal) {
+          changedFields[field] = { old: oldVal, new: newVal };
+          updatePayload[field] = newVal;
+        }
       }
 
       // Compare member_ids arrays
@@ -355,26 +363,13 @@ export const useUpdateOrgProject = () => {
         changedFields.member_ids = { old: oldMemberIds, new: newMemberIds };
       }
 
-      // Update project
-      await assertCanPerform('org_projects', 'update', id);
-      const { error } = await supabase.from('org_projects').update({
-        name: data.name,
-        description: data.description || null,
-        status: data.status,
-        start_date: data.start_date || null,
-        end_date: data.end_date || null,
-        responsible_id: data.responsible_id || null,
-        leader_id: data.leader_ids[0] || null,
-        external_client_id: data.external_client_id || null,
-        contribuinte_id: data.contribuinte_id || null,
-        estrutura_area_id: data.estrutura_area_id || null,
-        equipe_id: data.equipe_id || null,
-        is_multidisciplinar: data.is_multidisciplinar,
-        ordem_servico_id: data.ordem_servico_id || null,
-        servico_id: data.servico_id || null,
+      // Update project — só dispara quando alguma coluna mudou (patch isolado acima).
+      if (Object.keys(updatePayload).length > 0) {
+        await assertCanPerform('org_projects', 'update', id);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
-      } as any).eq('id', id);
-      if (error) throw error;
+        const { error } = await supabase.from('org_projects').update(updatePayload as any).eq('id', id);
+        if (error) throw error;
+      }
 
       // Upsert project members + remove stale ones
       const members = buildMembersList(id, data);
