@@ -97,6 +97,7 @@ export default function EquipeBacklog() {
     setProjects(backlogQuery.data.projects);
     setProcesses(backlogQuery.data.processes);
     setProjectProcesses(backlogQuery.data.projectProcesses);
+    setClusters(backlogQuery.data.clusters);
     setLoading(false);
   }, [backlogQuery.data]);
 
