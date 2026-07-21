@@ -17,7 +17,7 @@ export interface EquipeDashboardDeliverableStats {
   completed: number;
 }
 
-export interface EquipeDashboardAreaData {
+export interface EquipeDashboardClusterData {
   name: string;
   count: number;
 }
@@ -27,7 +27,7 @@ interface EquipeDashboardData {
   activeSprint: EquipeDashboardSprint | null;
   stats: EquipeDashboardDeliverableStats;
   myDeliverables: EquipeDashboardDeliverable[];
-  areaData: EquipeDashboardAreaData[];
+  clusterData: EquipeDashboardClusterData[];
 }
 
 const INITIAL_STATS: EquipeDashboardDeliverableStats = {
@@ -57,7 +57,7 @@ export function useDomainEquipeDashboard(
       let activeSprint = previousData?.activeSprint ?? null;
       let stats = previousData?.stats ?? INITIAL_STATS;
       let myDeliverables = previousData?.myDeliverables ?? [];
-      let areaData = previousData?.areaData ?? [];
+      let clusterData = previousData?.clusterData ?? [];
 
       try {
         const { data: sprintData } = await supabase
@@ -93,15 +93,23 @@ export function useDomainEquipeDashboard(
 
         const { data: processes } = await supabase
           .from('processes')
-          .select('area');
+          .select('cluster_id');
+
+        const { data: clusterRows } = await supabase
+          .from('estrutura_clusters')
+          .select('id, name');
 
         if (processes) {
-          const areaCounts: Record<string, number> = {};
+          const clusterNameById = new Map(
+            (clusterRows ?? []).map((cluster) => [cluster.id, cluster.name] as const),
+          );
+          const clusterCounts: Record<string, number> = {};
           processes.forEach((process) => {
-            const area = process.area || 'Sem área';
-            areaCounts[area] = (areaCounts[area] || 0) + 1;
+            const name =
+              (process.cluster_id && clusterNameById.get(process.cluster_id)) || 'Sem cluster';
+            clusterCounts[name] = (clusterCounts[name] || 0) + 1;
           });
-          areaData = Object.entries(areaCounts).map(([name, count]) => ({ name, count }));
+          clusterData = Object.entries(clusterCounts).map(([name, count]) => ({ name, count }));
         }
 
         if (userId) {
@@ -119,7 +127,7 @@ export function useDomainEquipeDashboard(
         console.error('Error fetching dashboard data:', error);
       }
 
-      return { activeSprints, activeSprint, stats, myDeliverables, areaData };
+      return { activeSprints, activeSprint, stats, myDeliverables, clusterData };
     },
     placeholderData: keepPreviousData,
     staleTime: 0,
@@ -170,7 +178,7 @@ export function useDomainEquipeDashboard(
       ? (selectedStatsQuery.data ?? INITIAL_STATS)
       : (dashboardQuery.data?.stats ?? INITIAL_STATS),
     myDeliverables: dashboardQuery.data?.myDeliverables ?? [],
-    areaData: dashboardQuery.data?.areaData ?? [],
+    clusterData: dashboardQuery.data?.clusterData ?? [],
     isLoading: dashboardQuery.isLoading || (needsSelectedStats && selectedStatsQuery.isLoading),
   };
 }

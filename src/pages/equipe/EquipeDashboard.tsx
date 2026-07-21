@@ -36,7 +36,7 @@ const EquipeDashboard = () => {
     activeSprint,
     stats,
     myDeliverables,
-    areaData,
+    clusterData,
     isLoading: loading,
   } = useDomainEquipeDashboard(user?.id, selectedSprintId);
   const [activeTab, setActiveTab] = useState<string>('sprint');
@@ -196,7 +196,7 @@ const EquipeDashboard = () => {
             <Card className="border-border shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-foreground text-base font-semibold">
-                  Processos por Área
+                  Processos por Cluster
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -204,7 +204,7 @@ const EquipeDashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={areaData}
+                        data={clusterData}
                         cx="50%"
                         cy="50%"
                         innerRadius={40}
@@ -215,7 +215,7 @@ const EquipeDashboard = () => {
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                         labelLine={false}
                       >
-                      {areaData.map((_, index) => (
+                      {clusterData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>

@@ -28,7 +28,6 @@ const filters = (
   sprintFilter: ALL,
   projectFilter: ALL,
   processFilter: ALL,
-  categoryFilter: ALL,
   ...overrides,
 });
 
@@ -140,32 +139,22 @@ describe('filtros e payload da análise inteligente', () => {
     ]);
   });
 
-  it('mantém item sem sprint pelo vencimento e preserva category como no-op local', () => {
+  it('mantém item sem sprint pelo vencimento dentro da janela de datas', () => {
     const data = baseData();
     data.deliverables = [
       deliverable('unsprinted', { sprint_id: null, due_date: '2026-07-12' }),
       deliverable('outside', { sprint_id: null, due_date: '2026-08-01' }),
     ];
 
-    const fiscal = filterAnaliseInteligenteData(
+    const result = filterAnaliseInteligenteData(
       data,
       filters({
         startDate: '2026-07-01',
         endDate: '2026-07-31',
-        categoryFilter: 'Fiscal',
-      }),
-    );
-    const pessoal = filterAnaliseInteligenteData(
-      data,
-      filters({
-        startDate: '2026-07-01',
-        endDate: '2026-07-31',
-        categoryFilter: 'Pessoal',
       }),
     );
 
-    expect(fiscal.deliverablesF.map(({ id }) => id)).toEqual(['unsprinted']);
-    expect(pessoal).toEqual(fiscal);
+    expect(result.deliverablesF.map(({ id }) => id)).toEqual(['unsprinted']);
   });
 
   it('converte somente filtros específicos no payload da Edge Function', () => {
@@ -175,7 +164,6 @@ describe('filtros e payload da análise inteligente', () => {
           startDate: '2026-07-01',
           sprintFilter: 'sprint-1',
           processFilter: 'process-1',
-          categoryFilter: 'Fiscal',
         }),
       ),
     ).toEqual({
@@ -184,7 +172,7 @@ describe('filtros e payload da análise inteligente', () => {
       sprint_id: 'sprint-1',
       project_id: null,
       process_id: 'process-1',
-      category: 'Fiscal',
+      category: null,
     });
   });
 });

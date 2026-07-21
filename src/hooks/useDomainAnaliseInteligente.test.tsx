@@ -105,7 +105,6 @@ const filters: AnaliseInteligenteFilters = {
   sprintFilter: 's1',
   projectFilter: '__ALL__',
   processFilter: 'p1',
-  categoryFilter: 'Fiscal',
 };
 
 beforeEach(() => {
@@ -248,7 +247,7 @@ describe('useDomainAnaliseInteligenteAnalysis', () => {
         sprint_id: 's1',
         project_id: null,
         process_id: 'p1',
-        category: 'Fiscal',
+        category: null,
       },
     });
   });
