@@ -44,6 +44,7 @@ const OSG_BASE =
 // Rolling (status vivo, consultado ao montar sprint) — pedido original.
 const FERRAMENTAS_DEST = path.join(OSG_BASE, "04_Ferramentas", "PSA WORK", "03_Build");
 const ROLLING_FILE = "STATUS_DESENVOLVIMENTO.md";
+const JSON_FILE = "status.json";
 
 // Relatório final por sprint (datado, imutável).
 const ENTREGAS_DEST = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "03_Entregas");
@@ -160,7 +161,7 @@ function detectMarco(marco, idx) {
   else if (keywordsFound.length) detected = "parcial";
   else detected = "ausente";
 
-  return { detected, evidence };
+  return { detected, evidence, filesFound, routesFound, keywordsFound };
 }
 
 const DETECTED_META = {
@@ -227,6 +228,119 @@ function progressBar(done, total, width = 22) {
   return "█".repeat(filled) + "░".repeat(width - filled) + ` ${Math.round((done / total) * 100)}%`;
 }
 
+// ---------------------- helpers do status.json (SPEC) ----------------------
+
+/** Maior número de sprint num rótulo tipo "S13-S15" → 15; "—" → null. */
+function sprintMaxNum(s) {
+  const nums = (String(s || "").match(/\d+/g) || []).map(Number);
+  return nums.length ? Math.max(...nums) : null;
+}
+
+/** Status do roadmap (config) → enum do JSON. */
+function roadmapToJson(sr) {
+  if (sr === "mvp" || sr === "pronto") return "no_ar";
+  if (sr === "parcial") return "parcial";
+  return "novo";
+}
+
+/** Quantidade de pendências abertas declaradas no marco (número ou lista). */
+function pendenciasCount(m) {
+  if (Array.isArray(m.pendencias)) return m.pendencias.length;
+  if (typeof m.pendencias === "number") return m.pendencias;
+  return 0;
+}
+
+/** Estado de código (SPEC §2): no_ar | ajuste | parcial | sem_evidencia. */
+function codigoState(detected, pend) {
+  if (detected === "encontrado") return pend > 0 ? "ajuste" : "no_ar";
+  if (detected === "parcial") return "parcial";
+  return "sem_evidencia";
+}
+
+/** ISO local com offset (ex.: 2026-07-20T20:00:00-04:00). */
+function isoWithOffset(d) {
+  const off = -d.getTimezoneOffset();
+  const sign = off >= 0 ? "+" : "-";
+  const abs = Math.abs(off);
+  const local = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  return `${local}${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`;
+}
+
+/**
+ * Mapa arquivo→data(YYYY-MM-DD) do último commit que o tocou.
+ * UMA passada de `git log --name-only` (rápido). Como o log vem em ordem
+ * reversa, a 1ª ocorrência de cada arquivo é o commit mais recente.
+ */
+function buildFileDateMap(limit = 1000) {
+  const map = new Map();
+  try {
+    const out = execSync(`git log -${limit} --date=short --format=\x1e%cd --name-only`, {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 128 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    let curDate = null;
+    for (const line of out.split("\n")) {
+      if (line[0] === "\x1e") {
+        curDate = line.slice(1).trim();
+        continue;
+      }
+      const f = line.trim();
+      if (f && curDate && !map.has(f)) map.set(f, curDate);
+    }
+  } catch {
+    /* sem git → mapa vazio */
+  }
+  return map;
+}
+
+/** Data mais recente entre os arquivos (usando o mapa). */
+function maxDate(files, dateMap) {
+  let best = null;
+  for (const f of files || []) {
+    const d = dateMap.get(f);
+    if (d && (!best || d > best)) best = d;
+  }
+  return best;
+}
+
+/** Acha o arquivo de página OSG cujo nome casa com o último segmento da rota. */
+function findPageFile(fileList, lastSeg) {
+  const key = String(lastSeg).replace(/-/g, "").toLowerCase();
+  return (
+    fileList.find(
+      (f) =>
+        /^src\/pages\/equipe\/osg\/[^/]+\.tsx$/.test(f) &&
+        f.split("/").pop().replace(/-/g, "").toLowerCase().includes(key)
+    ) || null
+  );
+}
+
+/** Rotas OSG presentes no repo que NENHUM marco cobre (SPEC extras_fora_do_roadmap). */
+function buildExtras(idx) {
+  const routeSet = new Set();
+  const re = /\/equipe\/osg\/[a-z0-9/-]+/g;
+  let mm;
+  while ((mm = re.exec(idx.routeText))) routeSet.add(mm[0].replace(/\/+$/, ""));
+  const coveredTokens = MARCOS.flatMap((m) => (m.detect && m.detect.routes) || []);
+  const containers = new Set(["/equipe/osg", "/equipe/osg/work", "/equipe/osg/projetos"]);
+  const extras = [];
+  for (const route of routeSet) {
+    if (containers.has(route)) continue;
+    if (coveredTokens.some((t) => route.includes(t))) continue;
+    const lastSeg = route.split("/").pop();
+    const file = findPageFile(idx.fileList, lastSeg);
+    extras.push({
+      rota: route.replace(/^\//, ""),
+      arquivos: file ? [file.split("/").pop()] : [],
+      sugestao: `avaliar virar marco (rota ${route})`,
+    });
+  }
+  extras.sort((a, b) => a.rota.localeCompare(b.rota));
+  return extras;
+}
+
 // ------------------------------ render -------------------------------------
 
 function buildReport() {
@@ -239,8 +353,8 @@ function buildReport() {
 
   // Avalia todos os marcos.
   const evaluated = MARCOS.map((m) => {
-    const { detected, evidence } = detectMarco(m, idx);
-    return { ...m, detected, evidence, diverge: divergence(m, detected) };
+    const { detected, evidence, filesFound } = detectMarco(m, idx);
+    return { ...m, detected, evidence, filesFound, diverge: divergence(m, detected) };
   });
 
   const totals = {
@@ -343,7 +457,68 @@ function buildReport() {
     `Código: ✅ evidência · 🟨 parcial · ⬜ sem evidência._`);
   L.push("");
 
-  return { content: L.join("\n"), stamp, sprint };
+  // ------------------------ saída máquina: status.json ------------------------
+  const curNum = sprintMaxNum(sprint);
+  const fileDateMap = buildFileDateMap();
+  const marcosJson = evaluated.map((m) => {
+    const pend = pendenciasCount(m);
+    const codigo = codigoState(m.detected, pend);
+    const roadmap = roadmapToJson(m.statusRoadmap);
+    const deadline = sprintMaxNum(m.sprint);
+    // atraso: sprint-alvo já passou E sem evidência — nunca p/ estudos (detectavel:false).
+    const atraso =
+      !!m.detectavel && codigo === "sem_evidencia" && deadline != null && curNum != null && deadline < curNum;
+    const hasCode = codigo === "no_ar" || codigo === "ajuste";
+    const divergencia = (roadmap === "no_ar" && codigo === "sem_evidencia") || (roadmap === "novo" && hasCode);
+    let acao = null;
+    if (atraso) acao = `atraso: sprint-alvo ${m.sprint} passou sem evidência no código`;
+    else if (divergencia && roadmap === "novo") acao = "roadmap diz 'novo', mas há código — atualizar p/ parcial ou ajuste";
+    else if (divergencia && roadmap === "no_ar") acao = "roadmap diz 'no ar', mas sem evidência no código — conferir";
+    return {
+      id: m.id,
+      projeto: String(m.id).split("-")[0],
+      sprint_alvo: m.sprint && m.sprint !== "—" ? m.sprint : null,
+      titulo: m.marco,
+      dono: m.dono || null,
+      tipo: m.tipo,
+      roadmap,
+      codigo,
+      detectavel: !!m.detectavel,
+      evidencia: m.evidence.map((e) => e.replace(/`/g, "")).slice(0, 5),
+      ultimo_commit_evidencia: maxDate(m.filesFound, fileDateMap),
+      pendencias_abertas: pend,
+      atraso,
+      divergencia,
+      acao_sugerida: acao,
+    };
+  });
+
+  const cnt = (s) => marcosJson.filter((x) => x.codigo === s).length;
+  const extras = buildExtras(idx);
+  const resumo = {
+    marcos: marcosJson.length,
+    no_ar: cnt("no_ar"),
+    ajuste: cnt("ajuste"),
+    parcial: cnt("parcial"),
+    novo: cnt("sem_evidencia"), // "novo" = sem evidência de código (chaves da SPEC §3)
+    cobertura_pct: marcosJson.length
+      ? Math.round(((cnt("no_ar") + cnt("ajuste")) / marcosJson.length) * 100)
+      : 0,
+    atrasos: marcosJson.filter((x) => x.atraso).length,
+    divergencias: marcosJson.filter((x) => x.divergencia).length,
+    extras: extras.length,
+  };
+
+  const json = {
+    gerado_em: isoWithOffset(now),
+    sprint_atual: sprint,
+    commit: (commits[0] && commits[0].hash) || null,
+    resumo,
+    marcos: marcosJson,
+    extras_fora_do_roadmap: extras,
+  };
+
+  return { content: L.join("\n"), json, stamp, sprint };
 }
 
 // ------------------------------ escrita ------------------------------------
@@ -366,22 +541,27 @@ function writeFileSafe(dir, filename, content, mustExist = true) {
 }
 
 function main() {
-  const { content, stamp, sprint } = buildReport();
+  const { content, json, stamp, sprint } = buildReport();
+  const jsonStr = JSON.stringify(json, null, 2);
 
   if (DRY_RUN) {
-    process.stdout.write(content + "\n");
-    console.error(`\n[dry-run] rolling → ${path.join(FERRAMENTAS_DEST, ROLLING_FILE)}`);
+    // --dry-run + --json → imprime só o JSON (facilita inspeção); senão imprime o .md.
+    if (process.argv.includes("--json")) process.stdout.write(jsonStr + "\n");
+    else process.stdout.write(content + "\n");
+    console.error(`\n[dry-run] rolling → ${path.join(FERRAMENTAS_DEST, ROLLING_FILE)} (+ ${JSON_FILE})`);
     if (ENTREGA)
-      console.error(`[dry-run] entrega → ${path.join(ENTREGAS_DEST, `Status_Desenvolvimento_${sprint}_${stamp}.md`)}`);
+      console.error(`[dry-run] entrega → ${path.join(ENTREGAS_DEST, `Status_Desenvolvimento_${sprint}_${stamp}.md`)} (+ .json)`);
     return;
   }
 
-  // Sempre atualiza o rolling na pasta de ferramentas (pedido original).
+  // Sempre atualiza o rolling na pasta de ferramentas (pedido original): .md (humano) + .json (máquina).
   writeFileSafe(FERRAMENTAS_DEST, ROLLING_FILE, content);
+  writeFileSafe(FERRAMENTAS_DEST, JSON_FILE, jsonStr);
 
-  // --entrega: snapshot datado imutável (regra de 03_Entregas).
+  // --entrega: snapshots datados imutáveis (regra de 03_Entregas).
   if (ENTREGA) {
     writeFileSafe(ENTREGAS_DEST, `Status_Desenvolvimento_${sprint}_${stamp}.md`, content);
+    writeFileSafe(ENTREGAS_DEST, `status_${sprint}_${stamp}.json`, jsonStr);
   }
 }
 
