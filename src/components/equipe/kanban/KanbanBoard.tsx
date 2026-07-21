@@ -10,6 +10,7 @@ import {
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
+import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
 
 const columns = [
   { id: 'pending', title: 'A Fazer', color: 'bg-blue-500' },
@@ -22,6 +23,7 @@ interface KanbanBoardProps {
   sortByDueDate: 'asc' | 'desc' | null;
   getColumnDeliverables: (columnId: string) => HierarchicalEquipeKanbanDeliverable[];
   getProfileName: (profileId: string | null) => string;
+  getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
   onSortToggle: () => void;
   onStatusChange: (id: string, status: 'pending' | 'in_progress' | 'completed') => void;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -107,6 +109,14 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           )}
                           {deliverable.title}
                         </h4>
+                        {props.getBlocker(deliverable) && (
+                          <div
+                            title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
+                            className="mb-2 inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                          >
+                            🚩 Bloqueada
+                          </div>
+                        )}
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>{props.getProfileName(deliverable.assigned_to)}</span>
                           <span>{formatEquipeKanbanDueDate(deliverable.due_date)}</span>
@@ -162,6 +172,11 @@ export function KanbanBoard(props: KanbanBoardProps) {
                             )}
                             {subtask.title}
                           </span>
+                          {props.getBlocker(subtask) && (
+                            <span title={formatBlockerTooltip(props.getBlocker(subtask)!)} className="ml-1">
+                              🚩
+                            </span>
+                          )}
                         </div>
                         {subtask.hoursDisplay ? (
                           <span className="text-xs text-gray-400 flex-shrink-0">

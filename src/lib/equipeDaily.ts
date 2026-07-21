@@ -13,6 +13,17 @@ export interface DailyFormDraft {
   sprint_id: string;
   project_id: string;
   process_id: string;
+  // Bloqueio estruturado (T3). has_blocker controla a exibição do mini-form.
+  has_blocker: boolean;
+  blocked_deliverable_id: string;
+  blocker_owner: string;
+}
+
+/** Tarefa mínima para os "chips" da daily (evita import circular com o hook). */
+export interface DailyTaskChip {
+  id: string;
+  title: string;
+  task_code: string | null;
 }
 
 export interface DailyEditDraft {
@@ -43,6 +54,9 @@ export function createDailyFormDraft(): DailyFormDraft {
     sprint_id: '',
     project_id: '',
     process_id: '',
+    has_blocker: false,
+    blocked_deliverable_id: '',
+    blocker_owner: '',
   };
 }
 
@@ -62,7 +76,35 @@ export function hydrateDailyForm(standup: DailyStandup): DailyFormDraft {
     sprint_id: standup.sprint_id || '',
     project_id: standup.project_id || '',
     process_id: standup.process_id || '',
+    has_blocker: Boolean(standup.blockers || standup.blocked_deliverable_id),
+    blocked_deliverable_id: standup.blocked_deliverable_id || '',
+    blocker_owner: standup.blocker_owner || '',
   };
+}
+
+/**
+ * Campos do bloqueio para o payload de gravação. Só inclui as colunas novas
+ * (blocked_deliverable_id/blocker_owner) quando têm valor — assim uma daily sem
+ * bloqueio grava igual a antes (compatível com a base pré-migração no Lovable).
+ */
+export function buildDailyBlockerFields(form: DailyFormDraft): Record<string, unknown> {
+  const fields: Record<string, unknown> = {
+    blockers: form.has_blocker ? form.blockers || null : null,
+  };
+  if (form.has_blocker && form.blocked_deliverable_id) {
+    fields.blocked_deliverable_id = form.blocked_deliverable_id;
+  }
+  if (form.has_blocker && form.blocker_owner) {
+    fields.blocker_owner = form.blocker_owner;
+  }
+  return fields;
+}
+
+/** Acrescenta a referência da tarefa (código + título) numa nova linha do texto. */
+export function appendTaskReference(text: string, task: DailyTaskChip): string {
+  const reference = `- ${task.task_code ? `[${task.task_code}] ` : ''}${task.title}`;
+  if (!text.trim()) return reference;
+  return text.endsWith('\n') ? `${text}${reference}` : `${text}\n${reference}`;
 }
 
 export function mergeTeamMembers(
@@ -138,5 +180,6 @@ export function buildDailyExportRows(standups: DailyStandup[], lookups: DailyLoo
     Ontem: standup.did_yesterday || '-',
     Hoje: standup.will_do_today || '-',
     Bloqueios: standup.blockers || '-',
+    'Bloqueio (quem destrava)': standup.blocker_owner || '-',
   }));
 }

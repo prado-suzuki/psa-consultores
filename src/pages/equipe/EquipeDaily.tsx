@@ -24,6 +24,7 @@ const EquipeDaily = () => {
           sprints={daily.sprints}
           projects={daily.projects}
           processes={daily.filteredProcesses}
+          sprintTasks={daily.sprintTasks}
           form={daily.form}
           onFormChange={daily.setForm}
           registered={daily.registered}

@@ -13,6 +13,10 @@ export interface DailyStandup {
   sprint_id: string | null;
   project_id: string | null;
   process_id: string | null;
+  // Bloqueio estruturado (T3) — opcionais pois os tipos gerados podem estar defasados
+  // até a migração no Lovable rodar; o select('*') já traz os valores em runtime.
+  blocked_deliverable_id?: string | null;
+  blocker_owner?: string | null;
 }
 
 export interface TeamMember {

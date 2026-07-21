@@ -32,6 +32,9 @@ vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
 vi.mock('@/hooks/useClusters', () => ({
   useClusters: () => ({ data: [{ id: 'cluster-1', nome: 'OSG', ativo: true }] }),
 }));
+vi.mock('@/hooks/useDailySprintTasks', () => ({
+  useDailySprintTasks: () => ({ data: [] }),
+}));
 vi.mock('xlsx', () => ({
   utils: {
     json_to_sheet: mocks.jsonToSheet,

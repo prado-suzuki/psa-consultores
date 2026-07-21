@@ -43,15 +43,28 @@ Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e 
 
 **Aceite:** nada no app referencia `tasks` (✅ já); `tasks`/`task_status` não existem mais no banco.
 
-### T2 — Conectar Daily ↔ entregável ⚠️ MIGRAÇÃO
-**Objetivo:** o update/bloqueio da daily se ligar a uma tarefa específica (destrava "bloqueio vira tarefa").
+### T2/T3 — Daily de baixa fricção + bloqueio estruturado ⚠️ MIGRAÇÃO
+**Objetivo:** ligar o bloqueio da daily a uma tarefa específica ("bloqueio vira tarefa") e facilitar o preenchimento (não redigitar nome de tarefa), sem deixar moroso.
 
-1. Migração: adicionar `daily_standups.deliverable_id uuid null references public.sprint_deliverables(id) on delete set null` (+ índice). Não referenciar `auth.users`.
-2. Em `src/pages/equipe/EquipeDaily.tsx`, permitir (opcional) vincular a linha do daily a um entregável da sprint ativa.
-3. RLS: garantir que a nova coluna respeita as regras vigentes de `daily_standups`.
-4. Atualizar `mapa-do-banco.md`.
+**✅ FASE 1 — CÓDIGO FEITO (2026-07-21):**
+- Novo hook `useDailySprintTasks(sprintId, personId)` traz as tarefas da pessoa na sprint escolhida.
+- `DailyFormCard`: (a) **chips** das minhas tarefas acima de "ontem"/"hoje" — toca e insere `- [T-3] Título` no texto (helper `appendTaskReference`); (b) **bloqueio estruturado** que só abre ao marcar "Sim" (default "Não" = zero fricção): tarefa travada (dropdown das minhas tarefas), "por quê" (o antigo `blockers`) e "quem/o que destrava" (`blocker_owner`).
+- Draft/hydrate ganharam `has_blocker`/`blocked_deliverable_id`/`blocker_owner`; payload via `buildDailyBlockerFields` só envia as colunas novas quando preenchidas (não quebra base pré-migração). Export do Excel ganhou "Bloqueio (quem destrava)". Tipos opcionais + `select('*')` (types.ts pode estar defasado). 1184 testes ok.
 
-**Aceite:** na daily dá pra apontar "no que trabalhei / o que está bloqueado" para um entregável, e isso aparece no drill-down do entregável.
+**✅ BANCO FEITO (2026-07-21):** a Patrícia rodou no Lovable:
+```sql
+ALTER TABLE public.daily_standups
+  ADD COLUMN blocked_deliverable_id uuid NULL REFERENCES public.sprint_deliverables(id) ON DELETE SET NULL,
+  ADD COLUMN blocker_owner text NULL;
+CREATE INDEX IF NOT EXISTS idx_daily_standups_blocked_deliverable
+  ON public.daily_standups (blocked_deliverable_id);
+```
+RLS: colunas novas herdam as policies de linha de `daily_standups`. `ON DELETE SET NULL` evita a armadilha de FK. Falta só `node scripts/gen-mapa-banco.mjs`.
+
+**✅ FASE 1b — CÓDIGO FEITO (2026-07-21):** selo "🚩 Bloqueada" na tarefa no Kanban (board + tabela). Hook `useDeliverableBlockers` (mapa tarefa→bloqueio mais recente, via `select('*')` — resiliente à migração; `formatBlockerTooltip` no hover). Selo só em tarefa não-concluída (`getBlocker` no `EquipeKanban.tsx`). Mostra em card, subtarefa e linhas da tabela. 1184 testes ok, tsc 0.
+
+**Aceite:** ✅ na daily dá pra marcar o que travou apontando a tarefa (1 toque) e o 🚩 aparece na tarefa no Kanban; preencher a daily ficou mais rápido (chips), não mais lento.
+**Futuro (Fase 2, se quiser):** ação "resolvido" pra baixar o selo sem precisar concluir a tarefa; link n:n de ontem/hoje ↔ tarefas; selo também no detalhe da sprint.
 
 ### T3 — Estruturar bloqueios ⚠️ MIGRAÇÃO (avaliar com T2)
 Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transformar em estrutura (motivo + responsável + `deliverable_id`), seja como colunas ou tabela `daily_blockers`. Depende da decisão da Patrícia; pode ser mesclado com T2.

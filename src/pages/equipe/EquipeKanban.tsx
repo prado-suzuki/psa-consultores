@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
+import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import {
   buildDeliverableUpdatePayload,
@@ -38,6 +39,10 @@ const EquipeKanban = () => {
   const initialQuery = useEquipeKanbanInitialQuery();
   const deliverableMutations = useEquipeKanbanDeliverableMutations();
   const attachmentMutations = useEquipeKanbanAttachments();
+  const { data: blockers = {} } = useDeliverableBlockers();
+  // Selo de bloqueio só faz sentido em tarefa aberta (concluída = destravado na prática).
+  const getBlocker = (deliverable: Deliverable) =>
+    deliverable.status === 'completed' ? undefined : blockers[deliverable.id];
 
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
@@ -430,6 +435,7 @@ const EquipeKanban = () => {
           sortByDueDate={sortByDueDate}
           getColumnDeliverables={getColumnDeliverables}
           getProfileName={getProfileName}
+          getBlocker={getBlocker}
           onSortToggle={() => {
             setSortByDueDate((current) =>
               current === null ? 'asc' : current === 'asc' ? 'desc' : null,
@@ -445,6 +451,7 @@ const EquipeKanban = () => {
           deliverables={hierarchicalDeliverables}
           expandedTasks={expandedTasks}
           getProfileName={getProfileName}
+          getBlocker={getBlocker}
           getStatusBadgeColor={getStatusBadgeColor}
           getStatusLabel={getStatusLabel}
           onToggleExpanded={toggleTaskExpanded}

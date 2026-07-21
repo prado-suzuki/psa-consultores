@@ -11,9 +11,12 @@ import {
 } from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useClusters } from '@/hooks/useClusters';
+import { useDailySprintTasks } from '@/hooks/useDailySprintTasks';
 import { matchCluster } from '@/lib/clusterFilter';
 import { toast } from '@/hooks/use-toast';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import {
+  buildDailyBlockerFields,
   buildDailyExportRows,
   createDailyEditDraft,
   createDailyFormDraft,
@@ -51,6 +54,8 @@ export function useEquipeDailyController() {
   // mas não têm cluster_id direto). Chave compartilhada com as outras telas de /equipe.
   const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
   const { data: clusters = [] } = useClusters();
+  // Tarefas da pessoa na sprint escolhida — alimentam os chips e o dropdown de bloqueio.
+  const { data: sprintTasks = [] } = useDailySprintTasks(form.sprint_id, selectedUserId);
   const today = new Date().toISOString().split('T')[0];
   const filters: DailyFilters = {
     startDate: filterStartDate,
@@ -145,11 +150,11 @@ export function useEquipeDailyController() {
           payload: {
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
-            blockers: form.blockers || null,
             sprint_id: form.sprint_id || null,
             project_id: form.project_id || null,
             process_id: form.process_id || null,
-          },
+            ...buildDailyBlockerFields(form),
+          } as TablesUpdate<'daily_standups'>,
         });
         toast({ title: 'Daily atualizado', description: 'Seu registro foi atualizado.' });
       } else {
@@ -158,11 +163,11 @@ export function useEquipeDailyController() {
           date: today,
           did_yesterday: form.did_yesterday,
           will_do_today: form.will_do_today,
-          blockers: form.blockers || null,
           sprint_id: form.sprint_id || null,
           project_id: form.project_id || null,
           process_id: form.process_id || null,
-        });
+          ...buildDailyBlockerFields(form),
+        } as TablesInsert<'daily_standups'>);
         toast({ title: 'Daily registrado', description: 'O registro foi salvo com sucesso.' });
       }
       await fetchStandups();
@@ -265,6 +270,7 @@ export function useEquipeDailyController() {
     teamMembers,
     sprints,
     projects,
+    sprintTasks,
     clusters,
     filterCluster,
     setFilterCluster,

@@ -17,11 +17,13 @@ import {
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
+import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
 
 interface KanbanTableProps {
   deliverables: HierarchicalEquipeKanbanDeliverable[];
   expandedTasks: Set<string>;
   getProfileName: (profileId: string | null) => string;
+  getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
   getStatusBadgeColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -82,6 +84,14 @@ export function KanbanTable(props: KanbanTableProps) {
                           {deliverable.completedSubtasks}/{deliverable.subtaskCount}
                         </Badge>
                       )}
+                      {props.getBlocker(deliverable) && (
+                        <span
+                          title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
+                          className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                        >
+                          🚩 Bloqueada
+                        </span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -133,6 +143,9 @@ export function KanbanTable(props: KanbanTableProps) {
                             <span className="text-gray-400">{subtask.task_code}</span>
                           )}
                           {subtask.title}
+                          {props.getBlocker(subtask) && (
+                            <span title={formatBlockerTooltip(props.getBlocker(subtask)!)}>🚩</span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
