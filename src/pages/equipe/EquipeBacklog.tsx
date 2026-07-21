@@ -482,6 +482,35 @@ export default function EquipeBacklog() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="cluster">Cluster</Label>
+              <Select
+                value={formData.cluster_id || NONE}
+                onValueChange={(v) => setFormData({
+                  ...formData,
+                  cluster_id: v === NONE ? '' : v,
+                  // Limpa projeto se o cluster do projeto atual não bate mais.
+                  project_id: (() => {
+                    if (!formData.project_id) return '';
+                    const proj = projects.find(p => p.id === formData.project_id);
+                    if (v === NONE) return formData.project_id;
+                    return proj && proj.cluster_id === v ? formData.project_id : '';
+                  })(),
+                })}
+              >
+                <SelectTrigger id="cluster">
+                  <SelectValue placeholder="Selecionar cluster (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="project">Projeto</Label>
               <Select
                 value={formData.project_id || NONE}
@@ -492,11 +521,13 @@ export default function EquipeBacklog() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {projects
+                    .filter(p => !formData.cluster_id || p.cluster_id === formData.cluster_id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
