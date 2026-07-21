@@ -1215,9 +1215,9 @@ export default function EquipeSprintDetalhes() {
                 'bg-gray-100 text-gray-700'
               }
             >
-              {sprint.status === 'active' ? 'Ativa' : 
-               sprint.status === 'completed' ? 'Concluída' : 
-               sprint.status === 'planning' ? 'Planejamento' : sprint.status}
+              {sprint.status === 'active' ? 'Ativa' :
+               sprint.status === 'completed' ? 'Concluída' :
+               sprint.status === 'planned' ? 'Planejada' : sprint.status}
             </Badge>
           </div>
         </div>
