@@ -26,6 +26,7 @@ import { StepPrevia } from '@/components/equipe/mapa/wizard-roi/StepPrevia';
 export default function WizardRoi({
   processo,
   etapas,
+  etapasFuturo = [],
   responsaveis,
   sistemas,
   gargalos,
@@ -56,16 +57,16 @@ export default function WizardRoi({
     [processo, etapas, responsaveis, sistemas, gargalos, melhorias],
   );
   const calc = useMemo(
-    () => processo ? calcularRoi({ processos: [processo], etapas, responsaveis, sistemas, gargalos, melhorias }).porProcesso[0] : undefined,
-    [processo, etapas, responsaveis, sistemas, gargalos, melhorias],
+    () => processo ? calcularRoi({ processos: [processo], etapas, etapasFuturo, responsaveis, sistemas, gargalos, melhorias }).porProcesso[0] : undefined,
+    [processo, etapas, etapasFuturo, responsaveis, sistemas, gargalos, melhorias],
   );
   const respById = useMemo(() => new Map(responsaveis.map(responsavel => [responsavel.id, responsavel])), [responsaveis]);
   const custoHM = custoHorarioMedio(responsaveis);
   const etapasBreakdown = useMemo(
-    () => criarBreakdownEtapas(etapas, respById, custoHM),
-    [etapas, respById, custoHM],
+    () => criarBreakdownEtapas(etapas, respById, custoHM, etapasFuturo),
+    [etapas, respById, custoHM, etapasFuturo],
   );
-  const sistemasUsados = useMemo(() => sistemasUsadosNasEtapas(etapas, sistemas), [etapas, sistemas]);
+  const sistemasUsados = useMemo(() => sistemasUsadosNasEtapas([...etapas, ...etapasFuturo], sistemas), [etapas, etapasFuturo, sistemas]);
   const melhoriasRelevantes = useMemo(() => melhoriasDoProcesso(processo, melhorias), [processo, melhorias]);
 
   if (!processo || !diag) return null;

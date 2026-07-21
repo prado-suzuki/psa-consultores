@@ -1,61 +1,70 @@
-## Auditoria RLS-P1-06 — resultados (somente leitura, nada foi alterado)
+# Plano — DELETE de org_tasks para sublíder criador
 
-### Query 1 — matriz de policies (19 tabelas)
+## Contexto
+Hoje `rls_org_tasks_delete` só libera DELETE para `lider+`. Sublíderes que criaram a própria tarefa (ex.: Geizi, "Revisão Livro Caixa", `cc37fe25-b7a2-430f-8724-26e0be5a8366`) recebem "Você não tem permissão para excluir esta tarefa". Coordenação (Patricia) aprovou: criador `sublider+` pode excluir a própria tarefa.
 
-Todas as tabelas da leva têm CRUD completo com checagem real. Padrão por tabela:
+## Fora de escopo
+- Não mexer em SELECT/INSERT/UPDATE de `org_tasks`.
+- Não mexer no trigger `trg_org_tasks_team_member_status_only` nem na função `org_tasks_team_member_status_only()`.
+- Sem alterações de frontend.
+- `team_member` puro continua sem poder excluir.
 
-**Pais (cluster_id direto):** `processes`, `process_stages` (via `processes.cluster_id`), `documentos_processo`, `gargalos`, `process_improvements`, `sistemas_processo`, `sistema_clusters`
-- SELECT/INSERT/UPDATE: `admin OR (team_member+ AND cluster_id = ANY(resolve_user_cluster_ids))`
-- DELETE: `admin OR (lider+ AND cluster_id = ANY(...))`
-- Nomes: `rls_<tabela>_<cmd>`
-- Exceção `sistemas_processo.SELECT`: inclui OR via `sistema_clusters` (compartilhamento M:N — correto, RLS-P1-04).
+## Passo 1 — Pré-voo (somente leitura)
+Confirmar antes de aplicar:
+- Existe exatamente **uma** policy de DELETE em `public.org_tasks`, com nome `rls_org_tasks_delete`.
+- Nenhuma policy `RESTRICTIVE` na tabela.
+```sql
+SELECT policyname, cmd, permissive, roles, qual
+FROM pg_policies
+WHERE schemaname='public' AND tablename='org_tasks';
+```
 
-**Filhas (via helper de visibilidade):**
-- `etapa_documentos`, `etapa_responsaveis`, `etapa_sistemas` → `process_stage_cluster_visivel(etapa_id)`
-- `gargalo_processos`, `gargalo_responsaveis` → `gargalo_cluster_visivel(gargalo_id)`
-- `melhoria_processos`, `melhoria_sistemas`, `melhoria_responsaveis`, `melhoria_acoes_td` → `melhoria_cluster_visivel(melhoria_id)`
-- `sistema_responsaveis` → `sistema_cluster_visivel(sistema_id)`
-- Todas com o mesmo padrão team_member+ (SELECT/INSERT/UPDATE) e lider+ (DELETE).
+## Passo 2 — Migration (uma só)
+```sql
+DROP POLICY IF EXISTS rls_org_tasks_delete ON public.org_tasks;
 
-**`projeto_justificativas`:**
-- SELECT `projeto_justificativas_select`: `admin OR EXISTS(projects p WHERE p.id=projeto_id AND (p.cluster_id IS NULL OR ANY(resolve_user_cluster_ids)))` (09/07, mantido)
-- SELECT `team_member_select_projeto_justificativas`: `has_role_or_higher(team_member)` ⚠️ **policy permissiva legada convivendo com a de cluster — PostgREST usa OR entre policies do mesmo cmd, então isso anula o isolamento do SELECT**
-- INSERT `team_member_insert_projeto_justificativas`: `WITH CHECK has_role_or_higher(team_member)` (sem checagem de cluster)
-- UPDATE `projeto_justificativas_update`: cluster real (team_member+, RLS-P1-05, OK)
-- DELETE `projeto_justificativas_delete`: cluster real (lider+, RLS-P1-05, OK)
+CREATE POLICY rls_org_tasks_delete ON public.org_tasks
+FOR DELETE TO authenticated
+USING (
+  public.has_role_or_higher(auth.uid(),'lider'::app_role)
+  OR (
+    public.has_role_or_higher(auth.uid(),'sublider'::app_role)
+    AND created_by = auth.uid()
+  )
+);
+```
 
-**`documento_horas_historico`:**
-- SELECT `dhh_select`: `alterado_por = auth.uid() OR lider+`
-- INSERT `dhh_insert`: `alterado_por = auth.uid() AND team_member+`
-- UPDATE `dhh_update`: admin-only
-- DELETE `dhh_delete`: admin-only ✅ (RLS-04 preservada)
+## Passo 3 — GATE (subtransação com rollback)
 
-### Query 2 — policies permissivas escondidas (`qual='true' OR with_check='true'`)
+### Ordem de execução (importante)
+Selecionar **primeiro** os ids/user_ids dos casos 2 e 3 com o papel privilegiado (antes de qualquer `SET LOCAL role authenticated`). Depois de trocar para `authenticated`, RLS em `org_tasks` e `user_roles` esconde linhas e as queries voltariam vazias. Só então abrir a subtransação por caso, impersonar via `SET LOCAL request.jwt.claims` + `SET LOCAL role authenticated`, chamar `can_perform('org_tasks','delete', <id>)` e `ROLLBACK`.
 
-**0 linhas.** ✅
+### Casos
 
-### Query 3 — tabelas da leva sem policy de DELETE
+**Caso 1 — Geizi (sublíder, criadora)**
+- `sub` do JWT = `7d082ece-6710-4148-9bcb-e76287380319`
+- task = `cc37fe25-b7a2-430f-8724-26e0be5a8366`
+- Esperado: `allowed = true`.
 
-**1 linha: `gargalo_melhorias`** ⚠️
-- É uma junction table (4 colunas, 2 policies existentes).
-- Sem DELETE explícito → hoje nenhum usuário consegue deletar vínculo (RLS restritivo por default), o que na prática **fecha** o DELETE. Não é vazamento, mas fica implícito. Vale confirmar se front precisa desvincular melhoria de gargalo.
+**Caso 2 — Sublíder apenas delegado (não criador)**
+Selecionar com papel privilegiado, restringindo o responsável a **sublider puro** (evita cair em líder/admin, que poderiam excluir e falsear o GATE):
+```sql
+SELECT id, created_by, assigned_to
+FROM public.org_tasks
+WHERE assigned_to <> created_by
+  AND public.has_role_or_higher(assigned_to,'sublider'::app_role)
+  AND NOT public.has_role_or_higher(assigned_to,'lider'::app_role)
+LIMIT 1;
+```
+- `sub` do JWT = `assigned_to` (o sublíder delegado), **nunca** o `created_by`.
+- Esperado: `allowed = false`.
+- Se não houver linha, reportar e pular com justificativa.
 
-### Query 4 — `documento_horas_historico`
+**Caso 3 — team_member puro**
+Selecionar com papel privilegiado um `user_id` com role exatamente `team_member` (e sem role superior) e uma task qualquer.
+- Esperado: `allowed = false`.
 
-| policyname | cmd | qual | with_check |
-|---|---|---|---|
-| dhh_delete | DELETE | `has_role(auth.uid(),'admin')` | — |
-| dhh_insert | INSERT | — | `alterado_por = auth.uid() AND has_role_or_higher(team_member)` |
-| dhh_select | SELECT | `alterado_por = auth.uid() OR has_role_or_higher(lider)` | — |
-| dhh_update | UPDATE | `has_role(auth.uid(),'admin')` | `has_role(auth.uid(),'admin')` |
+Só marcar como concluído se os três resultados baterem.
 
-DELETE fechado a admin, herança da RLS-04 intacta. ✅
-
----
-
-## Achados que merecem sua decisão
-
-1. **`projeto_justificativas` — SELECT permissivo remanescente** (`team_member_select_projeto_justificativas`, USING `has_role_or_higher(team_member)` sem cluster). Como PostgREST faz OR entre múltiplas policies SELECT do mesmo comando, essa policy **neutraliza** o isolamento por cluster do `projeto_justificativas_select`. Além disso o INSERT legado (`team_member_insert_projeto_justificativas`) também não checa cluster. A RLS-P1-05 só endureceu UPDATE/DELETE — SELECT e INSERT ficaram nas policies antigas.
-2. **`gargalo_melhorias` sem DELETE policy** — RLS bloqueia por default, então não vaza; mas se o front precisa desvincular, hoje falha silenciosamente para não-admin (na verdade falha para todos, já que não há policy).
-
-Nenhuma migration foi criada nesta auditoria. Se quiser, o próximo passo é uma migration pontual RLS-P1-06 fechando o SELECT/INSERT de `projeto_justificativas` (drop das duas `team_member_*` legadas + recriação com checagem de cluster no mesmo padrão do UPDATE/DELETE) e, opcionalmente, DELETE explícito em `gargalo_melhorias`. Me avise se quer que eu monte o plano dessa migration.
+## Riscos
+Baixo: mudança escopada a uma policy DELETE, aditiva (amplia acesso para o próprio criador sublíder). Não afeta leitura nem escrita de outras operações.

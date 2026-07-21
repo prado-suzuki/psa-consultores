@@ -1,6 +1,6 @@
 // Cálculo ROI determinístico — Fase 5.1
 // Pure function: dado o snapshot do banco, retorna todos os KPIs do Dashboard.
-// Reutilizado por: DashboardRoiPage, WizardRoi (preview), SetorEvolucaoPage, snapshots.
+// Reutilizado por: DashboardRoiPage, SetorEvolucaoPage, snapshots.
 
 import type {
   Processo, Projeto, Etapa, Responsavel, Sistema, Gargalo, Melhoria,
@@ -86,13 +86,16 @@ export function maturidadeProcesso(args: {
   gargalos: Gargalo[];
   melhorias: Melhoria[];
   investimento: number;
+  /** Etapas TO-BE do processo (modelo por-cenário). Opcional — quando presente,
+   *  também conta como "cenário futuro" (além do `.ficou` legado). */
+  etapasFuturoDoProc?: Etapa[];
 }): MaturidadeProcesso {
-  const { proc, etapasDoProc, gargalos, melhorias, investimento } = args;
+  const { proc, etapasDoProc, gargalos, melhorias, investimento, etapasFuturoDoProc } = args;
   const isMapeado = etapasDoProc.length > 0 && execucoesAnuais(proc) > 0;
   const temGargalo = gargalosDoProcesso(gargalos, proc.id).length > 0;
   const temQualidade = etapasDoProc.some(e => (e.error_rate ?? 0) > 0 || (e.rework_rate ?? 0) > 0);
   const temDiagnostico = temGargalo || temQualidade;
-  const temCenarioFuturo = etapasDoProc.some(e => e.ficou != null);
+  const temCenarioFuturo = etapasDoProc.some(e => e.ficou != null) || (etapasFuturoDoProc?.length ?? 0) > 0;
   const temInvestimento = investimento > EPS;
   const statusEconomia = statusEconomiaProcesso(proc, melhorias);
   const implementado = statusEconomia === 'realizado';
@@ -176,6 +179,11 @@ export interface RoiProcesso {
 export interface RoiInput {
   processos: Processo[];
   etapas: Etapa[];
+  /** Etapas do cenário TO-BE (linhas próprias por cenário). Quando o processo NÃO
+   *  tem `.ficou` (modelo pareado legado) e há etapas TO-BE aqui, o cenário "ficou"
+   *  é calculado a partir desta lista (modelo por-cenário/despareado). Opcional:
+   *  ausente ⇒ comportamento legado (ficou vem de `.ficou`, com fallback à era). */
+  etapasFuturo?: Etapa[];
   responsaveis: Responsavel[];
   sistemas: Sistema[];
   gargalos: Gargalo[];
@@ -249,14 +257,19 @@ function melhoriasRelevantesIds(proc: Processo, gargalos: Gargalo[], melhorias: 
 // e projetado (ficou = etapa.ficou.sistemas ∪ sistemas das melhorias relevantes).
 // Fonte única usada para contar abrangência (rateio do custo) e para somar custo.
 function sistemasRefsDoProcesso(
-  proc: Processo, etapas: Etapa[], gargalos: Gargalo[], melhorias: Melhoria[],
+  proc: Processo, etapas: Etapa[], etapasFuturo: Etapa[], gargalos: Gargalo[], melhorias: Melhoria[],
 ): { era: Set<string>; ficou: Set<string> } {
   const era = new Set<string>();
   const ficou = new Set<string>();
-  for (const e of etapas) {
-    if (e.process_id !== proc.id) continue;
-    (e.sistemas || []).forEach(s => era.add(s));
-    (e.ficou?.sistemas ?? e.sistemas ?? []).forEach(s => ficou.add(s));
+  const asisDoProc = etapas.filter(e => e.process_id === proc.id);
+  const tobeDoProc = etapasFuturo.filter(e => e.process_id === proc.id);
+  // Sem `.ficou` (pareado) e com etapas TO-BE ⇒ modelo por-cenário (lista própria).
+  const usarLista = !asisDoProc.some(e => e.ficou != null) && tobeDoProc.length > 0;
+  for (const e of asisDoProc) (e.sistemas || []).forEach(s => era.add(s));
+  if (usarLista) {
+    for (const e of tobeDoProc) (e.sistemas || []).forEach(s => ficou.add(s));
+  } else {
+    for (const e of asisDoProc) (e.ficou?.sistemas ?? e.sistemas ?? []).forEach(s => ficou.add(s));
   }
   const relevantes = melhoriasRelevantesIds(proc, gargalos, melhorias);
   for (const m of melhorias) {
@@ -268,6 +281,7 @@ function sistemasRefsDoProcesso(
 function calcProcesso(
   proc: Processo,
   etapas: Etapa[],
+  etapasFuturo: Etapa[],
   respById: Map<string, Responsavel>,
   sistemas: Sistema[],
   gargalos: Gargalo[],
@@ -284,6 +298,13 @@ function calcProcesso(
 ): RoiProcesso {
   const ann = execucoesAnuais(proc);
   const etapasDoProc = etapas.filter(e => e.process_id === proc.id);
+  // Cenário futuro: por lista própria (TO-BE) quando NÃO há `.ficou` (pareado) e
+  // existem etapas TO-BE; senão, modelo legado (`.ficou` por etapa, fallback à era).
+  const etapasFuturoDoProc = etapasFuturo
+    .filter(e => e.process_id === proc.id)
+    .sort((a, b) => (a.stage_order ?? 0) - (b.stage_order ?? 0));
+  const temFicouPareado = etapasDoProc.some(e => e.ficou != null);
+  const usarListaFuturo = !temFicouPareado && etapasFuturoDoProc.length > 0;
 
   let horasPorExec = 0;
   let custoPorExec = 0;
@@ -296,6 +317,7 @@ function calcProcesso(
   let somaTaxaRetrab = 0;
   let somaTaxaRetrabFicou = 0;
   let nRetrab = 0;
+  let nRetrabFicou = 0;
 
   // Helper de soma (horas + custo) para um array de responsáveis de etapa.
   const sumResp = (arr: typeof etapasDoProc[number]['executadoPor'] | undefined) => {
@@ -316,34 +338,44 @@ function calcProcesso(
     return { h, c };
   };
 
+  // ── ERA (dos AS-IS) — INVARIANTE: proibido assumir volume 1 (gated pelo doutor). ──
   for (const e of etapasDoProc) {
-    const f = e.ficou; // null/undefined quando não há projeção salva
-    // INVARIANTE: proibido assumir 1. Volume é obrigatório (gated pelo doutor).
-    // ficou cai pro era (fallback #3, adiado junto com o critério "Como ficou").
     const volEra = e.volume_per_process ?? 0;
-    const volFicou = f?.volume_per_process ?? e.volume_per_process ?? 0;
-
-    const exeEra  = sumResp(e.executadoPor);
-    const exeFic  = sumResp(f?.executadoPor ?? e.executadoPor);
-
+    const exeEra = sumResp(e.executadoPor);
     horasPorExec += exeEra.h * volEra;
     custoPorExec += exeEra.c * volEra;
-    horasPorExecFicou += exeFic.h * volFicou;
-    custoPorExecFicou += exeFic.c * volFicou;
-
     const taxaErr = e.error_rate ?? 0;
     if (taxaErr > 0) { somaTaxaErro += taxaErr; nTaxaErro += 1; }
     somaTaxaRetrab += e.rework_rate ?? 0;
-    somaTaxaRetrabFicou += (f?.rework_rate ?? e.rework_rate ?? 0);
     nRetrab += 1;
-
     // Retrabalho proporcional ao custo real de pessoas da etapa (não à média global).
-    // Após a Onda D, revisores viraram executores da etapa "Revisão de X" — o custo de
-    // pessoas da etapa origem é só executadoPor.
-    const custoPessoasEtapa = exeEra.c * volEra;
-    const custoPessoasEtapaFicou = exeFic.c * volFicou;
-    custoRetrabalhoPorExec += custoPessoasEtapa * (e.rework_rate ?? 0);
-    custoRetrabalhoPorExecFicou += custoPessoasEtapaFicou * (f?.rework_rate ?? e.rework_rate ?? 0);
+    custoRetrabalhoPorExec += (exeEra.c * volEra) * (e.rework_rate ?? 0);
+  }
+
+  // ── FICOU ──
+  if (usarListaFuturo) {
+    // Modelo por-cenário: totais a partir da lista de etapas TO-BE (independentes).
+    for (const e of etapasFuturoDoProc) {
+      const vol = e.volume_per_process ?? 0;
+      const exe = sumResp(e.executadoPor);
+      horasPorExecFicou += exe.h * vol;
+      custoPorExecFicou += exe.c * vol;
+      somaTaxaRetrabFicou += e.rework_rate ?? 0;
+      nRetrabFicou += 1;
+      custoRetrabalhoPorExecFicou += (exe.c * vol) * (e.rework_rate ?? 0);
+    }
+  } else {
+    // Modelo legado: projeção `.ficou` por etapa, com fallback à era (sem projeção).
+    for (const e of etapasDoProc) {
+      const f = e.ficou;
+      const volFicou = f?.volume_per_process ?? e.volume_per_process ?? 0;
+      const exeFic = sumResp(f?.executadoPor ?? e.executadoPor);
+      horasPorExecFicou += exeFic.h * volFicou;
+      custoPorExecFicou += exeFic.c * volFicou;
+      somaTaxaRetrabFicou += (f?.rework_rate ?? e.rework_rate ?? 0);
+      nRetrabFicou += 1;
+      custoRetrabalhoPorExecFicou += (exeFic.c * volFicou) * (f?.rework_rate ?? e.rework_rate ?? 0);
+    }
   }
 
   // Sistemas atuais (era): união de etapa.sistemas. Sistemas projetados (ficou):
@@ -352,7 +384,7 @@ function calcProcesso(
   // (cluster, sistema) — definido em sistema.clustersRateio. Resolvemos pelo
   // cluster do projeto deste processo.
   const { era: sistemasIdsEra, ficou: sistemasIdsFicou } =
-    sistemasRefsDoProcesso(proc, etapas, gargalos, melhorias);
+    sistemasRefsDoProcesso(proc, etapas, etapasFuturo, gargalos, melhorias);
   const sistemasUsados = sistemas.filter(s => sistemasIdsEra.has(s.id) || sistemasIdsEra.has(s.nome));
   const sistemasUsadosFicou = sistemas.filter(s => sistemasIdsFicou.has(s.id) || sistemasIdsFicou.has(s.nome));
   // Fração (0–1) do custo do sistema atribuída ao cluster do processo. O custo
@@ -440,7 +472,7 @@ function calcProcesso(
   const investimento = investTreinamentoMelhorias + investExecucaoMelhorias + investExterno + investSistemas;
 
   // Maturidade + status da economia (Realizado vs Projetado).
-  const maturidade = maturidadeProcesso({ proc, etapasDoProc, gargalos, melhorias, investimento });
+  const maturidade = maturidadeProcesso({ proc, etapasDoProc, gargalos, melhorias, investimento, etapasFuturoDoProc });
   const statusEconomia = maturidade.statusEconomia;
   // Opção A: economia realizada só quando todas as melhorias do processo estão Concluído.
   const economiaRealizada = statusEconomia === 'realizado' ? economiaAnual : 0;
@@ -465,7 +497,7 @@ function calcProcesso(
     taxaErroMedia: nTaxaErro ? somaTaxaErro / nTaxaErro : 0,
     custoQualidade: custoRetrabAnual,
     taxaRetrabalhoMedia: nRetrab ? somaTaxaRetrab / nRetrab : 0,
-    taxaRetrabalhoFicouMedia: nRetrab ? somaTaxaRetrabFicou / nRetrab : 0,
+    taxaRetrabalhoFicouMedia: nRetrabFicou ? somaTaxaRetrabFicou / nRetrabFicou : 0,
     custosCategoria: {
       pessoas: custoPessoasAnual,
       sistemas: custoSistemasAnual,
@@ -506,6 +538,7 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const respById = new Map(input.responsaveis.map(r => [r.id, r]));
   const custoHoraMedioVal = custoMedioHora(input.responsaveis);
   const projetoById = new Map((input.projetos || []).map(p => [p.id, p]));
+  const etapasFuturo = input.etapasFuturo ?? [];
 
   // Critério de entrada no Dashboard ROI = doutor (dados completos, sem fallback)
   // E status do projeto ≠ 'Mapeamento'. Quem não passa fica FORA de TODOS os
@@ -536,7 +569,7 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const usoSistemaEra = new Map<string, number>();
   const usoSistemaFicou = new Map<string, number>();
   for (const p of calculaveis) {
-    const refs = sistemasRefsDoProcesso(p, input.etapas, input.gargalos, input.melhorias);
+    const refs = sistemasRefsDoProcesso(p, input.etapas, etapasFuturo, input.gargalos, input.melhorias);
     for (const s of input.sistemas) {
       if (refs.era.has(s.id) || refs.era.has(s.nome)) usoSistemaEra.set(s.id, (usoSistemaEra.get(s.id) ?? 0) + 1);
       if (refs.ficou.has(s.id) || refs.ficou.has(s.nome)) usoSistemaFicou.set(s.id, (usoSistemaFicou.get(s.id) ?? 0) + 1);
@@ -546,7 +579,7 @@ export function calcularRoi(input: RoiInput): RoiAgregado {
   const porProcesso: RoiProcesso[] = calculaveis.map((p) => {
     const proj = p.project_id ? projetoById.get(p.project_id) : undefined;
     const cluster = proj?.clusterName || '';
-    return calcProcesso(p, input.etapas, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou);
+    return calcProcesso(p, input.etapas, etapasFuturo, respById, input.sistemas, input.gargalos, input.melhorias, custoHoraMedioVal, cluster, abrangenciaMelhorias, usoSistemaEra, usoSistemaFicou);
   });
 
   const sum = <K extends keyof RoiProcesso>(k: K, src = porProcesso): number =>

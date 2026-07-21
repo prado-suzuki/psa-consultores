@@ -30,9 +30,8 @@ export default function Auth() {
   const [isLogin, setIsLogin] = useState(searchParams.get('mode') !== 'register');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp, user, isAdmin, isTeamMember, isLider, isSublider, loading: authLoading } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
 
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -49,8 +48,7 @@ export default function Auth() {
   const [errors, setErrors] = useState<any>({});
 
   useEffect(() => {
-    // Aguarda o AuthContext confirmar user + roles antes de decidir o destino.
-    // Sem isso, os roles (assíncronos) ainda não resolveram e o interno cairia em /cliente.
+    // Aguarda o AuthContext confirmar a sessão antes de decidir o destino.
     if (authLoading || !user) return;
 
     if (user.user_metadata?.must_change_password === true) {
@@ -58,10 +56,10 @@ export default function Auth() {
       return;
     }
 
-    // Internos (inclusive admin) → seletor de área da equipe.
-    // Clientes (sem role) → página de chamados deles.
-    navigate(isInternalUser ? '/equipe' : '/cliente/chamados', { replace: true });
-  }, [user, isInternalUser, authLoading, navigate]);
+    // O botão "Área do Cliente" (entrada por /auth) leva TODOS para a Área do
+    // Cliente, independente da role. A equipe tem porta própria em /equipe.
+    navigate('/cliente', { replace: true });
+  }, [user, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

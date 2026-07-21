@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { LayoutGrid, List } from 'lucide-react';
+import { Filter, LayoutGrid, List, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { KanbanBoard } from '@/components/equipe/kanban/KanbanBoard';
@@ -100,16 +100,18 @@ const EquipeKanban = () => {
     });
   };
 
-  const filteredDeliverables = useMemo(
+  const directMatchIds = useMemo(
     () =>
-      filterEquipeKanbanDeliverables(deliverables, sprints, processes, {
-        sprint: filterSprint,
-        responsible: filterResponsible,
-        project: filterProject,
-        process: filterProcess,
-        startDate: filterStartDate,
-        endDate: filterEndDate,
-      }),
+      new Set(
+        filterEquipeKanbanDeliverables(deliverables, sprints, processes, {
+          sprint: filterSprint,
+          responsible: filterResponsible,
+          project: filterProject,
+          process: filterProcess,
+          startDate: filterStartDate,
+          endDate: filterEndDate,
+        }).map((deliverable) => deliverable.id),
+      ),
     [
       deliverables,
       sprints,
@@ -123,21 +125,52 @@ const EquipeKanban = () => {
     ],
   );
 
+  const filteredDeliverables = useMemo(() => {
+    const parentIdsOfMatchingSubtasks = new Set<string>();
+    deliverables.forEach((deliverable) => {
+      if (deliverable.parent_id && directMatchIds.has(deliverable.id)) {
+        parentIdsOfMatchingSubtasks.add(deliverable.parent_id);
+      }
+    });
+    return deliverables.filter(
+      (deliverable) =>
+        directMatchIds.has(deliverable.id) || parentIdsOfMatchingSubtasks.has(deliverable.id),
+    );
+  }, [deliverables, directMatchIds]);
+
   const hierarchicalDeliverables = useMemo(
     () => buildEquipeKanbanHierarchy(filteredDeliverables),
     [filteredDeliverables],
   );
 
+  useEffect(() => {
+    if (filterResponsible === 'all' && !filterStartDate && !filterEndDate) return;
+    setExpandedTasks((previous) => {
+      const next = new Set(previous);
+      let changed = false;
+      hierarchicalDeliverables.forEach((parent) => {
+        if (parent.subtaskCount > 0 && !directMatchIds.has(parent.id) && !next.has(parent.id)) {
+          next.add(parent.id);
+          changed = true;
+        }
+      });
+      return changed ? next : previous;
+    });
+  }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables, directMatchIds]);
+
+  const hiddenCount = useMemo(() => {
+    const renderedIds = new Set<string>();
+    hierarchicalDeliverables.forEach((parent) => {
+      renderedIds.add(parent.id);
+      parent.subtasks.forEach((subtask) => renderedIds.add(subtask.id));
+    });
+    return filteredDeliverables.filter((deliverable) => !renderedIds.has(deliverable.id)).length;
+  }, [hierarchicalDeliverables, filteredDeliverables]);
+
   const getColumnDeliverables = (columnId: string) =>
     getEquipeKanbanColumnDeliverables(hierarchicalDeliverables, columnId, sortByDueDate);
 
-  const hasActiveFilters =
-    filterSprint !== 'all' ||
-    filterResponsible !== 'all' ||
-    filterProject !== 'all' ||
-    filterProcess !== 'all' ||
-    filterStartDate ||
-    filterEndDate;
+  const hasActiveFilters = filterSprint !== 'all' || filterResponsible !== 'all' || filterProject !== 'all' || filterProcess !== 'all' || filterStartDate || filterEndDate;
 
   const clearFilters = () => {
     setFilterSprint('all');
@@ -354,6 +387,7 @@ const EquipeKanban = () => {
         hasActiveFilters={!!hasActiveFilters}
         mainTaskCount={hierarchicalDeliverables.length}
         totalTaskCount={filteredDeliverables.length}
+        hiddenCount={hiddenCount}
         onSprintChange={setFilterSprint}
         onResponsibleChange={setFilterResponsible}
         onProjectChange={setFilterProject}
@@ -362,6 +396,22 @@ const EquipeKanban = () => {
         onEndDateChange={setFilterEndDate}
         onClear={clearFilters}
       />
+
+      {hasActiveFilters && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <Filter className="h-4 w-4 flex-shrink-0" />
+          <span>Há filtros ativos — algumas tarefas da sprint podem estar ocultas.</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="ml-auto h-7 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Limpar filtros
+          </Button>
+        </div>
+      )}
 
       {initialQuery.isLoading || (initialQuery.isSuccess && !initialDataApplied) ? (
         <div className="flex justify-center py-20">

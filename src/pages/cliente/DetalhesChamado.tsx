@@ -7,7 +7,9 @@ import { downloadTicketFile, isImageFile } from '@/lib/ticketUtils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
+import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -127,7 +129,7 @@ export default function DetalhesChamado() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !id) return;
+    if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
       await sendMessage.mutateAsync({
@@ -185,7 +187,7 @@ export default function DetalhesChamado() {
                   {statusLabels[ticket.status]}
                 </Badge>
               </div>
-              <p className="text-muted-foreground break-all whitespace-pre-wrap">{ticket.description}</p>
+              <TicketRichTextView value={ticket.description} className="text-muted-foreground" />
               <div className="text-sm text-muted-foreground">
                 Criado em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
               </div>
@@ -328,20 +330,21 @@ export default function DetalhesChamado() {
                         {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
                       </span>
                     </div>
-                    <p className="text-sm">{message.message}</p>
+                    <TicketRichTextView value={message.message} className="text-sm" />
                   </div>
                 ))
               )}
             </div>
 
             <div className="space-y-4">
-              <Textarea
-                placeholder="Digite sua mensagem..."
+              <TicketRichTextEditor
                 value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                rows={4}
+                onChange={setNewMessage}
+                placeholder="Digite sua mensagem..."
+                minHeight="min-h-28"
+                ariaLabel="Nova mensagem"
               />
-              <Button onClick={handleSendMessage} disabled={sending || !newMessage.trim()}>
+              <Button onClick={handleSendMessage} disabled={sending || isTicketRichTextEmpty(newMessage)}>
                 {sending ? (
                   <span className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>

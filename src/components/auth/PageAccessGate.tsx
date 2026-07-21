@@ -1,5 +1,7 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/usePageAccess';
+import { resolveLoginPath } from '@/lib/loginRedirect';
 import { Button } from '@/components/ui/button';
 import { ShieldX, ArrowLeft } from 'lucide-react';
 
@@ -18,8 +20,23 @@ export const PageAccessGate = ({
   children,
   fallbackPath = '/equipe/digital'
 }: PageAccessGateProps) => {
+  const { user, loading: authLoading } = useAuth();
   const { hasAccess, isLoading } = usePageAccess(pagePath);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Enquanto a autenticação está sendo resolvida, mantém o layout montado
+  // (evita flash de "Acesso Negado" durante TOKEN_REFRESHED).
+  if (authLoading) {
+    return <>{children}</>;
+  }
+
+  // Sessão expirada ou inexistente: manda para o login correto da área
+  // (rotas da equipe voltam para /equipe; as demais para /auth), em vez de
+  // exibir "Acesso Negado".
+  if (!user) {
+    return <Navigate to={resolveLoginPath(location.pathname)} replace />;
+  }
 
   if (isLoading) {
     return <>{children}</>;

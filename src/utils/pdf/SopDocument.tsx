@@ -20,6 +20,8 @@ export type { SOPMode };
 export interface SopDocumentProps {
   processo: Processo;
   etapas: Etapa[];
+  /** Etapas TO-BE (modelo por-cenário) — usadas no modo 'ficou' quando não há `.ficou`. */
+  etapasFuturo?: Etapa[];
   documentos: Documento[];
   sistemas: Sistema[];
   responsaveis: Responsavel[];
@@ -218,15 +220,13 @@ export function SopDocument(props: SopDocumentProps) {
             <SectionHeader num={nextNum()} title="Responsáveis" />
             <View style={styles.table}>
               <View style={styles.trHeader}>
-                <Text style={[styles.th, { width: '40%' }]}>Nome</Text>
-                <Text style={[styles.th, { width: '30%' }]}>Cargo</Text>
-                <Text style={[styles.th, { flex: 1 }]}>Custo/hora</Text>
+                <Text style={[styles.th, { width: '50%' }]}>Nome</Text>
+                <Text style={[styles.th, { flex: 1 }]}>Cargo</Text>
               </View>
               {m.responsaveis.map((r, i) => (
                 <View key={i} style={styles.tr}>
-                  <Text style={[styles.td, { width: '40%' }]}>{r.nome}</Text>
-                  <Text style={[styles.td, { width: '30%' }]}>{r.cargo}</Text>
-                  <Text style={[styles.td, { flex: 1 }]}>{r.custoHora}</Text>
+                  <Text style={[styles.td, { width: '50%' }]}>{r.nome}</Text>
+                  <Text style={[styles.td, { flex: 1 }]}>{r.cargo}</Text>
                 </View>
               ))}
             </View>

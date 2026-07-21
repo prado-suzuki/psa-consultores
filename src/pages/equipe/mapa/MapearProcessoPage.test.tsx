@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
     processo: null as Record<string, unknown> | null,
     loading: false,
     etapas: [] as Etapa[],
+    etapasFuturo: [] as Etapa[],
     documentos: [] as Record<string, unknown>[],
     sistemas: [] as Record<string, unknown>[],
     responsaveis: [] as Record<string, unknown>[],
@@ -22,6 +23,9 @@ const mocks = vi.hoisted(() => ({
   updateEtapa: vi.fn(),
   deleteEtapa: vi.fn(),
   upsertEtapaToBe: vi.fn(),
+  createEtapaToBe: vi.fn(),
+  updateEtapaToBe: vi.fn(),
+  deleteEtapaToBe: vi.fn(),
   updateGargalo: vi.fn(),
   updateMelhoria: vi.fn(),
   exportSopMd: vi.fn(),
@@ -34,6 +38,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('@/hooks/useDominioListas', () => ({
   useProcessoUnico: () => ({ data: mocks.lists.processo, isLoading: mocks.lists.loading }),
   useEtapasLista: () => ({ data: mocks.lists.etapas }),
+  useEtapasToBeLista: () => ({ data: mocks.lists.etapasFuturo }),
   useDocumentosLista: () => ({ data: mocks.lists.documentos }),
   useSistemasLista: () => ({ data: mocks.lists.sistemas }),
   useResponsaveisLista: () => ({ data: mocks.lists.responsaveis }),
@@ -47,6 +52,11 @@ vi.mock('@/hooks/useEtapas', () => ({
   useUpdateEtapa: () => ({ mutateAsync: mocks.updateEtapa }),
   useDeleteEtapa: () => ({ mutateAsync: mocks.deleteEtapa }),
   useUpsertEtapaToBe: () => ({ mutateAsync: mocks.upsertEtapaToBe }),
+}));
+vi.mock('@/hooks/useEtapaToBePorCenario', () => ({
+  useCreateEtapaToBe: () => ({ mutateAsync: mocks.createEtapaToBe }),
+  useUpdateEtapaToBe: () => ({ mutateAsync: mocks.updateEtapaToBe }),
+  useDeleteEtapaToBe: () => ({ mutateAsync: mocks.deleteEtapaToBe }),
 }));
 vi.mock('@/hooks/useGargalos', () => ({ useUpdateGargalo: () => ({ mutateAsync: mocks.updateGargalo }) }));
 vi.mock('@/hooks/useMelhorias', () => ({ useUpdateMelhoria: () => ({ mutateAsync: mocks.updateMelhoria }) }));
@@ -150,6 +160,7 @@ describe('MapearProcessoPage', () => {
     mocks.lists.processo = { ...PROCESSO };
     mocks.lists.loading = false;
     mocks.lists.etapas = [];
+    mocks.lists.etapasFuturo = [];
     mocks.lists.documentos = [{ id: 'D1', nome: 'Pedido' }];
     mocks.lists.sistemas = [{ id: 'S1', nome: 'ERP', cluster_id: 'C1' }];
     mocks.lists.responsaveis = [{ id: 'R1', name: 'Analista' }];
@@ -160,6 +171,9 @@ describe('MapearProcessoPage', () => {
     mocks.updateEtapa.mockResolvedValue({});
     mocks.deleteEtapa.mockResolvedValue(undefined);
     mocks.upsertEtapaToBe.mockResolvedValue({});
+    mocks.createEtapaToBe.mockResolvedValue({});
+    mocks.updateEtapaToBe.mockResolvedValue(undefined);
+    mocks.deleteEtapaToBe.mockResolvedValue(undefined);
     mocks.updateGargalo.mockResolvedValue({});
     mocks.updateMelhoria.mockResolvedValue({});
     mocks.generateSOP.mockResolvedValue(undefined);
@@ -326,6 +340,38 @@ describe('MapearProcessoPage', () => {
     expect(operations).toEqual(['create', 'delete:E2']);
     expect(mocks.createEtapa.mock.calls[0][0]).toMatchObject({ process_id: 'PR1', name: 'Conferir pedido', stage_order: 2 });
     expect(mocks.createEtapa.mock.calls[0][0]).not.toHaveProperty('id');
+  });
+
+  it('preserva update, create e delete sequenciais nas etapas TO-BE independentes', async () => {
+    mocks.lists.etapas = [{ ...ETAPA_1 }];
+    mocks.lists.etapasFuturo = [
+      { ...ETAPA_1, id: 'T1', name: 'Receber no futuro' },
+      { ...ETAPA_2, id: 'T2', name: 'Aprovar no futuro' },
+    ];
+    const operations: string[] = [];
+    mocks.updateEtapaToBe.mockImplementation(async ({ etapa }: { etapa: Etapa }) => { operations.push(`update:${etapa.id}`); });
+    mocks.createEtapaToBe.mockImplementation(async () => { operations.push('create'); });
+    mocks.deleteEtapaToBe.mockImplementation(async ({ id }: { id: string }) => { operations.push(`delete:${id}`); });
+    renderPage();
+    const user = await openEditor('ficou');
+
+    const nome = screen.getByDisplayValue('Receber no futuro');
+    await user.clear(nome);
+    await user.type(nome, 'Receber otimizado');
+    const sidebar = screen.getByRole('complementary', { name: 'Lista de etapas do processo' });
+    await user.click(within(sidebar).getByText('Aprovar no futuro'));
+    await user.click(screen.getByRole('button', { name: 'Excluir esta etapa' }));
+    await user.click(screen.getByRole('button', { name: 'Adicionar etapa' }));
+    await user.type(screen.getAllByDisplayValue('')[0], 'Conferir no futuro');
+    await user.click(screen.getByRole('button', { name: 'Salvar todas' }));
+
+    await waitFor(() => expect(mocks.deleteEtapaToBe).toHaveBeenCalledTimes(1));
+    expect(operations).toEqual(['update:T1', 'create', 'delete:T2']);
+    expect(mocks.createEtapaToBe).toHaveBeenCalledWith(expect.objectContaining({
+      process_id: 'PR1',
+      etapa: expect.objectContaining({ name: 'Conferir no futuro', stage_order: 2 }),
+    }));
+    expect(mocks.upsertEtapaToBe).not.toHaveBeenCalled();
   });
 
   it('valida nome obrigatório, foca a etapa inválida e não inicia persistência', async () => {

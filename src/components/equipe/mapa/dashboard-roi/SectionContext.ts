@@ -19,7 +19,7 @@ export interface DashboardRoiSectionModel {
   statusMelhoriasFunnel:{label:string;valor:number;cor:string}[];
   gargalosPorOrigem:{label:string;valor:number;cor:string}[];
   topEtapas:{id:string;nome:string;process_id:string;horas:number;custo:number}[];
-  etapasFiltradas:Etapa[]; gargalosFiltrados:Gargalo[]; processosFiltrados:Processo[];
+  etapasFiltradas:Etapa[]; etapasFuturoFiltradas:Etapa[]; gargalosFiltrados:Gargalo[]; processosFiltrados:Processo[];
   melhorias:Melhoria[]; sistemas:Sistema[]; responsaveis:Responsavel[];
   procNomeById:Map<string,string>; filtroProcesso:string;
 }

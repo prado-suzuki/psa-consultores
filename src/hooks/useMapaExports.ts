@@ -6,7 +6,7 @@ import { useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import type { Etapa, Processo } from '@/types';
 import {
-  useEtapasLista, useDocumentosLista, useSistemasLista, useResponsaveisLista,
+  useEtapasLista, useEtapasToBeLista, useDocumentosLista, useSistemasLista, useResponsaveisLista,
   useGargalosLista, useMelhoriasLista, useProcessosLista, useProjetosLista,
 } from '@/hooks/useDominioListas';
 import { enrichEtapas } from '@/utils/enrichEtapas';
@@ -23,6 +23,7 @@ const ordenarPorOrdem = (a: Etapa, b: Etapa) => (a.stage_order ?? 0) - (b.stage_
 
 export function useMapaExports() {
   const { data: rawEtapas = [] } = useEtapasLista();
+  const { data: rawEtapasToBe = [] } = useEtapasToBeLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
@@ -35,6 +36,11 @@ export function useMapaExports() {
     const filtered = rawEtapas.filter(e => e.process_id === processoId).sort(ordenarPorOrdem);
     return enrichEtapas(filtered, documentos, sistemas, responsaveis);
   }, [rawEtapas, documentos, sistemas, responsaveis]);
+
+  const etapasToBeDoProcesso = useCallback((processoId: string): Etapa[] => {
+    const filtered = rawEtapasToBe.filter(e => e.process_id === processoId).sort(ordenarPorOrdem);
+    return enrichEtapas(filtered, documentos, sistemas, responsaveis);
+  }, [rawEtapasToBe, documentos, sistemas, responsaveis]);
 
   const projetoDoProcesso = useCallback(
     (processo: Processo) => projetos.find(p => p.id === processo.project_id) || null,
@@ -57,27 +63,28 @@ export function useMapaExports() {
       const processo = getProcesso(processoId);
       if (!processo) throw new Error('Processo não encontrado.');
       const etapas = etapasDoProcesso(processoId);
-      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode, { projeto: projetoDoProcesso(processo) });
-    }), [getProcesso, etapasDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetoDoProcesso]);
+      await generateSOP(processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, mode, { projeto: projetoDoProcesso(processo), etapasFuturo: etapasToBeDoProcesso(processoId) });
+    }), [getProcesso, etapasDoProcesso, etapasToBeDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetoDoProcesso]);
 
   const exportSopMd = useCallback((processoId: string, mode: SOPMode) =>
     wrap('Erro ao gerar SOP (Markdown)', async () => {
       const processo = getProcesso(processoId);
       if (!processo) throw new Error('Processo não encontrado.');
       const etapas = etapasDoProcesso(processoId);
-      generateSopMarkdown({ processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto: projetoDoProcesso(processo), mode });
-    }), [getProcesso, etapasDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetoDoProcesso]);
+      generateSopMarkdown({ processo, etapas, etapasFuturo: etapasToBeDoProcesso(processoId), documentos, sistemas, responsaveis, gargalos, melhorias, projeto: projetoDoProcesso(processo), mode });
+    }), [getProcesso, etapasDoProcesso, etapasToBeDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetoDoProcesso]);
 
   const comparativoInput = useCallback((processo: Processo) => {
     const etapas = etapasDoProcesso(processo.id);
-    const roi = calcularRoi({ processos: [processo], etapas, responsaveis, sistemas, gargalos, melhorias, projetos });
+    const etapasFuturo = etapasToBeDoProcesso(processo.id);
+    const roi = calcularRoi({ processos: [processo], etapas, etapasFuturo, responsaveis, sistemas, gargalos, melhorias, projetos });
     const diagnostico = diagnosticarRoi(processo, etapas, responsaveis, sistemas, gargalos, melhorias);
     return {
-      processo, etapas, sistemas, responsaveis,
+      processo, etapas, etapasFuturo, sistemas, responsaveis,
       gargalos: gargalosDoProcesso(gargalos, processo.id),
       melhorias, projeto: projetoDoProcesso(processo), roi, diagnostico, horizonteMeses: 24,
     };
-  }, [etapasDoProcesso, responsaveis, sistemas, gargalos, melhorias, projetos, projetoDoProcesso]);
+  }, [etapasDoProcesso, etapasToBeDoProcesso, responsaveis, sistemas, gargalos, melhorias, projetos, projetoDoProcesso]);
 
   const exportComparativoPdf = useCallback((processoId: string) =>
     wrap('Erro ao gerar SOP Comparativo', async () => {
@@ -108,9 +115,10 @@ export function useMapaExports() {
       const procs = processos.filter(p => p.project_id === projetoId);
       if (procs.length === 0) throw new Error('Projeto sem processos para exportar.');
       const etapasByProcesso = new Map<string, Etapa[]>(procs.map(p => [p.id, etapasDoProcesso(p.id)]));
+      const tobeByProcesso = new Map<string, Etapa[]>(procs.map(p => [p.id, etapasToBeDoProcesso(p.id)]));
       toast.message('Gerando pacote do projeto…', { description: `${procs.length} processo(s).` });
-      await generateProjetoZip({ projeto, processos: procs, etapasByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetos });
-    }), [projetos, processos, etapasDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias]);
+      await generateProjetoZip({ projeto, processos: procs, etapasByProcesso, tobeByProcesso, documentos, sistemas, responsaveis, gargalos, melhorias, projetos });
+    }), [projetos, processos, etapasDoProcesso, etapasToBeDoProcesso, documentos, sistemas, responsaveis, gargalos, melhorias]);
 
   return useMemo(() => ({
     exportSopPdf, exportSopMd, exportComparativoPdf, exportComparativoMd,

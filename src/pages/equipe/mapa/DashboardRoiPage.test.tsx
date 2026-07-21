@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   projetos: [] as Array<Record<string, unknown>>,
   processos: [] as Array<Record<string, unknown>>,
   etapas: [] as Array<Record<string, unknown>>,
+  etapasFuturo: [] as Array<Record<string, unknown>>,
   responsaveis: [] as Array<Record<string, unknown>>,
   sistemas: [] as Array<Record<string, unknown>>,
   gargalos: [] as Array<Record<string, unknown>>,
@@ -30,6 +31,7 @@ vi.mock('@/hooks/useDominioListas', () => ({
   useProjetosLista: () => ({ data: mocks.projetos }),
   useProcessosLista: () => ({ data: mocks.processos }),
   useEtapasLista: () => ({ data: mocks.etapas }),
+  useEtapasToBeLista: () => ({ data: mocks.etapasFuturo }),
   useResponsaveisLista: () => ({ data: mocks.responsaveis }),
   useSistemasLista: () => ({ data: mocks.sistemas }),
   useGargalosLista: () => ({ data: mocks.gargalos }),
@@ -133,6 +135,7 @@ describe('DashboardRoiPage — caracterização pública', () => {
     mocks.projetos = [];
     mocks.processos = [];
     mocks.etapas = [];
+    mocks.etapasFuturo = [];
     mocks.responsaveis = [];
     mocks.sistemas = [];
     mocks.gargalos = [];

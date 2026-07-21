@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, Check, ChevronRight, ClipboardCheck, FileText, FolderArchive, FolderKanban,
-  Info, Landmark, Link2, MinusCircle, PieChart, Plus, Printer, RefreshCw, ScrollText,
+  Info, Landmark, Link2, MoreHorizontal, PieChart, Plus, Printer, RefreshCw, ScrollText,
   ShieldAlert, Trash2, User, Users,
 } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
@@ -14,6 +14,10 @@ import {
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
@@ -23,7 +27,7 @@ import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
 import {
   useChecklistPadrao, useChecklistClienteItens, useGerarChecklistCliente,
   useAdicionarCondicional, useDefinirStatusItem, useVincularDocumento, useRemoverChecklistItem,
-  itemRecebido, type ChecklistClienteRow, type ChecklistPadraoRow,
+  itemRecebido, type ChecklistClienteRow, type ChecklistPadraoRow, type ChecklistStatus,
 } from '@/hooks/useOsgChecklist';
 import { DiagnosticoPatrimonialReport } from '@/components/equipe/osg/relatorios/DiagnosticoPatrimonialReport';
 import { SocietarioReport } from '@/components/equipe/osg/relatorios/SocietarioReport';
@@ -69,10 +73,12 @@ const TIPO_CLUSTER_ORDER = [
   'Matrícula (Imóvel Rural)', 'Matrícula (Imóvel Urbano)', 'Bem',
 ];
 
-type StatusEfetivo = 'pendente' | 'recebido' | 'dispensado' | 'nao_aplicavel';
+type StatusEfetivo = 'pendente' | 'solicitado' | 'recebido' | 'dispensado' | 'nao_aplicavel' | 'nao_solicitado';
 const efetivo = (r: ChecklistClienteRow): StatusEfetivo => {
   if (r.status === 'dispensado') return 'dispensado';
   if (r.status === 'nao_aplicavel') return 'nao_aplicavel';
+  if (r.status === 'solicitado') return 'solicitado';
+  if (r.status === 'nao_solicitado') return 'nao_solicitado';
   return itemRecebido(r) ? 'recebido' : 'pendente';
 };
 
@@ -179,14 +185,22 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   };
 
   const totais = useMemo(() => {
-    let pendentes = 0, recebidos = 0, obrigPend = 0;
+    let pendentes = 0, recebidos = 0, solicitados = 0, naoSolicitados = 0, obrigPend = 0;
     for (const r of itens) {
       const e = efetivo(r);
       if (e === 'recebido') recebidos++;
       else if (e === 'pendente') { pendentes++; if (r.obrigatorio) obrigPend++; }
+      else if (e === 'solicitado') { solicitados++; if (r.obrigatorio) obrigPend++; }
+      else if (e === 'nao_solicitado') naoSolicitados++;
     }
-    const base = recebidos + pendentes; // dispensados não entram no %
-    return { total: itens.length, pendentes, recebidos, obrigPend, pct: base ? Math.round((recebidos / base) * 100) : 0 };
+    // Base do progresso: recebidos + pendentes + solicitados (solicitado é "aberto").
+    // Excluídos: dispensado, nao_aplicavel, nao_solicitado.
+    const base = recebidos + pendentes + solicitados;
+    return {
+      total: itens.length,
+      pendentes, recebidos, solicitados, naoSolicitados, obrigPend,
+      pct: base ? Math.round((recebidos / base) * 100) : 0,
+    };
   }, [itens]);
 
   // Agrupamento por dimensão escolhida (Entidade | Tipo de documento | Módulo).
@@ -203,7 +217,7 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       g.items.push(it);
     }
     const arr = [...map.values()];
-    const hasPend = (g: Grupo) => g.items.some((x) => efetivo(x) === 'pendente');
+    const hasPend = (g: Grupo) => g.items.some((x) => { const e = efetivo(x); return e === 'pendente' || e === 'solicitado'; });
     arr.sort((a, b) => {
       if (agruparPor === 'entidade') {
         const ia = TIPO_CLUSTER_ORDER.indexOf(a.tipo ?? ''), ib = TIPO_CLUSTER_ORDER.indexOf(b.tipo ?? '');
@@ -263,9 +277,13 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
   const renderPanel = (g: Grupo) => {
     const Icon = iconForGroup(g);
-    const pendN = g.items.filter((x) => efetivo(x) === 'pendente').length;
+    const isAberto = (r: ChecklistClienteRow) => {
+      const e = efetivo(r);
+      return e === 'pendente' || e === 'solicitado';
+    };
+    const pendN = g.items.filter(isAberto).length;
     const opened = openState[g.key] ?? false; // recolhido por padrão
-    const items = g.items.slice().sort((a, b) => (efetivo(a) === 'pendente' ? 0 : 1) - (efetivo(b) === 'pendente' ? 0 : 1));
+    const items = g.items.slice().sort((a, b) => (isAberto(a) ? 0 : 1) - (isAberto(b) ? 0 : 1));
     return (
       <div key={g.key} className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
         <button
@@ -291,8 +309,7 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                   primary={rt.primary}
                   context={rt.context}
                   onVincular={() => setVincId(it.id)}
-                  onDispensar={() => setStatus.mutate({ id: it.id, status: 'dispensado' })}
-                  onReativar={() => setStatus.mutate({ id: it.id, status: 'pendente' })}
+                  onSetStatus={(s) => setStatus.mutate({ id: it.id, status: s })}
                   onRemover={() => remover.mutate(it.id)}
                 />
               );
@@ -409,23 +426,39 @@ function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   );
 }
 
+const STATUS_MANUAIS: { value: ChecklistStatus; label: string }[] = [
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'solicitado', label: 'Solicitado' },
+  { value: 'dispensado', label: 'Dispensado' },
+  { value: 'nao_aplicavel', label: 'Não aplicável' },
+  { value: 'nao_solicitado', label: 'Não solicitado' },
+];
+
 function ItemRow({
-  it, primary, context, onVincular, onDispensar, onReativar, onRemover,
+  it, primary, context, onVincular, onSetStatus, onRemover,
 }: {
   it: ChecklistClienteRow;
   primary: string;
   context: string | null;
   onVincular: () => void;
-  onDispensar: () => void;
-  onReativar: () => void;
+  onSetStatus: (s: ChecklistStatus) => void;
   onRemover: () => void;
 }) {
   const e = efetivo(it);
+  const dimmed = e === 'recebido' || e === 'dispensado' || e === 'nao_aplicavel' || e === 'nao_solicitado';
+  const renderPill = () => {
+    if (e === 'recebido') return <Pill tone="ok">Recebido</Pill>;
+    if (e === 'pendente') return <Pill tone="pend">Pendente</Pill>;
+    if (e === 'solicitado') return <Pill tone="info">Solicitado</Pill>;
+    if (e === 'dispensado') return <Pill tone="neutral">Dispensado</Pill>;
+    if (e === 'nao_aplicavel') return <Pill tone="neutral">Não aplicável</Pill>;
+    return <Pill tone="neutral">Não solicitado</Pill>;
+  };
   return (
     <li className="flex items-start gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className={cn('font-medium', e === 'recebido' || e === 'dispensado' ? 'text-slate-500' : 'text-slate-800')}>
+          <span className={cn('font-medium', dimmed ? 'text-slate-500' : 'text-slate-800')}>
             {primary}
           </span>
           {context && <span className="text-xs text-slate-400">· {context}</span>}
@@ -449,25 +482,34 @@ function ItemRow({
           </p>
         )}
         {e === 'dispensado' && <p className="mt-1 text-[11px] text-slate-500">Dispensado para este cliente.</p>}
+        {e === 'nao_solicitado' && <p className="mt-1 text-[11px] text-slate-500">Não solicitado — fora da base do progresso.</p>}
       </div>
-      {e === 'recebido'
-        ? <Pill tone="ok">Recebido</Pill>
-        : e === 'pendente'
-          ? <Pill tone="pend">Pendente</Pill>
-          : <Pill tone="neutral">Dispensado</Pill>}
+      {renderPill()}
       <div className="flex shrink-0 items-center gap-1">
         <Button variant="ghost" size="sm" onClick={onVincular} title="Vincular documento">
           <Link2 className="h-4 w-4" />
         </Button>
-        {e === 'dispensado' ? (
-          <Button variant="ghost" size="sm" onClick={onReativar} title="Reativar">
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button variant="ghost" size="sm" onClick={onDispensar} title="Dispensar (não se aplica)">
-            <MinusCircle className="h-4 w-4" />
-          </Button>
-        )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="sm" title="Alterar status">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuLabel className="text-[11px] uppercase tracking-wide text-slate-500">Status</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {STATUS_MANUAIS.map((s) => (
+              <DropdownMenuItem
+                key={s.value}
+                disabled={it.status === s.value}
+                onSelect={() => onSetStatus(s.value)}
+              >
+                {s.label}
+                {it.status === s.value && <Check className="ml-auto h-3.5 w-3.5 text-slate-400" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
         {it.origem === 'manual' && (
           <Button variant="ghost" size="sm" className="text-rose-600" onClick={onRemover} title="Remover item">
             <Trash2 className="h-4 w-4" />
@@ -586,44 +628,53 @@ function AddCondicionalDialog({
 }
 
 // Tira de resumo sóbria (substitui os cards KPI): Pendentes + Recebidos com barra de progresso.
-function ResumoStrip({ pendentes, recebidos, total, pct, obrigPend }: {
+function ResumoStrip({ pendentes, recebidos, total, pct, obrigPend, solicitados, naoSolicitados }: {
   pendentes: number; recebidos: number; total: number; pct: number; obrigPend: number;
+  solicitados: number; naoSolicitados: number;
 }) {
   return (
-    <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
-      <div className="flex-1 px-5 py-3.5 max-sm:border-b max-sm:border-osg-100 sm:border-r sm:border-osg-100">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <span className="h-2 w-2 rounded-sm bg-amber-500" /> Pendentes
+    <div className="space-y-2">
+      <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
+        <div className="flex-1 px-5 py-3.5 max-sm:border-b max-sm:border-osg-100 sm:border-r sm:border-osg-100">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="h-2 w-2 rounded-sm bg-amber-500" /> Em aberto
+          </div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+            {pendentes + solicitados} <span className="text-[13px] font-normal text-slate-500">de {total} documentos</span>
+          </div>
+          <div className="mt-0.5 text-xs text-slate-500">
+            {pendentes} pendente{pendentes === 1 ? '' : 's'} · {solicitados} solicitado{solicitados === 1 ? '' : 's'}
+            {obrigPend > 0 ? ` · ${obrigPend} obrigatório${obrigPend > 1 ? 's' : ''}` : ''}
+          </div>
         </div>
-        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
-          {pendentes} <span className="text-[13px] font-normal text-slate-500">de {total} documentos</span>
-        </div>
-        <div className="mt-0.5 text-xs text-slate-500">
-          {obrigPend > 0
-            ? `${obrigPend} obrigatório${obrigPend > 1 ? 's' : ''} · aguardando envio do cliente`
-            : 'aguardando envio do cliente'}
+        <div className="flex-1 px-5 py-3.5">
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span className="h-2 w-2 rounded-sm bg-osg-moss" /> Recebidos
+          </div>
+          <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
+            {recebidos} <span className="text-[13px] font-normal text-slate-500">· {pct}%</span>
+          </div>
+          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <span className="block h-full rounded-full bg-osg-moss" style={{ width: `${pct}%` }} />
+          </div>
         </div>
       </div>
-      <div className="flex-1 px-5 py-3.5">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-          <span className="h-2 w-2 rounded-sm bg-osg-moss" /> Recebidos
+      {naoSolicitados > 0 && (
+        <div className="flex items-center gap-2 px-1 text-[11px] text-slate-500">
+          <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+          {naoSolicitados} não solicitado{naoSolicitados > 1 ? 's' : ''} — fora da base do progresso.
         </div>
-        <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">
-          {recebidos} <span className="text-[13px] font-normal text-slate-500">· {pct}%</span>
-        </div>
-        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
-          <span className="block h-full rounded-full bg-osg-moss" style={{ width: `${pct}%` }} />
-        </div>
-      </div>
+      )}
     </div>
   );
 }
 
-function Pill({ tone, children }: { tone: 'ok' | 'pend' | 'neutral'; children: ReactNode }) {
+function Pill({ tone, children }: { tone: 'ok' | 'pend' | 'neutral' | 'info'; children: ReactNode }) {
   const cls = {
     ok: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     pend: 'border-amber-200 bg-amber-50 text-amber-700',
     neutral: 'border-slate-200 bg-slate-50 text-slate-600',
+    info: 'border-blue-200 bg-blue-50 text-blue-700',
   }[tone];
   return (
     <span className={cn('inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', cls)}>

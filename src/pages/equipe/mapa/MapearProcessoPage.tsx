@@ -11,7 +11,7 @@ import { EtapasEditorModal } from '@/components/equipe/mapa/mapear-processo/Etap
 import { QuickCadastros } from '@/components/equipe/mapa/mapear-processo/QuickCadastros';
 import { useEtapasEditor } from '@/components/equipe/mapa/mapear-processo/useEtapasEditor';
 import {
-  useDocumentosLista, useEtapasLista, useGargalosLista, useMelhoriasLista,
+  useDocumentosLista, useEtapasLista, useEtapasToBeLista, useGargalosLista, useMelhoriasLista,
   useProcessoUnico, useProjetosLista, useResponsaveisLista, useSistemasLista,
 } from '@/hooks/useDominioListas';
 import { useMapaExports } from '@/hooks/useMapaExports';
@@ -34,6 +34,7 @@ export default function MapearProcessoPage() {
   const [diagramaScenario, setDiagramaScenario] = useState<'era' | 'ficou' | null>(null);
   const processoQuery = useProcessoUnico(id);
   const { data: rawEtapas = [] } = useEtapasLista();
+  const { data: rawEtapasToBe = [] } = useEtapasToBeLista();
   const { data: documentos = [] } = useDocumentosLista();
   const { data: sistemas = [] } = useSistemasLista();
   const { data: responsaveis = [] } = useResponsaveisLista();
@@ -47,6 +48,10 @@ export default function MapearProcessoPage() {
   const etapas = useMemo(() => id
     ? enrichEtapas(rawEtapas.filter(etapa => etapa.process_id === id).sort(ordenarEtapas), documentos, sistemas, responsaveis)
     : [], [id, rawEtapas, documentos, sistemas, responsaveis]);
+  const etapasFuturo = useMemo(() => id
+    ? enrichEtapas(rawEtapasToBe.filter(etapa => etapa.process_id === id).sort(ordenarEtapas), documentos, sistemas, responsaveis)
+    : [], [id, rawEtapasToBe, documentos, sistemas, responsaveis]);
+  const usarListaFicou = etapasFuturo.length > 0 && !etapas.some(etapa => etapa.ficou != null);
   const procClusterId = useMemo(() => processo?.project_id
     ? (projetos.find(projeto => projeto.id === processo.project_id)?.cluster_id ?? null)
     : null, [processo, projetos]);
@@ -55,7 +60,7 @@ export default function MapearProcessoPage() {
   if (!processo) return <div className="card"><h2>Processo não encontrado</h2><p>O processo solicitado não existe ou foi removido.</p><Link to="/equipe/digital/mapa/processos" className="btn-add">Voltar aos processos</Link></div>;
 
   return <MapearProcessoContent
-    processo={processo} etapas={etapas} documentos={documentos} sistemas={sistemas} responsaveis={responsaveis}
+    processo={processo} etapas={etapas} etapasFuturo={etapasFuturo} usarListaFicou={usarListaFicou} documentos={documentos} sistemas={sistemas} responsaveis={responsaveis}
     gargalos={gargalos} melhorias={melhorias} projetos={projetos} procClusterId={procClusterId}
     aba={aba} setAba={setAba} editProcessoOpen={editProcessoOpen} setEditProcessoOpen={setEditProcessoOpen}
     diagramaScenario={diagramaScenario} setDiagramaScenario={setDiagramaScenario} navigateBack={() => navigate('/equipe/digital/mapa/processos')}
@@ -66,6 +71,8 @@ export default function MapearProcessoPage() {
 type ContentProps = {
   processo: NonNullable<ReturnType<typeof useProcessoUnico>['data']>;
   etapas: ReturnType<typeof enrichEtapas>;
+  etapasFuturo: ReturnType<typeof enrichEtapas>;
+  usarListaFicou: boolean;
   documentos: ReturnType<typeof useDocumentosLista>['data'] extends infer T ? NonNullable<T> : never;
   sistemas: ReturnType<typeof useSistemasLista>['data'] extends infer T ? NonNullable<T> : never;
   responsaveis: ReturnType<typeof useResponsaveisLista>['data'] extends infer T ? NonNullable<T> : never;
@@ -79,12 +86,12 @@ type ContentProps = {
   updateGargalo: ReturnType<typeof useUpdateGargalo>; updateMelhoria: ReturnType<typeof useUpdateMelhoria>;
 };
 
-function MapearProcessoContent({ processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projetos, procClusterId, aba, setAba, editProcessoOpen, setEditProcessoOpen, diagramaScenario, setDiagramaScenario, navigateBack, mapaExports, updateGargalo, updateMelhoria }: ContentProps) {
-  const editor = useEtapasEditor({ processo, etapas, documentos, sistemas, responsaveis, procClusterId });
+function MapearProcessoContent({ processo, etapas, etapasFuturo, usarListaFicou, documentos, sistemas, responsaveis, gargalos, melhorias, projetos, procClusterId, aba, setAba, editProcessoOpen, setEditProcessoOpen, diagramaScenario, setDiagramaScenario, navigateBack, mapaExports, updateGargalo, updateMelhoria }: ContentProps) {
+  const editor = useEtapasEditor({ processo, etapas, etapasFuturo, usarListaFicou, documentos, sistemas, responsaveis, procClusterId });
   const procGargalos = useMemo(() => gargalosDoProcesso(gargalos, processo.id), [gargalos, processo.id]);
   const procMelhorias = useMemo(() => melhoriasDoProcesso(melhorias, processo.id), [melhorias, processo.id]);
   const projeto = projetos.find(item => item.id === processo.project_id) || null;
-  const temFicou = etapas.some(etapa => etapa.ficou);
+  const temFicou = usarListaFicou || etapas.some(etapa => etapa.ficou);
   const diagramBase = { processo, etapas, documentos, sistemas, responsaveis, gargalos, melhorias, projeto };
   const diagramaCode = buildProcessDiagram({ ...diagramBase, mode: 'era' });
   const diagramaCodeFicou = temFicou ? buildProcessDiagram({ ...diagramBase, mode: 'ficou' }) : '';
@@ -118,7 +125,7 @@ function MapearProcessoContent({ processo, etapas, documentos, sistemas, respons
     <ScenarioTabs aba={aba} onAba={setAba} />
     <div className="mapear-painel"><AnimatePresence mode="wait">
       {aba === 'como-era' && <motion.div key="como-era" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}><ScenarioView scenario="era" etapas={etapas} onEditar={id => editor.openEditor('era', id)} /></motion.div>}
-      {aba === 'como-ficou' && <motion.div key="como-ficou" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}><ScenarioView scenario="ficou" etapas={etapas} onEditar={id => editor.openEditor('ficou', id)} /></motion.div>}
+      {aba === 'como-ficou' && <motion.div key="como-ficou" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}><ScenarioView scenario="ficou" etapas={usarListaFicou ? etapasFuturo : etapas} onEditar={id => editor.openEditor('ficou', id)} /></motion.div>}
     </AnimatePresence></div>
     <EtapasEditorModal editor={editor} docNames={documentos.map(item => item.nome)} sisNames={sistemas.map(item => item.nome)} respNames={responsaveis.map(item => item.name)} />
     <DiagramViewer isOpen={diagramaScenario !== null} onClose={() => setDiagramaScenario(null)} code={diagramaScenario === 'ficou' ? diagramaCodeFicou : diagramaCode}

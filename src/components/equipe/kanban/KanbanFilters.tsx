@@ -33,6 +33,7 @@ interface KanbanFiltersProps {
   hasActiveFilters: boolean;
   mainTaskCount: number;
   totalTaskCount: number;
+  hiddenCount: number;
   onSprintChange: (value: string) => void;
   onResponsibleChange: (value: string) => void;
   onProjectChange: (value: string) => void;
@@ -163,6 +164,11 @@ export function KanbanFilters(props: KanbanFiltersProps) {
 
       <div className="mt-3 text-xs text-gray-500">
         {props.mainTaskCount} tarefas principais ({props.totalTaskCount} total incluindo subtarefas)
+        {props.hiddenCount > 0 && (
+          <span className="ml-2 font-medium text-amber-600">
+            · {props.hiddenCount} subtarefa(s) aninhada(s) em tarefa-mãe fora da visão — não exibida(s) como card
+          </span>
+        )}
       </div>
     </div>
   );

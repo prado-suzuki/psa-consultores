@@ -13,6 +13,7 @@ export function criarBreakdownEtapas(
   etapas: Etapa[],
   respById: Map<string, Responsavel>,
   custoHM: number,
+  etapasFuturo: Etapa[] = [],
 ): EtapaBreakdown[] {
   const sumLado = (arr: { responsavelId?: string; horas?: number }[] | undefined): { h: number; c: number } => {
     let h = 0;
@@ -27,28 +28,33 @@ export function criarBreakdownEtapas(
     return { h, c };
   };
 
-  return etapas.map(e => {
-    const f = e.ficou;
-    const volEra = e.volume_per_process || 1;
-    const volFicou = (f?.volume_per_process ?? e.volume_per_process) || 1;
-    const exe = sumLado(e.executadoPor);
-    const exeF = sumLado(f?.executadoPor ?? e.executadoPor);
+  const usarListaFuturo = !etapas.some(etapa => etapa.ficou != null) && etapasFuturo.length > 0;
+  const total = usarListaFuturo ? Math.max(etapas.length, etapasFuturo.length) : etapas.length;
+
+  return Array.from({ length: total }, (_, index) => {
+    const e = etapas[index];
+    const etapaFuturo = usarListaFuturo ? etapasFuturo[index] : undefined;
+    const f = etapaFuturo ?? e?.ficou;
+    const volEra = e?.volume_per_process || 1;
+    const volFicou = (f?.volume_per_process ?? e?.volume_per_process) || 1;
+    const exe = sumLado(e?.executadoPor);
+    const exeF = sumLado(usarListaFuturo ? f?.executadoPor : (f?.executadoPor ?? e?.executadoPor));
     const horasExec = exe.h * volEra;
     const horasFicou = exeF.h * volFicou;
     const custoExec = exe.c * volEra;
     const custoFicou = exeF.c * volFicou;
-    const txRetrab = e.rework_rate ?? 0;
-    const txRetrabFicou = f?.rework_rate ?? txRetrab;
+    const txRetrab = e?.rework_rate ?? 0;
+    const txRetrabFicou = f?.rework_rate ?? (usarListaFuturo ? 0 : txRetrab);
 
     return {
-      id: e.id,
-      nome: e.name,
+      id: e?.id ?? etapaFuturo?.id ?? `etapa-${index}`,
+      nome: e?.name ?? etapaFuturo?.name ?? `Etapa ${index + 1}`,
       horasExec,
       horasFicou,
       custoExec,
       custoFicou,
-      error_rate: e.error_rate ?? 0,
-      taxaErrosFicou: f?.error_rate ?? e.error_rate ?? 0,
+      error_rate: e?.error_rate ?? 0,
+      taxaErrosFicou: f?.error_rate ?? (usarListaFuturo ? 0 : (e?.error_rate ?? 0)),
       taxaRetrab: txRetrab,
       taxaRetrabFicou: txRetrabFicou,
       custoRetrabExec: custoExec * txRetrab,

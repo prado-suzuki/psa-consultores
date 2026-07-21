@@ -6,19 +6,20 @@ import { useClienteClusters } from '@/hooks/useClienteClusters';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, X } from 'lucide-react';
 import { z } from 'zod';
 import { RequiredMark } from '@/components/ui/required-mark';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
 
 const ticketSchema = z.object({
   title: z.string().min(5, 'Título deve ter no mínimo 5 caracteres').max(100, 'Título deve ter no máximo 100 caracteres'),
   department: z.enum(['contabilidade', 'icms_ipi', 'irpj_csll', 'pis_cofins', 'produtor_rural', 'outros'], {
     errorMap: () => ({ message: 'Selecione um departamento' })
   }),
-  description: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(1000, 'Descrição deve ter no máximo 1000 caracteres'),
+  descriptionPlain: z.string().min(10, 'Descrição deve ter no mínimo 10 caracteres').max(5000, 'Descrição deve ter no máximo 5000 caracteres'),
   priority: z.enum(['baixa', 'normal', 'alta', 'urgente']),
 });
 
@@ -76,13 +77,19 @@ export default function NovoChamado() {
     setErrors({});
 
     try {
-      ticketSchema.parse(form);
+      ticketSchema.parse({
+        title: form.title,
+        department: form.department,
+        priority: form.priority,
+        descriptionPlain: ticketRichTextToPlain(form.description),
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         const fieldErrors: any = {};
         error.errors.forEach((err) => {
-          if (err.path[0]) {
-            fieldErrors[err.path[0]] = err.message;
+          const key = err.path[0] === 'descriptionPlain' ? 'description' : err.path[0];
+          if (key) {
+            fieldErrors[key] = err.message;
           }
         });
         setErrors(fieldErrors);
@@ -224,13 +231,14 @@ export default function NovoChamado() {
 
             <div className="space-y-2">
               <Label htmlFor="description">Descrição Detalhada <RequiredMark /></Label>
-              <Textarea
-                id="description"
-                placeholder="Descreva seu problema ou solicitação com o máximo de detalhes possível"
+              <TicketRichTextEditor
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={8}
-                className={errors.description ? 'border-destructive' : ''}
+                onChange={(v) => setForm({ ...form, description: v })}
+                placeholder="Descreva seu problema ou solicitação com o máximo de detalhes possível"
+                minHeight="min-h-40"
+                maxHeight="max-h-96"
+                invalid={!!errors.description}
+                ariaLabel="Descrição detalhada"
               />
               {errors.description && (
                 <p className="text-sm text-destructive">{errors.description}</p>

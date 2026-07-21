@@ -5,13 +5,13 @@ Data: 2026-07-21
 ## Resultado global
 
 - Baseline: 24.160 linhas nos 20 arquivos originais.
-- Resultado: 2.008 linhas nos 20 arquivos originais, reducao de 22.152 linhas.
+- Resultado apos sincronizacao com `origin/main`: 2.017 linhas nos 20 arquivos originais, reducao de 22.143 linhas.
 - Todas as 20 fachadas estao abaixo de 400 linhas e do teto obrigatorio de 600.
 - Maior novo `.tsx` de producao: `src/components/equipe/osg/gerar/PainelConferencia.tsx`, 444 linhas.
-- Verify automatizado: 20 arquivos de teste, 181 testes aprovados.
-- Suite global: 130 arquivos, 1.150 testes aprovados.
+- Verify automatizado: 20 arquivos de teste, 182 testes aprovados.
+- Suite global: 133 arquivos, 1.181 testes aprovados.
 - `bun run typecheck`: aprovado.
-- `bun run lint`: zero erros e 595 warnings preexistentes; baseline de 629 warnings.
+- `bun run lint`: zero erros e 604 warnings preexistentes ou provenientes de `origin/main`; nenhum warning nos arquivos da Fase 3.
 - `bun run build`: aprovado.
 - `git diff --check`: aprovado.
 - Nenhum diff em banco, migrations, RLS, RPCs, rotas, permissoes, tipos Supabase, CSS congelado ou `package-lock.json`.
@@ -22,9 +22,9 @@ Data: 2026-07-21
 
 | Unidade | Status | Owner | Arquivos permitidos | Testes | Linhas antes | Linhas depois | Review | Verify |
 |---|---|---|---|---:|---:|---:|---|---|
-| M1 | feito | `ses_07b43bcf8ffekVbIIKrcbS1YDg` | `DashboardRoiPage.tsx/test`; `dashboard-roi/**`; `dashboardRoi*.ts` | 8 | 1.609 | 92 | frontend + dados, sem blocker | auto aprovado; visual pendente |
-| M2 | feito | `ses_07b43bcabffeconN1b9ekoGgM1` | `MapearProcessoPage.tsx/test`; `mapear-processo/**`; `mapearProcesso*.ts` | 15 | 1.252 | 128 | frontend + dados, sem blocker | auto aprovado; DnD/visual pendente |
-| M3 | feito | `ses_07b43bca0ffeISMOQFXF75ah9J` | `WizardRoi.tsx/test`; `wizard-roi/**`; `wizardRoi*.ts` | 6 | 1.064 | 131 | frontend, sem blocker | auto aprovado; visual pendente |
+| M1 | feito | `ses_07b43bcf8ffekVbIIKrcbS1YDg` | `DashboardRoiPage.tsx/test`; `dashboard-roi/**`; `dashboardRoi*.ts` | 8 | 1.609 | 93 | frontend + dados, sem blocker | auto aprovado; visual pendente |
+| M2 | feito | `ses_07b43bcabffeconN1b9ekoGgM1` | `MapearProcessoPage.tsx/test`; `mapear-processo/**`; `mapearProcesso*.ts` | 16 | 1.252 | 135 | frontend + dados, sem blocker | auto aprovado; DnD/visual pendente |
+| M3 | feito | `ses_07b43bca0ffeISMOQFXF75ah9J` | `WizardRoi.tsx/test`; `wizard-roi/**`; `wizardRoi*.ts` | 6 | 1.064 | 132 | frontend, sem blocker | auto aprovado; visual pendente |
 | M4 | feito | `ses_07b43bc97ffe6zMcRXFqYzqboA` | `AbaPorEstado.tsx/test`; `por-estado/**`; `porEstadoIbsCbs*.ts` | 15 | 999 | 91 | frontend + dados, sem blocker | auto aprovado; Sankey/visual pendente |
 | P1 | feito | `ses_07b43bc7dffej7JgMXvRuTDYGl` | `EquipeSprintDetalhes.tsx/test`; `sprint-detalhes/**`; `equipeSprintDetalhes*.ts`; `useEquipeSprintDetalhes*.ts` | 18 | 2.437 | 66 | frontend + dados, sem blocker da refatoracao | auto aprovado; realtime/arquivos/visual pendente |
 | P2 | feito | `ses_07b43bc5bffezn4HSJTdTdm7l8` | `EquipeDaily.tsx/test`; `daily/**`; `equipeDaily*.ts`; `useEquipeDaily*.ts` | 10 | 880 | 63 | frontend + dados, sem blocker | auto aprovado; XLSX/visual pendente |

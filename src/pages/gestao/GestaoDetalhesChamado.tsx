@@ -9,7 +9,9 @@ import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
+import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
+import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
+import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-react';
@@ -147,7 +149,7 @@ export default function GestaoDetalhesChamado() {
   };
 
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !user || !id) return;
+    if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
       await sendMessage.mutateAsync({
@@ -369,7 +371,7 @@ export default function GestaoDetalhesChamado() {
             </div>
 
 
-            <p className="text-muted-foreground">{ticket.description}</p>
+            <TicketRichTextView value={ticket.description} className="text-muted-foreground" />
             <div className="text-sm text-muted-foreground space-y-0.5">
               <div>
                 Aberto em {format(new Date(ticket.created_at), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
@@ -440,23 +442,23 @@ export default function GestaoDetalhesChamado() {
                       {format(new Date(message.created_at), "dd/MM/yyyy HH:mm")}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground">{message.message}</p>
+                  <TicketRichTextView value={message.message} className="text-sm text-foreground" />
                 </div>
               ))
             )}
           </div>
 
           <div className="space-y-4">
-            <Textarea
-              placeholder="Digite sua resposta..."
+            <TicketRichTextEditor
               value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              rows={4}
-              className="bg-card border-border"
+              onChange={setNewMessage}
+              placeholder="Digite sua resposta..."
+              minHeight="min-h-28"
+              ariaLabel="Nova resposta"
             />
             <Button 
               onClick={handleSendMessage} 
-              disabled={sending || !newMessage.trim()}
+              disabled={sending || isTicketRichTextEmpty(newMessage)}
               className="bg-primary hover:bg-primary text-white"
             >
               {sending ? (

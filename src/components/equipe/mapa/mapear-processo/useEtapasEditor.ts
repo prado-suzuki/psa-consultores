@@ -3,6 +3,7 @@ import type { DragEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useCreateEtapa, useDeleteEtapa, useUpdateEtapa, useUpsertEtapaToBe } from '@/hooks/useEtapas';
+import { useCreateEtapaToBe, useDeleteEtapaToBe, useUpdateEtapaToBe } from '@/hooks/useEtapaToBePorCenario';
 import type { Documento, DocRef, Etapa, Processo, Responsavel, ResponsavelEtapa, Sistema } from '@/types';
 import { inserirVinculoCriado, primeiraEtapaSemNome } from '@/utils/etapaEditor';
 import type { CampoVinculo } from '@/utils/etapaEditor';
@@ -15,6 +16,8 @@ import {
 interface Params {
   processo: Processo;
   etapas: Etapa[];
+  etapasFuturo: Etapa[];
+  usarListaFicou: boolean;
   documentos: Documento[];
   sistemas: Sistema[];
   responsaveis: Responsavel[];
@@ -24,12 +27,15 @@ interface Params {
 export type CadastroRapido = 'documento' | 'sistema' | 'responsavel' | 'gargalo' | 'melhoria' | null;
 export type QuickAddCampo = CampoVinculo | null;
 
-export function useEtapasEditor({ processo, etapas, documentos, sistemas, responsaveis, procClusterId }: Params) {
+export function useEtapasEditor({ processo, etapas, etapasFuturo, usarListaFicou, documentos, sistemas, responsaveis, procClusterId }: Params) {
   const queryClient = useQueryClient();
   const createEtapa = useCreateEtapa();
   const updateEtapa = useUpdateEtapa();
   const deleteEtapa = useDeleteEtapa();
   const upsertEtapaToBe = useUpsertEtapaToBe();
+  const createEtapaToBe = useCreateEtapaToBe();
+  const updateEtapaToBe = useUpdateEtapaToBe();
+  const deleteEtapaToBe = useDeleteEtapaToBe();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<MapearScenario>('era');
   const [list, setList] = useState<Etapa[]>([]);
@@ -68,7 +74,9 @@ export function useEtapasEditor({ processo, etapas, documentos, sistemas, respon
   }, [documentos, sistemas, responsaveis, procClusterId]);
 
   const openEditor = (nextMode: MapearScenario, focusId?: string) => {
-    const prepared = prepararEtapas(etapas, nextMode);
+    const prepared = nextMode === 'ficou' && usarListaFicou
+      ? prepararEtapas(etapasFuturo, 'era')
+      : prepararEtapas(etapas, nextMode);
     const focusIndex = focusId ? prepared.findIndex(item => item.id === focusId) : -1;
     setMode(nextMode); setList(prepared); setActiveIndex(focusIndex >= 0 ? focusIndex : 0);
     setRemovedIds(new Set()); setDirty(false); setConfirmClose(false);
@@ -87,7 +95,8 @@ export function useEtapasEditor({ processo, etapas, documentos, sistemas, respon
   const remove = (index: number) => {
     const etapa = list[index]; if (!etapa || list.length <= 1) return;
     const previousLength = list.length; setList(items => items.filter((_, itemIndex) => itemIndex !== index));
-    if (etapas.some(item => item.id === etapa.id)) setRemovedIds(previous => new Set(previous).add(etapa.id));
+    const existentesAtuais = mode === 'ficou' && usarListaFicou ? etapasFuturo : etapas;
+    if (existentesAtuais.some(item => item.id === etapa.id)) setRemovedIds(previous => new Set(previous).add(etapa.id));
     setActiveIndex(previous => Math.min(previous, previousLength - 2)); setDirty(true);
   };
   const dragStart = (index: number) => setDraggedIndex(index);
@@ -126,6 +135,19 @@ export function useEtapasEditor({ processo, etapas, documentos, sistemas, respon
     setSaving(true);
     const cleaned = list.map(cleanEtapa).map(item => resolverVinculos(item, maps));
     try {
+      if (mode === 'ficou' && usarListaFicou) {
+        const existingIds = new Set(etapasFuturo.map(item => item.id));
+        const baselineById = new Map(etapasFuturo.map(item => [item.id, resolverVinculos(cleanEtapa(prepararEtapas([item], 'era')[0]), maps)]));
+        for (let index = 0; index < cleaned.length; index++) {
+          const etapa = { ...cleaned[index], stage_order: index + 1 };
+          try {
+            if (existingIds.has(etapa.id)) {
+              if (etapaMudou(baselineById.get(etapa.id), etapa)) await updateEtapaToBe.mutateAsync({ etapa });
+            } else await createEtapaToBe.mutateAsync({ etapa, process_id: processo.id });
+          } catch (error) { throw new Error(`Etapa ${index + 1}${etapa.name ? ` ("${etapa.name}")` : ''}: ${error instanceof Error ? error.message : String(error)}`); }
+        }
+        for (const id of removedIds) await deleteEtapaToBe.mutateAsync({ id });
+      } else {
       const existingIds = new Set(etapas.map(item => item.id));
       const baselineById = new Map(etapas.map(item => [item.id, resolverVinculos(cleanEtapa(prepararEtapas([item], mode)[0]), maps)]));
       for (let index = 0; index < cleaned.length; index++) {
@@ -138,6 +160,7 @@ export function useEtapasEditor({ processo, etapas, documentos, sistemas, respon
         } catch (error) { throw new Error(`Etapa ${index + 1}${etapa.name ? ` ("${etapa.name}")` : ''}: ${error instanceof Error ? error.message : String(error)}`); }
       }
       if (mode === 'era') for (const id of removedIds) await deleteEtapa.mutateAsync({ id, old: { id } as Etapa });
+      }
       queryClient.invalidateQueries({ queryKey: ['process_stages'] });
       try { localStorage.removeItem(draftKey(processo.id, mode)); } catch { /* ignora */ }
       setDirty(false); setConfirmClose(false); setPendingDraft(null); setOpen(false);
@@ -149,7 +172,7 @@ export function useEtapasEditor({ processo, etapas, documentos, sistemas, respon
   const useDraft = () => { if (!pendingDraft) return; setList(pendingDraft.list); setRemovedIds(new Set(pendingDraft.removed ?? [])); setActiveIndex(Math.min(pendingDraft.activeIndex ?? 0, Math.max(0, (pendingDraft.list?.length ?? 1) - 1))); setDirty(true); setPendingDraft(null); };
   const discardDraft = () => { try { localStorage.removeItem(draftKey(processo.id, mode)); } catch { /* ignora */ } setPendingDraft(null); };
 
-  return { open, mode, list, activeIndex, saving, draggedIndex, confirmClose, pendingDraft, cadastroRapido, quickAddCampo,
+  return { open, mode, usarListaFicou, list, activeIndex, saving, draggedIndex, confirmClose, pendingDraft, cadastroRapido, quickAddCampo,
     setActiveIndex, setConfirmClose, setOpen, setCadastroRapido, setQuickAddCampo, openEditor, updateField, add, remove,
     dragStart, dragOver, drop, fillCreated, closeQuick, save, requestClose, useDraft, discardDraft,
     leaveWithoutSaving: () => { setConfirmClose(false); setOpen(false); } };

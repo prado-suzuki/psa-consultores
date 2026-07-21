@@ -13,6 +13,43 @@ function toXmlSafeSvg(svg: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
+// Base64 URL-safe (sem padding) de um array de bytes — formato do hash do mermaid.live.
+function bytesToBase64Url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Monta a URL do mermaid.live (editor) com o diagrama já carregado. O editor lê o
+// state (code + config) do hash: `#pako:<base64url(zlib-deflate(json))>`. Usa o
+// CompressionStream nativo (deflate = zlib, mesmo formato do pako). Se indisponível,
+// cai no formato `#base64:<base64url(json)>` (sem compressão), também aceito.
+async function toMermaidLiveUrl(code: string): Promise<string> {
+  const state = JSON.stringify({
+    code,
+    mermaid: '{"theme":"default"}',
+    autoSync: true,
+    updateDiagram: true,
+    // Abre com pan & zoom ligado — o editor usa svg-pan-zoom com fit+center,
+    // então o diagrama já aparece ajustado à tela (igual ao fit do preview do MAPA).
+    panZoom: true,
+  });
+  const jsonBytes = new TextEncoder().encode(state);
+  try {
+    if (typeof CompressionStream !== 'undefined') {
+      const cs = new CompressionStream('deflate');
+      const writer = cs.writable.getWriter();
+      void writer.write(jsonBytes);
+      void writer.close();
+      const buf = await new Response(cs.readable).arrayBuffer();
+      return `https://mermaid.live/edit#pako:${bytesToBase64Url(new Uint8Array(buf))}`;
+    }
+  } catch {
+    /* cai no fallback base64 abaixo */
+  }
+  return `https://mermaid.live/edit#base64:${bytesToBase64Url(jsonBytes)}`;
+}
+
 let mermaidInitialized = false;
 function ensureMermaidInit() {
   if (mermaidInitialized) return;
@@ -108,6 +145,31 @@ function withFoldEdges(svg: string, code: string): string {
   return idx === -1 ? svg : svg.slice(0, idx) + inject + svg.slice(idx);
 }
 
+// Setas LATERAIS (ex.: Processo → AS-IS → TO-BE do consolidado) desenhadas por
+// cima do SVG a partir de `%% LATERAL a b`. O dagre não liga esses nós (estão na
+// MESMA rank — uma aresta real empurraria o destino uma rank abaixo e quebraria o
+// alinhamento das colunas), então desenhamos a seta horizontal na posição real,
+// como as dobras FOLD. Fica no state → aparece no viewer E nas exportações.
+function withLateralEdges(svg: string, code: string): string {
+  const pairs = [...code.matchAll(/%%\s*LATERAL\s+(\S+)\s+(\S+)/g)];
+  if (pairs.length === 0) return svg;
+  const boxes = parseNodeBoxes(svg);
+  const paths: string[] = [];
+  for (const [, a, b] of pairs) {
+    const A = boxes[a]; const B = boxes[b];
+    if (!A || !B) continue;
+    const ax = A.cx + A.hw;   // borda direita da origem
+    const bx = B.cx - B.hw;   // borda esquerda do destino
+    if (bx <= ax) continue;   // defensivo: destino precisa estar à direita
+    paths.push(`<path d="M ${ax} ${A.cy} L ${bx} ${B.cy}" fill="none" stroke="#0d9488" stroke-width="1.5" marker-end="url(#lat-arrow)"/>`);
+  }
+  if (paths.length === 0) return svg;
+  const defs = '<defs class="lat-defs"><marker id="lat-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#0d9488"/></marker></defs>';
+  const inject = `${defs}<g class="lateral-edges">${paths.join('')}</g>`;
+  const idx = svg.lastIndexOf('</svg>');
+  return idx === -1 ? svg : svg.slice(0, idx) + inject + svg.slice(idx);
+}
+
 export interface DiagramViewerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -177,8 +239,8 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
       .render(id, code)
       .then(({ svg }) => {
         if (cancelled) return;
-        // Desenha as setas de "dobra" (etapa→etapa) da serpentina por cima do SVG.
-        const finalSvg = withFoldEdges(svg, code);
+        // Desenha as setas de "dobra" (serpentina) e as laterais (consolidado) por cima do SVG.
+        const finalSvg = withLateralEdges(withFoldEdges(svg, code), code);
         setSvg(finalSvg);
         requestAnimationFrame(() => { if (!cancelled) fitToContainer(finalSvg); });
       })
@@ -278,9 +340,18 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
     }
   };
 
+  const handleOpenMermaidLive = async () => {
+    try {
+      const url = await toMermaidLiveUrl(code);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (err) {
+      toast.error('Falha ao abrir no Mermaid Live', { description: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="modal" style={{ maxWidth: '95vw', width: '1100px' }}>
+      <div className="modal" style={{ width: '96vw', maxWidth: 'none', height: '92vh', maxHeight: '92vh', padding: 16, overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 12 }}>
           <h2 style={{ margin: 0, flex: 1 }}>{title || 'Diagrama do Processo'}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -322,7 +393,7 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
             border: '1px solid #e2e8f0',
             borderRadius: 8,
             overflow: 'hidden',
-            height: '65vh',
+            flex: 1,
             minHeight: 320,
             position: 'relative',
             cursor: 'grab',
@@ -372,11 +443,11 @@ export default function DiagramViewer({ isOpen, onClose, code, filename, title }
             </button>
             <button
               className="btn-save"
-              onClick={handleDownloadPng}
-              disabled={!svg}
-              title="PNG raster 2x (apresentações)"
+              onClick={handleOpenMermaidLive}
+              disabled={!code}
+              title="Abre o diagrama no editor mermaid.live, em nova guia, já carregado"
             >
-              ⬇ Baixar PNG
+              ↗ Abrir no Mermaid Live
             </button>
           </div>
         </div>

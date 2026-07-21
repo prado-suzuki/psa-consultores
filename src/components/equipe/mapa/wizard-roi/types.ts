@@ -13,6 +13,7 @@ import type { RoiProcesso } from '@/utils/roiCalculator';
 export interface WizardRoiProps {
   processo: Processo | undefined;
   etapas: Etapa[];
+  etapasFuturo?: Etapa[];
   responsaveis: Responsavel[];
   sistemas: Sistema[];
   gargalos: Gargalo[];

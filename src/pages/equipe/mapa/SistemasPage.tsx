@@ -19,7 +19,7 @@ import { canon } from '@/utils/cascataEngine';
 import { enrichEtapas } from '@/utils/enrichEtapas';
 import { useFocusParam } from '@/utils/useFocusParam';
 import type { Sistema } from '@/types';
-import { useEtapasLista, useDocumentosLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
+import { useEtapasLista, useEtapasToBeLista, useDocumentosLista, useProcessosLista, useProjetosLista } from '@/hooks/useDominioListas';
 import { useSistemas, useDeleteSistema } from '@/hooks/useSistemas';
 import { useClusters } from '@/hooks/useClusters';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
@@ -47,10 +47,13 @@ export default function SistemasPage() {
 
   // --- Escopo por cluster (preservado do fluxo legado) ---
   const { data: rawEtapas = [] } = useEtapasLista();
+  const { data: rawEtapasToBe = [] } = useEtapasToBeLista();
   const { data: docs = [] } = useDocumentosLista();
   const { data: processos = [] } = useProcessosLista();
   const { data: projetos = [] } = useProjetosLista();
   const etapas = useMemo(() => enrichEtapas(rawEtapas, docs, items, []), [rawEtapas, docs, items]);
+  // Etapas TO-BE (linhas próprias por cenário) — seus sistemas também contam no escopo.
+  const etapasToBe = useMemo(() => enrichEtapas(rawEtapasToBe, docs, items, []), [rawEtapasToBe, docs, items]);
   const clusterIdPorProjeto = useMemo(
     () => new Map(projetos.map(p => [p.id, p.cluster_id || ''])),
     [projetos],
@@ -67,15 +70,22 @@ export default function SistemasPage() {
     () => etapas.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
     [etapas, fCluster, processoIdsDoEscopo],
   );
+  const etapasToBeDoEscopo = useMemo(
+    () => etapasToBe.filter(e => !fCluster || processoIdsDoEscopo.has(e.process_id)),
+    [etapasToBe, fCluster, processoIdsDoEscopo],
+  );
   const nomesSistemasDoEscopo = useMemo(() => {
     if (!fCluster) return null;
     const nomes = new Set<string>();
     for (const etapa of etapasDoEscopo) {
       for (const nome of etapa.sistemas || []) nomes.add(nome);
-      for (const nome of etapa.ficou?.sistemas || []) nomes.add(nome);
+      for (const nome of etapa.ficou?.sistemas || []) nomes.add(nome); // pareado legado
+    }
+    for (const etapa of etapasToBeDoEscopo) {
+      for (const nome of etapa.sistemas || []) nomes.add(nome); // linhas TO-BE (despareado)
     }
     return nomes;
-  }, [fCluster, etapasDoEscopo]);
+  }, [fCluster, etapasDoEscopo, etapasToBeDoEscopo]);
   const clusterSelecionado = useMemo(
     () => clustersList.find(c => c.id === fCluster),
     [clustersList, fCluster],

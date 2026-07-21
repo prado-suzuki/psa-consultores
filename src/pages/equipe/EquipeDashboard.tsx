@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
@@ -29,13 +30,15 @@ import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
   const {
+    activeSprints,
     activeSprint,
     stats,
     myDeliverables,
     areaData,
     isLoading: loading,
-  } = useDomainEquipeDashboard(user?.id);
+  } = useDomainEquipeDashboard(user?.id, selectedSprintId);
   const [activeTab, setActiveTab] = useState<string>('sprint');
 
   const getStatusLabel = (status: string | null) => {
@@ -55,8 +58,8 @@ const EquipeDashboard = () => {
     }
   };
 
-  const progressPercent = stats.total > 0 
-    ? Math.round((stats.completed / stats.total) * 100) 
+  const progressPercent = stats.total > 0
+    ? Math.round((stats.completed / stats.total) * 100)
     : 0;
 
   const volumeData = [
@@ -78,6 +81,22 @@ const EquipeDashboard = () => {
         </TabsList>
 
         <TabsContent value="sprint">
+          {activeSprints.length > 1 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">Sprint ativa:</span>
+              <Select value={activeSprint?.id ?? undefined} onValueChange={setSelectedSprintId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Selecionar sprint" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeSprints.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Badge variant="outline">{activeSprints.length} sprints ativas</Badge>
+            </div>
+          )}
           {activeSprint ? (
             <Card className="border-border shadow-sm mb-6">
               <CardContent className="pt-6">

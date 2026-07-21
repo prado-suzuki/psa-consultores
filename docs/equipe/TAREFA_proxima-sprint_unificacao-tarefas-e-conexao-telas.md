@@ -1,0 +1,71 @@
+# TAREFA (próxima sprint) — Unificar modelo de tarefa e conectar as telas do /equipe
+
+> **Origem:** diagnóstico feito com a Patrícia em 2026-07-21 sobre "as telas não conversam / Kanban não mostra tarefa que está na sprint".
+> **Contém itens que exigem migração de banco e DROP de tabela** — por isso viraram tarefa delegável em vez de mudança imediata.
+> Os ajustes de UI de baixo risco (aviso de filtro no Kanban, contador de subtarefas escondidas, dashboard com todas as sprints ativas) **já foram feitos** fora desta tarefa.
+
+## Contexto (o que está errado hoje)
+
+Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e cada uma adotou uma tabela de tarefa diferente. Existem **três modelos concorrentes que ninguém reconcilia**:
+
+| Família | Tabela | Status | Telas |
+|---|---|---|---|
+| Trabalho vivo da equipe | `sprint_deliverables` | `pending / in_progress / completed` (CHECK no banco) | Sprints, Sprint-Detalhes, Kanban, Dashboard, Análise Inteligente, Backlog |
+| Ilha órfã | `tasks` (enum `task_status`: `backlog/to_do/in_progress/review/done`) | | `EquipeNovaTarefa`, `EquipeTarefas` (**sem link no menu**) |
+| Fiscal/OSG | `org_tasks` (enum `fiscal_task_status`) | | `board/BoardDashboard` |
+
+- Único elo entre tabelas: `sprint_backlog_items.moved_to_deliverable_id → sprint_deliverables.id` (Backlog → Entregável, unidirecional).
+- **Não há** nenhuma sincronização entre `tasks` e `sprint_deliverables`. Tarefa criada em "Nova Tarefa" recebe `sprint_id` mas grava em `tasks` → **nunca aparece no Kanban** (que lê `sprint_deliverables`).
+- Daily (`daily_standups`) só se liga a sprint/projeto/processo genérico; `blockers` é texto livre que não vira tarefa nem se liga a um entregável.
+
+---
+
+## Subtarefas
+
+### T1 — Eleger `sprint_deliverables` como fonte única e aposentar `tasks` ⚠️ MIGRAÇÃO + DROP
+**Objetivo:** acabar com a ilha `tasks` para ninguém criar tarefa que evapora.
+
+1. Conferir se `tasks` tem linhas em produção (na auditoria de jul/2026 estava **vazia**). Rodar no SQL Editor: `select count(*) from public.tasks;`
+   - Se houver linhas: migrar para `sprint_deliverables` (mapear status: `backlog→pending`, `to_do→pending`, `in_progress→in_progress`, `review→in_progress`, `done→completed`; `cluster`/`priority` não têm equivalente — decidir se viram tag/descrição).
+   - Se vazia: seguir direto para o DROP.
+2. Reescrever `src/pages/equipe/EquipeNovaTarefa.tsx` para **criar em `sprint_deliverables`** (campos: `title`, `description`, `sprint_id`, `assigned_to`, `estimated_hours`, `due_date`, `status:'pending'`) **OU** remover as telas.
+3. Reescrever/absorver `src/pages/equipe/EquipeTarefas.tsx` (hoje lê `tasks`) — apontar para `sprint_deliverables` ou remover, já que o Kanban/tabela já cobrem isso.
+4. Remover (ou repontar) as rotas `/equipe/tarefas` e `/equipe/tarefas/nova` em `src/App.tsx` (linhas ~180-181). Conferir `administracao/AdminPerformance.tsx`, que também lê `tasks`.
+5. **Migração:** `DROP TABLE public.tasks;` + `DROP TYPE task_status;` (só depois de 1-4).
+6. Auditar RLS da tabela removida e atualizar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`).
+
+**Aceite:** criar tarefa por qualquer tela faz ela aparecer no Kanban da sprint; `tasks` não existe mais; typecheck e build limpos.
+
+### T2 — Conectar Daily ↔ entregável ⚠️ MIGRAÇÃO
+**Objetivo:** o update/bloqueio da daily se ligar a uma tarefa específica (destrava "bloqueio vira tarefa").
+
+1. Migração: adicionar `daily_standups.deliverable_id uuid null references public.sprint_deliverables(id) on delete set null` (+ índice). Não referenciar `auth.users`.
+2. Em `src/pages/equipe/EquipeDaily.tsx`, permitir (opcional) vincular a linha do daily a um entregável da sprint ativa.
+3. RLS: garantir que a nova coluna respeita as regras vigentes de `daily_standups`.
+4. Atualizar `mapa-do-banco.md`.
+
+**Aceite:** na daily dá pra apontar "no que trabalhei / o que está bloqueado" para um entregável, e isso aparece no drill-down do entregável.
+
+### T3 — Estruturar bloqueios ⚠️ MIGRAÇÃO (avaliar com T2)
+Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transformar em estrutura (motivo + responsável + `deliverable_id`), seja como colunas ou tabela `daily_blockers`. Depende da decisão da Patrícia; pode ser mesclado com T2.
+
+### T4 — Camada de hooks compartilhada (refactor, sem banco)
+**Objetivo:** fazer as telas "conversarem" de verdade — mesma query, mesmo formato, em todo lugar (regra do `CLAUDE.md`: nada de `supabase.from()` em componente).
+
+Criar em `src/hooks/`: `useActiveSprints`, `useSprintDeliverables(filtros)`, `useDailyStandups(filtros)`. Migrar Dashboard, Kanban, Análise Inteligente, Sprints e Backlog para consumir esses hooks (React Query). Elimina divergência de contagem entre telas.
+
+### T5 — Cockpit por projeto / visão de portfólio (código)
+A tela `Análise Inteligente` já é quase o cockpit da referência (score de saúde, taxa de entrega, atrasados, scope creep, bloqueios, evolução). Falta: (a) ser a **mesma verdade** do dashboard operacional; (b) uma **visão por projeto** (saúde de cada projeto lado a lado: saudável / atenção / problema / sem monitoramento). Reaproveitar a lógica de KPIs agrupando por `project_id`.
+
+### T6 — Kanban: subtarefa multi-nível / coluna própria (código)
+Hoje a subtarefa só aparece aninhada na coluna da **mãe** (não na coluna do próprio status), e aninhamento de 2+ níveis (neta) não renderiza. Decidir com a Patrícia: (a) subtarefa aparece como card na sua própria coluna, ou (b) achatar a hierarquia. O contador de "subtarefas ocultas" já adicionado ao Kanban ajuda a medir o tamanho do problema.
+
+---
+
+## Ordem sugerida
+T1 → T4 → (T2/T3) → T5 → T6. T1 é o que mais impacta o sintoma imediato ("tarefa não aparece"). T4 é o que sustenta todo o resto.
+
+## Referências de código
+- `src/pages/equipe/EquipeKanban.tsx` · `EquipeDashboard.tsx` · `EquipeSprintDetalhes.tsx` (criação, sempre `status:'pending'`) · `EquipeBacklog.tsx` (`moveToSprint`) · `EquipeDaily.tsx` · `EquipeNovaTarefa.tsx`/`EquipeTarefas.tsx` (`tasks`)
+- Rotas: `src/App.tsx` (~172-187). Menu: `src/components/equipe/EquipeLayout.tsx` (`navItems`).
+- Schema: `docs/rls/mapa-do-banco.md` (nunca ler `types.ts` inteiro).
