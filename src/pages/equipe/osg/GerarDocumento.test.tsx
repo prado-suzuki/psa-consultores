@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 import GerarDocumento from './GerarDocumento';
 
 const mocks = vi.hoisted(() => ({
@@ -20,8 +21,8 @@ const mocks = vi.hoisted(() => ({
     endereco_municipio: null, endereco_uf: null, endereco_cep: null,
   },
   modelos: [
-    { id: 'modelo-1', nome: 'Contrato Social', descricao: 'Modelo principal', ativo: true, num_blocos: 2 },
-    { id: 'modelo-2', nome: 'Modelo alternativo', descricao: null, ativo: true, num_blocos: 1 },
+    { id: 'modelo-1', nome: 'Contrato Social', tipo: 'societario', descricao: 'Modelo principal', ativo: true, num_blocos: 2 },
+    { id: 'modelo-2', nome: 'Modelo alternativo', tipo: 'agrario', descricao: null, ativo: true, num_blocos: 1 },
   ],
   docBlocos: [
     {
@@ -142,13 +143,13 @@ vi.mock('@/components/equipe/osg/qualificacao-das-partes/PessoaModal', () => ({
 vi.mock('@/components/equipe/osg/diagnostico-patrimonial/BemModal', () => ({ BemModal: () => null }));
 vi.mock('@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal', () => ({ MatriculaModal: () => null }));
 
-const snapshot = (razao = 'Acme congelada') => ({
+const snapshot = (razao = 'Acme congelada'): SnapshotDados => ({
   selecao: { sociedade: { razaoSocial: razao, cnpj: '00.000.000/0000-00' } },
   registroPorBinding: {}, valoresLivres: { observacao: 'Texto selado' }, empresaId: 'empresa-1',
   itensPorLista: {}, total: null,
 });
 
-const documento = (dados = snapshot()) => ({
+const documento = (dados: SnapshotDados = snapshot()) => ({
   id: 'doc-head', documento_raiz_id: 'doc-raiz', snapshot_dados: dados, snapshot_flags: [],
   snapshot_validado_em: '2026-06-16T14:30:00.000Z', created_at: '2026-06-16T14:30:00.000Z',
   gerado_por_id: 'autor-1', status: 'rascunho',
@@ -183,6 +184,7 @@ describe('GerarDocumento — caracterização O1', () => {
     mocks.versoes = [];
     mocks.notificacoes = [];
     mocks.autores = {};
+    mocks.docBlocos[0].bloco.conteudo = 'Empresa {{ sociedade.razaoSocial }}. {{ observacao }}';
     mocks.mutateAsync.mockResolvedValue(documento());
     Object.values(mocks.hookCalls).forEach((calls) => calls.splice(0));
   });
@@ -220,6 +222,23 @@ describe('GerarDocumento — caracterização O1', () => {
 
     await userEvent.click(screen.getAllByTitle('Abrir o cadastro deste dado')[0]);
     expect(await screen.findByRole('dialog', { name: 'pessoa-origem' })).toHaveAttribute('data-pessoa', 'empresa-1');
+  });
+
+  it('reidrata os valores livres de um rascunho com binding societário legado', async () => {
+    mocks.docBlocos[0].bloco.conteudo = 'Empresa {{ razaoSocial }}. {{ observacao }}';
+    const dadosLegados = {
+      ...snapshot(),
+      selecao: { sociedade: { razaoSocial: '', cnpj: '00.000.000/0000-00' } },
+      valoresLivres: { razaoSocial: 'Razão legada preservada', observacao: 'Texto selado' },
+      empresaId: null,
+    };
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento(dadosLegados);
+    view.rerender(<GerarDocumento />);
+
+    expect(await screen.findByText(/Razão legada preservada/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Baixar .docx' })).toBeEnabled();
   });
 
   it('aplica override só à posição ligada à identidade da Biblioteca e abre o dialog com ids da linhagem', async () => {
@@ -290,10 +309,16 @@ describe('GerarDocumento — caracterização O1', () => {
   });
 
   it('visualiza e baixa snapshot antigo isolado da head, depois volta às ações vivas', async () => {
+    const dadosLegados: SnapshotDados = {
+      ...snapshot(),
+      selecao: {},
+      valoresLivres: { 'controladora.nome': 'Razão da versão 1' },
+      empresaId: null,
+    };
     const antiga = {
-      ...documento(snapshot('Razão da versão 1')), id: 'doc-v1', status: 'revisao',
+      ...documento(dadosLegados), id: 'doc-v1', status: 'revisao',
       snapshot_versoes_blocos: [
-        { id: 'posicao-1', tipo: 'clausula', conteudo: 'Histórico: {{ sociedade.razaoSocial }}.', obrigatorio: true, flagsRequeridas: [] },
+        { id: 'posicao-1', tipo: 'clausula', conteudo: 'Histórico: {{ controladora.nome }}.', obrigatorio: true, flagsRequeridas: [] },
       ],
     };
     mocks.versoes = [

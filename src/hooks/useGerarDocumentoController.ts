@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { avaliarFlags, comOrigem, comporBlocos, copiarOrigemProfunda, gerarBlocos, marcarRealceDiff, removerMarcas, unirBlocos, type Bloco, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import { campoDaEntidade, camposDaEntidade, derivarCampos, type CampoEntidade, type TipoEntidade } from '@/lib/templates/vocabulario';
-import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding } from '@/lib/templates/binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, mapearAdministrador, mapearGeorefCabecalho, mapearIntegralizacoes, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, type ItemLista } from '@/lib/templates/mapeadores';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -35,6 +35,7 @@ export function useGerarDocumentoController() {
   const { data: modelos = [], isLoading: carregandoModelos } = useModelos();
   const [modeloId, setModeloId] = useState<string | null>(null);
   const { data: docBlocos = [], isLoading: carregandoBlocos } = useModeloBlocos(modeloId);
+  const modeloSocietario = modelos.find((m) => m.id === modeloId)?.tipo === 'societario';
 
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
@@ -45,6 +46,8 @@ export function useGerarDocumentoController() {
   const [registroPorBinding, setRegistroPorBinding] = useState<Record<string, string>>({});
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
   const [empresaId, setEmpresaId] = useState<string | null>(null);
+  const camposEditadosRef = useRef(new Set<string>());
+  const empresaSociedadeRef = useRef<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   // Passo reaberto pelo botão "Trocar" (volta a fechar na próxima escolha).
   const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
@@ -76,12 +79,16 @@ export function useGerarDocumentoController() {
     setVersaoVisualizadaId(null);
     const snap = rascunho?.snapshot_dados as unknown as SnapshotDados | null | undefined;
     if (snap) {
-      setSelecao(snap.selecao ?? {});
+      setSelecao(
+        modeloSocietario
+          ? normalizarSelecaoLegada(snap.selecao ?? {}, snap.valoresLivres ?? {})
+          : (snap.selecao ?? {}),
+      );
       setRegistroPorBinding(snap.registroPorBinding ?? {});
       setValoresLivres(snap.valoresLivres ?? {});
       setEmpresaId(snap.empresaId ?? null);
     }
-  }, [rascunho]);
+  }, [rascunho, modeloSocietario]);
   const documentoGeradoId = documentoGerado?.id ?? null;
   const documentoRaizId = documentoGerado?.documento_raiz_id ?? documentoGerado?.id ?? null;
   // Linhagem de versões (raiz → … → head) para o histórico e o viewer de versão
@@ -121,7 +128,9 @@ export function useGerarDocumentoController() {
         return {
           id: b.id,
           tipo: b.bloco!.tipo,
-          conteudo: ov ? ov.conteudoSubstituto : (b.bloco!.conteudo as string),
+          conteudo: modeloSocietario
+            ? normalizarReferenciasLegadas(ov ? ov.conteudoSubstituto : (b.bloco!.conteudo as string))
+            : (ov ? ov.conteudoSubstituto : (b.bloco!.conteudo as string)),
           obrigatorio: b.obrigatorio,
           flagsRequeridas: b.bloco!.flags,
           repeteColecao: b.bloco!.repete_colecao ?? undefined,
@@ -129,7 +138,7 @@ export function useGerarDocumentoController() {
         };
       });
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, porBlocoAlvo]);
+  }, [docBlocos, modeloId, porBlocoAlvo, modeloSocietario]);
 
   // Espelho do template SEM os overrides: usado só para diferenciar, por palavra,
   // o que cada bloco sobrescrito mudou em relação ao original (realce na prévia).
@@ -141,14 +150,16 @@ export function useGerarDocumentoController() {
       .map((b) => ({
         id: b.id,
         tipo: b.bloco!.tipo,
-        conteudo: b.bloco!.conteudo as string,
+        conteudo: modeloSocietario
+          ? normalizarReferenciasLegadas(b.bloco!.conteudo as string)
+          : (b.bloco!.conteudo as string),
         obrigatorio: b.obrigatorio,
         flagsRequeridas: b.bloco!.flags,
         repeteColecao: b.bloco!.repete_colecao ?? undefined,
         ancora: b.bloco!.ancora ?? undefined,
       }));
     return { id: modeloId ?? 'novo', nome: 'documento', blocos };
-  }, [docBlocos, modeloId, posicoesSobrescritas, template]);
+  }, [docBlocos, modeloId, posicoesSobrescritas, template, modeloSocietario]);
 
   const nomePorBlocoId = useMemo(
     () => new Map(docBlocos.map((b) => [b.id, b.bloco?.nome ?? b.id])),
@@ -380,7 +391,17 @@ export function useGerarDocumentoController() {
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
   // aparecer mesmo num modelo que só usa sociedade.* (sem listas nem flags).
   const temSociedade = bindings.some((b) => b.tipo === 'sociedade');
-  const precisaEmpresa = usaListas || temBlocosComFlags || temSociedade;
+  // Rascunhos legados podiam guardar a sociedade inteira como campos livres, sem
+  // empresaId. Depois da reidratação, esses valores bastam se não houver listas
+  // relacionais nem flags que realmente dependam da empresa.
+  const sociedadeCongeladaSemEmpresa =
+    congelado &&
+    !empresaId &&
+    temSociedade &&
+    bindings
+      .filter((b) => b.tipo === 'sociedade')
+      .every((b) => Object.keys(selecao[b.nome] ?? {}).length > 0);
+  const precisaEmpresa = usaListas || temBlocosComFlags || (temSociedade && !sociedadeCongeladaSemEmpresa);
   // A sociedade também precisa das listas: capital social e total de quotas são
   // calculados das integralizações (PR) ou do quadro societário (demais). Na PR
   // os próprios sócios são derivados das integralizações (daí o tipo da empresa).
@@ -560,6 +581,8 @@ export function useGerarDocumentoController() {
     setRegistroPorBinding({});
     setValoresLivres({});
     setEmpresaId(null);
+    camposEditadosRef.current.clear();
+    empresaSociedadeRef.current = null;
     setRecongelarPendente(false);
   }, [modeloId, clienteId]);
 
@@ -576,16 +599,32 @@ export function useGerarDocumentoController() {
   // registro próprio. Deps primitivas: as listas trocam de identidade a cada render
   // enquanto carregam — depender delas aqui criaria loop de setState.
   useEffect(() => {
-    if (congelado) return; // congelado: a sociedade vem do snapshot hidratado
+    const empresaMudou = empresaSociedadeRef.current !== empresaId;
+    empresaSociedadeRef.current = empresaId;
     const sociedadeBindings = bindings.filter((b) => b.tipo === 'sociedade');
+    if (empresaMudou) {
+      for (const b of sociedadeBindings) {
+        for (const chave of camposEditadosRef.current) {
+          if (chave.startsWith(`${b.nome}.`)) camposEditadosRef.current.delete(chave);
+        }
+      }
+    }
+    if (congelado) return; // congelado: a sociedade vem do snapshot hidratado
     if (sociedadeBindings.length === 0) return;
     const campos = empresaRow ? mapearSociedade(empresaRow, { capitalValor, totalQuotas }) : {};
     setSelecao((prev) => {
       const next = { ...prev };
-      for (const b of sociedadeBindings) next[b.nome] = campos;
+      for (const b of sociedadeBindings) {
+        const atual = prev[b.nome] ?? {};
+        const mesclado = { ...campos };
+        for (const [campoId, valor] of Object.entries(atual)) {
+          if (camposEditadosRef.current.has(`${b.nome}.${campoId}`)) mesclado[campoId] = valor;
+        }
+        next[b.nome] = mesclado;
+      }
       return next;
     });
-  }, [empresaRow, bindings, capitalValor, totalQuotas, congelado]);
+  }, [empresaId, empresaRow, bindings, capitalValor, totalQuotas, congelado]);
 
   // O cabeçalho do georref (área/perímetro/sistema/certificação) espelha a matrícula
   // selecionada nos campos georef* do binding de matrícula — como a sociedade espelha
@@ -606,6 +645,9 @@ export function useGerarDocumentoController() {
   const escolherRegistro = (nome: string, tipo: TipoEntidade, registroId: string) => {
     const reg = registros[tipo].find((r) => r.id === registroId);
     if (!reg) return;
+    for (const chave of camposEditadosRef.current) {
+      if (chave.startsWith(`${nome}.`)) camposEditadosRef.current.delete(chave);
+    }
     setRegistroPorBinding((prev) => ({ ...prev, [nome]: registroId }));
     setSelecao((prev) => ({ ...prev, [nome]: mapearRegistro(tipo, reg.row) }));
     setPassoAberto(null);
@@ -613,6 +655,11 @@ export function useGerarDocumentoController() {
   };
 
   const editarCampo = (nome: string, tipo: TipoEntidade, campoId: string, valor: string) => {
+    camposEditadosRef.current.add(`${nome}.${campoId}`);
+    for (const campo of camposDaEntidade(tipo)) {
+      const dependencias = Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe];
+      if (dependencias.includes(campoId)) camposEditadosRef.current.add(`${nome}.${campo.id}`);
+    }
     setSelecao((prev) => {
       const atual = { ...(prev[nome] ?? {}), [campoId]: valor };
       return { ...prev, [nome]: derivarCampos(tipo, atual) };
@@ -900,12 +947,14 @@ export function useGerarDocumentoController() {
       alvo.snapshot_versoes_blocos as unknown as Bloco[] | null,
       alvo.snapshot_flags as string[] | null,
       alvo.snapshot_dados as unknown as SnapshotDados | null,
+      modeloSocietario,
     );
     const base = anterior
       ? renderizarVersao(
           anterior.snapshot_versoes_blocos as unknown as Bloco[] | null,
           anterior.snapshot_flags as string[] | null,
           anterior.snapshot_dados as unknown as SnapshotDados | null,
+          modeloSocietario,
         )
       : null;
     return {
@@ -914,7 +963,7 @@ export function useGerarDocumentoController() {
       erro: atual.erro,
       blocos: realcarMudancas(atual.blocos, base?.blocos ?? null),
     };
-  }, [versaoVisualizadaId, versoes]);
+  }, [versaoVisualizadaId, versoes, modeloSocietario]);
 
   const modoVisualizacao = versaoView != null;
 
