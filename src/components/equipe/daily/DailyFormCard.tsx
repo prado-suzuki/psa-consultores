@@ -6,11 +6,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MarkdownEditor } from '@/components/ui/markdown-editor';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { DailyTaskPicker } from '@/components/equipe/daily/DailyTaskPicker';
 import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 import type { Process, Project, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
-import { appendTaskReference, type DailyFormDraft } from '@/lib/equipeDaily';
+import { appendTaskReference, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
 
 interface DailyFormCardProps {
   authenticatedUserId?: string;
@@ -47,22 +56,11 @@ export function DailyFormCard({
   onSubmit,
   onCopyFromYesterday,
 }: DailyFormCardProps) {
-  const renderTaskChips = (field: 'did_yesterday' | 'will_do_today') =>
-    sprintTasks.length > 0 ? (
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-gray-400">Inserir tarefa:</span>
-        {sprintTasks.map((task) => (
-          <button
-            type="button"
-            key={task.id}
-            onClick={() => onFormChange({ ...form, [field]: appendTaskReference(form[field], task) })}
-            className="text-xs rounded-full border border-gray-300 px-2 py-0.5 text-gray-600 hover:bg-gray-100"
-          >
-            {task.task_code ? `${task.task_code} ` : ''}{task.title}
-          </button>
-        ))}
-      </div>
-    ) : null;
+  const insertTask = (field: 'did_yesterday' | 'will_do_today') => (task: DailySprintTask) =>
+    onFormChange({ ...form, [field]: appendTaskReference(form[field], task) });
+
+  // Tarefas agrupadas por mãe para o dropdown de bloqueio.
+  const blockerGroups = groupDailyTasksByParent(sprintTasks);
 
   return (
     <Card className="bg-white border-gray-200">
@@ -146,12 +144,12 @@ export function DailyFormCard({
                 <Copy className="h-3.5 w-3.5 mr-1.5" />{copyingYesterday ? 'Buscando...' : 'Trazer plano de ontem'}
               </Button>
             </div>
-            {renderTaskChips('did_yesterday')}
+            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('did_yesterday')} />}
             <MarkdownEditor value={form.did_yesterday} onChange={(did_yesterday) => onFormChange({ ...form, did_yesterday })} className="bg-white" placeholder="Descreva suas entregas de ontem..." required />
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
-            {renderTaskChips('will_do_today')}
+            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('will_do_today')} />}
             <MarkdownEditor value={form.will_do_today} onChange={(will_do_today) => onFormChange({ ...form, will_do_today })} className="bg-white" placeholder="Suas tarefas para hoje..." required />
           </div>
           <div className="space-y-2">
@@ -170,7 +168,24 @@ export function DailyFormCard({
                     <SelectTrigger className="bg-white border-amber-300 text-gray-900"><SelectValue placeholder="Selecione a tarefa" /></SelectTrigger>
                     <SelectContent className="bg-white border-amber-200">
                       <SelectItem value="__none__">Nenhuma específica</SelectItem>
-                      {sprintTasks.map((task) => <SelectItem key={task.id} value={task.id}>{task.task_code ? `${task.task_code} - ` : ''}{task.title}</SelectItem>)}
+                      {blockerGroups.map((group, index) => (
+                        <SelectGroup key={group.header ?? '__avulsas__'}>
+                          {group.header ? (
+                            <SelectLabel>{group.header}</SelectLabel>
+                          ) : index > 0 ? (
+                            <SelectLabel>Avulsas</SelectLabel>
+                          ) : null}
+                          {group.tasks.map((task) => (
+                            <SelectItem
+                              key={task.id}
+                              value={task.id}
+                              className={task.status === 'completed' ? 'text-gray-400 line-through' : ''}
+                            >
+                              {task.task_code ? `${task.task_code} - ` : ''}{task.title}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                   {sprintTasks.length === 0 && <p className="text-xs text-amber-700">Escolha uma sprint com tarefas suas para vincular o bloqueio a uma tarefa.</p>}

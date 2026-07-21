@@ -107,6 +107,57 @@ export function appendTaskReference(text: string, task: DailyTaskChip): string {
   return text.endsWith('\n') ? `${text}${reference}` : `${text}\n${reference}`;
 }
 
+interface GroupableTask {
+  id: string;
+  title: string;
+  task_code: string | null;
+  status: string;
+  parent_id: string | null;
+}
+
+export interface DailyTaskGroup<T> {
+  /** Título da tarefa-mãe (código + nome), ou null para tarefas avulsas. */
+  header: string | null;
+  tasks: T[];
+}
+
+/**
+ * Agrupa as tarefas por tarefa-mãe: cada mãe (que está na lista e tem filhas) vira um
+ * grupo com as filhas; tarefas avulsas (sem mãe na lista e sem filhas) caem num grupo
+ * final sem cabeçalho. Concluídas ficam por último dentro de cada grupo. A ordem de
+ * entrada (já vem por código) é preservada — sort estável.
+ */
+export function groupDailyTasksByParent<T extends GroupableTask>(tasks: T[]): DailyTaskGroup<T>[] {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const childrenByParent = new Map<string, T[]>();
+  const roots: T[] = [];
+  for (const task of tasks) {
+    if (task.parent_id && byId.has(task.parent_id)) {
+      const list = childrenByParent.get(task.parent_id) ?? [];
+      list.push(task);
+      childrenByParent.set(task.parent_id, list);
+    } else {
+      roots.push(task);
+    }
+  }
+  const completedLast = (list: T[]) =>
+    [...list].sort((a, b) => Number(a.status === 'completed') - Number(b.status === 'completed'));
+
+  const groups: DailyTaskGroup<T>[] = [];
+  const standalone: T[] = [];
+  for (const root of roots) {
+    const children = childrenByParent.get(root.id);
+    if (children && children.length > 0) {
+      const header = `${root.task_code ? `${root.task_code} ` : ''}${root.title}`;
+      groups.push({ header, tasks: completedLast(children) });
+    } else {
+      standalone.push(root);
+    }
+  }
+  if (standalone.length > 0) groups.push({ header: null, tasks: completedLast(standalone) });
+  return groups;
+}
+
 export function mergeTeamMembers(
   current: TeamMember[],
   roleProfiles?: TeamMember[],

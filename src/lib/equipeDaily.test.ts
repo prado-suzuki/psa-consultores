@@ -3,10 +3,27 @@ import {
   appendTaskReference,
   buildDailyBlockerFields,
   createDailyFormDraft,
+  groupDailyTasksByParent,
   hydrateDailyForm,
   type DailyFormDraft,
 } from '@/lib/equipeDaily';
 import type { DailyStandup } from '@/hooks/useDomainEquipeDaily';
+
+interface TestTask {
+  id: string;
+  title: string;
+  task_code: string | null;
+  status: string;
+  parent_id: string | null;
+}
+const tk = (id: string, over: Partial<TestTask> = {}): TestTask => ({
+  id,
+  title: id,
+  task_code: null,
+  status: 'pending',
+  parent_id: null,
+  ...over,
+});
 
 const draft = (overrides: Partial<DailyFormDraft> = {}): DailyFormDraft => ({
   ...createDailyFormDraft(),
@@ -61,6 +78,35 @@ describe('appendTaskReference', () => {
     expect(appendTaskReference('linha 1\n', { id: 'd1', title: 'Tarefa', task_code: 'T-1' })).toBe(
       'linha 1\n- [T-1] Tarefa',
     );
+  });
+});
+
+describe('groupDailyTasksByParent', () => {
+  it('agrupa filhas sob a mãe, joga concluídas pro fim e separa as avulsas', () => {
+    const tasks = [
+      tk('mae', { title: 'Sincronização' }),
+      tk('f1', { title: 'Parte 1', parent_id: 'mae' }),
+      tk('f2', { title: 'Parte 2', parent_id: 'mae', status: 'completed' }),
+      tk('f3', { title: 'Parte 3', parent_id: 'mae' }),
+      tk('avulsa', { title: 'Tarefa solta', task_code: '1' }),
+    ];
+    const groups = groupDailyTasksByParent(tasks);
+
+    expect(groups).toHaveLength(2);
+    expect(groups[0].header).toBe('Sincronização');
+    expect(groups[0].tasks.map((t) => t.id)).toEqual(['f1', 'f3', 'f2']); // concluída (f2) por último
+    expect(groups[1].header).toBeNull();
+    expect(groups[1].tasks.map((t) => t.id)).toEqual(['avulsa']);
+  });
+
+  it('filha cuja mãe não está na lista vira avulsa (não some)', () => {
+    const tasks = [tk('orfa', { title: 'Órfã', parent_id: 'ausente' })];
+    expect(groupDailyTasksByParent(tasks)).toEqual([{ header: null, tasks: [tasks[0]] }]);
+  });
+
+  it('usa código + título no cabeçalho da mãe quando há código', () => {
+    const tasks = [tk('mae', { title: 'Projeto X', task_code: 'P7' }), tk('f', { parent_id: 'mae' })];
+    expect(groupDailyTasksByParent(tasks)[0].header).toBe('P7 Projeto X');
   });
 });
 
