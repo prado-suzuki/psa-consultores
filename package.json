@@ -15,7 +15,11 @@
     "typecheck:strict": "tsc -p tsconfig.strict.json",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "status-report": "node scripts/gen-status-report.mjs",
+    "status-report:dry": "node scripts/gen-status-report.mjs --dry-run",
+    "status-report:entrega": "node scripts/gen-status-report.mjs --entrega",
+    "status-report:install": "node scripts/install-status-hooks.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
