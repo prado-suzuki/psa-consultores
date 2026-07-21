@@ -89,6 +89,7 @@ import ProcedimentosDev from "./pages/equipe/dev/ProcedimentosDev";
 import IcmsSaidas from "./pages/equipe/dev/IcmsSaidas";
 
 // Equipe > Fiscal / Tax
+import FiscalBoasVindas from "./pages/equipe/fiscal/FiscalBoasVindas";
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
@@ -226,6 +227,7 @@ const App = () => (
               <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
 
               {/* Tax (Fiscal) Routes */}
+              <Route path="/equipe/tax" element={<ProtectedRoute><FiscalBoasVindas /></ProtectedRoute>} />
               <Route path="/equipe/tax/dashboard" element={<PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />

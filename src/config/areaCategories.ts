@@ -34,7 +34,7 @@ export const ALL_AREA_CATEGORIES: string[] = Object.values(AREA_CATEGORIES_MAP).
 /** Rotas de destino ao selecionar uma área no login. */
 export const AREA_ROUTES: Record<AreaKey, string> = {
   digital: '/equipe/digital',
-  tax: '/equipe/tax/dashboard',
+  tax: '/equipe/tax',
   osg: '/equipe/osg',
   controle_site: '/gestao',
   board: '/equipe/board/dashboard',
