@@ -1,8 +1,14 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+} from '@tanstack/react-query';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { getApiUrl } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { toast } from 'sonner';
 import type {
   CorrecoesSpedResponse,
@@ -33,6 +39,35 @@ interface UseCorrecoesF100Params extends UseCorrecoesSpedParams {
   nat_bc_creds?: string[];
   cod_cta?: string;
 }
+
+type EfdCorrecoesTable = Database['public']['Tables']['efd_correcoes'];
+
+export type CorrecaoSpedAtiva = Pick<EfdCorrecoesTable['Row'], 'id'>;
+export type InserirCorrecaoSpedInput = EfdCorrecoesTable['Insert'];
+export type AtualizarCorrecaoSpedInput = EfdCorrecoesTable['Update'];
+
+export interface BuscarCorrecaoSpedAtivaInput {
+  registroTipo: string;
+  registroOriginalId: string;
+}
+
+export interface AtualizarCorrecaoSpedPorIdInput {
+  id: string;
+  payload: AtualizarCorrecaoSpedInput;
+}
+
+export interface DesativarCorrecaoSpedInput {
+  registroTipo: string;
+  registroOriginalId: string;
+}
+
+const CORRECOES_SPED_MUTATION_KEYS = {
+  buscarAtiva: ['efd-correcoes', 'buscar-ativa'],
+  atualizarPorId: ['efd-correcoes', 'atualizar-por-id'],
+  desativar: ['efd-correcoes', 'desativar'],
+  inserir: ['efd-correcoes', 'inserir'],
+  limpar: ['efd-correcoes', 'limpar'],
+} as const;
 
 const SUPABASE_IN_BATCH_SIZE = 200;
 
@@ -344,7 +379,14 @@ export function useCorrecoesF100(params: UseCorrecoesF100Params) {
   const natBcCredsKey = (params.nat_bc_creds ?? []).slice().sort().join(',');
 
   return useQuery<F100Item[]>({
-    queryKey: ['correcoes-f100', params.id_contribuinte, params.dt_ini, params.dt_fin, natBcCredsKey, params.cod_cta],
+    queryKey: [
+      'correcoes-f100',
+      params.id_contribuinte,
+      params.dt_ini,
+      params.dt_fin,
+      natBcCredsKey,
+      params.cod_cta,
+    ],
     queryFn: async () => {
       const buildUrl = (natBcCred?: string) => {
         const sp = new URLSearchParams({
@@ -507,6 +549,85 @@ export function useCorrecoesF130(params: UseCorrecoesSpedParams) {
       });
     },
     enabled: false,
+  });
+}
+
+export function useBuscarCorrecaoSpedAtiva(): UseMutationResult<
+  CorrecaoSpedAtiva | null,
+  Error,
+  BuscarCorrecaoSpedAtivaInput
+> {
+  return useMutation({
+    mutationKey: CORRECOES_SPED_MUTATION_KEYS.buscarAtiva,
+    mutationFn: async ({ registroTipo, registroOriginalId }) => {
+      const { data, error } = await supabase
+        .from('efd_correcoes')
+        .select('id')
+        .eq('registro_tipo', registroTipo)
+        .eq('registro_original_id', registroOriginalId)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useAtualizarCorrecaoSpedPorId(): UseMutationResult<
+  void,
+  Error,
+  AtualizarCorrecaoSpedPorIdInput
+> {
+  return useMutation({
+    mutationKey: CORRECOES_SPED_MUTATION_KEYS.atualizarPorId,
+    mutationFn: async ({ id, payload }) => {
+      const { error } = await supabase.from('efd_correcoes').update(payload).eq('id', id);
+      if (error) throw error;
+    },
+  });
+}
+
+export function useDesativarCorrecaoSped(): UseMutationResult<
+  void,
+  Error,
+  DesativarCorrecaoSpedInput
+> {
+  return useMutation({
+    mutationKey: CORRECOES_SPED_MUTATION_KEYS.desativar,
+    mutationFn: async ({ registroTipo, registroOriginalId }) => {
+      const { error } = await supabase
+        .from('efd_correcoes')
+        .update({ ativo: false })
+        .eq('registro_tipo', registroTipo)
+        .eq('registro_original_id', registroOriginalId)
+        .eq('ativo', true);
+
+      if (error) throw error;
+    },
+  });
+}
+
+export function useInserirCorrecaoSped(): UseMutationResult<void, Error, InserirCorrecaoSpedInput> {
+  return useMutation({
+    mutationKey: CORRECOES_SPED_MUTATION_KEYS.inserir,
+    mutationFn: async (payload) => {
+      const { error } = await supabase.from('efd_correcoes').insert(payload);
+      if (error) throw error;
+    },
+  });
+}
+
+export function useLimparCorrecoesSped(): UseMutationResult<void, Error, void> {
+  return useMutation({
+    mutationKey: CORRECOES_SPED_MUTATION_KEYS.limpar,
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('efd_correcoes')
+        .delete()
+        .gte('created_at', '1970-01-01');
+      if (error) throw error;
+    },
   });
 }
 

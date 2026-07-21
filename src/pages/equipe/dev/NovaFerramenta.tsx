@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useDomainNovaFerramenta } from '@/hooks/useDomainNovaFerramenta';
 import { ArrowLeft, Save } from 'lucide-react';
 
 const areas = [
@@ -24,47 +23,13 @@ const NovaFerramenta = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
-  const createTool = useMutation({
-    mutationFn: async () => {
-      // Create tool
-      const { data: tool, error: toolError } = await supabase
-        .from('tools')
-        .insert({
-          name,
-          description,
-          status: 'development',
-          created_by: user?.id,
-        })
-        .select()
-        .single();
-
-      if (toolError) throw toolError;
-
-      // Create area access if any selected
-      if (selectedAreas.length > 0) {
-        const accessEntries = selectedAreas.map(area => ({
-          tool_id: tool.id,
-          area,
-          granted_by: user?.id,
-        }));
-
-        const { error: accessError } = await supabase
-          .from('tool_area_access')
-          .insert(accessEntries);
-
-        if (accessError) throw accessError;
-      }
-
-      return tool;
-    },
+  const createTool = useDomainNovaFerramenta({
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tools'] });
       toast({
         title: 'Ferramenta criada',
         description: 'A ferramenta foi criada com sucesso.',
@@ -90,7 +55,7 @@ const NovaFerramenta = () => {
       });
       return;
     }
-    createTool.mutate();
+    createTool.mutate({ name, description, selectedAreas, userId: user?.id });
   };
 
   const toggleArea = (areaId: string) => {

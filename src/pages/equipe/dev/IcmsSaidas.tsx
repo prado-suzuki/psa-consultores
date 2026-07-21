@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,17 +18,11 @@ import {
 } from '@/components/equipe/dev/icms-saidas/tooltipHelpers';
 import { ICMS_PAGE_TOOLTIPS } from '@/components/equipe/dev/icms-saidas/tooltipContent';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
+import { useDomainIcmsSaidas } from '@/hooks/useDomainIcmsSaidas';
 import { cn } from '@/lib/utils';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { format, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { Search, CalendarIcon, Filter, Eraser } from 'lucide-react';
-
-const CLIENTES_PERMITIDOS_NOMES = ['Barralcool', 'COPRODIA'];
-
-interface ClienteRecord { id: string; nome: string }
-interface ContribuinteRecord { id: string; nome_razao_social: string; cpf_cnpj: string | null }
 
 const getDefaultDates = () => {
   const now = new Date();
@@ -50,40 +43,9 @@ const IcmsSaidas = () => {
   const [searchTriggered, setSearchTriggered] = useState(false);
   const [activeTab, setActiveTab] = useState('t01');
 
-  // Clientes
-  const { data: clientes, isLoading: isLoadingClientes } = useQuery({
-    queryKey: ['icms-saidas-clientes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .or(CLIENTES_PERMITIDOS_NOMES.map((n) => `nome.ilike.${n}`).join(','))
-        .order('nome');
-      if (error) throw error;
-      return (data || []) as ClienteRecord[];
-    },
-  });
-
-  // Contribuintes
-  const { data: contribuintes, isLoading: isLoadingContribuintes } = useQuery({
-    queryKey: ['icms-saidas-contribuintes', selectedCliente],
-    queryFn: async () => {
-      if (!selectedCliente) return [];
-      const { data, error } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', selectedCliente)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome_razao_social');
-      if (error) throw error;
-      return (data || []) as ContribuinteRecord[];
-    },
-    enabled: !!selectedCliente,
-  });
+  const { clientesQuery, contribuintesQuery } = useDomainIcmsSaidas(selectedCliente);
+  const { data: clientes, isLoading: isLoadingClientes } = clientesQuery;
+  const { data: contribuintes, isLoading: isLoadingContribuintes } = contribuintesQuery;
 
   useEffect(() => {
     if (contribuintes?.length === 1 && !selectedContribuinte) {

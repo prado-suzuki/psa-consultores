@@ -1,8 +1,6 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDomainAdminUsuarios } from '@/hooks/useDomainAdminUsuarios';
 import { AdminLayout } from '@/components/administracao/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,18 +13,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, UserPlus, Shield, Users as UsersIcon } from 'lucide-react';
 
-interface UserWithRoles {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  roles: string[];
-}
-
 const AdminUsuarios = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -38,46 +27,13 @@ const AdminUsuarios = () => {
     roles: [] as string[],
   });
 
-  const { data: usersWithRoles, isLoading } = useQuery({
-    queryKey: ['admin-all-users'],
-    queryFn: async () => {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name, email')
-        .order('first_name');
-      
-      if (profilesError) throw profilesError;
-
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-      
-      if (rolesError) throw rolesError;
-
-      return profiles.map(profile => ({
-        ...profile,
-        roles: roles.filter(r => r.user_id === profile.id).map(r => r.role),
-      })) as UserWithRoles[];
-    },
-  });
-
-  const createUser = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke('create-team-member', {
-        body: {
-          email: newUser.email,
-          password: newUser.password,
-          firstName: newUser.firstName,
-          lastName: newUser.lastName,
-          roles: newUser.roles,
-        },
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users'] });
+  const {
+    usersWithRolesQuery: { data: usersWithRoles, isLoading },
+    createUser,
+    addRole,
+    removeRole,
+  } = useDomainAdminUsuarios({
+    onCreateUserSuccess: () => {
       toast({
         title: 'Usuário criado',
         description: 'O novo usuário foi criado com sucesso.',
@@ -85,59 +41,27 @@ const AdminUsuarios = () => {
       setIsDialogOpen(false);
       setNewUser({ email: '', password: '', firstName: '', lastName: '', roles: [] });
     },
-    onError: (error) => {
+    onCreateUserError: (error) => {
       toast({
         title: 'Erro ao criar usuário',
         description: error.message,
         variant: 'destructive',
       });
     },
-  });
-
-  const addRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' | 'lider' }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users'] });
+    onAddRoleSuccess: () => {
       toast({ title: 'Permissão adicionada' });
     },
-    onError: (error) => {
+    onAddRoleError: (error) => {
       toast({
         title: 'Erro',
         description: error.message,
         variant: 'destructive',
       });
     },
-  });
-
-  const removeRole = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: 'admin' | 'client' | 'team_member' | 'lider' }) => {
-      // UNIQUE(user_id, role) garante 0 ou 1 linha — sample acha o id real pro precheck.
-      const { data: sample } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('role', role)
-        .maybeSingle();
-      if (sample?.id) {
-        await assertCanPerform('user_roles', 'delete', sample.id);
-      }
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users'] });
+    onRemoveRoleSuccess: () => {
       toast({ title: 'Permissão removida' });
     },
-    onError: (error) => {
+    onRemoveRoleError: (error) => {
       toast({
         title: 'Erro',
         description: error.message,
@@ -194,7 +118,16 @@ const AdminUsuarios = () => {
               </DialogDescription>
             </DialogHeader>
             <form 
-              onSubmit={(e) => { e.preventDefault(); createUser.mutate(); }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                createUser.mutate({
+                  email: newUser.email,
+                  password: newUser.password,
+                  firstName: newUser.firstName,
+                  lastName: newUser.lastName,
+                  roles: newUser.roles,
+                });
+              }}
               className="space-y-4"
             >
               <div className="grid grid-cols-2 gap-4">

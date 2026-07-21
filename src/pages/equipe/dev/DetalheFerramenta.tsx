@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,8 +11,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useDomainDetalheFerramenta } from '@/hooks/useDomainDetalheFerramenta';
 import { ArrowLeft, Save, Trash2, Play, Pause, Code2 } from 'lucide-react';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 
 
 const areas = [
@@ -29,40 +27,44 @@ const DetalheFerramenta = () => {
   const { id } = useParams();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  const { data: tool, isLoading } = useQuery({
-    queryKey: ['tool', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tools')
-        .select('*')
-        .eq('id', id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  const { data: toolAccess } = useQuery({
-    queryKey: ['tool-access', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tool_area_access')
-        .select('*')
-        .eq('tool_id', id);
-      
-      if (error) throw error;
-      return data;
-    },
-  });
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+
+  const { tool, toolAccess, isLoading, updateTool, deleteTool } = useDomainDetalheFerramenta({
+    id,
+    onUpdateSuccess: () => {
+      toast({
+        title: 'Ferramenta atualizada',
+        description: 'As alterações foram salvas com sucesso.',
+      });
+      setIsEditing(false);
+    },
+    onUpdateError: (error) => {
+      toast({
+        title: 'Erro ao atualizar',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+    onDeleteSuccess: () => {
+      toast({
+        title: 'Ferramenta excluída',
+        description: 'A ferramenta foi removida com sucesso.',
+      });
+      navigate('/equipe/dev');
+    },
+    onDeleteError: (error) => {
+      toast({
+        title: 'Erro ao excluir',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
 
   // Initialize form when data loads
   useState(() => {
@@ -74,100 +76,6 @@ const DetalheFerramenta = () => {
     if (toolAccess) {
       setSelectedAreas(toolAccess.map(ta => ta.area));
     }
-  });
-
-  const updateTool = useMutation({
-    mutationFn: async () => {
-      await assertCanPerform('tools', 'update', id as string);
-
-      const { error: toolError } = await supabase
-        .from('tools')
-        .update({
-          name,
-          description,
-          status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id);
-
-      if (toolError) throw toolError;
-
-      // Update area access - delete existing and insert new
-      // Precheck do delete em lote — amostra um id antes pra rodar can_perform.
-      const { data: sampleAccess } = await supabase
-        .from('tool_area_access')
-        .select('id')
-        .eq('tool_id', id)
-        .limit(1)
-        .maybeSingle();
-      if (sampleAccess?.id) {
-        await assertCanPerform('tool_area_access', 'delete', sampleAccess.id);
-      }
-      await supabase
-        .from('tool_area_access')
-        .delete()
-        .eq('tool_id', id);
-
-      if (selectedAreas.length > 0) {
-        const accessEntries = selectedAreas.map(area => ({
-          tool_id: id,
-          area,
-          granted_by: user?.id,
-        }));
-
-        const { error: accessError } = await supabase
-          .from('tool_area_access')
-          .insert(accessEntries);
-
-        if (accessError) throw accessError;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tools'] });
-      queryClient.invalidateQueries({ queryKey: ['tool', id] });
-      queryClient.invalidateQueries({ queryKey: ['tool-access', id] });
-      toast({
-        title: 'Ferramenta atualizada',
-        description: 'As alterações foram salvas com sucesso.',
-      });
-      setIsEditing(false);
-    },
-    onError: (error) => {
-      toast({
-        title: 'Erro ao atualizar',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
-  });
-
-  const deleteTool = useMutation({
-    mutationFn: async () => {
-      await assertCanPerform('tools', 'delete', id as string);
-
-      const { error } = await supabase
-        .from('tools')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
-    },
-
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tools'] });
-      toast({
-        title: 'Ferramenta excluída',
-        description: 'A ferramenta foi removida com sucesso.',
-      });
-      navigate('/equipe/dev');
-    },
-    onError: (error) => {
-      toast({
-        title: 'Erro ao excluir',
-        description: error.message,
-        variant: 'destructive',
-      });
-    },
   });
 
   const handleEdit = () => {
@@ -268,7 +176,19 @@ const DetalheFerramenta = () => {
           </CardHeader>
           <CardContent>
             {isEditing ? (
-              <form onSubmit={(e) => { e.preventDefault(); updateTool.mutate(); }} className="space-y-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  updateTool.mutate({
+                    name,
+                    description,
+                    status,
+                    selectedAreas,
+                    userId: user?.id,
+                  });
+                }}
+                className="space-y-6"
+              >
                 <div className="space-y-2">
                   <Label htmlFor="name">Nome *</Label>
                   <Input

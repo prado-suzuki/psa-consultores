@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
-import { useAuth } from '@/contexts/AuthContext';
+import {
+  useDomainEquipeTarefas,
+  type EquipeTask,
+  type EquipeTaskCluster,
+  type EquipeTaskPriority,
+  type EquipeTaskStatus,
+} from '@/hooks/useDomainEquipeTarefas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,45 +31,13 @@ import {
 } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
 
-interface Task {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  priority: string;
-  cluster: string;
-  assigned_to: string | null;
-  sprint_id: string | null;
-  estimated_hours: number | null;
-  actual_hours: number | null;
-  due_date: string | null;
-  created_at: string;
-}
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-}
-
 const EquipeTarefas = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [clusterFilter, setClusterFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<EquipeTask | null>(null);
   const [editTask, setEditTask] = useState({
     title: '',
     description: '',
@@ -77,10 +49,22 @@ const EquipeTarefas = () => {
     estimated_hours: '',
     due_date: ''
   });
+  const {
+    tasks,
+    profiles,
+    sprints,
+    isLoading: loading,
+    error: dataError,
+    updateTask,
+    deleteTask,
+  } = useDomainEquipeTarefas({ statusFilter, clusterFilter, priorityFilter });
+  const submitting = updateTask.isPending;
 
   useEffect(() => {
-    fetchData();
-  }, [statusFilter, clusterFilter, priorityFilter]);
+    if (dataError) {
+      console.error('Error fetching data:', dataError);
+    }
+  }, [dataError]);
 
   useEffect(() => {
     if (selectedTask) {
@@ -98,67 +82,24 @@ const EquipeTarefas = () => {
     }
   }, [selectedTask]);
 
-  const fetchData = async () => {
-    try {
-      // Fetch tasks
-      let query = supabase.from('tasks').select('*').order('created_at', { ascending: false });
-      
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done');
-      }
-      if (clusterFilter !== 'all') {
-        query = query.eq('cluster', clusterFilter as 'database' | 'frontend' | 'management');
-      }
-      if (priorityFilter !== 'all') {
-        query = query.eq('priority', priorityFilter as 'low' | 'medium' | 'high' | 'urgent');
-      }
-
-      const { data: tasksData } = await query;
-      setTasks(tasksData || []);
-
-      // Fetch profiles for assignment
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      setProfiles(profilesData || []);
-
-      // Fetch sprints
-      const { data: sprintsData } = await supabase
-        .from('sprints')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false });
-      setSprints(sprintsData || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleUpdateTask = async () => {
     if (!selectedTask || submitting) return;
 
-    setSubmitting(true);
     try {
-      await assertCanPerform('tasks', 'update', selectedTask.id);
-      const { error } = await supabase
-        .from('tasks')
-        .update({
+      await updateTask.mutateAsync({
+        taskId: selectedTask.id,
+        payload: {
           title: editTask.title,
           description: editTask.description || null,
-          status: editTask.status as 'backlog' | 'to_do' | 'in_progress' | 'review' | 'done',
-          priority: editTask.priority as 'low' | 'medium' | 'high' | 'urgent',
-          cluster: editTask.cluster as 'database' | 'frontend' | 'management',
+          status: editTask.status as EquipeTaskStatus,
+          priority: editTask.priority as EquipeTaskPriority,
+          cluster: editTask.cluster as EquipeTaskCluster,
           assigned_to: editTask.assigned_to || null,
           sprint_id: editTask.sprint_id || null,
           estimated_hours: editTask.estimated_hours ? parseFloat(editTask.estimated_hours) : null,
           due_date: editTask.due_date || null
-        })
-        .eq('id', selectedTask.id);
-
-      if (error) throw error;
+        },
+      });
 
       toast({
         title: "Tarefa atualizada!",
@@ -166,7 +107,6 @@ const EquipeTarefas = () => {
       });
 
       setSelectedTask(null);
-      fetchData();
     } catch (error) {
       console.error('Error updating task:', error);
       toast({
@@ -174,8 +114,6 @@ const EquipeTarefas = () => {
         description: "Não foi possível atualizar a tarefa.",
         variant: "destructive"
       });
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -183,13 +121,7 @@ const EquipeTarefas = () => {
     if (!selectedTask) return;
 
     try {
-      await assertCanPerform('tasks', 'delete', selectedTask.id);
-      const { error } = await supabase
-        .from('tasks')
-        .delete()
-        .eq('id', selectedTask.id);
-
-      if (error) throw error;
+      await deleteTask.mutateAsync(selectedTask.id);
 
       toast({
         title: "Tarefa excluída!",
@@ -197,7 +129,6 @@ const EquipeTarefas = () => {
       });
 
       setSelectedTask(null);
-      fetchData();
     } catch (error) {
       console.error('Error deleting task:', error);
       toast({

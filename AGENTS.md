@@ -50,6 +50,19 @@ logAction({
 });
 ```
 
+## 🧱 DECOMPOSIÇÃO E CAMADA DE DADOS (padrões consolidados na refatoração de god-components)
+Fonte: `docs/planos/plano-refatoracao-god-components-fase-3.md` e ledgers em `docs/geral/refatoracao-*`. Siga estes padrões ao criar telas novas ou mexer em arquivos grandes.
+
+- **Teto de 600 linhas:** nenhum `.tsx` de produção deve ultrapassar 600 linhas; a meta ideal de uma fachada/página é **< 400**. Se um arquivo cruzar esse limite, decomponha antes de adicionar mais lógica.
+- **Anatomia da decomposição (nesta ordem):** 1) extrair funções puras para `src/lib/<feature>*.ts` **com testes**; 2) extrair blocos visuais em subcomponentes com responsabilidade real — **NUNCA** crie wrappers passa-tudo só para reduzir linhas; 3) manter o arquivo original como fachada/orquestrador enxuta; 4) criar hook controlador local `use<Feature>Controller.ts` **apenas** se estado + handlers ainda estourarem o teto.
+- **Evite prop drilling:** acima de ~8 props, prefira React Context (`<Feature>Context.ts`) ou o controller hook. Evite passar um objeto controller onisciente a todos os filhos quando um contrato de props menor por componente for viável.
+- **Nomenclatura de hooks:** hooks de dados de domínio = `useDomain<Feature>.ts` (React Query); hooks controladores de UI = `use<Feature>Controller.ts`. Um componente React NUNCA conhece o Supabase (ver Regra Inegociável nº1).
+- **Refatoração preserva comportamento:** ao mover queries/mutations para hooks, mantenha **idênticos** query keys, filtros de tenancy/soft-delete (`ambiente`/`excluido`/`ativo`), payloads, ordem das operações sequenciais, `enabled`/`retry`/`staleTime` e invalidações. NÃO converta operações sequenciais em paralelas (ou vice-versa).
+- **Não corrija bugs durante a divisão:** refatoração estrutural preserva até peculiaridades e bugs preexistentes. Registre achados como tarefa separada (ex.: gaps de auditoria em `docs/geral/auditoria-gaps-cud.md`) em vez de corrigir junto.
+- **Auditoria em refatoração vs. código novo:** ao *mover* uma mutation que hoje não audita, **preserve** o comportamento (não adicione `useAuditLog`) e registre o gap. Isso **não** dispensa a regra: toda **mutation nova** continua obrigada a usar `useAuditLog` (ver Diretrizes de Arquitetura).
+- **Teste de caracterização primeiro:** antes de refatorar um arquivo grande, escreva testes golden-master que travem o comportamento observável (payloads exatos, ordem das chamadas, query keys, textos, estados vazio/erro/loading). Caracterize bugs atuais deliberadamente, com comentário, para não "corrigi-los de graça".
+- **Não deixe detritos:** remova hooks/funções que ficaram sem consumidor após a divisão; não deixe dead code "por garantia".
+
 ## 📂 ORGANIZAÇÃO DE DOCUMENTAÇÃO (.md que não é código)
 - **NUNCA** crie arquivos `.md` de plano/análise soltos na raiz do repositório. Toda documentação (planos, análises, roadmaps, design) vive em `docs/`, organizada por módulo:
   - `docs/planos/` — planos de implementação (handoff)

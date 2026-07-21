@@ -7,11 +7,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, BookOpen, Check, FileSearch, Info, Loader2, Network, Search, X } from 'lucide-react';
+import {
+  useAtualizarCorrecaoSpedPorId,
+  useBuscarCorrecaoSpedAtiva,
+  useDesativarCorrecaoSped,
+  useInserirCorrecaoSped,
+} from '@/hooks/useCorrecoesSped';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination from '@/components/equipe/dev/TablePagination';
 import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
@@ -163,6 +168,10 @@ export default function TabC170({
   idArquivos,
 }: TabC170Props) {
   const { user } = useAuth();
+  const { mutateAsync: buscarCorrecaoSpedAtiva } = useBuscarCorrecaoSpedAtiva();
+  const { mutateAsync: atualizarCorrecaoSpedPorId } = useAtualizarCorrecaoSpedPorId();
+  const { mutateAsync: desativarCorrecaoSped } = useDesativarCorrecaoSped();
+  const { mutateAsync: inserirCorrecaoSped } = useInserirCorrecaoSped();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<C170Item[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -378,28 +387,21 @@ export default function TabC170({
         changedCount += 1;
         const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
 
-        const { data: correcaoAtiva, error: buscaError } = await supabase
-          .from('efd_correcoes')
-          .select('id')
-          .eq('registro_tipo', 'C170')
-          .eq('registro_original_id', item.uuid)
-          .eq('ativo', true)
-          .maybeSingle();
-
-        if (buscaError) throw buscaError;
+        const correcaoAtiva = await buscarCorrecaoSpedAtiva({
+          registroTipo: 'C170',
+          registroOriginalId: item.uuid,
+        });
 
         if (camposAlterados.length === 0) {
           if (correcaoAtiva?.id) {
-            const { error: desativacaoError } = await supabase
-              .from('efd_correcoes')
-              .update({
+            await atualizarCorrecaoSpedPorId({
+              id: correcaoAtiva.id,
+              payload: {
                 ativo: false,
                 snapshot: nextSnapshot as unknown as Json,
                 campos_alterados: null,
-              })
-              .eq('id', correcaoAtiva.id);
-
-            if (desativacaoError) throw desativacaoError;
+              },
+            });
           }
 
           nextRows[index] = { ...item, ...item._originalSnapshot };
@@ -428,21 +430,13 @@ export default function TabC170({
         };
 
         if (correcaoAtiva?.id) {
-          const { error: desativacaoError } = await supabase
-            .from('efd_correcoes')
-            .update({ ativo: false })
-            .eq('registro_tipo', 'C170')
-            .eq('registro_original_id', item.uuid)
-            .eq('ativo', true);
-
-          if (desativacaoError) throw desativacaoError;
+          await desativarCorrecaoSped({
+            registroTipo: 'C170',
+            registroOriginalId: item.uuid,
+          });
         }
 
-        const { error: insertError } = await supabase
-          .from('efd_correcoes')
-          .insert(payload);
-
-        if (insertError) throw insertError;
+        await inserirCorrecaoSped(payload);
 
         nextRows[index] = { ...item, ...nextSnapshot };
         locallyEditedIds.current.add(item.uuid);

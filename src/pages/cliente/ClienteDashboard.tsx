@@ -1,8 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useDomainClienteDashboard } from "@/hooks/useDomainClienteDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -85,69 +84,12 @@ export default function ClienteDashboard() {
   const [docDateFrom, setDocDateFrom] = useState<Date | undefined>();
   const [docDateTo, setDocDateTo] = useState<Date | undefined>();
 
-  // Fetch tickets for this client
-  const { data: tickets = [], isLoading: isLoadingTickets } = useQuery({
-    queryKey: ["client-tickets", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from("tickets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
-
-  // Fetch visible projects for this client
-  const { data: visibleProjects, isLoading: isLoadingProjects } = useQuery({
-    queryKey: ["client-visible-projects", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from("client_visible_projects")
-        .select(
-          `
-          id,
-          visible_since,
-          notes,
-          projects (
-            id,
-            name,
-            description,
-            status,
-            start_date,
-            end_date
-          )
-        `,
-        )
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
-
-  // Fetch documents for this client
-  const { data: clientDocuments, isLoading: isLoadingDocuments } = useQuery({
-    queryKey: ["client-documents", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      const { data, error } = await supabase
-        .from("client_documents")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { ticketsQuery, visibleProjectsQuery, clientDocumentsQuery } = useDomainClienteDashboard(
+    user?.id,
+  );
+  const { data: tickets = [], isLoading: isLoadingTickets } = ticketsQuery;
+  const { data: visibleProjects, isLoading: isLoadingProjects } = visibleProjectsQuery;
+  const { data: clientDocuments, isLoading: isLoadingDocuments } = clientDocumentsQuery;
 
   const handleSignOut = async () => {
     await signOut();

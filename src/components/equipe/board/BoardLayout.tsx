@@ -24,8 +24,7 @@ import {
   User,
   LogOut,
 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
 
 interface BoardLayoutProps {
@@ -118,48 +117,9 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch { /* ignore quota/private mode */ }
   }, [collapsed]);
 
-  // Count pending decisions for badge
-  const { data: pendingDecisions = 0 } = useQuery({
-    queryKey: ['pending-decisions-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('metas' as any)
-        .select('*', { count: 'exact', head: true })
-        .eq('nivel', 'individual')
-        .is('recomendacao_decisao', null)
-        .eq('status', 'ativa');
-      return count ?? 0;
-    },
-    enabled: canDesempenho === true,
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Check unread leader comments for "Minha Evolucao" badge
-  const { data: hasUnreadOrOverdue = false } = useQuery({
-    queryKey: ['minha-evolucao-badge', user?.id],
-    queryFn: async () => {
-      if (!user) return false;
-      const { data: unread } = await supabase
-        .from('comentarios_avaliacao' as any)
-        .select('id')
-        .eq('destinatario_id', user.id)
-        .eq('tipo', 'lider_para_membro')
-        .eq('lido', false)
-        .limit(1);
-      if (unread?.length) return true;
-      const { data: overdue } = await supabase
-        .from('metas' as any)
-        .select('id')
-        .eq('responsavel_id', user.id)
-        .eq('nivel', 'individual')
-        .eq('status', 'ativa')
-        .lt('prazo', new Date().toISOString().split('T')[0])
-        .lt('progresso_atual', 100)
-        .limit(1);
-      return (overdue?.length ?? 0) > 0;
-    },
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
+  const { pendingDecisions, hasUnreadOrOverdue } = useDomainBoardLayout({
+    canDesempenho,
+    userId: user?.id,
   });
 
   const navItems = buildNavItems(canPerformance === true, canDesempenho === true, pendingDecisions);

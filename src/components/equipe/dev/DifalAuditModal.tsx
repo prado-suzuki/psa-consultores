@@ -1,19 +1,15 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
-import { useApiAuth } from '@/hooks/useApiAuth';
-import { supabase } from '@/integrations/supabase/client';
-import { API_BASE_URL } from '@/config/api';
+import { useDomainDifalAudit } from '@/hooks/useDomainDifalAudit';
 import { cn } from '@/lib/utils';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import {
   DifalGroupedItem,
-  NCMRegrasResponse,
   RegraICMSST,
   TipoDecisao,
 } from '@/types/difal';
@@ -44,38 +40,21 @@ export const DifalAuditModal = ({
   onDecisionSaved,
 }: DifalAuditModalProps) => {
   const { toast } = useToast();
-  const { fetchWithAuth } = useApiAuth();
   const queryClient = useQueryClient();
   const [selectedRegraId, setSelectedRegraId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Query para buscar regras NCM
+  const { regrasQuery, saveDecisionMutation } = useDomainDifalAudit({
+    open,
+    group,
+    ufDestino,
+  });
   const {
     data: regrasData,
     isLoading: isLoadingRegras,
     error: regrasError,
-  } = useQuery({
-    queryKey: ['ncm-regras', group?.cod_ncm, ufDestino],
-    queryFn: async () => {
-      if (!group) return null;
-
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/v1/ncm/regras`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ncms: [group.cod_ncm],
-          uf: ufDestino,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Erro ao buscar regras NCM');
-      }
-
-      return response.json() as Promise<NCMRegrasResponse>;
-    },
-    enabled: open && !!group && !!ufDestino,
-  });
+  } = regrasQuery;
 
   // Salvar decisão em difal_decisao (Supabase) ao invés de enviar para API
   const handleSaveDecision = async (decisao: TipoDecisao, regraId: string | null = null) => {
@@ -101,31 +80,12 @@ export const DifalAuditModal = ({
     setIsSaving(true);
 
     try {
-      // Upsert pode virar update — precheck só roda quando já existe linha
-      const { data: existing } = await supabase
-        .from('difal_decisao')
-        .select('id')
-        .eq('sessao_id', sessaoId)
-        .eq('cod_ncm', group.cod_ncm)
-        .maybeSingle();
-      if (existing?.id) {
-        await assertCanPerform('difal_decisao', 'update', existing.id);
-      }
-
-      // Salvar decisão em difal_decisao (Supabase)
-      const { error } = await supabase
-        .from('difal_decisao')
-        .upsert({
-          sessao_id: sessaoId,
-          cod_ncm: group.cod_ncm,
-          decisao: decisao,
-          id_icms_st_bq: regraId,
-          decidido_em: new Date().toISOString(),
-        }, {
-          onConflict: 'sessao_id,cod_ncm',
-        });
-
-      if (error) throw error;
+      await saveDecisionMutation.mutateAsync({
+        sessaoId,
+        codNcm: group.cod_ncm,
+        decisao,
+        regraId,
+      });
 
       toast({
         title: 'Decisão registrada',

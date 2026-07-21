@@ -1,0 +1,17 @@
+export const XML_TOOLTIPS = {
+  cliente: "Filtra as notas por cliente ou grupo. Obrigatório.",
+  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
+  tipoDoc: "Define se a busca trará notas NFe ou CTe. Obrigatório.",
+  tipoMov: "Filtra o fluxo por Entradas ou Saídas.",
+  start_date: "Define o período de emissão. Obrigatório.",
+  end_date: "Define o período de emissão. Obrigatório.",
+  emitente: "Filtra pelo documento exato do emissor (somente números).",
+  destinatario: "Filtra pelo documento exato do destinatário (somente números).",
+  chaveAcesso: "Busca exata pela chave de 44 dígitos.",
+  buscar: "Executa a consulta com os filtros aplicados.",
+  limpar: "Redefine a tela para iniciar uma nova busca.",
+  baixarXmls: "Download em lote (.zip) de todos os originais do período.",
+  exportarExcel: "Gera planilha com todos os resultados da busca (todas as páginas).",
+  downloadLinha: "Baixa o arquivo XML original desta nota.",
+  paginacao: "Navega entre as páginas de resultados.",
+} as const;

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 import { Label } from "@/components/ui/label";
+import { useInserirContato } from "@/hooks/useDomainContatos";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import {
   Select,
@@ -80,6 +80,7 @@ type ContactFormData = z.infer<typeof contactSchema>;
 
 export const ContactSection = () => {
   const { toast } = useToast();
+  const inserirContato = useInserirContato();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<ContactFormData>({
     nome_completo: "",
@@ -125,18 +126,7 @@ export const ContactSection = () => {
     setIsSubmitting(true);
 
     try {
-      const { error } = await supabase.from("contatos").insert({
-        nome_completo: result.data.nome_completo,
-        email: result.data.email,
-        telefone: result.data.telefone || null,
-        empresa: result.data.empresa || null,
-        servico_interesse: result.data.servico_interesse,
-        porte_empresa: result.data.porte_empresa || null,
-        como_conheceu: result.data.como_conheceu || null,
-        mensagem: null,
-      });
-
-      if (error) throw error;
+      await inserirContato.mutateAsync(result.data);
 
       toast({
         title: "Mensagem enviada!",

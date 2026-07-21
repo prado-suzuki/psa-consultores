@@ -4,8 +4,14 @@ import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useAtualizarSituacaoPerPorId,
+  useInserirSituacaoPerComRetorno,
+  usePersParaSituacao,
+  type PerSituacaoInsert,
+  type PerSituacaoUpdate,
+} from '@/hooks/useDomainPerdcomp';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits } from '@/lib/perdcompUtils';
@@ -91,24 +97,10 @@ export function SituacaoFormModal({
   const draftEnabled = open && !isEditing;
   const { restore, clear } = useDraftPersistence('situacao-form-draft', watchedValues, draftEnabled, user?.id);
 
-  // Fetch PERs for selection — cast to any until types regeneration for nr_per rename
-  const { data: pers = [] } = useQuery({
-    queryKey: ['pers-for-situacao', contribuinteId],
-    queryFn: async () => {
-      let query = (supabase
-        .from('per') as any)
-        .select('nr_per, id_contribuinte, exercicio, tri_exercicio')
-        .order('exercicio', { ascending: false });
-      
-      if (contribuinteId) {
-        query = query.eq('id_contribuinte', contribuinteId);
-      }
-      
-      const { data, error } = await query;
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  // Fetch PERs for selection
+  const { data: pers = [] } = usePersParaSituacao(contribuinteId);
+  const inserirSituacaoPerComRetorno = useInserirSituacaoPerComRetorno();
+  const atualizarSituacaoPerPorId = useAtualizarSituacaoPerPorId();
 
   useEffect(() => {
     if (editData) {
@@ -133,16 +125,14 @@ export function SituacaoFormModal({
 
   const createMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
-      const insertData: any = {
+      const insertData: PerSituacaoInsert = {
         nr_proc_per: stripToDigits(data.nr_proc_per),
         situacao: data.situacao,
       };
       if (data.dt_pagamento) {
         insertData.dt_pagamento = data.dt_pagamento;
       }
-      const { data: result, error } = await supabase.from('per_situacao').insert(insertData).select().single();
-      if (error) throw error;
-      return result;
+      return inserirSituacaoPerComRetorno.mutateAsync(insertData);
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
@@ -161,7 +151,7 @@ export function SituacaoFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: SituacaoFormData) => {
-      const updateData: any = {
+      const updateData: PerSituacaoUpdate = {
         nr_proc_per: stripToDigits(data.nr_proc_per),
         situacao: data.situacao,
       };
@@ -173,14 +163,10 @@ export function SituacaoFormModal({
       if (editData?.id) {
         await assertCanPerform('per_situacao', 'update', editData.id);
       }
-      const { data: result, error } = await supabase
-        .from('per_situacao')
-        .update(updateData)
-        .eq('id', editData?.id)
-        .select()
-        .single();
-      if (error) throw error;
-      return result;
+      return atualizarSituacaoPerPorId.mutateAsync({
+        id: editData?.id,
+        payload: updateData,
+      });
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-situacao'] });
@@ -229,7 +215,7 @@ export function SituacaoFormModal({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {pers.map((per: any) => (
+                      {pers.map((per) => (
                         <SelectItem key={per.nr_per} value={per.nr_per}>
                           {per.nr_per} ({per.exercicio}/{per.tri_exercicio}T)
                         </SelectItem>

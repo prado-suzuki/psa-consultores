@@ -1,0 +1,478 @@
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
+import type { OrgProject } from '@/hooks/useOrgProjects';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+// APIs de pointer ausentes no jsdom e exigidas pelos componentes Radix reais.
+Object.defineProperties(Element.prototype, {
+  hasPointerCapture: { configurable: true, value: () => false },
+  setPointerCapture: { configurable: true, value: () => {} },
+  releasePointerCapture: { configurable: true, value: () => {} },
+});
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+
+const mocks = vi.hoisted(() => ({
+  useAuth: vi.fn(),
+  useOrgProjects: vi.fn(),
+  useProjectMembers: vi.fn(),
+  useProjectHours: vi.fn(),
+  createMutate: vi.fn(),
+  updateMutate: vi.fn(),
+  deleteMutate: vi.fn(),
+  useTeamProfilesSafe: vi.fn(),
+  useTeamRolesForProjects: vi.fn(),
+  useExternalClients: vi.fn(),
+  useClienteOrdens: vi.fn(),
+  useClusterIdByPageCategory: vi.fn(),
+  useDashboardProjectIds: vi.fn(),
+  useOsProdutosContratados: vi.fn(),
+  useEstruturaEquipe: vi.fn(),
+  useEstruturaEquipesByCategory: vi.fn(),
+  useTeamMembersByArea: vi.fn(),
+  useProjectMemberAreas: vi.fn(),
+  useDomainFiscalProjetosCadastro: vi.fn(),
+  resolveProdutoIdByServico: vi.fn(),
+  toastError: vi.fn(),
+}));
+
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: mocks.useAuth }));
+vi.mock('@/components/equipe/fiscal/FiscalLayout', () => ({
+  FiscalLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
+    <main data-testid="fiscal-layout">
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+      {children}
+    </main>
+  ),
+}));
+vi.mock('@/components/equipe/osg/OsgLayout', () => ({
+  OsgLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
+    <main data-testid="osg-layout">
+      <h1>{title}</h1>
+      <p>{subtitle}</p>
+      {children}
+    </main>
+  ),
+}));
+vi.mock('@/hooks/useTaxReferenceData', () => ({
+  useTeamProfilesSafe: mocks.useTeamProfilesSafe,
+  useTeamRolesForProjects: mocks.useTeamRolesForProjects,
+  useExternalClients: mocks.useExternalClients,
+  useClienteOrdens: mocks.useClienteOrdens,
+  useClusterIdByPageCategory: mocks.useClusterIdByPageCategory,
+}));
+vi.mock('@/hooks/useClientFormOptions', () => ({
+  useClientFormOptions: () => ({ produtoSegmentoFullOptions: [] }),
+}));
+vi.mock('@/hooks/useOsProdutosContratados', () => ({
+  useOsProdutosContratados: mocks.useOsProdutosContratados,
+  groupByOs: (items: Array<{ ordem_servico_id: string }>) =>
+    items.reduce<Record<string, Array<{ ordem_servico_id: string }>>>((acc, item) => {
+      (acc[item.ordem_servico_id] ||= []).push(item);
+      return acc;
+    }, {}),
+}));
+vi.mock('@/hooks/useDomainFiscalProjetosCadastro', () => ({
+  useDomainFiscalProjetosCadastro: mocks.useDomainFiscalProjetosCadastro,
+}));
+vi.mock('@/hooks/useOrgProjects', () => ({
+  useOrgProjects: mocks.useOrgProjects,
+  useProjectMembers: mocks.useProjectMembers,
+  useProjectHours: mocks.useProjectHours,
+  useCreateOrgProject: () => ({ mutate: mocks.createMutate, isPending: false }),
+  useUpdateOrgProject: () => ({ mutate: mocks.updateMutate, isPending: false }),
+  useDeleteOrgProject: () => ({ mutate: mocks.deleteMutate, isPending: false }),
+}));
+vi.mock('@/hooks/useEstruturaEquipe', () => ({ useEstruturaEquipe: mocks.useEstruturaEquipe }));
+vi.mock('@/hooks/useEstruturaEquipes', () => ({
+  useEstruturaEquipesByCategory: mocks.useEstruturaEquipesByCategory,
+}));
+vi.mock('@/hooks/useDashboardProjectIds', () => ({
+  useDashboardProjectIds: mocks.useDashboardProjectIds,
+}));
+vi.mock('@/hooks/useTeamMembersByArea', () => ({
+  useTeamMembersByArea: mocks.useTeamMembersByArea,
+}));
+vi.mock('@/hooks/useProjectMemberAreas', () => ({
+  useProjectMemberAreas: mocks.useProjectMemberAreas,
+}));
+vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }));
+
+import FiscalProjetosCadastro, {
+  ProjetosCadastroContent,
+} from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
+import OsgProjetos from '@/pages/equipe/osg/OsgProjetos';
+import {
+  filterAndSortProjects,
+  groupProjects,
+  validateProjectForm,
+  EMPTY_PROJECT_FORM,
+} from '@/lib/projetosCadastro';
+
+const members = [
+  { id: 'leader-1', first_name: 'Lia', last_name: 'Líder' },
+  { id: 'member-1', first_name: 'Eva', last_name: 'Executora' },
+  { id: 'member-2', first_name: 'Mia', last_name: 'Membro' },
+  { id: 'admin-1', first_name: 'Ada', last_name: 'Admin' },
+];
+
+const roles = [
+  { user_id: 'leader-1', role: 'lider' },
+  { user_id: 'member-1', role: 'team_member' },
+  { user_id: 'member-2', role: 'sublider' },
+  { user_id: 'admin-1', role: 'admin' },
+];
+
+const currentMembers = [
+  { project_id: 'project-tax', user_id: 'leader-1' },
+  { project_id: 'project-tax', user_id: 'member-2' },
+];
+
+const taxProject = {
+  id: 'project-tax',
+  name: 'Zeta Tax',
+  description: 'Descrição original',
+  status: 'active',
+  start_date: '2026-02-10',
+  end_date: '2026-11-20',
+  leader_id: 'leader-1',
+  leader: members[0],
+  responsible_id: 'member-1',
+  responsible: members[1],
+  external_client_id: 'client-1',
+  external_client: { id: 'client-1', nome: 'Beta Cliente' },
+  estrutura_area_id: 'area-tax',
+  equipe_id: 'team-tax',
+  equipe_ref: { id: 'team-tax', name: 'Equipe Fiscal' },
+  is_multidisciplinar: false,
+  ordem_servico_id: 'os-1',
+  servico_id: 'service-1',
+  servico_contratado: 'Produto Z',
+  servico_nome: 'Revisão fiscal',
+};
+
+const completedProject = {
+  ...taxProject,
+  id: 'project-completed',
+  name: 'Alfa Tax',
+  status: 'completed',
+  external_client_id: 'client-2',
+  external_client: { id: 'client-2', nome: 'Alfa Cliente' },
+  equipe_id: null,
+  equipe_ref: null,
+  ordem_servico_id: 'os-2',
+  servico_contratado: 'Produto A',
+};
+
+const osgProject = {
+  ...taxProject,
+  id: 'project-osg',
+  name: 'Projeto Geográfico',
+  estrutura_area_id: 'area-osg',
+};
+
+const ordens = [
+  {
+    id: 'os-1',
+    numero_os: '001/2026',
+    situacao: 'em_andamento',
+    data_emissao: '2026-01-05',
+    data_inicio: '2026-01-10',
+    data_fim: '2026-12-20',
+  },
+];
+
+const produtos = [
+  {
+    ordem_servico_id: 'os-1',
+    produto_segmento_id: 'product-1',
+    produto_codigo: 'P01',
+    produto_nome: 'Consultoria',
+    horas_contratadas: 40,
+  },
+  {
+    ordem_servico_id: 'os-2',
+    produto_segmento_id: 'product-2',
+    produto_codigo: 'P02',
+    produto_nome: 'Auditoria',
+    horas_contratadas: 12,
+  },
+];
+
+async function chooseSelect(containerText: string | RegExp, option: string | RegExp) {
+  const user = userEvent.setup();
+  const label = screen.getByText(containerText, { selector: 'label' });
+  const container = label.parentElement;
+  if (!container) throw new Error('Select sem container');
+  await user.click(within(container).getByRole('combobox'));
+  await user.click(await screen.findByRole('option', { name: option }));
+}
+
+function inputNear(labelText: string | RegExp) {
+  const label = screen.getByText(labelText, { selector: 'label' });
+  const input = label.parentElement?.querySelector('input, textarea');
+  if (!input) throw new Error('Campo sem input');
+  return input as HTMLInputElement | HTMLTextAreaElement;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.useAuth.mockReturnValue({ user: { id: 'user-1' } });
+  mocks.useOrgProjects.mockReturnValue({
+    data: [taxProject, completedProject, osgProject],
+    isLoading: false,
+  });
+  mocks.useClusterIdByPageCategory.mockImplementation((area: string) => ({ data: `cluster-${area}` }));
+  mocks.useDashboardProjectIds.mockImplementation((clusterId: string, includeOrphans: boolean) => ({
+    ids: new Set(
+      clusterId === 'cluster-osg'
+        ? ['project-osg']
+        : includeOrphans
+          ? ['project-tax', 'project-completed']
+          : [],
+    ),
+  }));
+  mocks.useProjectHours.mockReturnValue({ data: {} });
+  mocks.useProjectMemberAreas.mockReturnValue({
+    data: {
+      'project-tax': { ids: ['area-tax'], names: ['Fiscal'] },
+      'project-completed': { ids: [], names: [] },
+    },
+  });
+  mocks.useProjectMembers.mockImplementation((id?: string) => ({
+    data: id === 'project-tax' ? currentMembers : [],
+  }));
+  mocks.useTeamProfilesSafe.mockReturnValue({ data: members });
+  mocks.useTeamRolesForProjects.mockReturnValue({ data: roles });
+  mocks.useExternalClients.mockReturnValue({
+    data: [{ id: 'client-1', nome: 'Beta Cliente' }, { id: 'client-2', nome: 'Alfa Cliente' }],
+  });
+  mocks.useClienteOrdens.mockImplementation((clientId: string | null) => ({
+    data: clientId === 'client-1' ? ordens : [],
+  }));
+  mocks.useOsProdutosContratados.mockImplementation((ids: string[]) => ({
+    data: produtos.filter(item => ids.includes(item.ordem_servico_id)),
+  }));
+  mocks.useEstruturaEquipesByCategory.mockReturnValue({
+    data: [{ id: 'team-tax', name: 'Equipe Fiscal', area_id: 'area-tax', area_name: 'Tax' }],
+  });
+  mocks.useEstruturaEquipe.mockImplementation((equipeId: string | null) => ({
+    equipeInfo: equipeId ? { area_id: 'area-tax' } : null,
+    liderIds: equipeId ? ['leader-1'] : [],
+    memberIds: equipeId ? ['member-1', 'member-2'] : [],
+  }));
+  mocks.useTeamMembersByArea.mockReturnValue({
+    data: {
+      currentUserAreaIds: ['area-tax'],
+      groups: [{
+        area_id: 'area-tax',
+        area_name: 'Fiscal',
+        cluster_name: 'Tax',
+        members: [members[1], members[2]],
+        equipes: [{ equipe_id: 'team-tax', equipe_name: 'Equipe Fiscal', members: [members[1], members[2]] }],
+      }],
+    },
+  });
+  mocks.resolveProdutoIdByServico.mockResolvedValue('product-1');
+  mocks.useDomainFiscalProjetosCadastro.mockImplementation((produtoId: string | null) => ({
+    servicosByProdutoQuery: {
+      data: produtoId === 'product-1' ? [{ id: 'service-1', nome: 'Revisão fiscal' }] : [],
+    },
+    resolveProdutoIdByServico: mocks.resolveProdutoIdByServico,
+  }));
+});
+
+describe('FiscalProjetosCadastro — caracterização F1', () => {
+  it('mantém validação, filtros, ordenação e agrupamento em funções puras', () => {
+    expect(validateProjectForm({ ...EMPTY_PROJECT_FORM }, false, null)).toBe('Selecione o Cliente');
+    const filtered = filterAndSortProjects(
+      [taxProject, completedProject] as unknown as OrgProject[],
+      { cliente: '', produto: '', status: '' },
+      'name',
+      'asc',
+    );
+    expect(filtered.map(project => project.name)).toEqual(['Alfa Tax', 'Zeta Tax']);
+    const groups = groupProjects(filtered, 'area', {
+      'project-tax': { ids: ['area-tax'], names: ['Fiscal'] },
+      'project-completed': { ids: [], names: [] },
+    });
+    expect(groups?.map(group => group.label)).toEqual(['Fiscal', 'Sem área']);
+  });
+
+  it('mantém a fachada Tax, o export compartilhado e a composição pública de toolbar e tabela', () => {
+    expect(ProjetosCadastroContent).toEqual(expect.any(Function));
+
+    render(<FiscalProjetosCadastro />);
+
+    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Gerencie os projetos da área Tax');
+    expect(screen.getByRole('heading', { level: 2, name: 'Projetos Tax' })).toBeInTheDocument();
+    expect(screen.getByText('2 projetos cadastrados')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Novo Projeto/ })).toBeInTheDocument();
+    for (const column of ['Projeto', 'Produto', 'Serviço', 'Cliente', 'Equipe', 'Pessoas', 'Status', 'Início', 'Término', 'Hrs Contr.', 'Ações']) {
+      expect(screen.getByRole('columnheader', { name: new RegExp(column) })).toBeInTheDocument();
+    }
+    expect(screen.getByText('Zeta Tax')).toBeInTheDocument();
+    expect(screen.getByText('40h')).toBeInTheDocument();
+    expect(screen.queryByText('Projeto Geográfico')).not.toBeInTheDocument();
+    expect(mocks.useClusterIdByPageCategory).toHaveBeenCalledWith('tax');
+    expect(mocks.useDashboardProjectIds).toHaveBeenCalledWith('cluster-tax', true);
+    expect(mocks.useEstruturaEquipesByCategory).toHaveBeenCalledWith('tax');
+  });
+
+  it('é consumido por OsgProjetos com contexto e escopo OSG distintos', () => {
+    render(<OsgProjetos />);
+
+    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Gerencie os projetos da área OSG');
+    expect(screen.getByRole('heading', { level: 2, name: 'Projetos OSG' })).toBeInTheDocument();
+    expect(screen.getByText('Projeto Geográfico')).toBeInTheDocument();
+    expect(screen.queryByText('Zeta Tax')).not.toBeInTheDocument();
+    expect(mocks.useClusterIdByPageCategory).toHaveBeenCalledWith('osg');
+    expect(mocks.useDashboardProjectIds).toHaveBeenCalledWith('cluster-osg', false);
+    expect(mocks.useEstruturaEquipesByCategory).toHaveBeenCalledWith('osg');
+  });
+
+  it('preserva estados de carregamento, vazio e ausência temporária do conjunto visível', () => {
+    mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: true });
+    mocks.useDashboardProjectIds.mockReturnValue({ ids: undefined });
+    const { rerender } = render(<ProjetosCadastroContent />);
+    expect(screen.getByText('Carregando projetos...')).toBeInTheDocument();
+
+    mocks.useOrgProjects.mockReturnValue({ data: [], isLoading: false });
+    mocks.useDashboardProjectIds.mockReturnValue({ ids: new Set() });
+    rerender(<ProjetosCadastroContent />);
+    expect(screen.getByText('Nenhum projeto cadastrado.')).toBeInTheDocument();
+  });
+
+  it('filtra, limpa, ordena e agrupa sem mudar os dados de fronteira', async () => {
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+
+    const filterComboboxes = screen.getAllByRole('combobox');
+    await user.click(filterComboboxes[0]);
+    await user.click(await screen.findByRole('option', { name: 'Alfa Cliente' }));
+    expect(screen.getByText('1 de 2 projetos')).toBeInTheDocument();
+    expect(screen.getByText('Alfa Tax')).toBeInTheDocument();
+    expect(screen.queryByText('Zeta Tax')).not.toBeInTheDocument();
+    expect(screen.getByText('Limpar')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Limpar/ }));
+    expect(screen.getByText('2 projetos cadastrados')).toBeInTheDocument();
+
+    const table = screen.getByRole('table');
+    const projectNames = () => within(table).getAllByRole('row').slice(1).map(row => within(row).getAllByRole('cell')[0].textContent);
+    await user.click(screen.getByRole('columnheader', { name: /Projeto/ }));
+    expect(projectNames()).toEqual(['Alfa Tax', 'Zeta Tax']);
+    await user.click(screen.getByRole('columnheader', { name: /Projeto/ }));
+    expect(projectNames()).toEqual(['Zeta Tax', 'Alfa Tax']);
+
+    await user.click(screen.getAllByRole('combobox')[3]);
+    await user.click(await screen.findByRole('option', { name: 'Agrupar por Área' }));
+    expect(screen.getByText('Fiscal')).toBeInTheDocument();
+    expect(screen.getByText('Sem área')).toBeInTheDocument();
+    expect(screen.getByText('0%')).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    await user.click(screen.getByText('Fiscal'));
+    expect(screen.queryByText('Zeta Tax')).not.toBeInTheDocument();
+  });
+
+  it('encaminha exclusão com identidade e nome necessários à auditoria da mutation', async () => {
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+
+    const row = screen.getByText('Zeta Tax').closest('tr');
+    if (!row) throw new Error('Linha do projeto ausente');
+    await user.click(within(row).getAllByRole('button')[1]);
+    expect(screen.getByRole('alertdialog')).toHaveTextContent('Esta ação não pode ser desfeita');
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+
+    expect(mocks.deleteMutate).toHaveBeenCalledWith(
+      { id: 'project-tax', name: 'Zeta Tax' },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('valida em ordem e cria com OS/produto/equipe, datas automáticas e payload integral', async () => {
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+    await user.click(screen.getByRole('button', { name: /Novo Projeto/ }));
+    expect(screen.getByRole('heading', { name: 'Novo Projeto' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Criar' }));
+    expect(mocks.toastError).toHaveBeenLastCalledWith('Selecione o Cliente');
+    expect(mocks.createMutate).not.toHaveBeenCalled();
+
+    await chooseSelect('Cliente *', 'Beta Cliente');
+    expect(await screen.findByText(/OS: 001\/2026 — P01 — Consultoria/)).toBeInTheDocument();
+    expect(screen.getByText('OS única selecionada automaticamente — datas de início e término preenchidas.')).toBeInTheDocument();
+    await waitFor(() => expect(inputNear(/Data de Início/)).toHaveValue('2026-01-10'));
+    expect(inputNear(/Data de Término/)).toHaveValue('2026-12-20');
+    expect(screen.getByText('P01 — Consultoria')).toBeInTheDocument();
+
+    fireEvent.change(inputNear('Nome do Projeto *'), { target: { value: 'Novo Fiscal' } });
+    await chooseSelect('Equipe *', /Equipe Fiscal/);
+    expect(screen.getByText('Lia Líder')).toBeInTheDocument();
+    await chooseSelect('Responsável Executor *', 'Eva Executora');
+    await user.click(screen.getByRole('button', { name: /Incluir todos da equipe/ }));
+    fireEvent.change(inputNear(/Descrição do Projeto/), { target: { value: 'Escopo completo' } });
+
+    await user.click(screen.getByRole('button', { name: 'Criar' }));
+    expect(mocks.createMutate).toHaveBeenCalledWith(
+      {
+        name: 'Novo Fiscal',
+        description: 'Escopo completo',
+        status: 'active',
+        start_date: '2026-01-10',
+        end_date: '2026-12-20',
+        leader_ids: ['leader-1'],
+        responsible_id: 'member-1',
+        external_client_id: 'client-1',
+        estrutura_area_id: 'area-tax',
+        equipe_id: 'team-tax',
+        is_multidisciplinar: false,
+        member_ids: ['member-1', 'member-2'],
+        ordem_servico_id: 'os-1',
+        servico_id: '',
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+
+  it('abre edição sem limpar serviço/datas, resolve o produto depois da OS e envia snapshots para auditoria', async () => {
+    const user = userEvent.setup();
+    render(<ProjetosCadastroContent />);
+    await user.click(screen.getByText('Zeta Tax'));
+
+    expect(screen.getByRole('heading', { name: 'Editar Projeto' })).toBeInTheDocument();
+    expect(inputNear('Nome do Projeto *')).toHaveValue('Zeta Tax');
+    expect(inputNear(/Data de Início/)).toHaveValue('2026-02-10');
+    expect(inputNear(/Data de Término/)).toHaveValue('2026-11-20');
+    await waitFor(() => expect(mocks.resolveProdutoIdByServico).toHaveBeenCalledWith('service-1', ['product-1']));
+    await waitFor(() => expect(screen.getAllByText('Revisão fiscal').length).toBeGreaterThan(1));
+    expect(screen.getByText('Lia Líder')).toBeInTheDocument();
+    expect(screen.getByText('Mia Membro')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(mocks.updateMutate).toHaveBeenCalledWith(
+      {
+        id: 'project-tax',
+        data: expect.objectContaining({
+          name: 'Zeta Tax',
+          ordem_servico_id: 'os-1',
+          servico_id: 'service-1',
+          start_date: '2026-02-10',
+          end_date: '2026-11-20',
+          leader_ids: ['leader-1'],
+          member_ids: ['member-2'],
+        }),
+        oldProject: taxProject,
+        oldMembers: currentMembers,
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    );
+  });
+});

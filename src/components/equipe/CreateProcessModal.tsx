@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useDomainCreateProcess } from '@/hooks/useDomainCreateProcess';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
@@ -17,25 +18,13 @@ interface JobRole {
   id: string;
   name: string;
   level: string;
-  category: string;
+  category: string | null;
   hourly_rate: number;
-}
-
-interface CatalogClient {
-  id: string;
-  name: string;
-  color: string;
 }
 
 interface EstruturaEquipe {
   id: string;
   name: string;
-}
-
-interface ProjectOption {
-  id: string;
-  name: string;
-  cluster_id: string | null;
 }
 
 interface TeamMemberInput {
@@ -77,11 +66,9 @@ const COMPLEXITY_LEVELS = [
 
 export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessModalProps) {
   const { user } = useAuth();
+  const { jobRoles, projects } = useDomainCreateProcess(open);
   const [loading, setLoading] = useState(false);
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
-  const [catalogClients, setCatalogClients] = useState<CatalogClient[]>([]);
   const [equipes, setEquipes] = useState<EstruturaEquipe[]>([]);
-  const [projects, setProjects] = useState<ProjectOption[]>([]);
   const [teamMembers, setTeamMembers] = useState<TeamMemberInput[]>([]);
 
   const [form, setForm] = useState({
@@ -112,10 +99,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
 
   useEffect(() => {
     if (open) {
-      fetchJobRoles();
-      fetchCatalogClients();
       fetchEquipes();
-      fetchProjects();
       // Restore draft
       const saved = restoreDraft();
       if (saved) {
@@ -132,33 +116,6 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
       .eq('is_active', true)
       .order('name');
     if (data) setEquipes(data as EstruturaEquipe[]);
-  };
-
-  const fetchProjects = async () => {
-    const { data } = await supabase
-      .from('projects')
-      .select('id, name, cluster_id')
-      .order('name');
-    if (data) setProjects(data as ProjectOption[]);
-  };
-
-  const fetchJobRoles = async () => {
-    const { data } = await supabase
-      .from('job_roles')
-      .select('*')
-      .eq('is_active', true)
-      .order('category')
-      .order('hourly_rate');
-    if (data) setJobRoles(data);
-  };
-
-  const fetchCatalogClients = async () => {
-    const { data } = await supabase
-      .from('catalog_clients')
-      .select('id, name, color')
-      .eq('is_active', true)
-      .order('name');
-    if (data) setCatalogClients(data);
   };
 
   const addTeamMember = () => {

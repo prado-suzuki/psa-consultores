@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +18,7 @@ import {
   type TeamMemberAlloc,
 } from '@/hooks/useProcessScenarios';
 import type { MappingProcess } from '@/hooks/useProcessMapping';
+import { useDomainScenarioCreate } from '@/hooks/useDomainScenarioCreate';
 
 interface ScenarioCreateModalProps {
   open: boolean;
@@ -66,12 +66,6 @@ const KIND_INFO: Record<ScenarioKind, {
   },
 };
 
-interface JobRole {
-  id: string;
-  name: string;
-  hourly_rate: number;
-}
-
 export function ScenarioCreateModal({ open, onClose, processes, initialProcessId, onCreated }: ScenarioCreateModalProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [processId, setProcessId] = useState<string>(initialProcessId ?? '');
@@ -80,7 +74,6 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
-  const [jobRoles, setJobRoles] = useState<JobRole[]>([]);
   const [baselineMembers, setBaselineMembers] = useState<TeamMemberAlloc[]>([]);
   const [improvedMembers, setImprovedMembers] = useState<TeamMemberAlloc[]>([]);
 
@@ -101,25 +94,13 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
   const [computing, setComputing] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const { jobRoles } = useDomainScenarioCreate(open);
   const { create, compute } = useProcessScenarios(processId);
 
   const selectedProcess = useMemo(
     () => processes.find(p => p.id === processId) ?? null,
     [processes, processId]
   );
-
-  // Carregar job roles 1x
-  useEffect(() => {
-    if (!open) return;
-    supabase
-      .from('job_roles')
-      .select('id, name, hourly_rate')
-      .eq('is_active', true)
-      .order('hourly_rate')
-      .then(({ data }) => {
-        if (data) setJobRoles(data as JobRole[]);
-      });
-  }, [open]);
 
   // Pré-popular baseline a partir do processo selecionado
   useEffect(() => {

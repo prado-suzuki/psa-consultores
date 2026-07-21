@@ -23,7 +23,11 @@ import {
 } from 'lucide-react';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import {
+  type GerenciarDadosAmbiente,
+  type GerenciarDadosTable,
+  useDomainGerenciarDados,
+} from '@/hooks/useDomainGerenciarDados';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +42,18 @@ import {
 import { CargaPerdcompCSV } from '@/components/equipe/dev/perdcomp/CargaPerdcompCSV';
 import { CargaChamados } from '@/components/equipe/dev/carga-chamados/CargaChamados';
 
-type TableType = 'cliente' | 'contribuinte';
-type AmbienteValue = 'prod' | 'dev';
-
-
 const GerenciarDados = () => {
-  const [selectedTable, setSelectedTable] = useState<TableType>('cliente');
-  const [selectedAmbiente, setSelectedAmbiente] = useState<AmbienteValue>(currentAmbiente);
+  const [selectedTable, setSelectedTable] = useState<GerenciarDadosTable>('cliente');
+  const [selectedAmbiente, setSelectedAmbiente] = useState<GerenciarDadosAmbiente>(currentAmbiente);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ success: boolean; message: string; count?: number } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const {
+    buscarClientesExistentes,
+    importarClientesMutation,
+    importarContribuintesMutation,
+    limparTabelaMutation,
+  } = useDomainGerenciarDados();
 
   const ambienteLabel = selectedAmbiente === 'prod' ? 'Produção' : 'Desenvolvimento';
 
@@ -107,11 +113,7 @@ const GerenciarDados = () => {
           throw new Error('Nenhum cliente válido encontrado. Verifique se a coluna "nome" existe.');
         }
 
-        const { error } = await supabase
-          .from('cliente')
-          .insert(clientes);
-
-        if (error) throw error;
+        await importarClientesMutation.mutateAsync(clientes);
 
         setResult({
           success: true,
@@ -119,10 +121,7 @@ const GerenciarDados = () => {
           count: clientes.length
         });
       } else {
-        const { data: clientesExistentes } = await supabase
-          .from('cliente')
-          .select('id, nome')
-          .eq('ambiente', selectedAmbiente);
+        const clientesExistentes = await buscarClientesExistentes(selectedAmbiente);
 
         const clienteMap = new Map(clientesExistentes?.map(c => [c.nome.toLowerCase(), c.id]) || []);
 
@@ -148,11 +147,7 @@ const GerenciarDados = () => {
           throw new Error('Nenhum contribuinte válido encontrado. Verifique se as colunas "nome_razao_social" e "cliente" (ou cliente_id) existem.');
         }
 
-        const { error } = await supabase
-          .from('contribuinte')
-          .insert(contribuintes);
-
-        if (error) throw error;
+        await importarContribuintesMutation.mutateAsync(contribuintes);
 
         setResult({
           success: true,
@@ -189,32 +184,7 @@ const GerenciarDados = () => {
     setResult(null);
 
     try {
-      // Para limpar clientes, precisamos deletar contribuintes primeiro (FK)
-      if (selectedTable === 'cliente') {
-        // Precheck: como o delete é em lote, amostra um id pra rodar can_perform
-        const { data: sample } = await supabase
-          .from('contribuinte')
-          .select('id')
-          .eq('ambiente', selectedAmbiente)
-          .limit(1)
-          .maybeSingle();
-        if (sample?.id) {
-          await assertCanPerform('contribuinte', 'delete', sample.id);
-        }
-        const { error: contribError } = await supabase
-          .from('contribuinte')
-          .delete()
-          .eq('ambiente', selectedAmbiente);
-
-        if (contribError) throw contribError;
-      }
-
-      const { error } = await supabase
-        .from(selectedTable)
-        .delete()
-        .eq('ambiente', selectedAmbiente);
-
-      if (error) throw error;
+      await limparTabelaMutation.mutateAsync({ selectedTable, selectedAmbiente });
 
       setResult({
         success: true,
@@ -281,7 +251,7 @@ const GerenciarDados = () => {
                 <Label className="text-sm font-medium mb-3 block">Tabela</Label>
                 <RadioGroup 
                   value={selectedTable} 
-                  onValueChange={(v) => setSelectedTable(v as TableType)}
+                  onValueChange={(v) => setSelectedTable(v as GerenciarDadosTable)}
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">
@@ -299,7 +269,7 @@ const GerenciarDados = () => {
                 <Label className="text-sm font-medium mb-3 block">Ambiente</Label>
                 <RadioGroup 
                   value={selectedAmbiente} 
-                  onValueChange={(v) => setSelectedAmbiente(v as AmbienteValue)}
+                  onValueChange={(v) => setSelectedAmbiente(v as GerenciarDadosAmbiente)}
                   className="space-y-2"
                 >
                   <div className="flex items-center space-x-2">

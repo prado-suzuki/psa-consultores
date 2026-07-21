@@ -6,11 +6,16 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, Check, Info, Loader2, X } from 'lucide-react';
+import {
+  useAtualizarCorrecaoSpedPorId,
+  useBuscarCorrecaoSpedAtiva,
+  useDesativarCorrecaoSped,
+  useInserirCorrecaoSped,
+} from '@/hooks/useCorrecoesSped';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination from '@/components/equipe/dev/TablePagination';
@@ -170,6 +175,10 @@ export default function TabA170({
   idArquivos,
 }: TabA170Props) {
   const { user } = useAuth();
+  const { mutateAsync: buscarCorrecaoSpedAtiva } = useBuscarCorrecaoSpedAtiva();
+  const { mutateAsync: atualizarCorrecaoSpedPorId } = useAtualizarCorrecaoSpedPorId();
+  const { mutateAsync: desativarCorrecaoSped } = useDesativarCorrecaoSped();
+  const { mutateAsync: inserirCorrecaoSped } = useInserirCorrecaoSped();
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<A170Item[]>([]);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -363,28 +372,21 @@ export default function TabA170({
         changedCount += 1;
         const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
 
-        const { data: correcaoAtiva, error: buscaError } = await supabase
-          .from('efd_correcoes')
-          .select('id')
-          .eq('registro_tipo', 'A170')
-          .eq('registro_original_id', item.uuid)
-          .eq('ativo', true)
-          .maybeSingle();
-
-        if (buscaError) throw buscaError;
+        const correcaoAtiva = await buscarCorrecaoSpedAtiva({
+          registroTipo: 'A170',
+          registroOriginalId: item.uuid,
+        });
 
         if (camposAlterados.length === 0) {
           if (correcaoAtiva?.id) {
-            const { error: desativacaoError } = await supabase
-              .from('efd_correcoes')
-              .update({
+            await atualizarCorrecaoSpedPorId({
+              id: correcaoAtiva.id,
+              payload: {
                 ativo: false,
                 snapshot: nextSnapshot as Json,
                 campos_alterados: null,
-              })
-              .eq('id', correcaoAtiva.id);
-
-            if (desativacaoError) throw desativacaoError;
+              },
+            });
           }
 
           nextRows[index] = { ...item, ...item._originalSnapshot };
@@ -419,21 +421,13 @@ export default function TabA170({
         };
 
         if (correcaoAtiva?.id) {
-          const { error: desativacaoError } = await supabase
-            .from('efd_correcoes')
-            .update({ ativo: false })
-            .eq('registro_tipo', 'A170')
-            .eq('registro_original_id', item.uuid)
-            .eq('ativo', true);
-
-          if (desativacaoError) throw desativacaoError;
+          await desativarCorrecaoSped({
+            registroTipo: 'A170',
+            registroOriginalId: item.uuid,
+          });
         }
 
-        const { error: insertError } = await supabase
-          .from('efd_correcoes')
-          .insert(payload);
-
-        if (insertError) throw insertError;
+        await inserirCorrecaoSped(payload);
 
         nextRows[index] = { ...item, ...nextSnapshot };
         locallyEditedIds.current.add(item.uuid);

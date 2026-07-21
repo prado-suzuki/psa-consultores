@@ -1,7 +1,14 @@
 import { useState, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { currentAmbiente } from "@/config/api";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  useContribuintesCargaPerdcomp,
+  useInserirDcomps,
+  useInserirSituacoesPerEmLote,
+  useUpsertPersEmLote,
+  type DcompInsert,
+  type PerInsert,
+  type PerSituacaoInsert,
+} from "@/hooks/useDomainPerdcomp";
 import { stripToDigits } from "@/lib/perdcompUtils";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,19 +48,10 @@ export function CargaPerdcompCSV() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Buscar contribuintes
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes-for-perdcomp"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("contribuinte")
-        .select("id, nome_razao_social, cpf_cnpj")
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-
-      if (error) throw error;
-      return (data || []) as unknown as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[];
-    },
-  });
+  const { data: contribuintes = [] } = useContribuintesCargaPerdcomp();
+  const upsertPersEmLote = useUpsertPersEmLote();
+  const inserirSituacoesPerEmLote = useInserirSituacoesPerEmLote();
+  const inserirDcomps = useInserirDcomps();
 
   const parseCSV = (text: string): Record<string, string>[] => {
     const lines = text.trim().split("\n");
@@ -164,8 +162,8 @@ export function CargaPerdcompCSV() {
   };
 
   const importPer = async (rows: Record<string, string>[], userId?: string) => {
-    const persToInsert: any[] = [];
-    const situacoesToInsert: any[] = [];
+    const persToInsert: PerInsert[] = [];
+    const situacoesToInsert: PerSituacaoInsert[] = [];
 
     for (const row of rows) {
       // Aceita tanto nr_per (novo) quanto numero_processo_per (legado) no CSV
@@ -216,25 +214,29 @@ export function CargaPerdcompCSV() {
     }
 
     // Inserir PERs com upsert (atualiza se já existir) — coluna renomeada para nr_per
-    const { error: perError } = await (supabase.from("per") as any).upsert(persToInsert, { onConflict: "nr_per" });
-
-    if (perError) throw perError;
+    await upsertPersEmLote.mutateAsync(persToInsert);
 
     // Inserir situações
     let situacoesInseridas = 0;
     if (situacoesToInsert.length > 0) {
-      const { error: sitError } = await supabase.from("per_situacao").insert(situacoesToInsert);
-
-      if (sitError) {
+      try {
+        await inserirSituacoesPerEmLote.mutateAsync(situacoesToInsert);
+        situacoesInseridas = situacoesToInsert.length;
+      } catch (sitError) {
         console.error("Erro ao inserir situações:", sitError);
         // Não lançar erro, apenas avisar
         toast({
           title: "Aviso",
-          description: `PERs importados, mas houve erro ao inserir algumas situações: ${sitError.message}`,
+          description: `PERs importados, mas houve erro ao inserir algumas situações: ${
+            typeof sitError === "object" &&
+            sitError !== null &&
+            "message" in sitError &&
+            typeof sitError.message === "string"
+              ? sitError.message
+              : String(sitError)
+          }`,
           variant: "default",
         });
-      } else {
-        situacoesInseridas = situacoesToInsert.length;
       }
     }
 
@@ -251,7 +253,7 @@ export function CargaPerdcompCSV() {
   };
 
   const importDcomp = async (rows: Record<string, string>[], userId?: string) => {
-    const dcompsToInsert: any[] = [];
+    const dcompsToInsert: DcompInsert[] = [];
 
     for (const row of rows) {
       const nrDocumento = row.nr_documento?.trim();
@@ -289,9 +291,7 @@ export function CargaPerdcompCSV() {
       throw new Error("Nenhum registro válido de DCOMP encontrado no CSV.");
     }
 
-    const { error } = await supabase.from("dcomp").insert(dcompsToInsert);
-
-    if (error) throw error;
+    await inserirDcomps.mutateAsync(dcompsToInsert);
 
     setResult({
       success: true,

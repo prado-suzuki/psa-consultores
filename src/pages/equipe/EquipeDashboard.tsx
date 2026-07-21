@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,7 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
 import { DashboardMetrics } from '@/components/equipe/DashboardMetrics';
-import { useActiveSprints } from '@/hooks/useSprints';
-import { useSprintDeliverables } from '@/hooks/useSprintDeliverables';
-import { useProcessAreas } from '@/hooks/useProcessAreas';
+import { useDomainEquipeDashboard } from '@/hooks/useDomainEquipeDashboard';
 import {
   BarChart,
   Bar,
@@ -26,73 +24,33 @@ import {
   Cell,
 } from 'recharts';
 
-interface DeliverableStats {
-  total: number;
-  pending: number;
-  in_progress: number;
-  completed: number;
-}
-
 import { parseDate } from '@/lib/dateUtils';
 import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
+  const {
+    activeSprints,
+    activeSprint,
+    stats,
+    myDeliverables,
+    areaData,
+    isLoading: loading,
+  } = useDomainEquipeDashboard(user?.id, selectedSprintId);
   const [activeTab, setActiveTab] = useState<string>('sprint');
 
-  // Dados via hooks — nenhuma chamada direta ao supabase nesta tela.
-  const { data: activeSprints = [], isLoading: loadingSprints } = useActiveSprints();
-  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
-
-  // Mantém a seleção válida conforme as sprints ativas carregam/mudam.
-  useEffect(() => {
-    setSelectedSprintId(prev =>
-      prev && activeSprints.some(s => s.id === prev) ? prev : (activeSprints[0]?.id ?? null)
-    );
-  }, [activeSprints]);
-
-  const { data: selectedDeliverables = [] } = useSprintDeliverables({
-    sprintId: selectedSprintId ?? undefined,
-  });
-  const { data: myAllDeliverables = [], isLoading: loadingMine } = useSprintDeliverables({
-    assignedTo: user?.id ?? '__none__',
-    excludeCompleted: true,
-  });
-  const { data: areaData = [] } = useProcessAreas();
-
-  const activeSprint = activeSprints.find(s => s.id === selectedSprintId) ?? null;
-  const loading = loadingMine || loadingSprints;
-
-  const stats: DeliverableStats = useMemo(() => {
-    // Só conta quando há sprint selecionada; sem seleção o hook traz tudo, que ignoramos.
-    const list = selectedSprintId ? selectedDeliverables : [];
-    return {
-      total: list.length,
-      pending: list.filter(d => d.status === 'pending').length,
-      in_progress: list.filter(d => d.status === 'in_progress').length,
-      completed: list.filter(d => d.status === 'completed').length,
-    };
-  }, [selectedDeliverables, selectedSprintId]);
-
-  const myDeliverables = useMemo(
-    () =>
-      [...myAllDeliverables]
-        .sort((a, b) => (a.due_date ?? '9999-12-31').localeCompare(b.due_date ?? '9999-12-31'))
-        .slice(0, 5),
-    [myAllDeliverables],
-  );
-
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | null) => {
     const labels: Record<string, string> = {
       pending: 'A Fazer',
       in_progress: 'Em Progresso',
       completed: 'Concluído'
     };
-    return labels[status] || status;
+    return labels[status ?? ''] || status;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'completed': return 'bg-emerald-100 text-emerald-700 border-0';
       case 'in_progress': return 'bg-amber-100 text-amber-700 border-0';
@@ -126,7 +84,7 @@ const EquipeDashboard = () => {
           {activeSprints.length > 1 && (
             <div className="flex items-center gap-2 mb-4">
               <span className="text-sm text-muted-foreground">Sprint ativa:</span>
-              <Select value={selectedSprintId ?? undefined} onValueChange={setSelectedSprintId}>
+              <Select value={activeSprint?.id ?? undefined} onValueChange={setSelectedSprintId}>
                 <SelectTrigger className="w-64">
                   <SelectValue placeholder="Selecionar sprint" />
                 </SelectTrigger>
