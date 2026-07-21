@@ -107,6 +107,15 @@ export function useDeleteSprintDeliverable(): UseMutationResult<void, Error, str
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id) => {
+      // Se este entregável veio de um item do backlog, o item guarda uma referência
+      // (moved_to_deliverable_id) que TRAVA o DELETE (FK sem ON DELETE). Devolvemos o
+      // item ao backlog (limpa a referência) antes de excluir.
+      const { error: backlogRefError } = await supabase
+        .from('sprint_backlog_items' as never)
+        .update({ moved_to_deliverable_id: null, status: 'pending', sprint_id: null } as never)
+        .eq('moved_to_deliverable_id', id);
+      if (backlogRefError) throw new Error(backlogRefError.message);
+
       // Cascata: limpa anexos (tabela + storage) antes de excluir o entregável.
       const { data: atts } = await supabase
         .from('deliverable_attachments' as never)

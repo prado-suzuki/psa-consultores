@@ -40,7 +40,6 @@ const AnaliseInteligente = () => {
   const [sprintFilter, setSprintFilter] = useState(ALL);
   const [projectFilter, setProjectFilter] = useState(ALL);
   const [processFilter, setProcessFilter] = useState(ALL);
-  const [categoryFilter, setCategoryFilter] = useState(ALL);
 
   useEffect(() => {
     loadAnaliseInteligenteLogo(setLogoBase64).catch(() => {
@@ -65,9 +64,8 @@ const AnaliseInteligente = () => {
       sprintFilter,
       projectFilter,
       processFilter,
-      categoryFilter,
     }),
-    [startDate, endDate, sprintFilter, projectFilter, processFilter, categoryFilter],
+    [startDate, endDate, sprintFilter, projectFilter, processFilter],
   );
   const filtered = useMemo(() => filterAnaliseInteligenteData(data, filters), [data, filters]);
   const kpis = useMemo(
@@ -81,11 +79,6 @@ const AnaliseInteligente = () => {
   const statusData = useMemo(() => buildStatusData(kpis), [kpis]);
   const horasPorSprint = useMemo(() => buildHorasPorSprint(filtered), [filtered]);
   const dailysPorSemana = useMemo(() => buildDailysPorSemana(filtered.dailysF), [filtered.dailysF]);
-  const categoryOptions = Array.from(
-    new Set(
-      processes.map((process) => process.area).filter((area): area is string => Boolean(area)),
-    ),
-  );
 
   const scoreColor =
     kpis.score >= 75 ? 'text-emerald-600' : kpis.score >= 50 ? 'text-amber-500' : 'text-red-500';
@@ -121,7 +114,6 @@ const AnaliseInteligente = () => {
     setSprintFilter(ALL);
     setProjectFilter(ALL);
     setProcessFilter(ALL);
-    setCategoryFilter(ALL);
   };
 
   const exportarPDF = () => {
@@ -179,17 +171,14 @@ const AnaliseInteligente = () => {
           sprintFilter={sprintFilter}
           projectFilter={projectFilter}
           processFilter={processFilter}
-          categoryFilter={categoryFilter}
           sprints={sprints}
           projects={projects}
           processes={processes}
-          categoryOptions={categoryOptions}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onSprintFilterChange={setSprintFilter}
           onProjectFilterChange={setProjectFilter}
           onProcessFilterChange={setProcessFilter}
-          onCategoryFilterChange={setCategoryFilter}
           onClearFilters={handleClearFilters}
         />
 

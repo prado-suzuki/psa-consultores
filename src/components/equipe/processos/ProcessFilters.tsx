@@ -21,13 +21,10 @@ const PROCESS_STAGES = [
 
 interface ProcessFiltersProps {
   searchTerm: string;
-  areaFilter: string;
   stageFilter: string;
   clusterFilter: string;
-  areas: string[];
   clusters: Cluster[];
   onSearchTermChange: (value: string) => void;
-  onAreaFilterChange: (value: string) => void;
   onStageFilterChange: (value: string) => void;
   onClusterFilterChange: (value: string) => void;
 }
@@ -62,20 +59,6 @@ export function ProcessFilters(props: ProcessFiltersProps) {
                 {cluster.nome}
               </SelectItem>
             ))}
-        </SelectContent>
-      </Select>
-      <Select value={props.areaFilter} onValueChange={props.onAreaFilterChange}>
-        <SelectTrigger className="w-[180px]">
-          <Filter className="h-4 w-4 mr-2" />
-          <SelectValue placeholder="Área" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as Áreas</SelectItem>
-          {props.areas.map((area) => (
-            <SelectItem key={area} value={area || ''}>
-              {area}
-            </SelectItem>
-          ))}
         </SelectContent>
       </Select>
       <Select value={props.stageFilter} onValueChange={props.onStageFilterChange}>

@@ -27,7 +27,6 @@ import {
 import {
   useEquipeProjetoBacklogQuery,
   useEquipeProjetoProcessesQuery,
-  useEquipeProjetosCatalogClientsQuery,
   useEquipeProjetosExternalClientsQuery,
   useEquipeProjetosQuery,
   useEquipeProjetosTeamMembersQuery,
@@ -45,7 +44,6 @@ const EquipeProjetos = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('table');
-  const [areaFilter, setAreaFilter] = usePersistedState<string>('rotina.projetos.area', 'all');
   const [statusFilter, setStatusFilter] = usePersistedState<string>(
     'rotina.projetos.status',
     'all',
@@ -58,7 +56,6 @@ const EquipeProjetos = () => {
   const { data: clusters = [] } = useClusters();
   const projectsQuery = useEquipeProjetosQuery(user?.id);
   const teamMembersQuery = useEquipeProjetosTeamMembersQuery(user?.id);
-  const catalogClientsQuery = useEquipeProjetosCatalogClientsQuery(user?.id);
   const externalClientsQuery = useEquipeProjetosExternalClientsQuery(user?.id);
   const processesQuery = useEquipeProjetoProcessesQuery(user?.id, selectedProject?.id);
   const backlogQuery = useEquipeProjetoBacklogQuery(user?.id, selectedProject?.id);
@@ -77,7 +74,6 @@ const EquipeProjetos = () => {
   } = useEquipeProjetoProcessMutations(user?.id);
 
   const { data: projects = [], isLoading: loading, refetch: refetchProjects } = projectsQuery;
-  const { data: catalogClients = [] } = catalogClientsQuery;
   const { data: externalClients = [] } = externalClientsQuery;
   const { data: teamMembers = [] } = teamMembersQuery;
   const { data: backlogTasks = [], isFetching: loadingBacklog } = backlogQuery;
@@ -89,22 +85,11 @@ const EquipeProjetos = () => {
 
   const { data: estrutura } = useEstruturaEquipesAll();
   const equipesList = estrutura?.equipes ?? [];
-  const areasList = estrutura?.areas ?? [];
   const groupedEquipes = estrutura?.grouped ?? [];
-  const equipeById = (id: string | null | undefined) =>
-    id ? (equipesList.find((equipe) => equipe.id === id) ?? null) : null;
 
-  const areas = catalogClients.map((client) => client.name).sort();
   const filteredProjects = projects.filter((project) => {
-    const equipe = equipeById(project.equipe_id);
-    const matchesArea =
-      areaFilter === 'all' ||
-      equipe?.area_id === areaFilter ||
-      (!equipe &&
-        (project.area ?? '').toLowerCase() ===
-          (areasList.find((area) => area.id === areaFilter)?.name ?? '').toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
-    return matchesArea && matchesStatus && matchCluster(clusterFilter, project.cluster_id);
+    return matchesStatus && matchCluster(clusterFilter, project.cluster_id);
   });
 
   const handleImportProjects = async (importData: SpreadsheetRow[], onImported: () => void) => {
@@ -424,12 +409,9 @@ const EquipeProjetos = () => {
       }
     >
       <ProjectFilters
-        areaFilter={areaFilter}
         statusFilter={statusFilter}
         clusterFilter={clusterFilter}
-        areas={areas}
         clusters={clusters}
-        onAreaFilterChange={setAreaFilter}
         onStatusFilterChange={setStatusFilter}
         onClusterFilterChange={setClusterFilter}
       />
@@ -437,7 +419,7 @@ const EquipeProjetos = () => {
       <ProjectList
         projects={projects}
         filteredProjects={filteredProjects}
-        equipes={equipesList}
+        clusters={clusters}
         loading={loading}
         viewMode={viewMode}
         onSelectProject={handleSelectProject}

@@ -73,7 +73,6 @@ export interface AnaliseInteligenteFilters {
   sprintFilter: string;
   projectFilter: string;
   processFilter: string;
-  categoryFilter: string;
 }
 
 export interface AnaliseInteligenteData {
@@ -129,7 +128,7 @@ export function buildAnaliseInteligenteRequestPayload(
     sprint_id: filters.sprintFilter !== ANALISE_INTELIGENTE_ALL ? filters.sprintFilter : null,
     project_id: filters.projectFilter !== ANALISE_INTELIGENTE_ALL ? filters.projectFilter : null,
     process_id: filters.processFilter !== ANALISE_INTELIGENTE_ALL ? filters.processFilter : null,
-    category: filters.categoryFilter !== ANALISE_INTELIGENTE_ALL ? filters.categoryFilter : null,
+    category: null,
   };
 }
 

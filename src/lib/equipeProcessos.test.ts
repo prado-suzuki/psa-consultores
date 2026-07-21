@@ -157,7 +157,7 @@ describe('regras puras de processos', () => {
     ).toEqual([]);
   });
 
-  it('filtra conjuntamente busca, cliente/área, fase e cluster', () => {
+  it('filtra conjuntamente busca, fase e cluster', () => {
     const process = (overrides: Partial<EquipeProcesso>): EquipeProcesso => ({
       id: 'p',
       name: 'Fechamento Fiscal',
@@ -192,7 +192,6 @@ describe('regras puras de processos', () => {
     expect(
       filterEquipeProcesses(rows, {
         searchTerm: 'fechamento',
-        area: 'all',
         stage: 'analysis',
         cluster: 'cluster-1',
       }).map(({ id }) => id),
@@ -200,15 +199,13 @@ describe('regras puras de processos', () => {
     expect(
       filterEquipeProcesses(rows, {
         searchTerm: '',
-        area: 'Cliente A',
         stage: 'all',
-        cluster: '',
+        cluster: 'cluster-1',
       }).map(({ id }) => id),
-    ).toEqual(['client']);
+    ).toEqual(['name', 'description', 'client']);
     expect(
       filterEquipeProcesses(rows, {
         searchTerm: '',
-        area: 'Fiscal',
         stage: 'analysis',
         cluster: SEM_CLUSTER,
       }).map(({ id }) => id),

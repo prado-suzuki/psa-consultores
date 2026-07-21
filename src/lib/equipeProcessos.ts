@@ -227,7 +227,6 @@ export function getAvailableProcessProjects(
 
 export interface EquipeProcessFilters {
   searchTerm: string;
-  area: string;
   stage: string;
   cluster: string;
 }
@@ -240,12 +239,9 @@ export function filterEquipeProcesses(
     const matchesSearch =
       process.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
       (process.description?.toLowerCase().includes(filters.searchTerm.toLowerCase()) ?? false);
-    const clientName = process.catalog_client?.name || process.area;
-    const matchesArea = filters.area === 'all' || clientName === filters.area;
     const matchesStage = filters.stage === 'all' || process.stage === filters.stage;
     return (
       matchesSearch &&
-      matchesArea &&
       matchesStage &&
       matchCluster(filters.cluster, process.cluster_id)
     );

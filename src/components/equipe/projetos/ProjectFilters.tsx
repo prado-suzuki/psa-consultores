@@ -11,23 +11,17 @@ import type { ProjectCluster } from '@/components/equipe/projetos/types';
 import { SEM_CLUSTER } from '@/lib/clusterFilter';
 
 interface ProjectFiltersProps {
-  areaFilter: string;
   statusFilter: string;
   clusterFilter: string;
-  areas: string[];
   clusters: ProjectCluster[];
-  onAreaFilterChange: (value: string) => void;
   onStatusFilterChange: (value: string) => void;
   onClusterFilterChange: (value: string) => void;
 }
 
 export const ProjectFilters = ({
-  areaFilter,
   statusFilter,
   clusterFilter,
-  areas,
   clusters,
-  onAreaFilterChange,
   onStatusFilterChange,
   onClusterFilterChange,
 }: ProjectFiltersProps) => (
@@ -55,19 +49,6 @@ export const ProjectFilters = ({
           ))}
       </SelectContent>
     </Select>
-    <Select value={areaFilter} onValueChange={onAreaFilterChange}>
-      <SelectTrigger className="w-48 bg-white border-gray-300">
-        <SelectValue placeholder="Todas as áreas" />
-      </SelectTrigger>
-      <SelectContent className="bg-white border-gray-200">
-        <SelectItem value="all">Todas as áreas</SelectItem>
-        {areas.map((area) => (
-          <SelectItem key={area} value={area}>
-            {area}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
     <Select value={statusFilter} onValueChange={onStatusFilterChange}>
       <SelectTrigger className="w-40 bg-white border-gray-300">
         <SelectValue placeholder="Todos status" />
@@ -80,12 +61,11 @@ export const ProjectFilters = ({
         <SelectItem value="archived">Arquivado</SelectItem>
       </SelectContent>
     </Select>
-    {(areaFilter !== 'all' || statusFilter !== 'all' || clusterFilter !== '') && (
+    {(statusFilter !== 'all' || clusterFilter !== '') && (
       <Button
         variant="ghost"
         size="sm"
         onClick={() => {
-          onAreaFilterChange('all');
           onStatusFilterChange('all');
           onClusterFilterChange('');
         }}

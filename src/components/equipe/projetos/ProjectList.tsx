@@ -12,16 +12,15 @@ import {
 import {
   extractPhase,
   extractPriority,
-  getAreaBadge,
   getPriorityBadge,
   getStatusBadge,
 } from '@/components/equipe/projetos/projectPresentation';
-import type { Project, ProjectEquipe } from '@/components/equipe/projetos/types';
+import type { Project, ProjectCluster } from '@/components/equipe/projetos/types';
 
 interface ProjectListProps {
   projects: Project[];
   filteredProjects: Project[];
-  equipes: ProjectEquipe[];
+  clusters: ProjectCluster[];
   loading: boolean;
   viewMode: 'cards' | 'table';
   onSelectProject: (project: Project, editMode: boolean) => void;
@@ -31,16 +30,14 @@ interface ProjectListProps {
 export const ProjectList = ({
   projects,
   filteredProjects,
-  equipes,
+  clusters,
   loading,
   viewMode,
   onSelectProject,
   onCreateProject,
 }: ProjectListProps) => {
-  const getArea = (project: Project) =>
-    equipes.find((equipe) => equipe.id === project.equipe_id)?.area_name ||
-    project.area ||
-    'Sem área';
+  const getClusterName = (project: Project) =>
+    clusters.find((cluster) => cluster.id === project.cluster_id)?.nome || '—';
 
   if (loading) {
     return (
@@ -82,11 +79,10 @@ export const ProjectList = ({
             <TableHeader>
               <TableRow className="border-gray-200">
                 <TableHead className="text-gray-600">Nome</TableHead>
-                <TableHead className="text-gray-600">Área</TableHead>
                 <TableHead className="text-gray-600">Status</TableHead>
                 <TableHead className="text-gray-600">Prioridade</TableHead>
                 <TableHead className="text-gray-600">Fase</TableHead>
-                <TableHead className="text-gray-600">Cliente</TableHead>
+                <TableHead className="text-gray-600">Cluster</TableHead>
                 <TableHead className="text-gray-600 text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -98,13 +94,12 @@ export const ProjectList = ({
                   onClick={() => onSelectProject(project, false)}
                 >
                   <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
-                  <TableCell>{getAreaBadge(getArea(project))}</TableCell>
                   <TableCell>{getStatusBadge(project.status)}</TableCell>
                   <TableCell>{getPriorityBadge(extractPriority(project.description))}</TableCell>
                   <TableCell className="text-gray-600 text-sm">
                     {extractPhase(project.description)}
                   </TableCell>
-                  <TableCell className="text-gray-600">{project.client_name || '-'}</TableCell>
+                  <TableCell className="text-gray-600">{getClusterName(project)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -157,7 +152,6 @@ export const ProjectList = ({
               </CardHeader>
               <CardContent>
                 <div className="flex flex-wrap gap-2 mb-3">
-                  {getAreaBadge(getArea(project))}
                   {getPriorityBadge(extractPriority(project.description))}
                 </div>
 

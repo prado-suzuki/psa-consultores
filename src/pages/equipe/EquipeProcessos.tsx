@@ -49,7 +49,6 @@ const EquipeProcessos = () => {
   const allProjects = projectsQuery.data || [];
   const loading = processesQuery.isPending;
   const [searchTerm, setSearchTerm] = usePersistedState<string>('rotina.processos.busca', '');
-  const [areaFilter, setAreaFilter] = usePersistedState<string>('rotina.processos.area', 'all');
   const [stageFilter, setStageFilter] = usePersistedState<string>('rotina.processos.stage', 'all');
   const [clusterFilter, setClusterFilter] = usePersistedState<string>('rotina.cluster', '');
   const { data: clusters = [] } = useClusters();
@@ -309,10 +308,8 @@ const EquipeProcessos = () => {
     }
   };
 
-  const areas = catalogClients.map((client) => client.name).sort();
   const filteredProcesses = filterEquipeProcesses(processes, {
     searchTerm,
-    area: areaFilter,
     stage: stageFilter,
     cluster: clusterFilter,
   });
@@ -340,13 +337,10 @@ const EquipeProcessos = () => {
     >
       <ProcessFilters
         searchTerm={searchTerm}
-        areaFilter={areaFilter}
         stageFilter={stageFilter}
         clusterFilter={clusterFilter}
-        areas={areas}
         clusters={clusters}
         onSearchTermChange={setSearchTerm}
-        onAreaFilterChange={setAreaFilter}
         onStageFilterChange={setStageFilter}
         onClusterFilterChange={setClusterFilter}
       />

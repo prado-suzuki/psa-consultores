@@ -71,6 +71,11 @@ Hoje a subtarefa só aparece aninhada na coluna da **mãe** (não na coluna do p
 
 ---
 
+Reportado no uso (2026-07-21): mover item do backlog → sprint funciona, mas **excluir o entregável** dá "operação não permitida para o seu perfil" mesmo sendo admin.
+- **Causa real (não é permissão):** a RLS de delete exige `lider+` e `has_role_or_higher` **inclui admin** (`WHEN 'lider' THEN role IN ('lider','admin')`) — ou seja, admin PODE. O bloqueio verdadeiro é a FK `sprint_backlog_items.moved_to_deliverable_id → sprint_deliverables(id)` **sem `ON DELETE`** (`migration 20251216164847:12`): o item do backlog aponta pro entregável e o banco recusa o DELETE. O precheck `can_perform` traduz esse erro de FK como "não permitido para o seu perfil" (mensagem enganosa).
+- **Fix aplicado (código, sem banco):** em `EquipeSprintDetalhes.deleteDeliverable` e no hook `useDeleteSprintDeliverable`, antes de excluir, faz `UPDATE sprint_backlog_items SET moved_to_deliverable_id=NULL, status='pending', sprint_id=NULL WHERE moved_to_deliverable_id = <id>` → devolve o item ao backlog e libera o DELETE.
+- **Opcional (banco, delegável):** trocar a FK para `ON DELETE SET NULL` (ou `SET DEFAULT`) para não depender do código; e considerar melhorar a mensagem do `can_perform` para distinguir erro de FK de erro de permissão.
+
 ## Ordem sugerida
 T1 → T4 → (T2/T3) → T5 → T6. T1 é o que mais impacta o sintoma imediato ("tarefa não aparece"). T4 é o que sustenta todo o resto.
 

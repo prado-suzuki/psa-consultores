@@ -23,17 +23,14 @@ interface AnaliseInteligenteFiltersProps {
   sprintFilter: string;
   projectFilter: string;
   processFilter: string;
-  categoryFilter: string;
   sprints: AnaliseInteligenteSprint[];
   projects: AnaliseInteligenteProject[];
   processes: AnaliseInteligenteProcess[];
-  categoryOptions: string[];
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onSprintFilterChange: (value: string) => void;
   onProjectFilterChange: (value: string) => void;
   onProcessFilterChange: (value: string) => void;
-  onCategoryFilterChange: (value: string) => void;
   onClearFilters: () => void;
 }
 
@@ -44,17 +41,14 @@ export function AnaliseInteligenteFilters({
   sprintFilter,
   projectFilter,
   processFilter,
-  categoryFilter,
   sprints,
   projects,
   processes,
-  categoryOptions,
   onStartDateChange,
   onEndDateChange,
   onSprintFilterChange,
   onProjectFilterChange,
   onProcessFilterChange,
-  onCategoryFilterChange,
   onClearFilters,
 }: AnaliseInteligenteFiltersProps) {
   return (
@@ -66,7 +60,7 @@ export function AnaliseInteligenteFilters({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div className="space-y-1">
             <Label className="text-xs text-slate-500">Data início</Label>
             <Input
@@ -128,22 +122,6 @@ export function AnaliseInteligenteFilters({
                 {processes.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
                     {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Categoria (área)</Label>
-            <Select value={categoryFilter} onValueChange={onCategoryFilterChange}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={allValue}>Todas</SelectItem>
-                {categoryOptions.map((area) => (
-                  <SelectItem key={area} value={area}>
-                    {area}
                   </SelectItem>
                 ))}
               </SelectContent>
