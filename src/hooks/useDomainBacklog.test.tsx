@@ -122,7 +122,7 @@ describe('useDomainBacklog — query', () => {
     renderHook(() => useDomainBacklog());
     await (queryRegistrations()[0].queryFn as () => Promise<unknown>)();
 
-    expect(callsFor('sprints', 'in')[0].args).toEqual(['status', ['active', 'planning']]);
+    expect(callsFor('sprints', 'in')[0].args).toEqual(['status', ['active', 'planned']]);
     expect(callsFor('profiles_safe', 'select')[0].args).toEqual(['id, first_name, last_name']);
     expect(callsFor('projects', 'select')[0].args).toEqual(['id, name']);
     expect(callsFor('processes', 'select')[0].args).toEqual(['id, name, project_id']);

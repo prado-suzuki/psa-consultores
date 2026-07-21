@@ -121,11 +121,13 @@ export function useDomainBacklog() {
 
       if (backlogError) throw backlogError;
 
-      // Fetch active sprints
+      // Fetch sprints elegíveis para receber itens (ativas ou planejadas).
+      // OBS: o status correto é 'planned' (o resto do sistema usa esse); antes
+      // estava 'planning' (typo) e as sprints planejadas nunca apareciam aqui.
       const { data: sprintsData } = await supabase
         .from('sprints')
         .select('*')
-        .in('status', ['active', 'planning'])
+        .in('status', ['active', 'planned'])
         .order('start_date', { ascending: true });
 
       // Fetch profiles

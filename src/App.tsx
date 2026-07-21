@@ -49,8 +49,6 @@ import EquipeSprints from "./pages/equipe/EquipeSprints";
 import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
 import EquipeRotinas from "./pages/equipe/EquipeRotinas";
-import EquipeTarefas from "./pages/equipe/EquipeTarefas";
-import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
 import EquipeMapeamento from "./pages/equipe/EquipeMapeamento";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
@@ -177,8 +175,12 @@ const App = () => (
               <Route path="/equipe/sprints/:id" element={<PageAccessGate pagePath="/equipe/sprints"><EquipeSprintDetalhes /></PageAccessGate>} />
               <Route path="/equipe/daily" element={<PageAccessGate pagePath="/equipe/daily"><EquipeDaily /></PageAccessGate>} />
               <Route path="/equipe/rotinas" element={<PageAccessGate pagePath="/equipe/rotinas"><EquipeRotinas /></PageAccessGate>} />
-              <Route path="/equipe/tarefas" element={<PageAccessGate pagePath="/equipe/tarefas"><EquipeTarefas /></PageAccessGate>} />
-              <Route path="/equipe/tarefas/nova" element={<PageAccessGate pagePath="/equipe/tarefas/nova"><EquipeNovaTarefa /></PageAccessGate>} />
+              {/* Rotas aposentadas (T1 — unificação de tarefa): a tela "Tarefas"/"Nova Tarefa"
+                  gravava na tabela órfã `tasks`, que o Kanban/Sprints não leem. Redirecionadas
+                  para o Kanban (fonte única `sprint_deliverables`). Remover as telas/tabela é a
+                  migração delegável. */}
+              <Route path="/equipe/tarefas" element={<Navigate to="/equipe/kanban" replace />} />
+              <Route path="/equipe/tarefas/nova" element={<Navigate to="/equipe/kanban" replace />} />
 
               <Route path="/equipe/mapeamento" element={<PageAccessGate pagePath="/equipe/mapeamento"><EquipeMapeamento /></PageAccessGate>} />
               <Route path="/equipe/processos" element={<PageAccessGate pagePath="/equipe/processos"><EquipeProcessos /></PageAccessGate>} />

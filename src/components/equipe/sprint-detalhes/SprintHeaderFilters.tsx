@@ -73,8 +73,8 @@ export function SprintHeaderFilters({
               ? 'Ativa'
               : c.sprint.status === 'completed'
                 ? 'Concluída'
-                : c.sprint.status === 'planning'
-                  ? 'Planejamento'
+                : c.sprint.status === 'planned'
+                  ? 'Planejada'
                   : c.sprint.status}
           </Badge>
         </div>

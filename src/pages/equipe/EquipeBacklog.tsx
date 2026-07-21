@@ -186,13 +186,15 @@ export default function EquipeBacklog() {
 
   const openMoveModal = (item: BacklogItem) => {
     setMovingItem(item);
-    const firstSprint = sprints[0];
+    // NÃO pré-seleciona sprint: força a pessoa a escolher explicitamente para qual
+    // sprint o item vai (evita "mover sem querer" para a primeira da lista). As datas
+    // são preenchidas automaticamente ao escolher a sprint (onValueChange abaixo).
     setMoveData({
-      sprint_id: firstSprint?.id || '',
+      sprint_id: '',
       assigned_to: '',
-      start_date: firstSprint?.start_date || '',
-      due_date: firstSprint?.end_date || '',
-      project_id: '',
+      start_date: '',
+      due_date: '',
+      project_id: item.project_id || '',
       process_id: '',
       task_code: '',
     });
@@ -365,7 +367,6 @@ export default function EquipeBacklog() {
                         variant="outline" 
                         onClick={() => openMoveModal(item)}
                         className="text-primary border-primary/30 hover:bg-primary/10"
-                        disabled={sprints.length === 0}
                       >
                         <ArrowRight className="h-3 w-3 mr-1" /> Mover para Sprint
                       </Button>
@@ -516,26 +517,32 @@ export default function EquipeBacklog() {
 
             <div className="space-y-2">
               <Label>Sprint de Destino *</Label>
-              <Select value={moveData.sprint_id} onValueChange={(v) => {
-                const sprint = sprints.find(s => s.id === v);
-                setMoveData(prev => ({
-                  ...prev,
-                  sprint_id: v,
-                  start_date: sprint?.start_date || '',
-                  due_date: sprint?.end_date || '',
-                }));
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a sprint" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sprints.map(sprint => (
-                    <SelectItem key={sprint.id} value={sprint.id}>
-                      {sprint.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {sprints.length === 0 ? (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  Nenhuma sprint ativa ou planejada. Crie ou ative uma sprint em <strong>Sprints</strong> antes de mover itens do backlog.
+                </p>
+              ) : (
+                <Select value={moveData.sprint_id} onValueChange={(v) => {
+                  const sprint = sprints.find(s => s.id === v);
+                  setMoveData(prev => ({
+                    ...prev,
+                    sprint_id: v,
+                    start_date: sprint?.start_date || '',
+                    due_date: sprint?.end_date || '',
+                  }));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a sprint" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sprints.map(sprint => (
+                      <SelectItem key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">

@@ -69,8 +69,8 @@ const EquipeDashboard = () => {
   ];
 
   return (
-    <EquipeLayout 
-      title="Dashboard" 
+    <EquipeLayout
+      title="Dashboard"
       subtitle="Visão geral do seu trabalho"
     >
       <Tabs defaultValue="sprint" value={activeTab} onValueChange={setActiveTab}>
@@ -114,7 +114,7 @@ const EquipeDashboard = () => {
                 )}
                 <div className="flex items-center gap-4">
                   <div className="flex-1 bg-muted rounded-full h-2.5">
-                    <div 
+                    <div
                       className="bg-primary h-2.5 rounded-full transition-all"
                       style={{ width: `${progressPercent}%` }}
                     />
@@ -127,8 +127,8 @@ const EquipeDashboard = () => {
             <Card className="border-border shadow-sm mb-6">
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">Nenhuma sprint ativa</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/equipe/sprints')}
                 >
                   Criar Sprint
@@ -178,7 +178,7 @@ const EquipeDashboard = () => {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis type="number" tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
                       />
@@ -219,7 +219,7 @@ const EquipeDashboard = () => {
                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} processos`, 'Quantidade']}
                       />
@@ -231,7 +231,7 @@ const EquipeDashboard = () => {
           </div>
 
           <div className="mb-8">
-            <HorasAcumuladas 
+            <HorasAcumuladas
               sprintId={activeSprint?.id}
               showRoutines={true}
               title="Horas Alocadas por Pessoa"
@@ -253,14 +253,16 @@ const EquipeDashboard = () => {
               ) : myDeliverables.length > 0 ? (
                 <div className="space-y-2">
                   {myDeliverables.map((deliverable) => (
-                    <div 
+                    <div
                       key={deliverable.id}
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/sprints')}
                     >
                       <div className="flex items-center gap-3">
                         <Badge className={getStatusColor(deliverable.status)}>
-                          {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          {deliverable.due_date
+                            ? parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                            : '—'}
                         </Badge>
                         <span className="text-foreground">{deliverable.title}</span>
                       </div>
@@ -278,9 +280,9 @@ const EquipeDashboard = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-8">Nenhum entregável atribuído a você</p>
               )}
-              
-              <Button 
-                variant="ghost" 
+
+              <Button
+                variant="ghost"
                 className="w-full mt-4 text-primary hover:text-primary/80"
                 onClick={() => navigate('/equipe/sprints')}
               >
