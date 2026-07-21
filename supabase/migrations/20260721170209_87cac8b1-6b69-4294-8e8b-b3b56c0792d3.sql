@@ -1,0 +1,1 @@
+ALTER TABLE public.sprint_deliverables ADD COLUMN actual_hours numeric;

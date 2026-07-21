@@ -6754,6 +6754,7 @@ export type Database = {
       }
       sprint_deliverables: {
         Row: {
+          actual_hours: number | null
           assigned_to: string | null
           completed_at: string | null
           created_at: string | null
@@ -6772,6 +6773,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -6790,6 +6792,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string | null
