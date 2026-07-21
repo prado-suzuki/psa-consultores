@@ -110,13 +110,36 @@ function indexRepo() {
   };
   walk(SRC);
 
+  // Docs do repo (planos/tarefas/análises). Sinal SEPARADO — "documentado/planejado",
+  // não conta como código construído. Cobre o caso de tarefa salva em docs/ sem código ainda.
+  // Excluídos: docs de REFERÊNCIA (não são plano/tarefa) que casariam com tudo.
+  const SKIP_DOCS = new Set(["docs/rls/mapa-do-banco.md", "docs/AI_CONTEXT.md"]);
+  const docsContents = [];
+  const walkDocs = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel = path.relative(REPO_ROOT, full).replace(/\\/g, "/");
+      if (e.isDirectory()) walkDocs(full);
+      else if (e.isFile() && e.name.toLowerCase().endsWith(".md") && !SKIP_DOCS.has(rel)) {
+        docsContents.push({ rel, text: readSafe(full) });
+      }
+    }
+  };
+  walkDocs(path.join(REPO_ROOT, "docs"));
+
   // Texto de roteamento (rotas registradas).
   const routeText =
     readSafe(path.join(REPO_ROOT, "src", "App.tsx")) +
     "\n" +
     readSafe(path.join(REPO_ROOT, "src", "config", "protectedPages.ts"));
 
-  return { fileList, contents, routeText };
+  return { fileList, contents, docsContents, routeText };
 }
 
 /** Converte um glob simples (`*`, `**`) em RegExp sobre caminhos com "/". */
@@ -161,7 +184,19 @@ function detectMarco(marco, idx) {
   else if (keywordsFound.length) detected = "parcial";
   else detected = "ausente";
 
-  return { detected, evidence, filesFound, routesFound, keywordsFound };
+  // Sinal SEPARADO: docs/planos/tarefas que mencionam este marco (NÃO é código).
+  // Casa por keyword do manifesto (preciso) OU por termos distintivos declarados
+  // em `detect.docTerms` (opcional, p/ pegar plano descrito em prosa).
+  const docTerms = [...new Set([...(d.keywords || []), ...(d.docTerms || [])])];
+  const docsFound = [];
+  for (const c of idx.docsContents || []) {
+    if (docsFound.length >= 5) break;
+    if (docTerms.length && docTerms.some((t) => c.text.includes(t)) && !docsFound.includes(c.rel)) {
+      docsFound.push(c.rel);
+    }
+  }
+
+  return { detected, evidence, filesFound, routesFound, keywordsFound, docsFound };
 }
 
 const DETECTED_META = {
@@ -353,8 +388,8 @@ function buildReport() {
 
   // Avalia todos os marcos.
   const evaluated = MARCOS.map((m) => {
-    const { detected, evidence, filesFound } = detectMarco(m, idx);
-    return { ...m, detected, evidence, filesFound, diverge: divergence(m, detected) };
+    const { detected, evidence, filesFound, docsFound } = detectMarco(m, idx);
+    return { ...m, detected, evidence, filesFound, docsFound, diverge: divergence(m, detected) };
   });
 
   const totals = {
@@ -424,7 +459,8 @@ function buildReport() {
       for (const m of rows) {
         const sr = STATUS_META[m.statusRoadmap] || { emoji: "?" };
         const dm = DETECTED_META[m.detected];
-        const ev = m.evidence.length ? m.evidence.slice(0, 3).join("; ") : "—";
+        let ev = m.evidence.length ? m.evidence.slice(0, 3).join("; ") : "—";
+        if (m.docsFound && m.docsFound.length) ev += ` · 📄 ${m.docsFound.slice(0, 2).join(", ")}`;
         L.push(
           `| ${m.sprint || "—"} | ${m.marco} | ${m.dono || "—"} | ${sr.emoji} | ${dm.emoji} | ${ev} |`
         );
@@ -470,10 +506,12 @@ function buildReport() {
       !!m.detectavel && codigo === "sem_evidencia" && deadline != null && curNum != null && deadline < curNum;
     const hasCode = codigo === "no_ar" || codigo === "ajuste";
     const divergencia = (roadmap === "no_ar" && codigo === "sem_evidencia") || (roadmap === "novo" && hasCode);
+    const docs = m.docsFound || [];
     let acao = null;
     if (atraso) acao = `atraso: sprint-alvo ${m.sprint} passou sem evidência no código`;
     else if (divergencia && roadmap === "novo") acao = "roadmap diz 'novo', mas há código — atualizar p/ parcial ou ajuste";
     else if (divergencia && roadmap === "no_ar") acao = "roadmap diz 'no ar', mas sem evidência no código — conferir";
+    else if (codigo === "sem_evidencia" && docs.length) acao = "documentado em docs/ (plano/tarefa), mas ainda sem código";
     return {
       id: m.id,
       projeto: String(m.id).split("-")[0],
@@ -485,6 +523,7 @@ function buildReport() {
       codigo,
       detectavel: !!m.detectavel,
       evidencia: m.evidence.map((e) => e.replace(/`/g, "")).slice(0, 5),
+      documentos_relacionados: docs,
       ultimo_commit_evidencia: maxDate(m.filesFound, fileDateMap),
       pendencias_abertas: pend,
       atraso,
@@ -506,6 +545,7 @@ function buildReport() {
       : 0,
     atrasos: marcosJson.filter((x) => x.atraso).length,
     divergencias: marcosJson.filter((x) => x.divergencia).length,
+    documentados: marcosJson.filter((x) => x.documentos_relacionados.length).length,
     extras: extras.length,
   };
 

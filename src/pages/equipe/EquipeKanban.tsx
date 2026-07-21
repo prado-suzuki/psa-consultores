@@ -280,6 +280,18 @@ const EquipeKanban = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterResponsible, filterStartDate, filterEndDate]);
 
+  // Entregáveis que batem no filtro mas NÃO aparecem no quadro: subtarefas cuja
+  // tarefa-mãe está fora da visão (outro filtro, outra sprint) ou aninhamento de
+  // mais de um nível. Sem esse aviso, elas simplesmente "somem" do Kanban.
+  const hiddenCount = useMemo(() => {
+    const renderedIds = new Set<string>();
+    hierarchicalDeliverables.forEach(parent => {
+      renderedIds.add(parent.id);
+      parent.subtasks.forEach(s => renderedIds.add(s.id));
+    });
+    return filteredDeliverables.filter(d => !renderedIds.has(d.id)).length;
+  }, [hierarchicalDeliverables, filteredDeliverables]);
+
   // Função para obter deliverables ordenados por coluna (apenas tarefas principais)
   const getColumnDeliverables = (columnId: string) => {
     let items = hierarchicalDeliverables.filter(d => d.status === columnId);
@@ -753,8 +765,29 @@ const EquipeKanban = () => {
 
         <div className="mt-3 text-xs text-gray-500">
           {hierarchicalDeliverables.length} tarefas principais ({filteredDeliverables.length} total incluindo subtarefas)
+          {hiddenCount > 0 && (
+            <span className="ml-2 font-medium text-amber-600">
+              · {hiddenCount} subtarefa(s) aninhada(s) em tarefa-mãe fora da visão — não exibida(s) como card
+            </span>
+          )}
         </div>
       </div>
+
+      {hasActiveFilters && (
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          <Filter className="h-4 w-4 flex-shrink-0" />
+          <span>Há filtros ativos — algumas tarefas da sprint podem estar ocultas.</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={clearFilters}
+            className="ml-auto h-7 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+          >
+            <X className="h-3 w-3 mr-1" />
+            Limpar filtros
+          </Button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">

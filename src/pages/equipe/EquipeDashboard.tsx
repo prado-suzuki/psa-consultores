@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
@@ -52,7 +53,8 @@ const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
+  const [activeSprints, setActiveSprints] = useState<Sprint[]>([]);
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
   const [stats, setStats] = useState<DeliverableStats>({ total: 0, pending: 0, in_progress: 0, completed: 0 });
   const [myDeliverables, setMyDeliverables] = useState<any[]>([]);
   const [areaData, setAreaData] = useState<AreaData[]>([]);
@@ -63,34 +65,45 @@ const EquipeDashboard = () => {
     fetchDashboardData();
   }, [user]);
 
+  // Recarrega as estatísticas sempre que a sprint ativa selecionada muda.
+  useEffect(() => {
+    if (!selectedSprintId) {
+      setStats({ total: 0, pending: 0, in_progress: 0, completed: 0 });
+      return;
+    }
+    fetchSprintStats(selectedSprintId);
+  }, [selectedSprintId]);
+
+  const fetchSprintStats = async (sprintId: string) => {
+    const { data: deliverables } = await supabase
+      .from('sprint_deliverables')
+      .select('status')
+      .eq('sprint_id', sprintId);
+
+    const list = deliverables || [];
+    setStats({
+      total: list.length,
+      pending: list.filter(d => d.status === 'pending').length,
+      in_progress: list.filter(d => d.status === 'in_progress').length,
+      completed: list.filter(d => d.status === 'completed').length,
+    });
+  };
+
   const fetchDashboardData = async () => {
     try {
-      const { data: sprintData } = await supabase
+      // Carrega TODAS as sprints ativas (pode haver várias em paralelo, uma por projeto).
+      const { data: sprintsData } = await supabase
         .from('sprints')
         .select('*')
         .eq('status', 'active')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('start_date', { ascending: false });
 
-      setActiveSprint(sprintData);
-
-      if (sprintData) {
-        const { data: deliverables } = await supabase
-          .from('sprint_deliverables')
-          .select('status')
-          .eq('sprint_id', sprintData.id);
-
-        if (deliverables) {
-          const deliverableStats: DeliverableStats = {
-            total: deliverables.length,
-            pending: deliverables.filter(d => d.status === 'pending').length,
-            in_progress: deliverables.filter(d => d.status === 'in_progress').length,
-            completed: deliverables.filter(d => d.status === 'completed').length,
-          };
-          setStats(deliverableStats);
-        }
-      }
+      const actives = sprintsData || [];
+      setActiveSprints(actives);
+      // Preserva a seleção atual se ainda for válida; caso contrário, cai na mais recente.
+      setSelectedSprintId(prev =>
+        prev && actives.some(s => s.id === prev) ? prev : (actives[0]?.id ?? null)
+      );
 
       const { data: processes } = await supabase
         .from('processes')
@@ -140,8 +153,10 @@ const EquipeDashboard = () => {
     }
   };
 
-  const progressPercent = stats.total > 0 
-    ? Math.round((stats.completed / stats.total) * 100) 
+  const activeSprint = activeSprints.find(s => s.id === selectedSprintId) ?? null;
+
+  const progressPercent = stats.total > 0
+    ? Math.round((stats.completed / stats.total) * 100)
     : 0;
 
   const volumeData = [
@@ -163,6 +178,22 @@ const EquipeDashboard = () => {
         </TabsList>
 
         <TabsContent value="sprint">
+          {activeSprints.length > 1 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">Sprint ativa:</span>
+              <Select value={selectedSprintId ?? undefined} onValueChange={setSelectedSprintId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Selecionar sprint" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeSprints.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Badge variant="outline">{activeSprints.length} sprints ativas</Badge>
+            </div>
+          )}
           {activeSprint ? (
             <Card className="border-border shadow-sm mb-6">
               <CardContent className="pt-6">
