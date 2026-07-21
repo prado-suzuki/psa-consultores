@@ -55,6 +55,7 @@ export default function EquipeBacklog() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  const [clusters, setClusters] = useState<BacklogCluster[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal de criação/edição
@@ -65,7 +66,8 @@ export default function EquipeBacklog() {
     description: '',
     priority: 'medium',
     estimated_hours: '',
-    project_id: ''
+    project_id: '',
+    cluster_id: '',
   });
   const [saving, setSaving] = useState(false);
 
