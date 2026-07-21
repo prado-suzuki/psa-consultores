@@ -121,7 +121,8 @@ export default function EquipeBacklog() {
         description: item.description || '',
         priority: item.priority,
         estimated_hours: item.estimated_hours?.toString() || '',
-        project_id: item.project_id || ''
+        project_id: item.project_id || '',
+        cluster_id: item.cluster_id || '',
       });
     } else {
       setEditingItem(null);
@@ -130,7 +131,8 @@ export default function EquipeBacklog() {
         description: '',
         priority: 'medium',
         estimated_hours: '',
-        project_id: ''
+        project_id: '',
+        cluster_id: '',
       });
     }
     setFormModalOpen(true);
@@ -152,6 +154,7 @@ export default function EquipeBacklog() {
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
         sprint_id: null, // Backlog global, sem sprint
         project_id: formData.project_id || null,
+        cluster_id: formData.cluster_id || null,
       };
 
       if (editingItem) {
