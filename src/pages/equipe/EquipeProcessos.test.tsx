@@ -53,7 +53,9 @@ vi.mock('@/components/equipe/processos/ProcessToolbar', () => ({
   ProcessToolbar: () => <button type="button">Criar processo</button>,
 }));
 vi.mock('@/components/equipe/processos/ProcessFilters', () => ({
-  ProcessFilters: ({ areas }: { areas: string[] }) => <div>Áreas: {areas.join(', ')}</div>,
+  ProcessFilters: ({ clusters }: { clusters: Array<{ id: string; name: string }> }) => (
+    <div>Clusters: {clusters.map((cluster) => cluster.name).join(', ')}</div>
+  ),
 }));
 vi.mock('@/components/equipe/processos/ProcessList', () => ({
   ProcessList: ({
@@ -94,7 +96,7 @@ import EquipeProcessos from '@/pages/equipe/EquipeProcessos';
 beforeEach(() => {
   vi.clearAllMocks();
   pageMocks.useAuth.mockReturnValue({ user: { id: 'user-1' } });
-  pageMocks.useClusters.mockReturnValue({ data: [] });
+  pageMocks.useClusters.mockReturnValue({ data: [{ id: 'cl-1', name: 'Cluster A' }] });
   pageMocks.useProcesses.mockReturnValue({
     data: [
       {
@@ -150,7 +152,7 @@ describe('EquipeProcessos', () => {
       '1 processos',
     );
     expect(screen.getByText('Fechamento')).toBeInTheDocument();
-    expect(screen.getByText('Áreas: Cliente A')).toBeInTheDocument();
+    expect(screen.getByText('Clusters: Cluster A')).toBeInTheDocument();
     expect(pageMocks.useProcesses).toHaveBeenCalledWith('user-1');
     expect(pageMocks.useCatalogClients).toHaveBeenCalledWith('user-1');
     expect(pageMocks.useProjects).toHaveBeenCalledWith('user-1');

@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
   toast: vi.fn(),
   loadLogo: vi.fn(),
   exportPdf: vi.fn(),
+  useClusters: vi.fn(),
 }));
+
+vi.mock('@/hooks/useClusters', () => ({ useClusters: mocks.useClusters }));
 
 vi.mock('@/hooks/useDomainAnaliseInteligenteData', () => ({
   useDomainAnaliseInteligenteData: mocks.useData,
@@ -90,6 +93,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.useData.mockReturnValue({ data: emptyData, isFetching: false, error: null });
   mocks.useAnalysis.mockReturnValue({ isPending: false, mutateAsync: mocks.mutateAsync });
+  mocks.useClusters.mockReturnValue({ data: [] });
   mocks.loadLogo.mockResolvedValue(undefined);
   mocks.exportPdf.mockReturnValue(true);
 });
@@ -128,7 +132,7 @@ describe('AnaliseInteligente', () => {
       sprintFilter: '__ALL__',
       projectFilter: '__ALL__',
       processFilter: '__ALL__',
-      categoryFilter: '__ALL__',
+      clusterFilter: '',
     });
     expect(await screen.findByText('Síntese gerada pela IA')).toBeInTheDocument();
     expect(mocks.toast).toHaveBeenCalledWith({
