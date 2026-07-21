@@ -1,70 +1,44 @@
-# Plano — DELETE de org_tasks para sublíder criador
+## CAD-01 + CAD-02: popular clientes OSG e acertar tags OSG × Tax (prod)
 
-## Contexto
-Hoje `rls_org_tasks_delete` só libera DELETE para `lider+`. Sublíderes que criaram a própria tarefa (ex.: Geizi, "Revisão Livro Caixa", `cc37fe25-b7a2-430f-8724-26e0be5a8366`) recebem "Você não tem permissão para excluir esta tarefa". Coordenação (Patricia) aprovou: criador `sublider+` pode excluir a própria tarefa.
+### Objetivo
+Popular a base OSG em produção e corrigir as tags de área (OSG × Tax) hoje marcadas em bloco, usando as planilhas "Relação de Projetos - OSG" e "Relação de Clientes ativos" (Protenun = OSG, PSA Consultores = Tax). Ao final, `PSA OSG` fica apenas nos 64 clientes OSG oficiais (54 criados + 10 existentes reais).
 
-## Fora de escopo
-- Não mexer em SELECT/INSERT/UPDATE de `org_tasks`.
-- Não mexer no trigger `trg_org_tasks_team_member_status_only` nem na função `org_tasks_team_member_status_only()`.
-- Sem alterações de frontend.
-- `team_member` puro continua sem poder excluir.
+### Escopo
+- **CAD-01**: criar 54 clientes OSG inexistentes em prod, vinculados ao cluster `PSA OSG`. Ativos com `ativo=true`; finalizados/hibernando com `ativo=false` e observação padrão (código do projeto quando houver).
+- **CAD-02a**: remover tag `PSA OSG` de 59 clientes não-OSG-oficiais (21 só-Tax + 38 do resíduo da marcação em bloco antiga).
+- **CAD-02b**: remover tag `PSA Consultores` de 3 clientes só-OSG/Protenun (Gcb Agro, Evermat S/A, Grupo Bahia Potrich).
+- Manter as duas tags em Paiol Comercial Agricola e Fribon Transportes (OSG oficiais também classificados como Tax).
 
-## Passo 1 — Pré-voo (somente leitura)
-Confirmar antes de aplicar:
-- Existe exatamente **uma** policy de DELETE em `public.org_tasks`, com nome `rls_org_tasks_delete`.
-- Nenhuma policy `RESTRICTIVE` na tabela.
-```sql
-SELECT policyname, cmd, permissive, roles, qual
-FROM pg_policies
-WHERE schemaname='public' AND tablename='org_tasks';
-```
+### Fora de escopo (guardrails)
+- Não alterar schema, RLS, policies, funções ou triggers.
+- Somente `ambiente='prod'`; ignorar dev.
+- Ao remover a tag OSG dos não-OSG, não tocar em nenhum outro cluster deles (Consultores, PSA Norte, Prado etc. permanecem).
+- Não remover a última tag de cluster de nenhum cliente (guarda `EXISTS` de outro cluster).
+- Idempotente: criação por `lower(btrim(nome))` em prod não-excluído; DELETEs por id + cluster.
+- Não usar a RPC `criar_cliente_com_clusters` (valida `auth.uid()`); usar INSERT direto — trigger `trg_cliente_tem_cluster` é DEFERRED.
 
-## Passo 2 — Migration (uma só)
-```sql
-DROP POLICY IF EXISTS rls_org_tasks_delete ON public.org_tasks;
+### Constantes
+- `PSA OSG` = `0523512c-f980-4236-8a7c-53e06c9c7a80`
+- `PSA Consultores` = `b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3`
 
-CREATE POLICY rls_org_tasks_delete ON public.org_tasks
-FOR DELETE TO authenticated
-USING (
-  public.has_role_or_higher(auth.uid(),'lider'::app_role)
-  OR (
-    public.has_role_or_higher(auth.uid(),'sublider'::app_role)
-    AND created_by = auth.uid()
-  )
-);
-```
+### Implementação
+Uma única migration `supabase/migrations/<timestamp>_cad01_cad02_osg_prod.sql`, exatamente na ordem:
 
-## Passo 3 — GATE (subtransação com rollback)
+1. `BEGIN;`
+2. **CAD-01** — bloco `DO $$ ... $$` com loop sobre `VALUES` dos 54 registros `(nome, ativo, obs)`. Para cada nome ainda inexistente em prod não-excluído (`lower(btrim(nome))`), `INSERT INTO public.cliente (nome, ativo, observacoes, ambiente) VALUES (btrim(...), ..., 'prod')` capturando o `id`, seguido de `INSERT INTO public.cliente_clusters (cliente_id, cluster_id)` com o cluster OSG na mesma transação.
+3. **CAD-02a** — `DELETE FROM public.cliente_clusters` filtrando `cluster_id = PSA OSG` + os 59 ids listados + guarda `EXISTS` garantindo outro cluster remanescente.
+4. **CAD-02b** — mesmo padrão para os 3 ids + `cluster_id = PSA Consultores` + guarda.
+5. `COMMIT;`
 
-### Ordem de execução (importante)
-Selecionar **primeiro** os ids/user_ids dos casos 2 e 3 com o papel privilegiado (antes de qualquer `SET LOCAL role authenticated`). Depois de trocar para `authenticated`, RLS em `org_tasks` e `user_roles` esconde linhas e as queries voltariam vazias. Só então abrir a subtransação por caso, impersonar via `SET LOCAL request.jwt.claims` + `SET LOCAL role authenticated`, chamar `can_perform('org_tasks','delete', <id>)` e `ROLLBACK`.
+Paiol e Fribon não recebem ação (mantêm as duas tags).
 
-### Casos
+### GATE (após o COMMIT)
+Rodar as 5 queries do enunciado:
+1. Nenhum cliente prod não-excluído sem cluster → 0 linhas.
+2. Contagem de clientes prod com tag OSG → **64** (era 69; +54 criados, −59 removidos).
+3. Paiol Comercial Agricola e Fribon Transportes → 2 tags cada.
+4. Gcb Agro, Evermat S/A, Grupo Bahia Potrich sem `PSA Consultores` → 0 linhas.
+5. Clientes de teste/fiscais (Z Osg - Teste 2, Ÿ Osg - Teste 1, Planta Brasil, Psa Consultores) sem OSG → 0 linhas.
 
-**Caso 1 — Geizi (sublíder, criadora)**
-- `sub` do JWT = `7d082ece-6710-4148-9bcb-e76287380319`
-- task = `cc37fe25-b7a2-430f-8724-26e0be5a8366`
-- Esperado: `allowed = true`.
-
-**Caso 2 — Sublíder apenas delegado (não criador)**
-Selecionar com papel privilegiado, restringindo o responsável a **sublider puro** (evita cair em líder/admin, que poderiam excluir e falsear o GATE):
-```sql
-SELECT id, created_by, assigned_to
-FROM public.org_tasks
-WHERE assigned_to <> created_by
-  AND public.has_role_or_higher(assigned_to,'sublider'::app_role)
-  AND NOT public.has_role_or_higher(assigned_to,'lider'::app_role)
-LIMIT 1;
-```
-- `sub` do JWT = `assigned_to` (o sublíder delegado), **nunca** o `created_by`.
-- Esperado: `allowed = false`.
-- Se não houver linha, reportar e pular com justificativa.
-
-**Caso 3 — team_member puro**
-Selecionar com papel privilegiado um `user_id` com role exatamente `team_member` (e sem role superior) e uma task qualquer.
-- Esperado: `allowed = false`.
-
-Só marcar como concluído se os três resultados baterem.
-
-## Riscos
-Baixo: mudança escopada a uma policy DELETE, aditiva (amplia acesso para o próprio criador sublíder). Não afeta leitura nem escrita de outras operações.
+### Riscos
+Baixo: apenas dados, prod-only, idempotente, com guardas de última-tag e sem alteração de schema/RLS/triggers.
