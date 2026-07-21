@@ -105,6 +105,7 @@ const filters: AnaliseInteligenteFilters = {
   sprintFilter: 's1',
   projectFilter: '__ALL__',
   processFilter: 'p1',
+  clusterFilter: '',
 };
 
 beforeEach(() => {
@@ -172,7 +173,7 @@ describe('useDomainAnaliseInteligenteData', () => {
       ['id, name, project_id, start_date, end_date, status'],
     ]);
     expect(callsFor('sprints', 'order')).toEqual([['start_date', { ascending: false }]]);
-    expect(callsFor('projects', 'select')).toEqual([['id, name']]);
+    expect(callsFor('projects', 'select')).toEqual([['id, name, cluster_id']]);
     expect(callsFor('projects', 'order')).toEqual([['name']]);
     expect(callsFor('processes', 'select')).toEqual([['id, name, area, project_id']]);
     expect(callsFor('processes', 'order')).toEqual([['name']]);

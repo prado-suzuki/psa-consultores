@@ -10,6 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import type { Cluster } from '@/hooks/useClusters';
+import { SEM_CLUSTER } from '@/lib/clusterFilter';
 import type {
   AnaliseInteligenteProcess,
   AnaliseInteligenteProject,
@@ -23,14 +25,17 @@ interface AnaliseInteligenteFiltersProps {
   sprintFilter: string;
   projectFilter: string;
   processFilter: string;
+  clusterFilter: string;
   sprints: AnaliseInteligenteSprint[];
   projects: AnaliseInteligenteProject[];
   processes: AnaliseInteligenteProcess[];
+  clusters: Cluster[];
   onStartDateChange: (value: string) => void;
   onEndDateChange: (value: string) => void;
   onSprintFilterChange: (value: string) => void;
   onProjectFilterChange: (value: string) => void;
   onProcessFilterChange: (value: string) => void;
+  onClusterFilterChange: (value: string) => void;
   onClearFilters: () => void;
 }
 
@@ -41,14 +46,17 @@ export function AnaliseInteligenteFilters({
   sprintFilter,
   projectFilter,
   processFilter,
+  clusterFilter,
   sprints,
   projects,
   processes,
+  clusters,
   onStartDateChange,
   onEndDateChange,
   onSprintFilterChange,
   onProjectFilterChange,
   onProcessFilterChange,
+  onClusterFilterChange,
   onClearFilters,
 }: AnaliseInteligenteFiltersProps) {
   return (
@@ -60,7 +68,7 @@ export function AnaliseInteligenteFilters({
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="space-y-1">
             <Label className="text-xs text-slate-500">Data início</Label>
             <Input
@@ -124,6 +132,28 @@ export function AnaliseInteligenteFilters({
                     {p.name}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-slate-500">Cluster</Label>
+            <Select
+              value={clusterFilter === '' ? '__todos__' : clusterFilter}
+              onValueChange={(v) => onClusterFilterChange(v === '__todos__' ? '' : v)}
+            >
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__todos__">Todos os clusters</SelectItem>
+                <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+                {clusters
+                  .filter((c) => c.ativo)
+                  .map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>

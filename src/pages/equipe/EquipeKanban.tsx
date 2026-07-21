@@ -470,6 +470,7 @@ const EquipeKanban = () => {
           const newStatus = subtask.status === 'completed' ? 'pending' : 'completed';
           await updateDeliverableStatus(subtask.id, newStatus);
         }}
+        onOpenSubtask={openDeliverableDetail}
       />
     </EquipeLayout>
   );

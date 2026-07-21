@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { useDomainAnaliseInteligenteData } from '@/hooks/useDomainAnaliseInteligenteData';
 import { useDomainAnaliseInteligenteAnalysis } from '@/hooks/useDomainAnaliseInteligenteAnalysis';
+import { useClusters } from '@/hooks/useClusters';
+import { usePersistedState } from '@/hooks/usePersistedState';
 import {
   ANALISE_INTELIGENTE_ALL,
   buildAnaliseInteligenteKpis,
@@ -31,6 +33,7 @@ const AnaliseInteligente = () => {
   const analysisMutation = useDomainAnaliseInteligenteAnalysis();
   const analyzing = analysisMutation.isPending;
   const { sprints, projects, processes, deliverables, dailys, improvements } = data;
+  const { data: clusters = [] } = useClusters();
   const [analise, setAnalise] = useState<AnaliseInteligenteAnalysisData | null>(null);
   const [logoBase64, setLogoBase64] = useState<string>('');
 
@@ -40,6 +43,8 @@ const AnaliseInteligente = () => {
   const [sprintFilter, setSprintFilter] = useState(ALL);
   const [projectFilter, setProjectFilter] = useState(ALL);
   const [processFilter, setProcessFilter] = useState(ALL);
+  // Chave global 'rotina.cluster' → o cluster escolhido segue nas outras telas.
+  const [clusterFilter, setClusterFilter] = usePersistedState<string>('rotina.cluster', '');
 
   useEffect(() => {
     loadAnaliseInteligenteLogo(setLogoBase64).catch(() => {
@@ -64,8 +69,9 @@ const AnaliseInteligente = () => {
       sprintFilter,
       projectFilter,
       processFilter,
+      clusterFilter,
     }),
-    [startDate, endDate, sprintFilter, projectFilter, processFilter],
+    [startDate, endDate, sprintFilter, projectFilter, processFilter, clusterFilter],
   );
   const filtered = useMemo(() => filterAnaliseInteligenteData(data, filters), [data, filters]);
   const kpis = useMemo(
@@ -114,6 +120,7 @@ const AnaliseInteligente = () => {
     setSprintFilter(ALL);
     setProjectFilter(ALL);
     setProcessFilter(ALL);
+    setClusterFilter('');
   };
 
   const exportarPDF = () => {
@@ -171,14 +178,17 @@ const AnaliseInteligente = () => {
           sprintFilter={sprintFilter}
           projectFilter={projectFilter}
           processFilter={processFilter}
+          clusterFilter={clusterFilter}
           sprints={sprints}
           projects={projects}
           processes={processes}
+          clusters={clusters}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onSprintFilterChange={setSprintFilter}
           onProjectFilterChange={setProjectFilter}
           onProcessFilterChange={setProcessFilter}
+          onClusterFilterChange={setClusterFilter}
           onClearFilters={handleClearFilters}
         />
 

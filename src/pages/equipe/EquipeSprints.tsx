@@ -205,6 +205,33 @@ const EquipeSprints = () => {
     return hours.reduce((sum, h) => sum + h.hours, 0);
   };
 
+  const getSprintClusterName = (sprint: { project_id: string | null }) => {
+    const project = sprint.project_id ? projects.find((p) => p.id === sprint.project_id) : undefined;
+    const cluster = project?.cluster_id
+      ? clusters.find((c) => c.id === project.cluster_id)
+      : undefined;
+    return cluster?.name || 'Geral / sem cluster';
+  };
+
+  // Agrupa as sprints por cluster (via projeto), ativas/planejadas antes das concluídas —
+  // assim as sprints de Tax, OSG etc. ficam separadas.
+  const statusRank: Record<string, number> = { active: 0, planned: 1, completed: 2 };
+  const groupedSprints = (() => {
+    const groups: Record<string, typeof sprints> = {};
+    sprints.forEach((sprint) => {
+      const key = getSprintClusterName(sprint);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(sprint);
+    });
+    Object.values(groups).forEach((list) =>
+      list.sort(
+        (a, b) =>
+          (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9) || a.name.localeCompare(b.name),
+      ),
+    );
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+  })();
+
   return (
     <EquipeLayout 
       title="Gestão de Sprints" 
@@ -320,9 +347,15 @@ const EquipeSprints = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : sprints.length > 0 ? (
-        <div className="space-y-4">
-          {sprints.map((sprint) => {
-            const sprintHours = sprintHoursMap[sprint.id] || [];
+        <div className="space-y-6">
+          {groupedSprints.map(([clusterName, clusterSprints]) => (
+          <div key={clusterName} className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{clusterName}</h2>
+              <span className="text-xs text-gray-400">· {clusterSprints.length}</span>
+              <div className="flex-1 border-t border-gray-100" />
+            </div>
+          {clusterSprints.map((sprint) => {
             const totalHours = getSprintTotalHours(sprint.id);
              const sprintImpact = sprintImpactMap[sprint.id];
             
@@ -359,6 +392,8 @@ const EquipeSprints = () => {
               </Card>
             );
           })}
+          </div>
+          ))}
         </div>
       ) : (
         <Card className="bg-white border-gray-200">

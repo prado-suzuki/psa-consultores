@@ -1,4 +1,5 @@
 import { STATUS_CHART_COLORS } from '@/constants/brandColors';
+import { matchCluster } from '@/lib/clusterFilter';
 
 export const ANALISE_INTELIGENTE_ALL = '__ALL__';
 
@@ -14,6 +15,7 @@ export interface AnaliseInteligenteSprint {
 export interface AnaliseInteligenteProject {
   id: string;
   name: string;
+  cluster_id?: string | null;
 }
 
 export interface AnaliseInteligenteProcess {
@@ -73,6 +75,7 @@ export interface AnaliseInteligenteFilters {
   sprintFilter: string;
   projectFilter: string;
   processFilter: string;
+  clusterFilter: string;
 }
 
 export interface AnaliseInteligenteData {
@@ -136,7 +139,18 @@ export function filterAnaliseInteligenteData(
   data: AnaliseInteligenteData,
   filters: AnaliseInteligenteFilters,
 ): AnaliseInteligenteFilteredData {
-  const { startDate, endDate, sprintFilter, projectFilter, processFilter } = filters;
+  const { startDate, endDate, sprintFilter, projectFilter, processFilter, clusterFilter } = filters;
+  // Cluster de um item vem do seu projeto (direto ou via a sprint dele).
+  const projectCluster = new Map(data.projects.map((p) => [p.id, p.cluster_id ?? null] as const));
+  const sprintProject = new Map(data.sprints.map((s) => [s.id, s.project_id] as const));
+  const clusterOf = (projectId: string | null, sprintId: string | null): string | null => {
+    if (projectId && projectCluster.has(projectId)) return projectCluster.get(projectId) ?? null;
+    if (sprintId && sprintProject.has(sprintId)) {
+      const pid = sprintProject.get(sprintId) ?? null;
+      return pid ? (projectCluster.get(pid) ?? null) : null;
+    }
+    return null;
+  };
   const inDateRange = (date: string | null) => {
     if (!date) return true;
     if (startDate && date < startDate) return false;
@@ -148,6 +162,7 @@ export function filterAnaliseInteligenteData(
     if (sprintFilter !== ANALISE_INTELIGENTE_ALL && sprint.id !== sprintFilter) return false;
     if (projectFilter !== ANALISE_INTELIGENTE_ALL && sprint.project_id !== projectFilter)
       return false;
+    if (!matchCluster(clusterFilter, clusterOf(sprint.project_id, sprint.id))) return false;
     if (startDate && sprint.end_date < startDate) return false;
     if (endDate && sprint.start_date > endDate) return false;
     return true;
@@ -160,6 +175,8 @@ export function filterAnaliseInteligenteData(
     if (projectFilter !== ANALISE_INTELIGENTE_ALL && deliverable.project_id !== projectFilter)
       return false;
     if (processFilter !== ANALISE_INTELIGENTE_ALL && deliverable.process_id !== processFilter)
+      return false;
+    if (!matchCluster(clusterFilter, clusterOf(deliverable.project_id, deliverable.sprint_id)))
       return false;
     if (
       sprintFilter === ANALISE_INTELIGENTE_ALL &&
@@ -179,6 +196,7 @@ export function filterAnaliseInteligenteData(
       return false;
     if (processFilter !== ANALISE_INTELIGENTE_ALL && daily.process_id !== processFilter)
       return false;
+    if (!matchCluster(clusterFilter, clusterOf(daily.project_id, daily.sprint_id))) return false;
     return true;
   });
 

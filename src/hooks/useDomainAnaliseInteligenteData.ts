@@ -20,7 +20,7 @@ async function fetchAnaliseInteligenteData(): Promise<AnaliseInteligenteData> {
         .from('sprints')
         .select('id, name, project_id, start_date, end_date, status')
         .order('start_date', { ascending: false }),
-      supabase.from('projects').select('id, name').order('name'),
+      supabase.from('projects').select('id, name, cluster_id').order('name'),
       supabase.from('processes').select('id, name, area, project_id').order('name'),
       supabase
         .from('sprint_deliverables')

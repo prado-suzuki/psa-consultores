@@ -28,6 +28,7 @@ const filters = (
   sprintFilter: ALL,
   projectFilter: ALL,
   processFilter: ALL,
+  clusterFilter: '',
   ...overrides,
 });
 

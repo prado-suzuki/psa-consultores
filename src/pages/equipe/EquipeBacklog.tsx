@@ -28,6 +28,7 @@ import {
 } from "@/hooks/useDomainBacklog";
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
+import { matchCluster, SEM_CLUSTER } from "@/lib/clusterFilter";
 
 const UNASSIGNED = '__unassigned__';
 const NONE = '__none__';
@@ -85,8 +86,11 @@ export default function EquipeBacklog() {
   });
   const [moving, setMoving] = useState(false);
 
-  // Filtro de prioridade
+  // Filtros de prioridade e projeto
   const [filterPriority, setFilterPriority] = usePersistedState<string>('rotina.backlog.prioridade', 'all');
+  const [filterProject, setFilterProject] = usePersistedState<string>('rotina.backlog.projeto', 'all');
+  // Chave global 'rotina.cluster' → o cluster escolhido segue nas outras telas.
+  const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
 
   useEffect(() => {
     if (!backlogQuery.data) return;
@@ -267,6 +271,8 @@ export default function EquipeBacklog() {
 
   const filteredItems = backlogItems.filter(item => {
     if (filterPriority !== 'all' && item.priority !== filterPriority) return false;
+    if (filterProject !== 'all' && item.project_id !== filterProject) return false;
+    if (!matchCluster(filterCluster, item.cluster_id)) return false;
     return true;
   });
 
@@ -308,6 +314,38 @@ export default function EquipeBacklog() {
               <SelectItem value="high">Alta</SelectItem>
               <SelectItem value="medium">Média</SelectItem>
               <SelectItem value="low">Baixa</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os projetos</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filterCluster === '' ? '__todos__' : filterCluster}
+            onValueChange={(value) => setFilterCluster(value === '__todos__' ? '' : value)}
+          >
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Cluster" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__todos__">Todos os clusters</SelectItem>
+              <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+              {clusters.map((cluster) => (
+                <SelectItem key={cluster.id} value={cluster.id}>
+                  {cluster.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 

@@ -58,6 +58,7 @@ interface KanbanDeliverableDialogProps {
   onDownloadFile: (attachment: EquipeKanbanAttachment) => void;
   onDeleteFile: (attachment: EquipeKanbanAttachment) => void;
   onSubtaskStatusChange: (subtask: EquipeKanbanDeliverable) => Promise<void>;
+  onOpenSubtask: (subtask: EquipeKanbanDeliverable) => void;
 }
 
 export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
@@ -174,18 +175,18 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
           </div>
 
           {editForm.status === 'completed' && (
-            <div className="space-y-2">
-              <Label className="text-gray-700">Horas Realizadas</Label>
+            <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3">
+              <Label className="text-amber-800 font-medium">Horas Realizadas</Label>
               <Input
                 type="number"
                 step="0.5"
                 value={editForm.actual_hours}
                 onChange={(event) => setEditForm({ ...editForm, actual_hours: event.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="bg-white border-amber-300 text-gray-900"
                 placeholder="0"
               />
-              <p className="text-xs text-gray-500">
-                Usado nas análises (estimadas × realizadas).
+              <p className="text-xs text-amber-700">
+                Preencha as horas reais — usado nas análises (estimadas × realizadas).
               </p>
             </div>
           )}
@@ -210,7 +211,12 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                       checked={subtask.status === 'completed'}
                       onCheckedChange={() => props.onSubtaskStatusChange(subtask)}
                     />
-                    <div className="flex-1">
+                    <button
+                      type="button"
+                      onClick={() => props.onOpenSubtask(subtask)}
+                      className="flex-1 text-left cursor-pointer hover:underline"
+                      title="Abrir subtarefa (para lançar horas realizadas)"
+                    >
                       <span
                         className={cn(
                           'text-sm text-gray-700',
@@ -222,7 +228,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                         )}
                         {subtask.title}
                       </span>
-                    </div>
+                    </button>
                     {subtask.estimated_hours && (
                       <span className="text-xs text-gray-400">{subtask.estimated_hours}h</span>
                     )}

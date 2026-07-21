@@ -194,8 +194,10 @@ function DeliverableFields({ prefix, form, setForm, controller: c, editingId }: 
             />
           </div>
           {form.status === 'completed' && (
-            <div>
-              <Label htmlFor="edit-actual-hours">Horas Realizadas</Label>
+            <div className="rounded-md border border-amber-300 bg-amber-50 p-2">
+              <Label htmlFor="edit-actual-hours" className="text-amber-800 font-medium">
+                Horas Realizadas
+              </Label>
               <Input
                 id="edit-actual-hours"
                 type="number"
@@ -203,6 +205,7 @@ function DeliverableFields({ prefix, form, setForm, controller: c, editingId }: 
                 min="0"
                 value={form.actual_hours}
                 onChange={(event) => update('actual_hours', event.target.value)}
+                className="bg-white border-amber-300"
               />
             </div>
           )}
