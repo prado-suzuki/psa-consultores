@@ -34,6 +34,7 @@ export interface Profile {
 export interface Project {
   id: string;
   name: string;
+  cluster_id: string | null;
 }
 
 export interface Process {
@@ -47,6 +48,11 @@ export interface ProjectProcess {
   project_id: string;
 }
 
+export interface BacklogCluster {
+  id: string;
+  name: string;
+}
+
 export interface DomainBacklogData {
   backlogItems: BacklogItem[];
   sprints: Sprint[];
@@ -54,6 +60,7 @@ export interface DomainBacklogData {
   projects: Project[];
   processes: Process[];
   projectProcesses: ProjectProcess[];
+  clusters: BacklogCluster[];
 }
 
 export interface BacklogItemPayload {
@@ -63,6 +70,7 @@ export interface BacklogItemPayload {
   estimated_hours: number | null;
   sprint_id: null;
   project_id: string | null;
+  cluster_id: string | null;
 }
 
 export interface SprintDeliverablePayload {
