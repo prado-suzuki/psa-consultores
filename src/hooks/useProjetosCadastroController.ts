@@ -291,6 +291,10 @@ export function useProjetosCadastroController(area: AreaKey) {
         leader_ids: [],
         responsible_id: project.responsible_id || '',
         external_client_id: project.external_client_id || '',
+        // Round-trip do contribuinte_id: o modal não edita esse campo, mas ele
+        // precisa entrar no form para que o diff do update não o veja como
+        // alterado e o zere (bug COR-01 — coluna sobrescrevendo a si mesma).
+        contribuinte_id: project.contribuinte_id || undefined,
         estrutura_area_id: project.estrutura_area_id || '',
         equipe_id: project.equipe_id || '',
         is_multidisciplinar: Boolean(project.is_multidisciplinar),

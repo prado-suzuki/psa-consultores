@@ -124,7 +124,7 @@ describe('useDomainBacklog — query', () => {
 
     expect(callsFor('sprints', 'in')[0].args).toEqual(['status', ['active', 'planned']]);
     expect(callsFor('profiles_safe', 'select')[0].args).toEqual(['id, first_name, last_name']);
-    expect(callsFor('projects', 'select')[0].args).toEqual(['id, name']);
+    expect(callsFor('projects', 'select')[0].args).toEqual(['id, name, cluster_id']);
     expect(callsFor('processes', 'select')[0].args).toEqual(['id, name, project_id']);
     expect(callsFor('project_processes', 'select')[0].args).toEqual(['process_id, project_id']);
   });
