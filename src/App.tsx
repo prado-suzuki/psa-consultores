@@ -162,6 +162,8 @@ const App = () => (
               <Route path="/cliente/novo-chamado" element={<ProtectedRoute><NovoChamado /></ProtectedRoute>} />
               <Route path="/cliente/chamados" element={<ProtectedRoute><MeusChamados /></ProtectedRoute>} />
               <Route path="/cliente/chamados/:id" element={<ProtectedRoute><DetalhesChamado /></ProtectedRoute>} />
+              <Route path="/cliente/documentos" element={<ProtectedRoute><MeusDocumentos /></ProtectedRoute>} />
+
 
               {/* Admin Routes */}
               <Route path="/admin" element={<Navigate to="/gestao" replace />} />
