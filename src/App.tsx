@@ -35,6 +35,7 @@ import ClienteDashboard from "./pages/cliente/ClienteDashboard";
 import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
 import DetalhesChamado from "./pages/cliente/DetalhesChamado";
+import MeusDocumentos from "./pages/cliente/MeusDocumentos";
 
 
 // Equipe (core)
@@ -161,6 +162,8 @@ const App = () => (
               <Route path="/cliente/novo-chamado" element={<ProtectedRoute><NovoChamado /></ProtectedRoute>} />
               <Route path="/cliente/chamados" element={<ProtectedRoute><MeusChamados /></ProtectedRoute>} />
               <Route path="/cliente/chamados/:id" element={<ProtectedRoute><DetalhesChamado /></ProtectedRoute>} />
+              <Route path="/cliente/documentos" element={<ProtectedRoute><MeusDocumentos /></ProtectedRoute>} />
+
 
               {/* Admin Routes */}
               <Route path="/admin" element={<Navigate to="/gestao" replace />} />
