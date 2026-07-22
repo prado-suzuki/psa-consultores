@@ -13,6 +13,10 @@ vi.mock('@/hooks/useDomainEquipeKanbanDeliverableMutations', () => ({
 vi.mock('@/hooks/useDomainEquipeKanbanAttachments', () => ({
   useEquipeKanbanAttachments: mocks.attachments,
 }));
+vi.mock('@/hooks/useDeliverableBlockers', () => ({
+  useDeliverableBlockers: () => ({ data: {} }),
+  formatBlockerTooltip: () => '',
+}));
 vi.mock('@/components/equipe/EquipeLayout', () => ({
   EquipeLayout: ({
     title,

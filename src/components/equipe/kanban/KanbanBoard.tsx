@@ -10,6 +10,7 @@ import {
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
+import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
 
 const columns = [
   { id: 'pending', title: 'A Fazer', color: 'bg-blue-500' },
@@ -22,6 +23,7 @@ interface KanbanBoardProps {
   sortByDueDate: 'asc' | 'desc' | null;
   getColumnDeliverables: (columnId: string) => HierarchicalEquipeKanbanDeliverable[];
   getProfileName: (profileId: string | null) => string;
+  getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
   onSortToggle: () => void;
   onStatusChange: (id: string, status: 'pending' | 'in_progress' | 'completed') => void;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -107,16 +109,28 @@ export function KanbanBoard(props: KanbanBoardProps) {
                           )}
                           {deliverable.title}
                         </h4>
+                        {props.getBlocker(deliverable) && (
+                          <div
+                            title={formatBlockerTooltip(props.getBlocker(deliverable)!)}
+                            className="mb-2 inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-xs font-medium text-red-700"
+                          >
+                            🚩 Bloqueada
+                          </div>
+                        )}
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <span>{props.getProfileName(deliverable.assigned_to)}</span>
                           <span>{formatEquipeKanbanDueDate(deliverable.due_date)}</span>
                         </div>
                         <div className="flex items-center justify-between mt-2">
-                          {deliverable.estimated_hours && (
-                            <span className="text-xs text-gray-400">
-                              {deliverable.estimated_hours}h estimadas
-                            </span>
-                          )}
+                          <span className="text-xs text-gray-400">
+                            {deliverable.subtaskCount > 0
+                              ? deliverable.subtaskHoursTotal > 0
+                                ? `${deliverable.subtaskHoursTotal}h estimadas`
+                                : ''
+                              : deliverable.estimated_hours
+                                ? `${deliverable.estimated_hours}h estimadas`
+                                : ''}
+                          </span>
                           {deliverable.subtaskCount > 0 && (
                             <Badge variant="secondary" className="text-xs">
                               {deliverable.completedSubtasks}/{deliverable.subtaskCount} subtarefas
@@ -133,6 +147,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                     {deliverable.subtasks.map((subtask) => (
                       <div
                         key={subtask.id}
+                        style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
                           'flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50',
                           subtask.status === 'completed' && 'opacity-60',
@@ -157,12 +172,17 @@ export function KanbanBoard(props: KanbanBoardProps) {
                             )}
                             {subtask.title}
                           </span>
+                          {props.getBlocker(subtask) && (
+                            <span title={formatBlockerTooltip(props.getBlocker(subtask)!)} className="ml-1">
+                              🚩
+                            </span>
+                          )}
                         </div>
-                        {subtask.estimated_hours && (
+                        {subtask.hoursDisplay ? (
                           <span className="text-xs text-gray-400 flex-shrink-0">
-                            {subtask.estimated_hours}h
+                            {subtask.hoursDisplay}h
                           </span>
-                        )}
+                        ) : null}
                       </div>
                     ))}
                   </div>

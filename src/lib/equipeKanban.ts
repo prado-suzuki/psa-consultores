@@ -59,10 +59,25 @@ export interface EquipeKanbanEditForm {
   actual_hours: string;
 }
 
+/** Uma subtarefa achatada para exibição: traz o nível de aninhamento e as horas a mostrar. */
+export interface EquipeKanbanSubtaskRow extends EquipeKanbanDeliverable {
+  /** 0 = filha direta, 1 = neta, 2 = bisneta... — usado para indentar na tela. */
+  depth: number;
+  /** Tem filhas? (é uma sub-mãe) — nesse caso a linha mostra a soma das folhas, não as horas próprias. */
+  hasChildren: boolean;
+  /** Horas a exibir na linha: as próprias (folha) ou a soma das folhas do ramo (tem filhas). */
+  hoursDisplay: number | null;
+}
+
 export interface HierarchicalEquipeKanbanDeliverable extends EquipeKanbanDeliverable {
-  subtasks: EquipeKanbanDeliverable[];
+  /** TODOS os descendentes (filhas, netas, ...) em ordem DFS por código — mantidos aninhados sob a raiz. */
+  subtasks: EquipeKanbanSubtaskRow[];
+  /** Total de descendentes (todos os níveis). */
   subtaskCount: number;
+  /** Descendentes concluídos. */
   completedSubtasks: number;
+  /** Soma das horas das folhas do ramo — mostrada no card da tarefa-pai (não duplica: só folhas). */
+  subtaskHoursTotal: number;
 }
 
 export interface EquipeKanbanFilters {
@@ -131,24 +146,63 @@ const sortByTaskCode = (a: EquipeKanbanDeliverable, b: EquipeKanbanDeliverable) 
     ? a.task_code.localeCompare(b.task_code, undefined, { numeric: true })
     : 0;
 
-export function buildEquipeKanbanHierarchy(deliverables: EquipeKanbanDeliverable[]) {
-  const subtasksByParent: Record<string, EquipeKanbanDeliverable[]> = {};
-  deliverables
-    .filter((item) => item.parent_id)
-    .forEach((subtask) => {
-      if (!subtask.parent_id) return;
-      (subtasksByParent[subtask.parent_id] ||= []).push(subtask);
-    });
-  Object.values(subtasksByParent).forEach((subtasks) => subtasks.sort(sortByTaskCode));
+export function buildEquipeKanbanHierarchy(
+  deliverables: EquipeKanbanDeliverable[],
+): HierarchicalEquipeKanbanDeliverable[] {
+  // Filhas por mãe (qualquer nível), ordenadas por código.
+  const childrenByParent = new Map<string, EquipeKanbanDeliverable[]>();
+  for (const item of deliverables) {
+    if (!item.parent_id) continue;
+    const list = childrenByParent.get(item.parent_id) ?? [];
+    list.push(item);
+    childrenByParent.set(item.parent_id, list);
+  }
+  for (const list of childrenByParent.values()) list.sort(sortByTaskCode);
+
+  const hasChildren = (id: string) => (childrenByParent.get(id)?.length ?? 0) > 0;
+
+  // Soma das horas das FOLHAS do ramo (não conta sub-mães) — evita duplicar horas.
+  const leafHours = (id: string, ownHours: number | null): number => {
+    const children = childrenByParent.get(id);
+    if (!children || children.length === 0) return ownHours || 0;
+    return children.reduce((sum, child) => sum + leafHours(child.id, child.estimated_hours), 0);
+  };
+
+  // Achata todos os descendentes em DFS (por código), anotando profundidade e horas a exibir.
+  const flattenDescendants = (id: string, depth: number, acc: EquipeKanbanSubtaskRow[]) => {
+    for (const child of childrenByParent.get(id) ?? []) {
+      const childHasChildren = hasChildren(child.id);
+      acc.push({
+        ...child,
+        depth,
+        hasChildren: childHasChildren,
+        hoursDisplay: childHasChildren
+          ? leafHours(child.id, child.estimated_hours) || null
+          : child.estimated_hours,
+      });
+      flattenDescendants(child.id, depth + 1, acc);
+    }
+    return acc;
+  };
+
+  // Raiz = sem mãe OU cuja mãe não está na lista visível (dado inconsistente/filtro) —
+  // assim uma subtarefa nunca some da tela; no fluxo normal a mãe é puxada de volta.
+  const presentIds = new Set(deliverables.map((item) => item.id));
   return deliverables
-    .filter((item) => !item.parent_id)
-    .map((parent) => ({
-      ...parent,
-      subtasks: subtasksByParent[parent.id] || [],
-      subtaskCount: subtasksByParent[parent.id]?.length || 0,
-      completedSubtasks:
-        subtasksByParent[parent.id]?.filter((item) => item.status === 'completed').length || 0,
-    }));
+    .filter((item) => !item.parent_id || !presentIds.has(item.parent_id))
+    .sort(sortByTaskCode)
+    .map((root) => {
+      const subtasks = flattenDescendants(root.id, 0, []);
+      return {
+        ...root,
+        subtasks,
+        subtaskCount: subtasks.length,
+        completedSubtasks: subtasks.filter((item) => item.status === 'completed').length,
+        // Só exibição — não é gravado. A mãe pode ficar com horas em branco no banco
+        // (as métricas já excluem as tarefas-mãe da soma, então não duplica).
+        subtaskHoursTotal: leafHours(root.id, root.estimated_hours),
+      };
+    });
 }
 
 export function getEquipeKanbanColumnDeliverables(

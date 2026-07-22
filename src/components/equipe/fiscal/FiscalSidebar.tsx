@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,25 +7,15 @@ import {
   ClipboardList,
   ListTodo,
   ChevronDown,
-  ChevronRight,
   ChevronLeft,
   Calculator,
   FolderKanban,
   MessageSquare,
   ArrowLeft,
   LogOut,
-  Shield
+  Shield,
+  Home,
 } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
 import logoPsa from '@/assets/logo-psa.png';
 
 export interface MenuItem {
@@ -43,6 +32,12 @@ export interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  {
+    id: 'inicio',
+    label: 'Início',
+    icon: Home,
+    path: '/equipe/tax'
+  },
   {
     id: 'dashboard',
     label: 'Dashboard',
@@ -61,16 +56,16 @@ const menuItems: MenuItem[] = [
         path: '/equipe/tax/projetos/clientes'
       },
       {
-      id: 'entregas-projetos',
+        id: 'entregas-projetos',
         label: 'Projetos',
         icon: FolderKanban,
         path: '/equipe/tax/projetos/cadastro'
-       },
-       {
-         id: 'tarefas',
-         label: 'Tarefas',
-         icon: ListTodo,
-         path: '/equipe/tax/projetos/tarefas'
+      },
+      {
+        id: 'tarefas',
+        label: 'Tarefas',
+        icon: ListTodo,
+        path: '/equipe/tax/projetos/tarefas'
       }
     ]
   },
@@ -88,6 +83,10 @@ const menuItems: MenuItem[] = [
   }
 ];
 
+// Hover espelhado da OSG: leve elevação + sombra suave ao passar o mouse.
+const ITEM_BASE =
+  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5';
+
 interface FiscalSidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
@@ -97,111 +96,104 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const [openMenus, setOpenMenus] = useState<string[]>(['projetos']);
 
-  const isActive = (path?: string) => {
-    if (!path) return false;
-    return location.pathname === path;
-  };
+  const isActive = (path?: string) => !!path && location.pathname === path;
 
-  const isParentActive = (children?: MenuItem['children']) => {
-    if (!children) return false;
-    return children.some(child => location.pathname === child.path);
-  };
-
-  const toggleMenu = (id: string) => {
-    setOpenMenus(prev => 
-      prev.includes(id) 
-        ? prev.filter(m => m !== id)
-        : [...prev, id]
-    );
-  };
+  const isParentActive = (children?: MenuItem['children']) =>
+    !!children && children.some(child => location.pathname === child.path);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
 
+  const goTo = (path: string) =>
+    navigate(
+      path,
+      // Chamados é uma página compartilhada fora da área Tax; informamos a origem
+      // para que o "Voltar" retorne ao dashboard Tax, não ao seletor de área.
+      path === '/equipe/chamados'
+        ? { state: { from: '/equipe/tax/dashboard' } }
+        : undefined
+    );
+
   const renderMenuItem = (item: MenuItem) => {
     const Icon = item.icon;
     const hasChildren = item.children && item.children.length > 0;
-    const isOpen = openMenus.includes(item.id);
-    const parentActive = isParentActive(item.children);
-    const active = isActive(item.path);
 
-    // Since sidebar is fully hidden when collapsed, only render expanded view
+    // Agrupador com expansão no hover + animação fluida (grid-rows), igual à OSG.
     if (hasChildren) {
+      const parentActive = isParentActive(item.children);
       return (
-        <Collapsible
-          key={item.id}
-          open={isOpen}
-          onOpenChange={() => toggleMenu(item.id)}
-        >
-          <CollapsibleTrigger asChild>
-            <button
+        <div key={item.id} className="group/sub">
+          <button
+            type="button"
+            className={cn(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+              parentActive
+                ? 'bg-success/5 text-success'
+                : 'text-muted-foreground group-hover/sub:bg-muted group-hover/sub:text-foreground'
+            )}
+          >
+            <Icon className="h-4 w-4 flex-shrink-0" />
+            <span className="flex-1 text-left">{item.label}</span>
+            <ChevronDown
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                parentActive
-                  ? "bg-success/5 text-success"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                'h-4 w-4 transition-transform duration-300 ease-out',
+                parentActive ? 'rotate-180' : 'group-hover/sub:rotate-180'
               )}
-            >
-              <Icon className="h-4 w-4" />
-              <span className="flex-1 text-left">{item.label}</span>
-              {isOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="pl-4 mt-1 space-y-1">
-            {item.children?.map((child) => {
-              const ChildIcon = child.icon;
-              const childActive = isActive(child.path);
-              return (
-                <button
-                  key={child.id}
-                  onClick={() => navigate(child.path)}
-                  className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                    childActive
-                      ? "bg-success/10 text-success font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <ChildIcon className="h-4 w-4" />
-                  <span>{child.label}</span>
-                </button>
-              );
-            })}
-          </CollapsibleContent>
-        </Collapsible>
+            />
+          </button>
+
+          <div
+            className={cn(
+              'grid transition-[grid-template-rows] duration-300 ease-out',
+              parentActive
+                ? 'grid-rows-[1fr]'
+                : 'grid-rows-[0fr] group-hover/sub:grid-rows-[1fr]'
+            )}
+          >
+            <div className="min-h-0 overflow-hidden">
+              <div className="space-y-1 pt-1 ml-2 pl-2 border-l border-border">
+                {item.children?.map(child => {
+                  const ChildIcon = child.icon;
+                  const childActive = isActive(child.path);
+                  return (
+                    <button
+                      key={child.id}
+                      onClick={() => navigate(child.path)}
+                      className={cn(
+                        ITEM_BASE,
+                        childActive
+                          ? 'bg-success/10 text-success'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      )}
+                    >
+                      <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                      <span>{child.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       );
     }
 
+    const active = isActive(item.path);
     return (
       <button
         key={item.id}
-        onClick={() =>
-          item.path &&
-          navigate(
-            item.path,
-            // Chamados é uma página compartilhada fora da área Tax; informamos a
-            // origem para que o "Voltar" retorne ao dashboard Tax, não ao seletor de área.
-            item.path === '/equipe/chamados'
-              ? { state: { from: '/equipe/tax/dashboard' } }
-              : undefined
-          )
-        }
+        onClick={() => item.path && goTo(item.path)}
         className={cn(
-          "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+          ITEM_BASE,
           active
-            ? "bg-success/10 text-success"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+            ? 'bg-success/10 text-success'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         )}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className="h-4 w-4 flex-shrink-0" />
         <span>{item.label}</span>
       </button>
     );
@@ -210,23 +202,23 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
   return (
     <div
       className={cn(
-        "bg-card border-r border-border flex flex-col h-screen flex-shrink-0 transition-all duration-200",
-        isCollapsed ? "w-0 overflow-hidden border-r-0" : "w-64 overflow-y-auto"
+        'bg-card border-r border-border flex flex-col h-screen flex-shrink-0 transition-all duration-200',
+        isCollapsed ? 'w-0 overflow-hidden border-r-0' : 'w-64 overflow-y-auto'
       )}
     >
-      {/* Header with collapse button */}
-      <div className="h-14 border-b border-border flex items-center justify-between px-3">
-        <div className="flex items-center">
-          <div className="h-9 w-9 rounded-lg bg-success/10 flex items-center justify-center mr-3">
+      {/* Header with collapse button — espacamento/tamanhos espelhados do OSG Projects */}
+      <div className="border-b border-border flex items-center justify-between p-6">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
             <Calculator className="h-5 w-5 text-success" />
           </div>
           <div>
-            <h1 className="font-semibold text-foreground text-sm">Tax</h1>
+            <h1 className="font-semibold text-foreground text-lg">Tax</h1>
             <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
           </div>
         </div>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="icon"
           onClick={onToggle}
           className="h-8 w-8 flex-shrink-0"
@@ -242,8 +234,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
       {/* Footer with actions */}
       <div className="mt-auto p-3 border-t border-border space-y-2">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           className="w-full justify-start text-muted-foreground hover:text-success hover:bg-success/5"
           onClick={() => navigate('/equipe')}
@@ -251,8 +243,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
           <ArrowLeft className="h-4 w-4 mr-2" />
           Trocar área
         </Button>
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           size="sm"
           className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/5"
           onClick={handleSignOut}

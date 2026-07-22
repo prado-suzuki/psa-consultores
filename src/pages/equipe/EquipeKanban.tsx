@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
+import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import {
   buildDeliverableUpdatePayload,
@@ -38,6 +39,10 @@ const EquipeKanban = () => {
   const initialQuery = useEquipeKanbanInitialQuery();
   const deliverableMutations = useEquipeKanbanDeliverableMutations();
   const attachmentMutations = useEquipeKanbanAttachments();
+  const { data: blockers = {} } = useDeliverableBlockers();
+  // Selo de bloqueio só faz sentido em tarefa aberta (concluída = destravado na prática).
+  const getBlocker = (deliverable: Deliverable) =>
+    deliverable.status === 'completed' ? undefined : blockers[deliverable.id];
 
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
@@ -127,16 +132,21 @@ const EquipeKanban = () => {
   );
 
   const filteredDeliverables = useMemo(() => {
-    const parentIdsOfMatchingSubtasks = new Set<string>();
-    deliverables.forEach((deliverable) => {
-      if (deliverable.parent_id && directMatchIds.has(deliverable.id)) {
-        parentIdsOfMatchingSubtasks.add(deliverable.parent_id);
+    const byId = new Map(deliverables.map((deliverable) => [deliverable.id, deliverable]));
+    const keep = new Set<string>();
+    // Mantém cada item que bate no filtro E toda a cadeia de mães acima dele (mãe, avó, ...),
+    // pra subtarefa/neta continuar aninhada sob a raiz em vez de sumir.
+    directMatchIds.forEach((id) => {
+      keep.add(id);
+      const visited = new Set<string>();
+      let parentId = byId.get(id)?.parent_id ?? null;
+      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
+        keep.add(parentId);
+        visited.add(parentId);
+        parentId = byId.get(parentId)?.parent_id ?? null;
       }
     });
-    return deliverables.filter(
-      (deliverable) =>
-        directMatchIds.has(deliverable.id) || parentIdsOfMatchingSubtasks.has(deliverable.id),
-    );
+    return deliverables.filter((deliverable) => keep.has(deliverable.id));
   }, [deliverables, directMatchIds]);
 
   const hierarchicalDeliverables = useMemo(
@@ -425,6 +435,7 @@ const EquipeKanban = () => {
           sortByDueDate={sortByDueDate}
           getColumnDeliverables={getColumnDeliverables}
           getProfileName={getProfileName}
+          getBlocker={getBlocker}
           onSortToggle={() => {
             setSortByDueDate((current) =>
               current === null ? 'asc' : current === 'asc' ? 'desc' : null,
@@ -440,6 +451,7 @@ const EquipeKanban = () => {
           deliverables={hierarchicalDeliverables}
           expandedTasks={expandedTasks}
           getProfileName={getProfileName}
+          getBlocker={getBlocker}
           getStatusBadgeColor={getStatusBadgeColor}
           getStatusLabel={getStatusLabel}
           onToggleExpanded={toggleTaskExpanded}

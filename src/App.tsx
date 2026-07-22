@@ -35,6 +35,7 @@ import ClienteDashboard from "./pages/cliente/ClienteDashboard";
 import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
 import DetalhesChamado from "./pages/cliente/DetalhesChamado";
+import MeusDocumentos from "./pages/cliente/MeusDocumentos";
 
 
 // Equipe (core)
@@ -87,6 +88,7 @@ import ProcedimentosDev from "./pages/equipe/dev/ProcedimentosDev";
 import IcmsSaidas from "./pages/equipe/dev/IcmsSaidas";
 
 // Equipe > Fiscal / Tax
+import FiscalBoasVindas from "./pages/equipe/fiscal/FiscalBoasVindas";
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
@@ -96,6 +98,7 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 
 // Equipe > OSG / Board
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
+import OsgBoasVindas from "./pages/equipe/osg/OsgBoasVindas";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
@@ -159,6 +162,8 @@ const App = () => (
               <Route path="/cliente/novo-chamado" element={<ProtectedRoute><NovoChamado /></ProtectedRoute>} />
               <Route path="/cliente/chamados" element={<ProtectedRoute><MeusChamados /></ProtectedRoute>} />
               <Route path="/cliente/chamados/:id" element={<ProtectedRoute><DetalhesChamado /></ProtectedRoute>} />
+              <Route path="/cliente/documentos" element={<ProtectedRoute><MeusDocumentos /></ProtectedRoute>} />
+
 
               {/* Admin Routes */}
               <Route path="/admin" element={<Navigate to="/gestao" replace />} />
@@ -228,6 +233,7 @@ const App = () => (
               <Route path="/gestao/acessos" element={<GestaoAccessGate><GestaoAcessos /></GestaoAccessGate>} />
 
               {/* Tax (Fiscal) Routes */}
+              <Route path="/equipe/tax" element={<ProtectedRoute><FiscalBoasVindas /></ProtectedRoute>} />
               <Route path="/equipe/tax/dashboard" element={<PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
@@ -238,6 +244,7 @@ const App = () => (
 
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/osg/inicio" element={<ProtectedRoute><OsgBoasVindas /></ProtectedRoute>} />
               <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/clientes" element={<PageAccessGate pagePath="/equipe/osg/projetos/clientes"><OsgClientes /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />

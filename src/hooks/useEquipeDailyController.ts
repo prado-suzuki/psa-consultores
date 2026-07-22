@@ -10,8 +10,13 @@ import {
   type TeamMember,
 } from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { useClusters } from '@/hooks/useClusters';
+import { useDailySprintTasks } from '@/hooks/useDailySprintTasks';
+import { matchCluster } from '@/lib/clusterFilter';
 import { toast } from '@/hooks/use-toast';
+import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import {
+  buildDailyBlockerFields,
   buildDailyExportRows,
   createDailyEditDraft,
   createDailyFormDraft,
@@ -45,6 +50,12 @@ export function useEquipeDailyController() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
   const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
+  // Cluster é filtrado client-side (os dailys são filtrados no servidor por pessoa/sprint/data,
+  // mas não têm cluster_id direto). Chave compartilhada com as outras telas de /equipe.
+  const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
+  const { data: clusters = [] } = useClusters();
+  // Tarefas da pessoa na sprint escolhida — alimentam os chips e o dropdown de bloqueio.
+  const { data: sprintTasks = [] } = useDailySprintTasks(form.sprint_id, selectedUserId);
   const today = new Date().toISOString().split('T')[0];
   const filters: DailyFilters = {
     startDate: filterStartDate,
@@ -104,6 +115,25 @@ export function useEquipeDailyController() {
     authenticatedUserId: user?.id,
   }), [teamMembers, sprints, projects, processes, user?.id]);
 
+  // Cluster de um daily: pelo projeto direto ou, na falta, pelo projeto da sprint.
+  const clusterOfStandup = useMemo(() => {
+    const projectCluster = new Map(projects.map((p) => [p.id, p.cluster_id ?? null]));
+    const sprintProject = new Map(sprints.map((s) => [s.id, s.project_id ?? null]));
+    return (standup: DailyStandup): string | null => {
+      if (standup.project_id) return projectCluster.get(standup.project_id) ?? null;
+      if (standup.sprint_id) {
+        const projectId = sprintProject.get(standup.sprint_id);
+        if (projectId) return projectCluster.get(projectId) ?? null;
+      }
+      return null;
+    };
+  }, [projects, sprints]);
+
+  const visibleStandups = useMemo(
+    () => standups.filter((standup) => matchCluster(filterCluster, clusterOfStandup(standup))),
+    [standups, filterCluster, clusterOfStandup],
+  );
+
   const fetchStandups = async () => {
     if (!user) return;
     await domain.refetchStandups();
@@ -120,11 +150,11 @@ export function useEquipeDailyController() {
           payload: {
             did_yesterday: form.did_yesterday,
             will_do_today: form.will_do_today,
-            blockers: form.blockers || null,
             sprint_id: form.sprint_id || null,
             project_id: form.project_id || null,
             process_id: form.process_id || null,
-          },
+            ...buildDailyBlockerFields(form),
+          } as TablesUpdate<'daily_standups'>,
         });
         toast({ title: 'Daily atualizado', description: 'Seu registro foi atualizado.' });
       } else {
@@ -133,11 +163,11 @@ export function useEquipeDailyController() {
           date: today,
           did_yesterday: form.did_yesterday,
           will_do_today: form.will_do_today,
-          blockers: form.blockers || null,
           sprint_id: form.sprint_id || null,
           project_id: form.project_id || null,
           process_id: form.process_id || null,
-        });
+          ...buildDailyBlockerFields(form),
+        } as TablesInsert<'daily_standups'>);
         toast({ title: 'Daily registrado', description: 'O registro foi salvo com sucesso.' });
       }
       await fetchStandups();
@@ -217,28 +247,33 @@ export function useEquipeDailyController() {
 
   const handleClearFilters = () => {
     handleFiltersChange({ startDate: '', endDate: '', person: 'all', sprint: 'all' });
+    setFilterCluster('');
     toast({ title: 'Filtros limpos', description: 'Todos os filtros foram removidos.' });
   };
 
   const handleExportExcel = () => {
-    if (standups.length === 0) {
+    if (visibleStandups.length === 0) {
       toast({ title: 'Sem dados', description: 'Não há dailys para exportar.', variant: 'destructive' });
       return;
     }
-    const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(standups, lookups));
+    const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(visibleStandups, lookups));
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Dailys');
     const dateLabel = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
     XLSX.writeFile(workbook, `dailys_${dateLabel}.xlsx`);
-    toast({ title: 'Excel exportado', description: `${standups.length} daily(s) exportado(s) com sucesso.` });
+    toast({ title: 'Excel exportado', description: `${visibleStandups.length} daily(s) exportado(s) com sucesso.` });
   };
 
   return {
     userId: user?.id,
-    standups,
+    standups: visibleStandups,
     teamMembers,
     sprints,
     projects,
+    sprintTasks,
+    clusters,
+    filterCluster,
+    setFilterCluster,
     filteredProcesses: filterProcesses(processes, form.project_id),
     selectedUserId,
     setSelectedUserId,

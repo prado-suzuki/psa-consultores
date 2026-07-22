@@ -31,6 +31,7 @@ import {
   ClipboardList,
   FileBarChart2,
   MessageSquare,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
@@ -129,7 +130,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   };
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
-  const isProjects = location.pathname.startsWith('/equipe/osg/dashboard')
+  const isProjects = location.pathname.startsWith('/equipe/osg/inicio')
+    || location.pathname.startsWith('/equipe/osg/dashboard')
     || location.pathname.startsWith('/equipe/osg/projetos')
     || location.pathname.startsWith('/equipe/osg/auditoria');
 
@@ -206,6 +208,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {/* Aparece só fora do OSG Work, que mantém suas próprias ferramentas. */}
           {isProjects && (
           <>
+          <button
+            onClick={() => navigate('/equipe/osg/inicio')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/inicio'
+                ? "bg-osg-100 text-osg-700"
+                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+            )}
+          >
+            <Home className="h-4 w-4" />
+            {!collapsed && <span>Início</span>}
+          </button>
           <button
             onClick={() => navigate('/equipe/osg/dashboard')}
             className={cn(

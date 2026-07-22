@@ -195,6 +195,33 @@ export function useUploadDocumento() {
   });
 }
 
+/**
+ * Upload simplificado para a Área do Cliente (EDU-01): sem vínculo (bem/matrícula/pessoa),
+ * categoria fixa 'outros' e fonte 'cliente'. Reusa o mesmo pipeline sign-upload → PUT GCS
+ * → finalize → insert. A policy RLS "cliente can insert own documento_arquivo" garante
+ * que só cabe insert com cliente_id = resolve_user_cliente_id(auth.uid()).
+ */
+export function useUploadDocumentoCliente() {
+  const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { clienteId: string; file: File }) =>
+      enviarUmDocumento(fetchWithAuth, {
+        clienteId: args.clienteId,
+        vinculo: {},
+        categoria: 'outros',
+        file: args.file,
+        fonte: 'cliente',
+      }),
+    onSuccess: (_row, vars) => {
+      qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
+      toast({ title: 'Documento enviado' });
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao enviar documento', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
 /** Soft-delete: marca excluido=true (o blob permanece no bucket versionado). */
 export function useExcluirDocumento(clienteId: string) {
   const qc = useQueryClient();

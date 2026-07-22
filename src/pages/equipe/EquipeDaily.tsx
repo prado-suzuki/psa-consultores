@@ -24,6 +24,7 @@ const EquipeDaily = () => {
           sprints={daily.sprints}
           projects={daily.projects}
           processes={daily.filteredProcesses}
+          sprintTasks={daily.sprintTasks}
           form={daily.form}
           onFormChange={daily.setForm}
           registered={daily.registered}
@@ -37,10 +38,13 @@ const EquipeDaily = () => {
           standups={daily.standups}
           teamMembers={daily.teamMembers}
           sprints={daily.sprints}
+          clusters={daily.clusters}
+          clusterFilter={daily.filterCluster}
           filters={daily.filters}
           lookups={daily.lookups}
           loading={daily.loading}
           onFiltersChange={daily.handleFiltersChange}
+          onClusterChange={daily.setFilterCluster}
           onSearch={daily.fetchStandups}
           onClearFilters={daily.handleClearFilters}
           onExport={daily.handleExportExcel}

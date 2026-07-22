@@ -30,26 +30,41 @@ Cada tela do `/equipe` faz `supabase.from()` direto no componente (sem hook), e 
 - Criados os hooks-fonte: `src/hooks/useSprints.ts` (`useSprints`/`useActiveSprints`), `src/hooks/useSprintDeliverables.ts` (list + create/update/delete), `src/hooks/useProcessAreas.ts`.
 - `sprint_deliverables` fica oficializada como fonte única de tarefa da equipe.
 
-**FALTA (é o que exige banco / delegável):**
-1. Conferir se `tasks` tem linhas em produção (na auditoria de jul/2026 estava **vazia**): `select count(*) from public.tasks;`
-   - Se houver linhas: migrar para `sprint_deliverables` (status: `backlog→pending`, `to_do→pending`, `in_progress→in_progress`, `review→in_progress`, `done→completed`; `cluster`/`priority` não têm equivalente — decidir se viram tag/descrição).
-   - Se vazia: seguir direto para o DROP.
-2. **Repontar `src/pages/administracao/AdminPerformance.tsx`** (`useQuery(['admin-tasks-count'])`, ~linha 55) — hoje ainda lê `from('tasks')`. Apontar para `sprint_deliverables` (ou remover o card, que já é redundante com o card de entregáveis). **Bloqueia o DROP.**
-3. Deletar os arquivos órfãos `src/pages/equipe/EquipeTarefas.tsx` e `src/pages/equipe/EquipeNovaTarefa.tsx` (não são mais importados) e limpar entradas de `/equipe/tarefas*` em `src/config/protectedPages.ts`, se houver.
-4. **Migração:** `DROP TABLE public.tasks;` + `DROP TYPE task_status;` (só depois de 1-3).
-5. Atualizar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`).
+**✅ PRÉ-REQUISITOS DE CÓDIGO CONCLUÍDOS (2026-07-21, 2ª leva):**
+- `useDomainAdminPerformance.ts`: removido o `tasksQuery` (`from('tasks')`); o `deliverablesQuery` agora traz também `inProgress`. `AdminPerformance.tsx`: os dois cards ("Tarefas" + "Entregáveis") viraram **um único card "Entregáveis da equipe"** com os 3 status (Pendentes/Em Progresso/Concluídos) — fonte única `sprint_deliverables`.
+- Deletados os órfãos: `src/pages/equipe/EquipeTarefas.tsx`, `src/pages/equipe/EquipeNovaTarefa.tsx`, `src/hooks/useDomainEquipeTarefas.ts`, `src/hooks/useDomainNovaTarefa.ts` e os 2 testes correspondentes. Removidas as entradas `/equipe/tarefas` e `/equipe/tarefas/nova` de `src/config/protectedPages.ts`.
+- Verificado: **nenhuma referência a `tasks` / `useDomainEquipeTarefas` / `useDomainNovaTarefa` no `src/`**. Typecheck 0 erros; suíte 1168 testes passando.
 
-**Aceite:** nada no app referencia `tasks`; `tasks`/`task_status` não existem mais; typecheck e build limpos.
+**✅ BANCO CONCLUÍDO (2026-07-21):** `tasks` estava vazia (count 0) e tinha dependente órfão `public.task_comments` (FK `task_comments_task_id_fkey`, também count 0 — comentários das tarefas antigas; **não confundir** com `org_task_comments`, que é de `org_tasks` e segue viva). A Patrícia rodou no Lovable: `DROP TABLE IF EXISTS public.task_comments; DROP TABLE IF EXISTS public.tasks; DROP TYPE IF EXISTS task_status;`. Sem migração de dados (tabelas vazias).
 
-### T2 — Conectar Daily ↔ entregável ⚠️ MIGRAÇÃO
-**Objetivo:** o update/bloqueio da daily se ligar a uma tarefa específica (destrava "bloqueio vira tarefa").
+**Resta só:** regenerar `docs/rls/mapa-do-banco.md` (`node scripts/gen-mapa-banco.mjs`) e commitar/publicar o lote de código pelo GitHub Desktop.
 
-1. Migração: adicionar `daily_standups.deliverable_id uuid null references public.sprint_deliverables(id) on delete set null` (+ índice). Não referenciar `auth.users`.
-2. Em `src/pages/equipe/EquipeDaily.tsx`, permitir (opcional) vincular a linha do daily a um entregável da sprint ativa.
-3. RLS: garantir que a nova coluna respeita as regras vigentes de `daily_standups`.
-4. Atualizar `mapa-do-banco.md`.
+**T1 = fonte única `sprint_deliverables` — CONCLUÍDO (código + banco).**
 
-**Aceite:** na daily dá pra apontar "no que trabalhei / o que está bloqueado" para um entregável, e isso aparece no drill-down do entregável.
+**Aceite:** nada no app referencia `tasks` (✅ já); `tasks`/`task_status` não existem mais no banco.
+
+### T2/T3 — Daily de baixa fricção + bloqueio estruturado ⚠️ MIGRAÇÃO
+**Objetivo:** ligar o bloqueio da daily a uma tarefa específica ("bloqueio vira tarefa") e facilitar o preenchimento (não redigitar nome de tarefa), sem deixar moroso.
+
+**✅ FASE 1 — CÓDIGO FEITO (2026-07-21):**
+- Novo hook `useDailySprintTasks(sprintId, personId)` traz as tarefas da pessoa na sprint escolhida.
+- `DailyFormCard`: (a) **chips** das minhas tarefas acima de "ontem"/"hoje" — toca e insere `- [T-3] Título` no texto (helper `appendTaskReference`); (b) **bloqueio estruturado** que só abre ao marcar "Sim" (default "Não" = zero fricção): tarefa travada (dropdown das minhas tarefas), "por quê" (o antigo `blockers`) e "quem/o que destrava" (`blocker_owner`).
+- Draft/hydrate ganharam `has_blocker`/`blocked_deliverable_id`/`blocker_owner`; payload via `buildDailyBlockerFields` só envia as colunas novas quando preenchidas (não quebra base pré-migração). Export do Excel ganhou "Bloqueio (quem destrava)". Tipos opcionais + `select('*')` (types.ts pode estar defasado). 1184 testes ok.
+
+**✅ BANCO FEITO (2026-07-21):** a Patrícia rodou no Lovable:
+```sql
+ALTER TABLE public.daily_standups
+  ADD COLUMN blocked_deliverable_id uuid NULL REFERENCES public.sprint_deliverables(id) ON DELETE SET NULL,
+  ADD COLUMN blocker_owner text NULL;
+CREATE INDEX IF NOT EXISTS idx_daily_standups_blocked_deliverable
+  ON public.daily_standups (blocked_deliverable_id);
+```
+RLS: colunas novas herdam as policies de linha de `daily_standups`. `ON DELETE SET NULL` evita a armadilha de FK. Falta só `node scripts/gen-mapa-banco.mjs`.
+
+**✅ FASE 1b — CÓDIGO FEITO (2026-07-21):** selo "🚩 Bloqueada" na tarefa no Kanban (board + tabela). Hook `useDeliverableBlockers` (mapa tarefa→bloqueio mais recente, via `select('*')` — resiliente à migração; `formatBlockerTooltip` no hover). Selo só em tarefa não-concluída (`getBlocker` no `EquipeKanban.tsx`). Mostra em card, subtarefa e linhas da tabela. 1184 testes ok, tsc 0.
+
+**Aceite:** ✅ na daily dá pra marcar o que travou apontando a tarefa (1 toque) e o 🚩 aparece na tarefa no Kanban; preencher a daily ficou mais rápido (chips), não mais lento.
+**Futuro (Fase 2, se quiser):** ação "resolvido" pra baixar o selo sem precisar concluir a tarefa; link n:n de ontem/hoje ↔ tarefas; selo também no detalhe da sprint.
 
 ### T3 — Estruturar bloqueios ⚠️ MIGRAÇÃO (avaliar com T2)
 Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transformar em estrutura (motivo + responsável + `deliverable_id`), seja como colunas ou tabela `daily_blockers`. Depende da decisão da Patrícia; pode ser mesclado com T2.
@@ -66,8 +81,14 @@ Hoje `blockers` é um único campo texto e só ~10% preenchem. Avaliar transform
 ### T5 — Cockpit por projeto / visão de portfólio (código)
 A tela `Análise Inteligente` já é quase o cockpit da referência (score de saúde, taxa de entrega, atrasados, scope creep, bloqueios, evolução). Falta: (a) ser a **mesma verdade** do dashboard operacional; (b) uma **visão por projeto** (saúde de cada projeto lado a lado: saudável / atenção / problema / sem monitoramento). Reaproveitar a lógica de KPIs agrupando por `project_id`.
 
-### T6 — Kanban: subtarefa multi-nível / coluna própria (código)
-Hoje a subtarefa só aparece aninhada na coluna da **mãe** (não na coluna do próprio status), e aninhamento de 2+ níveis (neta) não renderiza. Decidir com a Patrícia: (a) subtarefa aparece como card na sua própria coluna, ou (b) achatar a hierarquia. O contador de "subtarefas ocultas" já adicionado ao Kanban ajuda a medir o tamanho do problema.
+### T6 — Kanban: subtarefa multi-nível / coluna própria (código) — ✅ CONCLUÍDO (2026-07-21)
+**Decisão da Patrícia:** manter a subtarefa **aninhada na mãe** (não card solto em coluna própria) — quando abre a subtarefa pra ler a descrição, precisa achar a mãe. Ver memória `feedback-kanban-subtarefa-aninhada-na-mae`.
+**Feito (código):**
+- `buildEquipeKanbanHierarchy` (`src/lib/equipeKanban.ts`) reescrito: agora é recursivo/achatado — cada raiz traz TODOS os descendentes (filhas, netas, ...) em DFS por código, cada linha anotada com `depth` (indentação), `hasChildren` e `hoursDisplay`. `subtaskCount`/`completedSubtasks` contam todos os níveis; `subtaskHoursTotal` soma só as FOLHAS do ramo (não duplica). Novo tipo `EquipeKanbanSubtaskRow`.
+- **Órfã (mãe fora da lista) agora vira raiz** em vez de sumir (corrige o "tarefa some no Kanban").
+- `EquipeKanban.tsx`: `filteredDeliverables` passou a puxar **toda a cadeia de mães** (mãe, avó, ...) de cada item que bate no filtro — subtarefa/neta filtrada continua aninhada sob a raiz.
+- Render recursivo por `depth` (indentação) no `KanbanBoard.tsx` e `KanbanTable.tsx`; linha mostra `hoursDisplay`.
+- Testes: `equipeKanban.test.ts` cobre netas (profundidade, DFS, soma só folhas) e órfã-vira-raiz.
 
 ---
 
