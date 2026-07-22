@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
-  Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
+  ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
   FilterX, Plus, RefreshCw, Search, ShieldAlert, SlidersHorizontal, Trash2, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -97,6 +97,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState<CategoryFilter>('todos');
   const [filtroStatus, setFiltroStatus] = useState<StatusFilter>('todos');
+  const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null);
   const [grupoAtivo, setGrupoAtivo] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [vincId, setVincId] = useState<string | null>(null);
@@ -219,6 +220,10 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       return (indexA < 0 ? 99 : indexA) - (indexB < 0 ? 99 : indexB) || a.localeCompare(b, 'pt-BR');
     })
     .map((tipo) => ({ tipo, grupos: gruposVisiveis.filter((grupo) => clusterKey(grupo.tipo) === tipo) }));
+  const categoriaEmFoco = categorias.some((categoria) => categoria.tipo === categoriaExpandida) ? categoriaExpandida : null;
+  const categoriasExibidas = categoriaEmFoco
+    ? categorias.filter((categoria) => categoria.tipo === categoriaEmFoco)
+    : categorias;
 
   return (
     <div className="space-y-8">
@@ -233,7 +238,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               <button
                 key={value}
                 type="button"
-                onClick={() => setFiltroCategoria(value)}
+                onClick={() => { setFiltroCategoria(value); setCategoriaExpandida(null); }}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
@@ -285,7 +290,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
 
       {categorias.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-osg-200 py-14 text-center text-sm text-osg-500">Nenhum resultado para os filtros selecionados.</div>
-      ) : categorias.map((categoria, index) => (
+      ) : categoriasExibidas.map((categoria, index) => (
         <section key={categoria.tipo} className="animate-osg-rise">
           <div className="mb-4">
             <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Categoria {String(index + 1).padStart(2, '0')}</span>
@@ -294,12 +299,29 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 <h3 className="text-xl font-bold tracking-tight text-osg-700">{TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}</h3>
                 <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
               </div>
-              <span className="text-xs font-semibold tabular-nums text-osg-500">{categoria.grupos.length} entidade{categoria.grupos.length === 1 ? '' : 's'}</span>
+              <button
+                type="button"
+                onClick={() => setCategoriaExpandida(categoriaEmFoco ? null : categoria.tipo)}
+                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-osg-moss transition-colors hover:text-osg-700 hover:underline"
+              >
+                {categoriaEmFoco ? <><ArrowLeft className="h-3.5 w-3.5" />Voltar às categorias</> : <>Ver todos <ArrowRight className="h-3.5 w-3.5" /></>}
+              </button>
             </div>
+            <span className="mt-2 block text-xs font-semibold tabular-nums text-osg-500">{categoria.grupos.length} entidade{categoria.grupos.length === 1 ? '' : 's'}</span>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {categoria.grupos.map((grupo) => <EntityCard key={grupo.key} grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />)}
-          </div>
+          {categoriaEmFoco ? (
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {categoria.grupos.map((grupo) => <EntityCard key={grupo.key} grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />)}
+            </div>
+          ) : (
+            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4" aria-label={`Entidades de ${TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}`}>
+              {categoria.grupos.map((grupo) => (
+                <div key={grupo.key} className="w-[85%] shrink-0 snap-start sm:w-[calc((100%_-_1rem)/2)] xl:w-[calc((100%_-_2rem)/3)]">
+                  <EntityCard grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       ))}
 
@@ -381,7 +403,7 @@ function EntityCard({ grupo, onOpen }: { grupo: Grupo; onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group flex min-h-48 flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
+      className="group flex h-full min-h-48 flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
     >
       <div className="flex items-start justify-between gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-osg-50 text-osg-moss"><Icon className="h-5 w-5" /></span>
