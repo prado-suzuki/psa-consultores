@@ -1,66 +1,31 @@
-# EDU-01 — Documentos na Área do Cliente
+## Objetivo
+Corrigir dropdown "Equipe" vazio no modal "Novo Projeto" do OSG, adicionando `'osg'` ao `page_categories` da área OSG (id `b0814bc8-1959-4755-8bb1-a44560083791`) via **migração versionada** (não via insert avulso).
 
-Permitir que o cliente (role `client`) anexe e liste seus próprios documentos na Área do Cliente, reusando o pipeline OSG (sign-upload → PUT GCS → finalize → insert em `documento_arquivo`).
+## Pré-voo (somente leitura, via `supabase--read_query`)
+1. `select id, name, is_active, page_categories from public.estrutura_areas where id = 'b0814bc8-1959-4755-8bb1-a44560083791';`
+   — esperado: `is_active = true` e `page_categories` **não** contém `'osg'`.
+2. `select id, name, is_active from public.estrutura_equipes where area_id = 'b0814bc8-1959-4755-8bb1-a44560083791' and is_active = true;`
+   — esperado: pelo menos uma equipe ativa. Se vazio, **parar e avisar** (o fix sozinho não resolve).
 
-## 1. Migration RLS (aditiva, `to authenticated`)
-
-Arquivo: `supabase/migrations/<ts>_documento_arquivo_cliente_portal_rls.sql`
-
-Duas policies novas, sem tocar nas existentes de `team_member+`/admin:
+## Correção (migração versionada, via `supabase--migration`)
+SQL idempotente:
 
 ```sql
-create policy "cliente can view own documento_arquivo"
-on public.documento_arquivo for select to authenticated
-using (
-  fonte = 'cliente'
-  and excluido = false
-  and cliente_id = public.resolve_user_cliente_id(auth.uid())
-);
-
-create policy "cliente can insert own documento_arquivo"
-on public.documento_arquivo for insert to authenticated
-with check (
-  fonte = 'cliente'
-  and cliente_id = public.resolve_user_cliente_id(auth.uid())
-);
+update public.estrutura_areas
+   set page_categories = array_append(page_categories, 'osg')
+ where id = 'b0814bc8-1959-4755-8bb1-a44560083791'
+   and not ('osg' = any(page_categories));
 ```
 
-Sem UPDATE/DELETE para cliente nesta fase (fora de escopo). `resolve_user_cliente_id` retorna `null` para quem não é representante → igualdade nunca casa, isolando por construção.
+## Fora de escopo
+- Nenhuma RLS, trigger, função ou view.
+- Nenhuma outra área além da OSG; não mexer em Tax nem inativas.
+- Não alterar `is_active`, nomes ou clusters.
+- Não alterar código do hook `useEstruturaEquipes.ts` nem componentes de frontend.
+- Não tocar em clientes, projetos, membros ou equipes.
 
-## 2. Frontend
-
-### 2.1 Hooks (extensão de `src/hooks/useDocumentoArquivo.ts`)
-Reusa `enviarUmDocumento`. Novos hooks enxutos que não exigem `vinculo`:
-
-- `useUploadDocumentoCliente()` — chama `enviarUmDocumento` com `vinculo={}`, `categoria='outros'`, `fonte='cliente'`. Invalida a lista.
-- Já existem `useDocumentosByCliente(clienteId)` e `useBaixarDocumento` — reusar direto.
-
-### 2.2 Página `src/pages/cliente/MeusDocumentos.tsx`
-- Usa `useClienteAtual()` para obter `cliente_id`.
-- Se `cliente_id == null` (e não carregando): card de aviso "Sua conta ainda não está vinculada a um cliente. Fale com a PSA." — sem uploader.
-- Se vinculado:
-  - **Dropzone nativo, mesmo padrão do `DocUploadDialog` da OSG**: `<input type="file" multiple>` oculto + handlers `onDragOver` / `onDragLeave` / `onDrop` em um `<div>` que atua como área de arrastar-e-soltar. **Não** adicionar `react-dropzone` — sem nova dependência.
-  - Validar cada arquivo com `ACCEPT` / `MAX_BYTES` de `docMeta.ts` e disparar `useUploadDocumentoCliente.mutate` para cada um.
-  - Lista simples (nome, data, botão download) usando `useDocumentosByCliente`; a própria RLS garante `fonte='cliente'`, mas mantemos filtro defensivo no client.
-- Segue padrões visuais das outras páginas `/cliente/*`.
-
-### 2.3 Rota e navegação
-- `src/App.tsx`: `<Route path="/cliente/documentos" element={<ProtectedRoute><MeusDocumentos /></ProtectedRoute>} />`.
-- `src/pages/cliente/ClienteDashboard.tsx`: novo card/atalho "Meus Documentos" apontando para `/cliente/documentos`.
-
-## 3. Fora de escopo (não tocar)
-- Policies existentes `team_member+`/admin em `documento_arquivo`.
-- Endpoints Cloud Run (`sign-upload`, `finalize`, `sign-download`).
-- Metadados "quem enviou/quando" (EDU-02) e checklist/classificação (EDU-03).
-- UPDATE/DELETE pelo cliente.
-
-## 4. GATE (validar em dev)
-1. Cliente vinculado: dropzone → arquivo aparece no GCS, linha em `documento_arquivo` com `fonte='cliente'` e `cliente_id` correto, aparece na lista, persiste após reload; download funciona.
-2. Cliente sem representante: mensagem "conta não vinculada"; uploader ausente; nenhum erro cru.
-3. Isolamento: usuário do cliente A não vê linhas do cliente B nem linhas `fonte='psa'` (validar via tela e via SQL).
-4. Regressão OSG: team_member continua vendo/inserindo documentos em `Documentos do Cliente` normalmente.
-
-## Detalhes técnicos
-- `ambiente` é setado por `enviarUmDocumento` a partir de `sign.ambiente ?? currentAmbiente`.
-- `excluido=false` e `status='ativo'` já são filtrados por `useDocumentosByCliente`.
-- `categoria='outros'` é valor válido do enum `osg_doc_categoria`.
+## GATE (pós-execução, via `supabase--read_query`)
+1. `select id, name, page_categories from public.estrutura_areas where id = 'b0814bc8-1959-4755-8bb1-a44560083791';` — `page_categories` deve conter `'osg'` e preservar valores anteriores.
+2. `select id, name from public.estrutura_areas where is_active = true and page_categories @> array['osg'];` — deve retornar a área OSG (reproduz passo 1 do hook).
+3. `select id, name from public.estrutura_equipes where is_active = true and area_id = 'b0814bc8-1959-4755-8bb1-a44560083791' order by name;` — deve listar "Equipe OSG".
+4. App: abrir OSG Projects → Novo Projeto e confirmar que "Equipe OSG" aparece no dropdown; conferir que Tax continua normal.
