@@ -314,7 +314,10 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               {categoria.grupos.map((grupo) => <EntityCard key={grupo.key} grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />)}
             </div>
           ) : (
-            <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4" aria-label={`Entidades de ${TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}`}>
+            <div
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [scrollbar-color:hsl(var(--osg-moss))_hsl(var(--osg-100))] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-osg-moss [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-osg-100"
+              aria-label={`Entidades de ${TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}`}
+            >
               {categoria.grupos.map((grupo) => (
                 <div key={grupo.key} className="w-[85%] shrink-0 snap-start sm:w-[calc((100%_-_1rem)/2)] xl:w-[calc((100%_-_2rem)/3)]">
                   <EntityCard grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />
