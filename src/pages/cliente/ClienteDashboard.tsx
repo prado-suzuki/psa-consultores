@@ -165,6 +165,10 @@ export default function ClienteDashboard() {
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={() => navigate("/cliente/documentos")}>
+              <FileUp className="mr-2 h-4 w-4" />
+              Meus Documentos
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao site
