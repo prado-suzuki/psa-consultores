@@ -35,6 +35,7 @@ import ClienteDashboard from "./pages/cliente/ClienteDashboard";
 import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
 import DetalhesChamado from "./pages/cliente/DetalhesChamado";
+import MeusDocumentos from "./pages/cliente/MeusDocumentos";
 
 
 // Equipe (core)
