@@ -238,7 +238,10 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               <button
                 key={value}
                 type="button"
-                onClick={() => { setFiltroCategoria(value); setCategoriaExpandida(null); }}
+                onClick={() => {
+                  setFiltroCategoria(value);
+                  setCategoriaExpandida(value === 'todos' ? null : value);
+                }}
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
@@ -301,7 +304,14 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               </div>
               <button
                 type="button"
-                onClick={() => setCategoriaExpandida(categoriaEmFoco ? null : categoria.tipo)}
+                onClick={() => {
+                  if (categoriaEmFoco) {
+                    setFiltroCategoria('todos');
+                    setCategoriaExpandida(null);
+                  } else {
+                    setCategoriaExpandida(categoria.tipo);
+                  }
+                }}
                 className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-osg-moss transition-colors hover:text-osg-700 hover:underline"
               >
                 {categoriaEmFoco ? <><ArrowLeft className="h-3.5 w-3.5" />Voltar às categorias</> : <>Ver todos <ArrowRight className="h-3.5 w-3.5" /></>}
