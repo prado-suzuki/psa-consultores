@@ -20,6 +20,7 @@ import {
   MessageSquare,
   ArrowLeft,
   LayoutDashboard,
+  FileUp,
 } from "lucide-react";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
