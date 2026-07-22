@@ -2,13 +2,15 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
-  PieChart, Plus, RefreshCw, Search, ShieldAlert, Trash2, User, Users,
+  FilterX, Plus, RefreshCw, Search, ShieldAlert, SlidersHorizontal, Trash2, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -47,6 +49,15 @@ const TIPO_CLUSTER_ORDER = [
   'Matrícula (Imóvel Rural)', 'Matrícula (Imóvel Urbano)', 'Bem',
 ];
 const clusterKey = (tipo: string) => tipo === 'Pessoa Jurídica (Cooperativa)' ? 'Pessoa Jurídica' : tipo;
+type CategoryFilter = 'todos' | typeof TIPO_CLUSTER_ORDER[number];
+const CATEGORIAS_FILTRO: Array<{ value: CategoryFilter; label: string; Icon: LucideIcon }> = [
+  { value: 'todos', label: 'Tudo', Icon: ClipboardCheck },
+  { value: 'Pessoa Física', label: 'Pessoas físicas', Icon: User },
+  { value: 'Pessoa Jurídica', label: 'Pessoas jurídicas', Icon: Building2 },
+  { value: 'Matrícula (Imóvel Rural)', label: 'Imóveis rurais', Icon: Landmark },
+  { value: 'Matrícula (Imóvel Urbano)', label: 'Imóveis urbanos', Icon: Landmark },
+  { value: 'Bem', label: 'Bens', Icon: FolderKanban },
+];
 const STATUS_OPTIONS: { value: ChecklistStatus; label: string }[] = [
   { value: 'pendente', label: 'Pendente' },
   { value: 'solicitado', label: 'Solicitado' },
@@ -84,7 +95,8 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const remover = useRemoverChecklistItem(clienteId);
 
   const [busca, setBusca] = useState('');
-  const [filtro, setFiltro] = useState<StatusFilter>('todos');
+  const [filtroCategoria, setFiltroCategoria] = useState<CategoryFilter>('todos');
+  const [filtroStatus, setFiltroStatus] = useState<StatusFilter>('todos');
   const [grupoAtivo, setGrupoAtivo] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [vincId, setVincId] = useState<string | null>(null);
@@ -152,21 +164,33 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itens, pessoaById, bemLabelById, matriculaById]);
 
-  const gruposVisiveis = useMemo(() => {
+  const gruposFiltrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
     return todosGrupos.filter((grupo) => grupo.items.some((item) => {
       const status = statusEfetivo(item);
-      const correspondeStatus = filtro === 'todos'
-        || (filtro === 'abertos' && (status === 'pendente' || status === 'solicitado'))
-        || (filtro === 'recebidos' && status === 'recebido')
-        || (filtro === 'encerrados' && ['dispensado', 'nao_aplicavel', 'nao_solicitado'].includes(status));
+      const correspondeStatus = filtroStatus === 'todos'
+        || (filtroStatus === 'abertos' && (status === 'pendente' || status === 'solicitado'))
+        || (filtroStatus === 'recebidos' && status === 'recebido')
+        || (filtroStatus === 'encerrados' && ['dispensado', 'nao_aplicavel', 'nao_solicitado'].includes(status));
       const correspondeBusca = !termo || [grupo.label, grupo.tipo, item.documento, item.nota, instanceDetail(item)]
         .filter(Boolean).some((valor) => valor!.toLocaleLowerCase('pt-BR').includes(termo));
       return correspondeStatus && correspondeBusca;
     }));
     // instanceDetail depende do mapa de matrículas.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todosGrupos, busca, filtro, matriculaById]);
+  }, [todosGrupos, busca, filtroStatus, matriculaById]);
+
+  const contagemPorCategoria = useMemo(() => {
+    const contagem = new Map<string, number>();
+    gruposFiltrados.forEach((grupo) => {
+      const categoria = clusterKey(grupo.tipo);
+      contagem.set(categoria, (contagem.get(categoria) ?? 0) + 1);
+    });
+    return contagem;
+  }, [gruposFiltrados]);
+  const gruposVisiveis = filtroCategoria === 'todos'
+    ? gruposFiltrados
+    : gruposFiltrados.filter((grupo) => clusterKey(grupo.tipo) === filtroCategoria);
 
   const grupoSelecionado = todosGrupos.find((grupo) => grupo.key === grupoAtivo) ?? null;
   const vincItem = vincId ? itens.find((item) => item.id === vincId) ?? null : null;
@@ -200,20 +224,59 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...totais} />
 
-      <div className="flex flex-col gap-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)] sm:flex-row sm:items-center">
-        <div className="relative min-w-0 flex-1">
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
+          {CATEGORIAS_FILTRO.map(({ value, label, Icon }) => {
+            const ativo = filtroCategoria === value;
+            const total = value === 'todos' ? gruposFiltrados.length : contagemPorCategoria.get(value) ?? 0;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFiltroCategoria(value)}
+                className={cn(
+                  'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
+                  ativo ? 'bg-white text-osg-700 shadow-sm' : 'text-osg-500 hover:bg-osg-100/60 hover:text-osg-700',
+                )}
+              >
+                <Icon className="h-3.5 w-3.5" />{label}
+                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-osg-600' : 'text-osg-500/70')}>{total}</span>
+                {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-osg-moss" />}
+              </button>
+            );
+          })}
+        </div>
+        <div className="relative ml-auto min-w-[220px] flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
           <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pessoa, imóvel ou documento..." className="border-osg-200/80 bg-osg-50/60 pl-9" />
         </div>
-        <Select value={filtro} onValueChange={(value) => setFiltro(value as StatusFilter)}>
-          <SelectTrigger className="w-full border-osg-200/80 bg-white sm:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="todos">Todos os status</SelectItem>
-            <SelectItem value="abertos">Em aberto</SelectItem>
-            <SelectItem value="recebidos">Recebidos</SelectItem>
-            <SelectItem value="encerrados">Encerrados</SelectItem>
-          </SelectContent>
-        </Select>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="h-10 gap-1.5">
+              <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
+              {filtroStatus !== 'todos' && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-osg-moss px-1 text-[10px] font-bold text-white">1</span>}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Status</Label>
+              <Select value={filtroStatus} onValueChange={(value) => setFiltroStatus(value as StatusFilter)}>
+                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os status</SelectItem>
+                  <SelectItem value="abertos">Em aberto</SelectItem>
+                  <SelectItem value="recebidos">Recebidos</SelectItem>
+                  <SelectItem value="encerrados">Encerrados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {filtroStatus !== 'todos' && (
+              <Button variant="ghost" size="sm" onClick={() => setFiltroStatus('todos')} className="h-8 w-full text-xs text-osg-500 hover:text-osg-700">
+                <FilterX className="mr-1.5 h-3.5 w-3.5" />Limpar filtros
+              </Button>
+            )}
+          </PopoverContent>
+        </Popover>
         <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
           <RefreshCw className={cn('mr-2 h-4 w-4', gerar.isPending && 'animate-spin')} />Atualizar
         </Button>
