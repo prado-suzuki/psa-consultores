@@ -402,8 +402,10 @@ const DocumentosCliente = () => {
                                   <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
                                 )}
                                 <p className="truncate text-xs text-muted-foreground">
-                                  {vinculoLabel(d)} · {formatBytes(d.tamanho)} ·{' '}
-                                  {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                                  {vinculoLabel(d)} · {formatBytes(d.tamanho)} · enviado por{' '}
+                                  {(d.created_by && uploaderNames[d.created_by]) || '—'} em{' '}
+                                  {new Date(d.created_at).toLocaleDateString('pt-BR')}{' '}
+                                  {new Date(d.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
                               <Tooltip>
