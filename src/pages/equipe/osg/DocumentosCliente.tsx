@@ -64,6 +64,12 @@ const DocumentosCliente = () => {
   const baixar = useBaixarDocumento();
   const preview = usePreviewUrl();
 
+  const uploaderIds = useMemo(
+    () => docs.map((d) => d.created_by).filter((v): v is string => !!v),
+    [docs],
+  );
+  const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
+
   const [selected, setSelected] = useState<string>('all');
   const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
   const [uploadOpen, setUploadOpen] = useState(false);
