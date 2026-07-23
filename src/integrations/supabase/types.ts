@@ -8045,6 +8045,13 @@ export type Database = {
           ticket_id: string
         }[]
       }
+      get_uploader_names: {
+        Args: { _ids: string[] }
+        Returns: {
+          display_name: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -8122,6 +8129,10 @@ export type Database = {
       sistema_cluster_visivel: {
         Args: { _sistema_id: string }
         Returns: boolean
+      }
+      soft_delete_documento_cliente: {
+        Args: { _id: string }
+        Returns: undefined
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
