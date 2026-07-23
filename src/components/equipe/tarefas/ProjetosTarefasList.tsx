@@ -2,6 +2,9 @@ import { Fragment, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   CalendarDays,
   Building2,
   Check,
@@ -132,6 +135,40 @@ export function ProjetosTarefasList({
   );
   const updateTask = useUpdateOrgTask(area);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<{ column: 'prazo' | 'progresso' | null; dir: 'asc' | 'desc' }>({ column: null, dir: 'asc' });
+
+  const cycleSort = (column: 'prazo' | 'progresso') => setSort(previous => {
+    if (previous.column !== column) return { column, dir: 'asc' };
+    if (previous.dir === 'asc') return { column, dir: 'desc' };
+    return { column: null, dir: 'asc' };
+  });
+
+  const sortIcon = (column: 'prazo' | 'progresso') => {
+    if (sort.column !== column) return <ArrowUpDown className="h-3 w-3 opacity-40" />;
+    return sort.dir === 'asc'
+      ? <ArrowUp className="h-3 w-3 text-primary" />
+      : <ArrowDown className="h-3 w-3 text-primary" />;
+  };
+
+  const sortedHierarchy = useMemo(() => {
+    if (!sort.column) return hierarchy;
+    const factor = sort.dir === 'asc' ? 1 : -1;
+    const groupValue = (group: (typeof hierarchy)[number]) => sort.column === 'prazo'
+      ? (group.os?.data_fim ? parseDate(group.os.data_fim).getTime() : null)
+      : completionPercentage(group.completedTaskCount, group.taskCount);
+    const compareGroups = (a: (typeof hierarchy)[number], b: (typeof hierarchy)[number]) => {
+      const av = groupValue(a);
+      const bv = groupValue(b);
+      if (av === null && bv === null) return 0;
+      if (av === null) return 1;
+      if (bv === null) return -1;
+      return (av - bv) * factor;
+    };
+    // Ordena globalmente (entre clientes), reordenando também os divisores.
+    return [...hierarchy].sort(compareGroups).map(group => sort.column === 'progresso'
+      ? { ...group, projects: [...group.projects].sort((a, b) => (completionPercentage(a.completedTaskCount, a.taskCount) - completionPercentage(b.completedTaskCount, b.taskCount)) * factor) }
+      : group);
+  }, [hierarchy, sort]);
 
   const toggle = (id: string) => setCollapsed(previous => {
     const next = new Set(previous);
@@ -202,13 +239,13 @@ export function ProjetosTarefasList({
     return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Ajuste os filtros ou crie um novo projeto.</p></div>;
   }
 
-  const allCollapsed = hierarchy.every(group => collapsed.has(`os:${group.id}`));
+  const allCollapsed = sortedHierarchy.every(group => collapsed.has(`os:${group.id}`));
   const toggleAll = () => {
     if (allCollapsed) {
       setCollapsed(new Set());
       return;
     }
-    setCollapsed(new Set(hierarchy.map(group => `os:${group.id}`)));
+    setCollapsed(new Set(sortedHierarchy.map(group => `os:${group.id}`)));
   };
 
   return <div className="space-y-2">
@@ -220,17 +257,20 @@ export function ProjetosTarefasList({
     </div>
     <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
-      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div><div className="px-3 py-2.5">Prazo</div><div /><div />
+      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
+      <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
+      <button type="button" onClick={() => cycleSort('progresso')} className={cn('flex items-center justify-end gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'progresso' ? 'text-foreground' : '')}>Progresso{sortIcon('progresso')}</button>
+      <div />
     </div>
-    {hierarchy.map((group, index) => {
+    {sortedHierarchy.map((group, index) => {
       const groupId = `os:${group.id}`;
       const isCollapsed = collapsed.has(groupId);
-      const showClientDivider = index === 0 || hierarchy[index - 1].clientKey !== group.clientKey;
+      const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
         {showClientDivider && <div className="flex min-w-[1010px] items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0">
           <Building2 className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
-          <span className="text-xs text-muted-foreground">{hierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
+          <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
         <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
