@@ -41,6 +41,11 @@ export function DocumentosTab({ clienteId, vinculo, categoriaPadrao, nrMatricula
   const upload = useUploadDocumento();
   const excluir = useExcluirDocumento(clienteId);
   const baixar = useBaixarDocumento();
+  const uploaderIds = useMemo(
+    () => docs.map((d) => d.created_by).filter((v): v is string => !!v),
+    [docs],
+  );
+  const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
   const georefInvalido = categoria === 'georreferenciamento' && (!vinculo.matriculaId || !nrMatricula?.trim());
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
