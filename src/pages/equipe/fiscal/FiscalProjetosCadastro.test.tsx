@@ -38,6 +38,13 @@ const mocks = vi.hoisted(() => ({
   useDomainFiscalProjetosCadastro: vi.fn(),
   resolveProdutoIdByServico: vi.fn(),
   toastError: vi.fn(),
+  navigate: vi.fn(),
+  location: { pathname: '/equipe/osg/projetos/cadastro', state: null as unknown },
+}));
+
+vi.mock('react-router-dom', () => ({
+  useLocation: () => mocks.location,
+  useNavigate: () => mocks.navigate,
 }));
 
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: mocks.useAuth }));
@@ -222,6 +229,7 @@ function inputNear(labelText: string | RegExp) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.location.state = null;
   mocks.useAuth.mockReturnValue({ user: { id: 'user-1' } });
   mocks.useOrgProjects.mockReturnValue({
     data: [taxProject, completedProject, osgProject],
@@ -334,6 +342,26 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     expect(mocks.useClusterIdByPageCategory).toHaveBeenCalledWith('osg');
     expect(mocks.useDashboardProjectIds).toHaveBeenCalledWith('cluster-osg', false);
     expect(mocks.useEstruturaEquipesByCategory).toHaveBeenCalledWith('osg');
+  });
+
+  it('abre o novo projeto com o rascunho recebido do checklist tributário', async () => {
+    mocks.location.state = {
+      projectPrefill: {
+        clientId: 'client-1',
+        name: 'Beta Cliente - Planejamento Tributário',
+        description: 'Descrição multidisciplinar do planejamento tributário.',
+        isMultidisciplinar: true,
+      },
+    };
+
+    render(<OsgProjetos />);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(inputNear(/Nome do Projeto/)).toHaveValue('Beta Cliente - Planejamento Tributário');
+    expect(inputNear(/Descrição do Projeto/)).toHaveValue('Descrição multidisciplinar do planejamento tributário.');
+    expect(screen.getByText(/^Cliente/, { selector: 'label' }).parentElement).toHaveTextContent('Beta Cliente');
+    expect(screen.getByRole('switch')).toBeChecked();
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/osg/projetos/cadastro', { replace: true, state: null });
   });
 
   it('preserva estados de carregamento, vazio e ausência temporária do conjunto visível', () => {

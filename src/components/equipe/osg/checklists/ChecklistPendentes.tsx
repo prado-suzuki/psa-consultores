@@ -2,15 +2,13 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
-  FilterX, Plus, RefreshCw, Search, ShieldAlert, SlidersHorizontal, Trash2, User,
+  RefreshCw, Search, ShieldAlert, Trash2, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -71,6 +69,13 @@ type StatusEfetivo = 'pendente' | 'solicitado' | 'recebido' | 'dispensado' | 'na
 type StatusFilter = 'todos' | 'abertos' | 'recebidos' | 'encerrados';
 type Grupo = { key: string; label: string; tipo: string; items: ChecklistClienteRow[] };
 
+const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'abertos', label: 'Em aberto', dot: 'bg-amber-500' },
+  { value: 'recebidos', label: 'Recebidos', dot: 'bg-osg-moss' },
+  { value: 'encerrados', label: 'Encerrados', dot: 'bg-slate-400' },
+];
+
 const statusEfetivo = (item: ChecklistClienteRow): StatusEfetivo => {
   if (item.status === 'dispensado') return 'dispensado';
   if (item.status === 'nao_aplicavel') return 'nao_aplicavel';
@@ -79,6 +84,21 @@ const statusEfetivo = (item: ChecklistClienteRow): StatusEfetivo => {
   return itemRecebido(item) ? 'recebido' : 'pendente';
 };
 const itemAberto = (item: ChecklistClienteRow) => ['pendente', 'solicitado'].includes(statusEfetivo(item));
+
+// Progresso de uma categoria: recebidos sobre a base (recebidos + pendentes + solicitados);
+// itens encerrados (dispensado / não aplicável / não solicitado) ficam fora da base.
+const progressoCategoria = (grupos: Grupo[]) => {
+  let recebidos = 0;
+  let base = 0;
+  for (const grupo of grupos) {
+    for (const item of grupo.items) {
+      const status = statusEfetivo(item);
+      if (status === 'recebido') { recebidos++; base++; }
+      else if (status === 'pendente' || status === 'solicitado') base++;
+    }
+  }
+  return { recebidos, base, pct: base ? Math.round((recebidos / base) * 100) : 0 };
+};
 
 export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const { data: clientes = [] } = useClientesLista();
@@ -229,7 +249,8 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...totais} />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
+      <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
+        {/* Filtro por tipo (categoria) */}
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
           {CATEGORIAS_FILTRO.map(({ value, label, Icon }) => {
             const ativo = filtroCategoria === value;
@@ -254,41 +275,35 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             );
           })}
         </div>
-        <div className="relative ml-auto min-w-[220px] flex-1 sm:max-w-sm">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
-          <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pessoa, imóvel ou documento..." className="border-osg-200/80 bg-osg-50/60 pl-9" />
+
+        {/* Filtro por status (visível) + busca */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {STATUS_FILTRO.map(({ value, label, dot }) => {
+              const ativo = filtroStatus === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setFiltroStatus(value)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
+                    ativo
+                      ? 'border-osg-moss bg-osg-moss/10 text-osg-700'
+                      : 'border-osg-200/70 bg-white text-osg-500 hover:border-osg-300 hover:text-osg-700',
+                  )}
+                >
+                  {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="relative ml-auto min-w-[220px] flex-1 sm:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
+            <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pessoa, imóvel ou documento..." className="border-osg-200/80 bg-osg-50/60 pl-9" />
+          </div>
         </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" className="h-10 gap-1.5">
-              <SlidersHorizontal className="h-3.5 w-3.5" />Filtros
-              {filtroStatus !== 'todos' && <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-osg-moss px-1 text-[10px] font-bold text-white">1</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64 space-y-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
-              <Select value={filtroStatus} onValueChange={(value) => setFiltroStatus(value as StatusFilter)}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os status</SelectItem>
-                  <SelectItem value="abertos">Em aberto</SelectItem>
-                  <SelectItem value="recebidos">Recebidos</SelectItem>
-                  <SelectItem value="encerrados">Encerrados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {filtroStatus !== 'todos' && (
-              <Button variant="ghost" size="sm" onClick={() => setFiltroStatus('todos')} className="h-8 w-full text-xs text-osg-500 hover:text-osg-700">
-                <FilterX className="mr-1.5 h-3.5 w-3.5" />Limpar filtros
-              </Button>
-            )}
-          </PopoverContent>
-        </Popover>
-        <Button variant="outline" onClick={() => gerar.mutate()} disabled={gerar.isPending}>
-          <RefreshCw className={cn('mr-2 h-4 w-4', gerar.isPending && 'animate-spin')} />Atualizar
-        </Button>
-        <Button onClick={() => setAddOpen(true)}><Plus className="mr-2 h-4 w-4" />Adicionar</Button>
       </div>
 
       {categorias.length === 0 ? (
@@ -297,10 +312,26 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
         <section key={categoria.tipo} className="animate-osg-rise">
           <div className="mb-4">
             <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Categoria {String(index + 1).padStart(2, '0')}</span>
-            <div className="mt-1 flex items-end justify-between gap-4">
-              <div>
-                <h3 className="text-xl font-bold tracking-tight text-osg-700">{TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}</h3>
-                <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
+            <div className="mt-1 flex items-center justify-between gap-4">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className="min-w-0">
+                  <h3 className="truncate text-xl font-bold tracking-tight text-osg-700">{TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}</h3>
+                  <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
+                </div>
+                {(() => {
+                  const progresso = progressoCategoria(categoria.grupos);
+                  return (
+                    <div className="w-32 shrink-0 sm:w-36">
+                      <div className="mb-1 flex items-baseline justify-between text-[11px] font-semibold">
+                        <span className="tabular-nums text-osg-moss">{progresso.pct}%</span>
+                        <span className="tabular-nums text-osg-500">{progresso.recebidos}/{progresso.base}</span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-osg-100">
+                        <span className="block h-full rounded-full bg-osg-moss transition-[width] duration-500" style={{ width: `${progresso.pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
               <button
                 type="button"
