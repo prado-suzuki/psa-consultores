@@ -206,31 +206,65 @@ export default function MeusDocumentos() {
           ) : (
             <Card>
               <ul className="divide-y">
-                {docsCliente.map((d) => (
-                  <li key={d.id} className="flex items-center gap-3 px-4 py-3 text-sm">
-                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-foreground">{d.nome_original}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatBytes(d.tamanho)} ·{' '}
-                        {format(new Date(d.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => baixar.mutate(d)}
-                      title="Baixar"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </li>
-                ))}
+                {docsCliente.map((d) => {
+                  const uploader = d.created_by ? uploaderNames[d.created_by] : null;
+                  return (
+                    <li key={d.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium text-foreground">{d.nome_original}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatBytes(d.tamanho)} ·{' '}
+                          {format(new Date(d.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                          {' · '}enviado por {uploader ?? '—'}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => baixar.mutate(d)}
+                        title="Baixar"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setAExcluir(d)}
+                        title="Remover"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  );
+                })}
               </ul>
             </Card>
           )}
         </div>
       </main>
+
+      <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remover documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{aExcluir?.nome_original}" deixará de aparecer na lista. O arquivo permanece arquivado no storage.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (aExcluir) excluir.mutate(aExcluir.id);
+                setAExcluir(null);
+              }}
+            >
+              Remover
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
