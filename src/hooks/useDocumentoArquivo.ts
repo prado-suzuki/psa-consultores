@@ -325,6 +325,87 @@ export function useUploaderNames(userIds: string[]) {
 }
 
 /**
+ * EDU-03: item do checklist solicitado pela PSA, do ponto de vista do cliente.
+ * Retornado por `get_checklist_solicitado_cliente`.
+ */
+export interface ChecklistSolicitadoItem {
+  item_id: string;
+  documento: string;
+  entidade: string;
+  categoria: string | null;
+  categoria_docbox: string | null;
+  nota: string | null;
+  confidencial: boolean;
+  rotulo_instancia: string | null;
+  recebido: boolean;
+  arquivo_nome: string | null;
+}
+
+/** EDU-03: lista o checklist que a PSA pediu para o cliente logado. */
+export function useChecklistSolicitadoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['checklist-solicitado', clienteId ?? '∅'],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<ChecklistSolicitadoItem[]> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_checklist_solicitado_cliente');
+      if (error) throw error;
+      return (data ?? []) as ChecklistSolicitadoItem[];
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * EDU-03: envia um arquivo classificado contra um item do checklist. Faz o
+ * upload no GCS via helper e depois chama a RPC `anexar_documento_solicitado`
+ * — a categoria/vínculo/checklist_item_id são copiados server-side do item.
+ * Recusa localmente `georreferenciamento` (a RPC também recusa).
+ */
+export function useUploadDocumentoSolicitado() {
+  const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (args: {
+      clienteId: string;
+      itemId: string;
+      categoria: DocCategoria | null;
+      file: File;
+    }): Promise<string> => {
+      const { clienteId, itemId, categoria, file } = args;
+      if (categoria === 'georreferenciamento') {
+        throw new Error('Documentos de georreferenciamento não são enviados por aqui.');
+      }
+      const categoriaEfetiva: DocCategoria = (categoria ?? 'outros') as DocCategoria;
+      const gcs = await subirArquivoGcs(fetchWithAuth, {
+        clienteId,
+        file,
+        categoria: categoriaEfetiva,
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('anexar_documento_solicitado', {
+        _item_id: itemId,
+        _gcs_uri: gcs.gcs_uri,
+        _checksum: gcs.checksum,
+        _tamanho: gcs.tamanho,
+        _mime: gcs.mime,
+        _nome_original: file.name,
+        _ambiente: gcs.ambiente,
+      });
+      if (error) throw error;
+      return data as string;
+    },
+    onSuccess: (_id, vars) => {
+      qc.invalidateQueries({ queryKey: ['checklist-solicitado', vars.clienteId] });
+      qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
+      toast({ title: 'Documento enviado' });
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao enviar documento', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
+/**
  * Campos editáveis de um documento já existente (Fase 0 — base para
  * classificar/vincular/renomear depois do upload). Só usa colunas que já
  * existem; a RLS "team_member+ can update documento_arquivo" já autoriza.
