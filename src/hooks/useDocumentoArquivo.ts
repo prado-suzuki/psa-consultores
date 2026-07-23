@@ -97,17 +97,35 @@ interface SignUploadResponse {
 
 type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
 
+interface SubirArquivoGcsArgs {
+  clienteId: string;
+  file: File;
+  categoria: DocCategoria;
+  matriculaId?: string | null;
+  nrMatricula?: string | null;
+}
+
+interface ArquivoGcsResultado {
+  gcs_uri: string;
+  checksum: string;
+  tamanho: number;
+  mime: string | null;
+  ambiente: string;
+}
+
 /**
- * Núcleo do upload de 1 documento: sign-upload → PUT no GCS → finalize → insert.
- * Isolado (recebe fetchWithAuth) para ser reusado pelo upload em massa e para,
- * no futuro, ceder lugar a endpoints em lote (sign/finalize/insert de N itens)
- * sem afetar a UI — só o orquestrador muda.
+ * Helper: sign-upload → PUT no GCS → finalize. Reusado por `enviarUmDocumento`
+ * (fluxo interno da equipe) e por `useUploadDocumentoSolicitado` (EDU-03), onde
+ * o insert em `documento_arquivo` é feito server-side por RPC.
  */
-async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs): Promise<DocumentoArquivoRow> {
-  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' } = args;
+async function subirArquivoGcs(
+  fetchWithAuth: FetchWithAuth,
+  args: SubirArquivoGcsArgs,
+): Promise<ArquivoGcsResultado> {
+  const { clienteId, file, categoria, matriculaId, nrMatricula } = args;
   const isGeorreferenciamento = categoria === 'georreferenciamento';
   const numeroMatricula = nrMatricula?.trim() || null;
-  if (isGeorreferenciamento && !vinculo.matriculaId) {
+  if (isGeorreferenciamento && !matriculaId) {
     throw new Error('Documentos de georreferenciamento devem estar vinculados a uma matrícula.');
   }
   if (isGeorreferenciamento && !numeroMatricula) {
@@ -121,11 +139,10 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
     categoria,
   };
   if (isGeorreferenciamento) {
-    signPayload.matricula_id = vinculo.matriculaId!;
+    signPayload.matricula_id = matriculaId!;
     signPayload.nr_matricula = numeroMatricula!;
   }
 
-  // 1) signed PUT URL — categoria compõe a raiz da chave no GCS
   const signRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/sign-upload'), {
     method: 'POST',
     body: JSON.stringify(signPayload),
@@ -133,7 +150,6 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
   if (!signRes.ok) throw new Error('Falha ao solicitar URL de upload');
   const sign = (await signRes.json()) as SignUploadResponse;
 
-  // 2) PUT direto no GCS (fetch puro, SEM Authorization)
   const put = await fetch(sign.signed_url, {
     method: 'PUT',
     headers: {
@@ -144,7 +160,6 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
   });
   if (!put.ok) throw new Error('Falha ao enviar o arquivo para o storage');
 
-  // 3) finalize (confirma + captura tamanho/checksum)
   const finRes = await fetchWithAuth(getApiUrl('/api/v1/osg/documentos/finalize'), {
     method: 'POST',
     body: JSON.stringify({ object_key: sign.object_key }),
@@ -152,7 +167,33 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
   if (!finRes.ok) throw new Error('Falha ao finalizar o upload');
   const fin = (await finRes.json()) as { tamanho: number; checksum: string; content_type: string | null };
 
-  // 4) grava a linha (RLS)
+  return {
+    gcs_uri: sign.gcs_uri,
+    checksum: fin.checksum,
+    tamanho: fin.tamanho,
+    mime: fin.content_type ?? file.type ?? null,
+    ambiente: sign.ambiente ?? currentAmbiente,
+  };
+}
+
+/**
+ * Núcleo do upload de 1 documento: sign-upload → PUT no GCS → finalize → insert.
+ * Isolado (recebe fetchWithAuth) para ser reusado pelo upload em massa e para,
+ * no futuro, ceder lugar a endpoints em lote (sign/finalize/insert de N itens)
+ * sem afetar a UI — só o orquestrador muda.
+ */
+async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs): Promise<DocumentoArquivoRow> {
+  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' } = args;
+
+  const gcs = await subirArquivoGcs(fetchWithAuth, {
+    clienteId,
+    file,
+    categoria,
+    matriculaId: vinculo.matriculaId ?? null,
+    nrMatricula,
+  });
+
+  // grava a linha (RLS)
   const { data, error } = await supabase
     .from('documento_arquivo')
     .insert({
@@ -163,12 +204,12 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
       matricula_id: vinculo.matriculaId ?? null,
       pessoa_id: vinculo.pessoaId ?? null,
       nome_original: file.name,
-      gcs_uri: sign.gcs_uri,
-      checksum: fin.checksum,
-      mime: fin.content_type ?? file.type ?? null,
-      tamanho: fin.tamanho,
+      gcs_uri: gcs.gcs_uri,
+      checksum: gcs.checksum,
+      mime: gcs.mime,
+      tamanho: gcs.tamanho,
       status: 'ativo',
-      ambiente: sign.ambiente ?? currentAmbiente,
+      ambiente: gcs.ambiente,
     })
     .select('*')
     .single();
