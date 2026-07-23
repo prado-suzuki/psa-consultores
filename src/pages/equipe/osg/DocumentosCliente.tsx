@@ -17,7 +17,7 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import { useAllMatriculas, useBensByCliente } from '@/hooks/useDiagnosticoPatrimonial';
 import {
-  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl,
+  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl, useUploaderNames,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
 import { CATEGORIAS, fileIconOf, formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
