@@ -16,8 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { TrendingUp, MessageSquare, Send, Edit3 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -59,14 +58,8 @@ const MinhaEvolucao = () => {
   }, [comentariosLider]);
 
   // Profiles for comment authors
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_for_comments'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as any[];
-    },
-  });
-  const profileMap = new Map(profiles?.map((p: any) => [p.id, p]) ?? []);
+  const { data: profiles } = useProfilesNomeRows('profiles');
+  const profileMap = new Map(profiles?.map(profile => [profile.id, profile]) ?? []);
 
   const handleProgressUpdate = () => {
     if (!progressModal) return;

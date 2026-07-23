@@ -1,8 +1,9 @@
 import { useState, useRef } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  useDomainEquipeBiblioteca,
+  type ProjectDocument,
+} from '@/hooks/useDomainEquipeBiblioteca';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,24 +19,6 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Upload, FileText, Download, Trash2, Search, Plus, File, FileSpreadsheet, FileImage, Eye } from 'lucide-react';
-
-interface ProjectDocument {
-  id: string;
-  title: string;
-  description: string | null;
-  file_name: string;
-  file_path: string;
-  file_type: string | null;
-  file_size: number | null;
-  category: string | null;
-  sprint_id: string | null;
-  process_id: string | null;
-  uploaded_by: string | null;
-  created_at: string;
-  sprints?: { name: string } | null;
-  profiles?: { first_name: string; last_name: string } | null;
-  processes?: { name: string; code: string | null } | null;
-}
 
 const CATEGORIES = [
   { value: 'roadmap', label: 'Roadmap' },
@@ -64,7 +47,6 @@ const getFileIcon = (fileType: string | null) => {
 
 export default function EquipeBiblioteca() {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -84,131 +66,6 @@ export default function EquipeBiblioteca() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // Fetch documents
-  const { data: documents = [], isLoading } = useQuery({
-    queryKey: ['project-documents'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('project_documents')
-        .select(`
-          *,
-          sprints:sprint_id(name),
-          profiles:uploaded_by(first_name, last_name),
-          processes:process_id(name, code)
-        `)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as ProjectDocument[];
-    },
-  });
-
-  // Fetch processes for dropdown
-  const { data: processesList = [] } = useQuery({
-    queryKey: ['processes-list'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('processes')
-        .select('id, name, code')
-        .order('name');
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fetch sprints for dropdown
-  const { data: sprints = [] } = useQuery({
-    queryKey: ['sprints-list'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('sprints')
-        .select('id, name')
-        .order('start_date', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Upload mutation
-  const uploadMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedFile || !user) throw new Error('Arquivo e usuário necessários');
-      
-      setUploading(true);
-      
-      // Upload file to storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const filePath = `${user.id}/${Date.now()}-${selectedFile.name}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('project-documents')
-        .upload(filePath, selectedFile);
-      
-      if (uploadError) throw uploadError;
-      
-      // Insert document record
-      const { error: insertError } = await supabase
-        .from('project_documents')
-        .insert({
-          title,
-          description: description || null,
-          file_name: selectedFile.name,
-          file_path: filePath,
-          file_type: selectedFile.type,
-          file_size: selectedFile.size,
-          category,
-          sprint_id: sprintId || null,
-          uploaded_by: user.id,
-        });
-      
-      if (insertError) throw insertError;
-    },
-    onSuccess: () => {
-      toast.success('Documento enviado com sucesso');
-      queryClient.invalidateQueries({ queryKey: ['project-documents'] });
-      resetForm();
-      setIsUploadOpen(false);
-    },
-    onError: (error) => {
-      toast.error('Erro ao enviar documento: ' + error.message);
-    },
-    onSettled: () => {
-      setUploading(false);
-    },
-  });
-
-  // Delete mutation
-  const deleteMutation = useMutation({
-    mutationFn: async (doc: ProjectDocument) => {
-      // Precheck antes do storage — evita arquivos órfãos se RLS bloquear o delete da tabela
-      await assertCanPerform('project_documents', 'delete', doc.id);
-
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('project-documents')
-        .remove([doc.file_path]);
-
-      if (storageError) console.warn('Storage delete error:', storageError);
-
-      // Delete record
-      const { error: deleteError } = await supabase
-        .from('project_documents')
-        .delete()
-        .eq('id', doc.id);
-
-      if (deleteError) throw deleteError;
-    },
-    onSuccess: () => {
-      toast.success('Documento excluído');
-      queryClient.invalidateQueries({ queryKey: ['project-documents'] });
-    },
-    onError: (error) => {
-      toast.error('Erro ao excluir: ' + error.message);
-    },
-  });
-
   const resetForm = () => {
     setTitle('');
     setDescription('');
@@ -217,6 +74,24 @@ export default function EquipeBiblioteca() {
     setSelectedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  const {
+    documents,
+    processesList,
+    sprints,
+    isLoading,
+    uploadMutation,
+    deleteMutation,
+    downloadMutation,
+    previewMutation,
+  } = useDomainEquipeBiblioteca({
+    onUploadStart: () => setUploading(true),
+    onUploadSuccess: () => {
+      resetForm();
+      setIsUploadOpen(false);
+    },
+    onUploadSettled: () => setUploading(false),
+  });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,15 +102,13 @@ export default function EquipeBiblioteca() {
   };
 
   const handleDownload = async (doc: ProjectDocument) => {
-    const { data, error } = await supabase.storage
-      .from('project-documents')
-      .download(doc.file_path);
-    
-    if (error) {
-      toast.error('Erro ao baixar arquivo');
+    let data: Blob;
+    try {
+      data = await downloadMutation.mutateAsync(doc);
+    } catch {
       return;
     }
-    
+
     const url = URL.createObjectURL(data);
     const a = document.createElement('a');
     a.href = url;
@@ -249,16 +122,14 @@ export default function EquipeBiblioteca() {
       toast.info('Visualização disponível apenas para arquivos de texto/markdown');
       return;
     }
-    
-    const { data, error } = await supabase.storage
-      .from('project-documents')
-      .download(doc.file_path);
-    
-    if (error) {
-      toast.error('Erro ao carregar preview');
+
+    let data: Blob;
+    try {
+      data = await previewMutation.mutateAsync(doc);
+    } catch {
       return;
     }
-    
+
     const text = await data.text();
     setPreviewContent(text);
     setPreviewTitle(doc.title);
@@ -413,7 +284,14 @@ export default function EquipeBiblioteca() {
               
               <Button 
                 className="w-full gap-2" 
-                onClick={() => uploadMutation.mutate()}
+                onClick={() => uploadMutation.mutate({
+                  file: selectedFile,
+                  userId: user?.id,
+                  title,
+                  description,
+                  category,
+                  sprintId,
+                })}
                 disabled={!selectedFile || !title || uploading}
               >
                 <Upload className="h-4 w-4" />

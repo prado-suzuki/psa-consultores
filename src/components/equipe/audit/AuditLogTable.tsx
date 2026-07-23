@@ -1,7 +1,4 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { currentAmbiente } from '@/config/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown, ChevronRight, Search } from 'lucide-react';
@@ -17,24 +14,12 @@ import {
 import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { useDomainAuditLogs, useDomainAuditLookupMaps } from '@/hooks/useDomainAuditLogs';
 import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
 
 
 interface AuditLogTableProps {
   area: 'tax' | 'osg';
-}
-
-interface AuditLog {
-  id: string;
-  area: string;
-  entity_type: string;
-  entity_id: string;
-  entity_name: string;
-  action: string;
-  changed_fields: Record<string, { old: unknown; new: unknown }> | null;
-  performed_by: string;
-  performed_at: string;
-  details: string | null;
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -49,95 +34,6 @@ const ENTITY_LABELS: Record<string, string> = {
   subtask: 'Subtarefa',
 };
 
-// ── Lookup hooks ─────────────────────────────────────────────
-function useLookupMaps(): LookupMaps {
-  const buildMap = (data: { id: string; label: string }[] | null) => {
-    const map: Record<string, string> = {};
-    data?.forEach(d => { map[d.id] = d.label; });
-    return map;
-  };
-
-  const { data: profiles = {} } = useQuery({
-    queryKey: ['audit-lookup-profiles'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('profiles' as any)
-        .select('id, first_name, last_name');
-      const map: Record<string, string> = {};
-      (data as any[])?.forEach(p => {
-        map[p.id] = `${p.first_name} ${p.last_name}`.trim();
-      });
-      return map;
-    },
-  });
-
-  const { data: projects = {} } = useQuery({
-    queryKey: ['audit-lookup-projects'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('org_projects')
-        .select('id, name');
-      return buildMap(data?.map(d => ({ id: d.id, label: d.name })) ?? null);
-    },
-  });
-
-  const { data: areas = {} } = useQuery({
-    queryKey: ['audit-lookup-areas'],
-    queryFn: async () => {
-      const { data } = await supabase.from('estrutura_areas').select('id, name');
-      const map: Record<string, string> = {};
-      (data || []).forEach(d => { map[d.id] = d.name; });
-      return map;
-    },
-  });
-
-  const { data: clients = {} } = useQuery({
-    queryKey: ['audit-lookup-clients'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente);
-      return buildMap(data?.map(d => ({ id: d.id, label: d.nome })) ?? null);
-    },
-  });
-
-  const { data: contribuintes = {} } = useQuery({
-    queryKey: ['audit-lookup-contribuintes'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social')
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente);
-      return buildMap(data?.map(d => ({ id: d.id, label: d.nome_razao_social })) ?? null);
-    },
-  });
-
-  const { data: servicos = {} } = useQuery({
-    queryKey: ['audit-lookup-servicos'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('servicos_prestados' as any)
-        .select('id, nome');
-      return buildMap((data as any[])?.map(d => ({ id: d.id, label: d.nome })) ?? null);
-    },
-  });
-
-  const { data: tasks = {} } = useQuery({
-    queryKey: ['audit-lookup-tasks'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('org_tasks')
-        .select('id, title');
-      return buildMap(data?.map(d => ({ id: d.id, label: d.title })) ?? null);
-    },
-  });
-
-  return { profiles, projects, areas, clients, contribuintes, servicos, tasks };
-}
-
 export const AuditLogTable = ({ area }: AuditLogTableProps) => {
   const [entityFilter, setEntityFilter] = useState<string>('all');
   const [actionFilter, setActionFilter] = useState<string>('all');
@@ -145,25 +41,9 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
   const [userFilter, setUserFilter] = useState<string>('all');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const lookups = useLookupMaps();
+  const lookups: LookupMaps = useDomainAuditLookupMaps();
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['audit-logs', area, entityFilter, actionFilter],
-    queryFn: async () => {
-      let query = (supabase.from('audit_logs' as any) as any)
-        .select('*')
-        .eq('area', area)
-        .order('performed_at', { ascending: false })
-        .limit(200);
-
-      if (entityFilter !== 'all') query = query.eq('entity_type', entityFilter);
-      if (actionFilter !== 'all') query = query.eq('action', actionFilter);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as AuditLog[];
-    },
-  });
+  const { data: logs = [], isLoading } = useDomainAuditLogs(area, entityFilter, actionFilter);
 
   const filteredLogs = logs.filter(log => {
     if (search && !log.entity_name.toLowerCase().includes(search.toLowerCase())) return false;

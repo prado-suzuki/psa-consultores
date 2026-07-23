@@ -14,6 +14,11 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, Check, ChevronsUpDown, Info, Loader2, X } from 'lucide-react';
+import {
+  useAtualizarCorrecaoSpedPorId,
+  useBuscarCorrecaoSpedAtiva,
+  useInserirCorrecaoSped,
+} from '@/hooks/useCorrecoesSped';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination from '@/components/equipe/dev/TablePagination';
 import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
@@ -118,6 +123,9 @@ interface TabF130Props extends CorrecoesActionsProps {
 export default function TabF130({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabF130Props) {
   const { user, refreshSession } = useAuth();
   const queryClient = useQueryClient();
+  const { mutateAsync: buscarCorrecaoSpedAtiva } = useBuscarCorrecaoSpedAtiva();
+  const { mutateAsync: atualizarCorrecaoSpedPorId } = useAtualizarCorrecaoSpedPorId();
+  const { mutateAsync: inserirCorrecaoSped } = useInserirCorrecaoSped();
   const [page, setPage] = useState(0);
   const [editedRows, setEditedRows] = useState<Record<string, F130Reg>>({});
   const [isEditMode, setIsEditMode] = useState(false);
@@ -311,16 +319,21 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
         changedCount += 1;
         const camposAlterados = buildChangedFields(originalSnapshot, nextSnapshot);
 
-        const { data: correcaoAtiva, error: buscaError } = await supabase
-          .from('efd_correcoes').select('id')
-          .eq('registro_tipo', 'F130').eq('registro_original_id', item.F130.uuid).eq('ativo', true)
-          .maybeSingle();
-        if (buscaError) throw buscaError;
+        const correcaoAtiva = await buscarCorrecaoSpedAtiva({
+          registroTipo: 'F130',
+          registroOriginalId: item.F130.uuid,
+        });
 
         if (camposAlterados.length === 0) {
           if (correcaoAtiva?.id) {
-            const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
-            if (e) throw e;
+            await atualizarCorrecaoSpedPorId({
+              id: correcaoAtiva.id,
+              payload: {
+                ativo: false,
+                snapshot: nextSnapshot as unknown as Json,
+                campos_alterados: null,
+              },
+            });
           }
           delete nextEditedRows[item.F130.uuid];
           savedCount += 1;
@@ -339,14 +352,9 @@ export default function TabF130({ data, isLoading, error, hasQueried, searchText
 
         if (correcaoAtiva?.id) {
           // Atualiza a correção existente in-place (preserva UUID original)
-          const { error: e } = await supabase
-            .from('efd_correcoes')
-            .update(payload)
-            .eq('id', correcaoAtiva.id);
-          if (e) throw e;
+          await atualizarCorrecaoSpedPorId({ id: correcaoAtiva.id, payload });
         } else {
-          const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
-          if (insertError) throw insertError;
+          await inserirCorrecaoSped(payload);
         }
 
         nextEditedRows[item.F130.uuid] = { ...item.F130, ...nextSnapshot } as F130Reg;

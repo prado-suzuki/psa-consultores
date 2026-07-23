@@ -7,12 +7,17 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
 import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertCircle, Check, Info, Loader2, Search, X } from 'lucide-react';
 import { useConsultaSimplesNacional } from '@/hooks/useConsultaSimplesNacional';
+import {
+  useAtualizarCorrecaoSpedPorId,
+  useBuscarCorrecaoSpedAtiva,
+  useDesativarCorrecaoSped,
+  useInserirCorrecaoSped,
+} from '@/hooks/useCorrecoesSped';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import TablePagination from '@/components/equipe/dev/TablePagination';
 import { PAGE_SIZE } from '@/components/equipe/dev/TablePagination.constants';
@@ -113,6 +118,10 @@ interface TabD100Props extends CorrecoesActionsProps {
 export default function TabD100({ data, isLoading, error, hasQueried, searchText, empresaCnpj, periodo, contribuinteId, cod_cta, dt_ini, dt_fin, onEnviar, onExportar, isSending, isExporting, pendingCount, idArquivos }: TabD100Props) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { mutateAsync: buscarCorrecaoSpedAtiva } = useBuscarCorrecaoSpedAtiva();
+  const { mutateAsync: atualizarCorrecaoSpedPorId } = useAtualizarCorrecaoSpedPorId();
+  const { mutateAsync: desativarCorrecaoSped } = useDesativarCorrecaoSped();
+  const { mutateAsync: inserirCorrecaoSped } = useInserirCorrecaoSped();
   const { consultar: consultarSimples, isLoading: isConsultandoSimples } = useConsultaSimplesNacional({ id_contribuinte: contribuinteId, registro: 'D100', cod_cta, dt_ini, dt_fin });
   const [page, setPage] = useState(0);
   const [rows, setRows] = useState<D100Item[]>([]);
@@ -262,16 +271,21 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
 
         const camposAlterados = buildChangedFields(item._originalSnapshot, nextSnapshot);
 
-        const { data: correcaoAtiva, error: buscaError } = await supabase
-          .from('efd_correcoes').select('id')
-          .eq('registro_tipo', 'D100').eq('registro_original_id', item.uuid).eq('ativo', true)
-          .maybeSingle();
-        if (buscaError) throw buscaError;
+        const correcaoAtiva = await buscarCorrecaoSpedAtiva({
+          registroTipo: 'D100',
+          registroOriginalId: item.uuid,
+        });
 
         if (camposAlterados.length === 0) {
           if (correcaoAtiva?.id) {
-            const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false, snapshot: nextSnapshot as unknown as Json, campos_alterados: null }).eq('id', correcaoAtiva.id);
-            if (e) throw e;
+            await atualizarCorrecaoSpedPorId({
+              id: correcaoAtiva.id,
+              payload: {
+                ativo: false,
+                snapshot: nextSnapshot as unknown as Json,
+                campos_alterados: null,
+              },
+            });
           }
 
           nextRows[index] = {
@@ -303,12 +317,13 @@ export default function TabD100({ data, isLoading, error, hasQueried, searchText
         };
 
         if (correcaoAtiva?.id) {
-          const { error: e } = await supabase.from('efd_correcoes').update({ ativo: false }).eq('registro_tipo', 'D100').eq('registro_original_id', item.uuid).eq('ativo', true);
-          if (e) throw e;
+          await desativarCorrecaoSped({
+            registroTipo: 'D100',
+            registroOriginalId: item.uuid,
+          });
         }
 
-        const { error: insertError } = await supabase.from('efd_correcoes').insert(payload);
-        if (insertError) throw insertError;
+        await inserirCorrecaoSped(payload);
 
         nextRows[index] = { ...item, ...nextSnapshot } as D100Item;
         locallyEditedIds.current.add(item.uuid);

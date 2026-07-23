@@ -14,8 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, ChevronDown, ChevronUp } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 
@@ -39,15 +38,9 @@ const DesempenhoFeedbacks = () => {
   const [expandedMembroFeedback, setExpandedMembroFeedback] = useState<string | null>(null);
   const [form, setForm] = useState({ para_usuario_id: '', tipo: 'reconhecimento' as string, ciclo_id: '', contexto: '', comportamento: '', impacto: '', anonimo: false });
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
-  const getName = (id: string | null) => { if (!id) return 'Anonimo'; const p = profileMap.get(id); return p ? `${p.first_name} ${p.last_name}` : id.slice(0, 8); };
+  const { data: profileMap } = useProfilesNomeMap('profiles');
+  const profiles = Object.entries(profileMap ?? {}).map(([id, nome]) => ({ id, nome }));
+  const getName = (id: string | null) => { if (!id) return 'Anonimo'; return profileMap?.[id] ?? id.slice(0, 8); };
 
   const handleCreate = () => {
     createFeedback.mutate({
@@ -133,7 +126,7 @@ const DesempenhoFeedbacks = () => {
           <div className="mb-4">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
               <SelectTrigger className="w-64 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
-              <SelectContent>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent>
+              <SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {membroFeedbacks && (
@@ -162,7 +155,7 @@ const DesempenhoFeedbacks = () => {
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Registrar Feedback</DialogTitle></DialogHeader>
           <div className="space-y-4">
-            <div><Label>Para</Label><Select value={form.para_usuario_id} onValueChange={v => setForm({ ...form, para_usuario_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger><SelectContent>{profiles?.map(p => <SelectItem key={p.id} value={p.id}>{p.first_name} {p.last_name}</SelectItem>)}</SelectContent></Select></div>
+            <div><Label>Para</Label><Select value={form.para_usuario_id} onValueChange={v => setForm({ ...form, para_usuario_id: v })}><SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger><SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Tipo</Label><Select value={form.tipo} onValueChange={v => setForm({ ...form, tipo: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="reconhecimento">Reconhecimento</SelectItem><SelectItem value="desenvolvimento">Desenvolvimento</SelectItem><SelectItem value="360">360</SelectItem></SelectContent></Select></div>
             <div><Label>Ciclo (opcional)</Label><Select value={form.ciclo_id} onValueChange={v => setForm({ ...form, ciclo_id: v })}><SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger><SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent></Select></div>
             <div><Label>Em qual situacao ou projeto isso aconteceu?</Label><Textarea value={form.contexto} onChange={e => setForm({ ...form, contexto: e.target.value })} /></div>

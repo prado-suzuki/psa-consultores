@@ -11,6 +11,7 @@ import { Users, ArrowLeft, Mail, Lock, Building2, ChevronRight } from 'lucide-re
 import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
 import { AREAS_LIST, AREA_ROUTES, type AreaKey } from '@/config/areaCategories';
+import { useDomainEquipeAuth } from '@/hooks/useDomainEquipeAuth';
 import { checkAreaAccess } from '@/lib/accessControl';
 
 const areas = AREAS_LIST;
@@ -30,6 +31,7 @@ const EquipeAuth = () => {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const { signIn, user, isTeamMember, isAdmin, isLider, isSublider, loading } = useAuth();
+  const { fetchUserRoles } = useDomainEquipeAuth();
   const navigate = useNavigate();
   const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
 
@@ -103,10 +105,7 @@ const EquipeAuth = () => {
           // Verifica papel admin apenas para liberar bypass de checkAreaAccess.
           // A barreira real de visibilidade é feita por checkAreaAccess (abaixo)
           // e pelos guards de rota (PageAccessGate).
-          const { data: roles } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id);
+          const roles = await fetchUserRoles(session.user.id);
 
           const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
 

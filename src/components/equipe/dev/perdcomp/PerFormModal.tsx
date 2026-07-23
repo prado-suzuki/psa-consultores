@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { currentAmbiente } from '@/config/api';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useAtualizarPerPorNumero,
+  useBuscarPerPorNumero,
+  useClientesPerModal,
+  useContribuintesPerModal,
+  useInserirPer,
+  useInserirSituacaoPer,
+  useInserirSituacaoPerComRetorno,
+  usePersExistentesPerModal,
+  type PerSituacaoRow,
+} from '@/hooks/useDomainPerdcomp';
 
 import { syncPerdcompToDW } from '@/lib/syncPerdcomp';
 import { stripToDigits } from '@/lib/perdcompUtils';
@@ -157,57 +166,22 @@ export function PerFormModal({
   }, [clienteId]);
 
   // Fetch all clients for the client selector
-  const { data: clientes = [] } = useQuery({
-    queryKey: ['clientes-dev-per-modal'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { data: clientes = [] } = useClientesPerModal();
 
   // Fetch contribuintes for the selected client in the modal
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ['contribuintes', selectedClienteId],
-    queryFn: async () => {
-      if (!selectedClienteId) return [];
-      const { data, error } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social, cpf_cnpj')
-        .eq('cliente_id', selectedClienteId)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome_razao_social');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!selectedClienteId,
-  });
+  const { data: contribuintes = [] } = useContribuintesPerModal(selectedClienteId);
 
   // Fetch existing PERs for the contribuinte (for rectification selection) — exclude soft-deleted
-  const { data: persExistentes = [] } = useQuery({
-    queryKey: ['pers-existentes', contribuinteId],
-    queryFn: async () => {
-      if (!contribuinteId) return [];
-      const { data, error } = await (supabase
-        .from('per') as any)
-        .select('nr_per, exercicio, tri_exercicio, tp_credito')
-        .eq('id_contribuinte', contribuinteId)
-        .order('exercicio', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!contribuinteId && !isEditing,
-  });
+  const { data: persExistentes = [] } = usePersExistentesPerModal(contribuinteId, isEditing);
+
+  const buscarPerPorNumero = useBuscarPerPorNumero();
+  const inserirPer = useInserirPer();
+  const inserirSituacaoPerComRetorno = useInserirSituacaoPerComRetorno();
+  const inserirSituacaoPer = useInserirSituacaoPer();
+  const atualizarPerPorNumero = useAtualizarPerPorNumero();
 
   // Filter PERs based on search query
-  const filteredPersExistentes = persExistentes.filter((per: any) => 
+  const filteredPersExistentes = persExistentes.filter((per) =>
     per.nr_per.includes(perSearchQuery.replace(/\D/g, ''))
   );
 
@@ -270,18 +244,14 @@ export function PerFormModal({
       const cleanNrPer = stripToDigits(data.nr_per);
       const cleanNrProcRet = data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null;
 
-      const { data: existing } = await (supabase
-        .from('per') as any)
-        .select('nr_per')
-        .eq('nr_per', cleanNrPer)
-        .maybeSingle();
+      const existing = await buscarPerPorNumero.mutateAsync(cleanNrPer);
 
       if (existing) {
         throw new Error('Já existe um PER cadastrado com este número de processo.');
       }
 
       // Insert PER with nr_proc_ret if retificadora
-      const { error: perError } = await (supabase.from('per') as any).insert([{
+      await inserirPer.mutateAsync([{
         nr_per: cleanNrPer,
         id_contribuinte: data.id_contribuinte,
         exercicio: data.exercicio,
@@ -292,24 +262,26 @@ export function PerFormModal({
         nr_proc_ret: cleanNrProcRet,
         porcentagem_psa: data.porcentagem_psa ?? null,
       }]);
-      if (perError) throw perError;
 
       // Automatically create initial situação as "Analisado"
-      const { data: sitData, error: situacaoError } = await supabase.from('per_situacao').insert({
-        nr_proc_per: cleanNrPer,
-        situacao: 'Analisado',
-      }).select().single();
-      if (situacaoError) {
+      let sitData: PerSituacaoRow | null = null;
+      try {
+        sitData = await inserirSituacaoPerComRetorno.mutateAsync({
+          nr_proc_per: cleanNrPer,
+          situacao: 'Analisado',
+        });
+      } catch (situacaoError) {
         console.error('Erro ao criar situação inicial:', situacaoError);
       }
 
       // If retificadora, update the original PER's situação to "Retificado"
       if (cleanNrProcRet) {
-        const { error: retError } = await supabase.from('per_situacao').insert({
-          nr_proc_per: cleanNrProcRet,
-          situacao: 'Retificado',
-        });
-        if (retError) {
+        try {
+          await inserirSituacaoPer.mutateAsync({
+            nr_proc_per: cleanNrProcRet,
+            situacao: 'Retificado',
+          });
+        } catch (retError) {
           console.error('Erro ao atualizar situação do PER retificado:', retError);
         }
       }
@@ -352,9 +324,9 @@ export function PerFormModal({
 
   const updateMutation = useMutation({
     mutationFn: async (data: PerFormData) => {
-      const { error } = await (supabase
-        .from('per') as any)
-        .update({
+      await atualizarPerPorNumero.mutateAsync({
+        nrPer: editData?.nr_per,
+        payload: {
           id_contribuinte: data.id_contribuinte,
           exercicio: data.exercicio,
           tri_exercicio: data.tri_exercicio,
@@ -363,9 +335,8 @@ export function PerFormModal({
           vlr_credito: data.vlr_credito,
           nr_proc_ret: data.nr_proc_ret ? stripToDigits(data.nr_proc_ret) : null,
           porcentagem_psa: data.porcentagem_psa ?? null,
-        })
-        .eq('nr_per', editData?.nr_per);
-      if (error) throw error;
+        },
+      });
       return data;
     },
     onSuccess: (data) => {
@@ -526,7 +497,7 @@ export function PerFormModal({
                       <CommandList>
                         <CommandEmpty>Nenhum processo encontrado.</CommandEmpty>
                         <CommandGroup className="max-h-60 overflow-y-auto">
-                          {filteredPersExistentes.map((per: any) => (
+                          {filteredPersExistentes.map((per) => (
                             <CommandItem
                               key={per.nr_per}
                               value={per.nr_per}

@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { useExcluirPerDcompDefinitivamente } from '@/hooks/useDomainPerdcomp';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -34,56 +34,7 @@ export function SoftDeleteModal({ open, onOpenChange, type, identifier }: SoftDe
   const { isAdmin, isLider, isSublider } = useAuth();
   const canWrite = isAdmin || isLider || isSublider;
 
-  const mutation = useMutation({
-    mutationFn: async () => {
-      if (type === 'per') {
-        // Buscar DCOMPs filhos para apagar as distribuições primeiro
-        const { data: dcompsFilhos, error: dcompsErr } = await (supabase
-          .from('dcomp') as any)
-          .select('nr_documento')
-          .eq('nr_per_orig', identifier);
-        if (dcompsErr) throw dcompsErr;
-
-        const nrDocs = (dcompsFilhos || []).map((d: { nr_documento: string }) => d.nr_documento);
-        if (nrDocs.length > 0) {
-          const { error: distErr } = await supabase
-            .from('distribuicao_dcomp')
-            .delete()
-            .in('nr_documento', nrDocs);
-          if (distErr) throw distErr;
-        }
-
-        const { error: dcompErr } = await supabase
-          .from('dcomp')
-          .delete()
-          .eq('nr_per_orig', identifier);
-        if (dcompErr) throw dcompErr;
-
-        const { error: sitErr } = await supabase
-          .from('per_situacao')
-          .delete()
-          .eq('nr_proc_per', identifier);
-        if (sitErr) throw sitErr;
-
-        const { error: perErr } = await supabase
-          .from('per')
-          .delete()
-          .eq('nr_per', identifier);
-        if (perErr) throw perErr;
-      } else {
-        const { error: distErr } = await supabase
-          .from('distribuicao_dcomp')
-          .delete()
-          .eq('nr_documento', identifier);
-        if (distErr) throw distErr;
-
-        const { error } = await supabase
-          .from('dcomp')
-          .delete()
-          .eq('nr_documento', identifier);
-        if (error) throw error;
-      }
-    },
+  const mutation = useExcluirPerDcompDefinitivamente(type, identifier, {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['perdcomp-per'] });
       queryClient.invalidateQueries({ queryKey: ['perdcomp-dcomp'] });

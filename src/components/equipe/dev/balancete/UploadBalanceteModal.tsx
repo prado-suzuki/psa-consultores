@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, DragEvent } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApiAuth } from '@/hooks/useApiAuth';
-import { getApiUrl, currentAmbiente } from '@/config/api';
+import { useDomainUploadBalancete } from '@/hooks/useDomainUploadBalancete';
+import { getApiUrl } from '@/config/api';
 import { toast } from '@/hooks/use-toast';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -37,6 +35,19 @@ type BalanceteStatus = 'processing' | 'success' | 'error' | 'timeout';
 function isValidFile(file: File): boolean {
   const ext = '.' + file.name.split('.').pop()?.toLowerCase();
   return ALLOWED_EXTENSIONS.includes(ext);
+}
+
+function getErrorMessage(error: unknown): string | undefined {
+  if (error instanceof Error) return error.message;
+  if (
+    typeof error === 'object'
+    && error !== null
+    && 'message' in error
+    && typeof error.message === 'string'
+  ) {
+    return error.message;
+  }
+  return undefined;
 }
 
 interface UploadBalanceteModalProps {
@@ -75,6 +86,13 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
   const prefillDataRef = useRef(prefillData);
   prefillDataRef.current = prefillData;
 
+  const {
+    clientes,
+    contribuintes,
+    buscarConfig,
+    salvarDetalhamento,
+  } = useDomainUploadBalancete({ open, clienteId, contribuinteId });
+
   // Pré-preenche os campos a partir dos filtros de busca quando o modal abre
   // (usado quando a consulta não retornou balancetes e o usuário decide cadastrar)
   useEffect(() => {
@@ -85,40 +103,6 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
     if (p.contribuinteId) setContribuinteId(p.contribuinteId);
     if (p.periodo) setPeriodo(p.periodo);
   }, [open]);
-
-  // Fetch clientes
-  const { data: clientes } = useQuery({
-    queryKey: ['upload-balancete-clientes'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('cliente')
-        .select('id, nome')
-        .eq('ativo', true)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome');
-      if (error) throw error;
-      return data;
-    },
-    enabled: open,
-  });
-
-  // Fetch contribuintes filtered by client
-  const { data: contribuintes } = useQuery({
-    queryKey: ['upload-balancete-contribuintes', clienteId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contribuinte')
-        .select('id, nome_razao_social')
-        .eq('cliente_id', clienteId)
-        .eq('excluido', false)
-        .eq('ambiente', currentAmbiente)
-        .order('nome_razao_social');
-      if (error) throw error;
-      return data;
-    },
-    enabled: open && !!clienteId,
-  });
 
   useEffect(() => {
     if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
@@ -137,54 +121,34 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
     }
 
     const fetchConfig = async () => {
-      const { data, error } = await supabase
-        .from('contribuinte_bal_config')
-        .select('balancete_detalhamento')
-        .eq('id_contribuinte', contribuinteId)
-        .maybeSingle();
+      try {
+        const data = await buscarConfig(contribuinteId);
 
-      if (error) {
+        if (data && data.balancete_detalhamento !== null) {
+          setDetalhamento(data.balancete_detalhamento);
+          setShowDetalhamentoPrompt(false);
+        } else {
+          setDetalhamento(null);
+          setShowDetalhamentoPrompt(true);
+        }
+      } catch (error) {
         console.error('Erro ao buscar config:', error);
         setDetalhamento(null);
         setShowDetalhamentoPrompt(false);
-        return;
-      }
-
-      if (data && data.balancete_detalhamento !== null) {
-        setDetalhamento(data.balancete_detalhamento);
-        setShowDetalhamentoPrompt(false);
-      } else {
-        setDetalhamento(null);
-        setShowDetalhamentoPrompt(true);
       }
     };
 
     fetchConfig();
-  }, [contribuinteId, open]);
+  }, [buscarConfig, contribuinteId, open]);
 
   const handleDetalhamentoChoice = async (value: boolean) => {
     setSavingConfig(true);
     try {
-      // Upsert pode virar update — precheck só roda quando já existe linha
-      const { data: existing } = await supabase
-        .from('contribuinte_bal_config')
-        .select('id')
-        .eq('id_contribuinte', contribuinteId)
-        .maybeSingle();
-      if (existing?.id) {
-        await assertCanPerform('contribuinte_bal_config', 'update', existing.id);
-      }
-      const { error } = await supabase
-        .from('contribuinte_bal_config')
-        .upsert(
-          { id_contribuinte: contribuinteId, balancete_detalhamento: value },
-          { onConflict: 'id_contribuinte' }
-        );
-      if (error) throw error;
+      await salvarDetalhamento({ contribuinteId, value });
       setDetalhamento(value);
       setShowDetalhamentoPrompt(false);
-    } catch (err: any) {
-      toast({ title: 'Erro ao salvar configuração', description: err.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Erro ao salvar configuração', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setSavingConfig(false);
     }
@@ -316,8 +280,8 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
         });
         handleClose(false);
       }
-    } catch (err: any) {
-      toast({ title: 'Erro ao enviar balancete', description: err.message, variant: 'destructive' });
+    } catch (error) {
+      toast({ title: 'Erro ao enviar balancete', description: getErrorMessage(error), variant: 'destructive' });
     } finally {
       setSubmitting(false);
       setProcessing(false);

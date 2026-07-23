@@ -1,327 +1,101 @@
-import { useState, useMemo, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { currentAmbiente } from '@/config/api';
-import { supabase } from "@/integrations/supabase/client";
-import { normalizeCurrencyZero, normalizeProcessNumber } from '@/lib/perdcompUtils';
+import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'sonner';
 
-import { DevLayout } from "@/components/equipe/dev/DevLayout";
-import { DevPageHeader } from "@/components/equipe/dev/DevPageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Separator } from "@/components/ui/separator";
+import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
+import { ControlePerdcompFilters } from '@/components/equipe/dev/perdcomp/controle/ControlePerdcompFilters';
+import { ControlePerdcompResults } from '@/components/equipe/dev/perdcomp/controle/ControlePerdcompResults';
+import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
+import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
+import { SoftDeleteModal } from '@/components/equipe/dev/perdcomp/SoftDeleteModal';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
-  Search,
-  Plus,
-  Pencil,
-  Trash2,
-  X,
-  Loader2,
-  Filter,
-  Eraser,
-  FileSpreadsheet,
-  AlertCircle,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  Info,
-} from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { PerFormModal } from "@/components/equipe/dev/perdcomp/PerFormModal";
-import { DcompFormModal } from "@/components/equipe/dev/perdcomp/DcompFormModal";
-import { PerDetailModal } from "@/components/equipe/dev/perdcomp/PerDetailModal";
-import { SoftDeleteModal } from "@/components/equipe/dev/perdcomp/SoftDeleteModal";
-import { useSelicDataPerPer } from "@/hooks/useSelicDataPerPer";
-import { applySelicCorrection, isWithinGracePeriod } from "@/lib/selicCalculator";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { RequiredMark } from '@/components/ui/required-mark';
+  useBuscarProcessoGlobalPerdcomp,
+  useClientesControlePerdcomp,
+  useContribuintesControlePerdcomp,
+  useDcompsControlePerdcomp,
+  useDistribuicoesControlePerdcomp,
+  usePersControlePerdcomp,
+  useSituacoesControlePerdcomp,
+  useSituacoesDistintasControlePerdcomp,
+} from '@/hooks/useDomainPerdcomp';
+import { useSelicDataPerPer } from '@/hooks/useSelicDataPerPer';
+import {
+  buildControlePagination,
+  buildSelicPerInputs,
+  calculateControleTotals,
+  calculateSelicCorrections,
+  filterControlePers,
+  getCurrentDcompDocumentNumbers,
+  getRectifiedDcompNumbers,
+  mergeControleSituacoes,
+  sortControlePers,
+  sumCompensatedByPer,
+  sumOriginalDistributedByPer,
+  type ControlePer,
+} from '@/lib/controlePerdcomp';
 
-// --- Tooltip helpers ---
-const FieldTooltip = ({ text }: { text: string }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help flex-shrink-0" />
-    </TooltipTrigger>
-    <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
-      {text}
-    </TooltipContent>
-  </Tooltip>
-);
-
-// --- Tooltip texts ---
-const TOOLTIPS = {
-  cliente: "Filtra os processos de PERDCOMP por cliente ou grupo.",
-  contribuinte: "CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.",
-  situacao: "Filtra por status do processo (múltipla seleção).",
-  exercicio: "Limita a listagem ao ano-calendário do crédito.",
-  numeroProcesso: "Busca direta pelo número do PER/DCOMP.",
-} as const;
-
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(normalizeCurrencyZero(value));
-};
-
-const formatDate = (dateStr: string | null) => {
-  if (!dateStr) return "-";
-  try {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    return format(new Date(year, month - 1, day), "dd/MM/yyyy", { locale: ptBR });
-  } catch {
-    return dateStr;
-  }
-};
-
-const formatDateTime = (dateStr: string | null) => {
-  if (!dateStr) return "-";
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return format(date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
-  } catch {
-    return dateStr;
-  }
-};
-
-interface PerSituacaoMap {
-  [key: string]: {
-    situacao: string;
-    criado_em: string;
-    dt_pagamento: string | null;
-  };
-}
+const ITEMS_PER_PAGE = 10;
 
 export default function ControlePerdcomp() {
-  const queryClient = useQueryClient();
-
-
-  // Filter states
-  const [clienteId, setClienteId] = useState<string>("");
-  const [contribuinteId, setContribuinteId] = useState<string>("");
-  const [exercicioFilter, setExercicioFilter] = useState<string>("");
-  const [processoFilter, setProcessoFilter] = useState<string>("");
+  const [clienteId, setClienteId] = useState('');
+  const [contribuinteId, setContribuinteId] = useState('');
+  const [exercicioFilter, setExercicioFilter] = useState('');
+  const [processoFilter, setProcessoFilter] = useState('');
   const [situacaoFilter, setSituacaoFilter] = useState<string[]>([]);
-
   const [searched, setSearched] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const ITEMS_PER_PAGE = 10;
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Modal states
   const [formModalOpen, setFormModalOpen] = useState(false);
-  const [editData, setEditData] = useState<any>(null);
-
-  // Soft delete modal state
+  const [editData, setEditData] = useState<ControlePer | null>(null);
   const [softDeleteOpen, setSoftDeleteOpen] = useState(false);
   const [softDeleteType, setSoftDeleteType] = useState<'per' | 'dcomp'>('per');
   const [softDeleteId, setSoftDeleteId] = useState('');
-
-  // PER Detail Modal states
   const [detailModalOpen, setDetailModalOpen] = useState(false);
-  const [selectedPer, setSelectedPer] = useState<any>(null);
+  const [selectedPer, setSelectedPer] = useState<ControlePer | null>(null);
 
-  // Fetch clientes
-  const { data: clientes = [] } = useQuery({
-    queryKey: ["clientes-ativos"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('cliente').select("id, nome").eq("ativo", true).eq("excluido", false).eq("ambiente", currentAmbiente).order("nome");
-      if (error) throw error;
-      return (data || []) as unknown as { id: string; nome: string }[];
-    },
-  });
+  const { data: clientes = [] } = useClientesControlePerdcomp();
+  const { data: contribuintes = [] } = useContribuintesControlePerdcomp(clienteId);
 
-  // Fetch contribuintes based on selected cliente
-  const { data: contribuintes = [] } = useQuery({
-    queryKey: ["contribuintes", clienteId],
-    queryFn: async () => {
-      if (!clienteId) return [];
-      const { data, error } = await supabase
-        .from('contribuinte')
-        .select("id, nome_razao_social")
-        .eq("cliente_id", clienteId)
-        .eq("excluido", false)
-        .eq("ambiente", currentAmbiente)
-        .order("nome_razao_social");
-      if (error) throw error;
-      return (data || []) as unknown as { id: string; nome_razao_social: string }[];
-    },
-    enabled: !!clienteId,
-  });
-
-  // Auto-selecionar contribuinte quando há apenas um
   useEffect(() => {
-    if (clienteId && contribuintes && contribuintes.length === 1 && !contribuinteId) {
+    if (clienteId && contribuintes.length === 1 && !contribuinteId)
       setContribuinteId(contribuintes[0].id);
-    }
   }, [clienteId, contribuintes, contribuinteId]);
 
-  // Query for PER data — filter out soft-deleted
-  const { data: perData = [], isLoading: perLoading, isError: perError } = useQuery({
-    queryKey: ["perdcomp-per", contribuinteId, searched],
-    queryFn: async () => {
-      if (!contribuinteId || !searched) return [];
-      const { data, error } = await supabase
-        .from("per_with_contribuinte" as any)
-        .select("*")
-        .eq("id_contribuinte", contribuinteId)
-        .order("exercicio", { ascending: false });
-      if (error) throw error;
-      return (data || []) as any[];
-    },
-    enabled: searched && !!contribuinteId,
-  });
-
-  // Query for situações (most recent for each PER)
-  const { data: perSituacoesMap = {} } = useQuery<PerSituacaoMap>({
-    queryKey: ["per-situacoes", contribuinteId, searched],
-    queryFn: async () => {
-      if (!contribuinteId || !searched) return {};
-
-      // Get all PERs for this contribuinte
-      const { data: pers, error: perError } = await supabase
-        .from("per")
-        .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId);
-      if (perError) throw perError;
-
-      const perNumbers = pers?.map((p: any) => p.nr_per) || [];
-      if (perNumbers.length === 0) return {};
-
-      // Get all situações for these PERs
-      const { data: situacoes, error } = await supabase
-        .from("per_situacao")
-        .select("nr_proc_per, situacao, criado_em, dt_pagamento")
-        .in("nr_proc_per", perNumbers)
-        .order("criado_em", { ascending: false });
-      if (error) throw error;
-
-      // Build map with most recent situação for each PER
-      const map: PerSituacaoMap = {};
-      for (const sit of situacoes || []) {
-        if (!map[sit.nr_proc_per]) {
-          map[sit.nr_proc_per] = {
-            situacao: sit.situacao,
-            criado_em: sit.criado_em || "",
-            dt_pagamento: sit.dt_pagamento || null,
-          };
-        }
-      }
-      return map;
-    },
-    enabled: searched && !!contribuinteId,
-  });
-
-  // Query for DCOMP data — filter out soft-deleted
-  const { data: dcompData = [], isLoading: dcompLoading } = useQuery({
-    queryKey: ["perdcomp-dcomp", contribuinteId, searched],
-    queryFn: async () => {
-      if (!contribuinteId || !searched) return [];
-      // First get PERs for this contribuinte
-      const { data: pers, error: perError } = await supabase
-        .from("per")
-        .select("nr_per" as any)
-        .eq("id_contribuinte", contribuinteId);
-      if (perError) throw perError;
-
-      const perNumbers = pers?.map((p: any) => p.nr_per) || [];
-      if (perNumbers.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from("dcomp")
-        .select("*")
-        .in("nr_per_orig", perNumbers)
-        .order("dt_envio", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: searched && !!contribuinteId,
-  });
-
-  const [isSearchingByProcess, setIsSearchingByProcess] = useState(false);
+  const {
+    data: perData = [],
+    isLoading: perLoading,
+    isError: perError,
+  } = usePersControlePerdcomp(contribuinteId, searched);
+  const { data: perSituacoesMap = {} } = useSituacoesControlePerdcomp(contribuinteId, searched);
+  const { data: dcompData = [], isLoading: dcompLoading } = useDcompsControlePerdcomp(
+    contribuinteId,
+    searched,
+  );
+  const globalProcessLookup = useBuscarProcessoGlobalPerdcomp();
 
   const handleSearch = async () => {
-    // Process number search is global: ignore selected cliente/contribuinte and
-    // re-point the selectors to whatever owns the matched PER/DCOMP.
     if (processoFilter) {
-      const filterDigits = processoFilter.replace(/\D/g, '');
-      if (!filterDigits) {
-        toast.error("Número de processo inválido");
-        return;
-      }
-
-      setIsSearchingByProcess(true);
-      try {
-        const { data: matchedPers } = await supabase
-          .from("per")
-          .select("id_contribuinte")
-          .like("nr_per", `%${filterDigits}%`)
-          .limit(1);
-
-        let contribId: string | null = matchedPers?.[0]?.id_contribuinte ?? null;
-
-        if (!contribId) {
-          const { data: matchedDcomps } = await supabase
-            .from("dcomp")
-            .select("nr_per_orig")
-            .like("nr_documento", `%${filterDigits}%`)
-            .limit(1);
-
-          if (matchedDcomps?.[0]?.nr_per_orig) {
-            const { data: per } = await supabase
-              .from("per")
-              .select("id_contribuinte")
-              .eq("nr_per", matchedDcomps[0].nr_per_orig)
-              .maybeSingle();
-            contribId = per?.id_contribuinte ?? null;
-          }
-        }
-
-        if (!contribId) {
-          toast.error("Nenhum PER ou DCOMP encontrado com esse número");
-          return;
-        }
-
-        const { data: contrib } = await supabase
-          .from("contribuinte")
-          .select("cliente_id")
-          .eq("id", contribId)
-          .maybeSingle();
-
-        if (!contrib?.cliente_id) {
-          toast.error("Contribuinte sem cliente vinculado");
-          return;
-        }
-
-        setClienteId(contrib.cliente_id);
-        setContribuinteId(contribId);
-        setSearched(true);
-      } finally {
-        setIsSearchingByProcess(false);
-      }
+      const result = await globalProcessLookup.mutateAsync(processoFilter);
+      if (result.status === 'invalid') return void toast.error('Número de processo inválido');
+      if (result.status === 'not-found')
+        return void toast.error('Nenhum PER ou DCOMP encontrado com esse número');
+      if (result.status === 'unlinked')
+        return void toast.error('Contribuinte sem cliente vinculado');
+      setClienteId(result.clienteId);
+      setContribuinteId(result.contribuinteId);
+      setSearched(true);
       return;
     }
 
     const missing: string[] = [];
-    if (!clienteId) missing.push("Cliente");
-    if (!contribuinteId) missing.push("Contribuinte");
+    if (!clienteId) missing.push('Cliente');
+    if (!contribuinteId) missing.push('Contribuinte');
     if (missing.length > 0) {
-      toast.error("Preenchimento obrigatório", {
-        description: `Por favor, preencha ${missing.join(", ")} para realizar a busca.`,
+      toast.error('Preenchimento obrigatório', {
+        description: `Por favor, preencha ${missing.join(', ')} para realizar a busca.`,
       });
       return;
     }
@@ -329,290 +103,118 @@ export default function ControlePerdcomp() {
   };
 
   const handleClear = () => {
-    setClienteId("");
-    setContribuinteId("");
-    setExercicioFilter("");
-    setProcessoFilter("");
+    setClienteId('');
+    setContribuinteId('');
+    setExercicioFilter('');
+    setProcessoFilter('');
     setSituacaoFilter([]);
     setSearched(false);
     setCurrentPage(1);
     setSortColumn(null);
   };
 
-  // Create set of rectified processes (processes that appear in nr_proc_ret of another record)
-  const retificadosSet = new Set(perData.filter((item: any) => item.nr_proc_ret).map((item: any) => item.nr_proc_ret));
-
-  // Set of DCOMPs that have been rectified by another DCOMP
-  const dcompsRetificadosSet = useMemo(() => {
-    return new Set(
-      dcompData
-        .filter((d: any) => d.nr_dcomp_ret)
-        .map((d: any) => d.nr_dcomp_ret)
-    );
-  }, [dcompData]);
-
-  // Create map of total compensated value per PER (excluding rectified DCOMPs)
-  // Usa vlr_compensado (atualizado pela SELIC na data de envio) — exibido na coluna "Vlr. Compensado".
-  const dcompTotalMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const dcomp of dcompData) {
-      if (dcompsRetificadosSet.has(dcomp.nr_documento)) continue;
-      const perNum = dcomp.nr_per_orig;
-      if (!map[perNum]) map[perNum] = 0;
-      map[perNum] += dcomp.vlr_compensado || 0;
-    }
-    return map;
-  }, [dcompData, dcompsRetificadosSet]);
-
-  // Lista de nr_documento de DCOMPs vigentes para buscar distribuições (valor_original)
-  const dcompsVigentesNrDocs = useMemo(
-    () => dcompData.filter((d: any) => !dcompsRetificadosSet.has(d.nr_documento)).map((d: any) => d.nr_documento),
+  const dcompsRetificadosSet = useMemo(() => getRectifiedDcompNumbers(dcompData), [dcompData]);
+  const dcompTotalMap = useMemo(
+    () => sumCompensatedByPer(dcompData, dcompsRetificadosSet),
     [dcompData, dcompsRetificadosSet],
   );
-
-  // Query distribuições para somar valor_original por DCOMP (principal consumido do crédito)
-  const { data: distribuicoesData = [] } = useQuery<Array<{
-    nr_documento: string;
-    valor_tributo: number | null;
-    valor_original: number | null;
-  }>>({
-    queryKey: ["perdcomp-distribuicoes", contribuinteId, dcompsVigentesNrDocs.join(",")],
-    queryFn: async () => {
-      if (dcompsVigentesNrDocs.length === 0) return [];
-      const { data, error } = await (supabase
-        .from("distribuicao_dcomp") as any)
-        .select("nr_documento, valor_tributo, valor_original")
-        .in("nr_documento", dcompsVigentesNrDocs);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: searched && dcompsVigentesNrDocs.length > 0,
-  });
-
-  // Map: nr_per_orig → Σ valor_original (fallback valor_tributo) das distribuições das DCOMPs vigentes
-  const dcompOriginalMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    // index nr_documento → nr_per_orig
-    const docToPer: Record<string, string> = {};
-    for (const d of dcompData) {
-      if (dcompsRetificadosSet.has(d.nr_documento)) continue;
-      docToPer[d.nr_documento] = d.nr_per_orig;
-    }
-    for (const linha of distribuicoesData) {
-      const perNum = docToPer[linha.nr_documento];
-      if (!perNum) continue;
-      const valor = Number(linha.valor_original ?? linha.valor_tributo ?? 0);
-      map[perNum] = (map[perNum] || 0) + valor;
-    }
-    return map;
-  }, [distribuicoesData, dcompData, dcompsRetificadosSet]);
-
-  // Frontend filtering - hide rectified processes and apply user filters
-  const filteredPerData = perData.filter((item: any) => {
-    // Hide processes that have been rectified (appear in nr_proc_ret of another record)
-    if (retificadosSet.has(item.nr_per)) return false;
-    if (exercicioFilter && item.exercicio !== parseInt(exercicioFilter)) return false;
-    if (situacaoFilter.length > 0) {
-      const sit = perSituacoesMap[item.nr_per]?.situacao || "";
-      if (!situacaoFilter.includes(sit)) return false;
-    }
-    if (processoFilter) {
-      const filterDigits = processoFilter.replace(/\D/g, '');
-      const matchPer = item.nr_per.includes(filterDigits);
-      const matchDcomp = dcompData.some(
-        (d: any) => d.nr_per_orig === item.nr_per && d.nr_documento.includes(filterDigits),
-      );
-      if (!matchPer && !matchDcomp) return false;
-    }
-    return true;
-  });
-
-  // Static list of all possible situações (unified from all forms)
-  const PREDEFINED_SITUACOES = [
-    'Aguardando Documentação',
-    'Análise concluída',
-    'Análise preliminar disponibilizada',
-    'Analisado',
-    'Contribuinte intimado',
-    'Deferido',
-    'Deferido Parcialmente',
-    'Despacho decisório emitido',
-    'Em Análise',
-    'Em discussão administrativa - CARF',
-    'Em discussão administrativa - CSRF',
-    'Em discussão administrativa - DRJ',
-    'Homologado',
-    'Indeferido',
-    'Não admitido',
-    'Pago',
-    'PER deferido',
-    'Pendente de Análise',
-    'Retificado',
-  ];
-
-  // Merge with DB values to cover any custom situações
-  const { data: dbSituacoes = [] } = useQuery({
-    queryKey: ["per-situacoes-distintas"],
-    queryFn: async () => {
-      const { data } = await supabase.from("per_situacao").select("situacao").not("situacao", "is", null);
-      return Array.from(new Set(data?.map((d) => d.situacao) || []));
-    },
-  });
-
-  const allSituacoes = useMemo(() => {
-    const merged = new Set([...PREDEFINED_SITUACOES, ...dbSituacoes]);
-    return Array.from(merged).sort();
-  }, [dbSituacoes]);
-
-  // Fetch Selic rates individually per PER (each PER has its own data_fim)
+  const dcompsVigentesNrDocs = useMemo(
+    () => getCurrentDcompDocumentNumbers(dcompData, dcompsRetificadosSet),
+    [dcompData, dcompsRetificadosSet],
+  );
+  const { data: distribuicoesData = [] } = useDistribuicoesControlePerdcomp(
+    contribuinteId,
+    dcompsVigentesNrDocs,
+    searched,
+  );
+  const dcompOriginalMap = useMemo(
+    () => sumOriginalDistributedByPer(distribuicoesData, dcompData, dcompsRetificadosSet),
+    [distribuicoesData, dcompData, dcompsRetificadosSet],
+  );
+  const filteredPerData = useMemo(
+    () =>
+      filterControlePers(perData, dcompData, perSituacoesMap, {
+        exercicio: exercicioFilter,
+        processo: processoFilter,
+        situacoes: situacaoFilter,
+      }),
+    [perData, dcompData, perSituacoesMap, exercicioFilter, processoFilter, situacaoFilter],
+  );
+  const { data: dbSituacoes = [] } = useSituacoesDistintasControlePerdcomp();
+  const allSituacoes = useMemo(() => mergeControleSituacoes(dbSituacoes), [dbSituacoes]);
   const {
     data: selicPerMap = {},
     isLoading: selicLoading,
     error: selicError,
-  } = useSelicDataPerPer(
-    filteredPerData
-      .filter((p: any) => p.dt_solicitada)
-      .map((p: any) => ({
-        nr_per: p.nr_per,
-        dt_solicitada: p.dt_solicitada,
-      })),
-  );
+  } = useSelicDataPerPer(buildSelicPerInputs(filteredPerData));
 
   useEffect(() => {
-    if (selicError) {
-      toast.error(`SELIC indisponível: ${(selicError as Error).message}`);
-    }
+    if (selicError) toast.error(`SELIC indisponível: ${(selicError as Error).message}`);
   }, [selicError]);
 
-  // Pre-calculate corrected values for all filtered PERs
-  const selicCorrectionMap = useMemo(() => {
-    const map: Record<string, { valorCorrigido: number; fator: number }> = {};
-    for (const per of filteredPerData) {
-      if (!per.dt_solicitada) continue;
+  const selicCorrectionMap = useMemo(
+    () => calculateSelicCorrections(filteredPerData, selicPerMap, dcompTotalMap, dcompOriginalMap),
+    [selicPerMap, filteredPerData, dcompTotalMap, dcompOriginalMap],
+  );
+  const totals = useMemo(
+    () =>
+      calculateControleTotals(filteredPerData, dcompTotalMap, dcompOriginalMap, selicCorrectionMap),
+    [filteredPerData, dcompTotalMap, dcompOriginalMap, selicCorrectionMap],
+  );
+  const sortedData = useMemo(
+    () =>
+      sortControlePers(
+        filteredPerData,
+        sortColumn,
+        sortDirection,
+        perSituacoesMap,
+        dcompTotalMap,
+        dcompOriginalMap,
+        selicCorrectionMap,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Preserve the legacy stale-sort dependency behavior.
+    [
+      filteredPerData,
+      sortColumn,
+      sortDirection,
+      perSituacoesMap,
+      dcompTotalMap,
+      selicCorrectionMap,
+    ],
+  );
+  const pagination = buildControlePagination(sortedData, currentPage, ITEMS_PER_PAGE);
 
-      if (isWithinGracePeriod(per.dt_solicitada)) {
-        map[per.nr_per] = { valorCorrigido: 0, fator: 0 };
-        continue;
-      }
-
-      const selicResult = selicPerMap[per.nr_per];
-      if (!selicResult) continue;
-
-      const totalOriginal = dcompOriginalMap[per.nr_per] ?? (dcompTotalMap[per.nr_per] || 0);
-      const valRessarcido = (per as any).vlr_ressarcido_original ?? (per as any).vlr_ressarcido ?? 0;
-      const saldo = normalizeCurrencyZero(per.vlr_credito - totalOriginal - valRessarcido);
-
-      const { valorCorrigido, fator } = applySelicCorrection(saldo, selicResult.fator);
-      map[per.nr_per] = { valorCorrigido, fator };
-    }
-    return map;
-  }, [selicPerMap, filteredPerData, dcompTotalMap, dcompOriginalMap]);
-
-  // Calculate totals for footer
-  const totals = useMemo(() => {
-    let credito = 0;
-    let corrigido = 0;
-    let compensado = 0;
-    let ressarcido = 0;
-    let saldo = 0;
-
-    for (const item of filteredPerData) {
-      const totalComp = dcompTotalMap[item.nr_per] || 0;
-      const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalComp;
-      const valRessarcido = (item as any).vlr_ressarcido || 0;
-      const valRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valRessarcido;
-      const valSaldo = normalizeCurrencyZero(item.vlr_credito - totalOriginal - valRessarcidoOriginal);
-      const correction = selicCorrectionMap[item.nr_per];
-
-      credito += item.vlr_credito;
-      corrigido += correction ? valSaldo * (1 + correction.fator) : 0;
-      compensado += totalComp;
-      ressarcido += valRessarcido;
-      saldo += valSaldo;
-    }
-
-    return { credito, corrigido, compensado, ressarcido, saldo };
-  }, [filteredPerData, dcompTotalMap, dcompOriginalMap, selicCorrectionMap]);
-
-  // Sorting
-  const getSortValue = (item: any, col: string) => {
-    const key = item.nr_per;
-    switch (col) {
-      case "processo":
-        return key;
-      case "situacao":
-        return perSituacoesMap[key]?.situacao || "";
-      case "dt_solicitada":
-        return item.dt_solicitada || "";
-      case "exercicio":
-        return item.exercicio;
-      case "trimestre":
-        return item.tri_exercicio;
-      case "vlr_credito":
-        return item.vlr_credito;
-      case "vlr_compensado":
-        return dcompTotalMap[key] || 0;
-      case "saldo": {
-        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
-        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
-        return normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
-      }
-      case "vlr_corrigido": {
-        const totalOrig = dcompOriginalMap[key] ?? (dcompTotalMap[key] || 0);
-        const ress = (item as any).vlr_ressarcido_original ?? (item as any).vlr_ressarcido ?? 0;
-        const sld = normalizeCurrencyZero(item.vlr_credito - totalOrig - ress);
-        return sld * (1 + (selicCorrectionMap[key]?.fator || 0));
-      }
-      default:
-        return "";
-    }
-  };
-
-  const sortedData = useMemo(() => {
-    if (!sortColumn) return filteredPerData;
-    return [...filteredPerData].sort((a: any, b: any) => {
-      const aVal = getSortValue(a, sortColumn);
-      const bVal = getSortValue(b, sortColumn);
-      const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
-      return sortDirection === "asc" ? cmp : -cmp;
-    });
-  }, [filteredPerData, sortColumn, sortDirection, perSituacoesMap, dcompTotalMap, selicCorrectionMap]);
-
-  const handleSort = (col: string) => {
-    if (sortColumn === col) {
-      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortColumn(col);
-      setSortDirection("asc");
+  const handleSort = (column: string) => {
+    if (sortColumn === column)
+      setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+    else {
+      setSortColumn(column);
+      setSortDirection('asc');
     }
     setCurrentPage(1);
   };
 
-  const SortIcon = ({ col }: { col: string }) => {
-    if (sortColumn !== col) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-40" />;
-    return sortDirection === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  const handleSituacoesChange = (situacoes: string[]) => {
+    setSituacaoFilter(situacoes);
+    setCurrentPage(1);
   };
-
-  // Pagination
-  const totalPages = Math.ceil(sortedData.length / ITEMS_PER_PAGE);
-  const paginatedData = sortedData.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
   const handleNew = () => {
     setEditData(null);
     setFormModalOpen(true);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: ControlePer) => {
     setEditData(item);
     setFormModalOpen(true);
   };
 
-  const handlePerClick = (item: any) => {
+  const handlePerClick = (item: ControlePer) => {
     setSelectedPer(item);
     setDetailModalOpen(true);
   };
 
-  const handleSoftDeletePer = (item: any) => {
+  const handleSoftDeletePer = (item: ControlePer) => {
     setSoftDeleteType('per');
     setSoftDeleteId(item.nr_per);
     setSoftDeleteOpen(true);
@@ -620,552 +222,83 @@ export default function ControlePerdcomp() {
 
   const isLoading = perLoading || dcompLoading;
 
-  const renderTable = () => {
-   if (!searched || !contribuinteId) {
-      return (
-        <div className="text-center py-12 text-muted-foreground">
-          <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Selecione um cliente e contribuinte para visualizar os registros</p>
-        </div>
-      );
-    }
-
-    if (perError) {
-      return (
-        <div className="text-center py-12 text-destructive">
-          <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-70" />
-          <p className="font-medium">Erro ao carregar registros de PER.</p>
-          <p className="text-sm text-muted-foreground mt-1">Verifique sua conexão e tente novamente.</p>
-        </div>
-      );
-    }
-
-    if (isLoading) {
-      return (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      );
-    }
-
-    return (
-      <TooltipProvider>
-        <div className="overflow-x-auto w-full">
-          <Table className="text-xs min-w-[1400px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
-            <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700">
-              <TableRow>
-                <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("processo")}
-                >
-                  <span className="flex items-center">
-                    Nº Processo
-                    <SortIcon col="processo" />
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("situacao")}
-                >
-                  <span className="flex items-center">
-                    Situação
-                    <SortIcon col="situacao" />
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">Últ. atualização</TableHead>
-                <TableHead
-                  className="whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("dt_solicitada")}
-                >
-                  <span className="flex items-center">
-                    Dt. Solicitada
-                    <SortIcon col="dt_solicitada" />
-                  </span>
-                </TableHead>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("exercicio")}>
-                  <span className="flex items-center">
-                    Exerc.
-                    <SortIcon col="exercicio" />
-                  </span>
-                </TableHead>
-                <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("trimestre")}>
-                  <span className="flex items-center">
-                    Tri.
-                    <SortIcon col="trimestre" />
-                  </span>
-                </TableHead>
-                <TableHead className="whitespace-nowrap">Tipo Crédito</TableHead>
-                <TableHead className="text-right whitespace-nowrap">% PSA</TableHead>
-                <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("vlr_credito")}
-                >
-                  <span className="flex items-center justify-end">
-                    Vlr. Crédito
-                    <SortIcon col="vlr_credito" />
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("vlr_compensado")}
-                >
-                  <span className="flex items-center justify-end">
-                    Vlr. Compensado
-                    <SortIcon col="vlr_compensado" />
-                  </span>
-                </TableHead>
-                <TableHead className="text-right whitespace-nowrap">Ressarcido</TableHead>
-                <TableHead className="whitespace-nowrap">Dt. Pagamento</TableHead>
-                <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("saldo")}
-                >
-                  <span className="flex items-center justify-end">
-                    Saldo Disp.
-                    <SortIcon col="saldo" />
-                  </span>
-                </TableHead>
-                <TableHead
-                  className="text-right whitespace-nowrap cursor-pointer hover:bg-muted/50"
-                  onClick={() => handleSort("vlr_corrigido")}
-                >
-                  <span className="flex items-center justify-end">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help border-b border-dashed border-muted-foreground/50">
-                          Valor Atualizado SELIC
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Valor máximo da DCOMP na data atual (saldo disponível + parcela SELIC)</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <SortIcon col="vlr_corrigido" />
-                  </span>
-                </TableHead>
-                <TableHead className="w-[80px]">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={15} className="text-center py-8 text-muted-foreground">
-                    Nenhum registro encontrado
-                  </TableCell>
-                </TableRow>
-              ) : (
-                paginatedData.map((item: any) => {
-                  const situacaoInfo = perSituacoesMap[item.nr_per];
-                  const totalCompensado = dcompTotalMap[item.nr_per] || 0;
-                  const totalOriginal = dcompOriginalMap[item.nr_per] ?? totalCompensado;
-                  const valorRessarcido = (item as any).vlr_ressarcido || 0;
-                  const valorRessarcidoOriginal = (item as any).vlr_ressarcido_original ?? valorRessarcido;
-                  const saldo = normalizeCurrencyZero(Math.round((item.vlr_credito - totalOriginal - valorRessarcidoOriginal) * 100) / 100);
-                  const correction = selicCorrectionMap[item.nr_per];
-
-                  return (
-                    <TableRow
-                      key={item.nr_per}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handlePerClick(item)}
-                    >
-                      <TableCell className="font-medium">{normalizeProcessNumber(item.nr_per)}</TableCell>
-                      <TableCell>{situacaoInfo?.situacao || "-"}</TableCell>
-                      <TableCell className="text-muted-foreground text-sm">
-                        {situacaoInfo?.criado_em ? formatDateTime(situacaoInfo.criado_em) : "-"}
-                      </TableCell>
-                      <TableCell>{formatDate(item.dt_solicitada)}</TableCell>
-                      <TableCell>{item.exercicio}</TableCell>
-                      <TableCell>{item.tri_exercicio}º</TableCell>
-                      <TableCell>{item.tp_credito}</TableCell>
-                      <TableCell className="text-right">
-                        {(item as any).porcentagem_psa != null ? `${(item as any).porcentagem_psa}%` : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.vlr_credito)}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(totalCompensado)}</TableCell>
-                      <TableCell className="text-right">
-                        {valorRessarcido > 0 ? formatCurrency(valorRessarcido) : "-"}
-                      </TableCell>
-                      <TableCell>{situacaoInfo?.dt_pagamento ? formatDate(situacaoInfo.dt_pagamento) : "-"}</TableCell>
-                      <TableCell className="text-right">
-                        <span
-                          className={cn(
-                            "font-medium",
-                            saldo > 0
-                              ? "text-green-600 dark:text-green-400"
-                              : saldo < 0
-                                ? "text-red-600 dark:text-red-400"
-                                : "",
-                          )}
-                        >
-                          {formatCurrency(saldo)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {correction ? (
-                          correction.fator > 0 ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
-                                  {formatCurrency(saldo * (1 + correction.fator))}
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Valor Atualizado SELIC — Fator: {correction.fator.toFixed(6)}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <span className="text-muted-foreground">Em carência</span>
-                          )
-                        ) : selicLoading ? (
-                          <Loader2 className="h-3 w-3 animate-spin ml-auto" />
-                        ) : selicError ? (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-flex items-center gap-1 text-destructive cursor-help">
-                                <AlertCircle className="h-3 w-3" />
-                                <span>—</span>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>SELIC indisponível: {(selicError as Error).message}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        ) : (
-                          <span className="text-muted-foreground">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEdit(item);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSoftDeletePer(item);
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-            {searched && filteredPerData.length > 0 && (
-              <TableFooter className="sticky bottom-0 bg-muted/80 backdrop-blur supports-[backdrop-filter]:bg-muted/60">
-                <TableRow className="hover:bg-muted/80">
-                  <TableCell colSpan={8} className="font-bold">
-                    <span className="inline-flex items-center gap-1.5">
-                      Total Geral
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </TooltipTrigger>
-                        <TooltipContent side="top" align="start" collisionPadding={16} className="max-w-xs">
-                          <p>
-                            Soma de <strong>todos os PERs</strong> que atendem aos filtros aplicados —
-                            independente da página exibida e da ordenação. O valor não muda ao paginar.
-                          </p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
-                    {formatCurrency(totals.credito)}
-                  </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
-                    {formatCurrency(totals.compensado)}
-                  </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
-                    {totals.ressarcido > 0 ? formatCurrency(totals.ressarcido) : "-"}
-                  </TableCell>
-                  <TableCell />
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap">
-                    <span
-                      className={cn(
-                        totals.saldo > 0
-                          ? "text-green-600 dark:text-green-400"
-                          : totals.saldo < 0
-                            ? "text-red-600 dark:text-red-400"
-                            : "",
-                      )}
-                    >
-                      {formatCurrency(totals.saldo)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap text-blue-600 dark:text-blue-400">
-                    {formatCurrency(totals.corrigido)}
-                  </TableCell>
-                  <TableCell />
-                </TableRow>
-              </TableFooter>
-            )}
-          </Table>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <span className="text-sm text-muted-foreground">
-                Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
-                {Math.min(currentPage * ITEMS_PER_PAGE, sortedData.length)} de {sortedData.length} registros
-              </span>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm">
-                  Página {currentPage} de {totalPages}
-                </span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      </TooltipProvider>
-    );
-  };
-
-  const renderFormModal = () => {
-    return (
-      <PerFormModal
-        open={formModalOpen}
-        onOpenChange={setFormModalOpen}
-        editData={editData}
-        clienteId={clienteId}
-        contribuinteId={contribuinteId}
-      />
-    );
-  };
-
   return (
-    <DevLayout title="Controle PERDCOMP" subtitle="Gerenciamento de PER e DCOMP" sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/">
+    <DevLayout
+      title="Controle PERDCOMP"
+      subtitle="Gerenciamento de PER e DCOMP"
+      sopUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
+    >
       <TooltipProvider delayDuration={300}>
-      <DevPageHeader
-        description="A ferramenta **Controle PERDCOMP** centraliza a busca e o gerenciamento dos Processos de Ressarcimento e Compensação da base de dados. Utilize os filtros abaixo para consultar processos específicos ou analisar exercícios inteiros, permitindo a visualização detalhada e atualização de status em tela, o cadastro de novas DCOMPs vinculadas e o registro de pagamentos efetivos de ressarcimentos."
-        manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
-      />
-      {/* Filters Card */}
-      <Card className="mb-6">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-lg text-primary">
-            <Filter className="h-5 w-5 text-teal-600" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-12 gap-6">
-            {/* Cliente - 3 colunas */}
-            <div className="col-span-12 md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
-              <Select
-                value={clienteId}
-                onValueChange={(v) => {
-                  setClienteId(v);
-                  setContribuinteId("");
-                }}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-white z-50">
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Contribuinte - 3 colunas */}
-            <div className="col-span-12 md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
-              <Select
-                value={contribuinteId}
-                onValueChange={setContribuinteId}
-                disabled={!clienteId}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent className="bg-white z-50">
-                  {contribuintes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.nome_razao_social}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Situação - 2 colunas */}
-            <div className="col-span-6 md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Situação <FieldTooltip text={TOOLTIPS.situacao} /></label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between h-10 font-normal">
-                    <span className="truncate">
-                      {situacaoFilter.length === 0
-                        ? "Todas"
-                        : situacaoFilter.length === 1
-                          ? situacaoFilter[0]
-                          : `${situacaoFilter.length} selecionadas`}
-                    </span>
-                    <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="start">
-                  <ScrollArea className="max-h-64 overflow-auto">
-                    <div className="space-y-1">
-                      <label className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm font-medium">
-                        <Checkbox
-                          checked={situacaoFilter.length === 0}
-                          onCheckedChange={() => {
-                            setSituacaoFilter([]);
-                            setCurrentPage(1);
-                          }}
-                        />
-                        Todas
-                      </label>
-                      <Separator className="my-1" />
-                      {allSituacoes.map((s) => (
-                        <label
-                          key={s}
-                          className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-muted cursor-pointer text-sm"
-                        >
-                          <Checkbox
-                            checked={situacaoFilter.includes(s)}
-                            onCheckedChange={(checked) => {
-                              setSituacaoFilter((prev) => (checked ? [...prev, s] : prev.filter((x) => x !== s)));
-                              setCurrentPage(1);
-                            }}
-                          />
-                          {s}
-                        </label>
-                      ))}
-                      {situacaoFilter.length > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full mt-1"
-                          onClick={() => {
-                            setSituacaoFilter([]);
-                            setCurrentPage(1);
-                          }}
-                        >
-                          Limpar seleção
-                        </Button>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            {/* Exercício - 2 colunas */}
-            <div className="col-span-6 md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Exercício <FieldTooltip text={TOOLTIPS.exercicio} /></label>
-              <Select
-                value={exercicioFilter || "__none__"}
-                onValueChange={(v) => setExercicioFilter(v === "__none__" ? "" : v)}
-              >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
-                  <SelectValue placeholder="Todos" />
-                </SelectTrigger>
-                <SelectContent className="bg-white z-50">
-                  <SelectItem value="__none__">Todos</SelectItem>
-                  {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
-                    <SelectItem key={year} value={year.toString()}>
-                      {year}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Nº Processo - 2 colunas */}
-            <div className="col-span-12 md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} /></label>
-              <Input
-                className="h-11 bg-white dark:bg-slate-800"
-                placeholder="Digite o número..."
-                value={processoFilter}
-                onChange={(e) => setProcessoFilter(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Rodapé de ações */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t">
-            {(clienteId || contribuinteId || exercicioFilter || processoFilter || situacaoFilter.length > 0) && (
-              <Button variant="outline" onClick={handleClear} className="gap-2 text-red-600 border-red-300 hover:bg-red-50">
-                <Eraser className="h-4 w-4" />
-                Limpar filtros
-              </Button>
-            )}
-            <Button onClick={handleSearch} disabled={isLoading || isSearchingByProcess} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-              {(isLoading || isSearchingByProcess) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-              {(isLoading || isSearchingByProcess) ? 'Buscando...' : 'Buscar'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
-          <CardTitle className="text-lg">Resultados - PER</CardTitle>
-          <Button onClick={handleNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
-            <Plus className="h-4 w-4" />
-            Novo PER
-          </Button>
-        </CardHeader>
-        <CardContent>{renderTable()}</CardContent>
-      </Card>
-
-      {/* Form Modal */}
-      {renderFormModal()}
-
-      {/* Soft Delete Modal */}
-      <SoftDeleteModal
-        open={softDeleteOpen}
-        onOpenChange={setSoftDeleteOpen}
-        type={softDeleteType}
-        identifier={softDeleteId}
-      />
-
-      {/* PER Detail Modal */}
-      <PerDetailModal
-        open={detailModalOpen}
-        onOpenChange={setDetailModalOpen}
-        per={selectedPer}
-        contribuinteId={contribuinteId}
-      />
+        <DevPageHeader
+          description="A ferramenta **Controle PERDCOMP** centraliza a busca e o gerenciamento dos Processos de Ressarcimento e Compensação da base de dados. Utilize os filtros abaixo para consultar processos específicos ou analisar exercícios inteiros, permitindo a visualização detalhada e atualização de status em tela, o cadastro de novas DCOMPs vinculadas e o registro de pagamentos efetivos de ressarcimentos."
+          manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/controle-perdcomp/"
+        />
+        <ControlePerdcompFilters
+          clienteId={clienteId}
+          contribuinteId={contribuinteId}
+          exercicio={exercicioFilter}
+          processo={processoFilter}
+          situacoes={situacaoFilter}
+          clientes={clientes}
+          contribuintes={contribuintes}
+          allSituacoes={allSituacoes}
+          isSearching={isLoading || globalProcessLookup.isPending}
+          onClienteChange={(value) => {
+            setClienteId(value);
+            setContribuinteId('');
+          }}
+          onContribuinteChange={setContribuinteId}
+          onExercicioChange={setExercicioFilter}
+          onProcessoChange={setProcessoFilter}
+          onSituacoesChange={handleSituacoesChange}
+          onSearch={handleSearch}
+          onClear={handleClear}
+        />
+        <ControlePerdcompResults
+          searched={searched}
+          contribuinteId={contribuinteId}
+          isLoading={isLoading}
+          isError={perError}
+          paginatedData={pagination.items}
+          sortedCount={sortedData.length}
+          filteredCount={filteredPerData.length}
+          pagination={pagination}
+          currentPage={currentPage}
+          sortColumn={sortColumn}
+          sortDirection={sortDirection}
+          perSituacoesMap={perSituacoesMap}
+          dcompTotalMap={dcompTotalMap}
+          dcompOriginalMap={dcompOriginalMap}
+          selicCorrectionMap={selicCorrectionMap}
+          selicLoading={selicLoading}
+          selicError={selicError as Error | null}
+          totals={totals}
+          onNew={handleNew}
+          onSort={handleSort}
+          onPageChange={setCurrentPage}
+          onRowClick={handlePerClick}
+          onEdit={handleEdit}
+          onDelete={handleSoftDeletePer}
+        />
+        <PerFormModal
+          open={formModalOpen}
+          onOpenChange={setFormModalOpen}
+          editData={editData}
+          clienteId={clienteId}
+          contribuinteId={contribuinteId}
+        />
+        <SoftDeleteModal
+          open={softDeleteOpen}
+          onOpenChange={setSoftDeleteOpen}
+          type={softDeleteType}
+          identifier={softDeleteId}
+        />
+        <PerDetailModal
+          open={detailModalOpen}
+          onOpenChange={setDetailModalOpen}
+          per={selectedPer}
+          contribuinteId={contribuinteId}
+        />
       </TooltipProvider>
     </DevLayout>
   );

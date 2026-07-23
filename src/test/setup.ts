@@ -45,12 +45,17 @@ function installStorage(name: 'localStorage' | 'sessionStorage') {
     configurable: true,
     writable: true,
   });
+  return storage;
 }
+
+// Install before test modules import clients that capture the storage reference.
+const testLocalStorage = installStorage('localStorage');
+const testSessionStorage = installStorage('sessionStorage');
 
 // Storage limpo antes de cada teste (substitui o global quebrado do Node).
 beforeEach(() => {
-  installStorage('localStorage');
-  installStorage('sessionStorage');
+  testLocalStorage.clear();
+  testSessionStorage.clear();
 });
 
 // Limpa o DOM entre testes. Sem isso, componentes renderizados em testes

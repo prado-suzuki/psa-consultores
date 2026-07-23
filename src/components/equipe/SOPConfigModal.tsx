@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { useUpdateDomainSOPConfig } from '@/hooks/useDomainSOPConfig';
 import { toast } from '@/hooks/use-toast';
 import { Link, FileUp, FileText, Loader2, X, Upload } from 'lucide-react';
 
@@ -136,6 +136,7 @@ export function SOPConfigModal({
 }: SOPConfigModalProps) {
   const beforeFileRef = useRef<HTMLInputElement>(null);
   const afterFileRef = useRef<HTMLInputElement>(null);
+  const updateSOPConfig = useUpdateDomainSOPConfig();
 
   const [before, setBefore] = useState<SOPSectionData>({
     link: currentBeforeLink || '',
@@ -210,13 +211,7 @@ export function SOPConfigModal({
         formatted_content: after.content.trim() || null,
       };
 
-      await assertCanPerform('processes', 'update', processId);
-      const { error } = await supabase
-        .from('processes')
-        .update(updates)
-        .eq('id', processId);
-
-      if (error) throw error;
+      await updateSOPConfig.mutateAsync({ processId, updates });
 
       toast({ title: 'SOP atualizado', description: 'Configuração salva com sucesso.' });
       onUpdated();

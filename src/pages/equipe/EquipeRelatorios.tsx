@@ -7,7 +7,7 @@
  import { Label } from '@/components/ui/label';
  import { Badge } from '@/components/ui/badge';
  import { Separator } from '@/components/ui/separator';
- import { supabase } from '@/integrations/supabase/client';
+ import { useDomainEquipeRelatorios } from '@/hooks/useDomainEquipeRelatorios';
  import { 
    FileText, 
    FileSpreadsheet, 
@@ -84,11 +84,8 @@
    const [previewData, setPreviewData] = useState<ReportData | null>(null);
    const [previewHtml, setPreviewHtml] = useState<string | null>(null);
    const [logoBase64, setLogoBase64] = useState<string>('');
-   const [projects, setProjects] = useState<{ id: string; name: string }[]>([]);
-  // Radix Select não permite value="" em SelectItem. Usamos sentinela para "Todos".
-  const [projectFilter, setProjectFilter] = useState<string>(ALL_PROJECTS);
-   const [loading, setLoading] = useState(true);
-   const [error, setError] = useState<string | null>(null);
+   // Radix Select não permite value="" em SelectItem. Usamos sentinela para "Todos".
+   const [projectFilter, setProjectFilter] = useState<string>(ALL_PROJECTS);
  
    // Convert logo to base64 on mount
    useEffect(() => {
@@ -115,32 +112,7 @@
      convertLogo();
    }, []);
  
-   // Fetch projects for filter
-   useEffect(() => {
-     const fetchProjects = async () => {
-       try {
-         setLoading(true);
-         setError(null);
-         const { data, error: fetchError } = await supabase
-           .from('projects')
-           .select('id, name')
-           .order('name');
-         
-         if (fetchError) {
-           console.error('Error fetching projects:', fetchError);
-           // Continue without projects - not a blocking error
-         }
-         
-         if (data) setProjects(data);
-       } catch (err) {
-         console.error('Error fetching projects:', err);
-         setError('Erro ao carregar dados. Tente recarregar a página.');
-       } finally {
-         setLoading(false);
-       }
-     };
-     fetchProjects();
-   }, []);
+   const { projects, isLoading: loading, error } = useDomainEquipeRelatorios();
  
    const handleGenerateReport = async (type: ReportType, format: 'pdf' | 'xlsx' | 'html' | 'preview') => {
      setGenerating(type);

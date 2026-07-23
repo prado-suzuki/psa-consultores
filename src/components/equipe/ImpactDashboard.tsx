@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -21,75 +20,22 @@ import {
 } from 'recharts';
 import { TrendingUp, Clock, DollarSign, Users, Target, Zap, X, LayoutGrid, Table as TableIcon } from 'lucide-react';
 import { CHART_COLORS, LINE_CHART_COLORS } from '@/constants/brandColors';
-
-interface ImpactMetrics {
-  totalProcesses: number;
-  improvedProcesses: number;
-  totalTimeSaved: number;
-  totalCostSaved: number;
-  avgRoi: number;
-  fteSaved: number;
-}
-
-interface TopImprovement {
-  id: string;
-  process_name: string;
-  time_saved_percent: number;
-  cost_saved_monthly: number;
-  roi_percentage: number;
-}
-
-interface ProjectImpact {
-  project_name: string;
-  improvements_count: number;
-  total_savings: number;
-  avg_roi: number;
-}
-
-interface ImprovementDetail {
-  id: string;
-  process_id: string;
-  process_name: string;
-  project_id: string | null;
-  project_name: string | null;
-  area: string | null;
-  roi_percentage: number;
-  cost_saved_monthly: number;
-  time_saved_hours: number;
-  baseline_time_hours: number;
-  improved_time_hours: number;
-  evaluated_by: string | null;
-  evaluated_by_name: string | null;
-  created_at: string;
-}
-
-interface FilterOption {
-  id: string;
-  name: string;
-}
-
-interface ProfileOption {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
+import { useDomainImpactDashboard } from '@/hooks/useDomainImpactDashboard';
 
 // Using centralized CHART_COLORS from brandColors
 
 export function ImpactDashboard() {
-  const [metrics, setMetrics] = useState<ImpactMetrics>({
-    totalProcesses: 0,
-    improvedProcesses: 0,
-    totalTimeSaved: 0,
-    totalCostSaved: 0,
-    avgRoi: 0,
-    fteSaved: 0
-  });
-  const [topImprovements, setTopImprovements] = useState<TopImprovement[]>([]);
-  const [projectImpacts, setProjectImpacts] = useState<ProjectImpact[]>([]);
-  const [monthlyData, setMonthlyData] = useState<any[]>([]);
-  const [areaData, setAreaData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    metrics,
+    projectImpacts,
+    monthlyData,
+    areaData,
+    processes,
+    projects,
+    profiles,
+    allImprovements,
+    isLoading: loading,
+  } = useDomainImpactDashboard();
 
   // Filter states
   const [filters, setFilters] = useState({
@@ -99,21 +45,10 @@ export function ImpactDashboard() {
     area: ''
   });
 
-  // Data for filters
-  const [processes, setProcesses] = useState<FilterOption[]>([]);
-  const [projects, setProjects] = useState<FilterOption[]>([]);
-  const [profiles, setProfiles] = useState<ProfileOption[]>([]);
   const areas = ['Fiscal', 'Fixos', 'Transversal', 'Consultoria'];
 
   // View mode toggle
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
-
-  // All improvements for table
-  const [allImprovements, setAllImprovements] = useState<ImprovementDetail[]>([]);
-
-  useEffect(() => {
-    fetchImpactData();
-  }, []);
 
   // Filter improvements based on selected filters
   const filteredImprovements = useMemo(() => {
@@ -147,145 +82,6 @@ export function ImpactDashboard() {
       totalImprovedHours
     };
   }, [filteredImprovements]);
-
-  const fetchImpactData = async () => {
-    try {
-      // Buscar total de processos
-      const { count: totalProcesses } = await supabase
-        .from('processes')
-        .select('*', { count: 'exact', head: true });
-
-      // Fetch filter options
-      const { data: processesData } = await supabase
-        .from('processes')
-        .select('id, name')
-        .order('name');
-      setProcesses(processesData || []);
-
-      const { data: projectsData } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name');
-      setProjects(projectsData || []);
-
-      const { data: profilesData } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name')
-        .order('first_name');
-      setProfiles(profilesData || []);
-
-      // Buscar melhorias completadas
-      const { data: improvements, error: improvementsError } = await supabase
-        .from('process_improvements')
-        .select(`
-          *,
-          process:processes(name, area),
-          project:projects(name),
-          evaluator:profiles!process_improvements_evaluated_by_fkey(first_name, last_name)
-        `)
-        .eq('evaluation_status', 'completed');
-
-      if (improvementsError) throw improvementsError;
-
-      const completedImprovements = improvements || [];
-
-      // Map to ImprovementDetail for table
-      const improvementDetails: ImprovementDetail[] = completedImprovements.map(i => ({
-        id: i.id,
-        process_id: i.process_id,
-        process_name: i.process?.name || 'Processo',
-        project_id: i.project_id,
-        project_name: i.project?.name || null,
-        area: i.process?.area || null,
-        roi_percentage: i.roi_percentage || 0,
-        cost_saved_monthly: i.cost_saved_monthly || 0,
-        time_saved_hours: i.time_saved_hours || 0,
-        baseline_time_hours: i.baseline_time_hours || 0,
-        improved_time_hours: i.improved_time_hours || 0,
-        evaluated_by: i.evaluated_by,
-        evaluated_by_name: i.evaluator ? `${i.evaluator.first_name} ${i.evaluator.last_name}` : null,
-        created_at: i.created_at
-      }));
-      setAllImprovements(improvementDetails);
-
-      // Calcular métricas
-      const totalTimeSaved = completedImprovements.reduce((sum, i) => sum + (i.time_saved_hours || 0), 0);
-      const totalCostSaved = completedImprovements.reduce((sum, i) => sum + (i.cost_saved_monthly || 0), 0);
-      const avgRoi = completedImprovements.length > 0
-        ? completedImprovements.reduce((sum, i) => sum + (i.roi_percentage || 0), 0) / completedImprovements.length
-        : 0;
-      const fteSaved = totalTimeSaved / 176; // 176 horas úteis mensais
-
-      setMetrics({
-        totalProcesses: totalProcesses || 0,
-        improvedProcesses: completedImprovements.length,
-        totalTimeSaved,
-        totalCostSaved,
-        avgRoi,
-        fteSaved
-      });
-
-      // Top 5 melhorias
-      const top5 = completedImprovements
-        .sort((a, b) => (b.cost_saved_monthly || 0) - (a.cost_saved_monthly || 0))
-        .slice(0, 5)
-        .map(i => ({
-          id: i.id,
-          process_name: i.process?.name || 'Processo',
-          time_saved_percent: i.time_saved_percent || 0,
-          cost_saved_monthly: i.cost_saved_monthly || 0,
-          roi_percentage: i.roi_percentage || 0
-        }));
-      setTopImprovements(top5);
-
-      // Impacto por projeto
-      const projectMap = new Map<string, ProjectImpact>();
-      completedImprovements.forEach(i => {
-        const projectName = i.project?.name || 'Sem projeto';
-        const existing = projectMap.get(projectName) || {
-          project_name: projectName,
-          improvements_count: 0,
-          total_savings: 0,
-          avg_roi: 0
-        };
-        existing.improvements_count++;
-        existing.total_savings += i.cost_saved_monthly || 0;
-        existing.avg_roi = (existing.avg_roi * (existing.improvements_count - 1) + (i.roi_percentage || 0)) / existing.improvements_count;
-        projectMap.set(projectName, existing);
-      });
-      setProjectImpacts(Array.from(projectMap.values()).sort((a, b) => b.total_savings - a.total_savings));
-
-      // Dados mensais (simulados para demonstração)
-      const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'];
-      let accumulated = 0;
-      setMonthlyData(months.map((month, index) => {
-        accumulated += totalCostSaved / 6;
-        return {
-          month,
-          economia: Math.round(totalCostSaved / 6),
-          acumulado: Math.round(accumulated)
-        };
-      }));
-
-      // Dados por área
-      const areaMap = new Map<string, number>();
-      completedImprovements.forEach(i => {
-        const area = i.process?.area || 'Outras';
-        areaMap.set(area, (areaMap.get(area) || 0) + (i.time_saved_hours || 0));
-      });
-      setAreaData(Array.from(areaMap.entries()).map(([name, hours]) => ({
-        name,
-        hours,
-        fte: (hours / 176).toFixed(2)
-      })));
-
-    } catch (error) {
-      console.error('Error fetching impact data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

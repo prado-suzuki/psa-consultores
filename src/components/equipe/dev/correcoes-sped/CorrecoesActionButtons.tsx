@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Loader2, Send, Download, Trash2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { useLimparCorrecoesSped } from '@/hooks/useCorrecoesSped';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -36,15 +36,20 @@ export default function CorrecoesActionButtons({
   pendingCount,
 }: CorrecoesActionButtonsProps) {
   const queryClient = useQueryClient();
+  const { mutateAsync: limparCorrecoesSped } = useLimparCorrecoesSped();
   const noPending = pendingCount === 0;
 
   const handleLimpar = async () => {
-    const { error } = await supabase.from('efd_correcoes').delete().gte('created_at', '1970-01-01');
-    if (error) {
-      toast.error(`Erro ao limpar: ${error.message}`);
-    } else {
+    try {
+      await limparCorrecoesSped();
       toast.success('efd_correcoes limpa.');
       queryClient.invalidateQueries({ queryKey: ['pending-correcoes'] });
+    } catch (error) {
+      const message =
+        typeof error === 'object' && error !== null && 'message' in error
+          ? String(error.message)
+          : String(error);
+      toast.error(`Erro ao limpar: ${message}`);
     }
   };
 

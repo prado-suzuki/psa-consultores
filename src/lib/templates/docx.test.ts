@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { Packer } from 'docx';
 import { montarDocx } from './docx';
-import type { Bloco } from './types';
+import { gerarBlocos } from './index';
+import { normalizarReferenciasLegadas } from './binding';
+import type { Bloco, Contexto, Template } from './types';
 
 const bloco = (id: string, tipo: Bloco['tipo'], conteudo: string): Bloco => ({ id, tipo, conteudo });
 
@@ -105,5 +107,54 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(footer).toContain('Arial');
     expect(footer).toContain('w:val="18"'); // 9pt
     expect(footer).toContain('w:val="right"');
+  });
+
+  it.each([
+    {
+      nome: 'controlada',
+      conteudo: '{{ razaoSocial }} — R$ {{ capitalValor }} — {{ foroComarca }}/{{ foroUf }}',
+      contexto: {
+        sociedade: {
+          razaoSocial: 'Operacional Agro Ltda.',
+          capitalValor: '500.000,00',
+          sedeMunicipio: 'Rondonópolis',
+          sedeUf: 'MT',
+        },
+      },
+      esperado: ['Operacional Agro Ltda.', '500.000,00', 'Rondonópolis', 'MT'],
+    },
+    {
+      nome: 'controladora',
+      conteudo:
+        '{{ controladora.nome }} — CNPJ {{ controladora.cpfCnpj }}' +
+        '{{#controladora.objetoSocial}} — {{ controladora.objetoSocial }}{{/controladora.objetoSocial}}',
+      contexto: {
+        sociedade: {
+          razaoSocial: 'Controladora Participações Ltda.',
+          cnpj: '12.345.678/0001-90',
+          objeto: 'Participação em outras sociedades',
+        },
+      },
+      esperado: ['Controladora Participações Ltda.', '12.345.678/0001-90', 'Participação em outras sociedades'],
+    },
+  ])('gera o DOCX da $nome sem variável quebrada', async ({ nome, conteudo, contexto, esperado }) => {
+    const template: Template = {
+      id: nome,
+      nome,
+      blocos: [
+        {
+          id: `${nome}-conteudo`,
+          tipo: 'livre',
+          obrigatorio: true,
+          conteudo: normalizarReferenciasLegadas(conteudo),
+        },
+      ],
+    };
+    const doc = await montarDocx(gerarBlocos(template, contexto as Contexto));
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+
+    for (const valor of esperado) expect(xml).toContain(valor);
+    expect(xml).not.toContain('{{');
+    expect(xml).not.toContain('}}');
   });
 });

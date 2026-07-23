@@ -1295,6 +1295,8 @@ export type Database = {
       }
       daily_standups: {
         Row: {
+          blocked_deliverable_id: string | null
+          blocker_owner: string | null
           blockers: string | null
           created_at: string | null
           date: string
@@ -1307,6 +1309,8 @@ export type Database = {
           will_do_today: string | null
         }
         Insert: {
+          blocked_deliverable_id?: string | null
+          blocker_owner?: string | null
           blockers?: string | null
           created_at?: string | null
           date?: string
@@ -1319,6 +1323,8 @@ export type Database = {
           will_do_today?: string | null
         }
         Update: {
+          blocked_deliverable_id?: string | null
+          blocker_owner?: string | null
           blockers?: string | null
           created_at?: string | null
           date?: string
@@ -1331,6 +1337,13 @@ export type Database = {
           will_do_today?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "daily_standups_blocked_deliverable_id_fkey"
+            columns: ["blocked_deliverable_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_deliverables"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "daily_standups_process_id_fkey"
             columns: ["process_id"]
@@ -6670,6 +6683,7 @@ export type Database = {
       }
       sprint_backlog_items: {
         Row: {
+          cluster_id: string | null
           created_at: string | null
           description: string | null
           estimated_hours: number | null
@@ -6684,6 +6698,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          cluster_id?: string | null
           created_at?: string | null
           description?: string | null
           estimated_hours?: number | null
@@ -6698,6 +6713,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          cluster_id?: string | null
           created_at?: string | null
           description?: string | null
           estimated_hours?: number | null
@@ -6712,6 +6728,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sprint_backlog_items_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sprint_backlog_items_moved_to_deliverable_id_fkey"
             columns: ["moved_to_deliverable_id"]
@@ -6744,6 +6767,7 @@ export type Database = {
       }
       sprint_deliverables: {
         Row: {
+          actual_hours: number | null
           assigned_to: string | null
           completed_at: string | null
           created_at: string | null
@@ -6762,6 +6786,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          actual_hours?: number | null
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -6780,6 +6805,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          actual_hours?: number | null
           assigned_to?: string | null
           completed_at?: string | null
           created_at?: string | null
@@ -6972,97 +6998,6 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      task_comments: {
-        Row: {
-          comment: string
-          created_at: string | null
-          id: string
-          task_id: string
-          user_id: string
-        }
-        Insert: {
-          comment: string
-          created_at?: string | null
-          id?: string
-          task_id: string
-          user_id: string
-        }
-        Update: {
-          comment?: string
-          created_at?: string | null
-          id?: string
-          task_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "task_comments_task_id_fkey"
-            columns: ["task_id"]
-            isOneToOne: false
-            referencedRelation: "tasks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      tasks: {
-        Row: {
-          actual_hours: number | null
-          assigned_to: string | null
-          cluster: Database["public"]["Enums"]["work_cluster"]
-          created_at: string | null
-          created_by: string | null
-          description: string | null
-          due_date: string | null
-          estimated_hours: number | null
-          id: string
-          priority: Database["public"]["Enums"]["task_priority"] | null
-          sprint_id: string | null
-          status: Database["public"]["Enums"]["task_status"] | null
-          title: string
-          updated_at: string | null
-        }
-        Insert: {
-          actual_hours?: number | null
-          assigned_to?: string | null
-          cluster: Database["public"]["Enums"]["work_cluster"]
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"] | null
-          sprint_id?: string | null
-          status?: Database["public"]["Enums"]["task_status"] | null
-          title: string
-          updated_at?: string | null
-        }
-        Update: {
-          actual_hours?: number | null
-          assigned_to?: string | null
-          cluster?: Database["public"]["Enums"]["work_cluster"]
-          created_at?: string | null
-          created_by?: string | null
-          description?: string | null
-          due_date?: string | null
-          estimated_hours?: number | null
-          id?: string
-          priority?: Database["public"]["Enums"]["task_priority"] | null
-          sprint_id?: string | null
-          status?: Database["public"]["Enums"]["task_status"] | null
-          title?: string
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "tasks_sprint_id_fkey"
-            columns: ["sprint_id"]
-            isOneToOne: false
-            referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
         ]
@@ -8257,7 +8192,6 @@ export type Database = {
       scenario_type: "baseline" | "variant" | "target"
       scenario_unit_basis: "per_unit" | "per_month" | "per_year"
       task_priority: "low" | "medium" | "high" | "urgent"
-      task_status: "backlog" | "to_do" | "in_progress" | "review" | "done"
       work_cluster: "database" | "frontend" | "management"
       work_package_activity_type:
         | "status_change"
@@ -8487,7 +8421,6 @@ export const Constants = {
       scenario_type: ["baseline", "variant", "target"],
       scenario_unit_basis: ["per_unit", "per_month", "per_year"],
       task_priority: ["low", "medium", "high", "urgent"],
-      task_status: ["backlog", "to_do", "in_progress", "review", "done"],
       work_cluster: ["database", "frontend", "management"],
       work_package_activity_type: [
         "status_change",

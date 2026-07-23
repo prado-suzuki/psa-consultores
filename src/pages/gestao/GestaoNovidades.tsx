@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import {
+  useDomainNovidades,
+  type Novidade,
+  type NovidadeFormData,
+} from '@/hooks/useDomainNovidades';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +23,17 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Table,
   TableBody,
   TableCell,
@@ -34,24 +47,6 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-interface Novidade {
-  id: string;
-  categoria: 'empresa' | 'tributario' | 'servicos' | 'cases';
-  titulo: string;
-  descricao: string;
-  data_publicacao: string;
-  itens: string[];
-  imagem_url: string | null;
-  botao_texto: string | null;
-  botao_url: string | null;
-  ativo: boolean;
-  created_at: string;
-  conteudo_completo?: string | null;
-  imagem_lateral_url?: string | null;
-  imagem_lateral_posicao?: string | null;
-  texto_original?: string | null;
-}
-
 const categoriaConfig = {
   empresa: { label: 'Empresa', icon: Building2, color: 'bg-muted text-foreground' },
   tributario: { label: 'Sistema Tributário', icon: Scale, color: 'bg-primary/10 text-primary' },
@@ -59,10 +54,8 @@ const categoriaConfig = {
   cases: { label: 'Cases de Sucesso', icon: Trophy, color: 'bg-warning/10 text-warning' },
 };
 
-type CategoriaType = 'empresa' | 'tributario' | 'servicos' | 'cases';
-
-const emptyNovidade = {
-  categoria: 'empresa' as CategoriaType,
+const emptyNovidade: NovidadeFormData = {
+  categoria: 'empresa',
   titulo: '',
   descricao: '',
   itens: [] as string[],
@@ -72,117 +65,16 @@ const emptyNovidade = {
   ativo: true,
   conteudo_completo: '',
   imagem_lateral_url: '',
-  imagem_lateral_posicao: 'direita' as 'esquerda' | 'direita',
+  imagem_lateral_posicao: 'direita',
   texto_original: '',
 };
 
 const GestaoNovidades = () => {
-  const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState(emptyNovidade);
   const [itemInput, setItemInput] = useState('');
   const [isRestructuring, setIsRestructuring] = useState(false);
-
-  const { data: novidades, isLoading } = useQuery({
-    queryKey: ['gestao-novidades'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('novidades')
-        .select('*')
-        .order('data_publicacao', { ascending: false });
-      
-      if (error) throw error;
-      return data as Novidade[];
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: async (data: typeof formData) => {
-      const { error } = await supabase.from('novidades').insert({
-        categoria: data.categoria,
-        titulo: data.titulo,
-        descricao: data.descricao,
-        itens: data.itens,
-        imagem_url: data.imagem_url || null,
-        botao_texto: data.botao_texto || null,
-        botao_url: data.botao_url || null,
-        ativo: data.ativo,
-        conteudo_completo: data.conteudo_completo || null,
-        imagem_lateral_url: data.imagem_lateral_url || null,
-        imagem_lateral_posicao: data.imagem_lateral_posicao || 'direita',
-        texto_original: data.texto_original || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
-      toast({ title: 'Novidade criada com sucesso!' });
-      resetForm();
-    },
-    onError: () => {
-      toast({ title: 'Erro ao criar novidade', variant: 'destructive' });
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: typeof formData }) => {
-      await assertCanPerform('novidades', 'update', id);
-      const { error } = await supabase.from('novidades').update({
-        categoria: data.categoria,
-        titulo: data.titulo,
-        descricao: data.descricao,
-        itens: data.itens,
-        imagem_url: data.imagem_url || null,
-        botao_texto: data.botao_texto || null,
-        botao_url: data.botao_url || null,
-        ativo: data.ativo,
-        conteudo_completo: data.conteudo_completo || null,
-        imagem_lateral_url: data.imagem_lateral_url || null,
-        imagem_lateral_posicao: data.imagem_lateral_posicao || 'direita',
-        texto_original: data.texto_original || null,
-      }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
-      toast({ title: 'Novidade atualizada com sucesso!' });
-      resetForm();
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao atualizar novidade', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await assertCanPerform('novidades', 'delete', id);
-      const { error } = await supabase.from('novidades').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
-      toast({ title: 'Novidade excluída com sucesso!' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao excluir novidade', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const toggleAtivoMutation = useMutation({
-    mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      await assertCanPerform('novidades', 'update', id);
-      const { error } = await supabase.from('novidades').update({ ativo }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gestao-novidades'] });
-      toast({ title: 'Status atualizado!' });
-    },
-    onError: (error: Error) => {
-      toast({ title: 'Erro ao alterar status', description: error.message, variant: 'destructive' });
-    },
-  });
 
   const resetForm = () => {
     setFormData(emptyNovidade);
@@ -190,6 +82,16 @@ const GestaoNovidades = () => {
     setDialogOpen(false);
     setItemInput('');
   };
+
+  const {
+    novidades,
+    isLoading,
+    createMutation,
+    updateMutation,
+    deleteMutation,
+    toggleAtivoMutation,
+    restructureMutation,
+  } = useDomainNovidades({ onFormSaved: resetForm });
 
   const handleEdit = (novidade: Novidade) => {
     setFormData({
@@ -242,11 +144,7 @@ const GestaoNovidades = () => {
       // Save original text if not already saved
       const textoOriginal = formData.texto_original || formData.descricao;
       
-      const { data, error } = await supabase.functions.invoke('restructure-novidade', {
-        body: { texto: formData.descricao }
-      });
-
-      if (error) throw error;
+      const data = await restructureMutation.mutateAsync(formData.descricao);
 
       if (data?.texto_reestruturado) {
         setFormData({
@@ -258,11 +156,13 @@ const GestaoNovidades = () => {
       } else {
         throw new Error('Resposta inválida da IA');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error restructuring text:', error);
       toast({ 
         title: 'Erro ao reestruturar texto', 
-        description: error.message || 'Tente novamente mais tarde',
+        description: error instanceof Error && error.message
+          ? error.message
+          : 'Tente novamente mais tarde',
         variant: 'destructive' 
       });
     } finally {
@@ -581,7 +481,7 @@ const GestaoNovidades = () => {
                       <TableCell>
                         <Switch
                           checked={novidade.ativo}
-                          onCheckedChange={(checked) => 
+                          onCheckedChange={(checked) =>
                             toggleAtivoMutation.mutate({ id: novidade.id, ativo: checked })
                           }
                         />
@@ -607,18 +507,34 @@ const GestaoNovidades = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => {
-                              if (confirm('Deseja realmente excluir esta novidade?')) {
-                                deleteMutation.mutate(novidade.id);
-                              }
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Excluir novidade?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Deseja realmente excluir esta novidade?
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  onClick={() => deleteMutation.mutate(novidade.id)}
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { GestaoLayout } from "@/components/gestao/GestaoLayout";
-import { supabase } from "@/integrations/supabase/client";
+import { useDomainGestaoContatos, type Contato } from "@/hooks/useDomainGestaoContatos";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,24 +30,6 @@ import {
 import { Search, Eye, Mail, Phone, Building2, Calendar, User, MessageSquare, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { assertCanPerform } from "@/hooks/useRlsPrecheck";
-
-interface Contato {
-  id: string;
-  nome_completo: string;
-  email: string;
-  telefone: string | null;
-  empresa: string | null;
-  mensagem: string | null;
-  servico_interesse: string | null;
-  porte_empresa: string | null;
-  como_conheceu: string | null;
-  status: string;
-  notas_internas: string | null;
-  atendido_por: string | null;
-  created_at: string;
-  updated_at: string;
-}
 
 const servicoLabels: Record<string, string> = {
   consultoria_tributaria: "Consultoria Tributária",
@@ -96,40 +78,30 @@ const getStatusBadge = (status: string) => {
 
 const GestaoContatos = () => {
   const { toast } = useToast();
-  const [contatos, setContatos] = useState<Contato[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    contatos,
+    loading,
+    fetchError,
+    refetchContatos,
+    updateContato,
+  } = useDomainGestaoContatos();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [selectedContato, setSelectedContato] = useState<Contato | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [notasInternas, setNotasInternas] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-
-  const fetchContatos = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("contatos")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setContatos(data || []);
-    } catch (error) {
-      console.error("Error fetching contatos:", error);
-      toast({
-        title: "Erro ao carregar contatos",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const isSaving = updateContato.isPending;
 
   useEffect(() => {
-    fetchContatos();
-  }, []);
+    if (!fetchError) return;
+
+    console.error("Error fetching contatos:", fetchError);
+    toast({
+      title: "Erro ao carregar contatos",
+      variant: "destructive",
+    });
+  }, [fetchError, toast]);
 
   const filteredContatos = contatos.filter((contato) => {
     const matchesSearch =
@@ -153,19 +125,12 @@ const GestaoContatos = () => {
   const handleSaveChanges = async () => {
     if (!selectedContato) return;
 
-    setIsSaving(true);
     try {
-      await assertCanPerform("contatos", "update", selectedContato.id);
-      const { error } = await supabase
-        .from("contatos")
-        .update({
-          status: selectedStatus,
-          notas_internas: notasInternas,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedContato.id);
-
-      if (error) throw error;
+      await updateContato.mutateAsync({
+        id: selectedContato.id,
+        status: selectedStatus,
+        notasInternas,
+      });
 
       toast({
         title: "Contato atualizado",
@@ -173,16 +138,14 @@ const GestaoContatos = () => {
       });
 
       setIsDialogOpen(false);
-      fetchContatos();
-    } catch (error: any) {
+      void refetchContatos();
+    } catch (error: unknown) {
       console.error("Error updating contato:", error);
       toast({
         title: "Erro ao salvar",
-        description: error?.message,
+        description: error instanceof Error ? error.message : undefined,
         variant: "destructive",
       });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -193,7 +156,12 @@ const GestaoContatos = () => {
       title="Contatos"
       subtitle={`${newContactsCount} ${newContactsCount === 1 ? "novo lead" : "novos leads"}`}
       headerActions={
-        <Button variant="outline" size="sm" onClick={fetchContatos} disabled={loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void refetchContatos()}
+          disabled={loading}
+        >
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
           Atualizar
         </Button>

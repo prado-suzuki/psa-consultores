@@ -3,26 +3,25 @@
 /**
  * gen-status-report.mjs
  * -------------------------------------------------------------------------
- * Gera o "Status de Desenvolvimento" comparando o ROADMAP (marcos que a
- * coordenação mantém no Drive) com o CÓDIGO REAL do repo, e grava na pasta
- * usada para montar sprints.
+ * Gera o "Status de Desenvolvimento" comparando o ROADMAP com o CÓDIGO real.
  *
- * A lista de marcos + regras de detecção vive em `status-report.config.mjs`.
- * Este arquivo só executa: indexa `src/`, avalia cada marco, e renderiza.
+ * FONTE ÚNICA dos marcos: `roadmap.json` no Drive (03_Roadmap_e_Backlog).
+ * Este gerador LÊ o roadmap.json e junta, por `id`, as REGRAS DE DETECÇÃO do
+ * repo (`status-report.config.mjs`). Duas saídas: `.md` (humano) + `status.json`.
  *
  * Modos:
- *   node scripts/gen-status-report.mjs             → grava o rolling em 04_Ferramentas
- *   node scripts/gen-status-report.mjs --entrega   → + snapshot datado em 03_Entregas
- *   node scripts/gen-status-report.mjs --dry-run   → imprime, não grava
+ *   node scripts/gen-status-report.mjs             → rolling em 04_Ferramentas
+ *   node scripts/gen-status-report.mjs --entrega   → + snapshots datados em 03_Entregas
+ *   node scripts/gen-status-report.mjs --dry-run [--json]
  *
- * Gatilho automático: hooks git post-commit e post-merge
- *   (instalar: node scripts/install-status-hooks.mjs)
+ * Gatilho: tarefas agendadas (seg = rolling; sex = --entrega) + hooks git.
  *
- * IMPORTANTE: também roda no build do Lovable, onde o Drive (G:) não existe.
- * Nesse caso sai com exit 0 sem gravar — nunca quebra commit/build.
+ * No-op seguro se o Drive (G:) ou o roadmap.json não estiverem disponíveis
+ * (ex.: build do Lovable, ou roadmap.json mid-edit) — nunca quebra commit/build
+ * e nunca sobrescreve os arquivos bons com uma rodada inválida.
  *
- * ⚠️ A detecção é HEURÍSTICA (procura rotas/arquivos/termos no código). Serve
- * para sinalizar "vale conferir", não substitui a leitura humana do status.
+ * ⚠️ Detecção HEURÍSTICA (procura rotas/arquivos/termos). Alerta de "vale
+ * conferir", não verdade final.
  * -------------------------------------------------------------------------
  */
 
@@ -30,41 +29,41 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
-import { META, MARCOS } from "./status-report.config.mjs";
+import { META, DETECT } from "./status-report.config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..");
 
-// ======================= DESTINOS (edite se mudar de pasta) ===============
-// Base do cliente interno OSG no Drive. Sobrescreva com env PSA_OSG_BASE.
+// ======================= DESTINOS / FONTE (edite se mudar de pasta) =======
 const OSG_BASE =
   process.env.PSA_OSG_BASE ||
   "G:\\Drives compartilhados\\PSA Digital\\03_Clientes_Internos\\PSA_OSG";
 
-// Rolling (status vivo, consultado ao montar sprint) — pedido original.
+// Fonte única dos marcos.
+const ROADMAP_JSON = process.env.PSA_ROADMAP_JSON || path.join(OSG_BASE, "03_Roadmap_e_Backlog", "roadmap.json");
+
+// Rolling (status vivo p/ montar sprint).
 const FERRAMENTAS_DEST = path.join(OSG_BASE, "04_Ferramentas", "PSA WORK", "03_Build");
 const ROLLING_FILE = "STATUS_DESENVOLVIMENTO.md";
 const JSON_FILE = "status.json";
 
-// Relatório final por sprint (datado, imutável).
+// Relatório datado por sprint.
 const ENTREGAS_DEST = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "03_Entregas");
-// Onde detectar a sprint atual (arquivos NN_Sprint_*).
 const EXECUCAO_DIR = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "02_Execucao");
 // ==========================================================================
 
 const DRY_RUN = process.argv.includes("--dry-run");
 const ENTREGA = process.argv.includes("--entrega");
 
-const STATUS_META = {
-  mvp: { emoji: "🟢", label: "MVP/validação" },
-  pronto: { emoji: "🟢", label: "pronto" },
-  parcial: { emoji: "🟡", label: "parcial" },
-  novo: { emoji: "⚪", label: "a construir" },
+const ROADMAP_EMOJI = { no_ar: "🟢", parcial: "🟡", novo: "⚪" };
+const DETECTED_META = {
+  encontrado: { emoji: "✅", label: "evidência no código" },
+  parcial: { emoji: "🟨", label: "sinais parciais" },
+  ausente: { emoji: "⬜", label: "sem evidência" },
 };
 
 // ---------------------------- indexação do repo ---------------------------
 
-/** Lê um arquivo, tolerando ausência. */
 function readSafe(p) {
   try {
     return fs.readFileSync(p, "utf8");
@@ -73,7 +72,7 @@ function readSafe(p) {
   }
 }
 
-/** Varre src/ e retorna { fileList: string[], contents: {rel,text}[] }. */
+/** Varre src/ (código) e docs/ (planos), retornando índices para detecção. */
 function indexRepo() {
   const SRC = path.join(REPO_ROOT, "src");
   const fileList = [];
@@ -110,75 +109,82 @@ function indexRepo() {
   };
   walk(SRC);
 
-  // Texto de roteamento (rotas registradas).
+  // Docs (planos/tarefas). Sinal SEPARADO. Exclui referência que casa com tudo.
+  const SKIP_DOCS = new Set(["docs/rls/mapa-do-banco.md", "docs/AI_CONTEXT.md"]);
+  const docsContents = [];
+  const walkDocs = (dir) => {
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel = path.relative(REPO_ROOT, full).replace(/\\/g, "/");
+      if (e.isDirectory()) walkDocs(full);
+      else if (e.isFile() && e.name.toLowerCase().endsWith(".md") && !SKIP_DOCS.has(rel)) {
+        docsContents.push({ rel, text: readSafe(full) });
+      }
+    }
+  };
+  walkDocs(path.join(REPO_ROOT, "docs"));
+
   const routeText =
     readSafe(path.join(REPO_ROOT, "src", "App.tsx")) +
     "\n" +
     readSafe(path.join(REPO_ROOT, "src", "config", "protectedPages.ts"));
 
-  return { fileList, contents, routeText };
+  return { fileList, contents, docsContents, routeText };
 }
 
-/** Converte um glob simples (`*`, `**`) em RegExp sobre caminhos com "/". */
+/** Glob simples (`*`, `**`) → RegExp sobre caminhos com "/". */
 function globToRegex(glob) {
-  // Escapa os especiais de regex, MENOS o "*" (que vira curinga de glob).
   const esc = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&");
   const re = esc.replace(/\*\*/g, "§DS§").replace(/\*/g, "[^/]*").replace(/§DS§/g, ".*");
   return new RegExp("^" + re + "$");
 }
 
-/** Avalia a detecção de um marco contra o índice do repo. */
-function detectMarco(marco, idx) {
-  const d = marco.detect || {};
+/** Avalia as regras de detecção (objeto DETECT) contra o índice do repo. */
+function detectSignals(detect, idx) {
+  const d = detect || {};
   const evidence = [];
 
   const routesFound = (d.routes || []).filter((r) => idx.routeText.includes(r));
   routesFound.forEach((r) => evidence.push(`rota \`${r}\``));
 
-  const fileMatchers = (d.files || []).map((g) => ({ g, re: globToRegex(g) }));
   const filesFound = [];
-  for (const { g, re } of fileMatchers) {
+  for (const g of d.files || []) {
+    const re = globToRegex(g);
     const hit = idx.fileList.find((f) => re.test(f));
     if (hit) {
       filesFound.push(hit);
       evidence.push(`\`${hit}\``);
-    } else {
-      // registra o padrão não encontrado só internamente (não vira evidência)
     }
   }
 
-  const keywordsFound = [];
   for (const kw of d.keywords || []) {
     const hit = idx.contents.find((c) => c.text.includes(kw));
-    if (hit) {
-      keywordsFound.push(kw);
-      evidence.push(`termo \`${kw}\` em \`${hit.rel}\``);
-    }
+    if (hit) evidence.push(`termo \`${kw}\` em \`${hit.rel}\``);
   }
+  const keywordHit = (d.keywords || []).some((kw) => idx.contents.some((c) => c.text.includes(kw)));
 
   let detected;
   if (routesFound.length || filesFound.length) detected = "encontrado";
-  else if (keywordsFound.length) detected = "parcial";
+  else if (keywordHit) detected = "parcial";
   else detected = "ausente";
 
-  return { detected, evidence, filesFound, routesFound, keywordsFound };
-}
+  // Sinal SEPARADO: docs/planos que mencionam o marco (NÃO é código).
+  const docTerms = [...new Set([...(d.keywords || []), ...(d.docTerms || [])])];
+  const docsFound = [];
+  for (const c of idx.docsContents || []) {
+    if (docsFound.length >= 5) break;
+    if (docTerms.length && docTerms.some((t) => c.text.includes(t)) && !docsFound.includes(c.rel)) {
+      docsFound.push(c.rel);
+    }
+  }
 
-const DETECTED_META = {
-  encontrado: { emoji: "✅", label: "evidência no código" },
-  parcial: { emoji: "🟨", label: "sinais parciais" },
-  ausente: { emoji: "⬜", label: "sem evidência" },
-};
-
-/** Divergência entre o status declarado no roadmap e o detectado. */
-function divergence(marco, detected) {
-  const declaredGreen = marco.statusRoadmap === "mvp" || marco.statusRoadmap === "pronto";
-  const declaredNovo = marco.statusRoadmap === "novo";
-  if (declaredGreen && detected === "ausente")
-    return "⚠️ roadmap diz pronto/validação, mas o código não mostra evidência — conferir";
-  if (declaredNovo && detected === "encontrado")
-    return "ℹ️ roadmap diz 'a construir', mas já há código — talvez adiantado";
-  return "";
+  return { detected, evidence, filesFound, docsFound };
 }
 
 // ---------------------------- utilidades ----------------------------------
@@ -189,8 +195,6 @@ function pad2(n) {
 
 function lastCommits(n) {
   try {
-    // Separador %x1f (unit separator): não é metacaractere de shell — evita que
-    // o cmd.exe (usado pelo execSync no Windows) interprete "|" como pipe.
     const out = execSync(`git log -${n} --format=%h%x1f%s%x1f%cd --date=short`, {
       cwd: REPO_ROOT,
       encoding: "utf8",
@@ -206,6 +210,40 @@ function lastCommits(n) {
   } catch {
     return [];
   }
+}
+
+/** Mapa arquivo→data do último commit (1 passada de git log --name-only). */
+function buildFileDateMap(limit = 1000) {
+  const map = new Map();
+  try {
+    const out = execSync(`git log -${limit} --date=short --format=\x1e%cd --name-only`, {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+      maxBuffer: 128 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    let curDate = null;
+    for (const line of out.split("\n")) {
+      if (line[0] === "\x1e") {
+        curDate = line.slice(1).trim();
+        continue;
+      }
+      const f = line.trim();
+      if (f && curDate && !map.has(f)) map.set(f, curDate);
+    }
+  } catch {
+    /* sem git */
+  }
+  return map;
+}
+
+function maxDate(files, dateMap) {
+  let best = null;
+  for (const f of files || []) {
+    const dd = dateMap.get(f);
+    if (dd && (!best || dd > best)) best = dd;
+  }
+  return best;
 }
 
 /** Detecta a sprint atual pelo maior prefixo NN_ em 02_Execucao. */
@@ -228,36 +266,33 @@ function progressBar(done, total, width = 22) {
   return "█".repeat(filled) + "░".repeat(width - filled) + ` ${Math.round((done / total) * 100)}%`;
 }
 
-// ---------------------- helpers do status.json (SPEC) ----------------------
-
-/** Maior número de sprint num rótulo tipo "S13-S15" → 15; "—" → null. */
 function sprintMaxNum(s) {
   const nums = (String(s || "").match(/\d+/g) || []).map(Number);
   return nums.length ? Math.max(...nums) : null;
 }
 
-/** Status do roadmap (config) → enum do JSON. */
-function roadmapToJson(sr) {
-  if (sr === "mvp" || sr === "pronto") return "no_ar";
-  if (sr === "parcial") return "parcial";
-  return "novo";
+/** detectavel derivado do tipo: só obra/ajuste "devem" virar código. */
+function detectavelFromTipo(tipo) {
+  return tipo === "obra" || tipo === "ajuste";
 }
 
-/** Quantidade de pendências abertas declaradas no marco (número ou lista). */
-function pendenciasCount(m) {
-  if (Array.isArray(m.pendencias)) return m.pendencias.length;
-  if (typeof m.pendencias === "number") return m.pendencias;
+function normStatus(s) {
+  return s === "no_ar" || s === "parcial" || s === "novo" ? s : "novo";
+}
+
+function pendenciasCount(detect) {
+  const p = detect && detect.pendencias;
+  if (Array.isArray(p)) return p.length;
+  if (typeof p === "number") return p;
   return 0;
 }
 
-/** Estado de código (SPEC §2): no_ar | ajuste | parcial | sem_evidencia. */
 function codigoState(detected, pend) {
   if (detected === "encontrado") return pend > 0 ? "ajuste" : "no_ar";
   if (detected === "parcial") return "parcial";
   return "sem_evidencia";
 }
 
-/** ISO local com offset (ex.: 2026-07-20T20:00:00-04:00). */
 function isoWithOffset(d) {
   const off = -d.getTimezoneOffset();
   const sign = off >= 0 ? "+" : "-";
@@ -266,46 +301,6 @@ function isoWithOffset(d) {
   return `${local}${sign}${pad2(Math.floor(abs / 60))}:${pad2(abs % 60)}`;
 }
 
-/**
- * Mapa arquivo→data(YYYY-MM-DD) do último commit que o tocou.
- * UMA passada de `git log --name-only` (rápido). Como o log vem em ordem
- * reversa, a 1ª ocorrência de cada arquivo é o commit mais recente.
- */
-function buildFileDateMap(limit = 1000) {
-  const map = new Map();
-  try {
-    const out = execSync(`git log -${limit} --date=short --format=\x1e%cd --name-only`, {
-      cwd: REPO_ROOT,
-      encoding: "utf8",
-      maxBuffer: 128 * 1024 * 1024,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    let curDate = null;
-    for (const line of out.split("\n")) {
-      if (line[0] === "\x1e") {
-        curDate = line.slice(1).trim();
-        continue;
-      }
-      const f = line.trim();
-      if (f && curDate && !map.has(f)) map.set(f, curDate);
-    }
-  } catch {
-    /* sem git → mapa vazio */
-  }
-  return map;
-}
-
-/** Data mais recente entre os arquivos (usando o mapa). */
-function maxDate(files, dateMap) {
-  let best = null;
-  for (const f of files || []) {
-    const d = dateMap.get(f);
-    if (d && (!best || d > best)) best = d;
-  }
-  return best;
-}
-
-/** Acha o arquivo de página OSG cujo nome casa com o último segmento da rota. */
 function findPageFile(fileList, lastSeg) {
   const key = String(lastSeg).replace(/-/g, "").toLowerCase();
   return (
@@ -317,13 +312,13 @@ function findPageFile(fileList, lastSeg) {
   );
 }
 
-/** Rotas OSG presentes no repo que NENHUM marco cobre (SPEC extras_fora_do_roadmap). */
+/** Rotas OSG no repo que NENHUM marco cobre. */
 function buildExtras(idx) {
   const routeSet = new Set();
   const re = /\/equipe\/osg\/[a-z0-9/-]+/g;
   let mm;
   while ((mm = re.exec(idx.routeText))) routeSet.add(mm[0].replace(/\/+$/, ""));
-  const coveredTokens = MARCOS.flatMap((m) => (m.detect && m.detect.routes) || []);
+  const coveredTokens = Object.values(DETECT).flatMap((d) => d.routes || []);
   const containers = new Set(["/equipe/osg", "/equipe/osg/work", "/equipe/osg/projetos"]);
   const extras = [];
   for (const route of routeSet) {
@@ -341,20 +336,77 @@ function buildExtras(idx) {
   return extras;
 }
 
+/** Carrega o roadmap.json (fonte única). Retorna null se ausente/ inválido. */
+function loadRoadmap() {
+  try {
+    const raw = fs.readFileSync(ROADMAP_JSON, "utf8");
+    const j = JSON.parse(raw);
+    if (!j || !Array.isArray(j.marcos)) return null;
+    return j;
+  } catch {
+    return null;
+  }
+}
+
+function platformOf(code, projetos) {
+  const p = (projetos && projetos[code]) || {};
+  return p.plataforma || (code === "P1" ? "OSG Projects" : "OSG Work");
+}
+
+function projetoLabel(rm, projetos) {
+  if (String(rm.id).startsWith("GED")) return "P1 · Recebimento/GED";
+  const nome = (projetos && projetos[rm.projeto] && projetos[rm.projeto].nome) || rm.projeto;
+  return `${rm.projeto} · ${nome}`;
+}
+
 // ------------------------------ render -------------------------------------
 
 function buildReport() {
+  const roadmap = loadRoadmap();
+  if (!roadmap) return { error: `roadmap.json ausente ou inválido (${ROADMAP_JSON})` };
+
   const idx = indexRepo();
+  const projetos = roadmap.projetos || {};
   const now = new Date();
   const stamp = `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
   const timeStamp = `${stamp} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
   const sprint = detectCurrentSprint();
+  const curNum = sprintMaxNum(sprint);
   const commits = lastCommits(8);
+  const fileDateMap = buildFileDateMap();
 
-  // Avalia todos os marcos.
-  const evaluated = MARCOS.map((m) => {
-    const { detected, evidence, filesFound } = detectMarco(m, idx);
-    return { ...m, detected, evidence, filesFound, diverge: divergence(m, detected) };
+  // Avalia cada marco da FONTE (roadmap.json) juntando as regras de detecção do repo.
+  const evaluated = roadmap.marcos.map((rm) => {
+    const detect = DETECT[rm.id] || null;
+    const { detected, evidence, filesFound, docsFound } = detectSignals(detect, idx);
+    const roadmapStatus = normStatus(rm.status);
+    const detectavel = detectavelFromTipo(rm.tipo);
+    const declaredGreen = roadmapStatus === "no_ar";
+    const declaredNovo = roadmapStatus === "novo";
+    let diverge = "";
+    if (declaredGreen && detected === "ausente")
+      diverge = "⚠️ roadmap diz no ar, mas o código não mostra evidência — conferir";
+    else if (declaredNovo && detected === "encontrado")
+      diverge = "ℹ️ roadmap diz 'a construir', mas já há código — talvez adiantado";
+    return {
+      id: rm.id,
+      projetoCode: rm.projeto,
+      plataforma: platformOf(rm.projeto, projetos),
+      grupo: projetoLabel(rm, projetos),
+      sprint: rm.sprint || "—",
+      marco: rm.titulo,
+      dono: rm.dono || "—",
+      tipo: rm.tipo,
+      depende_de: rm.depende_de || [],
+      statusRoadmap: roadmapStatus,
+      detectavel,
+      detect,
+      detected,
+      evidence,
+      filesFound,
+      docsFound,
+      diverge,
+    };
   });
 
   const totals = {
@@ -365,26 +417,26 @@ function buildReport() {
   };
   const divergencias = evaluated.filter((m) => m.diverge);
 
+  // ------------------------------- .md (humano) -------------------------------
   const L = [];
   L.push(`# 📈 Status de Desenvolvimento — ${META.tool}`);
   L.push("");
   L.push(`> ⚙️ **Arquivo gerado automaticamente** — não edite à mão (será sobrescrito).`);
-  L.push(`> Compara o **roadmap** (marcos curados no Drive) com o **código** do repo \`psa-consultores\`.`);
+  L.push(`> Fonte única dos marcos: \`roadmap.json\`. Código: repo \`psa-consultores\`.`);
   L.push(`> Sprint atual detectada: **${sprint}** · Gerado em **${timeStamp}**`);
   if (commits[0]) L.push(`> Último commit: \`${commits[0].hash}\` — ${commits[0].subject} (${commits[0].date})`);
   L.push("");
   L.push(
-    `> ⚠️ A coluna **"Código"** é uma detecção **heurística** (procura rotas/arquivos/termos). ` +
-      `Use como alerta de "vale conferir", não como verdade final — a leitura de status continua sua.`
+    `> ⚠️ A coluna **"Código"** é uma detecção **heurística** (rotas/arquivos/termos). ` +
+      `Alerta de "vale conferir", não verdade final.`
   );
   L.push("");
 
-  // Resumo
   L.push("## 🎯 Resumo");
   L.push("");
   L.push("| Indicador | Valor |");
   L.push("|---|---:|");
-  L.push(`| Marcos acompanhados | ${totals.total} |`);
+  L.push(`| Marcos (roadmap.json) | ${totals.total} |`);
   L.push(`| ✅ com evidência no código | ${totals.encontrado} |`);
   L.push(`| 🟨 sinais parciais | ${totals.parcial} |`);
   L.push(`| ⬜ sem evidência | ${totals.ausente} |`);
@@ -392,99 +444,87 @@ function buildReport() {
   L.push(`| ⚠️ divergências roadmap × código | ${divergencias.length} |`);
   L.push("");
 
-  // Divergências (o mais acionável)
   L.push("## ⚠️ Divergências para conferir");
   L.push("");
   if (divergencias.length === 0) {
     L.push("_Nenhuma divergência entre o status do roadmap e o que o código mostra._");
   } else {
-    L.push("| Projeto | Marco | Roadmap | Código | Observação |");
+    L.push("| Marco | id | Roadmap | Código | Observação |");
     L.push("|---|---|:--:|:--:|---|");
     for (const m of divergencias) {
-      const sr = STATUS_META[m.statusRoadmap] || { emoji: "?" };
-      const dm = DETECTED_META[m.detected];
-      L.push(`| ${m.projeto} | ${m.marco} | ${sr.emoji} | ${dm.emoji} | ${m.diverge} |`);
+      L.push(`| ${m.marco} | \`${m.id}\` | ${ROADMAP_EMOJI[m.statusRoadmap]} | ${DETECTED_META[m.detected].emoji} | ${m.diverge} |`);
     }
   }
   L.push("");
 
-  // Por plataforma → projeto
-  const plataformas = [...new Set(MARCOS.map((m) => m.plataforma))];
+  const plataformas = [...new Set(evaluated.map((m) => m.plataforma))];
   for (const plat of plataformas) {
     L.push(`## 🧭 ${plat}`);
     L.push("");
-    const projetos = [...new Set(evaluated.filter((m) => m.plataforma === plat).map((m) => m.projeto))];
-    for (const proj of projetos) {
-      const rows = evaluated.filter((m) => m.plataforma === plat && m.projeto === proj);
+    const grupos = [...new Set(evaluated.filter((m) => m.plataforma === plat).map((m) => m.grupo))];
+    for (const g of grupos) {
+      const rows = evaluated.filter((m) => m.plataforma === plat && m.grupo === g);
       const ok = rows.filter((r) => r.detected === "encontrado").length;
-      L.push(`### ${proj} — ${ok}/${rows.length} com evidência`);
+      L.push(`### ${g} — ${ok}/${rows.length} com evidência`);
       L.push("");
       L.push("| Sprint | Marco | Dono | Roadmap | Código | Evidência |");
       L.push("|:--:|---|:--:|:--:|:--:|---|");
       for (const m of rows) {
-        const sr = STATUS_META[m.statusRoadmap] || { emoji: "?" };
-        const dm = DETECTED_META[m.detected];
-        const ev = m.evidence.length ? m.evidence.slice(0, 3).join("; ") : "—";
+        let ev = m.evidence.length ? m.evidence.slice(0, 3).join("; ") : "—";
+        if (m.docsFound && m.docsFound.length) ev += ` · 📄 ${m.docsFound.slice(0, 2).join(", ")}`;
         L.push(
-          `| ${m.sprint || "—"} | ${m.marco} | ${m.dono || "—"} | ${sr.emoji} | ${dm.emoji} | ${ev} |`
+          `| ${m.sprint} | ${m.marco} | ${m.dono} | ${ROADMAP_EMOJI[m.statusRoadmap]} | ${DETECTED_META[m.detected].emoji} | ${ev} |`
         );
       }
       L.push("");
     }
   }
 
-  // Atividade recente (frescor)
   L.push("## 🔧 Atividade recente no repo");
   L.push("");
-  if (commits.length === 0) {
-    L.push("_Sem histórico git disponível._");
-  } else {
-    for (const c of commits) L.push(`- \`${c.hash}\` ${c.subject} — ${c.date}`);
-  }
+  if (commits.length === 0) L.push("_Sem histórico git disponível._");
+  else for (const c of commits) L.push(`- \`${c.hash}\` ${c.subject} — ${c.date}`);
   L.push("");
 
-  // Rodapé
   L.push("---");
   L.push("");
   L.push("### Como este relatório funciona");
   L.push("");
-  L.push("- **Fonte do roadmap:** marcos curados em `03_Roadmap_e_Backlog/Roadmap_Visual` (P1–P5).");
+  L.push("- **Fonte dos marcos:** `03_Roadmap_e_Backlog/roadmap.json` (fonte única — editar lá).");
   L.push("- **Fonte do código:** varredura de `src/` do repo `psa-consultores`.");
-  L.push("- **Lista de marcos e regras de detecção:** `scripts/status-report.config.mjs` (atualize quando o roadmap mudar).");
-  L.push("- **Gatilho:** hooks git `post-commit` e `post-merge`. Manual: `node scripts/gen-status-report.mjs`.");
+  L.push("- **Regras de detecção:** `scripts/status-report.config.mjs` (casadas por `id`).");
+  L.push("- **Gatilho:** tarefas agendadas (seg/sex) + hooks git. Manual: `node scripts/gen-status-report.mjs`.");
   L.push("");
-  L.push(`_Legenda — Roadmap: 🟢 pronto/validação · 🟡 parcial · ⚪ a construir. ` +
-    `Código: ✅ evidência · 🟨 parcial · ⬜ sem evidência._`);
+  L.push(`_Legenda — Roadmap: 🟢 no ar · 🟡 parcial · ⚪ a construir. Código: ✅ evidência · 🟨 parcial · ⬜ sem evidência._`);
   L.push("");
 
-  // ------------------------ saída máquina: status.json ------------------------
-  const curNum = sprintMaxNum(sprint);
-  const fileDateMap = buildFileDateMap();
+  // ------------------------------- status.json (máquina) -------------------------------
   const marcosJson = evaluated.map((m) => {
-    const pend = pendenciasCount(m);
+    const pend = pendenciasCount(m.detect);
     const codigo = codigoState(m.detected, pend);
-    const roadmap = roadmapToJson(m.statusRoadmap);
     const deadline = sprintMaxNum(m.sprint);
-    // atraso: sprint-alvo já passou E sem evidência — nunca p/ estudos (detectavel:false).
-    const atraso =
-      !!m.detectavel && codigo === "sem_evidencia" && deadline != null && curNum != null && deadline < curNum;
+    const atraso = m.detectavel && codigo === "sem_evidencia" && deadline != null && curNum != null && deadline < curNum;
     const hasCode = codigo === "no_ar" || codigo === "ajuste";
-    const divergencia = (roadmap === "no_ar" && codigo === "sem_evidencia") || (roadmap === "novo" && hasCode);
+    const divergencia = (m.statusRoadmap === "no_ar" && codigo === "sem_evidencia") || (m.statusRoadmap === "novo" && hasCode);
+    const docs = m.docsFound || [];
     let acao = null;
     if (atraso) acao = `atraso: sprint-alvo ${m.sprint} passou sem evidência no código`;
-    else if (divergencia && roadmap === "novo") acao = "roadmap diz 'novo', mas há código — atualizar p/ parcial ou ajuste";
-    else if (divergencia && roadmap === "no_ar") acao = "roadmap diz 'no ar', mas sem evidência no código — conferir";
+    else if (divergencia && m.statusRoadmap === "novo") acao = "roadmap diz 'novo', mas há código — atualizar p/ parcial ou ajuste";
+    else if (divergencia && m.statusRoadmap === "no_ar") acao = "roadmap diz 'no ar', mas sem evidência no código — conferir";
+    else if (codigo === "sem_evidencia" && docs.length) acao = "documentado em docs/ (plano/tarefa), mas ainda sem código";
     return {
       id: m.id,
-      projeto: String(m.id).split("-")[0],
+      projeto: m.projetoCode,
       sprint_alvo: m.sprint && m.sprint !== "—" ? m.sprint : null,
       titulo: m.marco,
-      dono: m.dono || null,
+      dono: m.dono !== "—" ? m.dono : null,
       tipo: m.tipo,
-      roadmap,
+      roadmap: m.statusRoadmap,
       codigo,
-      detectavel: !!m.detectavel,
+      detectavel: m.detectavel,
+      depende_de: m.depende_de,
       evidencia: m.evidence.map((e) => e.replace(/`/g, "")).slice(0, 5),
+      documentos_relacionados: docs,
       ultimo_commit_evidencia: maxDate(m.filesFound, fileDateMap),
       pendencias_abertas: pend,
       atraso,
@@ -500,12 +540,11 @@ function buildReport() {
     no_ar: cnt("no_ar"),
     ajuste: cnt("ajuste"),
     parcial: cnt("parcial"),
-    novo: cnt("sem_evidencia"), // "novo" = sem evidência de código (chaves da SPEC §3)
-    cobertura_pct: marcosJson.length
-      ? Math.round(((cnt("no_ar") + cnt("ajuste")) / marcosJson.length) * 100)
-      : 0,
+    novo: cnt("sem_evidencia"),
+    cobertura_pct: marcosJson.length ? Math.round(((cnt("no_ar") + cnt("ajuste")) / marcosJson.length) * 100) : 0,
     atrasos: marcosJson.filter((x) => x.atraso).length,
     divergencias: marcosJson.filter((x) => x.divergencia).length,
+    documentados: marcosJson.filter((x) => x.documentos_relacionados.length).length,
     extras: extras.length,
   };
 
@@ -513,6 +552,7 @@ function buildReport() {
     gerado_em: isoWithOffset(now),
     sprint_atual: sprint,
     commit: (commits[0] && commits[0].hash) || null,
+    fonte: "roadmap.json",
     resumo,
     marcos: marcosJson,
     extras_fora_do_roadmap: extras,
@@ -541,11 +581,16 @@ function writeFileSafe(dir, filename, content, mustExist = true) {
 }
 
 function main() {
-  const { content, json, stamp, sprint } = buildReport();
+  const res = buildReport();
+  if (res.error) {
+    // roadmap.json ausente/inválido: não escreve nada (preserva os arquivos bons).
+    console.error(`[status-report] ${res.error} — nada gerado.`);
+    return;
+  }
+  const { content, json, stamp, sprint } = res;
   const jsonStr = JSON.stringify(json, null, 2);
 
   if (DRY_RUN) {
-    // --dry-run + --json → imprime só o JSON (facilita inspeção); senão imprime o .md.
     if (process.argv.includes("--json")) process.stdout.write(jsonStr + "\n");
     else process.stdout.write(content + "\n");
     console.error(`\n[dry-run] rolling → ${path.join(FERRAMENTAS_DEST, ROLLING_FILE)} (+ ${JSON_FILE})`);
@@ -554,11 +599,9 @@ function main() {
     return;
   }
 
-  // Sempre atualiza o rolling na pasta de ferramentas (pedido original): .md (humano) + .json (máquina).
   writeFileSafe(FERRAMENTAS_DEST, ROLLING_FILE, content);
   writeFileSafe(FERRAMENTAS_DEST, JSON_FILE, jsonStr);
 
-  // --entrega: snapshots datados imutáveis (regra de 03_Entregas).
   if (ENTREGA) {
     writeFileSafe(ENTREGAS_DEST, `Status_Desenvolvimento_${sprint}_${stamp}.md`, content);
     writeFileSafe(ENTREGAS_DEST, `status_${sprint}_${stamp}.json`, jsonStr);

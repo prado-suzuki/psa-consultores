@@ -9,62 +9,46 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/integrations/supabase/client";
-import { assertCanPerform } from "@/hooks/useRlsPrecheck";
 import { useToast } from "@/hooks/use-toast";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import {
+  useCreateDomainBacklogDeliverable,
+  useCreateDomainBacklogItem,
+  useDeleteDomainBacklogItem,
+  useDomainBacklog,
+  useMoveDomainBacklogItem,
+  useUpdateDomainBacklogItem,
+  type BacklogItem,
+  type BacklogCluster,
+  type Process,
+  type Profile,
+  type Project,
+  type ProjectProcess,
+  type Sprint,
+} from "@/hooks/useDomainBacklog";
 import { Plus, Edit2, Trash2, ArrowRight, Layers } from "lucide-react";
 import { format } from "date-fns";
-
-interface BacklogItem {
-  id: string;
-  sprint_id: string | null;
-  title: string;
-  description: string | null;
-  priority: string;
-  estimated_hours: number | null;
-  suggested_by: string | null;
-  status: string;
-  moved_to_deliverable_id: string | null;
-  project_id: string | null;
-  created_at: string;
-}
-
-interface Sprint {
-  id: string;
-  name: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
-
-interface Profile {
-  id: string;
-  first_name: string;
-  last_name: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-}
-
-interface Process {
-  id: string;
-  name: string;
-  project_id: string | null;
-}
-
-interface ProjectProcess {
-  process_id: string;
-  project_id: string;
-}
+import { matchCluster, SEM_CLUSTER } from "@/lib/clusterFilter";
 
 const UNASSIGNED = '__unassigned__';
 const NONE = '__none__';
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String(error.message);
+  }
+  return String(error);
+};
+
 export default function EquipeBacklog() {
   const { toast } = useToast();
+  const backlogQuery = useDomainBacklog();
+  const createBacklogItem = useCreateDomainBacklogItem();
+  const updateBacklogItem = useUpdateDomainBacklogItem();
+  const removeBacklogItem = useDeleteDomainBacklogItem();
+  const createBacklogDeliverable = useCreateDomainBacklogDeliverable();
+  const moveBacklogItem = useMoveDomainBacklogItem();
 
   const [backlogItems, setBacklogItems] = useState<BacklogItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -72,6 +56,7 @@ export default function EquipeBacklog() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [processes, setProcesses] = useState<Process[]>([]);
   const [projectProcesses, setProjectProcesses] = useState<ProjectProcess[]>([]);
+  const [clusters, setClusters] = useState<BacklogCluster[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Modal de criação/edição
@@ -82,7 +67,8 @@ export default function EquipeBacklog() {
     description: '',
     priority: 'medium',
     estimated_hours: '',
-    project_id: ''
+    project_id: '',
+    cluster_id: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -100,60 +86,36 @@ export default function EquipeBacklog() {
   });
   const [moving, setMoving] = useState(false);
 
-  // Filtro de prioridade
+  // Filtros de prioridade e projeto
   const [filterPriority, setFilterPriority] = usePersistedState<string>('rotina.backlog.prioridade', 'all');
+  const [filterProject, setFilterProject] = usePersistedState<string>('rotina.backlog.projeto', 'all');
+  // Chave global 'rotina.cluster' → o cluster escolhido segue nas outras telas.
+  const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!backlogQuery.data) return;
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch backlog items (apenas os que não foram movidos e não têm sprint)
-      const { data: backlogData, error: backlogError } = await supabase
-        .from("sprint_backlog_items")
-        .select("*")
-        .is("sprint_id", null)
-        .neq("status", "moved_to_sprint")
-        .order("priority", { ascending: true })
-        .order("created_at", { ascending: false });
-      
-      if (backlogError) throw backlogError;
-      setBacklogItems((backlogData || []) as unknown as BacklogItem[]);
+    setBacklogItems(backlogQuery.data.backlogItems);
+    setSprints(backlogQuery.data.sprints);
+    setProfiles(backlogQuery.data.profiles);
+    setProjects(backlogQuery.data.projects);
+    setProcesses(backlogQuery.data.processes);
+    setProjectProcesses(backlogQuery.data.projectProcesses);
+    setClusters(backlogQuery.data.clusters);
+    setLoading(false);
+  }, [backlogQuery.data]);
 
-      // Fetch active sprints
-      const { data: sprintsData } = await supabase
-        .from("sprints")
-        .select("*")
-        .in("status", ["active", "planning"])
-        .order("start_date", { ascending: true });
-      setSprints(sprintsData || []);
+  useEffect(() => {
+    if (!backlogQuery.error || backlogQuery.data) return;
 
-      // Fetch profiles
-      const { data: profilesData } = await supabase
-        .from("profiles_safe")
-        .select("id, first_name, last_name");
-      setProfiles(profilesData || []);
-
-      // Fetch projects, processes e associações (para alinhar com o form de Nova Tarefa)
-      const [{ data: projectsData }, { data: processesData }, { data: ppData }] = await Promise.all([
-        supabase.from("projects").select("id, name").order("name"),
-        supabase.from("processes").select("id, name, project_id").order("name"),
-        supabase.from("project_processes").select("process_id, project_id"),
-      ]);
-      setProjects(projectsData || []);
-      setProcesses(processesData || []);
-      setProjectProcesses(ppData || []);
-
-    } catch (error: any) {
-      console.error("Error fetching data:", error);
-      toast({ title: "Erro ao carregar dados", description: error.message, variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
-  };
+    console.error("Error fetching data:", backlogQuery.error);
+    toast({
+      title: "Erro ao carregar dados",
+      description: backlogQuery.error.message,
+      variant: "destructive",
+    });
+    setLoading(false);
+  }, [backlogQuery.data, backlogQuery.error, toast]);
 
   const openFormModal = (item?: BacklogItem) => {
     if (item) {
@@ -163,7 +125,8 @@ export default function EquipeBacklog() {
         description: item.description || '',
         priority: item.priority,
         estimated_hours: item.estimated_hours?.toString() || '',
-        project_id: item.project_id || ''
+        project_id: item.project_id || '',
+        cluster_id: item.cluster_id || '',
       });
     } else {
       setEditingItem(null);
@@ -172,7 +135,8 @@ export default function EquipeBacklog() {
         description: '',
         priority: 'medium',
         estimated_hours: '',
-        project_id: ''
+        project_id: '',
+        cluster_id: '',
       });
     }
     setFormModalOpen(true);
@@ -194,39 +158,27 @@ export default function EquipeBacklog() {
         estimated_hours: formData.estimated_hours ? parseFloat(formData.estimated_hours) : null,
         sprint_id: null, // Backlog global, sem sprint
         project_id: formData.project_id || null,
+        cluster_id: formData.cluster_id || null,
       };
 
-      // project_id é coluna nova: types.ts (autogerado) ainda não a conhece até Lovable regerar.
-      const itemPayload = itemData as typeof itemData & Record<string, unknown>;
-
       if (editingItem) {
-        await assertCanPerform('sprint_backlog_items', 'update', editingItem.id);
-        const { error } = await supabase
-          .from("sprint_backlog_items")
-          .update(itemPayload)
-          .eq("id", editingItem.id);
-        if (error) throw error;
+        await updateBacklogItem.mutateAsync({ itemId: editingItem.id, payload: itemData });
 
         setBacklogItems(prev =>
           prev.map(item => item.id === editingItem.id ? { ...item, ...itemData } : item)
         );
         toast({ title: "Item atualizado" });
       } else {
-        const { data, error } = await supabase
-          .from("sprint_backlog_items")
-          .insert(itemPayload)
-          .select()
-          .single();
-        if (error) throw error;
+        const data = await createBacklogItem.mutateAsync(itemData);
 
-        setBacklogItems(prev => [data as BacklogItem, ...prev]);
+        setBacklogItems(prev => [data, ...prev]);
         toast({ title: "Item adicionado ao backlog" });
       }
       
       setFormModalOpen(false);
       setEditingItem(null);
-    } catch (error: any) {
-      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao salvar", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -234,29 +186,26 @@ export default function EquipeBacklog() {
 
   const deleteItem = async (itemId: string) => {
     try {
-      await assertCanPerform('sprint_backlog_items', 'delete', itemId);
-      const { error } = await supabase
-        .from("sprint_backlog_items")
-        .delete()
-        .eq("id", itemId);
-      if (error) throw error;
+      await removeBacklogItem.mutateAsync(itemId);
       
       setBacklogItems(prev => prev.filter(item => item.id !== itemId));
       toast({ title: "Item removido do backlog" });
-    } catch (error: any) {
-      toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao excluir", description: getErrorMessage(error), variant: "destructive" });
     }
   };
 
   const openMoveModal = (item: BacklogItem) => {
     setMovingItem(item);
-    const firstSprint = sprints[0];
+    // NÃO pré-seleciona sprint: força a pessoa a escolher explicitamente para qual
+    // sprint o item vai (evita "mover sem querer" para a primeira da lista). As datas
+    // são preenchidas automaticamente ao escolher a sprint (onValueChange abaixo).
     setMoveData({
-      sprint_id: firstSprint?.id || '',
+      sprint_id: '',
       assigned_to: '',
-      start_date: firstSprint?.start_date || '',
-      due_date: firstSprint?.end_date || '',
-      project_id: '',
+      start_date: '',
+      due_date: '',
+      project_id: item.project_id || '',
       process_id: '',
       task_code: '',
     });
@@ -294,26 +243,17 @@ export default function EquipeBacklog() {
         task_code: moveData.task_code || null,
       };
 
-      const { data: newDeliverable, error: deliverableError } = await supabase
-        .from("sprint_deliverables")
-        .insert(deliverableData)
-        .select()
-        .single();
-
-      if (deliverableError) throw deliverableError;
+      const newDeliverable = await createBacklogDeliverable.mutateAsync(deliverableData);
 
       // Atualizar status do item do backlog
-      await assertCanPerform('sprint_backlog_items', 'update', movingItem.id);
-      const { error: backlogError } = await supabase
-        .from("sprint_backlog_items")
-        .update({
+      await moveBacklogItem.mutateAsync({
+        itemId: movingItem.id,
+        payload: {
           status: 'moved_to_sprint',
           moved_to_deliverable_id: newDeliverable.id,
           sprint_id: moveData.sprint_id
-        })
-        .eq("id", movingItem.id);
-
-      if (backlogError) throw backlogError;
+        },
+      });
 
       // Remover da lista local
       setBacklogItems(prev => prev.filter(item => item.id !== movingItem.id));
@@ -322,8 +262,8 @@ export default function EquipeBacklog() {
       
       const sprintName = sprints.find(s => s.id === moveData.sprint_id)?.name || 'Sprint';
       toast({ title: `Item movido para ${sprintName}` });
-    } catch (error: any) {
-      toast({ title: "Erro ao mover item", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Erro ao mover item", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setMoving(false);
     }
@@ -331,6 +271,8 @@ export default function EquipeBacklog() {
 
   const filteredItems = backlogItems.filter(item => {
     if (filterPriority !== 'all' && item.priority !== filterPriority) return false;
+    if (filterProject !== 'all' && item.project_id !== filterProject) return false;
+    if (!matchCluster(filterCluster, item.cluster_id)) return false;
     return true;
   });
 
@@ -372,6 +314,38 @@ export default function EquipeBacklog() {
               <SelectItem value="high">Alta</SelectItem>
               <SelectItem value="medium">Média</SelectItem>
               <SelectItem value="low">Baixa</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={filterProject} onValueChange={setFilterProject}>
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Projeto" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os projetos</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={filterCluster === '' ? '__todos__' : filterCluster}
+            onValueChange={(value) => setFilterCluster(value === '__todos__' ? '' : value)}
+          >
+            <SelectTrigger className="w-[200px] bg-white">
+              <SelectValue placeholder="Cluster" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__todos__">Todos os clusters</SelectItem>
+              <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
+              {clusters.map((cluster) => (
+                <SelectItem key={cluster.id} value={cluster.id}>
+                  {cluster.name}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -423,6 +397,11 @@ export default function EquipeBacklog() {
                               {item.estimated_hours}h estimadas
                             </span>
                           )}
+                          {item.cluster_id && (
+                            <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded">
+                              {clusters.find(c => c.id === item.cluster_id)?.name || 'Cluster'}
+                            </span>
+                          )}
                           {item.project_id && (
                             <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">
                               {projects.find(p => p.id === item.project_id)?.name || 'Projeto'}
@@ -438,7 +417,6 @@ export default function EquipeBacklog() {
                         variant="outline" 
                         onClick={() => openMoveModal(item)}
                         className="text-primary border-primary/30 hover:bg-primary/10"
-                        disabled={sprints.length === 0}
                       >
                         <ArrowRight className="h-3 w-3 mr-1" /> Mover para Sprint
                       </Button>
@@ -542,6 +520,35 @@ export default function EquipeBacklog() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="cluster">Cluster</Label>
+              <Select
+                value={formData.cluster_id || NONE}
+                onValueChange={(v) => setFormData({
+                  ...formData,
+                  cluster_id: v === NONE ? '' : v,
+                  // Limpa projeto se o cluster do projeto atual não bate mais.
+                  project_id: (() => {
+                    if (!formData.project_id) return '';
+                    const proj = projects.find(p => p.id === formData.project_id);
+                    if (v === NONE) return formData.project_id;
+                    return proj && proj.cluster_id === v ? formData.project_id : '';
+                  })(),
+                })}
+              >
+                <SelectTrigger id="cluster">
+                  <SelectValue placeholder="Selecionar cluster (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NONE}>Nenhum</SelectItem>
+                  {clusters.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="project">Projeto</Label>
               <Select
                 value={formData.project_id || NONE}
@@ -552,11 +559,13 @@ export default function EquipeBacklog() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NONE}>Nenhum</SelectItem>
-                  {projects.map(p => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {p.name}
-                    </SelectItem>
-                  ))}
+                  {projects
+                    .filter(p => !formData.cluster_id || p.cluster_id === formData.cluster_id)
+                    .map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -589,26 +598,32 @@ export default function EquipeBacklog() {
 
             <div className="space-y-2">
               <Label>Sprint de Destino *</Label>
-              <Select value={moveData.sprint_id} onValueChange={(v) => {
-                const sprint = sprints.find(s => s.id === v);
-                setMoveData(prev => ({
-                  ...prev,
-                  sprint_id: v,
-                  start_date: sprint?.start_date || '',
-                  due_date: sprint?.end_date || '',
-                }));
-              }}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a sprint" />
-                </SelectTrigger>
-                <SelectContent>
-                  {sprints.map(sprint => (
-                    <SelectItem key={sprint.id} value={sprint.id}>
-                      {sprint.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {sprints.length === 0 ? (
+                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                  Nenhuma sprint ativa ou planejada. Crie ou ative uma sprint em <strong>Sprints</strong> antes de mover itens do backlog.
+                </p>
+              ) : (
+                <Select value={moveData.sprint_id} onValueChange={(v) => {
+                  const sprint = sprints.find(s => s.id === v);
+                  setMoveData(prev => ({
+                    ...prev,
+                    sprint_id: v,
+                    start_date: sprint?.start_date || '',
+                    due_date: sprint?.end_date || '',
+                  }));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a sprint" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sprints.map(sprint => (
+                      <SelectItem key={sprint.id} value={sprint.id}>
+                        {sprint.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="space-y-2">

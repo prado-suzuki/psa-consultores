@@ -1,829 +1,129 @@
-import { useState, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
+import { EquipeChamadosFilters } from '@/components/chamados/equipe/EquipeChamadosFilters';
+import { EquipeChamadosStats } from '@/components/chamados/equipe/EquipeChamadosStats';
+import { EquipeChamadosTable } from '@/components/chamados/equipe/EquipeChamadosTable';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useCanAssignTickets } from '@/hooks/useCanAssignTickets';
-import { useTicketsList } from '@/hooks/useTickets';
-import { AssignAgentCell } from '@/components/chamados/AssignAgentCell';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket } from '@/hooks/useTicketMutations';
+import { useTicketsList } from '@/hooks/useTickets';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
-import { ArrowLeft, ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle } from 'lucide-react';
-import { isWithinInterval, subDays, startOfMonth, formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { isTodayBrazil } from '@/lib/dateUtils';
-
-type SortDirection = 'asc' | 'desc' | null;
-type SortColumn = 'status' | 'title' | 'id' | 'department' | 'created_by' | 'updated_at' | 'prazo' | 'activity_status' | null;
-
-interface PrazoInfo {
-  dias?: number;
-  horas?: number;
-  prazoExpirado?: boolean;
-  prazoHoje?: boolean;
-  tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido' | 'aguardando_cliente';
-}
-
-const calcularPrazoResposta = (
-  dataCriacao: string, 
-  dataAtualizacao: string,
-  status: string, 
-  activityStatus: string | null,
-  deadline: string | null = null
-): PrazoInfo => {
-  if (status === 'resolvido' || status === 'fechado') {
-    return { tipo: 'concluido' };
-  }
-  
-  if (activityStatus === 'respondido') {
-    return { tipo: 'aguardando_cliente' };
-  }
-  
-  const hoje = new Date();
-  let prazoFinal: Date;
-
-  if (deadline) {
-    prazoFinal = new Date(deadline + 'T23:59:59');
-  } else {
-    const dataReferencia = new Date(activityStatus === 'aguardando_resposta' ? dataAtualizacao : dataCriacao);
-    prazoFinal = new Date(dataReferencia);
-    prazoFinal.setDate(prazoFinal.getDate() + 5);
-  }
-  
-  const diffTime = prazoFinal.getTime() - hoje.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
-  
-  return {
-    dias: diffDays,
-    horas: diffHours,
-    prazoExpirado: diffTime < 0,
-    prazoHoje: diffDays === 0 && diffTime > 0,
-    tipo: diffTime < 0 ? 'expirado' : diffDays <= 1 ? 'urgente' : diffDays <= 2 ? 'atencao' : 'normal'
-  };
-};
-
-const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500 hover:bg-blue-600',
-  em_andamento: 'bg-yellow-500 hover:bg-yellow-600',
-  resolvido: 'bg-green-500 hover:bg-green-600',
-  fechado: 'bg-gray-500 hover:bg-gray-600',
-};
-
-const statusLabels: Record<string, string> = {
-  aberto: 'Aberto',
-  em_andamento: 'Em Andamento',
-  resolvido: 'Resolvido',
-  fechado: 'Fechado',
-};
-
-const activityLabels: Record<string, string> = {
-  aguardando_resposta: 'Aguardando resposta',
-  respondido: 'Respondido',
-  em_analise: 'Em análise',
-};
-
-const activityColors: Record<string, string> = {
-  aguardando_resposta: 'bg-orange-100 text-orange-800',
-  respondido: 'bg-green-100 text-green-800',
-  em_analise: 'bg-blue-100 text-blue-800',
-};
-
-const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
+import { useUserEstrutura } from '@/hooks/useUserEstrutura';
+import { createEquipeChamadosFilters, filterAndSortTickets, getTicketStats } from '@/lib/equipeChamados';
+import type { SortColumn, SortDirection } from '@/lib/equipeChamados';
 
 export default function EquipeChamados() {
   const navigate = useNavigate();
   const location = useLocation();
-  // Origem passada pela sidebar da área (ex.: Tax) para o "Voltar" retornar à área correta.
   const backTo = (location.state as { from?: string } | null)?.from ?? '/equipe';
   const { user } = useAuth();
   const { toast } = useToast();
   const canAssignTickets = useCanAssignTickets();
   const { clusters: userClusters } = useUserEstrutura();
-  
-  const { data: tickets = [], isLoading: loading } = useTicketsList({
-    assignedTo: user?.id,
-    filterAssigned: !canAssignTickets,
-  });
-  // Agents are now fetched per-ticket (by cluster) inside AssignAgentCell below.
+  const { data: tickets = [], isLoading: loading } = useTicketsList({ assignedTo: user?.id, filterAssigned: !canAssignTickets });
   const { data: areasData = [] } = useAllActiveAreas();
   const { data: clustersData = [] } = useAllActiveClusters();
   const assignTicket = useAssignTicket();
-
-  const areaMap = useMemo(() => {
-    const map = new Map<string, string>();
-    areasData.forEach(a => map.set(a.id, a.name));
-    return map;
-  }, [areasData]);
-
-  const clusterMap = useMemo(() => {
-    const map = new Map<string, string>();
-    clustersData.forEach(c => map.set(c.id, c.name));
-    return map;
-  }, [clustersData]);
-
   const scrollRef = useRef<HTMLDivElement>(null);
-
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
   const defaultCluster = userClusters.length === 1 ? userClusters[0].id : 'todos';
-  const [filters, setFilters] = useState({
-    periodo: 'todas',
-    status: 'todos',
-    prioridade: 'todas',
-    departamento: 'todos',
-    area: 'todos',
-    cluster: defaultCluster,
-    searchId: '',
-  });
+  const [filters, setFilters] = useState(() => createEquipeChamadosFilters(defaultCluster));
   const [mostrarUrgentes, setMostrarUrgentes] = useState(false);
 
-  const handleAssignAgent = async (
-    ticketId: string,
-    agentId: string | null,
-    agentName: string | null,
-  ) => {
-    try {
-      await assignTicket.mutateAsync({
-        ticketId,
-        agentId,
-        agentName,
-      });
-      toast({
-        title: 'Agente atribuído',
-        description: agentId && agentName
-          ? `Chamado atribuído a ${agentName}`
-          : 'Atribuição removida',
-      });
-    } catch {
-      toast({
-        title: 'Erro ao atribuir agente',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
-    }
-  };
+  const areaMap = useMemo(() => new Map(areasData.map((area) => [area.id, area.name])), [areasData]);
+  const clusterMap = useMemo(() => new Map(clustersData.map((cluster) => [cluster.id, cluster.name])), [clustersData]);
+  const filteredTickets = useMemo(
+    () => filterAndSortTickets(tickets, filters, mostrarUrgentes, sortColumn, sortDirection),
+    [tickets, filters, mostrarUrgentes, sortColumn, sortDirection],
+  );
+  const stats = useMemo(() => getTicketStats(tickets), [tickets]);
 
   const handleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc');
-      } else if (sortDirection === 'desc') {
-        setSortColumn(null);
-        setSortDirection(null);
-      }
-    } else {
+    if (sortColumn !== column) {
       setSortColumn(column);
       setSortDirection('asc');
+    } else if (sortDirection === 'asc') {
+      setSortDirection('desc');
+    } else {
+      setSortColumn(null);
+      setSortDirection(null);
     }
   };
 
-  const getSortIcon = (column: SortColumn) => {
-    if (sortColumn !== column) {
-      return <ArrowUpDown className="ml-1 h-4 w-4 text-muted-foreground" />;
-    }
-    if (sortDirection === 'asc') {
-      return <ArrowUp className="ml-1 h-4 w-4" />;
-    }
-    return <ArrowDown className="ml-1 h-4 w-4" />;
-  };
-
-  const filteredAndSortedTickets = useMemo(() => {
-    let filtered = [...tickets];
-
-    if (filters.periodo !== 'todas') {
-      const now = new Date();
-      filtered = filtered.filter(t => {
-        const ticketDate = new Date(t.created_at);
-        switch (filters.periodo) {
-          case 'hoje':
-            return isTodayBrazil(ticketDate);
-          case '7dias':
-            return isWithinInterval(ticketDate, { start: subDays(now, 7), end: now });
-          case '30dias':
-            return isWithinInterval(ticketDate, { start: subDays(now, 30), end: now });
-          case 'mes':
-            return isWithinInterval(ticketDate, { start: startOfMonth(now), end: now });
-          default:
-            return true;
-        }
+  const handleAssignAgent = async (ticketId: string, agentId: string | null, agentName: string | null) => {
+    try {
+      await assignTicket.mutateAsync({ ticketId, agentId, agentName });
+      toast({
+        title: 'Agente atribuído',
+        description: agentId && agentName ? `Chamado atribuído a ${agentName}` : 'Atribuição removida',
       });
+    } catch {
+      toast({ title: 'Erro ao atribuir agente', description: 'Tente novamente mais tarde.', variant: 'destructive' });
     }
-
-    if (filters.status !== 'todos') {
-      filtered = filtered.filter(t => t.status === filters.status);
-    }
-
-    if (filters.prioridade !== 'todas') {
-      filtered = filtered.filter(t => t.priority === filters.prioridade);
-    }
-
-    if (filters.departamento !== 'todos') {
-      filtered = filtered.filter(t => t.department === filters.departamento);
-    }
-
-    if (filters.area !== 'todos') {
-      filtered = filtered.filter(t => t.estrutura_area_id === filters.area);
-    }
-
-    if (filters.cluster !== 'todos') {
-      filtered = filtered.filter(t => t.cluster_id === filters.cluster);
-    }
-
-    if (filters.searchId) {
-      filtered = filtered.filter(t => 
-        t.id.toLowerCase().includes(filters.searchId.toLowerCase())
-      );
-    }
-
-    if (mostrarUrgentes) {
-      filtered = filtered.filter(t => {
-        if (t.status === 'resolvido' || t.status === 'fechado') return false;
-        const prazo = calcularPrazoResposta(t.created_at, t.updated_at, t.status, t.activity_status, t.deadline);
-        return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
-      });
-    }
-
-    if (sortColumn && sortDirection) {
-      if (sortColumn === 'prazo') {
-        const getPrioridade = (prazo: PrazoInfo) => {
-          if (prazo.tipo === 'concluido') return 999;
-          if (prazo.tipo === 'aguardando_cliente') return 998;
-          if (prazo.tipo === 'expirado') return -(prazo.dias || 0);
-          return prazo.dias || 0;
-        };
-
-        filtered.sort((a, b) => {
-          const prazoA = calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status, a.deadline);
-          const prazoB = calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status, b.deadline);
-          const prioridadeA = getPrioridade(prazoA);
-          const prioridadeB = getPrioridade(prazoB);
-
-          return sortDirection === 'asc' 
-            ? prioridadeA - prioridadeB 
-            : prioridadeB - prioridadeA;
-        });
-      } else {
-        filtered.sort((a, b) => {
-          let aVal: string | number = '';
-          let bVal: string | number = '';
-
-          switch (sortColumn) {
-            case 'status':
-              aVal = a.status;
-              bVal = b.status;
-              break;
-            case 'title':
-              aVal = a.title.toLowerCase();
-              bVal = b.title.toLowerCase();
-              break;
-            case 'id':
-              aVal = a.id;
-              bVal = b.id;
-              break;
-            case 'department':
-              aVal = a.department || '';
-              bVal = b.department || '';
-              break;
-            case 'created_by':
-              aVal = `${a.profiles?.first_name || ''} ${a.profiles?.last_name || ''}`.toLowerCase();
-              bVal = `${b.profiles?.first_name || ''} ${b.profiles?.last_name || ''}`.toLowerCase();
-              break;
-            case 'updated_at':
-              aVal = new Date(a.updated_at).getTime();
-              bVal = new Date(b.updated_at).getTime();
-              break;
-            case 'activity_status':
-              aVal = a.activity_status || '';
-              bVal = b.activity_status || '';
-              break;
-          }
-
-          if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
-          if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
-          return 0;
-        });
-      }
-    }
-
-    return filtered;
-  }, [tickets, filters, sortColumn, sortDirection, mostrarUrgentes]);
-
-  const stats = {
-    total: tickets.length,
-    abertos: tickets.filter(t => t.status === 'aberto').length,
-    emAndamento: tickets.filter(t => t.status === 'em_andamento').length,
-    resolvidos: tickets.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
   };
 
   const resetFilters = () => {
-    setFilters({
-      periodo: 'todas',
-      status: 'todos',
-      prioridade: 'todas',
-      departamento: 'todos',
-      area: 'todos',
-      cluster: userClusters.length === 1 ? userClusters[0].id : 'todos',
-      searchId: '',
-    });
+    setFilters(createEquipeChamadosFilters(userClusters.length === 1 ? userClusters[0].id : 'todos'));
+    setMostrarUrgentes(false);
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="h-16 border-b border-slate-200/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate(backTo)}
-            className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Voltar
+          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-slate-600 hover:text-teal-600 hover:bg-slate-50">
+            <ArrowLeft className="mr-2 h-4 w-4" />Voltar
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
-              {canAssignTickets ? 'Gestão de Chamados' : 'Equipe Chamados'}
-            </h1>
+            <h1 className="text-xl font-bold text-slate-900">{canAssignTickets ? 'Gestão de Chamados' : 'Equipe Chamados'}</h1>
             <p className="text-sm text-slate-500">
-              {canAssignTickets
-                ? 'Visualize todos os chamados e atribua responsáveis'
-                : 'Visualize e responda os chamados atribuídos a você'}
+              {canAssignTickets ? 'Visualize todos os chamados e atribua responsáveis' : 'Visualize e responda os chamados atribuídos a você'}
             </p>
           </div>
         </div>
       </header>
-
       <main className="p-6">
-        <div>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardDescription>Total</CardDescription>
-                  <MessageSquare className="h-4 w-4 text-gray-400" />
-                </div>
-                <CardTitle className="text-3xl">{stats.total}</CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardDescription>Abertos</CardDescription>
-                  <AlertTriangle className="h-4 w-4 text-blue-400" />
-                </div>
-                <CardTitle className="text-3xl text-blue-600">{stats.abertos}</CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardDescription>Em Andamento</CardDescription>
-                  <Clock className="h-4 w-4 text-yellow-400" />
-                </div>
-                <CardTitle className="text-3xl text-yellow-600">{stats.emAndamento}</CardTitle>
-              </CardHeader>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardDescription>Resolvidos</CardDescription>
-                  <CheckCircle className="h-4 w-4 text-green-400" />
-                </div>
-                <CardTitle className="text-3xl text-green-600">{stats.resolvidos}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          {/* Card de Filtros */}
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-base">Filtros</CardTitle>
-            </CardHeader>
-            <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-              <div className="space-y-2">
-                <Label>Período</Label>
-                <Select value={filters.periodo} onValueChange={(v) => setFilters({...filters, periodo: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas as datas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas as datas</SelectItem>
-                    <SelectItem value="hoje">Hoje</SelectItem>
-                    <SelectItem value="7dias">Últimos 7 dias</SelectItem>
-                    <SelectItem value="30dias">Últimos 30 dias</SelectItem>
-                    <SelectItem value="mes">Este mês</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select value={filters.status} onValueChange={(v) => setFilters({...filters, status: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="aberto">Aberto</SelectItem>
-                    <SelectItem value="em_andamento">Em Andamento</SelectItem>
-                    <SelectItem value="resolvido">Resolvido</SelectItem>
-                    <SelectItem value="fechado">Fechado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Prioridade</Label>
-                <Select value={filters.prioridade} onValueChange={(v) => setFilters({...filters, prioridade: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todas">Todas</SelectItem>
-                    <SelectItem value="baixa">Baixa</SelectItem>
-                    <SelectItem value="normal">Normal</SelectItem>
-                    <SelectItem value="alta">Alta</SelectItem>
-                    <SelectItem value="urgente">Urgente</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Departamento</Label>
-                <Select value={filters.departamento} onValueChange={(v) => setFilters({...filters, departamento: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos Departamentos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos Departamentos</SelectItem>
-                    <SelectItem value="contabilidade">Contabilidade/Societário</SelectItem>
-                    <SelectItem value="icms_ipi">ICMS/IPI</SelectItem>
-                    <SelectItem value="irpj_csll">IRPJ/CSLL</SelectItem>
-                    <SelectItem value="pis_cofins">PIS/COFINS</SelectItem>
-                    <SelectItem value="produtor_rural">Produtor Rural PF</SelectItem>
-                    <SelectItem value="outros">Outros</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Área</Label>
-                <Select value={filters.area} onValueChange={(v) => setFilters({...filters, area: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todas Áreas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todas Áreas</SelectItem>
-                    {areasData.map((area) => (
-                      <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Cluster</Label>
-                <Select value={filters.cluster} onValueChange={(v) => setFilters({...filters, cluster: v})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos</SelectItem>
-                    {(canAssignTickets ? clustersData : userClusters).map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-              <div className="space-y-2">
-                <Label>ID do Chamado</Label>
-                <Input 
-                  placeholder="Buscar por ID"
-                  value={filters.searchId}
-                  onChange={(e) => setFilters({...filters, searchId: e.target.value})}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 h-10">
-                <Checkbox 
-                  id="urgentes"
-                  checked={mostrarUrgentes}
-                  onCheckedChange={(checked) => setMostrarUrgentes(checked === true)}
-                />
-                <Label htmlFor="urgentes" className="text-sm cursor-pointer">
-                  Apenas urgentes (&lt; 2 dias)
-                </Label>
-              </div>
-
-              <Button 
-                variant="outline"
-                onClick={() => {
-                  resetFilters();
-                  setMostrarUrgentes(false);
-                }}
-              >
-                Limpar Filtros
-              </Button>
-
-              <div className="text-sm text-muted-foreground">
-                {filteredAndSortedTickets.length} de {tickets.length} chamados
-              </div>
-            </div>
-            </CardContent>
+        <EquipeChamadosStats stats={stats} />
+        <EquipeChamadosFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          mostrarUrgentes={mostrarUrgentes}
+          onMostrarUrgentesChange={setMostrarUrgentes}
+          areas={areasData}
+          clusters={canAssignTickets ? clustersData : userClusters}
+          filteredCount={filteredTickets.length}
+          totalCount={tickets.length}
+          onReset={resetFilters}
+        />
+        {loading ? (
+          <div className="flex items-center justify-center py-12"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" /></div>
+        ) : filteredTickets.length === 0 ? (
+          <Card className="p-12 text-center">
+            <p className="text-muted-foreground">
+              {tickets.length === 0
+                ? (canAssignTickets ? 'Nenhum chamado encontrado.' : 'Você não possui chamados atribuídos no momento.')
+                : 'Nenhum chamado encontrado com os filtros selecionados.'}
+            </p>
           </Card>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-            </div>
-          ) : filteredAndSortedTickets.length === 0 ? (
-            <Card className="p-12 text-center">
-              <p className="text-muted-foreground">
-                {tickets.length === 0 
-                  ? (canAssignTickets ? 'Nenhum chamado encontrado.' : 'Você não possui chamados atribuídos no momento.')
-                  : 'Nenhum chamado encontrado com os filtros selecionados.'}
-              </p>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Chamados</CardTitle>
-                <CardDescription>
-                  {filteredAndSortedTickets.length} chamado(s) encontrado(s)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table containerRef={scrollRef}>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('status')}
-                      >
-                        <div className="flex items-center">
-                          Status
-                          {getSortIcon('status')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer min-w-[200px]"
-                        onClick={() => handleSort('title')}
-                      >
-                        <div className="flex items-center">
-                          Título
-                          {getSortIcon('title')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('id')}
-                      >
-                        <div className="flex items-center">
-                          ID
-                          {getSortIcon('id')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('department')}
-                      >
-                        <div className="flex items-center">
-                          Departamento
-                          {getSortIcon('department')}
-                        </div>
-                      </TableHead>
-                      <TableHead>Área</TableHead>
-                      <TableHead>Cluster</TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('created_by')}
-                      >
-                        <div className="flex items-center">
-                          Representante
-                          {getSortIcon('created_by')}
-                        </div>
-                      </TableHead>
-                      <TableHead>Cliente</TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('updated_at')}
-                      >
-                        <div className="flex items-center">
-                          Última Atualização
-                          {getSortIcon('updated_at')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('prazo')}
-                      >
-                        <div className="flex items-center">
-                          Prazo
-                          {getSortIcon('prazo')}
-                        </div>
-                      </TableHead>
-                      {canAssignTickets && (
-                        <TableHead>Responsável</TableHead>
-                      )}
-                      <TableHead 
-                        className="cursor-pointer"
-                        onClick={() => handleSort('activity_status')}
-                      >
-                        <div className="flex items-center">
-                          Atividade
-                          {getSortIcon('activity_status')}
-                        </div>
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredAndSortedTickets.map((ticket) => (
-                      <TableRow key={ticket.id}>
-                        <TableCell>
-                          <Badge className={statusColors[ticket.status]}>
-                            {statusLabels[ticket.status] || ticket.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => navigate(`/equipe/chamados/${ticket.id}`)}
-                              className="text-left font-medium text-primary hover:underline focus:outline-none"
-                            >
-                              {ticket.title}
-                            </button>
-                            {ticket.attachment_count && ticket.attachment_count > 0 && (
-                              <Badge variant="outline" className="flex items-center gap-1 text-xs">
-                                <Paperclip className="h-3 w-3" />
-                                {ticket.attachment_count}
-                              </Badge>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-mono text-xs text-muted-foreground">
-                          {ticket.id.slice(0, 8)}...
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {departmentLabels[ticket.department] || ticket.department || '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {ticket.estrutura_area_id ? areaMap.get(ticket.estrutura_area_id) || '—' : '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '—' : '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm">
-                            {ticket.profiles 
-                              ? `${ticket.profiles.first_name} ${ticket.profiles.last_name}`
-                              : '-'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {ticket.cliente_nome || '—'}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDistanceToNow(new Date(ticket.updated_at), { 
-                              addSuffix: true, 
-                              locale: ptBR 
-                            })}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          {(() => {
-                            const prazo = calcularPrazoResposta(
-                              ticket.created_at, 
-                              ticket.updated_at,
-                              ticket.status, 
-                              ticket.activity_status,
-                              ticket.deadline
-                            );
-                            
-                            if (prazo.tipo === 'concluido') {
-                              return (
-                                <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
-                                  Concluído
-                                </Badge>
-                              );
-                            }
-                            
-                            if (prazo.tipo === 'aguardando_cliente') {
-                              return (
-                                <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
-                                  Aguardando Cliente
-                                </Badge>
-                              );
-                            }
-                            
-                            if (prazo.tipo === 'expirado') {
-                              return (
-                                <Badge className="bg-red-500 text-white animate-pulse hover:bg-red-500">
-                                  ⚠️ ATRASADO {Math.abs(prazo.dias || 0)}d
-                                </Badge>
-                              );
-                            }
-                            
-                            if (prazo.prazoHoje) {
-                              return (
-                                <Badge className="bg-orange-500 text-white hover:bg-orange-500">
-                                  HOJE ({prazo.horas}h)
-                                </Badge>
-                              );
-                            }
-                            
-                            if (prazo.tipo === 'urgente') {
-                              return (
-                                <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-100">
-                                  Amanhã ({prazo.horas}h)
-                                </Badge>
-                              );
-                            }
-                            
-                            if (prazo.tipo === 'atencao') {
-                              return (
-                                <Badge className="bg-yellow-100 text-yellow-700 hover:bg-yellow-100">
-                                  {prazo.dias} dias
-                                </Badge>
-                              );
-                            }
-                            
-                            return (
-                              <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
-                                {prazo.dias} dias
-                              </Badge>
-                            );
-                          })()}
-                        </TableCell>
-                        {canAssignTickets && (
-                          <TableCell>
-                            <AssignAgentCell
-                              ticketId={ticket.id}
-                              clusterId={ticket.cluster_id}
-                              value={ticket.assigned_to || null}
-                              onAssign={handleAssignAgent}
-                            />
-                          </TableCell>
-                        )}
-                        <TableCell>
-                          {ticket.activity_status && (
-                            <Badge 
-                              variant="outline" 
-                              className={activityColors[ticket.activity_status] || 'bg-gray-100 text-gray-800'}
-                            >
-                              {activityLabels[ticket.activity_status] || ticket.activity_status}
-                            </Badge>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <FloatingScrollbar targetRef={scrollRef} />
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        ) : (
+          <EquipeChamadosTable
+            tickets={filteredTickets}
+            canAssignTickets={canAssignTickets}
+            areaMap={areaMap}
+            clusterMap={clusterMap}
+            sortColumn={sortColumn}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            onNavigate={(ticketId) => navigate(`/equipe/chamados/${ticketId}`)}
+            onAssign={handleAssignAgent}
+            scrollRef={scrollRef}
+          />
+        )}
       </main>
     </div>
   );

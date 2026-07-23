@@ -31,6 +31,7 @@ import {
   ClipboardList,
   FileBarChart2,
   MessageSquare,
+  Home,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
@@ -129,7 +130,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   };
 
   const isWork = location.pathname.startsWith('/equipe/osg/work');
-  const isProjects = location.pathname.startsWith('/equipe/osg/dashboard')
+  const isProjects = location.pathname.startsWith('/equipe/osg/inicio')
+    || location.pathname.startsWith('/equipe/osg/dashboard')
     || location.pathname.startsWith('/equipe/osg/projetos')
     || location.pathname.startsWith('/equipe/osg/auditoria');
 
@@ -149,6 +151,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/work/gerar-documento', label: 'Gerar Documento' },
   ];
   const isDocsActive = docItems.some((item) => item.path === location.pathname);
+
+  // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
+  const docClienteItems = [
+    { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
+    { path: '/equipe/osg/work/checklists', label: 'Checklists de documentos' },
+  ];
+  const isDocClienteActive = docClienteItems.some((item) => item.path === location.pathname);
 
   const areaLabel = isWork ? 'OSG Work' : isProjects ? 'OSG Projects' : 'OSG';
   const areaSubtitle = isWork
@@ -206,6 +215,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {/* Aparece só fora do OSG Work, que mantém suas próprias ferramentas. */}
           {isProjects && (
           <>
+          <button
+            onClick={() => navigate('/equipe/osg/inicio')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              location.pathname === '/equipe/osg/inicio'
+                ? "bg-osg-100 text-osg-700"
+                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+            )}
+          >
+            <Home className="h-4 w-4" />
+            {!collapsed && <span>Início</span>}
+          </button>
           <button
             onClick={() => navigate('/equipe/osg/dashboard')}
             className={cn(
@@ -391,18 +412,64 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             <PieChart className="h-4 w-4" />
             {!collapsed && <span>Quadro Societário</span>}
           </button>
-          <button
-            onClick={() => navigate('/equipe/osg/work/documentos')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
-              location.pathname === '/equipe/osg/work/documentos'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
-            )}
-          >
-            <FolderArchive className="h-4 w-4" />
-            {!collapsed && <span>Documentos do Cliente</span>}
-          </button>
+          {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
+          <div className="group/docsCli">
+            <button
+              type="button"
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                isDocClienteActive
+                  ? "bg-osg-50 text-osg-700"
+                  : "text-slate-600 group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-osg-700"
+              )}
+            >
+              <FolderArchive className="h-4 w-4 flex-shrink-0" />
+              {!collapsed && (
+                <>
+                  <span className="flex-1 min-w-0 truncate text-left">Documentos</span>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out",
+                      isDocClienteActive ? "rotate-180" : "group-hover/docsCli:rotate-180"
+                    )}
+                  />
+                </>
+              )}
+            </button>
+
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                isDocClienteActive
+                  ? "grid-rows-[1fr]"
+                  : "grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]"
+              )}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div
+                  className={cn(
+                    "space-y-1 pt-1",
+                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                  )}
+                >
+                  {docClienteItems.map(({ path, label }) => (
+                    <button
+                      key={path}
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        location.pathname === path
+                          ? "bg-osg-100 text-osg-700"
+                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                      )}
+                    >
+                      {!collapsed && <span>{label}</span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
           <button
             onClick={() => navigate('/equipe/osg/work/relatorios')}
             className={cn(

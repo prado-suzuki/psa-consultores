@@ -6,7 +6,7 @@ import {
   type Bloco,
   type BlocoGerado,
 } from '@/lib/templates';
-import { conteudoParaDeteccao, detectarBindingsDeConteudo } from '@/lib/templates/binding';
+import { conteudoParaDeteccao, detectarBindingsDeConteudo, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { montarContexto, reidratarItensPorLista } from '@/lib/templates/mapeadores';
 import type { SnapshotDados } from '@/hooks/useDocumentoGerado';
 
@@ -30,10 +30,23 @@ export function renderizarVersao(
   blocosSnapshot: Bloco[] | null | undefined,
   flags: string[] | null | undefined,
   dados: SnapshotDados | null | undefined,
+  normalizarSocietario = false,
 ): VersaoRenderizada {
   if (!blocosSnapshot || blocosSnapshot.length === 0) return VAZIO;
   try {
-    const template = { id: 'versao', nome: 'documento', blocos: blocosSnapshot };
+    const blocosEfetivos = normalizarSocietario
+      ? blocosSnapshot.map((bloco) => ({
+          ...bloco,
+          conteudo: normalizarReferenciasLegadas(bloco.conteudo),
+        }))
+      : blocosSnapshot;
+    const dadosEfetivos = normalizarSocietario && dados
+      ? {
+          ...dados,
+          selecao: normalizarSelecaoLegada(dados.selecao ?? {}, dados.valoresLivres ?? {}),
+        }
+      : dados;
+    const template = { id: 'versao', nome: 'documento', blocos: blocosEfetivos };
     const flagsAtivas = flags ?? [];
     // Detecção de bindings roda sobre os COMPOSTOS (bloco excluído não pede valor),
     // como na tela viva.
@@ -43,15 +56,15 @@ export function renderizarVersao(
     );
 
     const livres: Record<string, string> = {};
-    for (const ph of desconhecidos) livres[ph] = dados?.valoresLivres?.[ph] ?? '';
-    for (const nome of secoesDesconhecidas) livres[nome] = dados?.valoresLivres?.[nome] ?? '';
+    for (const ph of desconhecidos) livres[ph] = dadosEfetivos?.valoresLivres?.[ph] ?? '';
+    for (const nome of secoesDesconhecidas) livres[nome] = dadosEfetivos?.valoresLivres?.[nome] ?? '';
 
     // O snapshot vem do jsonb (round-trip): reidratar religa as referências
     // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
-    const itens = reidratarItensPorLista(dados?.itensPorLista ?? {});
-    const ctx = montarContexto(bindings, dados?.selecao ?? {}, livres, itens, listas);
+    const itens = reidratarItensPorLista(dadosEfetivos?.itensPorLista ?? {});
+    const ctx = montarContexto(bindings, dadosEfetivos?.selecao ?? {}, livres, itens, listas);
     if (listas.some((l) => l.nome === 'socios')) {
-      ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...(dados?.total ?? {}) };
+      ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...(dadosEfetivos?.total ?? {}) };
     }
 
     const blocos = gerarBlocos(template, ctx, flagsAtivas);

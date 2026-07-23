@@ -6,9 +6,9 @@ import { usePerformanceData } from '@/hooks/usePerformanceData';
 import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useDecisoesData } from '@/hooks/useDecisoesData';
+import { useDomainBoardDashboard } from '@/hooks/useDomainBoardDashboard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +36,7 @@ const BoardDashboard = () => {
   const { data: decisoesData } = useDecisoesData(cicloAtivo?.id);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiSintese, setAiSintese] = useState<{ sintese: string; bullets: string[] } | null>(null);
+  const { improvementsQuery, tasksByAreaQuery } = useDomainBoardDashboard();
 
   const projects = projectsQuery.data || [];
   const profiles = membersQuery.data?.profiles || [];
@@ -45,33 +46,17 @@ const BoardDashboard = () => {
   const emRisco = projects.filter(p => p.computed_status === 'em_risco').length;
   const atrasados = projects.filter(p => p.computed_status === 'atrasado').length;
 
-  const { data: improvements } = useQuery({
-    queryKey: ['board-improvements-roi'],
-    queryFn: async () => {
-      const { data } = await supabase.from('process_improvements' as any).select('id, total_savings_monthly, status, created_at');
-      return (data ?? []) as any[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: improvements } = improvementsQuery;
 
-  const totalSavingsYear = (improvements ?? []).reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
+  const totalSavingsYear = (improvements ?? []).reduce((a, i) => a + (i.total_savings_monthly || 0), 0) * 12;
   const roiPct = totalSavingsYear > 0 ? 173 : 0;
   const roiFerramentas = (improvements ?? []).length;
 
-  const { data: tasksByArea } = useQuery({
-    queryKey: ['board-tasks-by-area-3m'],
-    queryFn: async () => {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const { data: tasks } = await supabase.from('org_tasks').select('id, status, updated_at, project_id').eq('status', 'done').gte('updated_at', threeMonthsAgo.toISOString());
-      return (tasks ?? []) as any[];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
+  const { data: tasksByArea } = tasksByAreaQuery;
 
   const barChartData = useMemo(() => {
     const months: Record<string, { name: string; Tax: number; OSG: number; Dev: number }> = {};
-    (tasksByArea ?? []).forEach((t: any) => {
+    (tasksByArea ?? []).forEach((t) => {
       const d = new Date(t.updated_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
       const label = format(d, "MMM/yy", { locale: ptBR });
@@ -259,9 +244,9 @@ const BoardDashboard = () => {
               <>
                 <ResponsiveContainer width="100%" height={160}>
                   <AreaChart data={(() => {
-                    const sorted = [...(improvements ?? [])].sort((a: any, b: any) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
+                    const sorted = [...(improvements ?? [])].sort((a, b) => new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime());
                     let cumulative = 0;
-                    const points = sorted.map((imp: any) => {
+                    const points = sorted.map((imp) => {
                       cumulative += (imp.total_savings_monthly || 0) * 12;
                       return { name: imp.created_at ? format(new Date(imp.created_at), "MMM/yy", { locale: ptBR }) : '?', value: Math.round(cumulative) };
                     });

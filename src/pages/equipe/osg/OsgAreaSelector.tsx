@@ -45,7 +45,7 @@ const OsgAreaSelector = () => {
       id: 'projects',
       label: 'OSG Projects',
       description: 'Gestão de projetos, auditoria e operações da área OSG',
-      path: '/equipe/osg/dashboard',
+      path: '/equipe/osg/inicio',
       color: 'from-[#0a1024] to-[#141a36] ring-1 ring-[#c49a6c]/30',
       category: 'osg',
       iconNode: <OsgProjectsIcon size={46} className="rounded-md" />,

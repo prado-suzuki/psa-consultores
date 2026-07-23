@@ -1,5 +1,5 @@
- import { useEffect, useState } from 'react';
- import { supabase } from '@/integrations/supabase/client';
+ import { useState } from 'react';
+ import { useDomainImprovementHistory, type ProcessImprovement } from '@/hooks/useDomainImprovementHistory';
  import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
  import { ScrollArea } from '@/components/ui/scroll-area';
  import { Badge } from '@/components/ui/badge';
@@ -9,39 +9,6 @@
  import { format } from 'date-fns';
  import { ptBR } from 'date-fns/locale';
  
- interface ProcessImprovement {
-   id: string;
-   created_at: string;
-   evaluation_status: string | null;
-   improvement_description: string | null;
-   baseline_time_hours: number | null;
-   improved_time_hours: number | null;
-   baseline_cost_monthly: number | null;
-   improved_cost_monthly: number | null;
-   baseline_people_involved: number | null;
-   improved_people_involved: number | null;
-   time_saved_hours: number | null;
-   time_saved_percent: number | null;
-   cost_saved_monthly: number | null;
-   cost_saved_percent: number | null;
-   roi_percentage: number | null;
-   evaluation_period_days: number | null;
-   evaluated_by: string | null;
-   system_savings_monthly: number | null;
-   build_vs_buy_savings: number | null;
-   other_savings_monthly: number | null;
- }
- 
- interface SavingsDetail {
-   id: string;
-   savings_type: string;
-   description: string;
-   cost_before: number | null;
-   cost_after: number | null;
-   savings_value: number;
-   is_monthly: boolean;
- }
- 
  interface ImprovementHistoryModalProps {
    open: boolean;
    onClose: () => void;
@@ -50,55 +17,8 @@
  }
  
  export function ImprovementHistoryModal({ open, onClose, processId, processName }: ImprovementHistoryModalProps) {
-   const [improvements, setImprovements] = useState<ProcessImprovement[]>([]);
-   const [savingsDetails, setSavingsDetails] = useState<Record<string, SavingsDetail[]>>({});
-   const [loading, setLoading] = useState(false);
+   const { improvements, savingsDetails, isLoading: loading } = useDomainImprovementHistory(processId, open);
    const [expandedSavings, setExpandedSavings] = useState<Record<string, boolean>>({});
- 
-   useEffect(() => {
-     if (open && processId) {
-       fetchImprovements();
-     }
-   }, [open, processId]);
- 
-   const fetchImprovements = async () => {
-     setLoading(true);
-     try {
-       const { data, error } = await supabase
-         .from('process_improvements')
-         .select('*')
-         .eq('process_id', processId)
-         .order('created_at', { ascending: false });
- 
-       if (error) throw error;
-       setImprovements(data || []);
-       
-       // Buscar detalhes das economias para cada melhoria
-       if (data && data.length > 0) {
-         const improvementIds = data.map(i => i.id);
-         const { data: details, error: detailsError } = await supabase
-           .from('improvement_savings_details')
-           .select('*')
-           .in('improvement_id', improvementIds);
-         
-         if (!detailsError && details) {
-           // Agrupar por improvement_id
-           const grouped: Record<string, SavingsDetail[]> = {};
-           details.forEach(detail => {
-             if (!grouped[detail.improvement_id]) {
-               grouped[detail.improvement_id] = [];
-             }
-             grouped[detail.improvement_id].push(detail);
-           });
-           setSavingsDetails(grouped);
-         }
-       }
-     } catch (error) {
-       console.error('Error fetching improvements:', error);
-     } finally {
-       setLoading(false);
-     }
-   };
  
    const getStatusBadge = (status: string | null) => {
      switch (status) {

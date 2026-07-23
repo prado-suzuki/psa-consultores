@@ -35,6 +35,7 @@ import ClienteDashboard from "./pages/cliente/ClienteDashboard";
 import NovoChamado from "./pages/cliente/NovoChamado";
 import MeusChamados from "./pages/cliente/MeusChamados";
 import DetalhesChamado from "./pages/cliente/DetalhesChamado";
+import MeusDocumentos from "./pages/cliente/MeusDocumentos";
 
 
 // Equipe (core)
@@ -49,8 +50,6 @@ import EquipeSprints from "./pages/equipe/EquipeSprints";
 import EquipeSprintDetalhes from "./pages/equipe/EquipeSprintDetalhes";
 import EquipeDaily from "./pages/equipe/EquipeDaily";
 import EquipeRotinas from "./pages/equipe/EquipeRotinas";
-import EquipeTarefas from "./pages/equipe/EquipeTarefas";
-import EquipeNovaTarefa from "./pages/equipe/EquipeNovaTarefa";
 import EquipeProcessos from "./pages/equipe/EquipeProcessos";
 import EquipeMapeamento from "./pages/equipe/EquipeMapeamento";
 import EquipeBiblioteca from "./pages/equipe/EquipeBiblioteca";
@@ -99,6 +98,7 @@ import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
 
 // Equipe > OSG / Board
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
+import OsgBoasVindas from "./pages/equipe/osg/OsgBoasVindas";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
@@ -112,6 +112,7 @@ import MontagemDocumentos from "./pages/equipe/osg/MontagemDocumentos";
 import GerarDocumento from "./pages/equipe/osg/GerarDocumento";
 import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
 import DocumentosCliente from "./pages/equipe/osg/DocumentosCliente";
+import ChecklistsDocumentos from "./pages/equipe/osg/ChecklistsDocumentos";
 import Relatorios from "./pages/equipe/osg/Relatorios";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
@@ -162,6 +163,8 @@ const App = () => (
               <Route path="/cliente/novo-chamado" element={<ProtectedRoute><NovoChamado /></ProtectedRoute>} />
               <Route path="/cliente/chamados" element={<ProtectedRoute><MeusChamados /></ProtectedRoute>} />
               <Route path="/cliente/chamados/:id" element={<ProtectedRoute><DetalhesChamado /></ProtectedRoute>} />
+              <Route path="/cliente/documentos" element={<ProtectedRoute><MeusDocumentos /></ProtectedRoute>} />
+
 
               {/* Admin Routes */}
               <Route path="/admin" element={<Navigate to="/gestao" replace />} />
@@ -178,8 +181,12 @@ const App = () => (
               <Route path="/equipe/sprints/:id" element={<PageAccessGate pagePath="/equipe/sprints"><EquipeSprintDetalhes /></PageAccessGate>} />
               <Route path="/equipe/daily" element={<PageAccessGate pagePath="/equipe/daily"><EquipeDaily /></PageAccessGate>} />
               <Route path="/equipe/rotinas" element={<PageAccessGate pagePath="/equipe/rotinas"><EquipeRotinas /></PageAccessGate>} />
-              <Route path="/equipe/tarefas" element={<PageAccessGate pagePath="/equipe/tarefas"><EquipeTarefas /></PageAccessGate>} />
-              <Route path="/equipe/tarefas/nova" element={<PageAccessGate pagePath="/equipe/tarefas/nova"><EquipeNovaTarefa /></PageAccessGate>} />
+              {/* Rotas aposentadas (T1 — unificação de tarefa): a tela "Tarefas"/"Nova Tarefa"
+                  gravava na tabela órfã `tasks`, que o Kanban/Sprints não leem. Redirecionadas
+                  para o Kanban (fonte única `sprint_deliverables`). Remover as telas/tabela é a
+                  migração delegável. */}
+              <Route path="/equipe/tarefas" element={<Navigate to="/equipe/kanban" replace />} />
+              <Route path="/equipe/tarefas/nova" element={<Navigate to="/equipe/kanban" replace />} />
 
               <Route path="/equipe/mapeamento" element={<PageAccessGate pagePath="/equipe/mapeamento"><EquipeMapeamento /></PageAccessGate>} />
               <Route path="/equipe/processos" element={<PageAccessGate pagePath="/equipe/processos"><EquipeProcessos /></PageAccessGate>} />
@@ -238,6 +245,7 @@ const App = () => (
 
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
+              <Route path="/equipe/osg/inicio" element={<ProtectedRoute><OsgBoasVindas /></ProtectedRoute>} />
               <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/clientes" element={<PageAccessGate pagePath="/equipe/osg/projetos/clientes"><OsgClientes /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />
@@ -252,6 +260,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
+                <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               </Route>
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />

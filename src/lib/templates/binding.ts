@@ -43,6 +43,104 @@ export const PAPEIS: Record<string, Papel> = {
   cartorio: { tipo: 'cartorio', label: 'Cartório' },
 };
 
+// Contratos societários anteriores ao binding namespaced usam campos planos ou
+// chamam a sociedade pelo papel concreto (controlada/controladora). O cadastro,
+// porém, expõe a PJ objeto do documento sob o binding único `sociedade`.
+const REFERENCIAS_LEGADAS: Record<string, string> = {
+  razaoSocial: 'sociedade.razaoSocial',
+  sedeEndereco: 'sociedade.sedeEndereco',
+  sedeMunicipio: 'sociedade.sedeMunicipio',
+  sedeUf: 'sociedade.sedeUfExtenso',
+  sedeCep: 'sociedade.sedeCep',
+  objetoSocial: 'sociedade.objeto',
+  capitalValor: 'sociedade.capitalValor',
+  capitalExtenso: 'sociedade.capitalExtenso',
+  totalQuotas: 'sociedade.totalQuotas',
+  totalQuotasExtenso: 'sociedade.totalQuotasExtenso',
+  regimeCasamento: 'conjuge.regimeBens',
+  foroComarca: 'sociedade.sedeMunicipio',
+  foroUf: 'sociedade.sedeUfExtenso',
+  'sociedade.nome': 'sociedade.razaoSocial',
+  'sociedade.denominacao': 'sociedade.razaoSocial',
+  'sociedade.cpfCnpj': 'sociedade.cnpj',
+  'sociedade.objetoSocial': 'sociedade.objeto',
+  'sociedade.juntaComercialUf': 'sociedade.juntaUf',
+  'sociedade.capitalSocial': 'sociedade.capitalValor',
+  'sociedade.capitalSocialExtenso': 'sociedade.capitalExtenso',
+  'sociedade.foroComarca': 'sociedade.sedeMunicipio',
+  'sociedade.foroUf': 'sociedade.sedeUfExtenso',
+};
+
+const FORO_FECHO = /\{\{\s*(?:(?:controlada|controladora|sociedade)\.)?foroComarca\s*\}\}(\s*\/\s*)\{\{\s*(?:(?:controlada|controladora|sociedade)\.)?foroUf\s*\}\}/g;
+
+function normalizarCaminhoLegado(caminho: string): string {
+  const [raiz, ...resto] = caminho.split('.');
+  const raizCanonica = raiz === 'controlada' || raiz === 'controladora' ? 'sociedade' : raiz;
+  const comRaizCanonica = [raizCanonica, ...resto].join('.');
+  return REFERENCIAS_LEGADAS[comRaizCanonica] ?? REFERENCIAS_LEGADAS[caminho] ?? comRaizCanonica;
+}
+
+/**
+ * Converte referências persistidas pelos dois contratos societários para o
+ * vocabulário atual. Preserva espaços, atributos de seção e fechamentos; só o
+ * caminho dentro de cada token é alterado.
+ */
+export function normalizarReferenciasLegadas(conteudo: string): string {
+  // No corpo, foroUf é o Estado por extenso; no fecho Cidade/UF, é a sigla.
+  const comForoDoFecho = conteudo.replace(
+    FORO_FECHO,
+    '{{ sociedade.sedeMunicipio }}$1{{ sociedade.sedeUf }}',
+  );
+  return comForoDoFecho.replace(
+    /(\{\{\s*[#/]?\s*)([\w.]+)/g,
+    (_token, prefixo: string, caminho: string) => {
+      const secaoRaizSociedade =
+        /[#/]\s*$/.test(prefixo) && (caminho === 'controlada' || caminho === 'controladora');
+      return `${prefixo}${secaoRaizSociedade ? 'sociedade.razaoSocial' : normalizarCaminhoLegado(caminho)}`;
+    },
+  );
+}
+
+/**
+ * Rascunhos anteriores guardavam os aliases como `valoresLivres`. Copia esses
+ * valores para os bindings canônicos sem sobrescrever dados já normalizados.
+ */
+export function normalizarSelecaoLegada(
+  selecao: Record<string, Record<string, string>>,
+  valoresLivres: Record<string, string>,
+): Record<string, Record<string, string>> {
+  const normalizada = Object.fromEntries(
+    Object.entries(selecao).map(([binding, campos]) => [binding, { ...campos }]),
+  );
+  const atribuir = (caminho: string, valor: string) => {
+    const [binding, campo, ...resto] = caminho.split('.');
+    if (!campo || resto.length > 0 || (binding !== 'sociedade' && binding !== 'conjuge')) return;
+    normalizada[binding] = normalizada[binding] ?? {};
+    if (!normalizada[binding][campo]) normalizada[binding][campo] = valor;
+  };
+
+  for (const [binding, campos] of Object.entries(selecao)) {
+    for (const [campo, valor] of Object.entries(campos)) {
+      const caminho = `${binding}.${campo}`;
+      const canonico = normalizarCaminhoLegado(caminho);
+      if (canonico === caminho) continue;
+      atribuir(canonico, valor);
+      delete normalizada[binding]?.[campo];
+      if (Object.keys(normalizada[binding] ?? {}).length === 0) delete normalizada[binding];
+    }
+  }
+
+  for (const [caminho, valor] of Object.entries(valoresLivres)) {
+    const canonico = normalizarCaminhoLegado(caminho);
+    if (canonico !== caminho) atribuir(canonico, valor);
+    // O alias antigo servia tanto ao Estado por extenso quanto ao fecho Cidade/UF.
+    if (caminho === 'foroUf' || /^(controlada|controladora|sociedade)\.foroUf$/.test(caminho)) {
+      atribuir('sociedade.sedeUf', valor);
+    }
+  }
+  return normalizada;
+}
+
 // --- Papéis de lista (seções de repetição) -----------------------------------
 
 /**
@@ -82,6 +180,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'quotasExtenso', label: 'Quotas (por extenso)' },
       { id: 'vlrTotal', label: 'Valor total das quotas (R$)' },
       { id: 'vlrTotalExtenso', label: 'Valor total (por extenso)' },
+      { id: 'percentual', label: 'Participação societária (%)' },
       { id: 'representante', label: 'Representante (sócia PJ)' },
     ],
   },

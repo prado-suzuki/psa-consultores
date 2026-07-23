@@ -16,8 +16,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Plus, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { toast } from '@/hooks/use-toast';
 
@@ -46,14 +45,7 @@ const DesempenhoCiclos = () => {
   const { data: analises } = useAnalisesSemestrais(selectedCiclo?.id);
   const upsertAnalise = useUpsertAnalise();
 
-  const { data: profiles } = useQuery({
-    queryKey: ['profiles_safe_all'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles' as any).select('id, first_name, last_name');
-      return (data ?? []) as unknown as { id: string; first_name: string; last_name: string }[];
-    },
-  });
-  const profileMap = new Map(profiles?.map(p => [p.id, p]) ?? []);
+  const { data: profileMap } = useProfilesNomeMap('profiles');
 
   // Drill-down computations
   const empresaCount = metasCiclo?.filter(m => m.nivel === 'empresa').length ?? 0;
@@ -246,7 +238,7 @@ const DesempenhoCiclos = () => {
           </div>
           <div className="mb-4">
             <p className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>
-              {(() => { const p = profileMap.get(membrosUnicos[analiseMembroIdx]); return p ? `${p.first_name} ${p.last_name}` : '--'; })()}
+              {profileMap?.[membrosUnicos[analiseMembroIdx]] ?? '--'}
             </p>
           </div>
           <div className="space-y-4">

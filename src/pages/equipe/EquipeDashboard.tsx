@@ -1,16 +1,16 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { HorasAcumuladas } from '@/components/equipe/HorasAcumuladas';
 import { ImpactDashboard } from '@/components/equipe/ImpactDashboard';
 import { DashboardMetrics } from '@/components/equipe/DashboardMetrics';
-import { useToast } from '@/hooks/use-toast';
+import { useDomainEquipeDashboard } from '@/hooks/useDomainEquipeDashboard';
 import {
   BarChart,
   Bar,
@@ -24,115 +24,33 @@ import {
   Cell,
 } from 'recharts';
 
-interface Sprint {
-  id: string;
-  name: string;
-  goal: string | null;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
-
-interface DeliverableStats {
-  total: number;
-  pending: number;
-  in_progress: number;
-  completed: number;
-}
-
-interface AreaData {
-  name: string;
-  count: number;
-}
-
 import { parseDate } from '@/lib/dateUtils';
 import { CHART_COLORS, STATUS_CHART_COLORS } from '@/constants/brandColors';
 
 const EquipeDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [activeSprint, setActiveSprint] = useState<Sprint | null>(null);
-  const [stats, setStats] = useState<DeliverableStats>({ total: 0, pending: 0, in_progress: 0, completed: 0 });
-  const [myDeliverables, setMyDeliverables] = useState<any[]>([]);
-  const [areaData, setAreaData] = useState<AreaData[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null);
+  const {
+    activeSprints,
+    activeSprint,
+    stats,
+    myDeliverables,
+    clusterData,
+    isLoading: loading,
+  } = useDomainEquipeDashboard(user?.id, selectedSprintId);
   const [activeTab, setActiveTab] = useState<string>('sprint');
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, [user]);
-
-  const fetchDashboardData = async () => {
-    try {
-      const { data: sprintData } = await supabase
-        .from('sprints')
-        .select('*')
-        .eq('status', 'active')
-        .order('start_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      setActiveSprint(sprintData);
-
-      if (sprintData) {
-        const { data: deliverables } = await supabase
-          .from('sprint_deliverables')
-          .select('status')
-          .eq('sprint_id', sprintData.id);
-
-        if (deliverables) {
-          const deliverableStats: DeliverableStats = {
-            total: deliverables.length,
-            pending: deliverables.filter(d => d.status === 'pending').length,
-            in_progress: deliverables.filter(d => d.status === 'in_progress').length,
-            completed: deliverables.filter(d => d.status === 'completed').length,
-          };
-          setStats(deliverableStats);
-        }
-      }
-
-      const { data: processes } = await supabase
-        .from('processes')
-        .select('area');
-
-      if (processes) {
-        const areaCounts: Record<string, number> = {};
-        processes.forEach(p => {
-          const area = p.area || 'Sem área';
-          areaCounts[area] = (areaCounts[area] || 0) + 1;
-        });
-        setAreaData(Object.entries(areaCounts).map(([name, count]) => ({ name, count })));
-      }
-
-      if (user) {
-        const { data: myDeliverablesData } = await supabase
-          .from('sprint_deliverables')
-          .select('*')
-          .eq('assigned_to', user.id)
-          .neq('status', 'completed')
-          .order('due_date', { ascending: true })
-          .limit(5);
-
-        setMyDeliverables(myDeliverablesData || []);
-      }
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = (status: string | null) => {
     const labels: Record<string, string> = {
       pending: 'A Fazer',
       in_progress: 'Em Progresso',
       completed: 'Concluído'
     };
-    return labels[status] || status;
+    return labels[status ?? ''] || status;
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'completed': return 'bg-emerald-100 text-emerald-700 border-0';
       case 'in_progress': return 'bg-amber-100 text-amber-700 border-0';
@@ -140,8 +58,8 @@ const EquipeDashboard = () => {
     }
   };
 
-  const progressPercent = stats.total > 0 
-    ? Math.round((stats.completed / stats.total) * 100) 
+  const progressPercent = stats.total > 0
+    ? Math.round((stats.completed / stats.total) * 100)
     : 0;
 
   const volumeData = [
@@ -151,8 +69,8 @@ const EquipeDashboard = () => {
   ];
 
   return (
-    <EquipeLayout 
-      title="Dashboard" 
+    <EquipeLayout
+      title="Dashboard"
       subtitle="Visão geral do seu trabalho"
     >
       <Tabs defaultValue="sprint" value={activeTab} onValueChange={setActiveTab}>
@@ -163,6 +81,22 @@ const EquipeDashboard = () => {
         </TabsList>
 
         <TabsContent value="sprint">
+          {activeSprints.length > 1 && (
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-sm text-muted-foreground">Sprint ativa:</span>
+              <Select value={activeSprint?.id ?? undefined} onValueChange={setSelectedSprintId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Selecionar sprint" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeSprints.map(s => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Badge variant="outline">{activeSprints.length} sprints ativas</Badge>
+            </div>
+          )}
           {activeSprint ? (
             <Card className="border-border shadow-sm mb-6">
               <CardContent className="pt-6">
@@ -180,7 +114,7 @@ const EquipeDashboard = () => {
                 )}
                 <div className="flex items-center gap-4">
                   <div className="flex-1 bg-muted rounded-full h-2.5">
-                    <div 
+                    <div
                       className="bg-primary h-2.5 rounded-full transition-all"
                       style={{ width: `${progressPercent}%` }}
                     />
@@ -193,8 +127,8 @@ const EquipeDashboard = () => {
             <Card className="border-border shadow-sm mb-6">
               <CardContent className="py-8 text-center">
                 <p className="text-muted-foreground mb-4">Nenhuma sprint ativa</p>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => navigate('/equipe/sprints')}
                 >
                   Criar Sprint
@@ -244,7 +178,7 @@ const EquipeDashboard = () => {
                       <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                       <XAxis type="number" tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
                       <YAxis dataKey="name" type="category" width={100} tick={{ className: 'fill-muted-foreground', fontSize: 12 }} />
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} entregas`, 'Quantidade']}
                       />
@@ -262,7 +196,7 @@ const EquipeDashboard = () => {
             <Card className="border-border shadow-sm">
               <CardHeader className="pb-2">
                 <CardTitle className="text-foreground text-base font-semibold">
-                  Processos por Área
+                  Processos por Cluster
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -270,7 +204,7 @@ const EquipeDashboard = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={areaData}
+                        data={clusterData}
                         cx="50%"
                         cy="50%"
                         innerRadius={40}
@@ -281,11 +215,11 @@ const EquipeDashboard = () => {
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                         labelLine={false}
                       >
-                      {areaData.map((_, index) => (
+                      {clusterData.map((_, index) => (
                           <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: '8px' }}
                         formatter={(value: number) => [`${value} processos`, 'Quantidade']}
                       />
@@ -297,7 +231,7 @@ const EquipeDashboard = () => {
           </div>
 
           <div className="mb-8">
-            <HorasAcumuladas 
+            <HorasAcumuladas
               sprintId={activeSprint?.id}
               showRoutines={true}
               title="Horas Alocadas por Pessoa"
@@ -319,14 +253,16 @@ const EquipeDashboard = () => {
               ) : myDeliverables.length > 0 ? (
                 <div className="space-y-2">
                   {myDeliverables.map((deliverable) => (
-                    <div 
+                    <div
                       key={deliverable.id}
                       className="flex items-center justify-between p-3 bg-muted/50 rounded-lg hover:bg-muted transition-colors cursor-pointer"
                       onClick={() => navigate('/equipe/sprints')}
                     >
                       <div className="flex items-center gap-3">
                         <Badge className={getStatusColor(deliverable.status)}>
-                          {parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                          {deliverable.due_date
+                            ? parseDate(deliverable.due_date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+                            : '—'}
                         </Badge>
                         <span className="text-foreground">{deliverable.title}</span>
                       </div>
@@ -344,9 +280,9 @@ const EquipeDashboard = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-8">Nenhum entregável atribuído a você</p>
               )}
-              
-              <Button 
-                variant="ghost" 
+
+              <Button
+                variant="ghost"
                 className="w-full mt-4 text-primary hover:text-primary/80"
                 onClick={() => navigate('/equipe/sprints')}
               >

@@ -502,7 +502,7 @@ export default function DashboardsTab() {
                   <div className="space-y-1.5">
                     <Label className="inline-flex items-center gap-1 text-xs text-slate-500">
                       <Users className="h-3.5 w-3.5" /> Clusters com acesso
-                      <DicaIcon text="Quais clusters podem abrir. Vazio (e 'Todos os clusters' desligado) = só Admin. Use p/ relatórios exclusivos (ex.: PERDCOMP = cluster PSA Consultores)." />
+                      <DicaIcon text="Quais clusters podem abrir. Vazio (e 'Todos os clusters' desligado) = só Admin. Use p/ relatórios exclusivos (ex.: PERDCOMP = cluster TAX)." />
                     </Label>
                     {todosClusters ? (
                       <div className="rounded-md border border-dashed border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">

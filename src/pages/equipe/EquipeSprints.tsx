@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import {
+  useDomainSprintMutations,
+  useDomainSprints,
+  type Sprint,
+} from '@/hooks/useDomainSprints';
 import { Button } from '@/components/ui/button';
  import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
@@ -17,61 +20,20 @@ import { EquipeLayout } from '@/components/equipe/EquipeLayout';
  import { Plus, Calendar, Pencil, Trash2 } from 'lucide-react';
 import { RequiredMark } from '@/components/ui/required-mark';
 
-interface Sprint {
-  id: string;
-  name: string;
-  goal: string | null;
-  start_date: string;
-  end_date: string;
-  status: string;
-  project_id: string | null;
-  created_at: string;
-}
-
-interface Project {
-  id: string;
-  name: string;
-  cluster_id: string | null;
-}
-
-interface Cluster {
-  id: string;
-  name: string;
-}
-
-interface SprintHours {
-  userId: string;
-  name: string;
-  hours: number;
-}
-
-interface SprintImpact {
-  sprintId: string;
-  totalCostSaved: number;
-  totalTimeSaved: number;
-  improvementsCount: number;
-}
-
-const chunkArray = <T,>(arr: T[], size: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-};
-
 const EquipeSprints = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const projectFilter = searchParams.get('project');
   
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [clusters, setClusters] = useState<Cluster[]>([]);
-  const [sprintHoursMap, setSprintHoursMap] = useState<Record<string, SprintHours[]>>({});
-  const [sprintImpactMap, setSprintImpactMap] = useState<Record<string, SprintImpact>>({});
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useDomainSprints(projectFilter);
+  const { createSprint, updateSprint, deleteSprint, updateSprintStatus: updateSprintStatusMutation } =
+    useDomainSprintMutations();
+  const sprints = data?.sprints ?? [];
+  const projects = data?.projects ?? [];
+  const clusters = data?.clusters ?? [];
+  const sprintHoursMap = data?.sprintHoursMap ?? {};
+  const sprintImpactMap = data?.sprintImpactMap ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -89,13 +51,10 @@ const EquipeSprints = () => {
     goal: '',
     start_date: '',
     end_date: '',
+    cluster_id: '',
     project_id: '',
     status: ''
   });
-
-  useEffect(() => {
-    fetchData();
-  }, [projectFilter]);
 
   useEffect(() => {
     if (selectedSprint && isEditMode) {
@@ -104,174 +63,17 @@ const EquipeSprints = () => {
         goal: selectedSprint.goal || '',
         start_date: selectedSprint.start_date,
         end_date: selectedSprint.end_date,
+        cluster_id: projects.find((p) => p.id === selectedSprint.project_id)?.cluster_id || '',
         project_id: selectedSprint.project_id || '',
         status: selectedSprint.status
       });
     }
   }, [selectedSprint, isEditMode]);
 
-  const fetchData = async () => {
-    try {
-      const [projectsRes, clustersRes] = await Promise.all([
-        supabase.from('projects').select('id, name, cluster_id').order('name'),
-        supabase.from('estrutura_clusters').select('id, name').eq('is_active', true).order('name'),
-      ]);
-
-      setProjects(projectsRes.data || []);
-      setClusters(clustersRes.data || []);
-
-      // Fetch sprints
-      let query = supabase
-        .from('sprints')
-        .select('*')
-        .order('name', { ascending: true });
-      
-      if (projectFilter) {
-        query = query.eq('project_id', projectFilter);
-      }
-
-      const { data: sprintsData } = await query;
-      setSprints(sprintsData || []);
-
-      // Fetch hours for each sprint
-      if (sprintsData && sprintsData.length > 0) {
-        await Promise.all([
-          fetchSprintHours(sprintsData).catch(err => console.error('Hours error:', err)),
-          fetchSprintImpacts(sprintsData).catch(err => console.error('Impacts error:', err))
-        ]);
-      }
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Helper para parse correto de datas (evita problema de timezone UTC)
   const parseDate = (dateStr: string) => {
     const [year, month, day] = dateStr.split('-').map(Number);
     return new Date(year, month - 1, day);
-  };
-
-  const fetchSprintHours = async (sprintsList: Sprint[]) => {
-    try {
-      // Fetch all profiles
-      const { data: profiles } = await supabase
-        .from('profiles_safe')
-        .select('id, first_name, last_name');
-
-      const profileMap: Record<string, string> = {};
-      profiles?.forEach(p => {
-        profileMap[p.id] = `${p.first_name} ${p.last_name}`.trim() || 'Sem nome';
-      });
-
-      // Fetch deliverables for all sprints (chunked to avoid URL limit)
-      const sprintIds = sprintsList.map(s => s.id);
-      const sprintChunks = chunkArray(sprintIds, 50);
-      const deliverables: { sprint_id: string; assigned_to: string | null; estimated_hours: number | null }[] = [];
-      for (const chunk of sprintChunks) {
-        const { data } = await supabase
-          .from('sprint_deliverables')
-          .select('sprint_id, assigned_to, estimated_hours')
-          .in('sprint_id', chunk);
-        if (data) deliverables.push(...data);
-      }
-
-      const hoursMap: Record<string, Record<string, number>> = {};
-
-      deliverables?.forEach(deliverable => {
-        if (deliverable.sprint_id && deliverable.assigned_to && deliverable.estimated_hours) {
-          if (!hoursMap[deliverable.sprint_id]) {
-            hoursMap[deliverable.sprint_id] = {};
-          }
-          if (!hoursMap[deliverable.sprint_id][deliverable.assigned_to]) {
-            hoursMap[deliverable.sprint_id][deliverable.assigned_to] = 0;
-          }
-          hoursMap[deliverable.sprint_id][deliverable.assigned_to] += Number(deliverable.estimated_hours);
-        }
-      });
-
-      const result: Record<string, SprintHours[]> = {};
-      
-      Object.entries(hoursMap).forEach(([sprintId, userHours]) => {
-        result[sprintId] = Object.entries(userHours)
-          .map(([userId, hours]) => ({
-            userId,
-            name: profileMap[userId] || 'Desconhecido',
-            hours
-          }))
-          .sort((a, b) => b.hours - a.hours);
-      });
-
-      setSprintHoursMap(result);
-    } catch (error) {
-      console.error('Error fetching sprint hours:', error);
-    }
-  };
-
-  const fetchSprintImpacts = async (sprintsList: Sprint[]) => {
-    try {
-      // Buscar deliverables de todas as sprints (chunked)
-      const sprintIds = sprintsList.map(s => s.id);
-      const sprintChunks = chunkArray(sprintIds, 50);
-      const deliverables: { id: string; sprint_id: string }[] = [];
-      for (const chunk of sprintChunks) {
-        const { data } = await supabase
-          .from('sprint_deliverables')
-          .select('id, sprint_id')
-          .in('sprint_id', chunk);
-        if (data) deliverables.push(...data);
-      }
-
-      if (deliverables.length === 0) {
-        return;
-      }
-
-      const deliverableIds = deliverables.map(d => d.id);
-      const deliverableToSprintMap: Record<string, string> = {};
-      deliverables.forEach(d => {
-        deliverableToSprintMap[d.id] = d.sprint_id;
-      });
-
-      // Buscar melhorias completadas vinculadas a esses deliverables (chunked)
-      const idChunks = chunkArray(deliverableIds, 50);
-      const improvements: { sprint_deliverable_id: string | null; cost_saved_monthly: number | null; time_saved_hours: number | null }[] = [];
-      for (const chunk of idChunks) {
-        const { data } = await supabase
-          .from('process_improvements')
-          .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
-          .eq('evaluation_status', 'completed')
-          .in('sprint_deliverable_id', chunk);
-        if (data) improvements.push(...data);
-      }
-
-      if (improvements.length === 0) {
-        return;
-      }
-
-      // Agregar por sprint
-      const impactMap: Record<string, SprintImpact> = {};
-      improvements.forEach(imp => {
-        const sprintId = deliverableToSprintMap[imp.sprint_deliverable_id || ''];
-        if (sprintId) {
-          if (!impactMap[sprintId]) {
-            impactMap[sprintId] = {
-              sprintId,
-              totalCostSaved: 0,
-              totalTimeSaved: 0,
-              improvementsCount: 0
-            };
-          }
-          impactMap[sprintId].totalCostSaved += imp.cost_saved_monthly || 0;
-          impactMap[sprintId].totalTimeSaved += imp.time_saved_hours || 0;
-          impactMap[sprintId].improvementsCount++;
-        }
-      });
-
-      setSprintImpactMap(impactMap);
-    } catch (error) {
-      console.error('Error fetching sprint impacts:', error);
-    }
   };
 
   const handleCreateSprint = async (e: React.FormEvent) => {
@@ -280,7 +82,7 @@ const EquipeSprints = () => {
     
     setSubmitting(true);
     try {
-      const { error } = await supabase.from('sprints').insert({
+      await createSprint.mutateAsync({
         name: newSprint.name,
         goal: newSprint.goal || null,
         start_date: newSprint.start_date,
@@ -290,8 +92,6 @@ const EquipeSprints = () => {
         created_by: user?.id
       });
 
-      if (error) throw error;
-
       toast({
         title: "Sprint criada!",
         description: "A nova sprint foi criada com sucesso.",
@@ -299,7 +99,6 @@ const EquipeSprints = () => {
 
       setIsDialogOpen(false);
       setNewSprint({ name: '', goal: '', start_date: '', end_date: '', cluster_id: '', project_id: projectFilter || '' });
-      fetchData();
     } catch (error) {
       console.error('Error creating sprint:', error);
       toast({
@@ -317,20 +116,15 @@ const EquipeSprints = () => {
 
     setSubmitting(true);
     try {
-      await assertCanPerform('sprints', 'update', selectedSprint.id);
-      const { error } = await supabase
-        .from('sprints')
-        .update({
-          name: editSprint.name,
-          goal: editSprint.goal || null,
-          start_date: editSprint.start_date,
-          end_date: editSprint.end_date,
-          project_id: editSprint.project_id || null,
-          status: editSprint.status
-        })
-        .eq('id', selectedSprint.id);
-
-      if (error) throw error;
+      await updateSprint.mutateAsync({
+        id: selectedSprint.id,
+        name: editSprint.name,
+        goal: editSprint.goal || null,
+        start_date: editSprint.start_date,
+        end_date: editSprint.end_date,
+        project_id: editSprint.project_id || null,
+        status: editSprint.status
+      });
 
       toast({
         title: "Sprint atualizada!",
@@ -339,7 +133,6 @@ const EquipeSprints = () => {
 
       setSelectedSprint(null);
       setIsEditMode(false);
-      fetchData();
     } catch (error) {
       console.error('Error updating sprint:', error);
       toast({
@@ -356,13 +149,7 @@ const EquipeSprints = () => {
     if (!selectedSprint) return;
 
     try {
-      await assertCanPerform('sprints', 'delete', selectedSprint.id);
-      const { error } = await supabase
-        .from('sprints')
-        .delete()
-        .eq('id', selectedSprint.id);
-
-      if (error) throw error;
+      await deleteSprint.mutateAsync(selectedSprint.id);
 
       toast({
         title: "Sprint excluída!",
@@ -370,7 +157,6 @@ const EquipeSprints = () => {
       });
 
       setSelectedSprint(null);
-      fetchData();
     } catch (error) {
       console.error('Error deleting sprint:', error);
       toast({
@@ -383,13 +169,7 @@ const EquipeSprints = () => {
 
   const updateSprintStatus = async (sprintId: string, status: string) => {
     try {
-      await assertCanPerform('sprints', 'update', sprintId);
-      await supabase
-        .from('sprints')
-        .update({ status })
-        .eq('id', sprintId);
-      
-      fetchData();
+      await updateSprintStatusMutation.mutateAsync({ sprintId, status });
       toast({
         title: "Sprint atualizada!",
         description: `Status alterado para ${status === 'active' ? 'ativa' : 'concluída'}.`,
@@ -426,6 +206,57 @@ const EquipeSprints = () => {
     if (!hours) return 0;
     return hours.reduce((sum, h) => sum + h.hours, 0);
   };
+
+  const getSprintClusterName = (sprint: { project_id: string | null }) => {
+    const project = sprint.project_id ? projects.find((p) => p.id === sprint.project_id) : undefined;
+    const cluster = project?.cluster_id
+      ? clusters.find((c) => c.id === project.cluster_id)
+      : undefined;
+    return cluster?.name || 'Geral / sem cluster';
+  };
+
+  // Opções de projeto agrupadas por cluster no dropdown (cabeçalho = nome do cluster),
+  // pra saber de cara qual projeto é de qual cluster.
+  const renderProjectOptions = (list: typeof projects) => {
+    const groups: Record<string, typeof projects> = {};
+    list.forEach((p) => {
+      const key =
+        (p.cluster_id && clusters.find((c) => c.id === p.cluster_id)?.name) || 'Sem cluster';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(p);
+    });
+    return Object.entries(groups)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([clusterName, projs]) => (
+        <SelectGroup key={clusterName}>
+          <SelectLabel>{clusterName}</SelectLabel>
+          {projs.map((project) => (
+            <SelectItem key={project.id} value={project.id}>
+              {project.name}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      ));
+  };
+
+  // Agrupa as sprints por cluster (via projeto), ativas/planejadas antes das concluídas —
+  // assim as sprints de Tax, OSG etc. ficam separadas.
+  const statusRank: Record<string, number> = { active: 0, planned: 1, completed: 2 };
+  const groupedSprints = (() => {
+    const groups: Record<string, typeof sprints> = {};
+    sprints.forEach((sprint) => {
+      const key = getSprintClusterName(sprint);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(sprint);
+    });
+    Object.values(groups).forEach((list) =>
+      list.sort(
+        (a, b) =>
+          (statusRank[a.status] ?? 9) - (statusRank[b.status] ?? 9) || a.name.localeCompare(b.name),
+      ),
+    );
+    return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+  })();
 
   return (
     <EquipeLayout 
@@ -475,11 +306,11 @@ const EquipeSprints = () => {
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
                   <SelectContent className="bg-white border-gray-200">
-                    {projects
-                      .filter((p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id)
-                      .map((project) => (
-                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
+                    {renderProjectOptions(
+                      projects.filter(
+                        (p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id,
+                      ),
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -542,9 +373,15 @@ const EquipeSprints = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
         </div>
       ) : sprints.length > 0 ? (
-        <div className="space-y-4">
-          {sprints.map((sprint) => {
-            const sprintHours = sprintHoursMap[sprint.id] || [];
+        <div className="space-y-6">
+          {groupedSprints.map(([clusterName, clusterSprints]) => (
+          <div key={clusterName} className="space-y-3">
+            <div className="flex items-center gap-2 pt-2">
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{clusterName}</h2>
+              <span className="text-xs text-gray-400">· {clusterSprints.length}</span>
+              <div className="flex-1 border-t border-gray-100" />
+            </div>
+          {clusterSprints.map((sprint) => {
             const totalHours = getSprintTotalHours(sprint.id);
              const sprintImpact = sprintImpactMap[sprint.id];
             
@@ -581,6 +418,8 @@ const EquipeSprints = () => {
               </Card>
             );
           })}
+          </div>
+          ))}
         </div>
       ) : (
         <Card className="bg-white border-gray-200">
@@ -611,18 +450,43 @@ const EquipeSprints = () => {
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label className="text-gray-700">Cluster</Label>
+                  <Select
+                    value={editSprint.cluster_id || 'none'}
+                    onValueChange={(value) =>
+                      setEditSprint({
+                        ...editSprint,
+                        cluster_id: value === 'none' ? '' : value,
+                        project_id: '',
+                      })
+                    }
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Selecione um cluster" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="none">Todos</SelectItem>
+                      {clusters.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label className="text-gray-700">Projeto</Label>
-                  <Select 
-                    value={editSprint.project_id} 
+                  <Select
+                    value={editSprint.project_id}
                     onValueChange={(value) => setEditSprint({ ...editSprint, project_id: value })}
                   >
                     <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border-gray-200">
-                      {projects.map((project) => (
-                        <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>
-                      ))}
+                      {renderProjectOptions(
+                        projects.filter(
+                          (p) => !editSprint.cluster_id || p.cluster_id === editSprint.cluster_id,
+                        ),
+                      )}
                     </SelectContent>
                   </Select>
                 </div>

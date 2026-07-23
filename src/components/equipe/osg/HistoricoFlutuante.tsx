@@ -1,27 +1,16 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ChevronDown, ChevronRight, ChevronUp, History, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useHistoricoFlutuanteLogs } from '@/hooks/useDomainHistoricoFlutuante';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { formatChangedFields, type LookupMaps } from '../audit/auditFieldFormatter';
 
 interface HistoricoFlutuanteProps {
   /** Ids de audit_logs.entity_id a buscar (entidade + sub-entidades que o modal edita). */
   entityIds: string[];
-}
-
-interface AuditLog {
-  id: string;
-  entity_type: string;
-  entity_name: string;
-  action: string;
-  changed_fields: Record<string, { old: unknown; new: unknown }> | null;
-  performed_by: string;
-  performed_at: string;
-  details: string | null;
 }
 
 const ACTION_LABELS: Record<string, { label: string; color: string }> = {
@@ -88,17 +77,7 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
     return () => window.removeEventListener('resize', compute);
   }, [ids.length]);
 
-  const { data: profiles = {} } = useQuery({
-    queryKey: ['audit-lookup-profiles'],
-    queryFn: async () => {
-      const { data } = await supabase.from('profiles_safe').select('id, first_name, last_name');
-      const map: Record<string, string> = {};
-      (data ?? []).forEach((p) => {
-        if (p.id) map[p.id] = `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim();
-      });
-      return map;
-    },
-  });
+  const { data: profiles = {} } = useProfilesNomeMap('profiles_safe');
 
   const lookups: LookupMaps = {
     profiles,
@@ -110,23 +89,7 @@ export function HistoricoFlutuante({ entityIds }: HistoricoFlutuanteProps) {
     tasks: {},
   };
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['historico-cadastro', ids],
-    enabled: ids.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select(
-          'id, entity_type, entity_name, action, changed_fields, performed_by, performed_at, details',
-        )
-        .eq('area', 'osg')
-        .in('entity_id', ids)
-        .order('performed_at', { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      return data as unknown as AuditLog[];
-    },
-  });
+  const { data: logs = [], isLoading } = useHistoricoFlutuanteLogs(ids);
 
   const toggle = (id: string) => {
     setAbertos((prev) => {
