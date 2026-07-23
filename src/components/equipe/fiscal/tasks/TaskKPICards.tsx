@@ -1,4 +1,3 @@
-import { Card, CardContent } from '@/components/ui/card';
 import { statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
 
@@ -14,21 +13,17 @@ export const TaskKPICards = ({ tasks }: TaskKPICardsProps) => {
   }, {} as Record<string, number>);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-      {statusList.map(status => (
-        <Card key={status.key} className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">{status.label}</span>
-              <span className={cn(
-                "text-2xl font-bold rounded-lg px-3 py-1",
-                status.combined
-              )}>
-                {counts[status.key] ?? 0}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="flex overflow-x-auto rounded-xl border bg-card p-1 shadow-sm">
+      {statusList.map((status, index) => (
+        <div
+          key={status.key}
+          className={cn('flex min-w-[120px] flex-1 items-center justify-between gap-3 px-3 py-2', index > 0 && 'border-l')}
+        >
+          <span className="whitespace-nowrap text-xs text-muted-foreground">{status.label}</span>
+          <span className={cn('rounded-md px-2 py-0.5 text-sm font-bold tabular-nums', status.combined)}>
+            {counts[status.key] ?? 0}
+          </span>
+        </div>
       ))}
     </div>
   );

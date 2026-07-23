@@ -10,7 +10,6 @@ import {
   ChevronsDown,
   ChevronsUp,
   Edit3,
-  Flag,
   FolderKanban,
   MoreHorizontal,
   Plus,
@@ -32,7 +31,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import type { OrgProject } from '@/hooks/useOrgProjects';
-import { type OrgTask, type OrgTaskPriority, type OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
+import { type OrgTask, type OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { cn } from '@/lib/utils';
 import { parseDate } from '@/lib/dateUtils';
 import { STATUS_LABELS } from '@/lib/projetosCadastro';
@@ -60,7 +59,7 @@ interface ProjetosTarefasListProps {
   currentUserId?: string | null;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_90px_170px_180px_130px_44px] min-w-[1010px]';
+const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_44px] min-w-[900px]';
 
 const projectStatusStyles: Record<string, string> = {
   planned: 'bg-slate-100 text-slate-700',
@@ -68,13 +67,6 @@ const projectStatusStyles: Record<string, string> = {
   completed: 'bg-emerald-100 text-emerald-700',
   on_hold: 'bg-amber-100 text-amber-700',
   cancelled: 'bg-rose-100 text-rose-700',
-};
-
-const priorityConfig: Record<OrgTaskPriority, { label: string; className: string }> = {
-  urgent: { label: 'Urgente', className: 'text-red-600' },
-  high: { label: 'Alta', className: 'text-orange-500' },
-  medium: { label: 'Média', className: 'text-blue-500' },
-  low: { label: 'Baixa', className: 'text-slate-400' },
 };
 
 function initials(name: string | null) {
@@ -149,7 +141,6 @@ export function ProjetosTarefasList({
 
   const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
     const { task, children } = node;
-    const priority = priorityConfig[task.priority] || priorityConfig.medium;
     const rowId = `task:${task.id}`;
     const isCollapsed = collapsed.has(rowId);
     return <Fragment key={task.id}>
@@ -167,14 +158,9 @@ export function ProjetosTarefasList({
           {children.length > 0 && <span className="text-xs text-muted-foreground">{children.length}</span>}
         </div>
         <div className="flex items-center px-3 py-1.5">
-          <span title={priority.label}>
-            <Flag className={cn('h-4 w-4 fill-current', priority.className)} aria-label={`Prioridade ${priority.label}`} />
-          </span>
-        </div>
-        <div className="flex items-center px-3 py-1.5">
           <Select value={task.status} onValueChange={value => updateStatus(task, value as OrgTaskStatus)}>
-            <SelectTrigger className="h-7 w-[150px] border-0 bg-transparent px-1 shadow-none focus:ring-0">
-              <span className={cn('rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wide', statusColors[task.status].combined)}>{statusColors[task.status].label}</span>
+            <SelectTrigger className="h-6 w-[138px] border-0 bg-transparent px-1 shadow-none focus:ring-0 [&>span]:!line-clamp-none [&>span]:whitespace-nowrap [&>span]:overflow-visible">
+              <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-normal', statusColors[task.status].combined)}>{statusColors[task.status].label}</span>
             </SelectTrigger>
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
           </Select>
@@ -225,7 +211,7 @@ export function ProjetosTarefasList({
     </div>
     <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
-      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Prioridade</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div><div className="px-3 py-2.5">Prazo</div><div />
+      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div><div className="px-3 py-2.5">Prazo</div><div />
     </div>
     {hierarchy.map((group, index) => {
       const groupId = `os:${group.id}`;
@@ -258,8 +244,7 @@ export function ProjetosTarefasList({
                 <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project?.name || 'Sem projeto'}</button>
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
               </div>
-              <div />
-              <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded-md px-2 py-1 text-[11px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
+              <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
               <div className="flex items-center gap-2 px-3 text-xs text-muted-foreground"><Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}` : null)}</AvatarFallback></Avatar><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
               <div className="flex items-center gap-2 px-3"><Progress value={projectProgress} className="h-1.5 w-14" /><span className="text-xs text-muted-foreground">{projectProgress}%</span></div>
               <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem><DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onClick={() => onDeleteProject(projectNode.project!.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir projeto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}</div>

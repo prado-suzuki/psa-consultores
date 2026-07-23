@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree, FolderPlus } from 'lucide-react';
+import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -209,32 +209,34 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
 
   return (
     <ProjetosCadastroContext.Provider value={projectController}>
-      <div className="space-y-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <TaskFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            teamMembers={teamMembers}
-            projects={projects}
-          />
-          <div className="flex shrink-0 gap-2">
-            <Button variant="outline" onClick={() => projectController.handleOpenModal()}><FolderPlus className="mr-2 h-4 w-4" />Novo projeto</Button>
-            <Button onClick={() => handleNewTask()}><Plus className="mr-2 h-4 w-4" />Nova tarefa</Button>
-          </div>
-        </div>
-
+      <div className="space-y-4">
         <TaskKPICards tasks={tasks} />
 
-        <Tabs value={activeView} onValueChange={setActiveView}>
-          <TabsList>
-            <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
-            <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
-            <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
-            <TabsTrigger value="kanban" className="gap-2"><Trello className="h-4 w-4" />Kanban</TabsTrigger>
-            <TabsTrigger value="gantt" className="gap-2"><GanttChart className="h-4 w-4" />Gantt</TabsTrigger>
-            <TabsTrigger value="today" className="gap-2"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
-            <TabsTrigger value="future" className="gap-2"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
-          </TabsList>
+        <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
+          <div className="space-y-2 rounded-xl border bg-card p-2 shadow-sm">
+            <div className="overflow-x-auto">
+              <TabsList className="w-max min-w-full justify-start">
+                <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
+                <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-2"><Trello className="h-4 w-4" />Kanban</TabsTrigger>
+                <TabsTrigger value="gantt" className="gap-2"><GanttChart className="h-4 w-4" />Gantt</TabsTrigger>
+                <TabsTrigger value="today" className="gap-2"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
+                <TabsTrigger value="future" className="gap-2"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <TaskFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                teamMembers={teamMembers}
+                projects={projects}
+              />
+              <Button size="sm" className="ml-auto h-9 shrink-0" onClick={() => handleNewTask()}>
+                <Plus className="mr-2 h-4 w-4" />Nova tarefa
+              </Button>
+            </div>
+          </div>
 
           <div className="mt-4">
             <TabsContent value="list" className="m-0">
