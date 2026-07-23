@@ -295,7 +295,7 @@ export default function MeusDocumentos() {
         )}
 
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Documentos enviados</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Outros documentos enviados</h2>
           {carregandoDocs ? (
             <Card>
               <div className="p-4 space-y-4">
