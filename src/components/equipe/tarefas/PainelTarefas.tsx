@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
@@ -157,6 +157,26 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     filters.endDate,
   ), [filters]);
 
+  // Ensina o comportamento novo no momento exato: quando um filtro deixa algum
+  // cliente/OS/projeto sem tarefas (portanto oculto), avisa uma vez por sessão de
+  // filtragem. Reseta ao limpar os filtros, para reaparecer numa próxima filtragem.
+  const hintShownRef = useRef(false);
+  useEffect(() => {
+    if (activeView !== 'list' || !hasActiveFilters) {
+      hintShownRef.current = false;
+      return;
+    }
+    if (hintShownRef.current) return;
+    const projectsWithTasks = new Set(tasks.map(task => task.project_id).filter(Boolean));
+    const hidSomething = visibleListProjects.some(project => !projectsWithTasks.has(project.id));
+    if (hidSomething) {
+      hintShownRef.current = true;
+      toast.info('Filtro aplicado', {
+        description: 'Clientes, OS e projetos sem tarefas correspondentes ficam ocultos.',
+      });
+    }
+  }, [activeView, hasActiveFilters, tasks, visibleListProjects]);
+
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
     setDefaultParentId(null);
@@ -276,6 +296,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 osRows={osRows}
                 search={filters.search || ''}
                 hideEmpty={hasActiveFilters}
+                onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.setDeleteProjectId}
                 onNewTask={handleNewTask}

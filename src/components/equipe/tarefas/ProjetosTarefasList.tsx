@@ -13,6 +13,7 @@ import {
   ChevronsDown,
   ChevronsUp,
   Edit3,
+  FilterX,
   FolderKanban,
   MoreHorizontal,
   Plus,
@@ -53,6 +54,7 @@ interface ProjetosTarefasListProps {
   osRows: ProjetosTarefasOs[];
   search: string;
   hideEmpty?: boolean;
+  onClearFilters?: () => void;
   onEditProject: (project: OrgProject) => void;
   onDeleteProject: (projectId: string) => void;
   onNewTask: (projectId?: string) => void;
@@ -122,6 +124,7 @@ export function ProjetosTarefasList({
   osRows,
   search,
   hideEmpty = false,
+  onClearFilters,
   onEditProject,
   onDeleteProject,
   onNewTask,
@@ -238,7 +241,17 @@ export function ProjetosTarefasList({
   };
 
   if (hierarchy.length === 0) {
-    return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Ajuste os filtros ou crie um novo projeto.</p></div>;
+    // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
+    // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
+    if (hideEmpty) {
+      return <div className="rounded-xl border border-dashed py-16 text-center">
+        <FilterX className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
+        <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
+        <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Clientes, OS e projetos sem tarefas correspondentes ficam ocultos. Limpe os filtros para ver toda a estrutura.</p>
+        {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
+      </div>;
+    }
+    return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>;
   }
 
   const allCollapsed = sortedHierarchy.every(group => collapsed.has(`os:${group.id}`));
