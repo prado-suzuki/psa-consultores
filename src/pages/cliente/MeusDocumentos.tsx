@@ -184,49 +184,114 @@ export default function MeusDocumentos() {
             </p>
           </Card>
         ) : (
-          <Card className="p-4">
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setArrastando(true);
-              }}
-              onDragLeave={() => setArrastando(false)}
-              onDrop={onDrop}
-              className={cn(
-                'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors',
-                arrastando ? 'border-teal-500 bg-teal-50' : 'border-slate-300 bg-slate-50/60',
-              )}
-            >
-              <FolderUp className="h-8 w-8 text-teal-700/70" />
-              <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
-              <p className="text-xs text-muted-foreground">
-                Tipos permitidos: {ACCEPT} — até {formatBytes(MAX_BYTES)}.
-              </p>
-              <input
-                ref={inputRef}
-                type="file"
-                accept={ACCEPT}
-                multiple
-                className="hidden"
-                onChange={onInput}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => inputRef.current?.click()}
-                disabled={!podeUpload || upload.isPending}
-                className="mt-2"
-              >
-                {upload.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                Escolher arquivos
-              </Button>
+          <>
+            {checklist.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Documentos solicitados</h2>
+                <Card>
+                  <ul className="divide-y">
+                    {checklist.map((it) => {
+                      const enviando = uploadSolicitado.isPending && itemAlvo?.item_id === it.item_id;
+                      return (
+                        <li key={it.item_id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-foreground">
+                              {it.documento}
+                              {it.rotulo_instancia ? ` — ${it.rotulo_instancia}` : ''}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {it.entidade}
+                              {it.recebido && (
+                                <>
+                                  {' · '}
+                                  <span className="inline-flex items-center gap-1 text-emerald-700">
+                                    <Check className="h-3 w-3" />
+                                    {it.arquivo_nome ?? 'Recebido'}
+                                  </span>
+                                </>
+                              )}
+                              {it.nota && <span className="block text-muted-foreground/80">{it.nota}</span>}
+                            </p>
+                          </div>
+                          {!it.recebido && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => abrirSeletorItem(it)}
+                              disabled={enviando || uploadSolicitado.isPending}
+                            >
+                              {enviando ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="mr-2 h-4 w-4" />
+                              )}
+                              Enviar
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Card>
+                <input
+                  ref={itemInputRef}
+                  type="file"
+                  accept={ACCEPT}
+                  className="hidden"
+                  onChange={onItemInput}
+                />
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-3">Outros documentos</h2>
+              <Card className="p-4">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setArrastando(true);
+                  }}
+                  onDragLeave={() => setArrastando(false)}
+                  onDrop={onDrop}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors',
+                    arrastando ? 'border-teal-500 bg-teal-50' : 'border-slate-300 bg-slate-50/60',
+                  )}
+                >
+                  <FolderUp className="h-8 w-8 text-teal-700/70" />
+                  <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tipos permitidos: {ACCEPT} — até {formatBytes(MAX_BYTES)}.
+                  </p>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept={ACCEPT}
+                    multiple
+                    className="hidden"
+                    onChange={onInput}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={!podeUpload || upload.isPending}
+                    className="mt-2"
+                  >
+                    {upload.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    Escolher arquivos
+                  </Button>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </>
         )}
 
         <div>
