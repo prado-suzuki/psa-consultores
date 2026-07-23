@@ -30,7 +30,7 @@ import HistoricoTab from "./client-form/HistoricoTab";
 export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
 }: NewClientModalProps) {
-  const { user } = useAuth();
+  const { user, isAdmin, isLider } = useAuth();
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -57,6 +57,13 @@ export default function NewClientModal({
 
 
   const isEditing = !!editingClienteId;
+  const canViewFinancialTabs = isAdmin || isLider;
+  const visibleTabs = canViewFinancialTabs
+    ? (["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const)
+    : (["cliente", "contribuintes", "representantes"] as const);
+  const tabsGridClass = editingClienteId
+    ? canViewFinancialTabs ? "grid-cols-6" : "grid-cols-4"
+    : canViewFinancialTabs ? "grid-cols-5" : "grid-cols-3";
 
   // --- Hooks ---
   const { catalogServices, allClusters, PRODUTO_SEGMENTO_OPTIONS, CENTRO_CUSTO_OPTIONS, produtoSegmentoFullOptions, lideres } = useClientFormOptions();
@@ -247,8 +254,8 @@ export default function NewClientModal({
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
-                  <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", editingClienteId ? "grid-cols-6" : "grid-cols-5")}>
-                    {(["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const).map((tab) => (
+                  <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", tabsGridClass)}>
+                    {visibleTabs.map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
                         {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "representantes" ? "Representantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
                       </TabsTrigger>
@@ -287,21 +294,25 @@ export default function NewClientModal({
                     />
                   </TabsContent>
 
-                  <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
-                    <ContratosTab
-                      contracts={contracts} setContracts={setContracts}
-                      draftContract={draftContract} setDraftContract={setDraftContract}
-                      isReadOnly={isReadOnly}
-                      produtoSegmentoFullOptions={produtoSegmentoFullOptions}
-                      allClusters={allClusters}
-                      CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
-                      setoresCliente={setoresCliente}
-                    />
-                  </TabsContent>
+                  {canViewFinancialTabs && (
+                    <>
+                      <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
+                        <ContratosTab
+                          contracts={contracts} setContracts={setContracts}
+                          draftContract={draftContract} setDraftContract={setDraftContract}
+                          isReadOnly={isReadOnly}
+                          produtoSegmentoFullOptions={produtoSegmentoFullOptions}
+                          allClusters={allClusters}
+                          CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
+                          setoresCliente={setoresCliente}
+                        />
+                      </TabsContent>
 
-                  <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
-                    <FaturamentoTab entities={entities} />
-                  </TabsContent>
+                      <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
+                        <FaturamentoTab entities={entities} />
+                      </TabsContent>
+                    </>
+                  )}
 
                   {editingClienteId && (
                     <TabsContent value="historico" className="mt-0 p-3 md:p-4">

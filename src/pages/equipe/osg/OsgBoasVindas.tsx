@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, LayoutDashboard, Users, FolderKanban, ListTodo, Shield, MessageSquare } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users, FolderKanban, Shield, MessageSquare } from 'lucide-react';
 
 interface FerramentaOsg {
   id: string;
@@ -32,18 +32,11 @@ const FERRAMENTAS: FerramentaOsg[] = [
     icon: <Users className="h-5 w-5 text-osg-600" />,
   },
   {
-    id: 'projetos',
-    titulo: 'Projetos',
-    descricao: 'Cadastro e gestão dos projetos (entregas) da área OSG.',
+    id: 'projetos-tarefas',
+    titulo: 'Projetos e tarefas',
+    descricao: 'Execução organizada por OS, projeto, tarefa e subtarefa.',
     path: '/equipe/osg/projetos/cadastro',
     icon: <FolderKanban className="h-5 w-5 text-osg-600" />,
-  },
-  {
-    id: 'tarefas',
-    titulo: 'Tarefas',
-    descricao: 'Tarefas dos projetos da área OSG.',
-    path: '/equipe/osg/projetos/tarefas',
-    icon: <ListTodo className="h-5 w-5 text-osg-600" />,
   },
   {
     id: 'auditoria',

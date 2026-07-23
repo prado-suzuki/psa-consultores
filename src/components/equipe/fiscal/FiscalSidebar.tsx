@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import {
   LayoutDashboard,
   ClipboardList,
-  ListTodo,
   ChevronDown,
   ChevronLeft,
   Calculator,
@@ -56,16 +55,10 @@ const menuItems: MenuItem[] = [
         path: '/equipe/tax/projetos/clientes'
       },
       {
-        id: 'entregas-projetos',
-        label: 'Projetos',
+        id: 'projetos-tarefas',
+        label: 'Projetos e tarefas',
         icon: FolderKanban,
         path: '/equipe/tax/projetos/cadastro'
-      },
-      {
-        id: 'tarefas',
-        label: 'Tarefas',
-        icon: ListTodo,
-        path: '/equipe/tax/projetos/tarefas'
       }
     ]
   },
@@ -100,7 +93,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
   const isActive = (path?: string) => !!path && location.pathname === path;
 
   const isParentActive = (children?: MenuItem['children']) =>
-    !!children && children.some(child => location.pathname === child.path);
+    location.pathname.startsWith('/equipe/tax/projetos') ||
+    (!!children && children.some(child => location.pathname === child.path));
 
   const handleSignOut = async () => {
     await signOut();
@@ -157,7 +151,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
               <div className="space-y-1 pt-1 ml-2 pl-2 border-l border-border">
                 {item.children?.map(child => {
                   const ChildIcon = child.icon;
-                  const childActive = isActive(child.path);
+                  const childActive = isActive(child.path) ||
+                    (child.id === 'projetos-tarefas' && location.pathname === '/equipe/tax/projetos/tarefas');
                   return (
                     <button
                       key={child.id}

@@ -20,6 +20,17 @@ export interface ProjectGroup {
   projects: OrgProject[];
 }
 
+export interface ProjectPrefill {
+  clientId: string;
+  name: string;
+  description: string;
+  isMultidisciplinar: boolean;
+}
+
+export interface ProjectPrefillLocationState {
+  projectPrefill: ProjectPrefill;
+}
+
 export const EMPTY_PROJECT_FORM: OrgProjectFormData = {
   name: '',
   description: '',

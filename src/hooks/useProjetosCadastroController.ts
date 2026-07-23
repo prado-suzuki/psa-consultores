@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AreaKey } from '@/config/areaCategories';
 import { useClientFormOptions } from '@/hooks/useClientFormOptions';
@@ -35,9 +36,12 @@ import {
   type ProjectGroupBy,
   type ProjectSortColumn,
   type SortDirection,
+  type ProjectPrefillLocationState,
 } from '@/lib/projetosCadastro';
 
 export function useProjetosCadastroController(area: AreaKey) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
@@ -56,6 +60,7 @@ export function useProjetosCadastroController(area: AreaKey) {
   const [prevEquipeId, setPrevEquipeId] = useState('');
   const isOpeningEditRef = useRef(false);
   const collapsedInitializedRef = useRef(false);
+  const prefillHandledRef = useRef(false);
 
   const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
   const { data: allProjects = [], isLoading } = useOrgProjects();
@@ -308,6 +313,22 @@ export function useProjetosCadastroController(area: AreaKey) {
     }
     setIsModalOpen(true);
   };
+  useEffect(() => {
+    const state = location.state as ProjectPrefillLocationState | null;
+    if (prefillHandledRef.current || !state?.projectPrefill) return;
+    prefillHandledRef.current = true;
+    const prefill = state.projectPrefill;
+    setEditingProject(null);
+    setFormData({
+      ...EMPTY_PROJECT_FORM,
+      external_client_id: prefill.clientId,
+      name: prefill.name,
+      description: prefill.description,
+      is_multidisciplinar: prefill.isMultidisciplinar,
+    });
+    setIsModalOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.pathname, location.state, navigate]);
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProject(null);
