@@ -1,66 +1,43 @@
-## EDU-02 — Protocolo de recebimento (uploader + soft-delete pelo cliente) — v2
+# EDU-03 — Envio classificado pelo cliente (checklist)
 
-### 1) Migration
+Cliente externo passa a enviar documentos vinculados aos itens que a PSA pediu no `checklist_cliente_item`. Classificação (categoria/pessoa/bem/matrícula/checklist_item_id) é 100% server-side; o cliente só escolhe o item e o arquivo.
 
-Arquivo: `supabase/migrations/<timestamp>_edu02_uploader_e_soft_delete_cliente.sql`
+## 1) Migração SQL (schema-only, sem tocar dados)
 
-**a. RPC `public.get_uploader_names(_ids uuid[])`** — resolve nome do uploader com escopo real:
-- `SECURITY DEFINER`, `STABLE`, `SET search_path = public`.
-- Retorna `TABLE(user_id uuid, display_name text)`.
-- Corpo:
-  ```sql
-  select distinct p.id,
-         trim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,''))
-  from public.profiles p
-  where p.id = any(_ids)
-    and exists (
-      select 1 from public.documento_arquivo d
-      where d.created_by = p.id
-        and d.excluido = false
-        and (
-          public.has_role_or_higher(auth.uid(), 'team_member'::public.app_role)
-          or d.cliente_id = public.resolve_user_cliente_id(auth.uid())
-        )
-    );
-  ```
-- `REVOKE ALL ... FROM public;` e `GRANT EXECUTE ... TO authenticated;`.
-- Efeito: equipe resolve normalmente; cliente só resolve nomes de uploaders dos próprios documentos.
+Arquivo: `supabase/migrations/<timestamp>_edu03_checklist_cliente_rpcs.sql`
 
-**b. RPC `public.soft_delete_documento_cliente(_id uuid)`** — único caminho de exclusão pelo cliente:
-- `SECURITY DEFINER`, **VOLATILE**, `SET search_path = public`, `LANGUAGE plpgsql`.
-- Valida posse dentro da função: linha existe, `fonte = 'cliente'`, `excluido = false` e `cliente_id = public.resolve_user_cliente_id(auth.uid())`.
-- Se ok: `update public.documento_arquivo set excluido = true, updated_at = now() where id = _id`.
-- Senão: `raise exception 'documento não encontrado ou sem permissão' using errcode = '42501';`.
-- `REVOKE ALL ... FROM public;` e `GRANT EXECUTE ... TO authenticated;`.
-- **Não** é criada policy de `UPDATE` para o cliente em `documento_arquivo` — o cliente segue sem privilégio de UPDATE na tabela, impedindo alteração de outras colunas (`gcs_uri`, `nome_original`, etc.).
+- `public.get_checklist_solicitado_cliente()` — `SECURITY DEFINER STABLE`, `search_path=public`. Lê `checklist_cliente_item` do cliente resolvido por `resolve_user_cliente_id(auth.uid())`, exclui status `dispensado`/`nao_aplicavel`, deriva `recebido` (status='recebido' OU existe `documento_arquivo` ativo com `checklist_item_id=i.id`) e `arquivo_nome` (mais recente ativo, `fonte='cliente'`). Rótulo por `pessoa.denominacao` / `bem.denominacao` / `Matrícula N (mun/uf)`. `REVOKE ALL FROM public; GRANT EXECUTE TO authenticated`.
+- `public.anexar_documento_solicitado(_item_id, _gcs_uri, _checksum, _tamanho, _mime, _nome_original, _ambiente)` — `SECURITY DEFINER VOLATILE`, `search_path=public`. Valida:
+  - `resolve_user_cliente_id(auth.uid())` não nulo (senão 42501)
+  - item existe e `cliente_id` bate (senão 42501)
+  - item não está em `dispensado`/`nao_aplicavel` (42501)
+  - `categoria::text <> 'georreferenciamento'` (42501)
+  - `position('/' || v_cliente::text || '/' in _gcs_uri) > 0` (defesa contra URI de outro cliente)
+  Insere `documento_arquivo` copiando `categoria` (fallback `'outros'`), `pessoa_id`, `bem_id`, `matricula_id`, `checklist_item_id=item.id`, `fonte='cliente'`, `status='ativo'`, `created_by=auth.uid()`. Retorna `uuid`. `REVOKE/GRANT` como acima.
+- Não abre policy nova em `checklist_cliente_item` nem policy de UPDATE em `documento_arquivo` para o cliente.
 
-### 2) Hooks (`src/hooks/useDocumentoArquivo.ts`)
+Após aplicar: regenerar `src/integrations/supabase/types.ts`.
 
-- **Novo `useUploaderNames(userIds: string[])`**: `useQuery` com key `['uploader-names', sortedIds.join(',')]`, chama `supabase.rpc('get_uploader_names', { _ids })`, `select` retorna `Record<uuid, string>`, `enabled: userIds.length > 0`.
-- **Ajustar `useExcluirDocumento`**: em vez de `.from('documento_arquivo').update({ excluido: true })`, chamar `supabase.rpc('soft_delete_documento_cliente', { _id: id })`. Manter invalidation e toasts atuais. (Uso interno da equipe permanece sem regressão porque as telas internas de exclusão de documento não usam esse hook — se algum caller interno usar, ajustar para uma variante que continue via `update` direto, autorizada pela policy de team_member+; conferir usos antes de aplicar.)
-  - Pré-checagem: `rg "useExcluirDocumento" src` para confirmar que os únicos consumidores relevantes ao cliente são MeusDocumentos/DocumentosTab. Se `DocumentosTab` (uso interno) também consome, dividir em dois hooks: `useSoftDeleteDocumentoCliente` (RPC) e manter `useExcluirDocumento` (update direto) para equipe.
+## 2) Hook `src/hooks/useDocumentoArquivo.ts`
 
-### 3) Front cliente — `src/pages/cliente/MeusDocumentos.tsx`
+- Extrair de `enviarUmDocumento` um helper interno `subirArquivoGcs(fetchWithAuth, { clienteId, file, categoria, matriculaId?, nrMatricula? })` que faz sign-upload → PUT GCS → finalize e devolve `{ gcs_uri, checksum, tamanho, mime, ambiente }`. `enviarUmDocumento` passa a chamar o helper + o insert atual (comportamento inalterado — sem mudar payloads, chaves de query ou ordem).
+- `useChecklistSolicitadoCliente(clienteId: string | null)`: `useQuery` com key `['checklist-solicitado', clienteId]`, `enabled: !!clienteId`, chama `supabase.rpc('get_checklist_solicitado_cliente')`. Tipo local `ChecklistSolicitadoItem` com os campos da RPC.
+- `useUploadDocumentoSolicitado()`: mutação `{ clienteId, itemId, categoria, file }`. Recusa `categoria === 'georreferenciamento'` no cliente por segurança. Chama `subirArquivoGcs` com `categoria` (ou `'outros'` se null) e depois `supabase.rpc('anexar_documento_solicitado', {...})`. `onSuccess`: invalidar `['checklist-solicitado', clienteId]` e prefixo `[LIST_KEY, clienteId]`. Toasts padrão.
 
-- Importar `useUploaderNames` e o hook de soft-delete de cliente (RPC).
-- Derivar `uploaderIds` de `docsCliente.map(d => d.created_by).filter(Boolean)` (únicos).
-- Subtítulo de cada item: `formatBytes(...) · dd/MM/yyyy 'às' HH:mm · enviado por <nome ?? '—'>`.
-- Botão `Trash2` com `AlertDialog` de confirmação (padrão de `DocumentosTab`) → dispara a RPC → invalida a lista.
+## 3) UI `src/pages/cliente/MeusDocumentos.tsx`
 
-### 4) Front interno — tela principal + aba
+- Nova seção topo "Documentos solicitados" alimentada por `useChecklistSolicitadoCliente(clienteId)`. Esconder a seção se a lista vier vazia.
+- Cada linha: `documento` + (` — ${rotulo_instancia}` se houver) + `entidade` como legenda. Se `recebido`: ícone check + `arquivo_nome ?? 'Recebido'`. Se pendente: botão "Enviar" que abre `<input type="file" accept={ACCEPT}>`. Valida tamanho/extensão (mesmas regras do bloco atual) e chama `useUploadDocumentoSolicitado.mutate({ clienteId, itemId, categoria, file })`. Botão desabilitado enquanto `isPending`.
+- Renomear seção existente para "Outros documentos". A listagem "Documentos enviados" passa a filtrar `d.checklist_item_id == null` para não duplicar o que foi enviado via checklist.
 
-- **Principal**: `src/pages/equipe/osg/DocumentosCliente.tsx` — acrescentar `useUploaderNames` e exibir `· enviado por <nome> em DD/MM/AAAA HH:MM` em cada card/linha (ler `created_by` e `created_at`).
-- **Aba (modais)**: `src/components/equipe/osg/documentos/DocumentosTab.tsx` — mesmo acréscimo textual no `<p className="text-xs …">`, formatando data + hora curta (`toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })`).
+## Segurança / fora de escopo (reforço)
 
-### 5) GATE (validar no dev)
+- Sem UPDATE de cliente em `documento_arquivo` ou `checklist_cliente_item`. Sem SELECT policy nova no checklist. Sem alteração das policies de equipe. EDU-01/02 e georreferenciamento intactos.
 
-1. Cliente em `/cliente/documentos`: cada card mostra "enviado por <nome> · DD/MM/AAAA HH:MM".
-2. Equipe em `DocumentosCliente` (e na aba `DocumentosTab`): mesmo texto.
-3. Cliente remove documento próprio → some da lista e não volta ao recarregar; via console tentar `supabase.rpc('soft_delete_documento_cliente', { _id: <doc de outro cliente> })` → erro `42501`.
-4. **Novo — hardening**: como cliente, tentar `supabase.from('documento_arquivo').update({ gcs_uri: 'x' }).eq('id', <próprio doc>)` e `.update({ nome_original: 'x' })` → falha por ausência de policy de UPDATE. Mesmo teste com `excluido: true` → também falha (o único caminho é a RPC).
-5. Regressão: team_member+ continua vendo/inserindo/atualizando `documento_arquivo` normalmente; policies SELECT/INSERT do cliente inalteradas.
+## GATE
 
-### Fora de escopo
-- Backend `psa-backend-api` e ETL.
-- Reativação de documentos excluídos.
-- Auditoria (`useAuditLog`) — mantém comportamento atual do módulo.
+1. `rpc get_checklist_solicitado_cliente` como cliente: só itens do próprio; sem `dispensado/nao_aplicavel`; `rotulo_instancia` preenchido para pessoa/bem/matrícula; vazio para usuário sem cliente.
+2. `rpc anexar_documento_solicitado` em item pendente próprio: cria linha com categoria/vínculo copiados, `checklist_item_id` preenchido, `fonte='cliente'`, `created_by=uid`; o item passa a `recebido` na próxima leitura.
+3. Erros esperados (todos 42501): item de outro cliente; item `dispensado`/`nao_aplicavel`; item georref; `_gcs_uri` sem `/<cliente_id>/`.
+4. Item com categoria real (ex.: `contrato_social`) sobe pelo sign-upload sem exigir campos extras.
+5. Regressão: equipe segue editando checklist e documentos; EDU-01 (upload livre) e EDU-02 (uploader/soft-delete) intactos; item classificado não aparece em "Outros documentos".
