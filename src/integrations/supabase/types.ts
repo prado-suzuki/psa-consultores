@@ -7840,6 +7840,18 @@ export type Database = {
       }
     }
     Functions: {
+      anexar_documento_solicitado: {
+        Args: {
+          _ambiente: string
+          _checksum: string
+          _gcs_uri: string
+          _item_id: string
+          _mime: string
+          _nome_original: string
+          _tamanho: number
+        }
+        Returns: string
+      }
       can_perform: {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
@@ -7958,6 +7970,21 @@ export type Database = {
           name: string
           sop_url: string
           target_page: string
+        }[]
+      }
+      get_checklist_solicitado_cliente: {
+        Args: never
+        Returns: {
+          arquivo_nome: string
+          categoria: string
+          categoria_docbox: string
+          confidencial: boolean
+          documento: string
+          entidade: string
+          item_id: string
+          nota: string
+          recebido: boolean
+          rotulo_instancia: string
         }[]
       }
       get_cluster_members: {

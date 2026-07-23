@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { ArrowLeft, Download, FileText, FolderUp, Loader2, LogOut, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileText, FolderUp, Loader2, LogOut, Trash2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClienteAtual } from '@/hooks/useClienteAtual';
 import {
   useBaixarDocumento,
+  useChecklistSolicitadoCliente,
   useDocumentosByCliente,
   useSoftDeleteDocumentoCliente,
   useUploadDocumentoCliente,
+  useUploadDocumentoSolicitado,
   useUploaderNames,
+  type ChecklistSolicitadoItem,
+  type DocCategoria,
   type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
@@ -45,9 +49,13 @@ export default function MeusDocumentos() {
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
   const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
+  const uploadSolicitado = useUploadDocumentoSolicitado();
+  const { data: checklist = [] } = useChecklistSolicitadoCliente(clienteId ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const itemInputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
+  const [itemAlvo, setItemAlvo] = useState<ChecklistSolicitadoItem | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
@@ -93,9 +101,45 @@ export default function MeusDocumentos() {
     void enviarArquivos(Array.from(e.dataTransfer.files ?? []));
   };
 
+  const abrirSeletorItem = (item: ChecklistSolicitadoItem) => {
+    setItemAlvo(item);
+    itemInputRef.current?.click();
+  };
+
+  const onItemInput = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !clienteId || !itemAlvo) {
+      setItemAlvo(null);
+      return;
+    }
+    if (!extensaoValida(file.name) || file.size > MAX_BYTES) {
+      toast({
+        title: 'Arquivo ignorado',
+        description: 'Fora do tipo permitido ou acima de 50 MB.',
+        variant: 'destructive',
+      });
+      setItemAlvo(null);
+      return;
+    }
+    try {
+      await uploadSolicitado.mutateAsync({
+        clienteId,
+        itemId: itemAlvo.item_id,
+        categoria: (itemAlvo.categoria as DocCategoria | null) ?? null,
+        file,
+      });
+    } catch {
+      // toast já emitido pelo onError do hook
+    } finally {
+      setItemAlvo(null);
+    }
+  };
+
   // Filtro defensivo: RLS já garante fonte='cliente', mas caches podem carregar registros
   // antigos ou de outras origens caso o mesmo hook seja usado em telas internas.
-  const docsCliente = docs.filter((d) => d.fonte === 'cliente');
+  // Também filtramos itens já classificados via checklist para não duplicar na lista "Outros".
+  const docsCliente = docs.filter((d) => d.fonte === 'cliente' && d.checklist_item_id == null);
 
   const uploaderIds = useMemo(
     () => docsCliente.map((d) => d.created_by).filter((v): v is string => !!v),
@@ -140,53 +184,118 @@ export default function MeusDocumentos() {
             </p>
           </Card>
         ) : (
-          <Card className="p-4">
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setArrastando(true);
-              }}
-              onDragLeave={() => setArrastando(false)}
-              onDrop={onDrop}
-              className={cn(
-                'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors',
-                arrastando ? 'border-teal-500 bg-teal-50' : 'border-slate-300 bg-slate-50/60',
-              )}
-            >
-              <FolderUp className="h-8 w-8 text-teal-700/70" />
-              <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
-              <p className="text-xs text-muted-foreground">
-                Tipos permitidos: {ACCEPT} — até {formatBytes(MAX_BYTES)}.
-              </p>
-              <input
-                ref={inputRef}
-                type="file"
-                accept={ACCEPT}
-                multiple
-                className="hidden"
-                onChange={onInput}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => inputRef.current?.click()}
-                disabled={!podeUpload || upload.isPending}
-                className="mt-2"
-              >
-                {upload.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                Escolher arquivos
-              </Button>
+          <>
+            {checklist.length > 0 && (
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-3">Documentos solicitados</h2>
+                <Card>
+                  <ul className="divide-y">
+                    {checklist.map((it) => {
+                      const enviando = uploadSolicitado.isPending && itemAlvo?.item_id === it.item_id;
+                      return (
+                        <li key={it.item_id} className="flex items-center gap-3 px-4 py-3 text-sm">
+                          <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-medium text-foreground">
+                              {it.documento}
+                              {it.rotulo_instancia ? ` — ${it.rotulo_instancia}` : ''}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {it.entidade}
+                              {it.recebido && (
+                                <>
+                                  {' · '}
+                                  <span className="inline-flex items-center gap-1 text-emerald-700">
+                                    <Check className="h-3 w-3" />
+                                    {it.arquivo_nome ?? 'Recebido'}
+                                  </span>
+                                </>
+                              )}
+                              {it.nota && <span className="block text-muted-foreground/80">{it.nota}</span>}
+                            </p>
+                          </div>
+                          {!it.recebido && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => abrirSeletorItem(it)}
+                              disabled={enviando || uploadSolicitado.isPending}
+                            >
+                              {enviando ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="mr-2 h-4 w-4" />
+                              )}
+                              Enviar
+                            </Button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Card>
+                <input
+                  ref={itemInputRef}
+                  type="file"
+                  accept={ACCEPT}
+                  className="hidden"
+                  onChange={onItemInput}
+                />
+              </div>
+            )}
+
+            <div>
+              <h2 className="text-lg font-semibold text-foreground mb-3">Outros documentos</h2>
+              <Card className="p-4">
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setArrastando(true);
+                  }}
+                  onDragLeave={() => setArrastando(false)}
+                  onDrop={onDrop}
+                  className={cn(
+                    'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors',
+                    arrastando ? 'border-teal-500 bg-teal-50' : 'border-slate-300 bg-slate-50/60',
+                  )}
+                >
+                  <FolderUp className="h-8 w-8 text-teal-700/70" />
+                  <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
+                  <p className="text-xs text-muted-foreground">
+                    Tipos permitidos: {ACCEPT} — até {formatBytes(MAX_BYTES)}.
+                  </p>
+                  <input
+                    ref={inputRef}
+                    type="file"
+                    accept={ACCEPT}
+                    multiple
+                    className="hidden"
+                    onChange={onInput}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => inputRef.current?.click()}
+                    disabled={!podeUpload || upload.isPending}
+                    className="mt-2"
+                  >
+                    {upload.isPending ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Upload className="mr-2 h-4 w-4" />
+                    )}
+                    Escolher arquivos
+                  </Button>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </>
         )}
 
         <div>
-          <h2 className="text-lg font-semibold text-foreground mb-3">Documentos enviados</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Outros documentos enviados</h2>
           {carregandoDocs ? (
             <Card>
               <div className="p-4 space-y-4">
