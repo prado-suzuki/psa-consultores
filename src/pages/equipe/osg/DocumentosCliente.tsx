@@ -17,7 +17,7 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import { useAllMatriculas, useBensByCliente } from '@/hooks/useDiagnosticoPatrimonial';
 import {
-  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl,
+  useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl, useUploaderNames,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
 import { CATEGORIAS, fileIconOf, formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
@@ -63,6 +63,12 @@ const DocumentosCliente = () => {
   const excluir = useExcluirDocumento(clienteId || '');
   const baixar = useBaixarDocumento();
   const preview = usePreviewUrl();
+
+  const uploaderIds = useMemo(
+    () => docs.map((d) => d.created_by).filter((v): v is string => !!v),
+    [docs],
+  );
+  const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
 
   const [selected, setSelected] = useState<string>('all');
   const [hoverOpen, setHoverOpen] = useState<Record<string, boolean>>({});
@@ -396,8 +402,10 @@ const DocumentosCliente = () => {
                                   <p className="truncate font-medium text-slate-800">{d.nome_original}</p>
                                 )}
                                 <p className="truncate text-xs text-muted-foreground">
-                                  {vinculoLabel(d)} · {formatBytes(d.tamanho)} ·{' '}
-                                  {new Date(d.created_at).toLocaleDateString('pt-BR')}
+                                  {vinculoLabel(d)} · {formatBytes(d.tamanho)} · enviado por{' '}
+                                  {(d.created_by && uploaderNames[d.created_by]) || '—'} em{' '}
+                                  {new Date(d.created_at).toLocaleDateString('pt-BR')}{' '}
+                                  {new Date(d.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
                               <Tooltip>

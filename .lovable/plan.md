@@ -1,31 +1,66 @@
-## Objetivo
-Corrigir dropdown "Equipe" vazio no modal "Novo Projeto" do OSG, adicionando `'osg'` ao `page_categories` da área OSG (id `b0814bc8-1959-4755-8bb1-a44560083791`) via **migração versionada** (não via insert avulso).
+## EDU-02 — Protocolo de recebimento (uploader + soft-delete pelo cliente) — v2
 
-## Pré-voo (somente leitura, via `supabase--read_query`)
-1. `select id, name, is_active, page_categories from public.estrutura_areas where id = 'b0814bc8-1959-4755-8bb1-a44560083791';`
-   — esperado: `is_active = true` e `page_categories` **não** contém `'osg'`.
-2. `select id, name, is_active from public.estrutura_equipes where area_id = 'b0814bc8-1959-4755-8bb1-a44560083791' and is_active = true;`
-   — esperado: pelo menos uma equipe ativa. Se vazio, **parar e avisar** (o fix sozinho não resolve).
+### 1) Migration
 
-## Correção (migração versionada, via `supabase--migration`)
-SQL idempotente:
+Arquivo: `supabase/migrations/<timestamp>_edu02_uploader_e_soft_delete_cliente.sql`
 
-```sql
-update public.estrutura_areas
-   set page_categories = array_append(page_categories, 'osg')
- where id = 'b0814bc8-1959-4755-8bb1-a44560083791'
-   and not ('osg' = any(page_categories));
-```
+**a. RPC `public.get_uploader_names(_ids uuid[])`** — resolve nome do uploader com escopo real:
+- `SECURITY DEFINER`, `STABLE`, `SET search_path = public`.
+- Retorna `TABLE(user_id uuid, display_name text)`.
+- Corpo:
+  ```sql
+  select distinct p.id,
+         trim(coalesce(p.first_name,'') || ' ' || coalesce(p.last_name,''))
+  from public.profiles p
+  where p.id = any(_ids)
+    and exists (
+      select 1 from public.documento_arquivo d
+      where d.created_by = p.id
+        and d.excluido = false
+        and (
+          public.has_role_or_higher(auth.uid(), 'team_member'::public.app_role)
+          or d.cliente_id = public.resolve_user_cliente_id(auth.uid())
+        )
+    );
+  ```
+- `REVOKE ALL ... FROM public;` e `GRANT EXECUTE ... TO authenticated;`.
+- Efeito: equipe resolve normalmente; cliente só resolve nomes de uploaders dos próprios documentos.
 
-## Fora de escopo
-- Nenhuma RLS, trigger, função ou view.
-- Nenhuma outra área além da OSG; não mexer em Tax nem inativas.
-- Não alterar `is_active`, nomes ou clusters.
-- Não alterar código do hook `useEstruturaEquipes.ts` nem componentes de frontend.
-- Não tocar em clientes, projetos, membros ou equipes.
+**b. RPC `public.soft_delete_documento_cliente(_id uuid)`** — único caminho de exclusão pelo cliente:
+- `SECURITY DEFINER`, **VOLATILE**, `SET search_path = public`, `LANGUAGE plpgsql`.
+- Valida posse dentro da função: linha existe, `fonte = 'cliente'`, `excluido = false` e `cliente_id = public.resolve_user_cliente_id(auth.uid())`.
+- Se ok: `update public.documento_arquivo set excluido = true, updated_at = now() where id = _id`.
+- Senão: `raise exception 'documento não encontrado ou sem permissão' using errcode = '42501';`.
+- `REVOKE ALL ... FROM public;` e `GRANT EXECUTE ... TO authenticated;`.
+- **Não** é criada policy de `UPDATE` para o cliente em `documento_arquivo` — o cliente segue sem privilégio de UPDATE na tabela, impedindo alteração de outras colunas (`gcs_uri`, `nome_original`, etc.).
 
-## GATE (pós-execução, via `supabase--read_query`)
-1. `select id, name, page_categories from public.estrutura_areas where id = 'b0814bc8-1959-4755-8bb1-a44560083791';` — `page_categories` deve conter `'osg'` e preservar valores anteriores.
-2. `select id, name from public.estrutura_areas where is_active = true and page_categories @> array['osg'];` — deve retornar a área OSG (reproduz passo 1 do hook).
-3. `select id, name from public.estrutura_equipes where is_active = true and area_id = 'b0814bc8-1959-4755-8bb1-a44560083791' order by name;` — deve listar "Equipe OSG".
-4. App: abrir OSG Projects → Novo Projeto e confirmar que "Equipe OSG" aparece no dropdown; conferir que Tax continua normal.
+### 2) Hooks (`src/hooks/useDocumentoArquivo.ts`)
+
+- **Novo `useUploaderNames(userIds: string[])`**: `useQuery` com key `['uploader-names', sortedIds.join(',')]`, chama `supabase.rpc('get_uploader_names', { _ids })`, `select` retorna `Record<uuid, string>`, `enabled: userIds.length > 0`.
+- **Ajustar `useExcluirDocumento`**: em vez de `.from('documento_arquivo').update({ excluido: true })`, chamar `supabase.rpc('soft_delete_documento_cliente', { _id: id })`. Manter invalidation e toasts atuais. (Uso interno da equipe permanece sem regressão porque as telas internas de exclusão de documento não usam esse hook — se algum caller interno usar, ajustar para uma variante que continue via `update` direto, autorizada pela policy de team_member+; conferir usos antes de aplicar.)
+  - Pré-checagem: `rg "useExcluirDocumento" src` para confirmar que os únicos consumidores relevantes ao cliente são MeusDocumentos/DocumentosTab. Se `DocumentosTab` (uso interno) também consome, dividir em dois hooks: `useSoftDeleteDocumentoCliente` (RPC) e manter `useExcluirDocumento` (update direto) para equipe.
+
+### 3) Front cliente — `src/pages/cliente/MeusDocumentos.tsx`
+
+- Importar `useUploaderNames` e o hook de soft-delete de cliente (RPC).
+- Derivar `uploaderIds` de `docsCliente.map(d => d.created_by).filter(Boolean)` (únicos).
+- Subtítulo de cada item: `formatBytes(...) · dd/MM/yyyy 'às' HH:mm · enviado por <nome ?? '—'>`.
+- Botão `Trash2` com `AlertDialog` de confirmação (padrão de `DocumentosTab`) → dispara a RPC → invalida a lista.
+
+### 4) Front interno — tela principal + aba
+
+- **Principal**: `src/pages/equipe/osg/DocumentosCliente.tsx` — acrescentar `useUploaderNames` e exibir `· enviado por <nome> em DD/MM/AAAA HH:MM` em cada card/linha (ler `created_by` e `created_at`).
+- **Aba (modais)**: `src/components/equipe/osg/documentos/DocumentosTab.tsx` — mesmo acréscimo textual no `<p className="text-xs …">`, formatando data + hora curta (`toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' })`).
+
+### 5) GATE (validar no dev)
+
+1. Cliente em `/cliente/documentos`: cada card mostra "enviado por <nome> · DD/MM/AAAA HH:MM".
+2. Equipe em `DocumentosCliente` (e na aba `DocumentosTab`): mesmo texto.
+3. Cliente remove documento próprio → some da lista e não volta ao recarregar; via console tentar `supabase.rpc('soft_delete_documento_cliente', { _id: <doc de outro cliente> })` → erro `42501`.
+4. **Novo — hardening**: como cliente, tentar `supabase.from('documento_arquivo').update({ gcs_uri: 'x' }).eq('id', <próprio doc>)` e `.update({ nome_original: 'x' })` → falha por ausência de policy de UPDATE. Mesmo teste com `excluido: true` → também falha (o único caminho é a RPC).
+5. Regressão: team_member+ continua vendo/inserindo/atualizando `documento_arquivo` normalmente; policies SELECT/INSERT do cliente inalteradas.
+
+### Fora de escopo
+- Backend `psa-backend-api` e ETL.
+- Reativação de documentos excluídos.
+- Auditoria (`useAuditLog`) — mantém comportamento atual do módulo.
