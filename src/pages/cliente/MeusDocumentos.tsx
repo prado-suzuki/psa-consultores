@@ -101,9 +101,45 @@ export default function MeusDocumentos() {
     void enviarArquivos(Array.from(e.dataTransfer.files ?? []));
   };
 
+  const abrirSeletorItem = (item: ChecklistSolicitadoItem) => {
+    setItemAlvo(item);
+    itemInputRef.current?.click();
+  };
+
+  const onItemInput = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !clienteId || !itemAlvo) {
+      setItemAlvo(null);
+      return;
+    }
+    if (!extensaoValida(file.name) || file.size > MAX_BYTES) {
+      toast({
+        title: 'Arquivo ignorado',
+        description: 'Fora do tipo permitido ou acima de 50 MB.',
+        variant: 'destructive',
+      });
+      setItemAlvo(null);
+      return;
+    }
+    try {
+      await uploadSolicitado.mutateAsync({
+        clienteId,
+        itemId: itemAlvo.item_id,
+        categoria: (itemAlvo.categoria as DocCategoria | null) ?? null,
+        file,
+      });
+    } catch {
+      // toast já emitido pelo onError do hook
+    } finally {
+      setItemAlvo(null);
+    }
+  };
+
   // Filtro defensivo: RLS já garante fonte='cliente', mas caches podem carregar registros
   // antigos ou de outras origens caso o mesmo hook seja usado em telas internas.
-  const docsCliente = docs.filter((d) => d.fonte === 'cliente');
+  // Também filtramos itens já classificados via checklist para não duplicar na lista "Outros".
+  const docsCliente = docs.filter((d) => d.fonte === 'cliente' && d.checklist_item_id == null);
 
   const uploaderIds = useMemo(
     () => docsCliente.map((d) => d.created_by).filter((v): v is string => !!v),
