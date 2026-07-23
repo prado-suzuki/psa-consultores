@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Download, FileText, Loader2, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -19,6 +19,7 @@ import {
   useDocumentosByVinculo,
   useExcluirDocumento,
   useUploadDocumento,
+  useUploaderNames,
   type DocCategoria,
   type DocumentoArquivoRow,
   type VinculoDoc,
