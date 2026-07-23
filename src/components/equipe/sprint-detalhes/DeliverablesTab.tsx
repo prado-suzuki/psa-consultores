@@ -126,6 +126,14 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                           {task.totalHours > 0 && <span>{task.totalHours}h</span>}
                         </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => c.openCreateSubtaskModal(task)}
+                        title="Criar subtarefa vinculada"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                       <Button variant="ghost" size="sm" onClick={() => c.openEditModal(task)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>

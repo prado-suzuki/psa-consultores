@@ -310,6 +310,10 @@ export function useEquipeSprintDetalhesController() {
     setCreateForm(blankForm(sprint?.start_date, sprint?.end_date));
     setCreateModalOpen(true);
   };
+  const openCreateSubtaskModal = (parent: Deliverable) => {
+    setCreateForm(selectParent(blankForm(sprint?.start_date, sprint?.end_date), parent.id));
+    setCreateModalOpen(true);
+  };
   const updateStatus = async (deliverableId: string, newStatus: string) => {
     try {
       await data.updateDeliverableStatus.mutateAsync({ deliverableId, newStatus });
@@ -569,6 +573,7 @@ export function useEquipeSprintDetalhesController() {
     updateMetric,
     openEditModal,
     openCreateModal,
+    openCreateSubtaskModal,
     editModalOpen,
     setEditModalOpen,
     editingDeliverable,
