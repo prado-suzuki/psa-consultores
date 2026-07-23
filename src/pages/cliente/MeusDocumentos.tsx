@@ -44,8 +44,10 @@ export default function MeusDocumentos() {
   const { data: docs = [], isLoading: carregandoDocs } = useDocumentosByCliente(clienteId ?? null);
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
+  const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
   const inputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
+  const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
