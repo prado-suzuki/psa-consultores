@@ -59,7 +59,7 @@ interface ProjetosTarefasListProps {
   currentUserId?: string | null;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_44px] min-w-[900px]';
+const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_160px_44px] min-w-[1060px]';
 
 const projectStatusStyles: Record<string, string> = {
   planned: 'bg-slate-100 text-slate-700',
@@ -75,6 +75,14 @@ function initials(name: string | null) {
 
 function dateLabel(date: string | null) {
   return date ? format(parseDate(date), 'dd MMM yyyy', { locale: ptBR }) : 'Sem prazo';
+}
+
+function completedTasksLabel(completed: number, total: number) {
+  return `${completed}/${total} concluídas`;
+}
+
+function completionPercentage(completed: number, total: number) {
+  return total > 0 ? Math.round(completed / total * 100) : 0;
 }
 
 const taskStatusProgress: Record<OrgTaskStatus, number> = {
@@ -172,6 +180,7 @@ export function ProjetosTarefasList({
         <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
         </div>
+        <div />
         <div className="flex items-center justify-center">
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
@@ -211,12 +220,11 @@ export function ProjetosTarefasList({
     </div>
     <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
-      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div><div className="px-3 py-2.5">Prazo</div><div />
+      <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div><div className="px-3 py-2.5">Prazo</div><div /><div />
     </div>
     {hierarchy.map((group, index) => {
       const groupId = `os:${group.id}`;
       const isCollapsed = collapsed.has(groupId);
-      const progress = group.taskCount ? Math.round(group.completedTaskCount / group.taskCount * 100) : 0;
       const showClientDivider = index === 0 || hierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
         {showClientDivider && <div className="flex min-w-[1010px] items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0">
@@ -225,19 +233,26 @@ export function ProjetosTarefasList({
           <span className="text-xs text-muted-foreground">{hierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
         </div>}
         <section>
-        <div className="flex min-w-[1010px] items-center gap-3 border-b bg-primary/[0.045] px-3 py-3">
-          <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10">{isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
-          <div className="h-5 w-1 rounded-full bg-primary" />
-          <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate font-semibold">{group.os?.numero_os ? `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}` : (group.hasLinkedOs ? 'OS vinculada' : 'Sem OS')}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
-          <div className="flex w-44 items-center gap-2"><Progress value={progress} className="h-1.5" /><span className="w-9 text-right text-xs font-medium text-muted-foreground">{progress}%</span></div>
-          <span className="w-28 text-right text-xs text-muted-foreground">{group.completedTaskCount}/{group.taskCount} concluídas</span>
+        <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
+          <div className="flex min-w-0 items-center gap-3 px-3 py-3">
+            <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10">{isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+            <div className="h-5 w-1 rounded-full bg-primary" />
+            <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate font-semibold">{group.os?.numero_os ? `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}` : (group.hasLinkedOs ? 'OS vinculada' : 'Sem OS')}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
+          </div>
+          <div />
+          <div />
+          <div className="flex items-center gap-1.5 px-3 text-xs text-muted-foreground">{group.os?.data_fim ? <><CalendarDays className="h-3.5 w-3.5" />{dateLabel(group.os.data_fim)}</> : 'Sem prazo'}</div>
+          <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
+            <Progress value={completionPercentage(group.completedTaskCount, group.taskCount)} className="h-1.5 w-16 bg-primary/15" />
+            <span className="shrink-0">{completedTasksLabel(group.completedTaskCount, group.taskCount)}</span>
+          </div>
+          <div />
         </div>
         {!isCollapsed && group.projects.map(projectNode => {
           const projectId = `project:${projectNode.project?.id || '__without_project__'}`;
           const projectCollapsed = collapsed.has(projectId);
-          const projectProgress = projectNode.taskCount ? Math.round(projectNode.completedTaskCount / projectNode.taskCount * 100) : 0;
           return <div key={projectId}>
-            <div className={cn(GRID, 'group border-b bg-muted/10 text-sm hover:bg-muted/30')}>
+            <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
               <div className="flex min-w-0 items-center gap-2 px-4 py-2.5 pl-9">
                 <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted">{projectCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
@@ -246,7 +261,11 @@ export function ProjetosTarefasList({
               </div>
               <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
               <div className="flex items-center gap-2 px-3 text-xs text-muted-foreground"><Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}` : null)}</AvatarFallback></Avatar><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
-              <div className="flex items-center gap-2 px-3"><Progress value={projectProgress} className="h-1.5 w-14" /><span className="text-xs text-muted-foreground">{projectProgress}%</span></div>
+              <div />
+              <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
+                <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />
+                <span className="shrink-0">{completedTasksLabel(projectNode.completedTaskCount, projectNode.taskCount)}</span>
+              </div>
               <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem><DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onClick={() => onDeleteProject(projectNode.project!.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir projeto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}</div>
             </div>
             {!projectCollapsed && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}

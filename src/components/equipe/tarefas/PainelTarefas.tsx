@@ -93,16 +93,21 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         os_id: order.id,
         numero_os: order.numero_os,
         cliente_id: order.id_cliente,
-        cliente_nome: project?.external_client?.nome || 'Cliente não informado',
-        servico_nome: project?.servico_nome || null,
-        produtos,
-      });
+          cliente_nome: project?.external_client?.nome || 'Cliente não informado',
+          servico_nome: project?.servico_nome || null,
+          data_fim: order.data_fim,
+          produtos,
+        });
     }
     return [...rows.values()];
   }, [dashboardData?.osRows, projectOrders, listProjects]);
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
   const queryFilters = useMemo(
-    () => activeView === 'list' ? { ...filters, search: undefined } : filters,
+    () => ({
+      ...filters,
+      search: activeView === 'list' ? undefined : filters.search,
+      clientId: undefined,
+    }),
     [activeView, filters],
   );
   const { data: allTasks = [] } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
@@ -120,13 +125,24 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     if (deepLinkTaskId) return allTasks;
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
     // comportamento atual em vez de esconder tarefas indevidamente.
-    if (!visibleProjectIds) return allTasks;
-    return allTasks.filter(t =>
+    const clusterTasks = !visibleProjectIds ? allTasks : allTasks.filter(t =>
       !t.project_id ||
       visibleProjectIds.has(t.project_id) ||
       (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
     );
-  }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id]);
+    if (!filters.clientId) return clusterTasks;
+    const projectsById = new Map(listProjects.map(project => [project.id, project]));
+    return clusterTasks.filter(task =>
+      task.client_id === filters.clientId ||
+      (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
+    );
+  }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
+  const visibleListProjects = useMemo(
+    () => filters.clientId
+      ? listProjects.filter(project => project.external_client_id === filters.clientId)
+      : listProjects,
+    [filters.clientId, listProjects],
+  );
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -242,7 +258,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             <TabsContent value="list" className="m-0">
               <ProjetosTarefasList
                 area={area}
-                projects={listProjects}
+                projects={visibleListProjects}
                 tasks={tasks}
                 osRows={osRows}
                 search={filters.search || ''}

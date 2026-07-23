@@ -56,6 +56,7 @@ const os = {
   numero_os: 'OS-12',
   cliente_nome: 'Cliente Alfa',
   servico_nome: 'Consultoria',
+  data_fim: '2026-12-20',
 } as OsRow;
 
 describe('buildProjetosTarefasHierarchy', () => {
@@ -77,6 +78,7 @@ describe('buildProjetosTarefasHierarchy', () => {
     );
 
     expect(result[0].os?.numero_os).toBe('OS-12');
+    expect(result[0].os?.data_fim).toBe('2026-12-20');
     expect(result[0].projects[0].tasks[0].children[0].children[0].task.id).toBe('neta');
     expect(result[0]).toMatchObject({ taskCount: 3, completedTaskCount: 1 });
     expect(result[1].projects.map(node => node.project?.id ?? null)).toEqual(['project-sem-os', null]);

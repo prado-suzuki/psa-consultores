@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Filter, FolderKanban, Search, User, X } from 'lucide-react';
+import { Building2, Filter, FolderKanban, Search, User, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,6 +12,7 @@ import {
   type OrgTaskStatus,
   type TaskFilters as TaskFiltersType,
 } from '@/hooks/useOrgTasks';
+import { useExternalClients } from '@/hooks/useTaxReferenceData';
 
 interface TaskFiltersProps {
   filters: TaskFiltersType;
@@ -39,6 +40,7 @@ const priorityOptions: { value: OrgTaskPriority; label: string }[] = [
 
 export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
   const [open, setOpen] = useState(false);
+  const { data: clients = [] } = useExternalClients();
 
   const toggleStatus = (status: OrgTaskStatus) => {
     const current = filters.status || [];
@@ -55,7 +57,8 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
   const activeCount = (filters.status?.length || 0)
     + (filters.priority?.length || 0)
     + (filters.assignedTo ? 1 : 0)
-    + (filters.projectId ? 1 : 0);
+    + (filters.projectId ? 1 : 0)
+    + (filters.clientId ? 1 : 0);
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -76,9 +79,9 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
             {activeCount > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{activeCount}</Badge>}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[min(92vw,420px)]" align="start">
+        <PopoverContent className="w-[min(92vw,560px)]" align="start">
           <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label>Responsável</Label>
                 <Select value={filters.assignedTo || 'all'} onValueChange={value => onFiltersChange({ ...filters, assignedTo: value === 'all' ? undefined : value })}>
@@ -97,6 +100,23 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
                   <SelectContent>
                     <SelectItem value="all">Todos os projetos</SelectItem>
                     {projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Cliente</Label>
+                <Select
+                  value={filters.clientId || 'all'}
+                  onValueChange={value => onFiltersChange({
+                    ...filters,
+                    clientId: value === 'all' ? undefined : value,
+                    contribuinteId: undefined,
+                  })}
+                >
+                  <SelectTrigger><Building2 className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nome}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

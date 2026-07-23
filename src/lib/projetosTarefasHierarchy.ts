@@ -7,6 +7,7 @@ export interface ProjetosTarefasOs {
   cliente_id: string;
   cliente_nome: string;
   servico_nome: string | null;
+  data_fim: string | null;
   produtos?: string | null;
 }
 
