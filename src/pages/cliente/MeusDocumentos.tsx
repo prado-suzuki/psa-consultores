@@ -22,10 +22,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useClienteAtual } from '@/hooks/useClienteAtual';
 import {
   useBaixarDocumento,
+  useChecklistSolicitadoCliente,
   useDocumentosByCliente,
   useSoftDeleteDocumentoCliente,
   useUploadDocumentoCliente,
+  useUploadDocumentoSolicitado,
   useUploaderNames,
+  type ChecklistSolicitadoItem,
+  type DocCategoria,
   type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
