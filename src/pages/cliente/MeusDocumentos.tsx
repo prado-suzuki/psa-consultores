@@ -49,9 +49,13 @@ export default function MeusDocumentos() {
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
   const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
+  const uploadSolicitado = useUploadDocumentoSolicitado();
+  const { data: checklist = [] } = useChecklistSolicitadoCliente(clienteId ?? null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const itemInputRef = useRef<HTMLInputElement>(null);
   const [arrastando, setArrastando] = useState(false);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
+  const [itemAlvo, setItemAlvo] = useState<ChecklistSolicitadoItem | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
