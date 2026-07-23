@@ -1,11 +1,21 @@
 import { useNavigate } from 'react-router-dom';
-import { useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { ArrowLeft, Download, FileText, FolderUp, Loader2, LogOut, Upload } from 'lucide-react';
+import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
+import { ArrowLeft, Download, FileText, FolderUp, Loader2, LogOut, Trash2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,7 +23,10 @@ import { useClienteAtual } from '@/hooks/useClienteAtual';
 import {
   useBaixarDocumento,
   useDocumentosByCliente,
+  useSoftDeleteDocumentoCliente,
   useUploadDocumentoCliente,
+  useUploaderNames,
+  type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 
