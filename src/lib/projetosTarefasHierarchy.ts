@@ -79,6 +79,10 @@ export function buildProjetosTarefasHierarchy(
   tasks: OrgTask[],
   osRows: ProjetosTarefasOs[],
   search = '',
+  // Com filtros ativos, esconde projetos/OS/clientes que ficaram sem nenhuma tarefa
+  // após a filtragem. Sem filtros, projetos vazios permanecem visíveis para permitir
+  // navegar a estrutura e adicionar tarefas.
+  hideEmpty = false,
 ): ProjetosTarefasOsGroup[] {
   const normalizedSearch = normalize(search.trim());
   const osById = new Map(osRows.map(os => [os.os_id, os]));
@@ -124,8 +128,12 @@ export function buildProjetosTarefasHierarchy(
     });
   }
 
+  const visibleProjectNodes = hideEmpty
+    ? projectNodes.filter(projectNode => projectNode.taskCount > 0)
+    : projectNodes;
+
   const groups = new Map<string, ProjetosTarefasOsGroup>();
-  for (const projectNode of projectNodes) {
+  for (const projectNode of visibleProjectNodes) {
     const osId = projectNode.project?.ordem_servico_id || null;
     const os = osId ? osById.get(osId) || null : null;
     const clientId = os?.cliente_id || projectNode.clientId;

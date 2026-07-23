@@ -52,6 +52,7 @@ interface ProjetosTarefasListProps {
   tasks: OrgTask[];
   osRows: ProjetosTarefasOs[];
   search: string;
+  hideEmpty?: boolean;
   onEditProject: (project: OrgProject) => void;
   onDeleteProject: (projectId: string) => void;
   onNewTask: (projectId?: string) => void;
@@ -120,6 +121,7 @@ export function ProjetosTarefasList({
   tasks,
   osRows,
   search,
+  hideEmpty = false,
   onEditProject,
   onDeleteProject,
   onNewTask,
@@ -130,8 +132,8 @@ export function ProjetosTarefasList({
   currentUserId,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
-    () => buildProjetosTarefasHierarchy(projects, tasks, osRows, search),
-    [projects, tasks, osRows, search],
+    () => buildProjetosTarefasHierarchy(projects, tasks, osRows, search, hideEmpty),
+    [projects, tasks, osRows, search, hideEmpty],
   );
   const updateTask = useUpdateOrgTask(area);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());

@@ -143,6 +143,19 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       : listProjects,
     [filters.clientId, listProjects],
   );
+  // Com qualquer filtro ativo, a lista esconde clientes/OS/projetos que ficaram sem
+  // tarefas depois da filtragem. Sem filtros, projetos vazios continuam visíveis.
+  const hasActiveFilters = useMemo(() => Boolean(
+    filters.search?.trim() ||
+    (filters.assignedTo && filters.assignedTo !== 'all') ||
+    filters.status?.length ||
+    filters.priority?.length ||
+    filters.projectId ||
+    filters.clientId ||
+    filters.contribuinteId ||
+    filters.startDate ||
+    filters.endDate,
+  ), [filters]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -262,6 +275,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 tasks={tasks}
                 osRows={osRows}
                 search={filters.search || ''}
+                hideEmpty={hasActiveFilters}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.setDeleteProjectId}
                 onNewTask={handleNewTask}
