@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import { ArrowLeft, Download, FileText, FolderUp, Loader2, LogOut, Trash2, Upload } from 'lucide-react';
+import { ArrowLeft, Check, Download, FileText, FolderUp, Loader2, LogOut, Trash2, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
