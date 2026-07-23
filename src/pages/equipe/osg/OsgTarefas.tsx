@@ -7,7 +7,7 @@ import PainelTarefas from '@/components/equipe/tarefas/PainelTarefas';
 // será feita parametrizando o painel — sem duplicar o componente.
 const OsgTarefas = () => {
   return (
-    <OsgLayout title="Tarefas" subtitle="Gestão de tarefas e eventos">
+    <OsgLayout title="Projetos e tarefas" subtitle="Acompanhe a execução por ordem de serviço">
       <PainelTarefas area="osg" />
     </OsgLayout>
   );

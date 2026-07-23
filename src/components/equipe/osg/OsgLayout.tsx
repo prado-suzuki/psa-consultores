@@ -25,7 +25,6 @@ import {
   FileSignature,
   FolderArchive,
   PieChart,
-  ListTodo,
   LayoutDashboard,
   FolderKanban,
   ClipboardList,
@@ -139,10 +138,9 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   // Auditoria). Expande no hover e fica aberto quando uma rota filha está ativa.
   const projetosItems = [
     { path: '/equipe/osg/projetos/clientes', label: 'Clientes', icon: ClipboardList },
-    { path: '/equipe/osg/projetos/cadastro', label: 'Projetos', icon: FolderKanban },
-    { path: '/equipe/osg/projetos/tarefas', label: 'Tarefas', icon: ListTodo },
+    { path: '/equipe/osg/projetos/cadastro', label: 'Projetos e tarefas', icon: FolderKanban },
   ];
-  const isProjetosActive = projetosItems.some((item) => item.path === location.pathname);
+  const isProjetosActive = location.pathname.startsWith('/equipe/osg/projetos');
 
   // Itens do agrupador "Documentos" — expande no hover (e fica aberto na rota ativa)
   const docItems = [

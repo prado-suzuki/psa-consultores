@@ -232,6 +232,7 @@ interface TaskModalProps {
   teamMembers: { id: string; name: string }[];
   parentTasks?: OrgTask[];
   defaultParentId?: string | null;
+  defaultProjectId?: string | null;
 }
 
 export const TaskModal = ({
@@ -242,6 +243,7 @@ export const TaskModal = ({
   teamMembers,
   parentTasks = [],
   defaultParentId,
+  defaultProjectId,
 }: TaskModalProps) => {
   const { user } = useAuth();
   const createTask = useCreateOrgTask(area, { showToasts: false });
@@ -468,13 +470,13 @@ export const TaskModal = ({
           reviewer_id: null,
           review_comment: '',
           parent_task_id: defaultParentId || undefined,
-          project_id: parentTask?.project_id || '',
+          project_id: parentTask?.project_id || defaultProjectId || '',
           client_id: parentTask?.client_id || undefined,
         });
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task?.id, defaultParentId]);
+  }, [task?.id, defaultParentId, defaultProjectId]);
 
   const handleAssigneeChange = (userId: string) => {
     if (userId === '_none') {

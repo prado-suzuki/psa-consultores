@@ -448,8 +448,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/tax/projetos/cadastro',
-    page_name: 'Tax Entregas',
-    page_description: 'Entregas de projetos da área Tax',
+    page_name: 'Tax Projetos e Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de serviço',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -500,8 +500,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   },
   {
     page_path: '/equipe/osg/projetos/cadastro',
-    page_name: 'Projetos OSG',
-    page_description: 'Cadastro e gestão de projetos (ferramenta compartilhada com o Tax)',
+    page_name: 'OSG Projetos e Tarefas',
+    page_description: 'Projetos e tarefas organizados por ordem de serviço',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

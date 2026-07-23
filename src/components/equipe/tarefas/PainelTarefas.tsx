@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart } from 'lucide-react';
+import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,15 @@ import {
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
+import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
+import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
+import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
+import { currentAmbiente } from '@/config/api';
+import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
+import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
+import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
+import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
+import { extractProductAcronyms, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -49,7 +58,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const deepLinkTaskId = searchParams.get('taskId');
   const { user, isAdmin, isLider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
-  const [activeView, setActiveView] = useState('calendar');
+  const [activeView, setActiveView] = useState('list');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<OrgTask | null>(null);
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
@@ -57,9 +66,51 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
-
+  const [defaultProjectId, setDefaultProjectId] = useState<string | null>(null);
+  const projectController = useProjetosCadastroController(area);
+  const listProjects = useMemo(() => {
+    const profilesById = new Map(projectController.teamMembers.map(profile => [profile.id, profile]));
+    return projectController.projects.map(project => {
+      if (project.responsible || !project.responsible_id) return project;
+      const responsible = profilesById.get(project.responsible_id);
+      return responsible ? { ...project, responsible } : project;
+    });
+  }, [projectController.projects, projectController.teamMembers]);
+  const { data: dashboardData } = useDashboardClientesOs(currentAmbiente);
+  const projectOsIds = useMemo(() => listProjects
+    .map(project => project.ordem_servico_id)
+    .filter((id): id is string => Boolean(id)), [listProjects]);
+  const { data: projectOrders = [] } = useOrgProjectOrders(projectOsIds);
+  const osRows = useMemo(() => {
+    const rows = new Map<string, ProjetosTarefasOs>((dashboardData?.osRows || []).map(row => [row.os_id, row]));
+    for (const order of projectOrders) {
+      const osProjects = listProjects.filter(item => item.ordem_servico_id === order.id);
+      const project = osProjects[0];
+      const produtos = [...new Set(osProjects.flatMap(item => extractProductAcronyms(item.servico_contratado)))]
+        .join(', ') || null;
+      const existing = rows.get(order.id);
+      rows.set(order.id, existing ? { ...existing, produtos } : {
+        os_id: order.id,
+        numero_os: order.numero_os,
+        cliente_id: order.id_cliente,
+          cliente_nome: project?.external_client?.nome || 'Cliente não informado',
+          servico_nome: project?.servico_nome || null,
+          data_fim: order.data_fim,
+          produtos,
+        });
+    }
+    return [...rows.values()];
+  }, [dashboardData?.osRows, projectOrders, listProjects]);
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
-  const { data: allTasks = [], isLoading } = useOrgTasks(deepLinkTaskId ? {} : filters);
+  const queryFilters = useMemo(
+    () => ({
+      ...filters,
+      search: activeView === 'list' ? undefined : filters.search,
+      clientId: undefined,
+    }),
+    [activeView, filters],
+  );
+  const { data: allTasks = [] } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
   const deleteTask = useDeleteOrgTask(area);
 
   const { data: clusterId } = useClusterIdByPageCategory(area);
@@ -74,17 +125,29 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     if (deepLinkTaskId) return allTasks;
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
     // comportamento atual em vez de esconder tarefas indevidamente.
-    if (!visibleProjectIds) return allTasks;
-    return allTasks.filter(t =>
+    const clusterTasks = !visibleProjectIds ? allTasks : allTasks.filter(t =>
       !t.project_id ||
       visibleProjectIds.has(t.project_id) ||
       (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
     );
-  }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id]);
+    if (!filters.clientId) return clusterTasks;
+    const projectsById = new Map(listProjects.map(project => [project.id, project]));
+    return clusterTasks.filter(task =>
+      task.client_id === filters.clientId ||
+      (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
+    );
+  }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
+  const visibleListProjects = useMemo(
+    () => filters.clientId
+      ? listProjects.filter(project => project.external_client_id === filters.clientId)
+      : listProjects,
+    [filters.clientId, listProjects],
+  );
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
     setDefaultParentId(null);
+    setDefaultProjectId(null);
     setIsTaskModalOpen(true);
   };
 
@@ -144,70 +207,72 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     setIsReassignModalOpen(true);
   };
 
-  const handleNewTask = () => {
+  const handleNewTask = (projectId?: string) => {
     setSelectedTask(null);
     setDefaultParentId(null);
+    setDefaultProjectId(projectId || null);
     setIsTaskModalOpen(true);
   };
 
   const handleAddSubtask = (parentTask: OrgTask) => {
     setSelectedTask(null);
     setDefaultParentId(parentTask.id);
+    setDefaultProjectId(parentTask.project_id);
     setIsTaskModalOpen(true);
   };
 
   const parentTasks = tasks.filter(t => !t.parent_task_id);
 
   return (
-    <>
-      <div className="space-y-6">
-        {/* Header with filters and new button */}
-        <div className="flex items-start justify-between gap-4">
-          <TaskFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            teamMembers={teamMembers}
-            projects={projects}
-          />
-          <Button onClick={handleNewTask} className="shrink-0">
-            <Plus className="h-4 w-4 mr-2" />
-            Nova Tarefa
-          </Button>
-        </div>
-
-        {/* KPI Cards */}
+    <ProjetosCadastroContext.Provider value={projectController}>
+      <div className="space-y-4">
         <TaskKPICards tasks={tasks} />
 
-        {/* Views */}
-        <Tabs value={activeView} onValueChange={setActiveView}>
-          <TabsList>
-            <TabsTrigger value="calendar" className="gap-2">
-              <CalendarDays className="h-4 w-4" />
-              Calendário
-            </TabsTrigger>
-            <TabsTrigger value="table" className="gap-2">
-              <Table2 className="h-4 w-4" />
-              Tabela
-            </TabsTrigger>
-            <TabsTrigger value="kanban" className="gap-2">
-              <Trello className="h-4 w-4" />
-              Kanban
-            </TabsTrigger>
-            <TabsTrigger value="gantt" className="gap-2">
-              <GanttChart className="h-4 w-4" />
-              Gantt
-            </TabsTrigger>
-            <TabsTrigger value="today" className="gap-2">
-              <Sun className="h-4 w-4" />
-              Hoje
-            </TabsTrigger>
-            <TabsTrigger value="future" className="gap-2">
-              <CalendarRange className="h-4 w-4" />
-              Futuras
-            </TabsTrigger>
-          </TabsList>
+        <Tabs value={activeView} onValueChange={setActiveView} className="min-w-0">
+          <div className="space-y-2 rounded-xl border bg-card p-2 shadow-sm">
+            <div className="overflow-x-auto">
+              <TabsList className="w-max min-w-full justify-start">
+                <TabsTrigger value="list" className="gap-2"><ListTree className="h-4 w-4" />Lista</TabsTrigger>
+                <TabsTrigger value="calendar" className="gap-2"><CalendarDays className="h-4 w-4" />Calendário</TabsTrigger>
+                <TabsTrigger value="table" className="gap-2"><Table2 className="h-4 w-4" />Tabela</TabsTrigger>
+                <TabsTrigger value="kanban" className="gap-2"><Trello className="h-4 w-4" />Kanban</TabsTrigger>
+                <TabsTrigger value="gantt" className="gap-2"><GanttChart className="h-4 w-4" />Gantt</TabsTrigger>
+                <TabsTrigger value="today" className="gap-2"><Sun className="h-4 w-4" />Hoje</TabsTrigger>
+                <TabsTrigger value="future" className="gap-2"><CalendarRange className="h-4 w-4" />Futuras</TabsTrigger>
+              </TabsList>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <TaskFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                teamMembers={teamMembers}
+                projects={projects}
+              />
+              <Button size="sm" className="ml-auto h-9 shrink-0" onClick={() => handleNewTask()}>
+                <Plus className="mr-2 h-4 w-4" />Nova tarefa
+              </Button>
+            </div>
+          </div>
 
           <div className="mt-4">
+            <TabsContent value="list" className="m-0">
+              <ProjetosTarefasList
+                area={area}
+                projects={visibleListProjects}
+                tasks={tasks}
+                osRows={osRows}
+                search={filters.search || ''}
+                onEditProject={projectController.handleOpenModal}
+                onDeleteProject={projectController.setDeleteProjectId}
+                onNewTask={handleNewTask}
+                onEditTask={handleEditTask}
+                onDeleteTask={handleDeleteTask}
+                onReassignTask={handleReassignTask}
+                onAddSubtask={handleAddSubtask}
+                currentUserId={user?.id}
+              />
+            </TabsContent>
+
             <TabsContent value="calendar" className="m-0">
               <TaskCalendar
                 tasks={tasks}
@@ -277,7 +342,11 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         teamMembers={teamMembers}
         parentTasks={parentTasks}
         defaultParentId={defaultParentId}
+        defaultProjectId={defaultProjectId}
       />
+
+      <ProjetoDialog />
+      <ProjetoDeleteDialog />
 
       {/* Reassign Modal */}
       <ReassignModal
@@ -305,7 +374,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </ProjetosCadastroContext.Provider>
   );
 };
 

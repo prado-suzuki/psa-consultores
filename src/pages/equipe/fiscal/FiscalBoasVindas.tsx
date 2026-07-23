@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, LayoutDashboard, Users, FolderKanban, ListTodo, History, LifeBuoy } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users, FolderKanban, History, LifeBuoy } from 'lucide-react';
 
 interface FerramentaTax {
   id: string;
@@ -33,18 +33,11 @@ const FERRAMENTAS: FerramentaTax[] = [
     icon: <Users className="h-5 w-5 text-primary" />,
   },
   {
-    id: 'projetos',
-    titulo: 'Projetos',
-    descricao: 'Cadastro e gestão dos projetos (entregas) da área Tax.',
+    id: 'projetos-tarefas',
+    titulo: 'Projetos e tarefas',
+    descricao: 'Execução organizada por OS, projeto, tarefa e subtarefa.',
     path: '/equipe/tax/projetos/cadastro',
     icon: <FolderKanban className="h-5 w-5 text-primary" />,
-  },
-  {
-    id: 'tarefas',
-    titulo: 'Tarefas',
-    descricao: 'Tarefas dos projetos da área Tax.',
-    path: '/equipe/tax/projetos/tarefas',
-    icon: <ListTodo className="h-5 w-5 text-primary" />,
   },
   {
     id: 'auditoria',
