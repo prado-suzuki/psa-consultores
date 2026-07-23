@@ -222,7 +222,8 @@ export function useUploadDocumentoCliente() {
   });
 }
 
-/** Soft-delete: marca excluido=true (o blob permanece no bucket versionado). */
+/** Soft-delete (equipe): marca excluido=true via update direto — autorizado pela
+ * policy `team_member+ can update documento_arquivo`. NÃO usar na Área do Cliente. */
 export function useExcluirDocumento(clienteId: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -236,6 +237,49 @@ export function useExcluirDocumento(clienteId: string) {
     },
     onError: (e: unknown) =>
       toast({ title: 'Erro ao remover', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
+/** Soft-delete (cliente / EDU-02): único caminho de exclusão pelo próprio cliente.
+ * Chama a RPC SECURITY DEFINER que valida posse (fonte='cliente' e cliente_id do
+ * usuário). Não damos privilégio de UPDATE em `documento_arquivo` ao cliente, então
+ * ele não consegue alterar `gcs_uri`, `nome_original` ou qualquer outra coluna. */
+export function useSoftDeleteDocumentoCliente(clienteId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('soft_delete_documento_cliente', { _id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [LIST_KEY, clienteId] });
+      toast({ title: 'Documento removido' });
+    },
+    onError: (e: unknown) =>
+      toast({ title: 'Erro ao remover', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
+/** EDU-02: resolve o nome de exibição de uploaders (created_by) via RPC segura.
+ * A RPC filtra por visibilidade: cliente só recebe nomes de uploaders dos próprios
+ * documentos; equipe (team_member+) recebe qualquer nome pedido. */
+export function useUploaderNames(userIds: string[]) {
+  const uniqSorted = Array.from(new Set(userIds.filter(Boolean))).sort();
+  return useQuery({
+    queryKey: ['uploader-names', uniqSorted.join(',')],
+    enabled: uniqSorted.length > 0,
+    queryFn: async (): Promise<Record<string, string>> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_uploader_names', { _ids: uniqSorted });
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const row of (data ?? []) as Array<{ user_id: string; display_name: string | null }>) {
+        if (row.user_id && row.display_name) map[row.user_id] = row.display_name;
+      }
+      return map;
+    },
+    staleTime: 5 * 60 * 1000,
   });
 }
 
