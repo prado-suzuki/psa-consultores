@@ -66,6 +66,9 @@ vi.mock('@/components/equipe/osg/OsgLayout', () => ({
     </main>
   ),
 }));
+vi.mock('@/components/equipe/tarefas/PainelTarefas', () => ({
+  default: ({ area }: { area: string }) => <section data-testid="projetos-tarefas">Painel consolidado {area}</section>,
+}));
 vi.mock('@/hooks/useTaxReferenceData', () => ({
   useTeamProfilesSafe: mocks.useTeamProfilesSafe,
   useTeamRolesForProjects: mocks.useTeamRolesForProjects,
@@ -312,36 +315,22 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     expect(groups?.map(group => group.label)).toEqual(['Fiscal', 'Sem área']);
   });
 
-  it('mantém a fachada Tax, o export compartilhado e a composição pública de toolbar e tabela', () => {
+  it('mantém o cadastro exportado e usa o painel consolidado na fachada Tax', () => {
     expect(ProjetosCadastroContent).toEqual(expect.any(Function));
 
     render(<FiscalProjetosCadastro />);
 
-    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Gerencie os projetos da área Tax');
-    expect(screen.getByRole('heading', { level: 2, name: 'Projetos Tax' })).toBeInTheDocument();
-    expect(screen.getByText('2 projetos cadastrados')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Novo Projeto/ })).toBeInTheDocument();
-    for (const column of ['Projeto', 'Produto', 'Serviço', 'Cliente', 'Equipe', 'Pessoas', 'Status', 'Início', 'Término', 'Hrs Contr.', 'Ações']) {
-      expect(screen.getByRole('columnheader', { name: new RegExp(column) })).toBeInTheDocument();
-    }
-    expect(screen.getByText('Zeta Tax')).toBeInTheDocument();
-    expect(screen.getByText('40h')).toBeInTheDocument();
-    expect(screen.queryByText('Projeto Geográfico')).not.toBeInTheDocument();
-    expect(mocks.useClusterIdByPageCategory).toHaveBeenCalledWith('tax');
-    expect(mocks.useDashboardProjectIds).toHaveBeenCalledWith('cluster-tax', true);
-    expect(mocks.useEstruturaEquipesByCategory).toHaveBeenCalledWith('tax');
+    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Projetos e tarefas');
+    expect(screen.getByTestId('fiscal-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado tax');
   });
 
-  it('é consumido por OsgProjetos com contexto e escopo OSG distintos', () => {
+  it('usa o mesmo painel consolidado na fachada OSG', () => {
     render(<OsgProjetos />);
 
-    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Gerencie os projetos da área OSG');
-    expect(screen.getByRole('heading', { level: 2, name: 'Projetos OSG' })).toBeInTheDocument();
-    expect(screen.getByText('Projeto Geográfico')).toBeInTheDocument();
-    expect(screen.queryByText('Zeta Tax')).not.toBeInTheDocument();
-    expect(mocks.useClusterIdByPageCategory).toHaveBeenCalledWith('osg');
-    expect(mocks.useDashboardProjectIds).toHaveBeenCalledWith('cluster-osg', false);
-    expect(mocks.useEstruturaEquipesByCategory).toHaveBeenCalledWith('osg');
+    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Projetos e tarefas');
+    expect(screen.getByTestId('osg-layout')).toHaveTextContent('Acompanhe a execução por ordem de serviço');
+    expect(screen.getByTestId('projetos-tarefas')).toHaveTextContent('Painel consolidado osg');
   });
 
   it('abre o novo projeto com o rascunho recebido do checklist tributário', async () => {
@@ -354,7 +343,7 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
       },
     };
 
-    render(<OsgProjetos />);
+    render(<ProjetosCadastroContent area="osg" />);
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(inputNear(/Nome do Projeto/)).toHaveValue('Beta Cliente - Planejamento Tributário');
