@@ -97,6 +97,12 @@ export default function MeusDocumentos() {
   // antigos ou de outras origens caso o mesmo hook seja usado em telas internas.
   const docsCliente = docs.filter((d) => d.fonte === 'cliente');
 
+  const uploaderIds = useMemo(
+    () => docsCliente.map((d) => d.created_by).filter((v): v is string => !!v),
+    [docsCliente],
+  );
+  const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
+
   const podeUpload = !!clienteId && !carregandoCliente;
 
   return (
