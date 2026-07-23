@@ -14,6 +14,7 @@ import {
   LogOut,
   Shield,
   Home,
+  LineChart,
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
 
@@ -22,6 +23,8 @@ export interface MenuItem {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   path?: string;
+  /** Item visível apenas para líder ou admin (área Gerencial). */
+  requiresLider?: boolean;
   children?: {
     id: string;
     label: string;
@@ -63,6 +66,13 @@ const menuItems: MenuItem[] = [
     ]
   },
   {
+    id: 'gerencial',
+    label: 'Gerencial',
+    icon: LineChart,
+    path: '/equipe/tax/gerencial',
+    requiresLider: true
+  },
+  {
     id: 'auditoria',
     label: 'Auditoria',
     icon: Shield,
@@ -88,7 +98,9 @@ interface FiscalSidebarProps {
 export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
+  // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
+  const canGerencial = isAdmin || isLider;
 
   const isActive = (path?: string) => !!path && location.pathname === path;
 
@@ -224,7 +236,7 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
       {/* Menu */}
       <nav className="p-3 space-y-1">
-        {menuItems.map(renderMenuItem)}
+        {menuItems.filter((item) => !item.requiresLider || canGerencial).map(renderMenuItem)}
       </nav>
 
       {/* Footer with actions */}

@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, LayoutDashboard, Users, FolderKanban, History, LifeBuoy } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users, FolderKanban, History, LifeBuoy, LineChart } from 'lucide-react';
 
 interface FerramentaTax {
   id: string;
@@ -9,6 +10,8 @@ interface FerramentaTax {
   descricao: string;
   path: string;
   icon: React.ReactNode;
+  /** Card visível apenas para líder ou admin (área Gerencial). */
+  requiresLider?: boolean;
   /**
    * URL do manual de uso (abre em nova guia), no padrão dos manuais de Dev.
    * Ainda não publicados — ver a task de criação dos manuais em "TAX · Portal".
@@ -40,6 +43,14 @@ const FERRAMENTAS: FerramentaTax[] = [
     icon: <FolderKanban className="h-5 w-5 text-primary" />,
   },
   {
+    id: 'gerencial',
+    titulo: 'Gerencial',
+    descricao: 'Dashboard de Clientes e OS do seu cluster (acesso de líder).',
+    path: '/equipe/tax/gerencial',
+    icon: <LineChart className="h-5 w-5 text-primary" />,
+    requiresLider: true,
+  },
+  {
     id: 'auditoria',
     titulo: 'Auditoria',
     descricao: 'Histórico de alterações em projetos e tarefas da área Tax.',
@@ -57,11 +68,15 @@ const FERRAMENTAS: FerramentaTax[] = [
 
 const FiscalBoasVindas = () => {
   const navigate = useNavigate();
+  const { isAdmin, isLider } = useAuth();
+  // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
+  const canGerencial = isAdmin || isLider;
+  const ferramentas = FERRAMENTAS.filter((f) => !f.requiresLider || canGerencial);
 
   return (
     <FiscalLayout title="Bem-vindo à área Tax" subtitle="Escolha uma ferramenta para começar">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FERRAMENTAS.map((f) => (
+        {ferramentas.map((f) => (
           <Card
             key={f.id}
             className="cursor-pointer hover:border-primary/40 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group flex flex-col"

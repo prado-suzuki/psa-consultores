@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { OsgWorkProvider } from "@/contexts/OsgWorkContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { AdminRoute } from "@/components/auth/AdminRoute";
+import { LiderRoute } from "@/components/auth/LiderRoute";
 
 import { GestaoAccessGate } from "./components/gestao/GestaoAccessGate";
 import { PageAccessGate } from "./components/auth/PageAccessGate";
@@ -95,6 +96,7 @@ import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
 import FiscalCadastrosClientes from "./pages/equipe/fiscal/FiscalCadastrosClientes";
 import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
+import FiscalGerencial from "./pages/equipe/fiscal/FiscalGerencial";
 
 // Equipe > OSG / Board
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
@@ -239,6 +241,9 @@ const App = () => (
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate>} />
+
+              {/* Tax Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
+              <Route path="/equipe/tax/gerencial" element={<LiderRoute><FiscalGerencial /></LiderRoute>} />
 
               {/* Tax Auditoria */}
               <Route path="/equipe/tax/auditoria" element={<PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate>} />

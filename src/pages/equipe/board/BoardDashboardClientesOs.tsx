@@ -201,7 +201,7 @@ const ChartEmpty = ({ msg }: { msg: string }) => (
   </div>
 );
 
-const BoardDashboardClientesOs = () => {
+export const DashboardClientesOsContent = () => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({
@@ -312,7 +312,6 @@ const BoardDashboardClientesOs = () => {
   ];
 
   return (
-    <BoardLayout title="Clientes e OS" subtitle="Painel nativo (teste)">
       <div ref={containerRef} style={{ background: 'var(--board-v4-page)' }}>
         <div className="pg-head">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
@@ -669,8 +668,16 @@ const BoardDashboardClientesOs = () => {
           </>
         )}
       </div>
-    </BoardLayout>
   );
 };
+
+// Wrapper de rota do Board: o conteúdo nativo (DashboardClientesOsContent) é
+// reaproveitado na área Gerencial da Tax (/equipe/tax/gerencial) dentro do
+// FiscalLayout, então o miolo vive separado do layout.
+const BoardDashboardClientesOs = () => (
+  <BoardLayout title="Clientes e OS" subtitle="Painel nativo (teste)">
+    <DashboardClientesOsContent />
+  </BoardLayout>
+);
 
 export default BoardDashboardClientesOs;
