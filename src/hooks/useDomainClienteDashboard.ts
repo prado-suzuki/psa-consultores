@@ -53,24 +53,5 @@ export function useDomainClienteDashboard(userId: string | undefined) {
     gcTime: 0,
   });
 
-  const clientDocumentsQuery = useQuery({
-    queryKey: ["client-documents", userId],
-    queryFn: async () => {
-      if (!userId) return [];
-
-      const { data, error } = await supabase
-        .from("client_documents")
-        .select("*")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!userId,
-    staleTime: 0,
-    gcTime: 0,
-  });
-
-  return { ticketsQuery, visibleProjectsQuery, clientDocumentsQuery };
+  return { ticketsQuery, visibleProjectsQuery };
 }

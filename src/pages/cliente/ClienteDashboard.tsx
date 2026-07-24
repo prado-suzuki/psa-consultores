@@ -5,7 +5,6 @@ import { useDomainClienteDashboard } from "@/hooks/useDomainClienteDashboard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,10 +13,6 @@ import {
   FileText,
   LogOut,
   FolderKanban,
-  BarChart3,
-  Download,
-  ExternalLink,
-  MessageSquare,
   ArrowLeft,
   LayoutDashboard,
   FileUp,
@@ -26,6 +21,7 @@ import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
 import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
+import { MeusDocumentosConteudo } from "@/components/cliente/MeusDocumentosConteudo";
 
 const statusConfig = {
   planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
@@ -62,11 +58,6 @@ const projectStatusOptions = [
   { value: "completed", label: "Concluído" },
 ];
 
-const documentTypeOptions = [
-  { value: "report", label: "Relatório" },
-  { value: "document", label: "Documento" },
-];
-
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
@@ -80,17 +71,9 @@ export default function ClienteDashboard() {
   const [projectDateFrom, setProjectDateFrom] = useState<Date | undefined>();
   const [projectDateTo, setProjectDateTo] = useState<Date | undefined>();
 
-  // Filter states for Documentos
-  const [docType, setDocType] = useState<string>("__all__");
-  const [docDateFrom, setDocDateFrom] = useState<Date | undefined>();
-  const [docDateTo, setDocDateTo] = useState<Date | undefined>();
-
-  const { ticketsQuery, visibleProjectsQuery, clientDocumentsQuery } = useDomainClienteDashboard(
-    user?.id,
-  );
+  const { ticketsQuery, visibleProjectsQuery } = useDomainClienteDashboard(user?.id);
   const { data: tickets = [], isLoading: isLoadingTickets } = ticketsQuery;
   const { data: visibleProjects, isLoading: isLoadingProjects } = visibleProjectsQuery;
-  const { data: clientDocuments, isLoading: isLoadingDocuments } = clientDocumentsQuery;
 
   const handleSignOut = async () => {
     await signOut();
@@ -138,22 +121,9 @@ export default function ClienteDashboard() {
     });
   }, [visibleProjects, projectStatus, projectDateFrom, projectDateTo]);
 
-  // Filter documents
-  const filteredDocuments = useMemo(() => {
-    if (!clientDocuments) return [];
-    return clientDocuments.filter((doc) => {
-      if (docType !== "__all__" && doc.document_type !== docType) return false;
-      const createdAt = doc.created_at ? new Date(doc.created_at) : null;
-      if (docDateFrom && createdAt && isBefore(createdAt, startOfDay(docDateFrom))) return false;
-      if (docDateTo && createdAt && isAfter(createdAt, endOfDay(docDateTo))) return false;
-      return true;
-    });
-  }, [clientDocuments, docType, docDateFrom, docDateTo]);
-
   // Check for active filters
   const hasTicketFilters = ticketStatus !== "__all__" || !!ticketDateFrom || !!ticketDateTo;
   const hasProjectFilters = projectStatus !== "__all__" || !!projectDateFrom || !!projectDateTo;
-  const hasDocFilters = docType !== "__all__" || !!docDateFrom || !!docDateTo;
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
@@ -165,10 +135,6 @@ export default function ClienteDashboard() {
             <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" onClick={() => navigate("/cliente/documentos")}>
-              <FileUp className="mr-2 h-4 w-4" />
-              Meus Documentos
-            </Button>
             <Button variant="ghost" onClick={() => navigate("/")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao site
@@ -205,7 +171,7 @@ export default function ClienteDashboard() {
                 value="documents"
                 className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
               >
-                <BarChart3 className="mr-2 h-4 w-4" />
+                <FileUp className="mr-2 h-4 w-4" />
                 Documentos
               </TabsTrigger>
               <TabsTrigger
@@ -383,107 +349,9 @@ export default function ClienteDashboard() {
               )}
             </TabsContent>
 
-            {/* Documents Tab */}
+            {/* Documents Tab — upload + checklist do cliente (documento_arquivo) */}
             <TabsContent value="documents" className="flex-1 mt-0">
-              {/* Filters */}
-              <DashboardFilters
-                statusOptions={documentTypeOptions}
-                statusValue={docType}
-                onStatusChange={setDocType}
-                statusLabel="Tipo"
-                dateFrom={docDateFrom}
-                dateTo={docDateTo}
-                onDateFromChange={setDocDateFrom}
-                onDateToChange={setDocDateTo}
-                onClearFilters={() => {
-                  setDocType("__all__");
-                  setDocDateFrom(undefined);
-                  setDocDateTo(undefined);
-                }}
-                hasActiveFilters={hasDocFilters}
-              />
-
-              {isLoadingDocuments ? (
-                <Card>
-                  <div className="p-4 space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="flex items-center gap-4">
-                        <Skeleton className="h-8 w-8 rounded-full" />
-                        <Skeleton className="h-4 flex-1" />
-                        <Skeleton className="h-8 w-20" />
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              ) : filteredDocuments.length === 0 ? (
-                <Card className="p-8 text-center">
-                  <p className="text-muted-foreground">
-                    {!clientDocuments || clientDocuments.length === 0
-                      ? "Nenhum documento disponível no momento."
-                      : "Nenhum documento corresponde aos filtros selecionados."}
-                  </p>
-                </Card>
-              ) : (
-                <Card>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-[100px]">Tipo</TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead className="hidden md:table-cell">Descrição</TableHead>
-                        <TableHead className="text-right w-[120px]">Ação</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredDocuments.map((doc) => (
-                        <TableRow key={doc.id}>
-                          <TableCell>
-                            <div className="flex items-center">
-                              {doc.document_type === "dashboard" ? (
-                                <div className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center">
-                                  <BarChart3 className="h-4 w-4 text-teal-600" />
-                                </div>
-                              ) : (
-                                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
-                                  <FileText className="h-4 w-4 text-slate-600" />
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{doc.name}</TableCell>
-                          <TableCell className="hidden md:table-cell text-muted-foreground">
-                            {doc.description || "-"}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {doc.document_type === "dashboard" ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-teal-600 text-teal-600 hover:bg-teal-50"
-                                onClick={() => doc.url && window.open(doc.url, "_blank")}
-                                disabled={!doc.url}
-                              >
-                                <ExternalLink className="mr-1 h-3 w-3" />
-                                Abrir
-                              </Button>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="border-slate-400 text-slate-600 hover:bg-slate-50"
-                                disabled={!doc.file_path}
-                              >
-                                <Download className="mr-1 h-3 w-3" />
-                                Baixar
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </Card>
-              )}
+              <MeusDocumentosConteudo />
             </TabsContent>
 
             {/* Dashboards Tab (DB-driven: lista via dashboard_access, RLS server-side) */}
