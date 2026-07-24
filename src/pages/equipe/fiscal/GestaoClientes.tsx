@@ -161,7 +161,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
 
   const formatTipo = (fixo: string | null) => {
     if (!fixo) return "-";
-    return fixo === "Sim" ? "Fixo" : fixo === "Não" ? "Pontual" : "-";
+    return fixo === "Sim" ? "Fixo" : fixo === "Não" ? "Pontual" : fixo === "Em Análise" ? "Em Análise" : "-";
   };
 
   const formatCategoria = (cat: string | null) => {
@@ -255,6 +255,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                 <SelectContent className="bg-card z-50">
                   <SelectItem value="Sim">Fixos</SelectItem>
                   <SelectItem value="Não">Pontuais</SelectItem>
+                  <SelectItem value="Em Análise">Em Análise</SelectItem>
                 </SelectContent>
               </Select>
             </div>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { defaultClientData } from "./constants";
 
 interface ClusterOption {
@@ -97,23 +98,28 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
             Tipo de relacionamento
           </Label>
-          <div className="flex border rounded-md overflow-hidden">
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => setClientData({ ...clientData, fixo: "Sim" })}
-              className={`px-4 py-1.5 text-xs font-semibold transition-colors ${clientData.fixo === "Sim" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
-            >
-              Fixo
-            </button>
-            <button
-              type="button"
-              disabled={isReadOnly}
-              onClick={() => setClientData({ ...clientData, fixo: "Não" })}
-              className={`px-4 py-1.5 text-xs font-semibold border-l transition-colors ${clientData.fixo === "Não" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
-            >
-              Pontual
-            </button>
+          <div className="inline-flex items-center gap-1 rounded-lg border bg-muted/40 p-1">
+            {[
+              { value: "Sim", label: "Fixo" },
+              { value: "Não", label: "Pontual" },
+              { value: "Em Análise", label: "Em Análise" },
+            ].map((opt) => (
+              <button
+                key={opt.value}
+                type="button"
+                disabled={isReadOnly}
+                onClick={() => setClientData({ ...clientData, fixo: opt.value })}
+                className={cn(
+                  "rounded-md px-3.5 py-1.5 text-xs font-semibold transition-colors",
+                  clientData.fixo === opt.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/70",
+                  isReadOnly && "cursor-not-allowed opacity-60 hover:bg-transparent hover:text-muted-foreground",
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
           </div>
         </div>
 

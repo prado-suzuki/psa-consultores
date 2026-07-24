@@ -308,7 +308,8 @@ const BoardDashboardClientesOs = () => {
 
   const tipoOptions = [
     { value: TODOS, label: 'Todos os tipos' }, { value: 'Fixo', label: 'Fixo' },
-    { value: 'Pontual', label: 'Pontual' }, { value: 'Não informado', label: 'Não informado' },
+    { value: 'Pontual', label: 'Pontual' }, { value: 'Em Análise', label: 'Em Análise' },
+    { value: 'Não informado', label: 'Não informado' },
   ];
 
   return (
