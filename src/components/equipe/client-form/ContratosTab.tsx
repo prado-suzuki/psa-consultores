@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Check } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check, FolderPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
@@ -54,6 +54,8 @@ export interface ContratosTabProps {
   allClusters: Array<{ id: string; name: string }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; codigo: string; nome: string; label: string }>;
   setoresCliente: SetorCliente[];
+  /** Cria um projeto pré-preenchido a partir de uma OS já persistida (só disponível para cliente salvo). */
+  onCreateProjectFromOs?: (cont: DraftOrdemServico) => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -238,6 +240,7 @@ export default function ContratosTab({
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
+  onCreateProjectFromOs,
 }: ContratosTabProps) {
   const setorById = (id: string) => setoresCliente.find(s => s.id === id);
   const setorLabel = (id: string | undefined, sigla: string | undefined) => {
@@ -370,6 +373,9 @@ export default function ContratosTab({
                   {isExpanded && !isEditingThis && (
                     <div className="px-4 pb-4 border-t pt-3">
                       <div className="flex justify-end gap-2 mb-3">
+                        {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => onCreateProjectFromOs(cont)}><FolderPlus size={12} /> Criar projetos ({cont.produtos_contratados.length})</Button>
+                        )}
                         {!isReadOnly && (
                           <>
                             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}><Pencil size={12} /> Editar</Button>

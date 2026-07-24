@@ -57,6 +57,7 @@ describe('rótulos (CASE das views)', () => {
     expect(tipoClienteLabel('Sim')).toBe('Fixo');
     expect(tipoClienteLabel('Não')).toBe('Pontual');
     expect(tipoClienteLabel('Nao')).toBe('Pontual');
+    expect(tipoClienteLabel('Em Análise')).toBe('Em Análise');
     expect(tipoClienteLabel(null)).toBe('Não informado');
   });
   it('categoria e situação', () => {

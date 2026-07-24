@@ -194,13 +194,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         <div className="p-6 border-b border-slate-200/60">
           {collapsed ? (
             <div className="flex justify-center">
-              <div className="h-10 w-10 rounded-xl bg-osg-500/10 flex items-center justify-center overflow-hidden">
+              <div className="h-10 w-10 flex items-center justify-center">
                 {AreaIcon}
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-osg-500/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+              <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
                 {AreaIcon}
               </div>
               <div>

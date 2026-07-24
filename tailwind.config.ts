@@ -95,6 +95,15 @@ export default {
           800: "hsl(var(--gray-800))",
           900: "hsl(var(--gray-900))",
         },
+        tax: {
+          50: "hsl(var(--tax-50) / <alpha-value>)",
+          100: "hsl(var(--tax-100) / <alpha-value>)",
+          200: "hsl(var(--tax-200) / <alpha-value>)",
+          300: "hsl(var(--tax-300) / <alpha-value>)",
+          500: "hsl(var(--tax-500) / <alpha-value>)",
+          600: "hsl(var(--tax-600) / <alpha-value>)",
+          700: "hsl(var(--tax-700) / <alpha-value>)",
+        },
         osg: {
           50: "hsl(var(--osg-50) / <alpha-value>)",
           100: "hsl(var(--osg-100) / <alpha-value>)",

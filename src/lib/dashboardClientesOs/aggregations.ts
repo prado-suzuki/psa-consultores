@@ -50,6 +50,8 @@ export function tipoClienteLabel(fixo: string | null | undefined): TipoCliente {
     case 'Não':
     case 'Nao':
       return 'Pontual';
+    case 'Em Análise':
+      return 'Em Análise';
     default:
       return 'Não informado';
   }

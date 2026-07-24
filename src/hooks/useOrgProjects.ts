@@ -262,50 +262,101 @@ export const useProjectHours = () => {
 
 // ── Mutations ──────────────────────────────────────────────────────────
 
+type LogActionFn = ReturnType<typeof useAuditLog>['logAction'];
+
+/** Insere um projeto + membros e registra auditoria. Fonte única usada pela criação única e em lote. */
+async function insertProjectWithMembers(data: OrgProjectFormData, userId: string | null, logAction: LogActionFn) {
+  const { data: project, error } = await supabase.from('org_projects').insert({
+    name: data.name,
+    description: data.description || null,
+    status: data.status,
+    start_date: data.start_date || null,
+    end_date: data.end_date || null,
+    responsible_id: data.responsible_id || null,
+    leader_id: data.leader_ids[0] || null,
+    external_client_id: data.external_client_id || null,
+    contribuinte_id: data.contribuinte_id || null,
+    estrutura_area_id: data.estrutura_area_id || null,
+    equipe_id: data.equipe_id || null,
+    is_multidisciplinar: data.is_multidisciplinar,
+    ordem_servico_id: data.ordem_servico_id || null,
+    servico_id: data.servico_id || null,
+    created_by: userId || null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
+  } as any).select('id').single();
+  if (error) throw error;
+
+  // Insert project members
+  const members = buildMembersList(project.id, data);
+  if (members.length > 0) {
+    const { error: mErr } = await supabase.from('org_project_members').insert(members);
+    if (mErr) throw mErr;
+  }
+
+  await logAction({
+    area: 'tax', entity_type: 'project', entity_id: project.id,
+    entity_name: data.name, action: 'created',
+  });
+
+  return project;
+}
+
 export const useCreateOrgProject = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { logAction } = useAuditLog();
 
   return useMutation({
-    mutationFn: async (data: OrgProjectFormData) => {
-      const { data: project, error } = await supabase.from('org_projects').insert({
-        name: data.name,
-        description: data.description || null,
-        status: data.status,
-        start_date: data.start_date || null,
-        end_date: data.end_date || null,
-        responsible_id: data.responsible_id || null,
-        leader_id: data.leader_ids[0] || null,
-        external_client_id: data.external_client_id || null,
-        contribuinte_id: data.contribuinte_id || null,
-        estrutura_area_id: data.estrutura_area_id || null,
-        equipe_id: data.equipe_id || null,
-        is_multidisciplinar: data.is_multidisciplinar,
-        ordem_servico_id: data.ordem_servico_id || null,
-        servico_id: data.servico_id || null,
-        created_by: user?.id || null,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
-      } as any).select('id').single();
-      if (error) throw error;
-
-      // Insert project members
-      const members = buildMembersList(project.id, data);
-      if (members.length > 0) {
-        const { error: mErr } = await supabase.from('org_project_members').insert(members);
-        if (mErr) throw mErr;
-      }
-
-      await logAction({
-        area: 'tax', entity_type: 'project', entity_id: project.id,
-        entity_name: data.name, action: 'created',
-      });
-
-      return project;
-    },
+    mutationFn: (data: OrgProjectFormData) => insertProjectWithMembers(data, user?.id || null, logAction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org-projects'] });
       toast.success('Projeto criado com sucesso');
+    },
+    onError: (error) => {
+      toast.error(formatProjectError(error, 'create'));
+    },
+  });
+};
+
+export interface BatchProjectResult {
+  created: number;
+  failures: { name: string; error: string }[];
+}
+
+/**
+ * Cria vários projetos em sequência (1 por produto de uma OS, por ex.).
+ * Cada projeto é inserido individualmente com seus membros e auditoria; falhas
+ * são acumuladas sem abortar o lote, e um único toast resume o resultado.
+ */
+export const useCreateOrgProjectsBatch = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async (items: OrgProjectFormData[]): Promise<BatchProjectResult> => {
+      const failures: { name: string; error: string }[] = [];
+      let created = 0;
+      for (const data of items) {
+        try {
+          await insertProjectWithMembers(data, user?.id || null, logAction);
+          created += 1;
+        } catch (error) {
+          failures.push({ name: data.name, error: formatProjectError(error, 'create') });
+        }
+      }
+      return { created, failures };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['org-projects'] });
+      const total = result.created + result.failures.length;
+      if (result.failures.length === 0) {
+        toast.success(`${result.created} projeto${result.created !== 1 ? 's' : ''} criado${result.created !== 1 ? 's' : ''} com sucesso`);
+      } else if (result.created > 0) {
+        toast.warning(`${result.created} de ${total} projetos criados. Falharam: ${result.failures.map(f => f.name).join(', ')}`);
+      } else {
+        toast.error(`Nenhum projeto criado. ${result.failures[0]?.error || ''}`);
+      }
     },
     onError: (error) => {
       toast.error(formatProjectError(error, 'create'));

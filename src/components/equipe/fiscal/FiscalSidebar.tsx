@@ -7,7 +7,6 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronLeft,
-  Calculator,
   FolderKanban,
   MessageSquare,
   ArrowLeft,
@@ -17,6 +16,7 @@ import {
   LineChart,
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
+import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
 
 export interface MenuItem {
   id: string;
@@ -88,7 +88,7 @@ const menuItems: MenuItem[] = [
 
 // Hover espelhado da OSG: leve elevação + sombra suave ao passar o mouse.
 const ITEM_BASE =
-  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5';
+  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10';
 
 interface FiscalSidebarProps {
   isCollapsed: boolean;
@@ -137,8 +137,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
               parentActive
-                ? 'bg-success/5 text-success'
-                : 'text-muted-foreground group-hover/sub:bg-muted group-hover/sub:text-foreground'
+                ? 'bg-primary/5 text-primary'
+                : 'text-muted-foreground group-hover/sub:bg-primary/5 group-hover/sub:text-primary'
             )}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
@@ -172,8 +172,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                       className={cn(
                         ITEM_BASE,
                         childActive
-                          ? 'bg-success/10 text-success'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
                       )}
                     >
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
@@ -196,8 +196,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         className={cn(
           ITEM_BASE,
           active
-            ? 'bg-success/10 text-success'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
         )}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
@@ -216,8 +216,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       {/* Header with collapse button — espacamento/tamanhos espelhados do OSG Projects */}
       <div className="border-b border-border flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
-            <Calculator className="h-5 w-5 text-success" />
+          <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
+            <TaxIcon size={40} className="h-full w-full block" />
           </div>
           <div>
             <h1 className="font-semibold text-foreground text-lg">Tax</h1>

@@ -107,7 +107,7 @@ export interface RawSetorRegiao {
 
 // ── Rótulos derivados (espelham os CASE das views) ─────────────────────
 
-export type TipoCliente = 'Fixo' | 'Pontual' | 'Não informado';
+export type TipoCliente = 'Fixo' | 'Pontual' | 'Em Análise' | 'Não informado';
 
 export type StatusContrato = 'Sem prazo' | 'Vencido' | 'Vence em 30 dias' | 'Vigente';
 

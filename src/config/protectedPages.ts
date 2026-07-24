@@ -463,6 +463,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/tax/projetos/cadastro-lote',
+    page_name: 'Tax Criar Projetos em Lote',
+    page_description: 'Criação de projetos em lote a partir de uma ordem de serviço',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/tax/projetos/clientes',
     page_name: 'Tax Clientes',
     page_description: 'Cadastros de clientes da área Tax',
