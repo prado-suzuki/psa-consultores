@@ -2,17 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Filter, Search, Users, ChevronLeft, ChevronRight, Plus, Loader2, Trash2 } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 import {
-  useClientesLista,
-  useContribuintesPorCliente,
   useClientesFiltrados,
   useContribuintesExpand,
 } from "@/hooks/useGestaoClientes";
@@ -20,6 +17,9 @@ import { useDeleteCliente } from "@/hooks/useDeleteCliente";
 import { useClusterIdByPageCategory } from "@/hooks/useTaxReferenceData";
 import type { AreaKey } from "@/config/areaCategories";
 import NewClientModal from "@/components/equipe/NewClientModal";
+import ClientesFilterBar, {
+  type ClientesFilterField,
+} from "@/components/equipe/clientes/ClientesFilterBar";
 
 /* ── Sub-componente: contribuintes expandidos ── */
 const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
@@ -60,17 +60,13 @@ const ITEMS_PER_PAGE = 10;
 const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
   const canEdit = isAdmin || isLider || isSublider;
-  const [clienteId, setClienteId] = useState("");
+  const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [tipo, setTipo] = useState("");
   const [categoria, setCategoria] = useState("");
-  const [searched, setSearched] = useState(true);
 
   // Estados de paginação
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Estados do contribuinte (apenas para filtrar)
-  const [nomeRazaoSocial, setNomeRazaoSocial] = useState("");
 
   // Modal de cadastro completo (usado para criar, editar e visualizar)
   const [novoClienteModalOpen, setNovoClienteModalOpen] = useState(false);
@@ -81,59 +77,58 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
 
   // Hooks centralizados
   const { data: clusterId } = useClusterIdByPageCategory(area);
-  const { data: clientes = [] } = useClientesLista();
-  const { data: contribuintes = [] } = useContribuintesPorCliente(clienteId);
   const {
     data: resultados = [],
     isLoading,
-    refetch,
   } = useClientesFiltrados(
-    { clienteId, status, tipo, categoria, nomeRazaoSocial },
-    searched,
+    { clienteId: "", status, tipo, categoria, nomeRazaoSocial: "" },
+    true,
     clusterId ?? undefined,
     area === 'tax',
   );
   const deleteMutation = useDeleteCliente();
 
-  // Verifica se há filtros ativos
-  const hasActiveFilters = clienteId || status || tipo || categoria || nomeRazaoSocial;
+  // Busca por nome (client-side, ao vivo) sobre os resultados já carregados
+  const filteredResults = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return resultados;
+    return resultados.filter((c) => (c.nome ?? "").toLowerCase().includes(q));
+  }, [resultados, search]);
 
-  // Limpar contribuinte quando cliente mudar
-  useEffect(() => {
-    setNomeRazaoSocial("");
-  }, [clienteId]);
-
-  // Auto-selecionar contribuinte quando há apenas um
-  useEffect(() => {
-    if (clienteId && clienteId !== "__todos__" && contribuintes && contribuintes.length === 1 && !nomeRazaoSocial) {
-      setNomeRazaoSocial(contribuintes[0].nome_razao_social);
-    }
-  }, [clienteId, contribuintes, nomeRazaoSocial]);
-
-  // Reset página quando buscar novamente
+  // Reset página quando os resultados filtrados mudarem
   useEffect(() => {
     setCurrentPage(1);
-  }, [resultados]);
+  }, [filteredResults]);
 
   // Paginação da tabela principal
-  const totalPages = Math.ceil(resultados.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredResults.length / ITEMS_PER_PAGE);
   const paginatedResults = useMemo(() => {
-    return resultados.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [resultados, currentPage]);
+    return filteredResults.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filteredResults, currentPage]);
 
-  const handleSearch = () => {
-    setSearched(true);
+  const setFilter = (field: ClientesFilterField, val: string) => {
+    switch (field) {
+      case "search":
+        setSearch(val);
+        break;
+      case "status":
+        setStatus(val);
+        break;
+      case "tipo":
+        setTipo(val);
+        break;
+      case "categoria":
+        setCategoria(val);
+        break;
+    }
     setCurrentPage(1);
-    refetch();
   };
 
   const handleClear = () => {
-    setClienteId("");
+    setSearch("");
     setStatus("");
     setTipo("");
     setCategoria("");
-    setNomeRazaoSocial("");
-    setSearched(false);
     setCurrentPage(1);
   };
 
@@ -177,142 +172,25 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
 
   const content = (
     <div className="space-y-6">
-      {/* Topo: Botão à esquerda + texto auxiliar à direita */}
-      <div className="flex justify-between items-center">
-        {canEdit && (
-          <Button
-            onClick={() => {
-              setEditingClienteId(null);
-              setViewMode(false);
-              setNovoClienteModalOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Novo cliente
-          </Button>
-        )}
-        <div className="hidden md:flex items-center text-muted-foreground gap-2">
-          <Search className="h-4 w-4" />
-          <span className="text-sm">Gerencie sua base de dados de clientes</span>
-        </div>
-      </div>
+      {/* Barra de Filtros (com ação "Novo cliente") */}
+      <ClientesFilterBar
+        value={{ search, status, tipo, categoria }}
+        onChange={setFilter}
+        onClear={handleClear}
+        resultCount={filteredResults.length}
+        canCreate={canEdit}
+        onNewCliente={() => {
+          setEditingClienteId(null);
+          setViewMode(false);
+          setNovoClienteModalOpen(true);
+        }}
+      />
 
-      {/* Card de Filtros */}
-      <div className="bg-card rounded-xl shadow-sm border border-border overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-border bg-muted flex items-center gap-3">
-          <Filter className="h-5 w-5 text-primary" />
-          <h3 className="text-lg font-bold uppercase tracking-wide text-foreground">Filtros de Busca</h3>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-48">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-        {/* Corpo */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Cliente</label>
-              <Select value={clienteId} onValueChange={setClienteId}>
-                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent className="bg-card z-50">
-                  <SelectItem value="__todos__">Todos os Clientes</SelectItem>
-                  {clientes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Contribuinte</label>
-              <Select value={nomeRazaoSocial} onValueChange={setNomeRazaoSocial}>
-                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
-                  <SelectValue placeholder="Selecione o contribuinte" />
-                </SelectTrigger>
-                <SelectContent className="bg-card z-50">
-                  {contribuintes.map((c) => (
-                    <SelectItem key={c.id} value={c.nome_razao_social}>{c.nome_razao_social}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Status</label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
-                  <SelectValue placeholder="Todos os status" />
-                </SelectTrigger>
-                <SelectContent className="bg-card z-50">
-                  <SelectItem value="true">Ativo</SelectItem>
-                  <SelectItem value="false">Inativo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Tipo</label>
-              <Select value={tipo} onValueChange={setTipo}>
-                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent className="bg-card z-50">
-                  <SelectItem value="Sim">Fixos</SelectItem>
-                  <SelectItem value="Não">Pontuais</SelectItem>
-                  <SelectItem value="Em Análise">Em Análise</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="block text-sm font-bold uppercase tracking-wider text-foreground mb-2">Categoria</label>
-              <Select value={categoria} onValueChange={setCategoria}>
-                <SelectTrigger className="h-12 bg-card border-border text-foreground rounded-lg shadow-sm">
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent className="bg-card z-50">
-                  <SelectItem value="Bronze">Bronze</SelectItem>
-                  <SelectItem value="Prata">Prata</SelectItem>
-                  <SelectItem value="Ouro">Ouro</SelectItem>
-                  <SelectItem value="Diamante">Diamante</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </div>
-        {/* Footer */}
-        <div className="px-6 py-4 bg-muted border-t border-border flex justify-end gap-3">
-          <Button
-            variant="ghost"
-            onClick={handleClear}
-          >
-            Limpar filtros
-          </Button>
-          <Button
-            onClick={handleSearch}
-            disabled={isLoading}
-          >
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Search className="h-4 w-4 mr-2" />}
-            {isLoading ? "Buscando..." : "Buscar"}
-          </Button>
-        </div>
-      </div>
-
-      {/* Resultados */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold text-foreground">Resultados recentes</h3>
-        <span className="text-sm text-muted-foreground">
-          Mostrando {resultados.length} resultado{resultados.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-
-      {!searched || isLoading ? (
-        isLoading ? (
-          <div className="flex items-center justify-center h-48">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border bg-card h-48 flex items-center justify-center gap-3 text-muted-foreground shadow-sm">
-            <Search className="h-5 w-5" />
-            <span className="text-sm">Utilize os filtros acima para encontrar clientes.</span>
-          </div>
-        )
-      ) : resultados.length === 0 ? (
+      ) : filteredResults.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-card h-48 flex items-center justify-center gap-3 text-muted-foreground shadow-sm">
           <Users className="h-5 w-5" />
           <span className="text-sm">Nenhum resultado encontrado. Tente ajustar os filtros.</span>
@@ -321,8 +199,8 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
         <div className="flex flex-col">
           <div className="rounded-xl border border-border overflow-hidden shadow-sm">
             <Table>
-              <TableHeader className="bg-muted">
-               <TableRow className="hover:bg-muted border-b-2 border-border">
+              <TableHeader className="bg-[#603831] [&_th]:text-white/80">
+               <TableRow className="hover:bg-[#603831] border-b-2 border-border">
                    <TableHead className="w-10 px-2" />
                    <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Nome Cliente</TableHead>
                   <TableHead className="text-xs font-semibold uppercase tracking-wider text-muted-foreground h-12 px-4">Categoria</TableHead>
@@ -407,7 +285,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
             <div className="flex items-center justify-between mt-4 px-2 pb-2">
               <span className="text-xs text-muted-foreground">
                 Exibindo {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
-                {Math.min(currentPage * ITEMS_PER_PAGE, resultados.length)} de {resultados.length}
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredResults.length)} de {filteredResults.length}
               </span>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">Página {currentPage} de {totalPages}</span>
