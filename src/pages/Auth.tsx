@@ -5,11 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus, Users, Mail } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, UserPlus, Mail, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import logo from '@/assets/logo-psa.png';
+import logo from '@/assets/logo-psa-dark.png';
+import heroImage from '@/assets/hero/hero-2.jpg';
+import { NovidadesShowcase } from '@/components/novidades/NovidadesShowcase';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -140,23 +142,34 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
-      {/* Left Side - Login */}
-      <div className="w-full lg:w-1/2 flex flex-col p-8">
+    <div className="min-h-screen flex bg-white">
+      {/* Login — agora à DIREITA no desktop (lg:order-2) */}
+      <div className="w-full lg:w-1/2 lg:order-2 flex flex-col p-8">
         <Link 
           to="/" 
-          className="inline-flex items-center gap-2 text-gray-400 hover:text-white transition-colors mb-8"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
           Voltar ao site
         </Link>
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex items-center justify-center lg:flex-1">
         <div className="w-full max-w-md space-y-8">
+          {/* Branding original — logo + Área do Cliente + texto explicativo */}
+          <div className="text-center space-y-3">
+            <img src={logo} alt="PSA Consultores" className="h-12 mx-auto" />
+            <div className="flex items-center justify-center gap-2 text-primary">
+              <Users className="h-4 w-4" />
+              <span className="text-sm font-semibold uppercase tracking-wide">Área do Cliente</span>
+            </div>
+            <p className="text-gray-600 text-sm">
+              Gerencie seus chamados, documentos e mantenha-se conectado com nossa equipe de especialistas.
+            </p>
+          </div>
           <div className="text-center">
-            <h2 className="text-3xl font-bold text-white">
+            <h2 className="text-3xl font-bold text-gray-900">
               {isLogin ? 'Bem-vindo de volta' : 'Criar conta'}
             </h2>
-            <p className="mt-2 text-gray-400">
+            <p className="mt-2 text-gray-600">
               {isLogin ? 'Faça login para acessar sua área' : 'Preencha os dados para se cadastrar'}
             </p>
           </div>
@@ -165,20 +178,20 @@ export default function Auth() {
             <form onSubmit={handleForgotPassword} className="space-y-6">
               <div className="text-center">
                 <Mail className="h-10 w-10 text-primary mx-auto mb-3" />
-                <h3 className="text-xl font-semibold text-white">Redefinir Senha</h3>
+                <h3 className="text-xl font-semibold text-gray-900">Redefinir Senha</h3>
                 <p className="text-sm text-gray-400 mt-1">
                   Informe seu email e enviaremos um link de redefinição
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+                <Label htmlFor="forgot-email" className="text-gray-700">Email</Label>
                 <Input
                   id="forgot-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={forgotLoading}>
@@ -204,14 +217,14 @@ export default function Auth() {
           ) : isLogin ? (
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="login-email" className="text-gray-300">Email</Label>
+                <Label htmlFor="login-email" className="text-gray-700">Email</Label>
                 <Input
                   id="login-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={loginForm.email}
                   onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.email ? 'border-destructive' : ''}`}
+                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -219,7 +232,7 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="login-password" className="text-gray-300">Senha</Label>
+                <Label htmlFor="login-password" className="text-gray-700">Senha</Label>
                 <div className="relative">
                   <Input
                     id="login-password"
@@ -227,12 +240,12 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.password ? 'border-destructive' : ''}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -260,7 +273,7 @@ export default function Auth() {
                 <button
                   type="button"
                   onClick={() => setShowForgotPassword(true)}
-                  className="text-sm text-gray-400 hover:text-white hover:underline block w-full"
+                  className="text-sm text-gray-600 hover:text-gray-900 hover:underline block w-full"
                 >
                   Esqueci minha senha
                 </button>
@@ -277,28 +290,28 @@ export default function Auth() {
             <form onSubmit={handleRegister} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-gray-300">Nome</Label>
+                  <Label htmlFor="firstName" className="text-gray-700">Nome</Label>
                   <Input
                     id="firstName"
                     type="text"
                     placeholder="João"
                     value={registerForm.firstName}
                     onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.firstName ? 'border-destructive' : ''}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.firstName ? 'border-destructive' : ''}`}
                   />
                   {errors.firstName && (
                     <p className="text-sm text-destructive">{errors.firstName}</p>
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-gray-300">Sobrenome</Label>
+                  <Label htmlFor="lastName" className="text-gray-700">Sobrenome</Label>
                   <Input
                     id="lastName"
                     type="text"
                     placeholder="Silva"
                     value={registerForm.lastName}
                     onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.lastName ? 'border-destructive' : ''}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.lastName ? 'border-destructive' : ''}`}
                   />
                   {errors.lastName && (
                     <p className="text-sm text-destructive">{errors.lastName}</p>
@@ -307,14 +320,14 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-email" className="text-gray-300">Email</Label>
+                <Label htmlFor="register-email" className="text-gray-700">Email</Label>
                 <Input
                   id="register-email"
                   type="email"
                   placeholder="seu@email.com"
                   value={registerForm.email}
                   onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.email ? 'border-destructive' : ''}`}
+                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -322,7 +335,7 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="register-password" className="text-gray-300">Senha</Label>
+                <Label htmlFor="register-password" className="text-gray-700">Senha</Label>
                 <div className="relative">
                   <Input
                     id="register-password"
@@ -330,12 +343,12 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={registerForm.password}
                     onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                    className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.password ? 'border-destructive' : ''}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-900"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -346,14 +359,14 @@ export default function Auth() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-gray-300">Confirmar Senha</Label>
+                <Label htmlFor="confirmPassword" className="text-gray-700">Confirmar Senha</Label>
                 <Input
                   id="confirmPassword"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••"
                   value={registerForm.confirmPassword}
                   onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
-                  className={`bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.confirmPassword ? 'border-destructive' : ''}`}
                 />
                 {errors.confirmPassword && (
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>
@@ -385,26 +398,28 @@ export default function Auth() {
               </div>
             </form>
           )}
+
+          {/* Ajuda — no lado do acesso */}
+          <p className="text-center text-sm text-gray-600">
+            Precisa de ajuda? Entre em contato conosco pelo email contato@psaconsultores.com.br
+          </p>
         </div>
+        </div>
+
+        {/* Mobile: novidades num cartão teal abaixo do form (o painel lateral some no mobile) */}
+        <div className="lg:hidden mt-10">
+          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-6">
+            <NovidadesShowcase />
+          </div>
         </div>
       </div>
 
-      {/* Right Side - Image/Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gray-900/80 backdrop-blur-lg items-center justify-center p-12 border-l border-gray-800">
-        <div className="max-w-md text-center space-y-6">
-          <img src={logo} alt="PSA Consultores" className="h-20 mx-auto mb-6" />
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Users className="h-6 w-6 text-primary" />
-            <h3 className="text-3xl font-bold text-white">Área do Cliente</h3>
-          </div>
-          <p className="text-lg text-gray-300">
-            Gerencie seus chamados, documentos e mantenha-se conectado com nossa equipe de especialistas.
-          </p>
-          <div className="pt-6 border-t border-gray-700">
-            <p className="text-sm text-gray-400">
-              Precisa de ajuda? Entre em contato conosco pelo email contato@psaconsultores.com.br
-            </p>
-          </div>
+      {/* Right Side - Novidades sobre a imagem do agro (mesma linguagem do hero da home) */}
+      <div className="hidden lg:flex lg:w-1/2 lg:order-1 relative items-center justify-center p-12 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroImage})` }} />
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-900/90 via-teal-800/85 to-teal-950/90" />
+        <div className="relative z-10 w-full max-w-md">
+          <NovidadesShowcase />
         </div>
       </div>
     </div>

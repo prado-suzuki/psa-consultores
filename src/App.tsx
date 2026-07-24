@@ -29,6 +29,7 @@ import ResetPassword from "./pages/ResetPassword";
 import PrimeiroAcesso from "./pages/PrimeiroAcesso";
 import Missao from "./pages/Missao";
 import Novidades from "./pages/Novidades";
+import NovidadeDetalhe from "./pages/NovidadeDetalhe";
 import Ajuda from "./pages/Ajuda";
 
 // Portal do Cliente
@@ -156,6 +157,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
               <Route path="/novidades" element={<Novidades />} />
+              <Route path="/novidades/:slug" element={<NovidadeDetalhe />} />
               <Route path="/ajuda" element={<Ajuda />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/reset-password" element={<ResetPassword />} />
