@@ -420,7 +420,6 @@ export function MeusDocumentosConteudo() {
               ) : (
                 <div className="mt-5 space-y-6">
                   {secoesFiltradas.map((sec) => {
-                    const SecaoIcon = ENTIDADE_ICON[sec.entidade] ?? FileText;
                     const label = ENTIDADE_SECAO[sec.entidade] ?? sec.entidade;
                     const expandida = secoesExpandidas.has(sec.entidade);
                     const temMais = sec.cards.length > 3;
@@ -436,7 +435,6 @@ export function MeusDocumentosConteudo() {
                       <div key={sec.entidade}>
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-2">
-                            <SecaoIcon className="h-4 w-4 shrink-0 text-teal-700" />
                             <h3 className="truncate text-sm font-semibold text-foreground">{label}</h3>
                             <span className="shrink-0 text-xs text-muted-foreground">
                               {sec.cards.length} {sec.cards.length === 1 ? 'entidade' : 'entidades'}
