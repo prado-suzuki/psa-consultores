@@ -78,7 +78,7 @@ const menuItems: MenuItem[] = [
 
 // Hover espelhado da OSG: leve elevação + sombra suave ao passar o mouse.
 const ITEM_BASE =
-  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-foreground/5';
+  'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/10';
 
 interface FiscalSidebarProps {
   isCollapsed: boolean;
@@ -125,8 +125,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
               parentActive
-                ? 'bg-success/5 text-success'
-                : 'text-muted-foreground group-hover/sub:bg-muted group-hover/sub:text-foreground'
+                ? 'bg-primary/5 text-primary'
+                : 'text-muted-foreground group-hover/sub:bg-primary/5 group-hover/sub:text-primary'
             )}
           >
             <Icon className="h-4 w-4 flex-shrink-0" />
@@ -160,8 +160,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                       className={cn(
                         ITEM_BASE,
                         childActive
-                          ? 'bg-success/10 text-success'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
                       )}
                     >
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
@@ -184,8 +184,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         className={cn(
           ITEM_BASE,
           active
-            ? 'bg-success/10 text-success'
-            : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+            ? 'bg-primary/10 text-primary'
+            : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
         )}
       >
         <Icon className="h-4 w-4 flex-shrink-0" />
