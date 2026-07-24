@@ -201,7 +201,12 @@ const ChartEmpty = ({ msg }: { msg: string }) => (
   </div>
 );
 
-export const DashboardClientesOsContent = () => {
+export const DashboardClientesOsContent = ({
+  scopeProjetosAClientesVisiveis = false,
+}: {
+  /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
+  scopeProjetosAClientesVisiveis?: boolean;
+} = {}) => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({
@@ -280,7 +285,16 @@ export const DashboardClientesOsContent = () => {
     }),
     [osRows, matchDim, de, ate],
   );
-  const projetosFiltrado: ProjetoRow[] = useMemo(() => projetoRows.filter(matchDim), [projetoRows, matchDim]);
+  // Escopo opcional (Gerencial): org_projects segue a regra de projetos
+  // (participação/área), não o cluster; aqui restringimos a aba de projetos aos
+  // clientes visíveis (que já vêm por cluster via RLS de cliente). Não mexe na
+  // RLS nem na ferramenta de Projetos e Tarefas — Board mantém a prop desligada.
+  const projetoRowsEscopado = useMemo(() => {
+    if (!scopeProjetosAClientesVisiveis) return projetoRows;
+    const visiveis = new Set(clienteRows.map((c) => c.cliente_id));
+    return projetoRows.filter((p) => p.cliente_id != null && visiveis.has(p.cliente_id));
+  }, [scopeProjetosAClientesVisiveis, projetoRows, clienteRows]);
+  const projetosFiltrado: ProjetoRow[] = useMemo(() => projetoRowsEscopado.filter(matchDim), [projetoRowsEscopado, matchDim]);
 
   // KPIs / séries.
   const kClientes = useMemo(() => kpisClientes(clientesFiltrados), [clientesFiltrados]);
