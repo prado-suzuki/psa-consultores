@@ -617,6 +617,19 @@ All colors MUST be HSL.
   --board-v4-cyan-t: rgba(10,155,181,.09);
 }
 
+/* Área Gerencial do OSG: o dashboard nativo (board-v4) herda a paleta creme/areia
+   da OSG no lugar do cinza-azulado do Board. Precisa de `:root.osg-theme`
+   (especificidade maior que o `:root` acima) — senão o :root, por vir depois na
+   cascata, anularia a sobrescrita. Afeta só /equipe/osg/gerencial (única página
+   OSG que usa board-v4); Board e Tax ficam intactos. Gráficos/texto seguem o painel. */
+:root.osg-theme {
+  --board-v4-page: hsl(32 24% 96%);
+  --board-v4-surface: hsl(32 28% 98.5%);
+  --board-v4-surface2: hsl(32 28% 92%);
+  --board-v4-line: hsl(32 20% 90%);
+  --board-v4-line2: hsl(32 22% 93%);
+}
+
 /* Board v4 Animations */
 @keyframes board-v4-fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
 @keyframes board-v4-grow { from { transform:scaleX(0); } to { transform:scaleX(1); } }
