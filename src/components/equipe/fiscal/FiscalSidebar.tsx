@@ -7,7 +7,6 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronLeft,
-  Calculator,
   FolderKanban,
   MessageSquare,
   ArrowLeft,
@@ -16,6 +15,7 @@ import {
   Home,
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
+import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
 
 export interface MenuItem {
   id: string;
@@ -204,8 +204,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
       {/* Header with collapse button — espacamento/tamanhos espelhados do OSG Projects */}
       <div className="border-b border-border flex items-center justify-between p-6">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-success/10 flex items-center justify-center flex-shrink-0">
-            <Calculator className="h-5 w-5 text-success" />
+          <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
+            <TaxIcon size={40} className="h-full w-full block" />
           </div>
           <div>
             <h1 className="font-semibold text-foreground text-lg">Tax</h1>
