@@ -356,7 +356,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             </div>
           ) : (
             <div
-              className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 [scrollbar-color:hsl(var(--osg-moss))_hsl(var(--osg-100))] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-osg-moss [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-osg-100"
+              className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-4 [scrollbar-color:hsl(var(--osg-moss))_hsl(var(--osg-100))] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-osg-moss [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-osg-100"
               aria-label={`Entidades de ${TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}`}
             >
               {categoria.grupos.map((grupo) => (
@@ -426,9 +426,9 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, solicitados,
 
 function Metric({ label, value, tone }: { label: string; value: number; tone: 'warning' | 'neutral' }) {
   return (
-    <div className="rounded-xl bg-osg-50/70 px-3 py-3 text-center">
-      <div className={cn('text-xl font-bold tabular-nums', tone === 'warning' ? 'text-osg-700' : 'text-osg-moss')}>{value}</div>
-      <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-osg-500">{label}</div>
+    <div className="flex flex-col items-center rounded-xl bg-osg-50/70 px-2 py-3 text-center">
+      <div className={cn('text-xl font-bold leading-none tabular-nums', tone === 'warning' ? 'text-osg-700' : 'text-osg-moss')}>{value}</div>
+      <div className="mt-1 text-[10px] font-semibold uppercase leading-tight text-osg-500">{label}</div>
     </div>
   );
 }
