@@ -8,17 +8,22 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 220 26% 12%;
+    /* Superfícies Tax: quase branco com um toque bem sutil de marfim quente,
+       para o teal (accent) saltar — mesma lógica das superfícies da OSG. */
+    --background: 42 24% 99.8%;
+    /* Texto principal: marrom bem escuro #2F1305 (não preto puro), combina com
+       a paleta marfim/teal. */
+    --foreground: 20 81% 10%;
 
-    /* Canvas = fundo da página (slate-50). OSG sobrescreve com osg-canvas. */
-    --canvas: 210 20% 98%;
+    /* Canvas = fundo da página. Praticamente branco, só um fio de marfim mais
+       escuro que os cards para eles "saltarem". Substitui o slate-50 azulado. */
+    --canvas: 42 22% 99%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 220 26% 12%;
+    --card: 42 24% 99.8%;
+    --card-foreground: 20 81% 10%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 220 26% 12%;
+    --popover: 42 24% 99.8%;
+    --popover-foreground: 20 81% 10%;
 
     /* Teal - Cor protagonista #0d9488 */
     --primary: 175 82% 29%;
@@ -28,7 +33,9 @@ All colors MUST be HSL.
     --secondary: 175 82% 29%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 96%;
+    /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
+       marfim tax-50 no lugar do cinza-azulado. */
+    --muted: var(--tax-50);
     --muted-foreground: 220 9% 46%;
 
     --accent: 175 82% 29%;
@@ -68,6 +75,18 @@ All colors MUST be HSL.
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
     
+    /* Tax neutro — marfim/aveia quente (fundo que casa com o teal).
+       Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent;
+       é uma matiz quente que faz o teal (accent) saltar. Escala do claro (fundos)
+       ao escuro (texto/detalhe), análoga à escala osg. */
+    --tax-50: 42 26% 98%;
+    --tax-100: 40 24% 94%;
+    --tax-200: 38 25% 83%;
+    --tax-300: 34 20% 66%;
+    --tax-500: 32 16% 42%;
+    --tax-600: 30 18% 32%;
+    --tax-700: 28 20% 24%;
+
     /* OSG accent — taupe/brown (versão mais escura) */
     --osg-50: 32 28% 92%;
     --osg-100: 30 26% 84%;
