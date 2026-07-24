@@ -101,6 +101,7 @@ import FiscalGerencial from "./pages/equipe/fiscal/FiscalGerencial";
 // Equipe > OSG / Board
 import OsgAreaSelector from "./pages/equipe/osg/OsgAreaSelector";
 import OsgBoasVindas from "./pages/equipe/osg/OsgBoasVindas";
+import OsgGerencial from "./pages/equipe/osg/OsgGerencial";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
@@ -255,6 +256,8 @@ const App = () => (
               <Route path="/equipe/osg/projetos/clientes" element={<PageAccessGate pagePath="/equipe/osg/projetos/clientes"><OsgClientes /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/osg/projetos/tarefas"><OsgTarefas /></PageAccessGate>} />
+              {/* OSG Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
+              <Route path="/equipe/osg/gerencial" element={<LiderRoute><OsgGerencial /></LiderRoute>} />
               <Route element={<OsgWorkProvider><Outlet /></OsgWorkProvider>}>
                 <Route path="/equipe/osg/work" element={<PageAccessGate pagePath="/equipe/osg/work"><OsgWorkDashboard /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />

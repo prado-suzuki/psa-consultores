@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, LayoutDashboard, Users, FolderKanban, Shield, MessageSquare } from 'lucide-react';
+import { ChevronRight, LayoutDashboard, Users, FolderKanban, Shield, MessageSquare, LineChart } from 'lucide-react';
 
 interface FerramentaOsg {
   id: string;
@@ -9,6 +10,8 @@ interface FerramentaOsg {
   descricao: string;
   path: string;
   icon: React.ReactNode;
+  /** Card visível apenas para líder ou admin (área Gerencial). */
+  requiresLider?: boolean;
   /**
    * URL do manual de uso (abre em nova guia), no padrão dos manuais de Dev.
    * Ainda não publicados — enquanto ausente, o card mostra "Manual (em breve)".
@@ -39,6 +42,14 @@ const FERRAMENTAS: FerramentaOsg[] = [
     icon: <FolderKanban className="h-5 w-5 text-osg-600" />,
   },
   {
+    id: 'gerencial',
+    titulo: 'Gerencial',
+    descricao: 'Dashboard de Clientes e OS do seu cluster (acesso de líder).',
+    path: '/equipe/osg/gerencial',
+    icon: <LineChart className="h-5 w-5 text-osg-600" />,
+    requiresLider: true,
+  },
+  {
     id: 'auditoria',
     titulo: 'Auditoria',
     descricao: 'Histórico de alterações em projetos e tarefas da área OSG.',
@@ -56,11 +67,15 @@ const FERRAMENTAS: FerramentaOsg[] = [
 
 const OsgBoasVindas = () => {
   const navigate = useNavigate();
+  const { isAdmin, isLider } = useAuth();
+  // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
+  const canGerencial = isAdmin || isLider;
+  const ferramentas = FERRAMENTAS.filter((f) => !f.requiresLider || canGerencial);
 
   return (
     <OsgLayout title="Bem-vindo à área OSG" subtitle="Escolha uma ferramenta para começar">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {FERRAMENTAS.map((f) => (
+        {ferramentas.map((f) => (
           <Card
             key={f.id}
             className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5 transition-all duration-200 group flex flex-col"

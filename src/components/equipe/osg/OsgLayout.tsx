@@ -31,6 +31,7 @@ import {
   FileBarChart2,
   MessageSquare,
   Home,
+  LineChart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
@@ -111,10 +112,12 @@ interface OsgLayoutProps {
 }
 
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut, user, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
+  const canGerencial = isAdmin || isLider;
 
   // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
   // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
@@ -132,6 +135,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const isProjects = location.pathname.startsWith('/equipe/osg/inicio')
     || location.pathname.startsWith('/equipe/osg/dashboard')
     || location.pathname.startsWith('/equipe/osg/projetos')
+    || location.pathname.startsWith('/equipe/osg/gerencial')
     || location.pathname.startsWith('/equipe/osg/auditoria');
 
   // Itens do agrupador "Projetos" — espelhado da área Tax (Dashboard / Projetos /
@@ -481,6 +485,22 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             {!collapsed && <span>Relatórios</span>}
           </button>
           </>
+          )}
+
+          {/* Gerencial — dashboard de Clientes e OS por cluster, só para líder+ */}
+          {isProjects && canGerencial && (
+            <button
+              onClick={() => navigate('/equipe/osg/gerencial')}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                location.pathname === '/equipe/osg/gerencial'
+                  ? "bg-osg-100 text-osg-700"
+                  : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+              )}
+            >
+              <LineChart className="h-4 w-4" />
+              {!collapsed && <span>Gerencial</span>}
+            </button>
           )}
 
           {/* Auditoria — exclusiva da área Projetos (a rota /equipe/osg/auditoria é
