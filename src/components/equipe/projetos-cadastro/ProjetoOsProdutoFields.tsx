@@ -18,7 +18,7 @@ function OsStatusBadge({ status }: { status: string | null }) {
 export function ProjetoOsProdutoFields() {
   const {
     formData, setFormData, clienteOS, osProdutosByOs, selectedOsId, setSelectedOsId,
-    selectedOsProdutos, selectedProdutoId, setSelectedProdutoId, servicosByProduto,
+    selectedOsProdutos, selectedProdutoId, setSelectedProdutoId,
   } = useProjetosCadastro();
   return <>
     {formData.external_client_id && <div className="space-y-2">
@@ -43,17 +43,9 @@ export function ProjetoOsProdutoFields() {
       <Label>Produto Contratado *</Label>
       <Select value={selectedProdutoId || '_none'} onValueChange={value => {
         setSelectedProdutoId(value === '_none' ? null : value);
-        setFormData(previous => ({ ...previous, servico_id: '' }));
       }}>
         <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
         <SelectContent><SelectItem value="_none">Selecione...</SelectItem>{selectedOsProdutos.map(product => <SelectItem key={product.produto_segmento_id} value={product.produto_segmento_id}>{product.produto_codigo} — {product.produto_nome}</SelectItem>)}</SelectContent>
-      </Select>
-    </div>}
-    {selectedOsId && <div>
-      <Label>Serviço</Label>
-      <Select value={formData.servico_id} onValueChange={value => setFormData(previous => ({ ...previous, servico_id: value === '_none' ? '' : value }))} disabled={!selectedProdutoId}>
-        <SelectTrigger><SelectValue placeholder={!selectedProdutoId ? selectedOsProdutos.length === 0 ? 'OS sem produto cadastrado' : 'Selecione um produto primeiro' : 'Selecione o serviço'} /></SelectTrigger>
-        <SelectContent><SelectItem value="_none">Nenhum</SelectItem>{servicosByProduto.map(service => <SelectItem key={service.id} value={service.id}>{service.nome}</SelectItem>)}</SelectContent>
       </Select>
     </div>}
   </>;

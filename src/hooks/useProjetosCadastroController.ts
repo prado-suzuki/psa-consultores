@@ -38,6 +38,7 @@ import {
   type SortDirection,
   type ProjectPrefillLocationState,
 } from '@/lib/projetosCadastro';
+import { computeAvailableMembers, computeExecutores, computeLideres } from '@/lib/projetoEquipe';
 
 export function useProjetosCadastroController(area: AreaKey) {
   const location = useLocation();
@@ -133,8 +134,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     setSelectedProdutoId(selectedOsProdutos.length === 1 ? selectedOsProdutos[0].produto_segmento_id : null);
   }, [selectedOsProdutos]);
 
-  const { servicosByProdutoQuery, resolveProdutoIdByServico } = useDomainFiscalProjetosCadastro(selectedProdutoId);
-  const { data: servicosByProduto = [] } = servicosByProdutoQuery;
+  const { resolveProdutoIdByServico } = useDomainFiscalProjetosCadastro(selectedProdutoId);
 
   useEffect(() => {
     if (!editingProject || !formData.servico_id || selectedProdutoId || selectedOsProdutos.length === 0) return;
@@ -202,43 +202,15 @@ export function useProjetosCadastroController(area: AreaKey) {
     setFormData(previous => ({ ...previous, leader_ids: leaderIds, member_ids: memberIds }));
   }, [editingProject, currentProjectMembers, userRoles]);
 
-  const lideres = useMemo(() => {
-    const leaderRoleIds = userRoles.filter(role => role.role === 'lider').map(role => role.user_id);
-    const allLeaders = teamMembers.filter(member => leaderRoleIds.includes(member.id));
-    if (equipeId && equipeLiderIds.length > 0) {
-      const selected = new Set(formData.leader_ids);
-      const filtered = allLeaders.filter(member => equipeLiderIds.includes(member.id) || selected.has(member.id));
-      return filtered.length > 0 ? filtered : allLeaders;
-    }
-    return allLeaders;
-  }, [teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids]);
+  const lideres = useMemo(() => computeLideres(teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids),
+    [teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids]);
 
-  const executores = useMemo(() => {
-    const roleMap = new Map(userRoles.map(role => [role.user_id, role.role]));
-    const eligible = teamMembers.filter(member => ['team_member', 'sublider'].includes(roleMap.get(member.id) || ''));
-    if (equipeId && equipeMemberIds.length > 0) {
-      const teamSet = new Set(equipeMemberIds);
-      const filtered = eligible.filter(member => teamSet.has(member.id) || member.id === formData.responsible_id);
-      return filtered.length > 0 ? filtered : eligible;
-    }
-    return eligible;
-  }, [teamMembers, userRoles, equipeId, equipeMemberIds, formData.responsible_id]);
+  const executores = useMemo(() => computeExecutores(teamMembers, userRoles, equipeId, equipeMemberIds, formData.responsible_id),
+    [teamMembers, userRoles, equipeId, equipeMemberIds, formData.responsible_id]);
 
-  const availableMembers = useMemo(() => {
-    const excluded = new Set(formData.leader_ids);
-    const selected = new Set(formData.member_ids);
-    if (formData.is_multidisciplinar) {
-      const members = new Map<string, (typeof teamMembers)[number]>();
-      for (const group of allAreaGroups) for (const member of group.members) members.set(member.id, member);
-      return [...members.values()].filter(member => !excluded.has(member.id));
-    }
-    if (equipeId) {
-      if (equipeMemberIds.length === 0 && selected.size === 0) return [];
-      return teamMembers.filter(member => !excluded.has(member.id)
-        && (equipeMemberIds.includes(member.id) || selected.has(member.id)));
-    }
-    return selected.size === 0 ? [] : teamMembers.filter(member => !excluded.has(member.id) && selected.has(member.id));
-  }, [teamMembers, formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, equipeId, equipeMemberIds, allAreaGroups]);
+  const availableMembers = useMemo(() => computeAvailableMembers(teamMembers, equipeId, equipeMemberIds,
+    formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, allAreaGroups),
+    [teamMembers, formData.leader_ids, formData.member_ids, formData.is_multidisciplinar, equipeId, equipeMemberIds, allAreaGroups]);
 
   const availableMembersByArea = useMemo(() => {
     if (!formData.is_multidisciplinar) return [];
@@ -362,7 +334,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     handleOpenModal, handleCloseModal, handleSubmit, createProject, updateProject,
     deleteProjectId, setDeleteProjectId, handleDelete,
     externalClients, clienteOS, osProdutosByOs, selectedOsId, setSelectedOsId,
-    selectedOsProdutos, selectedProdutoId, setSelectedProdutoId, servicosByProduto,
+    selectedOsProdutos, selectedProdutoId, setSelectedProdutoId,
     equipesOptions, teamMembers, lideres, executores, equipeId, equipeMemberIds,
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
     collapsedAreaGroups, toggleAreaGroup, handleMemberToggle,

@@ -92,6 +92,7 @@ import FiscalBoasVindas from "./pages/equipe/fiscal/FiscalBoasVindas";
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
+import FiscalProjetosLote from "./pages/equipe/fiscal/FiscalProjetosLote";
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
 import FiscalCadastrosClientes from "./pages/equipe/fiscal/FiscalCadastrosClientes";
 import GestaoClientes from "./pages/equipe/fiscal/GestaoClientes";
@@ -238,6 +239,7 @@ const App = () => (
               <Route path="/equipe/tax/dashboard" element={<PageAccessGate pagePath="/equipe/tax/dashboard"><FiscalDashboard /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/clientes" element={<PageAccessGate pagePath="/equipe/tax/projetos/clientes"><FiscalCadastrosClientes /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro-lote"><FiscalProjetosLote /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate>} />
 
               {/* Tax Auditoria */}

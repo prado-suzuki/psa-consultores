@@ -31,6 +31,14 @@ export interface ProjectPrefillLocationState {
   projectPrefill: ProjectPrefill;
 }
 
+/** De-para entre a situação da OS (ordem_servico.situacao) e o status do projeto (org_projects.status). */
+export const OS_SITUACAO_TO_PROJECT_STATUS: Record<string, string> = {
+  em_andamento: 'active',
+  concluido: 'completed',
+  suspenso: 'on_hold',
+  cancelado: 'cancelled',
+};
+
 export const EMPTY_PROJECT_FORM: OrgProjectFormData = {
   name: '',
   description: '',
