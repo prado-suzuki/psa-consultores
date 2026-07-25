@@ -4,6 +4,9 @@ Documentação de design do gerador de documentos jurídicos da área OSG (contr
 instrumentos agrários). **Não contém migrations nem schema final** — é o mapa que orienta as
 decisões de implementação.
 
+- [`briefing-geracao-documentos.md`](./briefing-geracao-documentos.md) — **estado implementado** em
+  uma página: as três telas, a sintaxe do template, o pipeline de geração, de onde vêm os dados,
+  versionamento/overrides e o que ainda não existe. Feito para colar como contexto num prompt de IA.
 - [`arquitetura-sintese.md`](./arquitetura-sintese.md) — síntese de arquitetura a partir de
   contratos reais: as 4 famílias de documento, as camadas (domínio → vocabulário → primitivos →
   cláusulas → composição → render), lacunas de dados e o sequenciamento em 4 fases.
