@@ -112,25 +112,47 @@ export interface OrganogramaBands {
 }
 
 export async function carregarOrganograma(admin: SB, clienteId: string): Promise<OrganogramaBands> {
-  const [{ data: pessoas, error: e1 }, { data: expl, error: e2 }] = await Promise.all([
+  // Sócios vêm do QUADRO SOCIETÁRIO (não de todas as PFs do cliente).
+  // Filtro: sócios distintos das empresas do cliente, mantendo apenas PF ou SC.
+  const quadroSel = `
+    socio:socio_pessoa_id!inner(id,denominacao,tipo_pessoa,tipo_empresa),
+    empresa:empresa_pessoa_id!inner(id,cliente_id)
+  `.replace(/\s+/g, "");
+  const [{ data: pessoas, error: e1 }, { data: expl, error: e2 }, { data: quadro, error: e3 }] = await Promise.all([
     admin.from("pessoa").select("id,denominacao,tipo_pessoa,tipo_empresa").eq("cliente_id", clienteId),
     admin.from("exploracao_rural").select("id,explorador_nome,explorador_pessoa_id,tipo_exploracao,referencia").eq("cliente_id", clienteId),
+    admin.from("quadro_societario").select(quadroSel).eq("empresa.cliente_id", clienteId),
   ]);
   if (e1) throw new Error(`organograma.pessoa: ${e1.message}`);
   if (e2) throw new Error(`organograma.exploracao_rural: ${e2.message}`);
+  if (e3) throw new Error(`organograma.quadro_societario: ${e3.message}`);
 
-  const socios: string[] = [];
   const controladoras: string[] = [];
   const controladas: string[] = [];
 
   for (const p of (pessoas ?? []) as any[]) {
     const nome = p.denominacao ?? "";
     if (!nome) continue;
-    const tp = String(p.tipo_pessoa ?? "").toUpperCase();
     const te = String(p.tipo_empresa ?? "").toUpperCase();
     if (te === "CN") controladoras.push(nome);
     else if (te === "PR") controladas.push(nome);
-    else if (tp === "PF" || te === "SC") socios.push(nome);
+  }
+
+  // Sócios: distintos por id, apenas PF ou SC.
+  const seen = new Set<string>();
+  const socios: string[] = [];
+  for (const r of (quadro ?? []) as any[]) {
+    const s = r.socio;
+    if (!s || !s.id) continue;
+    if (seen.has(s.id)) continue;
+    const nome = s.denominacao ?? "";
+    if (!nome) continue;
+    const tp = String(s.tipo_pessoa ?? "").toUpperCase();
+    const te = String(s.tipo_empresa ?? "").toUpperCase();
+    if (tp === "PF" || te === "SC") {
+      seen.add(s.id);
+      socios.push(nome);
+    }
   }
 
   const rural: string[] = [];
@@ -187,6 +209,8 @@ export async function carregarQuadro(admin: SB, clienteId: string): Promise<Quad
 // ---------- Titular ----------
 
 export async function resolverTitular(admin: SB, clienteId: string): Promise<string> {
+  // Titular = explorador principal da composse cadastrada.
+  // Sem composse cadastrada → placeholder claro (nunca inventar via is_fundador).
   const { data: expl } = await admin
     .from("exploracao_rural")
     .select("explorador_nome,explorador:explorador_pessoa_id(denominacao)")
@@ -198,15 +222,5 @@ export async function resolverTitular(admin: SB, clienteId: string): Promise<str
     const n = e.explorador?.denominacao || e.explorador_nome;
     if (n) return String(n);
   }
-  const { data: fund } = await admin
-    .from("pessoa")
-    .select("denominacao")
-    .eq("cliente_id", clienteId)
-    .eq("is_fundador", true)
-    .limit(1);
-  if (fund && fund.length > 0) {
-    const n = (fund[0] as any).denominacao;
-    if (n) return String(n);
-  }
-  return "";
+  return "[titular da composse — a definir]";
 }
