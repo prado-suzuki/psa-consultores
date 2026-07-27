@@ -23,12 +23,13 @@ import { validatePptx } from "../_shared/ooxml/validate.ts";
 import { duplicateSlide, removeSlide } from "../_shared/ooxml/slide.ts";
 import {
   listShapes, getShapeXfrm, setShapeXfrm, shapeContainsToken,
-  cloneShapeWithNewId, removeShape,
+  cloneShapeWithId, removeShape,
 } from "../_shared/ooxml/shapes.ts";
 import {
   listGraphicFrames, graphicFrameContainsToken, getGraphicFrameBox, setGraphicFrameBox,
-  cloneGraphicFrameWithNewId, listRows, rowContainsToken, cloneRow, removeRow, insertRowBefore,
+  cloneGraphicFrameWithId, listRows, rowContainsToken, cloneRow, removeRow, insertRowBefore,
 } from "../_shared/ooxml/table.ts";
+import { nextCNvPrId } from "../_shared/ooxml/ids.ts";
 import {
   carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
