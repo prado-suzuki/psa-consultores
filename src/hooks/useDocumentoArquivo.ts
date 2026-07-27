@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { checklistClienteKey } from '@/hooks/useOsgChecklist';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -263,21 +265,83 @@ export function useUploadDocumentoCliente() {
   });
 }
 
-/** Soft-delete (equipe): marca excluido=true via update direto — autorizado pela
- * policy `team_member+ can update documento_arquivo`. NÃO usar na Área do Cliente. */
+interface DeleteDocumentoResult {
+  documento_id: string;
+  object_key: string | null;
+  deleted: boolean;
+  georef_rows_deleted: number;
+  georef_preservado: boolean;
+}
+
+/**
+ * Exclui um documento: marca a linha como excluída e apaga o binário no GCS.
+ *
+ * As DUAS escritas acontecem no backend, numa ordem que não é detalhe de
+ * implementação — é a autorização. O `PATCH excluido=true` roda com o JWT do
+ * usuário, então a RLS decide, e "0 linhas afetadas" vira 403 antes de qualquer
+ * byte morrer. Por isso o front não atualiza a linha aqui: fazer o UPDATE deste
+ * lado deixaria a permissão de destruir os bytes apoiada em quem consegue LER o
+ * documento, e ler é permissão que o portal do cliente tem.
+ *
+ * A linha permanece com `excluido=true` e `gcs_uri` — é o que torna utilizável a
+ * janela de soft-delete de 7 dias do bucket.
+ */
 export function useExcluirDocumento(clienteId: string) {
+  const { fetchWithAuth } = useApiAuth();
+  const { logAction } = useAuditLog();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('documento_arquivo').update({ excluido: true }).eq('id', id);
-      if (error) throw error;
+    mutationFn: async (doc: DocumentoArquivoRow): Promise<DeleteDocumentoResult> => {
+      // Timeout generoso: a chamada é destrutiva e pode incluir DML no BigQuery
+      // (georref) sobre um Cloud Run frio. Abortar no cliente não aborta o
+      // servidor — o erro de timeout mentiria sobre o que aconteceu.
+      const res = await fetchWithAuth(
+        getApiUrl('/api/v1/osg/documentos/delete'),
+        { method: 'POST', body: JSON.stringify({ documento_id: doc.id }) },
+        60000,
+      );
+      if (!res.ok) {
+        throw new Error(
+          res.status === 403
+            ? 'Sem permissão para excluir este documento (ou ele já estava excluído).'
+            : 'Falha ao excluir o documento',
+        );
+      }
+      const resultado = (await res.json()) as DeleteDocumentoResult;
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_arquivo',
+        entity_id: doc.id,
+        entity_name: doc.nome_original,
+        action: 'deleted',
+        changed_fields: { excluido: { old: false, new: true } },
+        details: resultado.object_key
+          ? `Arquivo apagado do storage (${resultado.object_key})`
+          : 'Linha sem arquivo associado',
+      });
+      return resultado;
     },
-    onSuccess: () => {
+    onSuccess: (resultado, doc) => {
       qc.invalidateQueries({ queryKey: [LIST_KEY, clienteId] });
-      toast({ title: 'Documento removido' });
+      // O checklist embute documento_arquivo (item "recebido" = tem arquivo
+      // ativo vinculado), então precisa recontar quando um documento sai.
+      qc.invalidateQueries({ queryKey: checklistClienteKey(clienteId) });
+      // O georref vive no BigQuery e foi purgado pelo backend; sem invalidar,
+      // a tela Gerar seguiria montando a tabela de vértices (e o .docx) com
+      // coordenadas que já não existem.
+      if (doc.categoria === 'georreferenciamento' && doc.matricula_id) {
+        qc.invalidateQueries({ queryKey: ['georef-by-matricula', doc.matricula_id] });
+      }
+      toast({
+        title: 'Documento excluído',
+        // Não afirma que apagou o arquivo quando os bytes já não estavam lá.
+        description: resultado.deleted
+          ? 'O arquivo foi apagado do storage.'
+          : 'O registro foi excluído (o arquivo já não estava no storage).',
+      });
     },
     onError: (e: unknown) =>
-      toast({ title: 'Erro ao remover', description: (e as Error).message, variant: 'destructive' }),
+      toast({ title: 'Erro ao excluir', description: (e as Error).message, variant: 'destructive' }),
   });
 }
 

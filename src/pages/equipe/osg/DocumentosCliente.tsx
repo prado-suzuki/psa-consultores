@@ -434,11 +434,16 @@ const DocumentosCliente = () => {
                               </Tooltip>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button variant="ghost" size="icon" onClick={() => setAExcluir(d)}>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setAExcluir(d)}
+                                    disabled={excluir.isPending}
+                                  >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>Remover da lista</TooltipContent>
+                                <TooltipContent>Excluir o documento e o arquivo</TooltipContent>
                               </Tooltip>
                             </li>
                           ))}
@@ -505,20 +510,21 @@ const DocumentosCliente = () => {
       <AlertDialog open={!!aExcluir} onOpenChange={(o) => !o && setAExcluir(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover documento?</AlertDialogTitle>
+            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
             <AlertDialogDescription>
-              "{aExcluir?.nome_original}" deixará de aparecer na lista. O arquivo permanece arquivado no storage.
+              "{aExcluir?.nome_original}" sai da lista e o arquivo é apagado do storage. A recuperação só é
+              possível dentro de 7 dias.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (aExcluir) excluir.mutate(aExcluir.id);
+                if (aExcluir) excluir.mutate(aExcluir);
                 setAExcluir(null);
               }}
             >
-              Remover
+              Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

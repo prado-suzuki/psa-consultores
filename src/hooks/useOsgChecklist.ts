@@ -66,6 +66,13 @@ export interface ChecklistClienteRow {
 
 const PADRAO_KEY = 'checklist-padrao';
 const CLIENTE_KEY = 'checklist-cliente';
+/**
+ * Chave da lista de checklist de um cliente. Exportada porque o checklist conta
+ * como "recebido" o item que tem documento ativo vinculado — então quem mexe em
+ * `documento_arquivo` (anexar/excluir) precisa invalidar esta query. Exportar a
+ * fábrica em vez do literal evita que um rename aqui silencie a invalidação lá.
+ */
+export const checklistClienteKey = (clienteId: string) => [CLIENTE_KEY, clienteId];
 
 /** Catálogo padrão editável (os 63 tipos). Fonte da tela e do seletor de condicionais. */
 export function useChecklistPadrao() {
