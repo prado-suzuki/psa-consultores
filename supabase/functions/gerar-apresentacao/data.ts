@@ -111,52 +111,259 @@ export interface OrganogramaBands {
   rural: string[];
 }
 
-export async function carregarOrganograma(admin: SB, clienteId: string): Promise<OrganogramaBands> {
-  // Sócios vêm do QUADRO SOCIETÁRIO (não de todas as PFs do cliente).
-  // Filtro: sócios distintos das empresas do cliente, mantendo apenas PF ou SC.
-  const quadroSel = `
-    socio:socio_pessoa_id!inner(id,denominacao,tipo_pessoa,tipo_empresa),
-    empresa:empresa_pessoa_id!inner(id,cliente_id)
+// ---------- Empresas do cliente + quadro por tipo (CN manual | PR derivado) ----------
+
+interface EmpresaPJ { id: string; denominacao: string; tipo_empresa: string | null }
+
+interface SocioIdent {
+  pessoaId: string | null;
+  denominacao: string;
+  tipoPessoa: string | null;
+  tipoEmpresa: string | null;
+}
+
+interface QuadroResult {
+  linhas: QuadroLinha[];
+  totalQuotas: number;
+  totalValor: number;
+  socios: SocioIdent[]; // reaproveitado pela faixa "Sócios" do organograma
+}
+
+async function listarEmpresasPJ(admin: SB, clienteId: string): Promise<EmpresaPJ[]> {
+  const { data, error } = await admin
+    .from("pessoa")
+    .select("id,denominacao,tipo_pessoa,tipo_empresa")
+    .eq("cliente_id", clienteId)
+    .eq("tipo_pessoa", "PJ");
+  if (error) throw new Error(`listarEmpresasPJ: ${error.message}`);
+  return ((data ?? []) as any[])
+    .filter((p) => p?.denominacao)
+    .map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
+}
+
+// Quadro MANUAL para holdings CN: mantém a lógica original (quotas/vlr_total
+// vindos da tabela; percentual recalculado por Σquotas).
+async function quadroCN(admin: SB, empresaId: string): Promise<QuadroResult> {
+  const sel = `quotas,vlr_total,percentual,socio:socio_pessoa_id(id,denominacao,tipo_pessoa,tipo_empresa)`;
+  const { data, error } = await admin
+    .from("quadro_societario")
+    .select(sel)
+    .eq("empresa_pessoa_id", empresaId);
+  if (error) throw new Error(`quadroCN(${empresaId}): ${error.message}`);
+
+  const linhas: QuadroLinha[] = [];
+  const socios: SocioIdent[] = [];
+  const seen = new Set<string>();
+  for (const r of (data ?? []) as any[]) {
+    const s = r.socio;
+    const denom = s?.denominacao ?? "—";
+    linhas.push({
+      socio: denom,
+      quotas: Number(r.quotas ?? 0),
+      valor: Number(r.vlr_total ?? 0),
+      pct: 0,
+    });
+    if (s?.id && !seen.has(s.id)) {
+      seen.add(s.id);
+      socios.push({
+        pessoaId: s.id,
+        denominacao: denom,
+        tipoPessoa: s.tipo_pessoa ?? null,
+        tipoEmpresa: s.tipo_empresa ?? null,
+      });
+    }
+  }
+  const tq = linhas.reduce((s, x) => s + x.quotas, 0);
+  const tv = linhas.reduce((s, x) => s + x.valor, 0);
+  for (const row of linhas) row.pct = tq > 0 ? (row.quotas / tq) * 100 : NaN;
+  linhas.sort((a, b) => b.quotas - a.quotas || a.socio.localeCompare(b.socio, "pt-BR"));
+  return { linhas, totalQuotas: tq, totalValor: tv, socios };
+}
+
+// Quadro DERIVADO para empresas PR — espelha calcularParticipacoesPR do front
+// (src/lib/templates/mapeadores.ts): rateio em centavos por fração de
+// titularidade dos bens Aprovados para integralização; matrículas com
+// impedimento ativo entram fora; último sócio absorve resíduo de arredondamento.
+async function quadroPR(admin: SB, empresaId: string): Promise<QuadroResult> {
+  const sel = `
+    vlr_contabil,
+    matricula(
+      vlr_contabil,
+      titularidade(integralizador,fracao,titular:titular_pessoa_id(id,denominacao,tipo_pessoa,tipo_empresa)),
+      impedimento(id,cancelado)
+    )
   `.replace(/\s+/g, "");
-  const [{ data: pessoas, error: e1 }, { data: expl, error: e2 }, { data: quadro, error: e3 }] = await Promise.all([
-    admin.from("pessoa").select("id,denominacao,tipo_pessoa,tipo_empresa").eq("cliente_id", clienteId),
-    admin.from("exploracao_rural").select("id,explorador_nome,explorador_pessoa_id,tipo_exploracao,referencia").eq("cliente_id", clienteId),
-    admin.from("quadro_societario").select(quadroSel).eq("empresa.cliente_id", clienteId),
+  const { data, error } = await admin
+    .from("bem")
+    .select(sel)
+    .eq("empresa_destino_pessoa_id", empresaId)
+    .eq("status_integralizacao", "Aprovado");
+  if (error) throw new Error(`quadroPR(${empresaId}): ${error.message}`);
+
+  interface Tit {
+    pessoaId: string | null;
+    denominacao: string;
+    tipoPessoa: string | null;
+    tipoEmpresa: string | null;
+    integralizador: boolean;
+    fracao: number | null;
+  }
+  interface Acc {
+    pessoaId: string | null;
+    denominacao: string;
+    tipoPessoa: string | null;
+    tipoEmpresa: string | null;
+    cent: number;
+  }
+  const porChave = new Map<string, Acc>();
+
+  for (const b of (data ?? []) as any[]) {
+    const bemVlr = b.vlr_contabil;
+    for (const m of (b.matricula ?? []) as any[]) {
+      // impedimento ATIVO (algum sem cancelado=true) descarta a matrícula
+      const imp = (m.impedimento ?? []) as any[];
+      if (imp.some((i) => i && i.cancelado !== true)) continue;
+
+      const vlrRaw = m.vlr_contabil ?? bemVlr;
+      const vlr = vlrRaw == null ? null : Number(vlrRaw);
+      if (vlr == null || !Number.isFinite(vlr)) continue;
+
+      // Dedup titulares por pessoa (integralizador OR; primeira fração não-nula)
+      const raw: Tit[] = ((m.titularidade ?? []) as any[]).map((t) => ({
+        pessoaId: t?.titular?.id ?? null,
+        denominacao: t?.titular?.denominacao ?? "—",
+        tipoPessoa: t?.titular?.tipo_pessoa ?? null,
+        tipoEmpresa: t?.titular?.tipo_empresa ?? null,
+        integralizador: !!t?.integralizador,
+        fracao: t?.fracao == null ? null : Number(t.fracao),
+      }));
+      const porPessoa = new Map<string, Tit>();
+      const titulares: Tit[] = [];
+      for (const t of raw) {
+        if (!t.pessoaId) { titulares.push({ ...t }); continue; }
+        const ex = porPessoa.get(t.pessoaId);
+        if (ex) {
+          ex.integralizador = ex.integralizador || t.integralizador;
+          if (ex.fracao == null) ex.fracao = t.fracao;
+        } else {
+          const novo = { ...t };
+          porPessoa.set(t.pessoaId, novo);
+          titulares.push(novo);
+        }
+      }
+      if (titulares.length === 0) continue;
+
+      const totalCent = Math.round(vlr * 100);
+      const comFracao = titulares.filter((t) => t.fracao != null);
+      const semFracao = titulares.filter((t) => t.fracao == null);
+      // "Fechada": todos com fração e Σ ≈ 100 → último absorve resíduo
+      const fechada =
+        semFracao.length === 0 &&
+        Math.abs(comFracao.reduce((s, t) => s + (t.fracao as number), 0) - 100) < 0.001;
+
+      const centDe = new Map<Tit, number>();
+      let alocado = 0;
+      comFracao.forEach((t, i) => {
+        const cent = fechada && i === comFracao.length - 1
+          ? totalCent - alocado
+          : Math.round((totalCent * (t.fracao as number)) / 100);
+        alocado += cent;
+        centDe.set(t, cent);
+      });
+      const restante = totalCent - alocado;
+      let alocadoSem = 0;
+      semFracao.forEach((t, i) => {
+        const cent = i === semFracao.length - 1
+          ? restante - alocadoSem
+          : Math.round(restante / Math.max(semFracao.length, 1));
+        alocadoSem += cent;
+        centDe.set(t, cent);
+      });
+
+      for (const t of titulares) {
+        const chave = t.pessoaId ?? `nome:${t.denominacao}`;
+        const atual = porChave.get(chave);
+        const cent = centDe.get(t) ?? 0;
+        if (atual) atual.cent += cent;
+        else porChave.set(chave, {
+          pessoaId: t.pessoaId,
+          denominacao: t.denominacao,
+          tipoPessoa: t.tipoPessoa,
+          tipoEmpresa: t.tipoEmpresa,
+          cent,
+        });
+      }
+    }
+  }
+
+  const capitalCent = [...porChave.values()].reduce((s, a) => s + a.cent, 0);
+  if (capitalCent === 0) return { linhas: [], totalQuotas: 0, totalValor: 0, socios: [] };
+
+  const ordenados = [...porChave.values()].sort((a, z) => z.cent - a.cent);
+  const linhas: QuadroLinha[] = ordenados.map((a) => ({
+    socio: a.denominacao,
+    valor: a.cent / 100,
+    quotas: Math.round(a.cent / 100),
+    pct: (a.cent / capitalCent) * 100,
+  }));
+  const totalQuotas = Math.round(capitalCent / 100);
+  const somaQuotas = linhas.reduce((s, p) => s + p.quotas, 0);
+  if (linhas.length > 0) linhas[linhas.length - 1].quotas += totalQuotas - somaQuotas;
+
+  const socios: SocioIdent[] = ordenados.map((a) => ({
+    pessoaId: a.pessoaId,
+    denominacao: a.denominacao,
+    tipoPessoa: a.tipoPessoa,
+    tipoEmpresa: a.tipoEmpresa,
+  }));
+  return { linhas, totalQuotas, totalValor: capitalCent / 100, socios };
+}
+
+// Roteia por tipo_empresa: CN=manual, PR=derivado, resto=ignora.
+async function quadroDaEmpresa(admin: SB, e: EmpresaPJ): Promise<QuadroResult | null> {
+  const te = String(e.tipo_empresa ?? "").toUpperCase();
+  if (te === "CN") return await quadroCN(admin, e.id);
+  if (te === "PR") return await quadroPR(admin, e.id);
+  return null; // SC (sócio) ou sem tipo: não é empresa deste cliente
+}
+
+export async function carregarOrganograma(admin: SB, clienteId: string): Promise<OrganogramaBands> {
+  const [empresas, explRes] = await Promise.all([
+    listarEmpresasPJ(admin, clienteId),
+    admin.from("exploracao_rural")
+      .select("id,explorador_nome,explorador_pessoa_id,tipo_exploracao,referencia")
+      .eq("cliente_id", clienteId),
   ]);
-  if (e1) throw new Error(`organograma.pessoa: ${e1.message}`);
-  if (e2) throw new Error(`organograma.exploracao_rural: ${e2.message}`);
-  if (e3) throw new Error(`organograma.quadro_societario: ${e3.message}`);
+  if (explRes.error) throw new Error(`organograma.exploracao_rural: ${explRes.error.message}`);
 
   const controladoras: string[] = [];
   const controladas: string[] = [];
-
-  for (const p of (pessoas ?? []) as any[]) {
-    const nome = p.denominacao ?? "";
-    if (!nome) continue;
-    const te = String(p.tipo_empresa ?? "").toUpperCase();
-    if (te === "CN") controladoras.push(nome);
-    else if (te === "PR") controladas.push(nome);
+  for (const e of empresas) {
+    const te = String(e.tipo_empresa ?? "").toUpperCase();
+    if (te === "CN") controladoras.push(e.denominacao);
+    else if (te === "PR") controladas.push(e.denominacao);
   }
 
-  // Sócios: distintos por id, apenas PF ou SC.
+  // Sócios: uniao dos socios de cada empresa (CN manual / PR derivado),
+  // filtrando PF ou SC, dedup por pessoaId (fallback nome).
   const seen = new Set<string>();
   const socios: string[] = [];
-  for (const r of (quadro ?? []) as any[]) {
-    const s = r.socio;
-    if (!s || !s.id) continue;
-    if (seen.has(s.id)) continue;
-    const nome = s.denominacao ?? "";
-    if (!nome) continue;
-    const tp = String(s.tipo_pessoa ?? "").toUpperCase();
-    const te = String(s.tipo_empresa ?? "").toUpperCase();
-    if (tp === "PF" || te === "SC") {
-      seen.add(s.id);
-      socios.push(nome);
+  for (const e of empresas) {
+    const r = await quadroDaEmpresa(admin, e);
+    if (!r) continue;
+    for (const s of r.socios) {
+      const tp = String(s.tipoPessoa ?? "").toUpperCase();
+      const te = String(s.tipoEmpresa ?? "").toUpperCase();
+      if (!(tp === "PF" || te === "SC")) continue;
+      const chave = s.pessoaId ?? `nome:${s.denominacao}`;
+      if (seen.has(chave)) continue;
+      seen.add(chave);
+      if (s.denominacao) socios.push(s.denominacao);
     }
   }
 
   const rural: string[] = [];
-  for (const e of (expl ?? []) as any[]) {
+  for (const e of (explRes.data ?? []) as any[]) {
     const label = e.referencia || e.explorador_nome;
     if (label) rural.push(label);
   }
@@ -171,36 +378,12 @@ export interface QuadroLinha { socio: string; quotas: number; valor: number; pct
 export interface QuadroEmpresa { empresa: string; linhas: QuadroLinha[]; totalQuotas: number; totalValor: number }
 
 export async function carregarQuadro(admin: SB, clienteId: string): Promise<QuadroEmpresa[]> {
-  const sel = `
-    quotas,vlr_total,percentual,
-    empresa:empresa_pessoa_id!inner(id,denominacao,cliente_id),
-    socio:socio_pessoa_id(id,denominacao,tipo_pessoa)
-  `.replace(/\s+/g, "");
-  const { data, error } = await admin.from("quadro_societario").select(sel).eq("empresa.cliente_id", clienteId);
-  if (error) throw new Error(`carregarQuadro: ${error.message}`);
-
-  const map = new Map<string, { empresa: string; rows: QuadroLinha[] }>();
-  for (const r of (data ?? []) as any[]) {
-    const empId = r.empresa?.id;
-    const empNome = r.empresa?.denominacao;
-    if (!empId || !empNome) continue;
-    if (!map.has(empId)) map.set(empId, { empresa: empNome, rows: [] });
-    map.get(empId)!.rows.push({
-      socio: r.socio?.denominacao ?? "—",
-      quotas: Number(r.quotas ?? 0),
-      valor: Number(r.vlr_total ?? 0),
-      pct: 0, // recalculado
-    });
-  }
-
+  const empresas = await listarEmpresasPJ(admin, clienteId);
   const out: QuadroEmpresa[] = [];
-  for (const [, v] of map) {
-    const tq = v.rows.reduce((s, x) => s + x.quotas, 0);
-    const tv = v.rows.reduce((s, x) => s + x.valor, 0);
-    // Sentinel NaN quando total zero — fmtPct renderiza "—".
-    for (const row of v.rows) row.pct = tq > 0 ? (row.quotas / tq) * 100 : NaN;
-    v.rows.sort((a, b) => b.quotas - a.quotas || a.socio.localeCompare(b.socio, "pt-BR"));
-    out.push({ empresa: v.empresa, linhas: v.rows, totalQuotas: tq, totalValor: tv });
+  for (const e of empresas) {
+    const r = await quadroDaEmpresa(admin, e);
+    if (!r || r.linhas.length === 0) continue;
+    out.push({ empresa: e.denominacao, linhas: r.linhas, totalQuotas: r.totalQuotas, totalValor: r.totalValor });
   }
   out.sort((a, b) => a.empresa.localeCompare(b.empresa, "pt-BR"));
   return out;
