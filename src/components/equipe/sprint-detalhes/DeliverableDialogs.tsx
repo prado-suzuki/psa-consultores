@@ -11,6 +11,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
+import { MoveDeliverableDialog } from '@/components/equipe/sprint-detalhes/MoveDeliverableDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -277,6 +278,8 @@ export function DeliverableDialogs({
         onCancel={c.cancelCompletionWarning}
         onConfirm={c.confirmCompletionWarning}
       />
+
+      <MoveDeliverableDialog controller={c} />
 
       <Dialog open={c.editModalOpen} onOpenChange={c.setEditModalOpen}>
         <DialogContent className="max-w-lg">

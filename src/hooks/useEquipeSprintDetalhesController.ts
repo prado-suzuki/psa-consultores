@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSprints } from '@/hooks/useSprints';
 import {
   useDomainEquipeSprintDetalhes,
   type SprintDetalhesDeliverable as Deliverable,
@@ -14,6 +16,9 @@ import {
   buildGanttData,
   buildTaskHierarchy,
   calculateSprintRisks,
+  clampDatesToSprint,
+  collectDeliverableSubtree,
+  describeMoveEffect,
   filterDeliverables,
   groupGanttByPerson,
   siblingShifts,
@@ -64,6 +69,8 @@ export function useEquipeSprintDetalhesController() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  // isLider no AuthContext é estrito e não engloba admin.
+  const { isAdmin, isLider } = useAuth();
   const data = useDomainEquipeSprintDetalhes(id);
   const { sprint, deliverables, events, metrics, profiles, projects, processes, projectProcesses } =
     data;
@@ -101,6 +108,10 @@ export function useEquipeSprintDetalhesController() {
   const [importing, setImporting] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [moveModalOpen, setMoveModalOpen] = useState(false);
+  const [movingDeliverable, setMovingDeliverable] = useState<Deliverable | null>(null);
+  const [moveTargetSprintId, setMoveTargetSprintId] = useState('');
+  const [moving, setMoving] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [responsibleMapping, setResponsibleMapping] = useState<Record<string, string>>({});
 
@@ -321,6 +332,100 @@ export function useEquipeSprintDetalhesController() {
   const openCreateSubtaskModal = (parent: Deliverable) => {
     setCreateForm(selectParent(blankForm(sprint?.start_date, sprint?.end_date), parent.id));
     setCreateModalOpen(true);
+  };
+
+  // ---- Move de tarefa entre sprints -------------------------------------------------------------
+  // A ação existe só para líder ou admin. É gate de tela: a RLS de UPDATE ainda aceita team_member,
+  // então isto reduz uso acidental, não é barreira de banco.
+  const canMoveDeliverable = isAdmin || isLider;
+  const { data: allSprints } = useSprints();
+  const moveSprintOptions = useMemo(
+    () => (allSprints ?? []).filter((option) => option.id !== sprint?.id),
+    [allSprints, sprint?.id],
+  );
+  const moveTargetSprint = useMemo(
+    () => moveSprintOptions.find((option) => option.id === moveTargetSprintId) ?? null,
+    [moveSprintOptions, moveTargetSprintId],
+  );
+  // Efeitos do move, calculados na mesma função que a gravação usa, para o texto não descrever uma
+  // coisa e o banco fazer outra.
+  const movePreview = useMemo(() => {
+    if (!movingDeliverable || !moveTargetSprint) return null;
+    const { descendantIds } = collectDeliverableSubtree(deliverables, movingDeliverable.id);
+    const nextDates = clampDatesToSprint(movingDeliverable, moveTargetSprint);
+    const adjustsSubtaskDates = deliverables
+      .filter((item) => descendantIds.includes(item.id))
+      .some((item) => {
+        const childDates = clampDatesToSprint(item, moveTargetSprint);
+        return (
+          childDates.due_date !== item.due_date || childDates.start_date !== item.start_date
+        );
+      });
+    const parent = movingDeliverable.parent_id
+      ? deliverables.find((item) => item.id === movingDeliverable.parent_id)
+      : undefined;
+    return {
+      descendantCount: descendantIds.length,
+      lines: describeMoveEffect({
+        targetSprintName: moveTargetSprint.name,
+        // A mãe nunca vai junto: quem se move é esta tarefa, então o vínculo é desfeito.
+        detachingFromParentTitle: movingDeliverable.parent_id
+          ? (parent?.title ?? 'tarefa principal')
+          : null,
+        descendantCount: descendantIds.length,
+        currentDates: {
+          start_date: movingDeliverable.start_date,
+          due_date: movingDeliverable.due_date,
+        },
+        nextDates,
+        crossProject: Boolean(
+          sprint?.project_id &&
+            moveTargetSprint.project_id &&
+            moveTargetSprint.project_id !== sprint.project_id,
+        ),
+        adjustsSubtaskDates,
+      }),
+    };
+  }, [movingDeliverable, moveTargetSprint, deliverables, sprint?.project_id]);
+
+  const openMoveModal = (item: Deliverable) => {
+    setMovingDeliverable(item);
+    setMoveTargetSprintId('');
+    setMoveModalOpen(true);
+  };
+  const closeMoveModal = () => {
+    setMoveModalOpen(false);
+    setMovingDeliverable(null);
+    setMoveTargetSprintId('');
+  };
+  const confirmMove = async () => {
+    if (!movingDeliverable || !moveTargetSprint) return;
+    setMoving(true);
+    try {
+      const result = await data.moveDeliverableToSprint.mutateAsync({
+        deliverableId: movingDeliverable.id,
+        targetSprint: moveTargetSprint,
+      });
+      toast({
+        title: 'Tarefa movida',
+        description: `Agora em "${moveTargetSprint.name}".`,
+      });
+      // Avisos que não são falha: a tarefa está na sprint certa, mas algo ficou para trás e precisa
+      // ser visto por alguém.
+      if (result.backlogWarning) {
+        toast({ title: 'Atenção', description: result.backlogWarning, variant: 'destructive' });
+      }
+      if (result.crossSprintWarning) {
+        toast({ title: 'Atenção', description: result.crossSprintWarning, variant: 'destructive' });
+      }
+      closeMoveModal();
+    } catch (error) {
+      // Sem onError na mutation de propósito: a mensagem de movimentação incompleta precisa chegar
+      // ao usuário, senão ele não sabe que basta repetir. Não "padronizar" isso para silêncio.
+      toast({ title: 'Erro', description: errorMessage(error), variant: 'destructive' });
+    } finally {
+      setMoving(false);
+    }
   };
   const applyStatus = async (deliverableId: string, newStatus: string) => {
     try {
@@ -624,6 +729,18 @@ export function useEquipeSprintDetalhesController() {
     toggleMetric: (id: string) => toggleSet(setExpandedMetrics, id),
     getProfileName,
     relatedDeliverables,
+    canMoveDeliverable,
+    moveModalOpen,
+    movingDeliverable,
+    moveSprintOptions,
+    moveTargetSprintId,
+    setMoveTargetSprintId,
+    moveTargetSprint,
+    movePreview,
+    moving,
+    openMoveModal,
+    closeMoveModal,
+    confirmMove,
     updateStatus,
     updateMetric,
     openEditModal,

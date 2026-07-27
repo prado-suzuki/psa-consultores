@@ -1,4 +1,12 @@
-import { ChevronDown, ChevronRight, Download, Edit2, Plus, Upload } from 'lucide-react';
+import {
+  ArrowRightLeft,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Edit2,
+  Plus,
+  Upload,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -137,6 +145,16 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                       <Button variant="ghost" size="sm" onClick={() => c.openEditModal(task)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>
+                      {c.canMoveDeliverable && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => c.openMoveModal(task)}
+                          title="Mover para outra sprint"
+                        >
+                          <ArrowRightLeft className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Badge variant="outline">
                         {task.status === 'completed'
                           ? 'Concluído'
@@ -189,6 +207,16 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             >
                               <Edit2 className="h-3 w-3" />
                             </Button>
+                            {c.canMoveDeliverable && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => c.openMoveModal(subtask)}
+                                title="Mover para outra sprint (deixa de ser subtarefa)"
+                              >
+                                <ArrowRightLeft className="h-3 w-3" />
+                              </Button>
+                            )}
                           </div>
                         </CardContent>
                       </Card>

@@ -227,6 +227,20 @@ describe('describeMoveEffect', () => {
     expect(lines).toContain('O início passa de 27/07/2026 para 03/08/2026.');
   });
 
+  it('avisa que as datas das subtarefas também são ajustadas', () => {
+    const lines = describeMoveEffect({ ...base, descendantCount: 2, adjustsSubtaskDates: true });
+
+    expect(lines).toContain(
+      'As datas das subtarefas também são encaixadas na janela da sprint de destino.',
+    );
+  });
+
+  it('não fala de datas de subtarefa quando nenhuma precisa de ajuste', () => {
+    const lines = describeMoveEffect({ ...base, descendantCount: 2 });
+
+    expect(lines.some((line) => line.includes('datas das subtarefas'))).toBe(false);
+  });
+
   it('avisa sobre perda de visibilidade quando a sprint destino é de outro projeto', () => {
     const lines = describeMoveEffect({ ...base, crossProject: true });
 

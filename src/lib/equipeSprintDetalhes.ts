@@ -193,6 +193,8 @@ export interface MoveEffectInput {
   currentDates: { start_date: string | null; due_date: string };
   nextDates: { start_date: string | null; due_date: string };
   crossProject: boolean;
+  /** Alguma subtarefa que vai junto tem data fora da janela da sprint de destino. */
+  adjustsSubtaskDates?: boolean;
 }
 
 /**
@@ -214,6 +216,10 @@ export function describeMoveEffect(input: MoveEffectInput): string[] {
     lines.push('1 subtarefa será movida junto.');
   } else if (input.descendantCount > 1) {
     lines.push(`${input.descendantCount} subtarefas serão movidas junto.`);
+  }
+
+  if (input.adjustsSubtaskDates) {
+    lines.push('As datas das subtarefas também são encaixadas na janela da sprint de destino.');
   }
 
   if (input.nextDates.due_date !== input.currentDates.due_date) {
