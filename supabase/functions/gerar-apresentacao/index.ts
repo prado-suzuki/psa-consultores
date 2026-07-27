@@ -282,6 +282,7 @@ function distribuirShapes(
     setShapeXfrm(clone, { x: ORG_LMIN + i * (cx + ORG_GAP), y, cx, cy });
     ensureNormAutofit(clone);
     applyTokensToNode(clone, { ORG_ITEM: labels[i] });
+    fixRunFontSize(clone, labels[i]);
     spTree.appendChild(clone);
   }
 }
